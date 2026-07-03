@@ -1,131 +1,163 @@
 
-# Demo Scripts 1–5 – Completion Assessment
+# Phase 5 — Close all Script 1–5 gaps (production-grade, not demo)
 
-Read-only analysis of the five uploaded demo scripts against the current codebase. No files will be modified.
+## Progress log
+- ✅ Phase 5A schema migration: `license_certificate_signatures` table, cert dispatch_status, F&P weighted-vote columns, AI-routing columns on `application_ai_assessments`, `has_legal_access()` helper, tightened `application_legal_notes` RLS.
+- ✅ Gap 4 (License signing & dispatch): edge fns `sign-license-certificate` + `dispatch-license-certificate` with HMAC-SHA256 ledger, `LicenseSignaturePanel` wired into `LicenseDetail.tsx`, secret `LICENSE_SIGNING_SECRET` generated.
+- ⏭️ Next in Phase 5A: Gap 2 (AI-proposed routing UI + edge fn extension), Gap 3 (Security Events viewer wiring), Gap 11 (F&P weighted-voting RPC + UI), Gap 12 (F&P appeals module).
 
-Legend: ✅ built · 🟡 partial · ❌ missing
+Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 
----
 
-## Script 1 — Unified Licensing Registration & Approval (DEMO-ULRA-001..010)
-
-| ID | Scenario | Status | Evidence in code |
-|----|----------|--------|------------------|
-| 001 | Applicant draft creation, retrievable draft | ✅ | `NewApplication.tsx`, draft resumption memory |
-| 002 | Dynamic forms by license type, validation, doc upload (metadata + versioning), batch upload | 🟡 | Form engine + `DocumentsStep`, but **batch/bulk applicant upload not exposed** (only admin `BulkIntake.tsx`) |
-| 003 | Submission, reference ID, acknowledgement (portal + notification) | ✅ | `verify-and-submit`, registration success flow memory |
-| 004 | Officer intake queue with status/owner/SLA/priority columns | ✅ | `ApplicationQueue.tsx`, SLA wiring test |
-| 005 | Automated sufficiency, SLA timer, RFI, applicant response, near-due/missed-SLA alerts | ✅ | Phase 4 sufficiency + RFI, `sla-escalation-sweep`, `rfi-near-due-sweep` |
-| 006 | Analyst auto review with rules + AI, pre-populated findings, risk flags, proposed routing, override with reasons | 🟡 | `generate-application-ai-assessment` produces advisory findings; **explicit "AI-proposed routing" + one-click accept-with-override UI needs verification** |
-| 007 | Legal / compliance role review with restricted access + denied-access proof | 🟡 | `useApplicationLegalNotes` exists; **role-scoped denial audit path needs confirmation** |
-| 008 | Consolidated decision-ready view (applicant, docs, analyst, legal, RFIs, SLA age) | ✅ | `ApplicationDetail.tsx` |
-| 009 | Configurable decision options, digitally signed license, notifications, review/amend before dispatch | 🟡 | `ConfigurableDecisionActions` + `generate-license-certificate`; **"digital signature" and pre-dispatch amend/approve step not clearly separated** |
-| 010 | Renewal, revocation w/ justification, bulk intake, dashboards, full audit | ✅ | License lifecycle memory, `BulkIntake.tsx`, audit system |
-| — | Licensing → Supervision continuity: auto-create initial supervisory plan with time-bound corrective actions from licensing outcome | 🟡 | `SupervisoryPlanTemplates.tsx` exists; **auto-provisioning of an initial supervisory plan on license issuance is not wired** |
-| — | Twin-Peaks divergent-view resolution & conditional clearance between Prudential/Conduct | 🟡 | Coordination module + Phase 3 twin-peaks flag; **explicit "conditional clearance recorded" artefact + disagreement resolution UI to confirm** |
 
 ---
 
-## Script 2 — Fit & Proper Assessment (DEMO-FPA-001..015)
+## Phase 5A — Decision integrity & legal defensibility (highest risk)
 
-| ID | Scenario | Status | Notes |
-|----|----------|--------|-------|
-| 001 | 4 initiation paths (new license, monitoring trigger, ad-hoc, cycle-based) | 🟡 | New-license + ad-hoc present; **cycle-based scheduler trigger needs verification** |
-| 002 | Single individual + unique identifier reused across roles/entities | ✅ | `FitAndProperIndividuals.tsx` |
-| 003 | Subject profile + access control denial audit | 🟡 | Detail page present; **denied-access audit entry needs confirmation** |
-| 004 | Declarations + assessor notifications | ✅ | PQ form + notifications system |
-| 005 | Configurable screening; automated screening incl. adverse-media with confidence scoring & false-positive resolution | 🟡 | `FpScreeningConfigs.tsx` + `fp-screening-run`; **adverse-media match-confidence + FP resolution UI needs check** |
-| 006 | Manual screening task + evidence linkage | ✅ | `FpAssessmentsPanel` |
-| 007 | Adverse findings, severity classification, escalation | ✅ | `fpAudit`, `fp-monitoring-sweep` |
-| 008 | Historic comparison + individual & population trend dashboards, configurable logic | 🟡 | History exists; **population-level trend dashboard needs confirmation** |
-| 009 | AI-assisted analysis of structured + unstructured data with citations, confidence, human override | 🟡 | AI assessment infra exists for applications; **F&P-specific AI ingest of media/court records not confirmed** |
-| 010 | Sector-specific decision logic (DTI vs microcredit) | ✅ | Sector-scoped forms/rules |
-| 011 | Multi-regulator determinations on same individual | ✅ | Multi-regulator scoping memory |
-| 012 | Committee weighted voting | 🟡 | `FpCommittees.tsx` present; **weighted-vote calculation to confirm** |
-| 013 | Conditional determination + reminders + SLA breach | ✅ | Workflow SLA + conditions |
-| 014 | Appeal (standalone + linked to license) | ❌ | **No dedicated F&P appeals module found** |
-| 015 | Monitoring scheduler + event-triggered reassessment + audit | ✅ | `fp-monitoring-sweep` |
+Blocks approval quality across Scripts 1, 2, 4.
 
----
+**Gap 4 — Digital license signature + pre-dispatch review/amend gate**
+- New table `license_certificate_signatures` (certificate_id, signer_user_id, signed_at, signature_hash, signing_key_fingerprint, dispatch_status: draft→ready→dispatched).
+- Edge fn `sign-license-certificate`: takes certificate id, signs SHA-256 of PDF bytes with server-held HMAC secret (`LICENSE_SIGNING_SECRET`), stores hash + signer, marks status `ready`.
+- Amend/dispatch flow in `ApplicationDetail` decision dialog: after approve → certificate generated → reviewer opens "Review & Dispatch" drawer → can amend cover letter/conditions → click Sign → click Dispatch (calls `send-correspondence`). Dispatch blocked until signed.
+- Signature panel on public `PublicRegistry` license view + verification endpoint `verify-license-signature`.
 
-## Script 3 — Prudential Supervision (DEMO-PRUD-001..011)
+**Gap 3 — Legal reviewer denied-access audit + investigation restricted access**
+- Extend `security_event_logs` writer: any component/edge fn hit on legal-only routes (`application_legal_notes`, enforcement evidence, F&P adverse notes) without `legal_reviewer`/`investigator` role writes a `denied_access` event with route, user, target id.
+- Central RLS helper `public.has_legal_access(uid)` + policies on `application_legal_notes`, `enforcement_actions.evidence_*`, `complaint_evidence`.
+- New admin viewer `SecurityEvents.tsx` (see Gap 20).
 
-| Scenario | Status | Notes |
-|----------|--------|-------|
-| Supervisory universe + configurable risk taxonomy | 🟡 | Entities registry exists; **configurable prudential risk taxonomy admin screen not confirmed** |
-| Baseline data & historical context per entity | ✅ | `LicenseeDetail.tsx` tabbed view |
-| Regulatory return submission with validation (entity view) | ✅ | `ReturnSubmission.tsx`, `returnsValidation` |
-| Intake queue, validation results, version history (supervisor) | ✅ | `ViewReturns.tsx`, versioning |
-| Ratio calc + configurable thresholds + breach flag | ✅ | `PrudentialRatios.tsx`, `PrudentialThresholds.tsx`, `evaluate-return-prudential` |
-| Peer comparison + trend charts | 🟡 | `PrudentialAnalytics.tsx`; **peer-comparison view to confirm** |
-| Supervisory assessment + risk scoring + rationale | ✅ | `risk-score-recompute`, `ReturnAnalysis.tsx` |
-| Supervisory actions + escalation routing | ✅ | Workflow engine, `BreachInbox.tsx` |
-| Notifications + acknowledgement | ✅ | Notification system v3 |
-| Ongoing monitoring + early warning | ✅ | `overdue-returns-sweep`, monitoring sweeps |
-| Dashboards + integration readiness + audit trail | 🟡 | Dashboards + `IntegrationLogs.tsx`; **outbound data-feed/reporting-export integrations to confirm** |
+**Gap 12 — F&P appeals module**
+- New tables `fp_appeals` already exists but needs wiring: verify columns, add `fp_appeal_events`, `fp_appeal_documents`.
+- Pages `FitAndProperAppeals.tsx` (list) + `FpAppealDetail.tsx` (grounds, evidence, committee decision, license impact).
+- On upheld appeal → auto-reverse linked `fp_determination` + fire `license.reinstate` workflow if the determination had triggered a license action.
+- Notifications + audit on every state transition.
+
+**Gap 11 — Committee weighted-voting calculation**
+- Extend `fp_committee_votes` with `weight`, `rationale_required`.
+- New RPC `finalize_fp_committee_vote(committee_id, assessment_id)` → sum(weight * vote_value), quorum check, ties broken by chair (configured on `fp_committees`).
+- UI in `FpCommittees` + assessment detail: cast vote, live tally, finalize button gated to chair.
+
+**Gap 2 — AI-proposed routing acceptance UI**
+- Extend `application_ai_assessments` with `proposed_routing_step_id`, `proposed_routing_rationale`.
+- In `generate-application-ai-assessment`: after producing findings, pick the best matching workflow step from `approval_steps` for the app's workflow via rule map (risk_score, sufficiency_status, category) and record it.
+- New `AIRoutingCard` in `ApplicationDetail`: shows proposal + Accept / Override with reason (mandatory ≥10 chars, logged via `logRuleOverride`).
+
+**Deliverables:** 4 migrations, 3 edge functions, 6 new pages/components, 8 vitest suites.
 
 ---
 
-## Script 4 — Market Conduct Supervision (DEMO-MCS-001..010)
+## Phase 5B — Twin-Peaks & Licensing→Supervision handover
 
-| Scenario | Status | Notes |
-|----------|--------|-------|
-| Configurable conduct risk taxonomy | 🟡 | `ComplaintTypes.tsx`; **broader conduct-risk taxonomy admin screen not confirmed** |
-| Supervisory universe with product/channel history | 🟡 | Entity conduct history via complaints; **product/channel dimension not clearly modelled** |
-| Complaint intake (external + internal) with acknowledgements | ✅ | `ComplaintsList.tsx`, complaint autofill memory |
-| Classification, triage, prioritization, SLA routing | ✅ | `evaluate-complaint-triage` |
-| Conduct analytics + alerts | ✅ | `ConductAlerts.tsx`, `evaluate-conduct-monitoring` |
-| Thematic review initiation with scope & assignment | ✅ | `NewThematicReview.tsx`, `ThematicReviewDetail.tsx` |
-| Investigation & evidence management with restricted access | 🟡 | `EnforcementDetail.tsx`; **restricted-access denial audit to confirm** |
-| Supervisory actions + outcomes + notifications | ✅ | `ConductActions.tsx`, correspondence templates |
-| Ongoing monitoring rules (repeat complaints, relapse thresholds) | 🟡 | `evaluate-conduct-monitoring` scaffold; **relapse/repeat-complaint threshold rules UI to confirm** |
-| Oversight dashboard with drill-down to cases & actions | ✅ | `ConductDashboard.tsx`, dashboard drilldowns |
+**Gap 6 — Conditional clearance + divergence resolution**
+- New tables `twinpeaks_clearances` (application_id, regulator_role: prudential|conduct, status: clear|conditional|blocked, conditions[], recorded_by, recorded_at) and `twinpeaks_disagreements` (application_id, raised_by, description, resolution, resolved_by, resolved_at).
+- Extend `coordination_cases` with `clearance_required: bool`.
+- New `TwinPeaksPanel` in `ApplicationDetail`: shows both regulators' clearance status; approval gate blocks final approve if either is `blocked` unless override.
+- Resolution wizard (chair-only) with mandatory rationale, audits both sides.
 
----
+**Gap 5 — Auto-provisioning of initial supervisory plan**
+- DB trigger `trg_license_issued_seed_plan` on `licenses` insert: pick template by `sector_id + license_type` from `supervisory_plan_templates`, materialise `supervisory_plans` + `supervisory_plan_actions` with due dates = issue_date + template offset.
+- Include time-bound corrective actions carried over from application `sufficiency_evaluations` where an override was recorded.
+- UI: banner on new license page "Initial supervisory plan created — X actions due".
 
-## Script 5 — Cross-module Dashboards, Reporting, Auditability (DEMO-DPA-001..009)
-
-| Scenario | Status | Notes |
-|----------|--------|-------|
-| Cross-module supervisory dashboard with AI-driven insights + drill-down | 🟡 | `ExecutiveDashboard.tsx` + `dashboardInsights.ts`; **"AI-generated insights" narrative layer to confirm** |
-| Role-specific dashboards (exec vs operational; regulator vs licensee) | ✅ | Multi-portal dashboards |
-| Operational reports (throughput, SLAs, prudential compliance, complaint volumes) with filters | ✅ | `ReportsDashboard.tsx`, reporting system v2 |
-| Ad-hoc + exportable reporting with export audit log | 🟡 | CSV/JSON exports; **export-audit entry needs confirmation** |
-| Case-centric audit trail (Licensing → F&P) filter by case ID | ✅ | `AuditLogs.tsx`, audit system |
-| Supervisory & enforcement audit within same framework | ✅ | Same audit backbone |
-| Version history / data lineage for applications, declarations, returns, complaints | 🟡 | Form versioning + doc versioning present; **unified "before/after value" viewer per entity to confirm** |
-| Overrides & mandatory justifications | ✅ | `RuleOverrides.tsx`, override framework |
-| Integration logs + security events (failed access, denied permissions) | 🟡 | `IntegrationLogs.tsx`; **security-event log (failed-access viewer) to confirm as distinct surface** |
+**Deliverables:** 2 migrations, 1 trigger, 2 components, 3 tests.
 
 ---
 
-## Consolidated Gap List (candidate next-phase backlog)
+## Phase 5C — F&P depth (Scripts 2 items)
 
-Nothing here is being changed now — this is the shortlist of items that must be verified/built before every script passes:
+**Gap 7 — Cycle-based F&P re-assessment scheduler**
+- Extend `fp_individual_roles` with `reassessment_cycle_months`.
+- Cron edge fn `fp-cycle-scheduler` (daily): for each active role where `last_assessment_at + cycle_months <= today`, initiate a new assessment (path=`cycle`) and notify assessor.
+- Admin UI in `FpScreeningConfigs` to set cycle per role type.
 
-1. Applicant-facing batch document upload (Script 1 / 002).
-2. AI-proposed routing acceptance UI with override reasons (1 / 006).
-3. Legal reviewer role-scoped denied-access audit proof (1 / 007, 4 / investigations).
-4. Digital signature on issued license + pre-dispatch review/amend gate (1 / 009).
-5. Auto-provisioning of initial supervisory plan on license issuance (1 / continuity).
-6. Twin-Peaks conditional-clearance artefact + divergence resolution UI (1 / twin-peaks).
-7. Cycle-based F&P re-assessment scheduler (2 / 001).
-8. Adverse-media match-confidence scoring + false-positive resolution UI (2 / 005).
-9. F&P population-level trend dashboard (2 / 008).
-10. F&P AI ingest of unstructured sources (media, court records) with citations (2 / 009).
-11. Committee weighted-voting calculation + finalisation (2 / 012).
-12. F&P appeals module — standalone + linked to license (2 / 014).
-13. Configurable prudential + conduct risk taxonomy admin screens (3 / 001, 4 / 001).
-14. Peer-comparison view for prudential ratios (3 / analytics).
-15. Product/channel dimension for conduct supervisory universe (4 / 002).
-16. Conduct relapse/repeat-complaint monitoring rule admin (4 / 010).
-17. AI-insights narrative layer on cross-module dashboard (5 / 001).
-18. Export-audit log entries surfaced to admin (5 / 004).
-19. Unified before/after value viewer per entity for full data lineage (5 / 007).
-20. Dedicated security-event viewer for failed access / denied permissions (5 / 009).
+**Gap 8 — Adverse-media match confidence + FP resolution**
+- Extend `fp_screening_runs` results shape: hits[] each with `confidence_score` (0-100), `status: pending|true_positive|false_positive|needs_review`, `resolved_by`, `resolution_reason`.
+- Update `fp-screening-run` edge fn to accept AI/gateway responses with scores; auto-mark <30 as false_positive draft, ≥80 as true_positive draft, middle band as needs_review.
+- Analyst UI on assessment detail: resolve each hit with reason (audited).
+
+**Gap 9 — F&P population-level trend dashboard**
+- New page `FpPopulationTrends.tsx`: charts for adverse-finding rate over time by sector, average risk score, escalation rate, appeal outcomes. Uses Recharts + `useSupervisoryMetrics` extended.
+
+**Gap 10 — F&P AI ingest of unstructured sources**
+- Edge fn `fp-ai-media-ingest`: given individual id, calls Lovable AI Gateway with retrieved documents/urls, returns findings[] with citations{source_url, excerpt, confidence}.
+- Store into `fp_findings` with `source: ai`, `citations` jsonb column (add).
+- UI card in `FitAndProperIndividualDetail`: "Run AI media scan" → shows results with click-through citations, analyst must accept/reject each with reason before it counts.
+
+**Deliverables:** 3 migrations, 3 edge functions, 4 UI surfaces, 6 tests.
 
 ---
 
-## Next step
+## Phase 5D — Prudential + Conduct depth (Scripts 3–4)
 
-Confirm this assessment. On approval, the follow-up plan would group the 20 gaps into phased build tickets (starting with items that touch decision integrity: 3, 4, 6, 12, 14) — no code changes will be made until you agree on scope.
+**Gap 13 — Configurable prudential + conduct risk taxonomy admin**
+- Reuse `master_data_types`/`master_data_items` with `type_key='prudential_risk_taxonomy'` and `'conduct_risk_taxonomy'`; add hierarchy (parent_id) already present.
+- Admin pages `PrudentialRiskTaxonomy.tsx` and `ConductRiskTaxonomy.tsx`: tree editor, publish/version.
+- Wire ratio/threshold configs + `conduct_alerts` to reference taxonomy items.
+
+**Gap 14 — Peer comparison view for prudential ratios**
+- Extend `PrudentialAnalytics.tsx` with a Peer Compare tab: for a chosen ratio + period, list entities in same sector/sub-sector with values, quartile bands, z-score highlighting.
+- DB view `v_peer_ratio_snapshot` for efficient reads.
+
+**Gap 15 — Product/channel dimension for conduct universe**
+- Tables `conduct_products`, `conduct_channels` already present — add `licensee_products` (licensee_id, product_id, active_from, active_to) and `licensee_channels`.
+- Extend `LicenseeDetail` with Products/Channels tabs.
+- Complaint intake + thematic reviews scope by product/channel.
+
+**Gap 16 — Relapse/repeat-complaint monitoring rule admin**
+- Extend `conduct_monitoring_rules` schema: `rule_kind` enum (`repeat_post_remediation`, `product_channel_concentration`, `relapse_threshold`), thresholds jsonb, evaluation window.
+- Admin editor page `ConductMonitoringRules.tsx`.
+- `evaluate-conduct-monitoring` extended to evaluate each kind.
+
+**Gap 1 — Applicant batch document upload**
+- New component `BatchDocumentUpload.tsx` in `NewApplication` / `ApplicationDetail`: drag-drop many files, per-file document-type dropdown, parallel signed uploads (max 5 concurrent), progress bar.
+- Enforces `secure-documents` bucket path scoping and per-doc size/type from `document_groups`.
+
+**Deliverables:** 3 migrations, 1 edge fn extension, 5 UI surfaces, 5 tests.
+
+---
+
+## Phase 5E — Cross-module reporting & auditability (Script 5)
+
+**Gap 17 — AI-insights narrative layer on cross-module dashboard**
+- Edge fn `generate-dashboard-insights` (cached 15 min): pulls current metrics deltas, calls Lovable AI Gateway to produce 3–5 bullet insights + top 3 recommended actions with links.
+- `ExecutiveDashboard.tsx` shows Insights card; refresh + acknowledge; feedback (thumbs) stored for tuning.
+
+**Gap 18 — Export audit log surface**
+- Extend `audit_export_jobs` (already present) writer to cover every CSV/PDF/JSON export in the app (reports, applications, returns, complaints). Central helper `logExport(userId, dataset, filters, row_count, file_hash)`.
+- Admin viewer `ExportAudit.tsx` with filters and download links.
+
+**Gap 19 — Unified before/after value viewer per entity (data lineage)**
+- New table `entity_change_history` (entity_type, entity_id, changed_by, changed_at, field_key, old_value, new_value, source: user|system|edge_fn).
+- DB triggers on `applications`, `registrations`, `compliance_returns`, `complaints`, `fp_assessments`, `licenses` capturing changed fields via `pg_notify` + trigger fn.
+- Reusable `<ChangeHistoryDrawer entityType entityId />` opened from every detail page's header menu.
+
+**Gap 20 — Security-event viewer**
+- Already have `security_event_logs`. Build `SecurityEvents.tsx` admin page: filters by user/route/type (denied_access, failed_login, permission_denied, suspicious_export), export, retention notice.
+- Wire additional emitters from Gaps 3 + 18 + auth flow.
+
+**Deliverables:** 1 migration (change history), 1 edge fn, 3 admin pages, 1 reusable drawer, 5 tests + Playwright smoke on export-audit + change-history + security-events.
+
+---
+
+## Cross-cutting requirements (every phase)
+
+- **RLS**: every new table gets explicit policies (regulator scope, licensee scope, service_role bypass), plus GRANTs in the same migration.
+- **Audit**: every state transition writes to `audit_logs` and, where applicable, `compliance_audit_logs`/`return_audit_log`.
+- **Overrides**: any bypass of a system gate uses the existing `rule_overrides` + `OverrideReasonDialog` (min 10 chars, mandatory).
+- **Notifications**: hook into `notification_event_configs` — no ad-hoc emails.
+- **Tests**: vitest for pure logic; Playwright smoke for each new admin page and each new gate.
+- **Docs**: append to `docs/FEATURE_DEVELOPMENT_TRACKER.md` per phase.
+- **Memory**: update `mem://index.md` with references for each new subsystem.
+
+## Milestone gates
+
+After each phase: `npm run build`, targeted vitest suites, `scripts/verify-hardening.sql` re-run. No phase is "done" until all pass.
+
+## What I will do first on approval
+
+Start with **Phase 5A**, and within it the two items with the largest blast radius:
+1. Migration + edge fn for **Gap 4 (license signature + dispatch gate)**.
+2. Migration for `security_event_logs` writers + RLS helpers for **Gap 3**.
+
+Once those land and pass, continue through the rest of Phase 5A sequentially. Confirm to start.

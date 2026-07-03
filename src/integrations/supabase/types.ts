@@ -122,7 +122,13 @@ export type Database = {
           model_name: string | null
           model_provider: string | null
           prompt_version: string
+          proposed_routing_rationale: string | null
+          proposed_routing_step_id: string | null
           risks: Json
+          routing_decision: string | null
+          routing_decision_at: string | null
+          routing_decision_by: string | null
+          routing_decision_reason: string | null
           routing_recommendation: Json
           rule_check_snapshot: Json
           sections: Json
@@ -149,7 +155,13 @@ export type Database = {
           model_name?: string | null
           model_provider?: string | null
           prompt_version?: string
+          proposed_routing_rationale?: string | null
+          proposed_routing_step_id?: string | null
           risks?: Json
+          routing_decision?: string | null
+          routing_decision_at?: string | null
+          routing_decision_by?: string | null
+          routing_decision_reason?: string | null
           routing_recommendation?: Json
           rule_check_snapshot?: Json
           sections?: Json
@@ -176,7 +188,13 @@ export type Database = {
           model_name?: string | null
           model_provider?: string | null
           prompt_version?: string
+          proposed_routing_rationale?: string | null
+          proposed_routing_step_id?: string | null
           risks?: Json
+          routing_decision?: string | null
+          routing_decision_at?: string | null
+          routing_decision_by?: string | null
+          routing_decision_reason?: string | null
           routing_recommendation?: Json
           rule_check_snapshot?: Json
           sections?: Json
@@ -198,6 +216,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_ai_assessments_proposed_routing_step_id_fkey"
+            columns: ["proposed_routing_step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -4878,6 +4903,7 @@ export type Database = {
           is_active: boolean
           member_role: string
           user_id: string
+          vote_weight: number
         }
         Insert: {
           added_at?: string
@@ -4886,6 +4912,7 @@ export type Database = {
           is_active?: boolean
           member_role?: string
           user_id: string
+          vote_weight?: number
         }
         Update: {
           added_at?: string
@@ -4894,6 +4921,7 @@ export type Database = {
           is_active?: boolean
           member_role?: string
           user_id?: string
+          vote_weight?: number
         }
         Relationships: [
           {
@@ -4912,8 +4940,10 @@ export type Database = {
           id: string
           justification: string | null
           member_id: string
+          rationale_required: boolean
           vote: string
           voted_at: string
+          weight: number
         }
         Insert: {
           assessment_id: string
@@ -4921,8 +4951,10 @@ export type Database = {
           id?: string
           justification?: string | null
           member_id: string
+          rationale_required?: boolean
           vote: string
           voted_at?: string
+          weight?: number
         }
         Update: {
           assessment_id?: string
@@ -4930,8 +4962,10 @@ export type Database = {
           id?: string
           justification?: string | null
           member_id?: string
+          rationale_required?: boolean
           vote?: string
           voted_at?: string
+          weight?: number
         }
         Relationships: [
           {
@@ -4960,6 +4994,7 @@ export type Database = {
       fp_committees: {
         Row: {
           approval_threshold_pct: number
+          casting_vote_member_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -4971,6 +5006,7 @@ export type Database = {
         }
         Insert: {
           approval_threshold_pct?: number
+          casting_vote_member_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -4982,6 +5018,7 @@ export type Database = {
         }
         Update: {
           approval_threshold_pct?: number
+          casting_vote_member_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -4992,6 +5029,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fp_committees_casting_vote_member_id_fkey"
+            columns: ["casting_vote_member_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committee_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fp_committees_regulator_id_fkey"
             columns: ["regulator_id"]
@@ -6014,9 +6058,79 @@ export type Database = {
           },
         ]
       }
+      license_certificate_signatures: {
+        Row: {
+          certificate_id: string
+          content_sha256: string
+          created_at: string
+          id: string
+          license_id: string
+          reason: string | null
+          signature_hmac: string
+          signed_at: string
+          signer_name: string
+          signer_title: string | null
+          signer_user_id: string
+          signing_key_fingerprint: string
+        }
+        Insert: {
+          certificate_id: string
+          content_sha256: string
+          created_at?: string
+          id?: string
+          license_id: string
+          reason?: string | null
+          signature_hmac: string
+          signed_at?: string
+          signer_name: string
+          signer_title?: string | null
+          signer_user_id: string
+          signing_key_fingerprint: string
+        }
+        Update: {
+          certificate_id?: string
+          content_sha256?: string
+          created_at?: string
+          id?: string
+          license_id?: string
+          reason?: string | null
+          signature_hmac?: string
+          signed_at?: string
+          signer_name?: string
+          signer_title?: string | null
+          signer_user_id?: string
+          signing_key_fingerprint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_certificate_signatures_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "license_certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_certificate_signatures_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_certificate_signatures_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_certificates: {
         Row: {
           created_at: string
+          dispatch_status: string
+          dispatched_at: string | null
+          dispatched_by: string | null
           file_path: string
           id: string
           is_signed: boolean
@@ -6031,6 +6145,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dispatch_status?: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
           file_path: string
           id?: string
           is_signed?: boolean
@@ -6045,6 +6162,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dispatch_status?: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
           file_path?: string
           id?: string
           is_signed?: boolean
@@ -12717,6 +12837,7 @@ export type Database = {
         Returns: boolean
       }
       has_external_role: { Args: { _user_id: string }; Returns: boolean }
+      has_legal_access: { Args: { _user_id: string }; Returns: boolean }
       has_portal_capability: {
         Args: {
           _area: Database["public"]["Enums"]["portal_area"]

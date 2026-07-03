@@ -22,6 +22,7 @@ import { LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown, FileText } from 'lucide-react';
 import LicenseActionDialog, { type LicenseActionConfig } from '@/components/licenses/LicenseActionDialog';
 import LicenseActionFormViewer from '@/components/licenses/LicenseActionFormViewer';
+import LicenseSignaturePanel from '@/components/licenses/LicenseSignaturePanel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
@@ -723,6 +724,12 @@ export default function LicenseDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {isInternal && (
+              <LicenseSignaturePanel licenseId={license.id} />
+            )}
+
+
 
             {isInternal && license.status !== 'revoked' && license.status !== 'cancelled' && (
               <Card>
