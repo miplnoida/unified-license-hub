@@ -78,6 +78,12 @@ interface Assessment {
   analyst_justification?: string | null;
   analyst_decision_by?: string | null;
   analyst_decision_at?: string | null;
+  proposed_routing_step_id?: string | null;
+  proposed_routing_rationale?: string | null;
+  routing_decision?: 'accepted' | 'overridden' | null;
+  routing_decision_reason?: string | null;
+  routing_decision_by?: string | null;
+  routing_decision_at?: string | null;
 }
 
 const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
