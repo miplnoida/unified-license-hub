@@ -55,7 +55,7 @@ export default function FitAndProperIndividuals() {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.full_name.trim()) throw new Error('Full name required');
-      const { error } = await supabase.from('fp_individuals').insert({
+      const payload = {
         full_name: form.full_name.trim(),
         national_id: form.national_id.trim() || null,
         nationality: form.nationality.trim() || null,
@@ -65,8 +65,13 @@ export default function FitAndProperIndividuals() {
         address: form.address.trim() || null,
         notes: form.notes.trim() || null,
         created_by: user?.id,
-      });
+      };
+      const { data, error } = await supabase.from('fp_individuals').insert(payload).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.individual.created', 'fp_individual', data.id, {
+        after: payload,
+        context: { individualId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Individual added to Fit & Proper register');
