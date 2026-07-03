@@ -315,6 +315,8 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
               <div><Label className="text-xs">SLA days</Label><Input type="number" value={form.outputs?.sla_days ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, sla_days: e.target.value ? +e.target.value : undefined } })} /></div>
               <div><Label className="text-xs">Assigned team</Label><Input value={form.outputs?.assigned_team ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, assigned_team: e.target.value || undefined } })} placeholder="e.g. Conduct-Retail" /></div>
               <div className="col-span-2"><Label className="text-xs">Conduct risk category code</Label><Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" /></div>
+              <div><Label className="text-xs">Generate alert (kind)</Label><Input value={form.outputs?.generate_alert_kind ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: e.target.value || undefined } })} placeholder="e.g. thematic_spike" /></div>
+              <div><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
             </div>
           </div>
 
