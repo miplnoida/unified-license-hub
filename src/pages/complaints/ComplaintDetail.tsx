@@ -17,6 +17,7 @@ import { logAction } from '@/hooks/useAuditLog';
 import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle } from 'lucide-react';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -41,6 +42,7 @@ export default function ComplaintDetail() {
   const [resolution, setResolution] = useState('');
   const [severity, setSeverity] = useState<string>('');
   const [escalateNote, setEscalateNote] = useState('');
+  const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
 
   const { data: complaint, isLoading } = useQuery({
     queryKey: ['complaint', id],
@@ -102,9 +104,31 @@ export default function ComplaintDetail() {
       if (error) throw error;
       await logAction('complaint.severity_set', 'complaint', id!, { meta: { severity } });
     },
-    onSuccess: () => { toast.success('Severity updated'); invalidate(); },
+    onSuccess: () => { toast.success('Severity updated'); setSeverity(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  // Applies the severity change ONLY after the override is logged.
+  async function applySeverityChange(next: string) {
+    const { error } = await supabase.from('complaints').update({ severity: next }).eq('id', id!);
+    if (error) throw error;
+    await logAction('complaint.severity_set', 'complaint', id!, { meta: { severity: next, via: 'override' } });
+    toast.success('Severity overridden');
+    setSeverity('');
+    invalidate();
+  }
+
+  function handleSeverityUpdate() {
+    if (!severity) { toast.error('Pick a severity'); return; }
+    const current = complaint?.severity;
+    // If severity is unchanged, no-op. If different from current system severity,
+    // treat as an override: require justification via OverrideReasonDialog.
+    if (!current || current === severity) {
+      setSeverityMut.mutate();
+      return;
+    }
+    setSeverityOverride({ from: current, to: severity });
+  }
 
   const resolve = useMutation({
     mutationFn: async () => {

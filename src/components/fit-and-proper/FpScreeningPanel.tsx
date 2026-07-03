@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, PlayCircle, ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-react';
+import { Loader2, PlayCircle, ShieldAlert, ShieldOff } from 'lucide-react';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const SEVERITY_CLASS: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
@@ -17,12 +17,21 @@ const SEVERITY_CLASS: Record<string, string> = {
 
 interface Props { individualId: string; assessmentId?: string | null }
 
+type PendingOverride = {
+  ruleKey: string;
+  originalValue: unknown;
+  overriddenValue: unknown;
+  metadata: Record<string, unknown>;
+  title: string;
+  description: string;
+  apply: () => Promise<void>;
+};
+
 export function FpScreeningPanel({ individualId, assessmentId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
-  const [noteFor, setNoteFor] = useState<string | null>(null);
-  const [noteText, setNoteText] = useState('');
+  const [pending, setPending] = useState<PendingOverride | null>(null);
 
   const { data: runs } = useQuery({
     queryKey: ['fp_screening_runs', individualId],
@@ -65,23 +74,60 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     }
   };
 
-  const markFinding = useMutation({
-    mutationFn: async ({ id, isFalse }: { id: string; isFalse: boolean }) => {
-      const { error } = await supabase.from('fp_findings').update({
-        is_false_positive: isFalse,
-        review_note: noteText || null,
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString(),
-      }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Finding updated');
-      setNoteFor(null); setNoteText('');
-      qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed'),
-  });
+  // Business update runs ONLY after the override has been logged.
+  async function applyFindingStatus(findingId: string, isFalse: boolean) {
+    const { error } = await supabase.from('fp_findings').update({
+      is_false_positive: isFalse,
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', findingId);
+    if (error) throw error;
+    toast.success(isFalse ? 'Marked as false positive' : 'Finding restored');
+    qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+  }
+
+  function openFalsePositive(f: any) {
+    setPending({
+      ruleKey: 'fit_and_proper.screening.false_positive',
+      originalValue: { is_false_positive: false, severity: f.severity, title: f.title },
+      overriddenValue: { is_false_positive: true, severity: f.severity, title: f.title },
+      metadata: {
+        source: 'phase1_override_framework',
+        screen: 'FpScreeningPanel',
+        finding_id: f.id,
+        assessment_id: assessmentId,
+        recommendation_source: 'screening_engine',
+        rule_result_id: f.run_id,
+        previous_status: 'active',
+        new_status: 'false_positive',
+        previous_severity: f.severity,
+      },
+      title: 'Mark screening finding as false positive',
+      description: `You are overriding the screening engine's finding "${f.title}" (${f.check_type}). A written justification is mandatory.`,
+      apply: () => applyFindingStatus(f.id, true),
+    });
+  }
+
+  function openRestore(f: any) {
+    setPending({
+      ruleKey: 'fit_and_proper.screening.restore_finding',
+      originalValue: { is_false_positive: true, severity: f.severity, title: f.title },
+      overriddenValue: { is_false_positive: false, severity: f.severity, title: f.title },
+      metadata: {
+        source: 'phase1_override_framework',
+        screen: 'FpScreeningPanel',
+        finding_id: f.id,
+        assessment_id: assessmentId,
+        recommendation_source: 'screening_engine',
+        rule_result_id: f.run_id,
+        previous_status: 'false_positive',
+        new_status: 'active',
+      },
+      title: 'Restore finding to active',
+      description: `Reactivating a previously suppressed screening finding requires justification.`,
+      apply: () => applyFindingStatus(f.id, false),
+    });
+  }
 
   return (
     <div className="space-y-3">
@@ -126,24 +172,40 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                 {f.review_note && <div className="text-xs italic mt-1">Note: {f.review_note}</div>}
               </div>
               <div className="flex gap-1">
-                {!f.is_false_positive && <Button size="sm" variant="ghost" onClick={() => { setNoteFor(f.id); setNoteText(''); }}><ShieldOff className="h-4 w-4 mr-1" /> False positive</Button>}
-                {f.is_false_positive && <Button size="sm" variant="ghost" onClick={() => markFinding.mutate({ id: f.id, isFalse: false })}><ShieldAlert className="h-4 w-4 mr-1" /> Restore</Button>}
+                {!f.is_false_positive && (
+                  <Button size="sm" variant="ghost" onClick={() => openFalsePositive(f)}>
+                    <ShieldOff className="h-4 w-4 mr-1" /> False positive
+                  </Button>
+                )}
+                {f.is_false_positive && (
+                  <Button size="sm" variant="ghost" onClick={() => openRestore(f)}>
+                    <ShieldAlert className="h-4 w-4 mr-1" /> Restore
+                  </Button>
+                )}
               </div>
             </div>
-            {noteFor === f.id && (
-              <div className="mt-2 space-y-2">
-                <Textarea rows={2} placeholder="Optional review note" value={noteText} onChange={(e) => setNoteText(e.target.value)} />
-                <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="ghost" onClick={() => setNoteFor(null)}>Cancel</Button>
-                  <Button size="sm" onClick={() => markFinding.mutate({ id: f.id, isFalse: true })} disabled={markFinding.isPending}>
-                    <ShieldCheck className="h-4 w-4 mr-1" /> Confirm
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </CardContent></Card>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="fit_and_proper"
+          entityType="fp_individual"
+          entityId={individualId}
+          ruleKey={pending.ruleKey}
+          originalValue={pending.originalValue}
+          overriddenValue={pending.overriddenValue}
+          metadata={pending.metadata}
+          title={pending.title}
+          description={pending.description}
+          onOverridden={async () => {
+            try { await pending.apply(); } finally { setPending(null); }
+          }}
+        />
+      )}
     </div>
   );
 }
