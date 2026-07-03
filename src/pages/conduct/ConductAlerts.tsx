@@ -138,7 +138,7 @@ export default function ConductAlerts() {
                       <TableCell className="text-sm">{r.conduct_risk_categories?.name || '—'}</TableCell>
                       <TableCell><Badge variant={r.status === 'open' ? 'destructive' : r.status === 'acknowledged' ? 'secondary' : 'default'} className="capitalize">{r.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        {r.status === 'open' && <Button size="sm" variant="outline" onClick={() => ack(r.id)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
+                        {r.status === 'open' && <Button size="sm" variant="outline" onClick={() => ack(r)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
                         {r.status !== 'closed' && <Button size="sm" variant="ghost" className="ml-1" onClick={() => close(r)}><XCircle className="h-3 w-3 mr-1" />Close</Button>}
                       </TableCell>
                     </TableRow>
