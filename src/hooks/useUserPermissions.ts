@@ -83,6 +83,9 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/licenses',
   '/post-licensee/applications',
   '/post-license',
+  // Pre-licensees start new applications at /pre-license/new; allow the prefix
+  // so RegistrationApprovalGate doesn't bounce the click back to /dashboard.
+  '/pre-license',
   '/payments',
   '/profile',
   '/change-password',
