@@ -216,22 +216,43 @@ export default function CoordinationDetail() {
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeRationale, setCloseRationale] = useState('');
+
   const closeCase = useMutation({
     mutationFn: async () => {
+      if (closeRationale.trim().length < 10) {
+        throw new Error('Closure rationale must be at least 10 characters');
+      }
       const { error } = await supabase
         .from('coordination_cases')
-        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          closure_rationale: closeRationale.trim(),
+          closed_by: user?.id,
+        } as any)
         .eq('id', caseId!);
-      if (error) throw error;
+      if (error) {
+        await logCoordinationAction('coordination.case.close_blocked', 'coordination_case', caseId!, {
+          after: { attempted_status: 'closed', error: error.message },
+          context: { caseId: caseId!, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+        });
+        throw error;
+      }
       await logCoordinationAction('coordination.case.closed', 'coordination_case', caseId!, {
-        after: { status: 'closed' },
+        after: { status: 'closed', closure_rationale: closeRationale.trim() },
         context: { caseId: caseId!, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+        justification: closeRationale.trim(),
       });
     },
     onSuccess: () => {
       toast.success('Case closed');
+      setCloseOpen(false);
+      setCloseRationale('');
       qc.invalidateQueries({ queryKey: ['coordination_case', caseId] });
     },
+    onError: (e: any) => toast.error(e?.message || 'Close blocked'),
   });
 
   if (isLoading) {
