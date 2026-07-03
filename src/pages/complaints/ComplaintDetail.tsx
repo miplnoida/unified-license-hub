@@ -20,6 +20,7 @@ import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
