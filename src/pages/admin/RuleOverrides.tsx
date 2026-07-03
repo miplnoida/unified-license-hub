@@ -33,6 +33,7 @@ export default function RuleOverrides() {
   const [fFrom, setFFrom] = useState('');
   const [fTo, setFTo] = useState('');
   const [selected, setSelected] = useState<RuleOverrideRow | null>(null);
+  const [timelineFor, setTimelineFor] = useState<RuleOverrideRow | null>(null);
 
   async function load() {
     setLoading(true);
