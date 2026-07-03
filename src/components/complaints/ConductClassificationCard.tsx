@@ -71,20 +71,27 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
   });
 
   const detectOverridden = (payload: any): Record<string, { from: any; to: any }> => {
+    // Prefer the immutable originals captured on first auto-triage; fall back
+    // to the latest snapshot outputs if not yet backfilled.
+    const orig = (complaint as any).triage_original_values?.values || null;
     const snap = complaint.triage_result_snapshot?.outputs || null;
-    if (!snap || complaint.triage_source !== 'auto') return {};
+    const base = orig || snap;
+    if (!base || complaint.triage_source !== 'auto') return {};
     const out: Record<string, { from: any; to: any }> = {};
     const cmp = (key: string, currVal: any) => {
-      if (snap[key] !== undefined && snap[key] !== null && currVal !== snap[key]) {
-        out[key] = { from: snap[key], to: currVal };
+      if (base[key] !== undefined && base[key] !== null && currVal !== base[key]) {
+        out[key] = { from: base[key], to: currVal };
       }
     };
     cmp('severity', payload.severity);
     cmp('priority', payload.priority);
     cmp('sla_days', payload.sla_days);
     cmp('assigned_team', payload.assigned_team);
-    // Category via code lookup
-    if (snap.conduct_risk_category_code) {
+    if (orig?.conduct_risk_category_id !== undefined) {
+      if (orig.conduct_risk_category_id !== payload.conduct_risk_category_id) {
+        out.conduct_risk_category_id = { from: orig.conduct_risk_category_id, to: payload.conduct_risk_category_id };
+      }
+    } else if (snap?.conduct_risk_category_code) {
       const currentCode = cats.find((c) => c.id === payload.conduct_risk_category_id)?.code || null;
       if (currentCode !== snap.conduct_risk_category_code) {
         out.conduct_risk_category_code = { from: snap.conduct_risk_category_code, to: currentCode };
