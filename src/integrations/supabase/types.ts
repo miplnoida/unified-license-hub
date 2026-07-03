@@ -9301,6 +9301,51 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_overrides: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          module: string
+          original_value: Json | null
+          overridden_value: Json | null
+          reason: string
+          rule_key: string
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json
+          module: string
+          original_value?: Json | null
+          overridden_value?: Json | null
+          reason: string
+          rule_key: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          module?: string
+          original_value?: Json | null
+          overridden_value?: Json | null
+          reason?: string
+          rule_key?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       sectors: {
         Row: {
           created_at: string
@@ -11015,6 +11060,19 @@ export type Database = {
           _source: string
         }
         Returns: undefined
+      }
+      log_rule_override: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _metadata?: Json
+          _module: string
+          _original_value: Json
+          _overridden_value: Json
+          _reason: string
+          _rule_key: string
+        }
+        Returns: string
       }
       log_security_event: {
         Args: {
