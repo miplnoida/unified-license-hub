@@ -288,7 +288,48 @@ export default function CoordinationDetail() {
                 </Badge>
               )}
               {isOwner && caseRow.status !== 'closed' && (
-                <Button variant="outline" size="sm" onClick={() => closeCase.mutate()}>Close Case</Button>
+                <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">Close Case</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Close Coordination Case</DialogTitle></DialogHeader>
+                    <div className="space-y-3 text-sm">
+                      {((flags ?? []).filter((f: any) => f.status === 'open' && ['blocker','interdependency','concurrent_review'].includes(f.flag_type)).length > 0) && (
+                        <div className="rounded border border-red-200 bg-red-50 p-3 text-red-800">
+                          <div className="font-medium mb-1">Open blocker / interdependency flags:</div>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {(flags ?? []).filter((f: any) => f.status === 'open' && ['blocker','interdependency','concurrent_review'].includes(f.flag_type)).map((f: any) => (
+                              <li key={f.id}>{f.flag_type} — {f.title}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <Label>Closure rationale *</Label>
+                        <Textarea
+                          value={closeRationale}
+                          onChange={(e) => setCloseRationale(e.target.value)}
+                          rows={4}
+                          placeholder="Describe the coordination outcome and why the case can be closed (min 10 characters)…"
+                        />
+                        <div className="text-xs text-muted-foreground mt-1">{closeRationale.trim().length}/10 min</div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The database will reject closure while any open blocker flag or open/in-review escalation remains.
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setCloseOpen(false)}>Cancel</Button>
+                      <Button
+                        onClick={() => closeCase.mutate()}
+                        disabled={closeCase.isPending || closeRationale.trim().length < 10}
+                      >
+                        {closeCase.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Close Case
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           }
