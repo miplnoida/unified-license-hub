@@ -73,6 +73,7 @@ export default function AdminHub() {
     { label: 'Document Intelligence', desc: 'AI extraction from PDFs, IDs, financials, certificates', icon: <Brain className="h-5 w-5" />, href: '/admin/document-intelligence', module: 'settings' },
     { label: 'Developer API Keys', desc: 'Issue read-only keys for external registry consumers', icon: <KeyRound className="h-5 w-5" />, href: '/admin/api-keys', module: 'settings' },
     { label: 'Audit Log Export', desc: 'Package activity logs as CSV for auditors', icon: <FileArchive className="h-5 w-5" />, href: '/admin/audit-export', module: 'settings' },
+    { label: 'Rule Overrides', desc: 'System overrides & justifications', icon: <ShieldAlert className="h-5 w-5" />, href: '/admin/overrides', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
