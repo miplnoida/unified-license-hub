@@ -336,10 +336,11 @@ function SimulateDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     if (!complaintId.trim()) return;
     setRunning(true); setResult(null);
     const { data, error } = await supabase.functions.invoke('evaluate-complaint-triage', {
-      body: { complaint_id: complaintId.trim(), dry_run: true },
+      body: { complaint_id: complaintId.trim(), dry_run: true, triggered_by: 'admin.simulate' },
     });
     setRunning(false);
     if (error) { toast.error(error.message); return; }
+    await logAudit({ action: 'conduct_triage_rule_simulated', entityType: 'complaint', entityId: complaintId.trim(), metadata: { dry_run: true, matched_rule_id: data?.matched_rule?.id ?? null } });
     setResult(data);
   };
 
