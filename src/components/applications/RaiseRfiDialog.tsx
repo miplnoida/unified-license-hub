@@ -33,6 +33,14 @@ interface DraftItem {
   item_due_at: string;
 }
 
+export interface RfiInitialItem {
+  prompt: string;
+  question_type?: 'text' | 'document' | 'both';
+  required?: boolean;
+  item_due_at?: string;
+  source_rule_id?: string;
+}
+
 interface RaiseRfiDialogProps {
   applicationId: string;
   raisedBy: string;
@@ -42,6 +50,16 @@ interface RaiseRfiDialogProps {
   formData?: unknown;
   onCreated?: () => void;
   triggerLabel?: string;
+  /** Controlled open (hides the built-in trigger button). */
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
+  /** Prefill items — used by sufficiency-driven auto-RFI creation. */
+  initialItems?: RfiInitialItem[];
+  /** Optional link to a sufficiency evaluation whose failed rules seeded the items. */
+  sufficiencyEvaluationId?: string | null;
+  sufficiencyResultIds?: string[];
+  /** Hide the built-in trigger button (implies controlled mode). */
+  hideTrigger?: boolean;
 }
 
 const emptyItem = (): DraftItem => ({
@@ -50,6 +68,14 @@ const emptyItem = (): DraftItem => ({
   question_type: 'text',
   required: true,
   item_due_at: '',
+});
+
+const fromInitial = (i: RfiInitialItem): DraftItem => ({
+  key: Math.random().toString(36).slice(2, 9),
+  prompt: i.prompt,
+  question_type: i.question_type ?? 'text',
+  required: i.required ?? true,
+  item_due_at: i.item_due_at ?? '',
 });
 
 /**
