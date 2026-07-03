@@ -20,6 +20,7 @@ import {
 } from '@/lib/applicationSufficiency';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logAction } from '@/hooks/useAuditLog';
+import { fetchClearances, isTwinPeaksBlocked, type TwinPeaksClearance } from '@/lib/twinPeaksClearance';
 
 const OUTCOMES_GATED = new Set([
   'approve',
