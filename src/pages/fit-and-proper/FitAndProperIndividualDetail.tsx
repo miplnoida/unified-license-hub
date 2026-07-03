@@ -121,18 +121,47 @@ export default function FitAndProperIndividualDetail() {
           <TabsContent value="roles">
             <Card><CardContent className="p-4 space-y-2">
               {(roles ?? []).length === 0 && <p className="text-sm text-muted-foreground">No roles linked yet.</p>}
-              {(roles ?? []).map((r: any) => (
-                <div key={r.id} className="border rounded p-3 flex items-center justify-between text-sm">
-                  <div>
-                    <div className="font-medium">{r.role_type.replace(/_/g, ' ')}{r.role_title ? ` — ${r.role_title}` : ''}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.licensee_id ? <Link to={`/admin/licensees/${r.licensee_id}`} className="underline">Licensee {String(r.licensee_id).slice(0, 8)}…</Link> : 'No licensee link'}
-                      {' · '}{r.effective_from || '?'} → {r.effective_to || 'present'}
+              {(roles ?? []).map((r: any) => {
+                const editVal = cycleEdits[r.id];
+                const shown = editVal !== undefined ? editVal : (r.reassessment_cycle_months ?? '');
+                return (
+                <div key={r.id} className="border rounded p-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{r.role_type.replace(/_/g, ' ')}{r.role_title ? ` — ${r.role_title}` : ''}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.licensee_id ? <Link to={`/admin/licensees/${r.licensee_id}`} className="underline">Licensee {String(r.licensee_id).slice(0, 8)}…</Link> : 'No licensee link'}
+                        {' · '}{r.effective_from || '?'} → {r.effective_to || 'present'}
+                      </div>
                     </div>
+                    {r.is_current && <Badge variant="outline" className="bg-green-100 text-green-800">current</Badge>}
                   </div>
-                  {r.is_current && <Badge variant="outline" className="bg-green-100 text-green-800">current</Badge>}
+                  {r.is_current && (
+                    <div className="flex items-end gap-2 pt-2 border-t">
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground">Reassessment cycle (months)</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={120}
+                          placeholder="e.g. 24"
+                          value={shown}
+                          onChange={(e) => setCycleEdits((s) => ({ ...s, [r.id]: e.target.value }))}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground pb-1">
+                        Next due: {r.next_reassessment_due || '—'}
+                        {r.last_reassessment_at && <> · Last: {new Date(r.last_reassessment_at).toLocaleDateString()}</>}
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => saveCycle(r.id)} disabled={editVal === undefined}>
+                        <Save className="h-4 w-4 mr-1" /> Save
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ))}
+              );
+              })}
             </CardContent></Card>
           </TabsContent>
 
