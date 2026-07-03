@@ -100,15 +100,23 @@ export default function ConductDashboard() {
             <Filter label="Channel" value={f.channel_id} onChange={v => setF({ ...f, channel_id: v })} options={[['all', 'All'], ...channels.map(p => [p.id, p.name] as [string, string])]} />
             <Filter label="Risk Category" value={f.category_id} onChange={v => setF({ ...f, category_id: v })} options={[['all', 'All'], ...categories.map(p => [p.id, p.name] as [string, string])]} />
             <Filter label="Licensee" value={f.licensee_id} onChange={v => setF({ ...f, licensee_id: v })} options={[['all', 'All'], ...licensees.slice(0, 100).map(p => [p.id, p.name] as [string, string])]} />
+            <Filter label="Severity" value={f.severity} onChange={v => setF({ ...f, severity: v })} options={[['all', 'All'], ['low','Low'], ['medium','Medium'], ['high','High'], ['critical','Critical']]} />
+            <Filter label="Priority" value={f.priority} onChange={v => setF({ ...f, priority: v })} options={[['all','All'], ['p1','P1'], ['p2','P2'], ['p3','P3'], ['p4','P4']]} />
+            <Filter label="Customer type" value={f.customer_type} onChange={v => setF({ ...f, customer_type: v })} options={[['all','All'], ['retail','Retail'], ['sme','SME'], ['corporate','Corporate'], ['vulnerable','Vulnerable'], ['other','Other']]} />
+            <Filter label="Vulnerable" value={f.vulnerable} onChange={v => setF({ ...f, vulnerable: v })} options={[['all','All'], ['yes','Yes'], ['no','No']]} />
+            <Filter label="Alert status" value={f.alert_status} onChange={v => setF({ ...f, alert_status: v })} options={[['all','All'], ['open','Open'], ['acknowledged','Acknowledged'], ['closed','Closed']]} />
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
           <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Complaints" value={kpis.total} />
+          <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Open" value={kpis.openComplaints} />
           <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" />
           <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} />
           <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} />
           <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} />
+          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} />
+          <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} />
         </div>
 
         {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
