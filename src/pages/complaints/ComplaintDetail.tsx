@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
 import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle } from 'lucide-react';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
