@@ -22,7 +22,7 @@ type Row = Record<string, any>;
 
 async function fetchOne(table: string, id: string, columns: string): Promise<Row | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase.from(table) as any).select(columns).eq('id', id).maybeSingle();
+  const { data } = await ((supabase as any).from(table)).select(columns).eq('id', id).maybeSingle();
   return (data as Row) ?? null;
 }
 
