@@ -22,6 +22,27 @@ export function FpMonitoringPanel({ individualId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [ackNote, setAckNote] = useState<Record<string, string>>({});
+  const [rechecking, setRechecking] = useState(false);
+
+  const triggerRecheck = async () => {
+    setRechecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-monitoring-sweep', { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Sweep failed');
+      toast.success(`Sweep complete — ${data.rescreened ?? 0} rescreened, ${data.alerts ?? 0} alert(s) raised`);
+      await logFpAction('fp.monitoring.recheck_triggered', 'fp_individual', individualId, {
+        after: { rescreened: data.rescreened ?? 0, alerts: data.alerts ?? 0 },
+        context: { individualId },
+      });
+      qc.invalidateQueries({ queryKey: ['fp_monitoring_events', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_screening_runs_timeline', individualId] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Recheck failed');
+    } finally {
+      setRechecking(false);
+    }
+  };
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['fp_monitoring_events', individualId],
