@@ -88,6 +88,55 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     }
   };
 
+  const runAiMedia = async () => {
+    if (!assessmentId) { toast.error('Open an assessment first.'); return; }
+    setRunningAi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-ai-media-ingest', {
+        body: { individual_id: individualId, assessment_id: assessmentId, triggered_by: user?.id },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'AI media scan failed');
+      toast.success(`AI media scan complete — ${data.total_hits} finding(s)`);
+      await logFpAction('fp.screening.ai_media', 'fp_screening_run', data.run_id ?? null, {
+        after: { total_hits: data.total_hits },
+        context: { individualId, assessmentId },
+      });
+      qc.invalidateQueries({ queryKey: ['fp_screening_runs', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed');
+    } finally {
+      setRunningAi(false);
+    }
+  };
+
+  async function submitResolution() {
+    if (!resolving) return;
+    if (resolutionReason.trim().length < 10) { toast.error('Reason must be at least 10 characters.'); return; }
+    const before = (findings ?? []).find((f: any) => f.id === resolving.id) ?? null;
+    const { error } = await supabase.from('fp_findings').update({
+      resolution_status: resolving.status,
+      resolution_reason: resolutionReason.trim(),
+      resolved_by: user?.id,
+      resolved_at: new Date().toISOString(),
+      is_false_positive: resolving.status === 'false_positive',
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', resolving.id);
+    if (error) { toast.error(error.message); return; }
+    await logFpAction('fp.finding.resolved', 'fp_finding', resolving.id, {
+      before: before ? { resolution_status: before.resolution_status } : null,
+      after: { resolution_status: resolving.status },
+      context: { individualId, assessmentId, findingId: resolving.id },
+      justification: resolutionReason.trim(),
+    });
+    toast.success('Finding resolved');
+    setResolving(null);
+    setResolutionReason('');
+    qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+  }
+
   // Business update runs ONLY after the override has been logged.
   async function applyFindingStatus(findingId: string, isFalse: boolean) {
     const before = (findings ?? []).find((f: any) => f.id === findingId) ?? null;
