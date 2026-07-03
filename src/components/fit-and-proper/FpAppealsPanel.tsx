@@ -86,16 +86,27 @@ export function FpAppealsPanel({ individualId }: Props) {
     mutationFn: async () => {
       if (!currentDet) throw new Error('No current determination');
       if (grounds.trim().length < 20) throw new Error('Grounds must be at least 20 characters');
-      const { error } = await supabase.from('fp_appeals').insert({
+      const { data, error } = await supabase.from('fp_appeals').insert({
         individual_id: individualId,
         determination_id: currentDet.id,
         filed_by: user!.id,
         grounds: grounds.trim(),
         status: 'filed',
         supporting_docs: [],
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.appeal.filed', 'fp_appeal', data.id, {
+        after: { determination_id: currentDet.id, status: 'filed' },
+        context: { individualId, appealId: data.id, determinationId: currentDet.id },
+      });
     },
+    onSuccess: () => {
+      toast.success('Appeal filed');
+      setGrounds('');
+      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
+  });
     onSuccess: () => {
       toast.success('Appeal filed');
       setGrounds('');
