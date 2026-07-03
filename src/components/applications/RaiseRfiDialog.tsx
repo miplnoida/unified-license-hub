@@ -178,6 +178,7 @@ export function RaiseRfiDialog({
           summary: summary.trim() || null,
           approval_step_action_id: approvalStepActionId || null,
           status: 'open',
+          ...(sufficiencyEvaluationId ? { sufficiency_evaluation_id: sufficiencyEvaluationId, pauses_sla: true } : {}),
         })
         .select('id')
         .single();
