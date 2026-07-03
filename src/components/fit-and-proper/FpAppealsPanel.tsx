@@ -22,6 +22,10 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
 
 const DECISION_META: Record<string, { label: string; className: string }> = {
   upheld_original: { label: 'Original upheld', className: 'bg-slate-100 text-slate-800' },
+  upheld: { label: 'Upheld', className: 'bg-slate-100 text-slate-800' },
+  partially_upheld: { label: 'Partially upheld', className: 'bg-amber-100 text-amber-800' },
+  dismissed: { label: 'Dismissed', className: 'bg-slate-100 text-slate-600' },
+  remitted: { label: 'Remitted for reconsideration', className: 'bg-blue-100 text-blue-800' },
   overturned_to_approved: { label: 'Overturned → Approved', className: 'bg-green-100 text-green-800' },
   overturned_to_conditional: { label: 'Overturned → Conditional', className: 'bg-amber-100 text-amber-800' },
 };
