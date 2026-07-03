@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const CATEGORIES = [
   { value: 'training', label: 'Training / certification' },
