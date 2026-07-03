@@ -76,7 +76,7 @@ export default function TriageRules() {
     setLoading(true);
     const { data, error } = await supabase.from('conduct_triage_rules').select('*').order('priority_order');
     if (error) toast.error(error.message);
-    setRows((data || []) as Rule[]);
+    setRows(((data || []) as unknown) as Rule[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
