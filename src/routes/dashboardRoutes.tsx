@@ -46,6 +46,7 @@ const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationD
 const FitAndProperIndividuals = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividuals'));
 const FitAndProperIndividualDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividualDetail'));
 const FitAndProperAssessmentDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperAssessmentDetail'));
+const FpPopulationTrends = lazy(() => import('@/pages/fit-and-proper/FpPopulationTrends'));
 const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
 const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
