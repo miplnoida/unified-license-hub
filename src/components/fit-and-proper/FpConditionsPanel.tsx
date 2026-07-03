@@ -111,13 +111,19 @@ export function FpConditionsPanel({ individualId }: Props) {
 
   const satisfy = useMutation({
     mutationFn: async ({ id, waive }: { id: string; waive?: boolean }) => {
+      const newStatus = waive ? 'waived' : 'satisfied';
       const { error } = await supabase.from('fp_conditions').update({
-        status: waive ? 'waived' : 'satisfied',
+        status: newStatus,
         satisfied_at: new Date().toISOString(),
         satisfied_by: user?.id,
         satisfaction_note: satNote || null,
       }).eq('id', id);
       if (error) throw error;
+      await logFpAction(waive ? 'fp.condition.waived' : 'fp.condition.satisfied', 'fp_condition', id, {
+        after: { status: newStatus, note: satNote || null },
+        context: { individualId, conditionId: id },
+        justification: waive ? (satNote || 'waived') : undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Condition updated');
@@ -133,6 +139,10 @@ export function FpConditionsPanel({ individualId }: Props) {
         status: 'open', satisfied_at: null, satisfied_by: null, satisfaction_note: null,
       }).eq('id', id);
       if (error) throw error;
+      await logFpAction('fp.condition.reopened', 'fp_condition', id, {
+        after: { status: 'open' },
+        context: { individualId, conditionId: id },
+      });
     },
     onSuccess: () => {
       toast.success('Reopened');
