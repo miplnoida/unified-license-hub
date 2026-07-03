@@ -188,16 +188,21 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
       if (prior) {
         await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);
       }
-      const { error } = await supabase.from('fp_determinations').insert({
+      const { data: inserted, error } = await supabase.from('fp_determinations').insert({
         assessment_id: assessmentId, individual_id: individualId,
         outcome, rationale: rationale.trim(), determined_by: user!.id,
         supersedes_id: prior?.id ?? null, is_current: true,
         effective_from: new Date().toISOString().slice(0, 10),
-      });
+      }).select('id').single();
       if (error) throw error;
       await supabase.from('fp_assessments').update({
         status: 'determined', determined_at: new Date().toISOString(),
       }).eq('id', assessmentId);
+      await logFpAction(`fp.determination.${outcome}`, 'fp_determination', inserted.id, {
+        after: { outcome, rationale: rationale.trim(), supersedes_id: prior?.id ?? null },
+        context: { individualId, assessmentId, determinationId: inserted.id },
+        justification: rationale.trim(),
+      });
     },
     onSuccess: () => {
       toast.success('Determination recorded');
