@@ -20,7 +20,7 @@ export default function ConductDashboard() {
   const [channels, setChannels] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [licensees, setLicensees] = useState<any[]>([]);
-  const [f, setF] = useState({ product_id: 'all', channel_id: 'all', category_id: 'all', licensee_id: 'all', days: '90' });
+  const [f, setF] = useState({ product_id: 'all', channel_id: 'all', category_id: 'all', licensee_id: 'all', days: '90', severity: 'all', priority: 'all', customer_type: 'all', vulnerable: 'all', alert_status: 'all' });
   const [complaints, setComplaints] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
 
