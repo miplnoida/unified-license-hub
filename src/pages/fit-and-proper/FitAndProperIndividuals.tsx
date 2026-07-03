@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, UserCheck } from 'lucide-react';
+import { logFpAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, string> = {
   active: 'bg-green-100 text-green-800',
