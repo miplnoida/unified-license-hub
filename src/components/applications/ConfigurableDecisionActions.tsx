@@ -84,6 +84,8 @@ export function ConfigurableDecisionActions({
   const [sufficiency, setSufficiency] = useState<SufficiencyEvaluationSummary | null>(null);
   const [gateBusy, setGateBusy] = useState(false);
   const [overrideOpen, setOverrideOpen] = useState(false);
+  const [twinPeaksOverrideOpen, setTwinPeaksOverrideOpen] = useState(false);
+  const [twinPeaks, setTwinPeaks] = useState<TwinPeaksClearance[]>([]);
   const [warningAckOpen, setWarningAckOpen] = useState(false);
   const [pendingExecute, setPendingExecute] = useState(false);
 
