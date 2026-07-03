@@ -30,6 +30,8 @@ export const KNOWN_PERMISSION_MODULES = [
   'form_management',
   'workflow_management',
   'settings',
+  'fit_and_proper',
+  'coordination',
 ] as const;
 
 /**
