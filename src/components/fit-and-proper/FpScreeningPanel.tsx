@@ -240,7 +240,10 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       <Card><CardContent className="p-4 space-y-3">
         <div className="text-sm font-medium">Findings ({(findings ?? []).length})</div>
         {(findings ?? []).length === 0 && <p className="text-sm text-muted-foreground">No findings raised.</p>}
-        {(findings ?? []).map((f: any) => (
+        {(findings ?? []).map((f: any) => {
+          const cites = Array.isArray(f.citations) ? f.citations : [];
+          const resolved = f.resolution_status && !['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft'].includes(f.resolution_status);
+          return (
           <div key={f.id} className={`border rounded p-3 ${f.is_false_positive ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
@@ -248,28 +251,55 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                   <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
                   <span className="text-xs text-muted-foreground">{f.check_type}</span>
                   {f.source && <span className="text-xs text-muted-foreground">· source: {f.source}</span>}
-                  {f.config_id && <span className="text-xs font-mono text-muted-foreground">· cfg {String(f.config_id).slice(0, 8)}</span>}
-                  {f.is_false_positive && <Badge variant="outline" className="bg-slate-100 text-slate-700">false positive</Badge>}
+                  {typeof f.confidence_score === 'number' && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800">confidence {Number(f.confidence_score).toFixed(0)}%</Badge>
+                  )}
+                  {f.resolution_status && (
+                    <Badge variant="outline" className={resolved ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-800'}>
+                      {String(f.resolution_status).replace(/_/g, ' ')}
+                    </Badge>
+                  )}
                 </div>
                 <div className="font-medium text-sm mt-1">{f.title}</div>
                 {f.summary && <div className="text-xs text-muted-foreground mt-1">{f.summary}</div>}
-                {f.review_note && <div className="text-xs italic mt-1">Note: {f.review_note}</div>}
-              </div>
-              <div className="flex gap-1">
-                {!f.is_false_positive && (
-                  <Button size="sm" variant="ghost" onClick={() => openFalsePositive(f)}>
-                    <ShieldOff className="h-4 w-4 mr-1" /> False positive
-                  </Button>
+                {cites.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {cites.map((c: any, i: number) => (
+                      <div key={i} className="text-xs border-l-2 border-blue-200 pl-2">
+                        <a href={c.source_url} target="_blank" rel="noreferrer" className="text-blue-700 underline inline-flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" /> {c.source_url.slice(0, 70)}
+                        </a>
+                        {c.excerpt && <div className="text-muted-foreground italic">"{c.excerpt}"</div>}
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {f.is_false_positive && (
+                {f.resolution_reason && <div className="text-xs italic mt-1">Resolution: {f.resolution_reason}</div>}
+              </div>
+              <div className="flex flex-col gap-1">
+                {!resolved && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'true_positive', title: f.title })}>
+                      <CheckCircle2 className="h-4 w-4 mr-1 text-red-600" /> True positive
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'false_positive', title: f.title })}>
+                      <ShieldOff className="h-4 w-4 mr-1" /> False positive
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'needs_review', title: f.title })}>
+                      <HelpCircle className="h-4 w-4 mr-1" /> Needs review
+                    </Button>
+                  </>
+                )}
+                {resolved && (
                   <Button size="sm" variant="ghost" onClick={() => openRestore(f)}>
-                    <ShieldAlert className="h-4 w-4 mr-1" /> Restore
+                    <ShieldAlert className="h-4 w-4 mr-1" /> Reopen
                   </Button>
                 )}
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
       </CardContent></Card>
 
       {pending && (
