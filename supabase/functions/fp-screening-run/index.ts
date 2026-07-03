@@ -69,7 +69,11 @@ Deno.serve(async (req) => {
     if (cErr) throw new Error(cErr.message);
     const activeConfigs = configs ?? [];
 
-    // Create run row (in-progress)
+    // Create run row (in-progress) with a snapshot of active configs at this instant
+    const configSnapshot = activeConfigs.map((c: Any) => ({
+      id: c.id, key: c.key, check_type: c.check_type, provider: c.provider,
+      severity_default: c.severity_default, sort_order: c.sort_order,
+    }));
     const { data: runRow, error: rErr } = await supa.from('fp_screening_runs').insert({
       assessment_id: assessmentId,
       individual_id: person.id,
@@ -78,6 +82,7 @@ Deno.serve(async (req) => {
       total_checks: activeConfigs.length,
       total_hits: 0,
       triggered_by: triggeredBy,
+      config_snapshot: configSnapshot,
     }).select('id').single();
     if (rErr || !runRow) throw new Error(rErr?.message || 'Failed to create run');
 

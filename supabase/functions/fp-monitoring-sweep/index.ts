@@ -82,6 +82,43 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Sweep overdue conditions → condition_overdue events (dedupe by finding existing unacknowledged event per condition)
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: overdueConds } = await supa.from('fp_conditions')
+      .select('id, individual_id, determination_id, category, description, due_date, overdue_at, status')
+      .eq('status', 'open')
+      .lt('due_date', today);
+
+    for (const c of overdueConds ?? []) {
+      try {
+        // Stamp overdue_at if the lifecycle trigger hasn't yet (row untouched since it went overdue)
+        if (!c.overdue_at) {
+          await supa.from('fp_conditions').update({ overdue_at: new Date().toISOString() }).eq('id', c.id);
+        }
+        const { data: existing } = await supa.from('fp_monitoring_events')
+          .select('id, acknowledged_at')
+          .eq('individual_id', c.individual_id)
+          .eq('event_type', 'condition_overdue')
+          .contains('detail', { condition_id: c.id })
+          .is('acknowledged_at', null)
+          .limit(1).maybeSingle();
+        if (existing) continue;
+        const daysOverdue = Math.max(1, Math.floor((Date.now() - new Date(c.due_date).getTime()) / 86400000));
+        const severity = daysOverdue > 30 ? 'high' : daysOverdue > 7 ? 'medium' : 'low';
+        const { error: mErr } = await supa.from('fp_monitoring_events').insert({
+          individual_id: c.individual_id,
+          determination_id: c.determination_id,
+          event_type: 'condition_overdue',
+          severity,
+          summary: `Condition overdue by ${daysOverdue} day(s): ${(c.description || c.category).slice(0, 200)}`,
+          detail: { condition_id: c.id, due_date: c.due_date, days_overdue: daysOverdue },
+        });
+        if (!mErr) summary.alerts++;
+      } catch (inner) {
+        summary.errors++;
+        console.error('[fp-monitoring-sweep] condition error', c.id, inner);
+      }
+
     await logIntegration(supa as Any, {
       direction: 'outbound',
       integrationKey: 'fp-monitoring-sweep',

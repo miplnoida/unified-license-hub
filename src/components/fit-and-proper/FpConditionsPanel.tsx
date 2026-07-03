@@ -112,12 +112,17 @@ export function FpConditionsPanel({ individualId }: Props) {
   const satisfy = useMutation({
     mutationFn: async ({ id, waive }: { id: string; waive?: boolean }) => {
       const newStatus = waive ? 'waived' : 'satisfied';
-      const { error } = await supabase.from('fp_conditions').update({
+      if (waive && (!satNote || satNote.trim().length < 5)) {
+        throw new Error('Waiver reason required (min 5 chars)');
+      }
+      const patch: Record<string, unknown> = {
         status: newStatus,
         satisfied_at: new Date().toISOString(),
         satisfied_by: user?.id,
         satisfaction_note: satNote || null,
-      }).eq('id', id);
+      };
+      if (waive) patch.waiver_reason = satNote.trim();
+      const { error } = await supabase.from('fp_conditions').update(patch).eq('id', id);
       if (error) throw error;
       await logFpAction(waive ? 'fp.condition.waived' : 'fp.condition.satisfied', 'fp_condition', id, {
         after: { status: newStatus, note: satNote || null },

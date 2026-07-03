@@ -38,7 +38,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_screening_runs', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_screening_runs')
-        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at')
+        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at, config_snapshot')
         .eq('individual_id', individualId).order('started_at', { ascending: false }).limit(20);
       if (error) throw error;
       return data ?? [];
@@ -49,7 +49,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_findings', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, check_type, title, severity, summary, source, is_false_positive, review_note, reviewed_at, created_at')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at')
         .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
@@ -160,15 +160,21 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
 
       <Card><CardContent className="p-4 space-y-2">
         {(runs ?? []).length === 0 && <p className="text-sm text-muted-foreground">No screening runs yet.</p>}
-        {(runs ?? []).map((r: any) => (
-          <div key={r.id} className="text-xs border rounded p-2 flex justify-between">
-            <div>
-              <span className="font-mono">{r.id.slice(0, 8)}</span> · {r.run_type} · {r.status}
-              <span className="ml-2 text-muted-foreground">{new Date(r.started_at).toLocaleString()}</span>
+        {(runs ?? []).map((r: any) => {
+          const snapCount = Array.isArray(r.config_snapshot) ? r.config_snapshot.length : null;
+          return (
+            <div key={r.id} className="text-xs border rounded p-2 flex justify-between">
+              <div>
+                <span className="font-mono">{r.id.slice(0, 8)}</span> · {r.run_type} · {r.status}
+                <span className="ml-2 text-muted-foreground">{new Date(r.started_at).toLocaleString()}</span>
+                {snapCount != null && (
+                  <Badge variant="outline" className="ml-2 bg-slate-50 text-slate-700">snapshot: {snapCount} check(s)</Badge>
+                )}
+              </div>
+              <div>{r.total_hits} hit(s) / {r.total_checks} check(s)</div>
             </div>
-            <div>{r.total_hits} hit(s) / {r.total_checks} check(s)</div>
-          </div>
-        ))}
+          );
+        })}
       </CardContent></Card>
 
       <Card><CardContent className="p-4 space-y-3">
@@ -178,9 +184,11 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           <div key={f.id} className={`border rounded p-3 ${f.is_false_positive ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
                   <span className="text-xs text-muted-foreground">{f.check_type}</span>
+                  {f.source && <span className="text-xs text-muted-foreground">· source: {f.source}</span>}
+                  {f.config_id && <span className="text-xs font-mono text-muted-foreground">· cfg {String(f.config_id).slice(0, 8)}</span>}
                   {f.is_false_positive && <Badge variant="outline" className="bg-slate-100 text-slate-700">false positive</Badge>}
                 </div>
                 <div className="font-medium text-sm mt-1">{f.title}</div>

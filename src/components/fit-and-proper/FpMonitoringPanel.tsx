@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Radar } from 'lucide-react';
+import { Loader2, Radar, RefreshCw } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
 
 const SEV_META: Record<string, string> = {
@@ -22,6 +22,27 @@ export function FpMonitoringPanel({ individualId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [ackNote, setAckNote] = useState<Record<string, string>>({});
+  const [rechecking, setRechecking] = useState(false);
+
+  const triggerRecheck = async () => {
+    setRechecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-monitoring-sweep', { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Sweep failed');
+      toast.success(`Sweep complete — ${data.rescreened ?? 0} rescreened, ${data.alerts ?? 0} alert(s) raised`);
+      await logFpAction('fp.monitoring.recheck_triggered', 'fp_individual', individualId, {
+        after: { rescreened: data.rescreened ?? 0, alerts: data.alerts ?? 0 },
+        context: { individualId },
+      });
+      qc.invalidateQueries({ queryKey: ['fp_monitoring_events', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_screening_runs_timeline', individualId] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Recheck failed');
+    } finally {
+      setRechecking(false);
+    }
+  };
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['fp_monitoring_events', individualId],
@@ -70,7 +91,15 @@ export function FpMonitoringPanel({ individualId }: Props) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Radar className="h-4 w-4" /> Monitoring alerts</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2"><Radar className="h-4 w-4" /> Monitoring alerts</span>
+            <Button size="sm" variant="outline" disabled={rechecking} onClick={triggerRecheck}>
+              {rechecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Trigger recheck
+            </Button>
+          </CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3">
           {isLoading && <div className="text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</div>}
           {!isLoading && (events ?? []).length === 0 && <p className="text-sm text-muted-foreground">No monitoring alerts raised.</p>}
