@@ -846,11 +846,22 @@ export default function ApplicationDetail() {
                     )}
                     <CardContent className="pt-6 space-y-6">
                       {!forceReadOnlyView && isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
-                        <DocumentUpload
-                          entityType="application"
-                          entityId={app.id}
-                          onUploaded={() => setDocRefresh(p => p + 1)}
-                        />
+                        <>
+                          <DocumentUpload
+                            entityType="application"
+                            entityId={app.id}
+                            onUploaded={() => setDocRefresh(p => p + 1)}
+                          />
+                          {user?.id && (
+                            <BatchDocumentUpload
+                              entityType="application"
+                              entityId={app.id}
+                              userId={user.id}
+                              helperText="Queue multiple files, tag each with a document type, and upload in one go."
+                              onUploaded={() => setDocRefresh(p => p + 1)}
+                            />
+                          )}
+                        </>
                       )}
                       <div key={docRefresh} className="space-y-4">
                         <AttachmentList
