@@ -306,6 +306,22 @@ export function FpAppealsPanel({ individualId }: Props) {
           })}
         </CardContent>
       </Card>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="fit_and_proper"
+          entityType="fp_appeal"
+          entityId={pending.appealId}
+          ruleKey={pending.ruleKey}
+          title="Overturn prior determination"
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </div>
   );
 }
