@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 type BreachRow = {
   id: string;
