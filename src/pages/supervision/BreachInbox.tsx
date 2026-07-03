@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 type BreachRow = {
   id: string;
@@ -317,16 +318,19 @@ export default function BreachInbox() {
                           )}
                         </td>
                         <td className="p-2 text-right">
-                          {!closed && (
-                            <div className="flex gap-1 justify-end">
-                              <Button size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
-                                <ShieldCheck className="h-3 w-3 mr-1" /> Ack
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
-                                <Gavel className="h-3 w-3 mr-1" /> Escalate
-                              </Button>
-                            </div>
-                          )}
+                          <div className="flex gap-1 justify-end">
+                            <HistoryButton entityType="prudential_breach" entityId={b.id} title="Breach history" variant="ghost" />
+                            {!closed && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
+                                  <ShieldCheck className="h-3 w-3 mr-1" /> Ack
+                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
+                                  <Gavel className="h-3 w-3 mr-1" /> Escalate
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

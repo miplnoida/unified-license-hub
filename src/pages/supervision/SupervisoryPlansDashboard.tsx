@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Target, ExternalLink, ShieldCheck, CalendarClock, UserCog, CheckCircle2 } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-blue-100 text-blue-800' },
@@ -361,7 +362,8 @@ export default function SupervisoryPlansDashboard() {
                                 {plan && (
                                   <>
                                     <PlanBadge status={plan.approval_status} />
-                                    <div className="mt-1 flex gap-1">
+                                    <div className="mt-1 flex gap-1 items-center flex-wrap">
+                                      <HistoryButton entityType="supervisory_plan" entityId={plan.id} title="Supervisory plan history" variant="ghost" />
                                       {canSubmit && (
                                         <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => submitForReview.mutate(plan.id)}>
                                           Submit

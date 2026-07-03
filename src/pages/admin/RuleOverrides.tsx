@@ -29,6 +29,7 @@ export default function RuleOverrides() {
 
   const [fModule, setFModule] = useState<string>(ALL);
   const [fEntity, setFEntity] = useState('');
+  const [fEntityId, setFEntityId] = useState('');
   const [fRule, setFRule] = useState('');
   const [fFrom, setFFrom] = useState('');
   const [fTo, setFTo] = useState('');
@@ -46,6 +47,7 @@ export default function RuleOverrides() {
         .limit(500);
       if (fModule && fModule !== ALL) q = q.eq('module', fModule);
       if (fEntity.trim()) q = q.ilike('entity_type', `%${fEntity.trim()}%`);
+      if (fEntityId.trim()) q = q.ilike('entity_id', `%${fEntityId.trim()}%`);
       if (fRule.trim()) q = q.ilike('rule_key', `%${fRule.trim()}%`);
       if (fFrom) q = q.gte('created_at', new Date(fFrom).toISOString());
       if (fTo) q = q.lte('created_at', new Date(new Date(fTo).getTime() + 86400000).toISOString());
