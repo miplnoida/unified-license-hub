@@ -36,21 +36,52 @@ export default function ConductAlerts() {
   };
   useEffect(() => { load(); }, [status]);
 
-  const ack = async (id: string) => {
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() }).eq('id', id);
+  const ack = async (row: any) => {
+    const prevStatus = row.status;
+    const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() }).eq('id', row.id);
     if (error) return toast.error(error.message);
-    await logAudit({ action: 'conduct_alert_acknowledged', entityType: 'conduct_alert', entityId: id });
+    await logAudit({
+      action: 'conduct_alert_acknowledged',
+      entityType: 'conduct_alert',
+      entityId: row.id,
+      metadata: {
+        old_status: prevStatus,
+        new_status: 'acknowledged',
+        actor_id: user?.id,
+        alert_kind: row.kind,
+        complaint_id: row.complaint_id,
+        triage_rule_id: row.triage_rule_id,
+        licensee_id: row.licensee_id,
+        severity: row.severity,
+      },
+    });
     load();
   };
-  const doClose = async (id: string) => {
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', id);
+  const doClose = async (row: any, extra?: Record<string, any>) => {
+    const prevStatus = row.status;
+    const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', row.id);
     if (error) return toast.error(error.message);
-    await logAudit({ action: 'conduct_alert_closed', entityType: 'conduct_alert', entityId: id });
+    await logAudit({
+      action: 'conduct_alert_closed',
+      entityType: 'conduct_alert',
+      entityId: row.id,
+      metadata: {
+        old_status: prevStatus,
+        new_status: 'closed',
+        actor_id: user?.id,
+        alert_kind: row.kind,
+        complaint_id: row.complaint_id,
+        triage_rule_id: row.triage_rule_id,
+        licensee_id: row.licensee_id,
+        severity: row.severity,
+        ...(extra || {}),
+      },
+    });
     load();
   };
   const close = async (row: any) => {
     if (row.triage_rule_id) { setOverrideAlert(row); return; }
-    await doClose(row.id);
+    await doClose(row);
   };
 
   return (
