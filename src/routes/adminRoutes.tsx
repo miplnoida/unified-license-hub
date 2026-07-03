@@ -37,6 +37,9 @@ const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
+const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
+const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
+const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
 
 
 
@@ -108,6 +111,9 @@ export const adminRoutes = (
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
+    <Route path="/admin/conduct/risk-taxonomy" element={<M module="complaint_management"><ConductRiskTaxonomy /></M>} />
+    <Route path="/admin/conduct/products-channels" element={<M module="complaint_management"><ConductProductsChannels /></M>} />
+    <Route path="/admin/conduct/triage-rules" element={<M module="complaint_management"><ConductTriageRules /></M>} />
     
     
 
