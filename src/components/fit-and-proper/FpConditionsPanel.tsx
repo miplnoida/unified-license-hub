@@ -42,6 +42,14 @@ export function FpConditionsPanel({ individualId }: Props) {
   const [form, setForm] = useState(EMPTY);
   const [satisfyFor, setSatisfyFor] = useState<string | null>(null);
   const [satNote, setSatNote] = useState('');
+  const [pending, setPending] = useState<null | {
+    ruleKey: string;
+    title: string;
+    original: unknown;
+    overridden: unknown;
+    apply: () => Promise<void>;
+    metadata: Record<string, unknown>;
+  }>(null);
 
   const { data: currentDet } = useQuery({
     queryKey: ['fp_current_det', individualId],
