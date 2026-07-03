@@ -277,6 +277,9 @@ export function FpAppealsPanel({ individualId }: Props) {
                       <SelectTrigger><SelectValue placeholder="Pick decision" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="upheld_original">Uphold original determination</SelectItem>
+                        <SelectItem value="partially_upheld">Partially uphold</SelectItem>
+                        <SelectItem value="dismissed">Dismiss appeal</SelectItem>
+                        <SelectItem value="remitted">Remit for reconsideration</SelectItem>
                         <SelectItem value="overturned_to_approved">Overturn → Approved</SelectItem>
                         <SelectItem value="overturned_to_conditional">Overturn → Conditional</SelectItem>
                       </SelectContent>
