@@ -162,6 +162,27 @@ export default function ConductDashboard() {
                 </Table>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Recent conduct alerts in scope</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Kind</TableHead><TableHead>Severity</TableHead><TableHead>Title</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {alerts.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No alerts in scope.</TableCell></TableRow> :
+                      alerts.slice(0, 25).map(a => (
+                        <TableRow key={a.id}>
+                          <TableCell className="text-xs">{new Date(a.created_at).toLocaleString()}</TableCell>
+                          <TableCell><Badge variant="outline" className="capitalize">{a.kind?.replace('_', ' ')}</Badge></TableCell>
+                          <TableCell><Badge variant={a.severity === 'critical' ? 'destructive' : 'outline'} className="capitalize">{a.severity}</Badge></TableCell>
+                          <TableCell className="max-w-md truncate">{a.complaint_id ? <Link className="text-primary hover:underline" to={`/complaints/${a.complaint_id}`}>{a.title}</Link> : a.title}</TableCell>
+                          <TableCell><Badge variant="secondary" className="capitalize">{a.status}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
