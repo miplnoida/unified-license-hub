@@ -38,7 +38,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_screening_runs', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_screening_runs')
-        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at')
+        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at, config_snapshot')
         .eq('individual_id', individualId).order('started_at', { ascending: false }).limit(20);
       if (error) throw error;
       return data ?? [];
@@ -49,7 +49,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_findings', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, check_type, title, severity, summary, source, is_false_positive, review_note, reviewed_at, created_at')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at')
         .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
