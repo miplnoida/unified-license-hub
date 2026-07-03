@@ -1,7 +1,14 @@
 
 # Phase 5 — Close all Script 1–5 gaps (production-grade, not demo)
 
+## Progress log
+- ✅ Phase 5A schema migration: `license_certificate_signatures` table, cert dispatch_status, F&P weighted-vote columns, AI-routing columns on `application_ai_assessments`, `has_legal_access()` helper, tightened `application_legal_notes` RLS.
+- ✅ Gap 4 (License signing & dispatch): edge fns `sign-license-certificate` + `dispatch-license-certificate` with HMAC-SHA256 ledger, `LicenseSignaturePanel` wired into `LicenseDetail.tsx`, secret `LICENSE_SIGNING_SECRET` generated.
+- ⏭️ Next in Phase 5A: Gap 2 (AI-proposed routing UI + edge fn extension), Gap 3 (Security Events viewer wiring), Gap 11 (F&P weighted-voting RPC + UI), Gap 12 (F&P appeals module).
+
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
+
+
 
 ---
 
