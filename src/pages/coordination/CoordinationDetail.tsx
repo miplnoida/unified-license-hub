@@ -268,6 +268,7 @@ export default function CoordinationDetail() {
             <TabsTrigger value="thread"><MessageSquare className="h-4 w-4 mr-2" /> Thread</TabsTrigger>
             <TabsTrigger value="participants"><UserPlus className="h-4 w-4 mr-2" /> Participants ({participants?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="flags"><Flag className="h-4 w-4 mr-2" /> Flags ({flags?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="escalations"><AlertTriangle className="h-4 w-4 mr-2" /> Escalations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="thread" className="space-y-3">
@@ -311,6 +312,18 @@ export default function CoordinationDetail() {
 
           <TabsContent value="flags">
             <FlagsTab caseId={caseId!} flags={flags ?? []} canPost={!!me} currentUserId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="escalations">
+            <EscalationsTab
+              caseId={caseId!}
+              canParticipate={!!me}
+              isOwner={isOwner}
+              participants={(participants ?? []).map((p: any) => ({ user_id: p.user_id }))}
+              profileMap={profileMap}
+              subjectType={caseRow.subject_type}
+              subjectId={caseRow.subject_id}
+            />
           </TabsContent>
         </Tabs>
       </div>
