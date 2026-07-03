@@ -36,6 +36,7 @@ const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPla
 const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
+const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 
 
 
@@ -106,6 +107,7 @@ export const adminRoutes = (
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
+    <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
     
     
 
