@@ -312,6 +312,23 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing, 
                 </Select>
                 {NO_VALUE_OPS.has(c.op) ? (
                   <div className="col-span-4 text-xs text-muted-foreground pt-2">(no value)</div>
+                ) : c.field === 'conduct_risk_category' && !LIST_OPS.has(c.op) ? (
+                  <Select value={String(c.value ?? '')} onValueChange={(v: string) => setCond(i, { value: v })}>
+                    <SelectTrigger className="col-span-4"><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>{(categories || []).map((cat: any) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : c.field === 'status' && !LIST_OPS.has(c.op) ? (
+                  <Select value={String(c.value ?? '')} onValueChange={(v: string) => setCond(i, { value: v })}>
+                    <SelectTrigger className="col-span-4"><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>{STATUS_VALUES.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : DATE_FIELDS.has(c.field) && !LIST_OPS.has(c.op) ? (
+                  <Input
+                    type="datetime-local"
+                    className="col-span-4"
+                    value={typeof c.value === 'string' && c.value ? new Date(c.value).toISOString().slice(0, 16) : ''}
+                    onChange={e => setCond(i, { value: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                  />
                 ) : (
                   <Input
                     className="col-span-4"
