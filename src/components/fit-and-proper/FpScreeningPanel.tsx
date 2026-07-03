@@ -320,6 +320,27 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           }}
         />
       )}
+
+      <Dialog open={!!resolving} onOpenChange={(o) => { if (!o) { setResolving(null); setResolutionReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolve finding — {resolving?.status.replace('_', ' ')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{resolving?.title}</p>
+            <Textarea
+              placeholder="Reason for this resolution (min 10 characters)…"
+              value={resolutionReason}
+              onChange={(e) => setResolutionReason(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setResolving(null); setResolutionReason(''); }}>Cancel</Button>
+            <Button onClick={submitResolution}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
