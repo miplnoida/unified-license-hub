@@ -239,10 +239,12 @@ export function RaiseRfiDialog({
 
   return (
     <>
-      <Button variant="default" size="sm" onClick={() => setOpen(true)}>
-        <MessageSquarePlus className="mr-2 h-4 w-4" />
-        {triggerLabel}
-      </Button>
+      {!hideTrigger && controlledOpen === undefined && (
+        <Button variant="default" size="sm" onClick={() => setOpen(true)}>
+          <MessageSquarePlus className="mr-2 h-4 w-4" />
+          {triggerLabel}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
