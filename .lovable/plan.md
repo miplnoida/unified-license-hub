@@ -1,64 +1,49 @@
-# Script 1–5 coverage confirmation & manual verification guide
+## Fix: RLS blocking complainant from filing complaints
 
-## Coverage summary (based on codebase inspection, no changes made)
+### Problem
+External users (applicant / pre_licensee / licensee_primary / licensee_secondary) filing a complaint via `ComplaintsList.tsx` hit:
 
-All 12 Script-1 items, 10 Script-2 items, and the Script-3/4/5 items listed in the worksheets map to shipped code. The last six gaps tracked in `.lovable/plan.md` (Phase 6) — multi-regulator F&P, sector F&P rules, cross-module case audit, prudential early warnings, Security Events tile, and complaint acknowledgement artifact — are all in the tree and DB. Nothing is demo-stub only.
+> new row violates row-level security policy `external_complaints_select_capability_gate` for table `complaints`
 
-| Script | Demo IDs | Where it lives |
-|---|---|---|
-| S1 Licensing | ULRA-001…012 | Applicant portal + `ApplicationDetail`, `SufficiencyPanel`, `ConfigurableDecisionActions`, `TwinPeaksPanel`, `LicenseActionDialog`, workflow engine, `audit_logs` |
-| S2 Fit & Proper | FPA-001…011 | `FitAndProperIndividualDetail`, `FpScreeningPanel`, `FpDeterminationsPanel` (regulator-scoped), `FpSectorDecisionRules`, `FpPopulationTrends`, `fp-cycle-scheduler` + `fp-ai-media-ingest` edge fns |
-| S3 Prudential | PRUD-001…010 + BR-PS-15 | `ReturnReviewPanel`, `ReturnValidationAndRatiosPanel`, `PrudentialAnalytics`, `PrudentialEarlyWarnings` view + page + cron edge fn |
-| S4 Market Conduct | MCS-001…010 | `ComplaintsList`, `ComplaintDetail`, `ConductClassificationCard`, `TriageHistoryCard`, `ComplaintAcknowledgement`, thematic-review module |
-| S5 Dashboards/Audit | DPA-001…010 | `ExecutiveDashboard` + `DashboardInsightsCard`, `CaseAuditTrail`, `SecurityEvents`, `exportAudit`, `ChangeHistoryDrawer` |
+The insert itself is legal — the INSERT restrictive gate (`external_complaints_insert_capability_gate`) accepts the row — but the client sends `.select().single()` (PostgREST `Prefer: return=representation`), so Postgres also evaluates the restrictive **SELECT** gate on the returned row. When that gate evaluates to false, the whole statement is rolled back and Postgres reports the SELECT policy name. That's exactly what we see: no row lands in `complaints`, but the error names the select gate.
 
-TS build is clean; every new table has GRANTs + RLS in its migration.
+The current SELECT gate only lets external users see a complaint via `has_portal_capability(..., 'can_view_status')` or `can_submit_complaints`. The row-owner branch (`complainant_id = auth.uid()`) is only inside `external_can_access_complaint_values`, which additionally requires a portal-capability match. Any external user whose dynamic role is missing one of those two complaint-management actions — or where the capability lookup misbehaves inside the `RETURNING` snapshot — gets blocked on their own row.
 
-## Manual verification — step by step
+### Fix (single migration, RLS only — no app code changes)
 
-Run these against the preview URL. Use a super-admin login unless noted.
+Rewrite the restrictive SELECT policy on `public.complaints` so it always lets:
 
-### Script 1 — Unified Licensing
-1. Applicant portal → **Start new application**, pick a license type, save → confirm draft appears in "My Applications" with a status of Draft and a timestamp (DEMO-ULRA-001).
-2. Switch license type in the same draft → dynamic fields change; leave a required field blank → validation blocks submit; upload a doc → version appears in the document panel (DEMO-ULRA-002).
-3. Submit → toast shows reference number; check `/applications` staff queue for the new row (DEMO-ULRA-003, 004).
-4. Staff → open the application → **Issue RFI**, then log back as applicant and respond → SLA pauses/resumes; audit entries appear in the History drawer (DEMO-ULRA-005).
-5. Route to Analyst → auto AI assessment runs; open Legal tab as a Legal-only role, then as non-Legal (should be denied) (DEMO-ULRA-006/007).
-6. Approver → open consolidated view → issue Approve / Conditional / Reject; open the generated certificate and notification log (DEMO-ULRA-008/009).
-7. On an issued license: **Renew**, then **Revoke** with justification; run **Bulk intake** from the admin tools; open the History drawer for full lineage (DEMO-ULRA-010).
-8. Navigate `/admin/case-audit/application/<id>` → confirm the chronological cross-module timeline (DEMO-ULRA-011).
-9. In `ApplicationDetail`, open the **Twin Peaks** tab; record a Prudential flag then a Conduct flag → interdependency + conditional clearance shows for both regulators (DEMO-ULRA-012).
+1. Non-external users through (unchanged short-circuit `NOT has_external_role(auth.uid())`).
+2. **The complainant view their own complaint** — plain `complainant_id = auth.uid()` branch, independent of `has_portal_capability`. This is the missing branch that causes the regression: someone who just successfully passed the INSERT gate must, by definition, be allowed to see the row they just created.
+3. Existing capability-based access for related external users (e.g. a licensee-primary viewing complaints against their entity) via the current `external_can_access_complaint(..., 'can_view_status' | 'can_submit_complaints')` checks.
 
-### Script 2 — Fit & Proper
-1. Trigger F&P from (a) new licence, (b) role change on an entity, (c) periodic cycle button in `/fit-and-proper`, (d) ad-hoc "New assessment" — four rows appear in the individual's initiation log (DEMO-FPA-001).
-2. Create one individual, link two entities + two roles → single profile, multiple role rows (DEMO-FPA-002).
-3. Try to open the individual as a user without F&P role → denial toast + entry in `/admin/security-events` (DEMO-FPA-003).
-4. Individual completes declarations → assessor sees notification bell; log shown under Notifications tab (DEMO-FPA-004).
-5. `FpScreeningPanel` → **Run screening** → automated results + flags render; upload manual evidence and link (DEMO-FPA-005/006).
-6. Force an adverse finding → severity classification + escalation routing shows in history (DEMO-FPA-007).
-7. Open **Population Trends** page (`/fit-and-proper/population-trends`) and the historic comparison on the individual (DEMO-FPA-008).
-8. Open `/admin/fp-sector-rules` → create a DTI-vs-microcredit rule; return to a determination — mandatory checks + rationale template auto-load (DEMO-FPA-010).
-9. Switch active regulator (top-right switcher), open the same individual → record a second determination; both remain "current" for their own regulator with badges + independent audit (DEMO-FPA-011).
+SQL sketch:
 
-### Script 3 — Prudential
-1. Licensee portal → open a return, save draft, submit → auto ratios computed on the review panel (PRUD-001–004).
-2. Regulator side → `ReturnReviewPanel` shows validation results, breach flags, threshold history; add reviewer comment (PRUD-005–007).
-3. `/supervision/prudential-analytics` → confirm charts + drill-down (PRUD-008/009).
-4. `/supervision/early-warnings` → click **Recompute**; verify watch/warning/critical counts, filter by regulator, use **Seed supervisory action** on a critical row → new item in `supervisory_plan_actions`; export CSV → row appears in `audit_export_jobs` (PRUD-010 / BR-PS-15).
+```sql
+DROP POLICY "external_complaints_select_capability_gate" ON public.complaints;
 
-### Script 4 — Market Conduct
-1. Public complaint portal → submit → **acknowledgement dialog** opens automatically; click **Print / Save as PDF** → PDF has reference number, timestamp, SLA (DEMO-MCS-003).
-2. Staff `/complaints` → new intake also shows the acknowledgement; open a complaint → **Reprint acknowledgement** header button works; each print writes an ACK_GENERATED row in the History drawer (DEMO-MCS-003).
-3. Investigation tab → add correspondence, tasks, evidence, close case → audit trail complete (DEMO-MCS-004–010).
-4. Thematic review module → create review, attach entities/products, add findings + actions.
+CREATE POLICY "external_complaints_select_capability_gate"
+  ON public.complaints
+  AS RESTRICTIVE
+  FOR SELECT
+  TO authenticated
+  USING (
+    NOT public.has_external_role(auth.uid())
+    OR complainant_id = auth.uid()
+    OR public.external_can_access_complaint(auth.uid(), id, 'can_view_status')
+    OR public.external_can_access_complaint(auth.uid(), id, 'can_submit_complaints')
+  );
+```
 
-### Script 5 — Dashboards / Reporting / Audit
-1. `/dashboard/executive` → `DashboardInsightsCard` renders AI narrative + severity; thumbs up/down persist (DEMO-DPA-001–004).
-2. `/admin` (Admin Hub) → confirm tiles for **Security Events**, **Case Audit Trail**, **Prudential Early Warnings**, **F&P Sector Rules** (DEMO-DPA-009).
-3. `/admin/security-events` → filter by event type + date, export CSV.
-4. `/admin/case-audit` → search by entity ID, open timeline, use diff viewer, export JSON — row in `audit_export_jobs` (DEMO-DPA-005/006).
-5. Any list view → export CSV/PDF → `/admin/audit-exports` shows the row with file hash + filters (DEMO-DPA-007/008).
-6. Open any entity → **History** button → `ChangeHistoryDrawer` shows before/after diffs across modules (DEMO-DPA-010).
+No changes to INSERT/UPDATE gates, no changes to `ComplaintsList.tsx`, no changes to the helper functions.
 
-## If any step fails
-Note the Demo ID + screenshot and reply "gap on DEMO-XYZ-###" — I will then switch to build mode and patch just that scenario.
+### Why this is safe
+- The new OR branch only widens SELECT for rows where `complainant_id = auth.uid()` — i.e. the complaint the user themselves filed. Users could never see complaints belonging to *other* complainants through this branch.
+- The permissive `Read complaints` policy already allows `auth.uid() = complainant_id`; the restrictive gate was inadvertently narrower than the permissive policy for external users, which is the bug.
+- Internal staff and non-external users are unaffected (short-circuit branch unchanged).
+
+### Verification
+1. Log in as the reporting user (applicant/pre_licensee).
+2. File a complaint from the licensee portal — expect success toast and the acknowledgement dialog.
+3. Confirm the new row appears in the complaints list for that user only.
+4. Log in as a different external user with no relationship to that complaint — confirm they still cannot see it.
