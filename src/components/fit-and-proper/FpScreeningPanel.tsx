@@ -54,7 +54,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_findings', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations')
         .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
