@@ -91,12 +91,25 @@ export function RaiseRfiDialog({
   formData,
   onCreated,
   triggerLabel = 'Raise RFI',
+  open: controlledOpen,
+  onOpenChange,
+  initialItems,
+  sufficiencyEvaluationId,
+  sufficiencyResultIds,
+  hideTrigger,
 }: RaiseRfiDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const [summary, setSummary] = useState('');
   const [dueAt, setDueAt] = useState('');
   const [pauseSla, setPauseSla] = useState(true);
-  const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
+  const [items, setItems] = useState<DraftItem[]>(
+    initialItems && initialItems.length ? initialItems.map(fromInitial) : [emptyItem()],
+  );
   const [saving, setSaving] = useState(false);
   const [loadedRuleIds, setLoadedRuleIds] = useState<Set<string>>(new Set());
 
