@@ -122,6 +122,10 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
         .update({ committee_id: assignCommitteeId, status: 'awaiting_committee' })
         .eq('id', assessmentId);
       if (error) throw error;
+      await logFpAction('fp.assessment.committee_assigned', 'fp_assessment', assessmentId, {
+        after: { committee_id: assignCommitteeId, status: 'awaiting_committee' },
+        context: { individualId, assessmentId, committeeId: assignCommitteeId },
+      });
     },
     onSuccess: () => {
       toast.success('Committee assigned');
@@ -134,11 +138,18 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
   const castVote = useMutation({
     mutationFn: async () => {
       if (!assessmentId || !assessment?.committee_id || !myMembership) throw new Error('Not a member');
-      const { error } = await supabase.from('fp_committee_votes').insert({
+      if ((voteChoice === 'reject' || voteChoice === 'conditional') && voteNote.trim().length < 10) {
+        throw new Error('Justification required for reject/conditional votes (min 10 chars)');
+      }
+      const { data, error } = await supabase.from('fp_committee_votes').insert({
         assessment_id: assessmentId, committee_id: assessment.committee_id,
         member_id: myMembership.id, vote: voteChoice, justification: voteNote || null,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', data.id, {
+        after: { vote: voteChoice, justification: voteNote || null },
+        context: { individualId, assessmentId, committeeId: assessment.committee_id },
+      });
     },
     onSuccess: () => {
       toast.success('Vote recorded');
