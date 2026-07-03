@@ -15,7 +15,10 @@
 - ✅ Gap 8 (Adverse-media confidence + triage): screening engine and AI ingest write `confidence_score`; auto-band trigger drafts false-positive/needs-review/true-positive; `FpScreeningPanel` triage dialog with mandatory reason (min 10 chars), citations rendered inline.
 - ✅ Gap 9 (Population trends): `FpPopulationTrends` page at `/fit-and-proper/trends` — Recharts for findings-by-month, throughput, check-type mix, resolution mix, appeals stats.
 - ✅ Gap 10 (AI ingest): edge fn `fp-ai-media-ingest` calls Lovable AI Gateway, stores findings with citations + confidence, exposed via "AI media scan" button in `FpScreeningPanel`; analyst must accept/reject each hit with reason before it counts.
-- ⏭️ Next: Phase 5D (prudential/conduct taxonomy admin, peer comparison, product/channel dimension, monitoring rule admin, batch document upload).
+- ✅ Phase 5D partial: Gap 13 conduct taxonomy (`ConductRiskTaxonomy`) already live; Gap 14 peer comparison already live in `PrudentialAnalytics`; Gap 16 `MonitoringRules` admin with on-demand runner already live.
+- ✅ Gap 15 (Product/channel dimension): migration adds `licensee_products` + `licensee_channels` join tables with regulator-managed / licensee-read RLS; new `ProductsChannelsTab` mounted on `LicenseeDetail` for effective-dated product & channel mapping.
+- ✅ Gap 1 (Batch document upload): existing `BatchDocumentUpload` reusable widget wired into `ApplicationDetail` Documents tab alongside single-file uploader — drag-drop many files with per-file type / description / confidentiality.
+- ⏭️ Next: Phase 5E (dashboard AI insights, export audit surface, entity change-history drawer, security-events viewer).
 
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 

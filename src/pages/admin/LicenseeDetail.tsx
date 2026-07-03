@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Swal from 'sweetalert2';
 import {
   ArrowLeft, Loader2, Building2, Users, GitBranch, Shield, Gavel,
-  ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash, Target
+  ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash, Target, Boxes
 } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
@@ -25,6 +25,7 @@ const ReturnsTab = lazy(() => import('@/components/entity-detail/ReturnsTab'));
 const InspectionsTab = lazy(() => import('@/components/entity-detail/InspectionsTab'));
 const ReinsuranceTab = lazy(() => import('@/components/entity-detail/ReinsuranceTab'));
 const SupervisoryPlanTab = lazy(() => import('@/components/entity-detail/SupervisoryPlanTab'));
+const ProductsChannelsTab = lazy(() => import('@/components/entity-detail/ProductsChannelsTab'));
 
 interface LookupMap { [id: string]: string }
 
@@ -170,6 +171,7 @@ export default function LicenseeDetail() {
   const tabs = [
     { id: 'background', label: 'Background Info', icon: Building2 },
     { id: 'licenses', label: 'Licenses', icon: Shield },
+    { id: 'products-channels', label: 'Products & Channels', icon: Boxes },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
@@ -253,6 +255,10 @@ export default function LicenseeDetail() {
 
             <TabsContent value="licenses" className="mt-6">
               {loadedTabs.has('licenses') && <LicensesTab entityId={id!} licenseId={licensee.license_id} />}
+            </TabsContent>
+
+            <TabsContent value="products-channels" className="mt-6">
+              {loadedTabs.has('products-channels') && <ProductsChannelsTab entityId={id!} />}
             </TabsContent>
 
             <TabsContent value="enforcement" className="mt-6">
