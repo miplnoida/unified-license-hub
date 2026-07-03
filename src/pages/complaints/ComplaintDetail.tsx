@@ -18,6 +18,7 @@ import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTrian
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -256,6 +257,7 @@ export default function ComplaintDetail() {
                 <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
               </CardContent>
             </Card>
+            <ConductClassificationCard complaint={complaint} />
           </TabsContent>
 
           <TabsContent value="investigation">
