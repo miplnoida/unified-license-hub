@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Loader2, Send, MessageSquare, Gavel, XCircle, CheckCircle2 } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { ENFORCEMENT_STATUS_META } from './EnforcementList';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
