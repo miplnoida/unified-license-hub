@@ -68,12 +68,15 @@ export default function ConductDashboard() {
 
   const kpis = useMemo(() => {
     const total = complaints.length;
+    const openComplaints = complaints.filter(c => c.status !== 'closed' && c.status !== 'resolved').length;
     const openAlerts = alerts.filter(a => a.status === 'open').length;
     const critical = complaints.filter(c => c.severity === 'critical').length;
     const vulnerable = complaints.filter(c => c.vulnerability_indicator).length;
     const now = Date.now();
     const slaBreached = complaints.filter(c => !c.resolved_at && c.sla_due_at && new Date(c.sla_due_at).getTime() < now).length;
-    return { total, openAlerts, critical, vulnerable, slaBreached };
+    const slaAtRisk = complaints.filter(c => !c.resolved_at && c.sla_due_at && new Date(c.sla_due_at).getTime() >= now && new Date(c.sla_due_at).getTime() - now < 24 * 3600 * 1000).length;
+    const repeat = complaints.filter(c => (c.repeat_complaint_count ?? 0) >= 3).length;
+    return { total, openComplaints, openAlerts, critical, vulnerable, slaBreached, slaAtRisk, repeat };
   }, [complaints, alerts]);
 
   const byProduct = useMemo(() => groupBy(complaints, c => products.find(p => p.id === c.product_id)?.name || '—'), [complaints, products]);
