@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatEvidenceList } from '@/lib/evidenceLabel';
 import { formatDistanceToNow } from 'date-fns';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 interface Props {
   applicationId: string;
