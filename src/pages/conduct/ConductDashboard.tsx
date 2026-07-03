@@ -40,12 +40,17 @@ export default function ConductDashboard() {
     setLoading(true);
     const since = new Date(Date.now() - Number(f.days) * 24 * 3600 * 1000).toISOString();
     let cq = supabase.from('complaints')
-      .select('id, complaint_number, subject, severity, status, priority, product_id, channel_id, conduct_risk_category_id, licensee_id, created_at, sla_due_at, resolved_at, vulnerability_indicator')
+      .select('id, complaint_number, subject, severity, status, priority, product_id, channel_id, conduct_risk_category_id, licensee_id, created_at, sla_due_at, resolved_at, vulnerability_indicator, customer_type, repeat_complaint_count')
       .gte('created_at', since).order('created_at', { ascending: false }).limit(1000);
     if (f.product_id !== 'all') cq = cq.eq('product_id', f.product_id);
     if (f.channel_id !== 'all') cq = cq.eq('channel_id', f.channel_id);
     if (f.category_id !== 'all') cq = cq.eq('conduct_risk_category_id', f.category_id);
     if (f.licensee_id !== 'all') cq = cq.eq('licensee_id', f.licensee_id);
+    if (f.severity !== 'all') cq = cq.eq('severity', f.severity);
+    if (f.priority !== 'all') cq = cq.eq('priority', f.priority);
+    if (f.customer_type !== 'all') cq = cq.eq('customer_type', f.customer_type);
+    if (f.vulnerable === 'yes') cq = cq.eq('vulnerability_indicator', true);
+    if (f.vulnerable === 'no') cq = cq.eq('vulnerability_indicator', false);
     const { data: cData, error: cErr } = await cq;
     if (cErr) toast.error(cErr.message);
 
@@ -54,11 +59,12 @@ export default function ConductDashboard() {
     if (f.channel_id !== 'all') aq = aq.eq('channel_id', f.channel_id);
     if (f.category_id !== 'all') aq = aq.eq('conduct_risk_category_id', f.category_id);
     if (f.licensee_id !== 'all') aq = aq.eq('licensee_id', f.licensee_id);
+    if (f.alert_status !== 'all') aq = aq.eq('status', f.alert_status);
     const { data: aData } = await aq;
 
     setComplaints(cData || []); setAlerts(aData || []); setLoading(false);
   };
-  useEffect(() => { load(); }, [f.product_id, f.channel_id, f.category_id, f.licensee_id, f.days]);
+  useEffect(() => { load(); }, [f.product_id, f.channel_id, f.category_id, f.licensee_id, f.days, f.severity, f.priority, f.customer_type, f.vulnerable, f.alert_status]);
 
   const kpis = useMemo(() => {
     const total = complaints.length;
