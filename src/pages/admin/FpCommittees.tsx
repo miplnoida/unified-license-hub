@@ -40,7 +40,7 @@ export default function FpCommittees() {
     enabled: !!selectedCommittee,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_members')
-        .select('id, user_id, member_role, is_active, added_at')
+        .select('id, user_id, member_role, is_active, added_at, vote_weight')
         .eq('committee_id', selectedCommittee!).order('added_at', { ascending: true });
       if (error) throw error;
       const userIds = (data ?? []).map((m: any) => m.user_id);
@@ -50,6 +50,8 @@ export default function FpCommittees() {
       return (data ?? []).map((m: any) => ({ ...m, profile: map.get(m.user_id) }));
     },
   });
+
+  const selectedCommitteeRow = (committees ?? []).find((c: any) => c.id === selectedCommittee);
 
   const { data: profileOptions } = useQuery({
     queryKey: ['fp_profile_search'],
