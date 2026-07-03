@@ -34,6 +34,14 @@ export function FpAppealsPanel({ individualId }: Props) {
   const [committeePick, setCommitteePick] = useState<Record<string, string>>({});
   const [decisionPick, setDecisionPick] = useState<Record<string, string>>({});
   const [decisionNote, setDecisionNote] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState<null | {
+    appealId: string;
+    ruleKey: string;
+    original: unknown;
+    overridden: unknown;
+    metadata: Record<string, unknown>;
+    apply: () => Promise<void>;
+  }>(null);
 
   const { data: currentDet } = useQuery({
     queryKey: ['fp_current_determination', individualId],
