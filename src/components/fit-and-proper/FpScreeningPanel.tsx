@@ -160,15 +160,21 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
 
       <Card><CardContent className="p-4 space-y-2">
         {(runs ?? []).length === 0 && <p className="text-sm text-muted-foreground">No screening runs yet.</p>}
-        {(runs ?? []).map((r: any) => (
-          <div key={r.id} className="text-xs border rounded p-2 flex justify-between">
-            <div>
-              <span className="font-mono">{r.id.slice(0, 8)}</span> · {r.run_type} · {r.status}
-              <span className="ml-2 text-muted-foreground">{new Date(r.started_at).toLocaleString()}</span>
+        {(runs ?? []).map((r: any) => {
+          const snapCount = Array.isArray(r.config_snapshot) ? r.config_snapshot.length : null;
+          return (
+            <div key={r.id} className="text-xs border rounded p-2 flex justify-between">
+              <div>
+                <span className="font-mono">{r.id.slice(0, 8)}</span> · {r.run_type} · {r.status}
+                <span className="ml-2 text-muted-foreground">{new Date(r.started_at).toLocaleString()}</span>
+                {snapCount != null && (
+                  <Badge variant="outline" className="ml-2 bg-slate-50 text-slate-700">snapshot: {snapCount} check(s)</Badge>
+                )}
+              </div>
+              <div>{r.total_hits} hit(s) / {r.total_checks} check(s)</div>
             </div>
-            <div>{r.total_hits} hit(s) / {r.total_checks} check(s)</div>
-          </div>
-        ))}
+          );
+        })}
       </CardContent></Card>
 
       <Card><CardContent className="p-4 space-y-3">
