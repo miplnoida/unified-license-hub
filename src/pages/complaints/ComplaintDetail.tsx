@@ -368,6 +368,23 @@ export default function ComplaintDetail() {
             }}
           />
         )}
+
+        {ackOpen && complaint && (
+          <ComplaintAcknowledgement
+            open={ackOpen}
+            onOpenChange={setAckOpen}
+            complaint={{
+              id: complaint.id,
+              complaint_number: complaint.complaint_number,
+              subject: complaint.subject,
+              submitted_at: complaint.created_at,
+              complainant_name: (complaint as any).complainant_name ?? null,
+              complainant_email: (complaint as any).email ?? null,
+              channel: (complaint as any).channel ?? 'staff_intake',
+              sla_days: slaDays,
+            } as ComplaintAckInput}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
