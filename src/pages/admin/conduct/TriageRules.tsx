@@ -125,6 +125,14 @@ export default function TriageRules() {
   const [form, setForm] = useState<Rule>(emptyRule());
   const [saving, setSaving] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; code: string | null }>>([]);
+
+  function emptyRule(): Rule {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Rule | null>(null);
+  const [form, setForm] = useState<Rule>(emptyRule());
+  const [saving, setSaving] = useState(false);
+  const [simOpen, setSimOpen] = useState(false);
 
   function emptyRule(): Rule {
     return { id: '', name: '', description: '', active: true, priority_order: 100, match_mode: 'all', conditions: [], outputs: {} };
