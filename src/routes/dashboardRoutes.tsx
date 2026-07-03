@@ -63,6 +63,11 @@ const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCa
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
 const ConductDashboard = lazy(() => import('@/pages/conduct/ConductDashboard'));
 const ConductAlerts = lazy(() => import('@/pages/conduct/ConductAlerts'));
+const ConductActions = lazy(() => import('@/pages/conduct/ConductActions'));
+const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews'));
+const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
+const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
+const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -155,5 +160,11 @@ export const dashboardRoutes = (
     <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
     <Route path="/conduct" element={<M module="complaint_management"><ConductDashboard /></M>} />
     <Route path="/conduct/alerts" element={<M module="complaint_management"><ConductAlerts /></M>} />
+    <Route path="/conduct/actions" element={<M module="complaint_management"><ConductActions /></M>} />
+    <Route path="/supervision/thematic-reviews" element={<M module="complaint_management"><ThematicReviews /></M>} />
+    <Route path="/supervision/thematic-reviews/new" element={<M module="complaint_management"><NewThematicReview /></M>} />
+    <Route path="/supervision/thematic-reviews/:id" element={<M module="complaint_management"><ThematicReviewDetail /></M>} />
+    <Route path="/admin/conduct/monitoring-rules" element={<M module="complaint_management"><MonitoringRules /></M>} />
+
   </>
 );
