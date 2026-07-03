@@ -19,6 +19,7 @@ import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestig
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
+import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
