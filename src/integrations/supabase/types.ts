@@ -1684,10 +1684,14 @@ export type Database = {
       complaints: {
         Row: {
           acknowledged_at: string | null
+          assigned_team: string | null
+          channel_id: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
+          conduct_risk_category_id: string | null
           created_at: string
+          customer_type: string | null
           description: string
           email: string | null
           enforcement_action_id: string | null
@@ -1695,21 +1699,34 @@ export type Database = {
           investigator_id: string | null
           license_holder_id: string | null
           licensee_id: string | null
+          priority: string | null
+          product_id: string | null
           regulator_id: string | null
+          repeat_complaint_count: number
           resolution: string | null
           resolved_at: string | null
           search_vector: unknown
           severity: string
+          sla_days: number | null
+          sla_due_at: string | null
           status: string
           subject: string
+          triage_rule_id: string | null
+          triage_source: string | null
           updated_at: string
+          vulnerability_indicator: boolean
+          vulnerability_notes: string | null
         }
         Insert: {
           acknowledged_at?: string | null
+          assigned_team?: string | null
+          channel_id?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
+          conduct_risk_category_id?: string | null
           created_at?: string
+          customer_type?: string | null
           description: string
           email?: string | null
           enforcement_action_id?: string | null
@@ -1717,21 +1734,34 @@ export type Database = {
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
+          priority?: string | null
+          product_id?: string | null
           regulator_id?: string | null
+          repeat_complaint_count?: number
           resolution?: string | null
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
+          sla_days?: number | null
+          sla_due_at?: string | null
           status?: string
           subject: string
+          triage_rule_id?: string | null
+          triage_source?: string | null
           updated_at?: string
+          vulnerability_indicator?: boolean
+          vulnerability_notes?: string | null
         }
         Update: {
           acknowledged_at?: string | null
+          assigned_team?: string | null
+          channel_id?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
+          conduct_risk_category_id?: string | null
           created_at?: string
+          customer_type?: string | null
           description?: string
           email?: string | null
           enforcement_action_id?: string | null
@@ -1739,21 +1769,44 @@ export type Database = {
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
+          priority?: string | null
+          product_id?: string | null
           regulator_id?: string | null
+          repeat_complaint_count?: number
           resolution?: string | null
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
+          sla_days?: number | null
+          sla_due_at?: string | null
           status?: string
           subject?: string
+          triage_rule_id?: string | null
+          triage_source?: string | null
           updated_at?: string
+          vulnerability_indicator?: boolean
+          vulnerability_notes?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "complaints_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "complaints_complaint_type_id_fkey"
             columns: ["complaint_type_id"]
             isOneToOne: false
             referencedRelation: "complaint_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_conduct_risk_category_id_fkey"
+            columns: ["conduct_risk_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
             referencedColumns: ["id"]
           },
           {
@@ -1771,10 +1824,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "complaints_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "complaints_regulator_id_fkey"
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_triage_rule_id_fkey"
+            columns: ["triage_rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rules"
             referencedColumns: ["id"]
           },
         ]
@@ -1924,6 +1991,378 @@ export type Database = {
             columns: ["return_config_id"]
             isOneToOne: false
             referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_alert_thresholds: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          kind: string
+          regulator_id: string | null
+          severity: string
+          threshold_count: number
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind: string
+          regulator_id?: string | null
+          severity?: string
+          threshold_count?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          regulator_id?: string | null
+          severity?: string
+          threshold_count?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_alert_thresholds_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          complaint_id: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          detail: Json
+          generated_by: string
+          id: string
+          kind: string
+          licensee_id: string | null
+          product_id: string | null
+          regulator_id: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channel_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          complaint_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          detail?: Json
+          generated_by?: string
+          id?: string
+          kind: string
+          licensee_id?: string | null
+          product_id?: string | null
+          regulator_id?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channel_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          complaint_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          detail?: Json
+          generated_by?: string
+          id?: string
+          kind?: string
+          licensee_id?: string | null
+          product_id?: string | null
+          regulator_id?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_alerts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_conduct_risk_category_id_fkey"
+            columns: ["conduct_risk_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_channels: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          kind: string
+          name: string
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          name: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_channels_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_products: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          regulator_id: string | null
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_products_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_products_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_products_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_risk_categories: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          regulator_id: string | null
+          severity_hint: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          regulator_id?: string | null
+          severity_hint?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          regulator_id?: string | null
+          severity_hint?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_risk_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_risk_categories_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_triage_rules: {
+        Row: {
+          active: boolean
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          match_mode: string
+          name: string
+          outputs: Json
+          priority_order: number
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          match_mode?: string
+          name: string
+          outputs?: Json
+          priority_order?: number
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          match_mode?: string
+          name?: string
+          outputs?: Json
+          priority_order?: number
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_triage_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
