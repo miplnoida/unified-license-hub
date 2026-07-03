@@ -629,6 +629,7 @@ export default function ApplicationDetail() {
         />
 
         {isOwner && <LicenseStatusBanner />}
+        {isInternal && <DecisionGatesBanner applicationId={app.id} />}
 
 
 
