@@ -184,7 +184,6 @@ export default function ComplaintDetail() {
           title={`Complaint ${complaint.complaint_number}`}
           description={complaint.subject}
           actions={
-          actions={
             <div className="flex items-center gap-2">
               <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
               <Button variant="outline" size="sm" asChild>
