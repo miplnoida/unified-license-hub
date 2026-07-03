@@ -942,13 +942,16 @@ export default function ApplicationDetail() {
 
             {/* Consolidated read-only decision support — internal staff only, post-draft. */}
             {isInternal && app.status !== 'draft' && (
-              <DecisionReadySummary
-                application={app as any}
-                events={events}
-                templateNames={templateNames}
-                paymentComplete={paymentComplete}
-                onJumpToFormsTab={() => setActiveTab('form')}
-              />
+              <>
+                <SufficiencyPanel applicationId={app.id} />
+                <DecisionReadySummary
+                  application={app as any}
+                  events={events}
+                  templateNames={templateNames}
+                  paymentComplete={paymentComplete}
+                  onJumpToFormsTab={() => setActiveTab('form')}
+                />
+              </>
             )}
 
             {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
