@@ -109,7 +109,7 @@ export default function TriageRules() {
       action: editing ? 'conduct_triage_rule_updated' : 'conduct_triage_rule_created',
       entityType: 'conduct_triage_rule',
       entityId: (editing?.id || data?.id) as string,
-      meta: { conditions: form.conditions, outputs: form.outputs },
+      metadata: { conditions: form.conditions, outputs: form.outputs },
     });
     toast.success('Rule saved'); setOpen(false); load();
   };
@@ -126,7 +126,7 @@ export default function TriageRules() {
     const next = !r.active;
     const { error } = await supabase.from('conduct_triage_rules').update({ active: next }).eq('id', r.id);
     if (error) return toast.error(error.message);
-    await logAudit({ action: 'conduct_triage_rule_toggled', entityType: 'conduct_triage_rule', entityId: r.id, meta: { active: next } });
+    await logAudit({ action: 'conduct_triage_rule_toggled', entityType: 'conduct_triage_rule', entityId: r.id, metadata: { active: next } });
     load();
   };
 
