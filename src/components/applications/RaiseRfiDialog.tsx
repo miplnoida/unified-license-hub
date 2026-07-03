@@ -149,7 +149,7 @@ export function RaiseRfiDialog({
     setSummary('');
     setDueAt('');
     setPauseSla(true);
-    setItems([emptyItem()]);
+    setItems(initialItems && initialItems.length ? initialItems.map(fromInitial) : [emptyItem()]);
     setLoadedRuleIds(new Set());
   };
 
