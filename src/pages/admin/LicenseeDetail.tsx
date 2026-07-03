@@ -171,6 +171,7 @@ export default function LicenseeDetail() {
   const tabs = [
     { id: 'background', label: 'Background Info', icon: Building2 },
     { id: 'licenses', label: 'Licenses', icon: Shield },
+    { id: 'products-channels', label: 'Products & Channels', icon: Boxes },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
