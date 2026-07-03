@@ -20,6 +20,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import type { FormSection } from '@/types/formBuilder';
 import { logAudit } from '@/hooks/useAuditLog';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
