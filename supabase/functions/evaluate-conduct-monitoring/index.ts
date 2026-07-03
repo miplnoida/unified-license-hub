@@ -53,12 +53,14 @@ Deno.serve(async (req) => {
             if (!existing) {
               const { data: alert } = await supa.from('conduct_alerts').insert({
                 dedupe_key: dedupeKey,
-                alert_kind: 'monitoring_rule',
+                kind: 'monitoring_rule',
+                source: 'evaluate-conduct-monitoring',
+                generated_by: 'system',
                 severity: rule.risk_delta >= 15 ? 'high' : rule.risk_delta >= 8 ? 'medium' : 'low',
                 title: `Rule triggered: ${rule.name}`,
-                detail: { rule_id: rule.id, entity_id: ev.entity_id, product_id: ev.product_id, metrics: ev.metrics },
+                detail: { rule_id: rule.id, licensee_id: ev.entity_id, product_id: ev.product_id, metrics: ev.metrics },
                 status: 'open',
-                entity_id: ev.entity_id ?? null,
+                licensee_id: ev.entity_id ?? null,
                 product_id: ev.product_id ?? null,
               }).select('id').maybeSingle();
               if (alert?.id) {
