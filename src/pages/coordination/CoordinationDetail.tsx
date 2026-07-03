@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
 import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { logCoordinationAction } from '@/lib/coordinationAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   open: { label: 'Open', className: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -139,10 +140,14 @@ export default function CoordinationDetail() {
   const postMessage = useMutation({
     mutationFn: async () => {
       if (!msg.trim() || !user?.id || !caseId) return;
-      const { error } = await supabase.from('coordination_messages').insert({
+      const { data, error } = await supabase.from('coordination_messages').insert({
         case_id: caseId, author_id: user.id, body: msg.trim(),
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logCoordinationAction('coordination.message.posted', 'coordination_message', data.id, {
+        after: { body_length: msg.trim().length },
+        context: { caseId, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+      });
     },
     onSuccess: () => {
       setMsg('');
@@ -153,6 +158,10 @@ export default function CoordinationDetail() {
 
   const setClearance = useMutation({
     mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      if (status === 'blocked' && (!note || note.trim().length < 5)) {
+        throw new Error('Block requires a note (min 5 chars)');
+      }
+      const before = (participants ?? []).find((p: any) => p.id === id) ?? null;
       const { error } = await supabase
         .from('coordination_participants')
         .update({
@@ -162,6 +171,18 @@ export default function CoordinationDetail() {
         })
         .eq('id', id);
       if (error) throw error;
+      await logCoordinationAction(
+        status === 'cleared' ? 'coordination.participant.cleared' :
+        status === 'blocked' ? 'coordination.participant.blocked' :
+        'coordination.participant.clearance_updated',
+        'coordination_participant', id,
+        {
+          before: before ? { clearance_status: before.clearance_status } : null,
+          after: { clearance_status: status, note: note ?? null },
+          context: { caseId, participantId: id, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+          justification: status === 'blocked' ? note : undefined,
+        },
+      );
     },
     onSuccess: () => {
       toast.success('Clearance updated');
@@ -178,6 +199,10 @@ export default function CoordinationDetail() {
         .update({ status: 'closed', closed_at: new Date().toISOString() })
         .eq('id', caseId!);
       if (error) throw error;
+      await logCoordinationAction('coordination.case.closed', 'coordination_case', caseId!, {
+        after: { status: 'closed' },
+        context: { caseId: caseId!, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+      });
     },
     onSuccess: () => {
       toast.success('Case closed');
@@ -314,13 +339,17 @@ function ParticipantsTab({
   const invite = useMutation({
     mutationFn: async () => {
       if (!selectedUserId) throw new Error('Pick a user');
-      const { error } = await supabase.from('coordination_participants').insert({
+      const { data, error } = await supabase.from('coordination_participants').insert({
         case_id: caseId,
         user_id: selectedUserId,
         participant_role: role,
         invited_by: currentUserId!,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logCoordinationAction('coordination.participant.invited', 'coordination_participant', data.id, {
+        after: { user_id: selectedUserId, participant_role: role },
+        context: { caseId, participantId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Participant invited');
@@ -438,7 +467,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.title.trim()) throw new Error('Title required');
-      const { error } = await supabase.from('coordination_flags').insert({
+      const { data, error } = await supabase.from('coordination_flags').insert({
         case_id: caseId,
         flag_type: form.flag_type,
         title: form.title.trim(),
@@ -446,8 +475,12 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         linked_application_id: form.linked_application_id.trim() || null,
         linked_license_id: form.linked_license_id.trim() || null,
         created_by: currentUserId!,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logCoordinationAction('coordination.flag.raised', 'coordination_flag', data.id, {
+        after: { flag_type: form.flag_type, title: form.title.trim() },
+        context: { caseId, flagId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Flag raised');

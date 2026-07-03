@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, PlayCircle, ShieldAlert, ShieldOff } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { logFpAction } from '@/lib/fpAudit';
 
 const SEVERITY_CLASS: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
@@ -65,10 +66,18 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || 'Screening failed');
       toast.success(`Screening complete — ${data.total_hits} findings from ${data.total_checks} checks`);
+      await logFpAction('fp.screening.run', 'fp_screening_run', data.run_id ?? null, {
+        after: { total_checks: data.total_checks, total_hits: data.total_hits, status: 'success' },
+        context: { individualId, assessmentId, screeningRunId: data.run_id ?? null },
+      });
       qc.invalidateQueries({ queryKey: ['fp_screening_runs', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
     } catch (e: any) {
       toast.error(e?.message || 'Failed');
+      await logFpAction('fp.screening.failed', 'fp_screening_run', null, {
+        after: { error: e?.message ?? 'unknown' },
+        context: { individualId, assessmentId },
+      });
     } finally {
       setRunning(false);
     }
@@ -76,12 +85,19 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
 
   // Business update runs ONLY after the override has been logged.
   async function applyFindingStatus(findingId: string, isFalse: boolean) {
+    const before = (findings ?? []).find((f: any) => f.id === findingId) ?? null;
     const { error } = await supabase.from('fp_findings').update({
       is_false_positive: isFalse,
       reviewed_by: user?.id,
       reviewed_at: new Date().toISOString(),
     }).eq('id', findingId);
     if (error) throw error;
+    await logFpAction(isFalse ? 'fp.finding.false_positive' : 'fp.finding.restored', 'fp_finding', findingId, {
+      before: before ? { is_false_positive: before.is_false_positive } : null,
+      after: { is_false_positive: isFalse },
+      context: { individualId, assessmentId, findingId },
+      justification: isFalse ? 'False-positive override' : undefined,
+    });
     toast.success(isFalse ? 'Marked as false positive' : 'Finding restored');
     qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
   }

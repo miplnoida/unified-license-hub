@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle } from 'lucide-react';
+import { logFpAction } from '@/lib/fpAudit';
 
 const OUTCOME_META: Record<string, { label: string; className: string }> = {
   approved: { label: 'Approved', className: 'bg-green-100 text-green-800' },
@@ -121,6 +122,10 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
         .update({ committee_id: assignCommitteeId, status: 'awaiting_committee' })
         .eq('id', assessmentId);
       if (error) throw error;
+      await logFpAction('fp.assessment.committee_assigned', 'fp_assessment', assessmentId, {
+        after: { committee_id: assignCommitteeId, status: 'awaiting_committee' },
+        context: { individualId, assessmentId, committeeId: assignCommitteeId },
+      });
     },
     onSuccess: () => {
       toast.success('Committee assigned');
@@ -133,11 +138,18 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
   const castVote = useMutation({
     mutationFn: async () => {
       if (!assessmentId || !assessment?.committee_id || !myMembership) throw new Error('Not a member');
-      const { error } = await supabase.from('fp_committee_votes').insert({
+      if ((voteChoice === 'reject' || voteChoice === 'conditional') && voteNote.trim().length < 10) {
+        throw new Error('Justification required for reject/conditional votes (min 10 chars)');
+      }
+      const { data, error } = await supabase.from('fp_committee_votes').insert({
         assessment_id: assessmentId, committee_id: assessment.committee_id,
         member_id: myMembership.id, vote: voteChoice, justification: voteNote || null,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', data.id, {
+        after: { vote: voteChoice, justification: voteNote || null },
+        context: { individualId, assessmentId, committeeId: assessment.committee_id },
+      });
     },
     onSuccess: () => {
       toast.success('Vote recorded');
@@ -176,16 +188,21 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
       if (prior) {
         await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);
       }
-      const { error } = await supabase.from('fp_determinations').insert({
+      const { data: inserted, error } = await supabase.from('fp_determinations').insert({
         assessment_id: assessmentId, individual_id: individualId,
         outcome, rationale: rationale.trim(), determined_by: user!.id,
         supersedes_id: prior?.id ?? null, is_current: true,
         effective_from: new Date().toISOString().slice(0, 10),
-      });
+      }).select('id').single();
       if (error) throw error;
       await supabase.from('fp_assessments').update({
         status: 'determined', determined_at: new Date().toISOString(),
       }).eq('id', assessmentId);
+      await logFpAction(`fp.determination.${outcome}`, 'fp_determination', inserted.id, {
+        after: { outcome, rationale: rationale.trim(), supersedes_id: prior?.id ?? null },
+        context: { individualId, assessmentId, determinationId: inserted.id },
+        justification: rationale.trim(),
+      });
     },
     onSuccess: () => {
       toast.success('Determination recorded');

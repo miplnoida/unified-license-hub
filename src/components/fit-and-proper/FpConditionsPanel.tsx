@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { logFpAction } from '@/lib/fpAudit';
 
 const CATEGORIES = [
   { value: 'training', label: 'Training / certification' },
@@ -82,7 +83,7 @@ export function FpConditionsPanel({ individualId }: Props) {
     mutationFn: async () => {
       if (!currentDet) throw new Error('No current determination to attach conditions to');
       if (!form.description.trim()) throw new Error('Description required');
-      const { error } = await supabase.from('fp_conditions').insert({
+      const payload = {
         individual_id: individualId,
         determination_id: currentDet.id,
         category: form.category,
@@ -90,10 +91,15 @@ export function FpConditionsPanel({ individualId }: Props) {
         due_date: form.due_date || null,
         monitoring_owner: form.monitoring_owner.trim() || null,
         evidence_type: form.evidence_type,
-        status: 'open',
+        status: 'open' as const,
         created_by: user?.id,
-      });
+      };
+      const { data, error } = await supabase.from('fp_conditions').insert(payload).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.condition.created', 'fp_condition', data.id, {
+        after: payload,
+        context: { individualId, conditionId: data.id, determinationId: currentDet.id },
+      });
     },
     onSuccess: () => {
       toast.success('Condition added');
@@ -105,13 +111,19 @@ export function FpConditionsPanel({ individualId }: Props) {
 
   const satisfy = useMutation({
     mutationFn: async ({ id, waive }: { id: string; waive?: boolean }) => {
+      const newStatus = waive ? 'waived' : 'satisfied';
       const { error } = await supabase.from('fp_conditions').update({
-        status: waive ? 'waived' : 'satisfied',
+        status: newStatus,
         satisfied_at: new Date().toISOString(),
         satisfied_by: user?.id,
         satisfaction_note: satNote || null,
       }).eq('id', id);
       if (error) throw error;
+      await logFpAction(waive ? 'fp.condition.waived' : 'fp.condition.satisfied', 'fp_condition', id, {
+        after: { status: newStatus, note: satNote || null },
+        context: { individualId, conditionId: id },
+        justification: waive ? (satNote || 'waived') : undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Condition updated');
@@ -127,6 +139,10 @@ export function FpConditionsPanel({ individualId }: Props) {
         status: 'open', satisfied_at: null, satisfied_by: null, satisfaction_note: null,
       }).eq('id', id);
       if (error) throw error;
+      await logFpAction('fp.condition.reopened', 'fp_condition', id, {
+        after: { status: 'open' },
+        context: { individualId, conditionId: id },
+      });
     },
     onSuccess: () => {
       toast.success('Reopened');
