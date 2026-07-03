@@ -33,6 +33,14 @@ interface DraftItem {
   item_due_at: string;
 }
 
+export interface RfiInitialItem {
+  prompt: string;
+  question_type?: 'text' | 'document' | 'both';
+  required?: boolean;
+  item_due_at?: string;
+  source_rule_id?: string;
+}
+
 interface RaiseRfiDialogProps {
   applicationId: string;
   raisedBy: string;
@@ -42,6 +50,16 @@ interface RaiseRfiDialogProps {
   formData?: unknown;
   onCreated?: () => void;
   triggerLabel?: string;
+  /** Controlled open (hides the built-in trigger button). */
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
+  /** Prefill items — used by sufficiency-driven auto-RFI creation. */
+  initialItems?: RfiInitialItem[];
+  /** Optional link to a sufficiency evaluation whose failed rules seeded the items. */
+  sufficiencyEvaluationId?: string | null;
+  sufficiencyResultIds?: string[];
+  /** Hide the built-in trigger button (implies controlled mode). */
+  hideTrigger?: boolean;
 }
 
 const emptyItem = (): DraftItem => ({
@@ -50,6 +68,14 @@ const emptyItem = (): DraftItem => ({
   question_type: 'text',
   required: true,
   item_due_at: '',
+});
+
+const fromInitial = (i: RfiInitialItem): DraftItem => ({
+  key: Math.random().toString(36).slice(2, 9),
+  prompt: i.prompt,
+  question_type: i.question_type ?? 'text',
+  required: i.required ?? true,
+  item_due_at: i.item_due_at ?? '',
 });
 
 /**
@@ -65,12 +91,25 @@ export function RaiseRfiDialog({
   formData,
   onCreated,
   triggerLabel = 'Raise RFI',
+  open: controlledOpen,
+  onOpenChange,
+  initialItems,
+  sufficiencyEvaluationId,
+  sufficiencyResultIds,
+  hideTrigger,
 }: RaiseRfiDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const [summary, setSummary] = useState('');
   const [dueAt, setDueAt] = useState('');
   const [pauseSla, setPauseSla] = useState(true);
-  const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
+  const [items, setItems] = useState<DraftItem[]>(
+    initialItems && initialItems.length ? initialItems.map(fromInitial) : [emptyItem()],
+  );
   const [saving, setSaving] = useState(false);
   const [loadedRuleIds, setLoadedRuleIds] = useState<Set<string>>(new Set());
 
@@ -110,7 +149,7 @@ export function RaiseRfiDialog({
     setSummary('');
     setDueAt('');
     setPauseSla(true);
-    setItems([emptyItem()]);
+    setItems(initialItems && initialItems.length ? initialItems.map(fromInitial) : [emptyItem()]);
     setLoadedRuleIds(new Set());
   };
 
@@ -139,6 +178,7 @@ export function RaiseRfiDialog({
           summary: summary.trim() || null,
           approval_step_action_id: approvalStepActionId || null,
           status: 'open',
+          ...(sufficiencyEvaluationId ? { sufficiency_evaluation_id: sufficiencyEvaluationId, pauses_sla: true } : {}),
         })
         .select('id')
         .single();
@@ -172,7 +212,7 @@ export function RaiseRfiDialog({
       // Audit log for unified timeline
       await supabase.from('audit_logs' as any).insert({
         user_id: raisedBy,
-        action: 'application.rfi_raised',
+        action: sufficiencyEvaluationId ? 'application.rfi_raised_from_sufficiency' : 'application.rfi_raised',
         table_name: 'applications',
         record_id: applicationId,
         new_values: {
@@ -181,6 +221,8 @@ export function RaiseRfiDialog({
           due_at: dueAtIso,
           sla_paused: pauseSla && !!approvalStepActionId,
           auto_rules_used: Array.from(loadedRuleIds),
+          sufficiency_evaluation_id: sufficiencyEvaluationId ?? null,
+          sufficiency_result_ids: sufficiencyResultIds ?? [],
         },
       });
 
@@ -197,10 +239,12 @@ export function RaiseRfiDialog({
 
   return (
     <>
-      <Button variant="default" size="sm" onClick={() => setOpen(true)}>
-        <MessageSquarePlus className="mr-2 h-4 w-4" />
-        {triggerLabel}
-      </Button>
+      {!hideTrigger && controlledOpen === undefined && (
+        <Button variant="default" size="sm" onClick={() => setOpen(true)}>
+          <MessageSquarePlus className="mr-2 h-4 w-4" />
+          {triggerLabel}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

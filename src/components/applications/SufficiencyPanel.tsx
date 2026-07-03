@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, Play, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, Play, RefreshCw, MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { logAction } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
+import { RaiseRfiDialog, type RfiInitialItem } from '@/components/applications/RaiseRfiDialog';
 
 interface Props { applicationId: string }
 
@@ -29,6 +30,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
   const [override, setOverride] = useState<{ result: ResultRow | null; reason: string }>({ result: null, reason: '' });
+  const [rfiOpen, setRfiOpen] = useState(false);
 
   const { data: latest } = useQuery({
     queryKey: ['sufficiency_latest', applicationId],
@@ -92,6 +94,23 @@ export function SufficiencyPanel({ applicationId }: Props) {
     qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
   };
 
+  const autoRfiCandidates = useMemo(() => {
+    return results.filter(
+      (r) => (r.status === 'fail' || r.status === 'warning') && r.rule_snapshot?.auto_rfi === true,
+    );
+  }, [results]);
+
+  const initialRfiItems: RfiInitialItem[] = useMemo(
+    () =>
+      autoRfiCandidates.map((r) => ({
+        prompt: r.rule_snapshot?.rfi_prompt_template || r.rule_snapshot?.name || 'Please provide the required information.',
+        question_type: (r.rule_snapshot?.rfi_question_type || 'text') as 'text' | 'document' | 'both',
+        required: true,
+        source_rule_id: r.rule_snapshot?.code,
+      })),
+    [autoRfiCandidates],
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -100,10 +119,18 @@ export function SufficiencyPanel({ applicationId }: Props) {
           Sufficiency Review
           {latest && <Badge variant={latest.overall_status === 'sufficient' ? 'default' : latest.overall_status === 'warning' ? 'secondary' : 'destructive'}>{latest.overall_status}</Badge>}
         </CardTitle>
-        <Button size="sm" onClick={run} disabled={running}>
-          {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : latest ? <RefreshCw className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-          {latest ? 'Re-evaluate' : 'Run Evaluation'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {autoRfiCandidates.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setRfiOpen(true)}>
+              <MessageSquarePlus className="h-4 w-4 mr-2" />
+              Create RFI from Failed Rules ({autoRfiCandidates.length})
+            </Button>
+          )}
+          <Button size="sm" onClick={run} disabled={running}>
+            {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : latest ? <RefreshCw className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+            {latest ? 'Re-evaluate' : 'Run Evaluation'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {!latest ? (
@@ -161,6 +188,23 @@ export function SufficiencyPanel({ applicationId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {user && (
+        <RaiseRfiDialog
+          applicationId={applicationId}
+          raisedBy={user.id}
+          hideTrigger
+          open={rfiOpen}
+          onOpenChange={setRfiOpen}
+          initialItems={initialRfiItems}
+          sufficiencyEvaluationId={latest?.id ?? null}
+          sufficiencyResultIds={autoRfiCandidates.map((r) => r.id)}
+          onCreated={() => {
+            qc.invalidateQueries({ queryKey: ['application_rfis'] });
+            qc.invalidateQueries({ queryKey: ['sufficiency_latest', applicationId] });
+          }}
+        />
+      )}
     </Card>
   );
 }

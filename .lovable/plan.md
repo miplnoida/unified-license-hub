@@ -1,121 +1,64 @@
-# Licensing Completion: Sufficiency Review + Decision Options
 
-Extends (never replaces) Application Detail, RFI, Workflow, Forms, Documents, and Decision Summary. All new work is additive.
+# Phase 4 Completion Plan
 
-## 1. Database (single migration)
+Existing state confirmed: admin pages, `SufficiencyPanel`, `RaiseRfiDialog`, `DecisionGatesBanner`, edge function `evaluate-application-sufficiency`, and sufficiency tables all exist and are wired into `ApplicationDetail`. Gaps are: sufficiency does not gate final decisions, decision buttons in the manual review area are still hard-coded, auto-RFI prefill from failed rules is not exposed, and there is no automatic re-evaluation on submit / RFI close / decision attempt.
 
-**New tables (public schema, with GRANTs + RLS + updated_at triggers):**
+Existing tables (`sufficiency_evaluations`, `sufficiency_evaluation_results`, `sufficiency_overrides`) already cover the schema the request asks for under different names — I will reuse them rather than create parallel `application_sufficiency_*` tables to avoid double-writing. If the requester insists on the exact names, I'll add SQL views as aliases.
 
-- `sufficiency_rules` — catalog of reusable rules
-  - `code`, `name`, `description`
-  - `rule_type` enum: `form_submitted | document_uploaded | field_present | fee_paid | declaration_answered | risk_flag_present | ai_flag_review | regulator_clearance`
-  - `config jsonb` (form_template_id, document_group_id, field_path, fee_component_id, declaration_key, flag_key, regulator_id, expected value, etc.)
-  - `severity` enum: `blocker | warning | info`
-  - `auto_rfi` bool, `rfi_prompt_template text`, `rfi_question_type` (`text|document|both`)
-  - `is_active` bool
+## 1. Client evaluation helper
+- Add `src/lib/applicationSufficiency.ts` exporting `evaluateApplicationSufficiency({ applicationId, triggerSource, evaluatedBy })` that calls the existing edge function `evaluate-application-sufficiency` and normalizes the response to the shape in the request (mapping `overall_status` → `status`, insufficient → blocked, `info_count` from results).
+- Add `getLatestSufficiencyEvaluation(applicationId)` that loads the latest evaluation + results.
 
-- `sufficiency_rule_sets` — scoped bundle
-  - `name`, `application_type`, `license_type_id`, `sector_id`, `sub_sector_id`, `category_id`, `is_active`, `priority`
+## 2. SufficiencyPanel upgrades
+- Add "Create RFI from Failed Rules" button when latest evaluation has `fail`/`warning` results whose `rule_snapshot.auto_rfi === true` (or `suggested_rfi_prompt` present).
+- Open `RaiseRfiDialog` with `initialItems` prefilled (see 3).
+- Add trigger-source prop and expose `runEvaluation(trigger)` via `useImperativeHandle` so parent can auto-run on submit/RFI close/decision attempt.
+- Show `info_count` and `not_evaluated` state.
 
-- `sufficiency_rule_set_items` — rules in a set (with per-set severity override)
+## 3. RaiseRfiDialog extension
+- Add optional `initialItems?: Array<{ prompt; question_type; required; item_due_at?; source_rule_id? }>` prop.
+- When provided, prefill the item list on open and pass `sufficiency_evaluation_id` + `sufficiency_result_ids` in RFI insert metadata.
+- Audit `application.rfi_raised_from_sufficiency` when triggered from sufficiency panel.
 
-- `sufficiency_evaluations` — one row per run
-  - `application_id`, `rule_set_id`, `triggered_by` (`manual|submit|workflow|rfi_response`), `evaluated_by`, `evaluated_at`
-  - `overall_status` (`sufficient|insufficient|warning`), `blocker_count`, `warning_count`, `snapshot jsonb`
+## 4. ApplicationDetail wiring
+- Move `SufficiencyPanel` render before `DecisionReadySummary` (verify ordering).
+- Auto-run evaluation via `useEffect`:
+  - once when `app.status` transitions to `submitted` and no evaluation exists,
+  - when latest RFI transitions to `closed`,
+  - immediately before a manual decision attempt.
+- Debounce with a ref so it doesn't re-run on every render.
 
-- `sufficiency_evaluation_results` — one row per rule per evaluation
-  - `evaluation_id`, `rule_id`, `rule_snapshot jsonb`, `status` (`pass|fail|warning|na`), `detail jsonb`, `auto_rfi_item_id` (nullable FK)
+## 5. Configurable decision UI
+- New hook `src/hooks/useDecisionOptions.ts` — reads `decision_options` filtered by `applies_to` JSON matching `{ application_type, license_type, sector_id, status, workflow_step }`, sorted by `sort_order`. Falls back to hard-coded Approve / Reject / Request Resubmission when list is empty.
+- New component `src/components/applications/ConfigurableDecisionActions.tsx`:
+  - Renders one button per option with `color` styling.
+  - Enforces `requires_reason` + `min_reason_length`, `requires_conditions`, and loads `decision_rationale_templates` when `rationale_template_id` set (auto-fills the remarks textarea, supports `{{placeholder}}` substitution using application fields).
+  - On submit maps `outcome` → existing action:
+    - `approve` / `reject` / `return` / `info_request` / `defer` / `conditional_approve` / `escalate` / `withdraw` → `perform-workflow-action` edge function (existing) with `decision_option_code` + `rationale` in payload, plus writes an `approval_actions` row with metadata `{ decision_option_id, outcome, sufficiency_evaluation_id }`.
+- Replace hard-coded Approve/Reject/Request-Resubmission buttons in the manual review area of `ApplicationDetail` (NOT `WorkflowPanel`) with this component. `WorkflowPanel` remains untouched; add a short note comment that workflow-driven steps still use their own transitions.
 
-- `sufficiency_overrides` — analyst overrides on failed rules
-  - `evaluation_result_id`, `overridden_by`, `reason text NOT NULL CHECK (length(reason) >= 10)`, `created_at`
+## 6. Sufficiency decision gate
+- Before executing any decision option with outcome in {approve, conditional_approve, reject, defer, return, escalate}:
+  1. Ensure a fresh evaluation exists (run one with `triggerSource: 'decision_attempt'` if stale > 5 min or missing).
+  2. If `status === 'blocked'` → open `OverrideReasonDialog` with rule key `licensing.sufficiency.blocker_override`; on confirm, call `logRuleOverride` (writes `rule_overrides` + mirrored `audit_logs`) then proceed. Cancel = abort.
+  3. If `status === 'warning'` → require acknowledgement dialog using `licensing.sufficiency.warning_acknowledgement`.
+  4. Audit `application.decision_option_executed` with `{ option, outcome, sufficiency_status, sufficiency_evaluation_id }`.
 
-- `decision_options` — configurable decision buttons
-  - `code`, `label`, `outcome` (`approve|reject|return|defer|conditional_approve|withdraw|escalate`), `color`, `icon`, `requires_conditions` bool, `requires_reason` bool, `min_reason_length`, `rationale_template_id`, `applies_to` (`application_type/license_type/workflow_step` jsonb scope), `sort_order`, `is_active`
+## 7. AdminHub tiles
+- Verify tiles exist for Sufficiency Rules, Sufficiency Rule Sets, Decision Options, RFI Auto-Rules; add any missing under the license_management section of the admin hub with the descriptions from the spec.
 
-- `decision_rationale_templates` — reusable rationale bodies with `{{placeholder}}` tokens; `body text`, `variables jsonb`, `outcome` scope
+## 8. Optional migration (only if needed)
+- Existing `sufficiency_evaluations`/`sufficiency_evaluation_results` already cover the required columns. I'll add a small migration ONLY if a column is missing after re-checking (e.g. `info_count` derived from results, `trigger_source` alias already exists as `triggered_by`). Plan: add `info_count integer default 0` if not present on `sufficiency_evaluations`; otherwise skip migration.
 
-**Extensions to existing tables (ADD COLUMN … IF NOT EXISTS):**
+## 9. Validation
+- Run `tsgo` typecheck and `bunx vitest run` for touched files.
+- Manual smoke via Playwright on `/applications/:id` for an internal user: run sufficiency, prefill RFI, attempt approve with a blocker (override), configured decision option submits.
 
-- `applications`: `last_sufficiency_evaluation_id uuid`, `sufficiency_status text`
-- `application_rfis`: `sufficiency_evaluation_id uuid`, `pauses_sla bool default true`
-- `sla_configurations` (or workflow instance): use existing pause mechanism — add `paused_at`, `paused_reason`, `resumed_at` columns on `workflow_instances` if not present; otherwise reuse existing pause fields.
+## Files to touch
+- Create: `src/lib/applicationSufficiency.ts`, `src/hooks/useDecisionOptions.ts`, `src/components/applications/ConfigurableDecisionActions.tsx`
+- Edit: `src/components/applications/SufficiencyPanel.tsx`, `src/components/applications/RaiseRfiDialog.tsx`, `src/pages/applications/ApplicationDetail.tsx`, AdminHub page if tiles missing
+- Possibly one migration for `info_count` column
 
-**Trigger:** on `application_rfis` INSERT with `pauses_sla=true` → update active `workflow_instances.paused_at`; on RFI status change to `responded`/`closed` → set `resumed_at` and extend `sla_due_at` by elapsed pause duration. Log to `audit_logs`.
-
-**RLS:** admin CRUD on rules/sets/decision options; analysts read evaluations for applications they can view; override insert requires analyst+ role and passes reason check.
-
-## 2. Edge function: `evaluate-application-sufficiency`
-
-Input: `{ application_id, triggered_by }`. Steps:
-
-1. Load application + resolve matching `sufficiency_rule_sets` by application_type/license_type/sector hierarchy (most specific wins).
-2. For each rule, execute evaluator by `rule_type`:
-   - `form_submitted` → check `form_responses` for template + `status='submitted'`
-   - `document_uploaded` → check `documents`/`document_groups` presence + non-expired
-   - `field_present` → JSON path lookup in latest form response
-   - `fee_paid` → sum `payments` for component vs required
-   - `declaration_answered` → field value equals expected
-   - `risk_flag_present` → `entity_risk_scores`/`coordination_flags`/`fp_findings`
-   - `ai_flag_review` → `application_ai_assessments.requires_review`
-   - `regulator_clearance` → `coordination_participants.status='cleared'` for regulator_id
-3. Insert `sufficiency_evaluations` + `sufficiency_evaluation_results` rows (snapshot rule config for audit immutability).
-4. For each failed rule with `auto_rfi=true`, if no open RFI item already covers it (dedupe by `rule_id` in metadata), append to a single new/open sufficiency RFI on the app; store `auto_rfi_item_id` back on the result. Ensure the parent RFI has `pauses_sla=true` and `sufficiency_evaluation_id` set.
-5. Update `applications.sufficiency_status` + `last_sufficiency_evaluation_id`.
-6. Compliance audit log entries via `_shared/audit.ts`.
-
-Return `{ evaluation_id, overall_status, results, generated_rfi_id }`.
-
-## 3. Admin pages
-
-- `src/pages/admin/SufficiencyRules.tsx` — list/create/edit rules; rule-type–specific config editor.
-- `src/pages/admin/SufficiencyRuleSets.tsx` — manage sets, scope selectors, drag-order rules, per-item severity override.
-- `src/pages/admin/DecisionOptions.tsx` — list/create decision options with scope + linked rationale template; separate tab for `DecisionRationaleTemplates`.
-- Routes added to `src/routes/adminRoutes.tsx` under `settings` / `license_management` modules; add to `AdminHub` cards and sidebar under existing Licensing admin group.
-- Permission seeds inserted via a small data insert (not migration) into `permission_modules`/`permission_actions` for `sufficiency_rules`, `decision_options`.
-
-## 4. Application Detail additions (extend, not replace)
-
-- New `SufficiencyPanel` component (`src/components/applications/SufficiencyPanel.tsx`) mounted as an accordion/tab section:
-  - "Run Evaluation" button (calls edge function), "Last evaluated" timestamp, overall status pill.
-  - Table of results grouped by severity: rule name, status, detail, linked evidence deep-link, "Override" button on failed rows.
-  - Override dialog: SweetAlert2 form, requires reason ≥10 chars, writes `sufficiency_overrides`, logs audit.
-  - "Auto-generated RFI" chip linking to the RFI created for that rule.
-- Existing RFI, workflow, and decision components untouched — only sibling section added.
-
-## 5. Decision Summary extension
-
-- Existing decision buttons replaced by data-driven render sourced from `decision_options` filtered by current workflow step scope. Non-configured fallback keeps the existing hard-coded set to avoid regressions.
-- Selecting a decision opens a dialog: rationale template auto-fills body with placeholders resolved from app context; enforces `requires_reason` / `min_reason_length`; conditional approve requires at least one condition. On submit, calls existing workflow action edge function with new `decision_option_code` + `rationale` payload; server-side records into `approval_step_actions.metadata`.
-
-## 6. SLA pause/resume
-
-- DB trigger described above.
-- `useWorkflowSLA` hook reads `paused_at`/`resumed_at` and shows "Paused — awaiting RFI response" state; existing SLA badges reused.
-
-## 7. Audit & security
-
-- All rule/set/decision-option CRUD → `logAudit`.
-- Evaluations, overrides, decision selections → compliance audit via `_shared/audit.ts`.
-- Overrides + SLA pause events also written to `audit_logs` with before/after snapshots.
-
-## 8. Tests
-
-- `sufficiency-evaluator.test.ts` — unit tests per rule type (mock supabase client).
-- `sufficiencyOverride.test.ts` — reason enforcement, audit call.
-- `decisionOptions.test.ts` — scope resolution + rationale rendering.
-- `slaPauseResume.test.ts` — trigger behavior via SQL fixture.
-
-## Technical notes
-
-```text
-Application Detail
-├── (existing) Forms / Documents / RFI / Workflow / Payments / Decision
-└── (new)     Sufficiency Panel  ── Run / Results / Override
-                   │
-                   └── calls edge fn ──► sufficiency_evaluations
-                                          └── failed+auto_rfi ──► application_rfis (pauses_sla)
-                                                                     │
-                                                                     └── trigger → workflow_instances.paused_at
-```
-
-Nothing in existing FormRenderer, RFI panel, workflow engine, or Decision Summary is rewritten — Sufficiency Panel is a new sibling, and Decision Summary gains a data-driven button source with a fallback to the current hard-coded set.
+## Out of scope (called out per instructions)
+- Not modifying `WorkflowPanel` internal buttons; configured decisions apply to the manual review area only.
+- Not deleting `application_rfi_auto_rules` — reviewer suggestions coexist with sufficiency-driven auto-RFI.

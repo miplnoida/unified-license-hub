@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -50,6 +50,8 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
+import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
+import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -250,6 +252,38 @@ export default function ApplicationDetail() {
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Auto-run sufficiency evaluation once when the app moves to submitted/review
+  // and no evaluation exists yet. Guarded by ref so it only fires once per mount.
+  const sufficiencyAutoRan = useRef<string | null>(null);
+  useEffect(() => {
+    if (!app || !user) return;
+    const gatedStatuses = ['submitted', 'under_review', 'review', 'pending_review'];
+    if (!gatedStatuses.includes(app.status)) return;
+    if (sufficiencyAutoRan.current === app.id) return;
+    sufficiencyAutoRan.current = app.id;
+    (async () => {
+      try {
+        const { data: existing } = await supabase
+          .from('sufficiency_evaluations' as any)
+          .select('id, evaluated_at')
+          .eq('application_id', app.id)
+          .order('evaluated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const stale =
+          !existing || Date.now() - new Date((existing as any).evaluated_at).getTime() > 30 * 60_000;
+        if (stale) {
+          await evaluateApplicationSufficiency({
+            applicationId: app.id,
+            triggerSource: existing ? 'rfi_closed' : 'application_submitted',
+          });
+        }
+      } catch {
+        /* silent — panel will show manual trigger */
+      }
+    })();
+  }, [app?.id, app?.status, user?.id]);
 
   const handleSubmit = async () => {
     if (!app || !user) return;
@@ -994,33 +1028,47 @@ export default function ApplicationDetail() {
                           <p className="text-sm text-muted-foreground">
                             Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
                           </p>
-                          <div className="space-y-2">
-                            <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
-                            <Textarea
-                              value={actionComment}
-                              onChange={e => setActionComment(e.target.value)}
-                              placeholder="Enter your remarks before taking action..."
-                              rows={3}
-                            />
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              onClick={() => handleStageTransition('approved', 'approved', actionComment)}
-                              disabled={processing}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />Approve
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => handleStageTransition('rejected', 'rejected', actionComment)}
-                              disabled={processing}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />Reject
-                            </Button>
-                            <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
-                              <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
-                            </Button>
-                          </div>
+                          <ConfigurableDecisionActions
+                            applicationId={app.id}
+                            processing={processing}
+                            context={{
+                              application_type: (app as any).application_type ?? null,
+                              license_type: (app as any).license_type ?? null,
+                              sector_id: (app as any).sector_id ?? null,
+                              status: app.status,
+                            }}
+                            templateVars={{
+                              application_number: app.application_number,
+                              applicant_name: (app as any).applicant_name,
+                              application_type: (app as any).application_type,
+                              license_type: (app as any).license_type,
+                            }}
+                            onExecute={async ({ option, rationale, conditions }) => {
+                              setActionComment(rationale);
+                              const outcome = option.outcome;
+                              if (outcome === 'approve' || outcome === 'conditional_approve') {
+                                const remarks = conditions
+                                  ? `${rationale}\n\nConditions:\n${conditions}`
+                                  : rationale;
+                                await handleStageTransition('approved', 'approved', remarks);
+                              } else if (outcome === 'reject') {
+                                await handleStageTransition('rejected', 'rejected', rationale);
+                              } else if (outcome === 'return' || outcome === 'info_request') {
+                                setActionComment(rationale);
+                                await handleAdminRequestResubmission();
+                              } else {
+                                await supabase.from('approval_actions').insert({
+                                  application_id: app.id,
+                                  action: outcome,
+                                  actor_id: user!.id,
+                                  comments: rationale || null,
+                                  metadata: { decision_option_id: option.id, decision_option_code: option.code, conditions: conditions || null } as any,
+                                } as any);
+                                toast.success(`Recorded: ${option.label}`);
+                                loadData();
+                              }
+                            }}
+                          />
                         </div>
                       </AccordionContent>
                     </AccordionItem>
