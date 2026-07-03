@@ -381,6 +381,14 @@ export default function ComplaintsList() {
           )}
         </DialogContent>
       </Dialog>
+
+      {ackDialog && (
+        <ComplaintAcknowledgement
+          open={!!ackDialog}
+          onOpenChange={(o) => !o && setAckDialog(null)}
+          complaint={ackDialog}
+        />
+      )}
     </DashboardLayout>
   );
 }
