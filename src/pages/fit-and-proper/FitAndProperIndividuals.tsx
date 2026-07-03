@@ -89,7 +89,9 @@ export default function FitAndProperIndividuals() {
           title="Fit & Proper Register"
           description="Individuals in regulated positions (directors, key persons, senior managers) tracked through the FP lifecycle."
           actions={
-            <Dialog open={open} onOpenChange={setOpen}>
+            <div className="flex gap-2">
+              <Button asChild variant="outline"><a href="/fit-and-proper/trends">Population trends</a></Button>
+              <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Add Individual</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add Individual</DialogTitle></DialogHeader>
@@ -113,6 +115,7 @@ export default function FitAndProperIndividuals() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           }
         />
 

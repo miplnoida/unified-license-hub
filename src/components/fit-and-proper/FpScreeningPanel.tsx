@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, PlayCircle, ShieldAlert, ShieldOff } from 'lucide-react';
+import { Loader2, PlayCircle, ShieldAlert, ShieldOff, Sparkles, CheckCircle2, HelpCircle, ExternalLink } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const SEVERITY_CLASS: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
@@ -32,7 +34,10 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
+  const [runningAi, setRunningAi] = useState(false);
   const [pending, setPending] = useState<PendingOverride | null>(null);
+  const [resolving, setResolving] = useState<{ id: string; status: 'true_positive' | 'false_positive' | 'needs_review'; title: string } | null>(null);
+  const [resolutionReason, setResolutionReason] = useState('');
 
   const { data: runs } = useQuery({
     queryKey: ['fp_screening_runs', individualId],
@@ -49,7 +54,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_findings', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations')
         .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
@@ -82,6 +87,55 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       setRunning(false);
     }
   };
+
+  const runAiMedia = async () => {
+    if (!assessmentId) { toast.error('Open an assessment first.'); return; }
+    setRunningAi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-ai-media-ingest', {
+        body: { individual_id: individualId, assessment_id: assessmentId, triggered_by: user?.id },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'AI media scan failed');
+      toast.success(`AI media scan complete — ${data.total_hits} finding(s)`);
+      await logFpAction('fp.screening.ai_media', 'fp_screening_run', data.run_id ?? null, {
+        after: { total_hits: data.total_hits },
+        context: { individualId, assessmentId },
+      });
+      qc.invalidateQueries({ queryKey: ['fp_screening_runs', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed');
+    } finally {
+      setRunningAi(false);
+    }
+  };
+
+  async function submitResolution() {
+    if (!resolving) return;
+    if (resolutionReason.trim().length < 10) { toast.error('Reason must be at least 10 characters.'); return; }
+    const before = (findings ?? []).find((f: any) => f.id === resolving.id) ?? null;
+    const { error } = await supabase.from('fp_findings').update({
+      resolution_status: resolving.status,
+      resolution_reason: resolutionReason.trim(),
+      resolved_by: user?.id,
+      resolved_at: new Date().toISOString(),
+      is_false_positive: resolving.status === 'false_positive',
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', resolving.id);
+    if (error) { toast.error(error.message); return; }
+    await logFpAction('fp.finding.resolved', 'fp_finding', resolving.id, {
+      before: before ? { resolution_status: before.resolution_status } : null,
+      after: { resolution_status: resolving.status },
+      context: { individualId, assessmentId, findingId: resolving.id },
+      justification: resolutionReason.trim(),
+    });
+    toast.success('Finding resolved');
+    setResolving(null);
+    setResolutionReason('');
+    qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+  }
 
   // Business update runs ONLY after the override has been logged.
   async function applyFindingStatus(findingId: string, isFalse: boolean) {
@@ -152,10 +206,16 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           <div className="font-medium">Screening runs</div>
           <div className="text-xs text-muted-foreground">Runs sanctions / PEP / criminal / financial / regulator watchlist / adverse-media checks configured by admin.</div>
         </div>
-        <Button size="sm" onClick={runScreening} disabled={running || !assessmentId}>
-          {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
-          Run screening
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={runAiMedia} disabled={runningAi || !assessmentId}>
+            {runningAi ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            AI media scan
+          </Button>
+          <Button size="sm" onClick={runScreening} disabled={running || !assessmentId}>
+            {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+            Run screening
+          </Button>
+        </div>
       </CardContent></Card>
 
       <Card><CardContent className="p-4 space-y-2">
@@ -180,7 +240,10 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       <Card><CardContent className="p-4 space-y-3">
         <div className="text-sm font-medium">Findings ({(findings ?? []).length})</div>
         {(findings ?? []).length === 0 && <p className="text-sm text-muted-foreground">No findings raised.</p>}
-        {(findings ?? []).map((f: any) => (
+        {(findings ?? []).map((f: any) => {
+          const cites = Array.isArray(f.citations) ? f.citations : [];
+          const resolved = f.resolution_status && !['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft'].includes(f.resolution_status);
+          return (
           <div key={f.id} className={`border rounded p-3 ${f.is_false_positive ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
@@ -188,28 +251,55 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                   <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
                   <span className="text-xs text-muted-foreground">{f.check_type}</span>
                   {f.source && <span className="text-xs text-muted-foreground">· source: {f.source}</span>}
-                  {f.config_id && <span className="text-xs font-mono text-muted-foreground">· cfg {String(f.config_id).slice(0, 8)}</span>}
-                  {f.is_false_positive && <Badge variant="outline" className="bg-slate-100 text-slate-700">false positive</Badge>}
+                  {typeof f.confidence_score === 'number' && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800">confidence {Number(f.confidence_score).toFixed(0)}%</Badge>
+                  )}
+                  {f.resolution_status && (
+                    <Badge variant="outline" className={resolved ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-800'}>
+                      {String(f.resolution_status).replace(/_/g, ' ')}
+                    </Badge>
+                  )}
                 </div>
                 <div className="font-medium text-sm mt-1">{f.title}</div>
                 {f.summary && <div className="text-xs text-muted-foreground mt-1">{f.summary}</div>}
-                {f.review_note && <div className="text-xs italic mt-1">Note: {f.review_note}</div>}
-              </div>
-              <div className="flex gap-1">
-                {!f.is_false_positive && (
-                  <Button size="sm" variant="ghost" onClick={() => openFalsePositive(f)}>
-                    <ShieldOff className="h-4 w-4 mr-1" /> False positive
-                  </Button>
+                {cites.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {cites.map((c: any, i: number) => (
+                      <div key={i} className="text-xs border-l-2 border-blue-200 pl-2">
+                        <a href={c.source_url} target="_blank" rel="noreferrer" className="text-blue-700 underline inline-flex items-center gap-1">
+                          <ExternalLink className="h-3 w-3" /> {c.source_url.slice(0, 70)}
+                        </a>
+                        {c.excerpt && <div className="text-muted-foreground italic">"{c.excerpt}"</div>}
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {f.is_false_positive && (
+                {f.resolution_reason && <div className="text-xs italic mt-1">Resolution: {f.resolution_reason}</div>}
+              </div>
+              <div className="flex flex-col gap-1">
+                {!resolved && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'true_positive', title: f.title })}>
+                      <CheckCircle2 className="h-4 w-4 mr-1 text-red-600" /> True positive
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'false_positive', title: f.title })}>
+                      <ShieldOff className="h-4 w-4 mr-1" /> False positive
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setResolving({ id: f.id, status: 'needs_review', title: f.title })}>
+                      <HelpCircle className="h-4 w-4 mr-1" /> Needs review
+                    </Button>
+                  </>
+                )}
+                {resolved && (
                   <Button size="sm" variant="ghost" onClick={() => openRestore(f)}>
-                    <ShieldAlert className="h-4 w-4 mr-1" /> Restore
+                    <ShieldAlert className="h-4 w-4 mr-1" /> Reopen
                   </Button>
                 )}
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
       </CardContent></Card>
 
       {pending && (
@@ -230,6 +320,27 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           }}
         />
       )}
+
+      <Dialog open={!!resolving} onOpenChange={(o) => { if (!o) { setResolving(null); setResolutionReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolve finding — {resolving?.status.replace('_', ' ')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{resolving?.title}</p>
+            <Textarea
+              placeholder="Reason for this resolution (min 10 characters)…"
+              value={resolutionReason}
+              onChange={(e) => setResolutionReason(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setResolving(null); setResolutionReason(''); }}>Cancel</Button>
+            <Button onClick={submitResolution}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

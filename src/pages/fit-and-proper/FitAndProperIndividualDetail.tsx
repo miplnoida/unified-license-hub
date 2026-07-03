@@ -1,12 +1,16 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
@@ -28,17 +32,42 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  const qc = useQueryClient();
+  const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
+
   const { data: roles } = useQuery({
     queryKey: ['fp_individual_roles', id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_individual_roles')
-        .select('id, role_type, role_title, licensee_id, is_current, effective_from, effective_to')
+        .select('id, role_type, role_title, licensee_id, is_current, effective_from, effective_to, reassessment_cycle_months, next_reassessment_due, last_reassessment_at')
         .eq('individual_id', id!).order('is_current', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  async function saveCycle(roleId: string) {
+    const raw = cycleEdits[roleId];
+    const months = raw === '' || raw == null ? null : Number(raw);
+    if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+      toast.error('Cycle must be 1-120 months'); return;
+    }
+    const patch: Record<string, unknown> = { reassessment_cycle_months: months };
+    if (months != null) {
+      // if never reassessed, seed next-due from today so scheduler doesn't fire immediately for future edits
+      const next = new Date();
+      next.setMonth(next.getMonth() + months);
+      patch.next_reassessment_due = next.toISOString().slice(0, 10);
+    } else {
+      patch.next_reassessment_due = null;
+    }
+    const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Reassessment cycle updated');
+    setCycleEdits((s) => { const c = { ...s }; delete c[roleId]; return c; });
+    qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+  }
 
   const { data: latestAssessment } = useQuery({
     queryKey: ['fp_latest_assessment', id],
@@ -92,18 +121,47 @@ export default function FitAndProperIndividualDetail() {
           <TabsContent value="roles">
             <Card><CardContent className="p-4 space-y-2">
               {(roles ?? []).length === 0 && <p className="text-sm text-muted-foreground">No roles linked yet.</p>}
-              {(roles ?? []).map((r: any) => (
-                <div key={r.id} className="border rounded p-3 flex items-center justify-between text-sm">
-                  <div>
-                    <div className="font-medium">{r.role_type.replace(/_/g, ' ')}{r.role_title ? ` — ${r.role_title}` : ''}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.licensee_id ? <Link to={`/admin/licensees/${r.licensee_id}`} className="underline">Licensee {String(r.licensee_id).slice(0, 8)}…</Link> : 'No licensee link'}
-                      {' · '}{r.effective_from || '?'} → {r.effective_to || 'present'}
+              {(roles ?? []).map((r: any) => {
+                const editVal = cycleEdits[r.id];
+                const shown = editVal !== undefined ? editVal : (r.reassessment_cycle_months ?? '');
+                return (
+                <div key={r.id} className="border rounded p-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{r.role_type.replace(/_/g, ' ')}{r.role_title ? ` — ${r.role_title}` : ''}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.licensee_id ? <Link to={`/admin/licensees/${r.licensee_id}`} className="underline">Licensee {String(r.licensee_id).slice(0, 8)}…</Link> : 'No licensee link'}
+                        {' · '}{r.effective_from || '?'} → {r.effective_to || 'present'}
+                      </div>
                     </div>
+                    {r.is_current && <Badge variant="outline" className="bg-green-100 text-green-800">current</Badge>}
                   </div>
-                  {r.is_current && <Badge variant="outline" className="bg-green-100 text-green-800">current</Badge>}
+                  {r.is_current && (
+                    <div className="flex items-end gap-2 pt-2 border-t">
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground">Reassessment cycle (months)</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={120}
+                          placeholder="e.g. 24"
+                          value={shown}
+                          onChange={(e) => setCycleEdits((s) => ({ ...s, [r.id]: e.target.value }))}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground pb-1">
+                        Next due: {r.next_reassessment_due || '—'}
+                        {r.last_reassessment_at && <> · Last: {new Date(r.last_reassessment_at).toLocaleDateString()}</>}
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => saveCycle(r.id)} disabled={editVal === undefined}>
+                        <Save className="h-4 w-4 mr-1" /> Save
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ))}
+              );
+              })}
             </CardContent></Card>
           </TabsContent>
 

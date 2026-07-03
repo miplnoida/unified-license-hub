@@ -102,32 +102,33 @@ Deno.serve(async (req) => {
 
       if (cfg.check_type === 'sanctions') {
         const hits = scan(declStr + ' ' + person.full_name, SANCTIONS_KEYWORDS);
-        if (hits.length) findings.push({ ...base, title: `Sanctions keyword match: ${hits.join(', ')}`, severity: cfg.severity_default || 'high', summary: 'Declaration text mentions sanctions-related terms — verify manually.', raw_payload: { keywords: hits } });
+        if (hits.length) findings.push({ ...base, title: `Sanctions keyword match: ${hits.join(', ')}`, severity: cfg.severity_default || 'high', summary: 'Declaration text mentions sanctions-related terms — verify manually.', raw_payload: { keywords: hits }, confidence_score: 85 });
       } else if (cfg.check_type === 'pep') {
         const hits = scan(declStr, PEP_KEYWORDS);
-        if (hits.length) findings.push({ ...base, title: `Potential PEP indicator: ${hits.join(', ')}`, severity: cfg.severity_default || 'medium', summary: 'Employment history mentions politically-exposed roles.', raw_payload: { keywords: hits } });
+        if (hits.length) findings.push({ ...base, title: `Potential PEP indicator: ${hits.join(', ')}`, severity: cfg.severity_default || 'medium', summary: 'Employment history mentions politically-exposed roles.', raw_payload: { keywords: hits }, confidence_score: 55 });
       } else if (cfg.check_type === 'criminal_history') {
         const cr = String(decl.criminal_record || '').trim();
         if (cr && cr.toLowerCase() !== 'none' && cr.toLowerCase() !== 'n/a') {
-          findings.push({ ...base, title: 'Self-declared criminal history', severity: cfg.severity_default || 'high', summary: cr.slice(0, 300), raw_payload: {} });
+          findings.push({ ...base, title: 'Self-declared criminal history', severity: cfg.severity_default || 'high', summary: cr.slice(0, 300), raw_payload: {}, confidence_score: 95 });
         }
-        if (decl.disqualifications) findings.push({ ...base, title: 'Self-declared director disqualification', severity: 'high', summary: 'Individual reported prior disqualification.', raw_payload: {} });
+        if (decl.disqualifications) findings.push({ ...base, title: 'Self-declared director disqualification', severity: 'high', summary: 'Individual reported prior disqualification.', raw_payload: {}, confidence_score: 95 });
       } else if (cfg.check_type === 'credit_history') {
         const fs = String(decl.financial_soundness || '').trim();
         if (fs && fs.toLowerCase() !== 'none' && fs.toLowerCase() !== 'n/a') {
-          findings.push({ ...base, title: 'Self-declared financial issue', severity: cfg.severity_default || 'medium', summary: fs.slice(0, 300), raw_payload: {} });
+          findings.push({ ...base, title: 'Self-declared financial issue', severity: cfg.severity_default || 'medium', summary: fs.slice(0, 300), raw_payload: {}, confidence_score: 90 });
         }
-        if (decl.bankruptcy) findings.push({ ...base, title: 'Self-declared bankruptcy / insolvency', severity: 'high', summary: 'Individual reported bankruptcy or insolvency.', raw_payload: {} });
+        if (decl.bankruptcy) findings.push({ ...base, title: 'Self-declared bankruptcy / insolvency', severity: 'high', summary: 'Individual reported bankruptcy or insolvency.', raw_payload: {}, confidence_score: 95 });
       } else if (cfg.check_type === 'regulator_watchlist') {
         const rh = String(decl.regulatory_history || '').trim();
         if (rh && rh.toLowerCase() !== 'none' && rh.toLowerCase() !== 'n/a') {
-          findings.push({ ...base, title: 'Self-declared regulatory history', severity: cfg.severity_default || 'medium', summary: rh.slice(0, 300), raw_payload: {} });
+          findings.push({ ...base, title: 'Self-declared regulatory history', severity: cfg.severity_default || 'medium', summary: rh.slice(0, 300), raw_payload: {}, confidence_score: 90 });
         }
-        if (decl.disciplinary) findings.push({ ...base, title: 'Self-declared disciplinary action', severity: 'medium', summary: 'Prior disciplinary action reported.', raw_payload: {} });
+        if (decl.disciplinary) findings.push({ ...base, title: 'Self-declared disciplinary action', severity: 'medium', summary: 'Prior disciplinary action reported.', raw_payload: {}, confidence_score: 90 });
       } else if (cfg.check_type === 'adverse_media') {
         const ai = await callAdverseMediaAI(person.full_name, person.nationality);
         if (ai && ai.risk !== 'low') {
-          findings.push({ ...base, title: `Adverse media (${ai.risk})`, severity: ai.risk === 'high' ? 'high' : 'medium', summary: ai.summary, raw_payload: { ai_model: 'google/gemini-2.5-flash' } });
+          const conf = ai.risk === 'high' ? 75 : 50;
+          findings.push({ ...base, title: `Adverse media (${ai.risk})`, severity: ai.risk === 'high' ? 'high' : 'medium', summary: ai.summary, raw_payload: { ai_model: 'google/gemini-2.5-flash' }, confidence_score: conf });
         }
       }
     }
