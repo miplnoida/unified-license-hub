@@ -269,7 +269,29 @@ export default function EnforcementDetail() {
                   </div>
                   <Input type="date" placeholder="Appeal deadline (optional)" value={appealDeadline} onChange={(e) => setAppealDeadline(e.target.value)} />
                   <Textarea rows={3} placeholder="Decision rationale (min 15 chars)…" value={decisionRationale} onChange={(e) => setDecisionRationale(e.target.value)} />
-                  <div className="flex justify-end"><Button size="sm" onClick={() => recordDecision.mutate()} disabled={recordDecision.isPending}>Record decision</Button></div>
+                  <div className="flex justify-end"><Button size="sm" onClick={() => {
+                    if (decisionOutcome === 'warning_only' || decisionOutcome === 'dismissed' || decisionOutcome === 'reduced') {
+                      const ruleKey = decisionOutcome === 'reduced' ? 'enforcement.penalty.waiver' : 'enforcement.recommended_action.override';
+                      setPending({
+                        ruleKey,
+                        title: decisionOutcome === 'reduced' ? 'Reduce / waive penalty' : `Decide with "${decisionOutcome}"`,
+                        original: { status: caseRow.status, penalty_amount: caseRow.penalty_amount },
+                        overridden: { outcome: decisionOutcome, penalty_amount: decisionPenalty || null },
+                        metadata: {
+                          source: 'phase1_override_framework',
+                          screen: 'EnforcementDetail',
+                          enforcement_id: caseRow.id,
+                          case_number: caseRow.case_number,
+                          previous_status: caseRow.status,
+                          new_status: 'decided',
+                          decision_outcome: decisionOutcome,
+                        },
+                        apply: async () => { await recordDecision.mutateAsync(); },
+                      });
+                    } else {
+                      recordDecision.mutate();
+                    }
+                  }} disabled={recordDecision.isPending}>Record decision</Button></div>
                 </div>
               )}
 
