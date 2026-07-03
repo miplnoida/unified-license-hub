@@ -107,13 +107,6 @@ export function FpAppealsPanel({ individualId }: Props) {
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
   });
-    onSuccess: () => {
-      toast.success('Appeal filed');
-      setGrounds('');
-      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
-  });
 
   const assignAppealCommittee = useMutation({
     mutationFn: async ({ appealId, committeeId }: { appealId: string; committeeId: string }) => {
