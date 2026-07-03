@@ -163,7 +163,7 @@ export default function ConductAlerts() {
           metadata={{ source: 'ConductAlerts', complaint_id: overrideAlert.complaint_id, kind: overrideAlert.kind }}
           title="Close rule-generated alert"
           description="This alert was raised by an active triage rule. Provide a written justification before closing."
-          onOverridden={async () => { await doClose(overrideAlert.id); setOverrideAlert(null); }}
+          onOverridden={async () => { await doClose(overrideAlert, { override: true, override_rule_id: overrideAlert.triage_rule_id }); setOverrideAlert(null); }}
         />
       )}
     </DashboardLayout>
