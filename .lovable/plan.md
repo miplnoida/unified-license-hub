@@ -18,7 +18,8 @@
 - ✅ Phase 5D partial: Gap 13 conduct taxonomy (`ConductRiskTaxonomy`) already live; Gap 14 peer comparison already live in `PrudentialAnalytics`; Gap 16 `MonitoringRules` admin with on-demand runner already live.
 - ✅ Gap 15 (Product/channel dimension): migration adds `licensee_products` + `licensee_channels` join tables with regulator-managed / licensee-read RLS; new `ProductsChannelsTab` mounted on `LicenseeDetail` for effective-dated product & channel mapping.
 - ✅ Gap 1 (Batch document upload): existing `BatchDocumentUpload` reusable widget wired into `ApplicationDetail` Documents tab alongside single-file uploader — drag-drop many files with per-file type / description / confidentiality.
-- ⏭️ Next: Phase 5E (dashboard AI insights, export audit surface, entity change-history drawer, security-events viewer).
+- ✅ Phase 5E: Gap 17 (`generate-dashboard-insights` edge fn + `DashboardInsightsCard` on `ExecutiveDashboard`, 15-min cache, thumbs feedback, AI fallback baseline), Gap 18 (`audit_export_jobs` extended with `file_hash/filters/export_format`, own-row insert policy, central `logExport` helper), Gap 19 (existing `ChangeHistoryDrawer` + `HistoryButton` already wired into Application/Complaint/Enforcement/Return/Supervisory/F&P detail pages via `audit_logs` + `rule_overrides`), Gap 20 (`SecurityEvents.tsx` admin page at `/admin/security-events` with filters, CSV export routed through `logExport`, per-type badges).
+- 🎉 Plan complete: all 20 Script 1–5 gaps closed. Next: `mem://index.md` update + `docs/FEATURE_DEVELOPMENT_TRACKER.md` sync.
 
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 
