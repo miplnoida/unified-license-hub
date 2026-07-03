@@ -114,6 +114,10 @@ export function FpAppealsPanel({ individualId }: Props) {
         .update({ appeal_committee_id: committeeId, status: 'under_review' })
         .eq('id', appealId);
       if (error) throw error;
+      await logFpAction('fp.appeal.committee_assigned', 'fp_appeal', appealId, {
+        after: { appeal_committee_id: committeeId, status: 'under_review' },
+        context: { individualId, appealId, committeeId },
+      });
     },
     onSuccess: () => {
       toast.success('Appeal committee assigned');
@@ -154,6 +158,11 @@ export function FpAppealsPanel({ individualId }: Props) {
         new_determination_id: newDetId,
       }).eq('id', appeal.id);
       if (error) throw error;
+      await logFpAction('fp.appeal.decided', 'fp_appeal', appeal.id, {
+        after: { decision, new_determination_id: newDetId },
+        context: { individualId, appealId: appeal.id, determinationId: newDetId ?? appeal.determination_id },
+        justification: note.trim(),
+      });
     },
     onSuccess: () => {
       toast.success('Appeal decided');
@@ -168,6 +177,10 @@ export function FpAppealsPanel({ individualId }: Props) {
     mutationFn: async (appealId: string) => {
       const { error } = await supabase.from('fp_appeals').update({ status: 'withdrawn' }).eq('id', appealId);
       if (error) throw error;
+      await logFpAction('fp.appeal.withdrawn', 'fp_appeal', appealId, {
+        after: { status: 'withdrawn' },
+        context: { individualId, appealId },
+      });
     },
     onSuccess: () => {
       toast.success('Appeal withdrawn');
