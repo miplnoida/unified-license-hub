@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import {
@@ -450,9 +451,12 @@ export default function ReturnDetail() {
           <Button variant="ghost" size="sm" onClick={() => navigate(adminBasePath)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
-            View Analysis
-          </Button>
+          <div className="flex items-center gap-2">
+            <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
+              View Analysis
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
           <div>

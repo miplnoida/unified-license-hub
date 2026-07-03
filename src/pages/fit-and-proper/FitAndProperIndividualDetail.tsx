@@ -13,6 +13,7 @@ import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminati
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +63,12 @@ export default function FitAndProperIndividualDetail() {
           description={`${person.nationality || 'Unknown nationality'}${person.national_id ? ` · ID ${person.national_id}` : ''}`}
           backHref="/fit-and-proper"
           backLabel="Register"
-          actions={<Badge variant="outline">{person.status}</Badge>}
+          actions={
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{person.status}</Badge>
+              <HistoryButton entityType="fp_individual" entityId={person.id} title={`Individual history — ${person.full_name}`} />
+            </div>
+          }
         />
 
         <Card><CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

@@ -29,6 +29,7 @@ export default function RuleOverrides() {
 
   const [fModule, setFModule] = useState<string>(ALL);
   const [fEntity, setFEntity] = useState('');
+  const [fEntityId, setFEntityId] = useState('');
   const [fRule, setFRule] = useState('');
   const [fFrom, setFFrom] = useState('');
   const [fTo, setFTo] = useState('');
@@ -46,6 +47,7 @@ export default function RuleOverrides() {
         .limit(500);
       if (fModule && fModule !== ALL) q = q.eq('module', fModule);
       if (fEntity.trim()) q = q.ilike('entity_type', `%${fEntity.trim()}%`);
+      if (fEntityId.trim()) q = q.ilike('entity_id', `%${fEntityId.trim()}%`);
       if (fRule.trim()) q = q.ilike('rule_key', `%${fRule.trim()}%`);
       if (fFrom) q = q.gte('created_at', new Date(fFrom).toISOString());
       if (fTo) q = q.lte('created_at', new Date(new Date(fTo).getTime() + 86400000).toISOString());
@@ -100,7 +102,7 @@ export default function RuleOverrides() {
     await logExport({
       object_type: 'rule_overrides',
       format: 'CSV',
-      criteria: { module: fModule, entity_type: fEntity, rule_key: fRule, from: fFrom, to: fTo },
+      criteria: { module: fModule, entity_type: fEntity, entity_id: fEntityId, rule_key: fRule, from: fFrom, to: fTo },
       record_ids: rows.map((r) => r.id),
       record_count: rows.length,
     });
@@ -140,6 +142,10 @@ export default function RuleOverrides() {
             <div className="space-y-1">
               <Label className="text-xs">Entity type</Label>
               <Input value={fEntity} onChange={(e) => setFEntity(e.target.value)} placeholder="application, complaint…" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Entity ID</Label>
+              <Input value={fEntityId} onChange={(e) => setFEntityId(e.target.value)} placeholder="uuid or partial…" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Rule key</Label>
