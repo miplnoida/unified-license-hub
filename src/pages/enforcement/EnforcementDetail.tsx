@@ -41,6 +41,7 @@ export default function EnforcementDetail() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [closeNote, setCloseNote] = useState('');
   const [withdrawReason, setWithdrawReason] = useState('');
+  const [pending, setPending] = useState<null | { ruleKey: string; title: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
 
   const { data: caseRow, isLoading } = useQuery({
     queryKey: ['enforcement_case', id],
