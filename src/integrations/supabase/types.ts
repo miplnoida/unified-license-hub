@@ -2730,6 +2730,7 @@ export type Database = {
           id: string
           owner_regulator_id: string | null
           owner_user_id: string
+          primary_regulator_id: string | null
           status: string
           subject_id: string | null
           subject_type: string
@@ -2743,6 +2744,7 @@ export type Database = {
           id?: string
           owner_regulator_id?: string | null
           owner_user_id: string
+          primary_regulator_id?: string | null
           status?: string
           subject_id?: string | null
           subject_type: string
@@ -2756,6 +2758,7 @@ export type Database = {
           id?: string
           owner_regulator_id?: string | null
           owner_user_id?: string
+          primary_regulator_id?: string | null
           status?: string
           subject_id?: string | null
           subject_type?: string
@@ -2768,6 +2771,69 @@ export type Database = {
             columns: ["owner_regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coordination_cases_primary_regulator_id_fkey"
+            columns: ["primary_regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coordination_escalations: {
+        Row: {
+          assigned_to: string | null
+          case_id: string
+          created_at: string
+          id: string
+          raised_by: string
+          reason: string
+          resolution_outcome: string | null
+          resolution_rationale: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          case_id: string
+          created_at?: string
+          id?: string
+          raised_by: string
+          reason: string
+          resolution_outcome?: string | null
+          resolution_rationale?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          case_id?: string
+          created_at?: string
+          id?: string
+          raised_by?: string
+          reason?: string
+          resolution_outcome?: string | null
+          resolution_rationale?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordination_escalations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "coordination_cases"
             referencedColumns: ["id"]
           },
         ]

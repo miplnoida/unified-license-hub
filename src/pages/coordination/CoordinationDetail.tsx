@@ -20,8 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
-import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { logCoordinationAction } from '@/lib/coordinationAudit';
+import { EscalationsTab } from '@/components/coordination/EscalationsTab';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   open: { label: 'Open', className: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -62,6 +63,29 @@ export default function CoordinationDetail() {
       return data;
     },
   });
+
+  const regIds = useMemo(() => {
+    const s = new Set<string>();
+    if (caseRow?.primary_regulator_id) s.add(caseRow.primary_regulator_id);
+    if (caseRow?.owner_regulator_id) s.add(caseRow.owner_regulator_id);
+    return [...s];
+  }, [caseRow]);
+
+  const { data: regulators } = useQuery({
+    queryKey: ['coordination_case_regulators', regIds.join(',')],
+    enabled: regIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators')
+        .select('id, code, name').in('id', regIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const regMap = useMemo(() => {
+    const m = new Map<string, { code: string; name: string }>();
+    for (const r of (regulators ?? []) as any[]) m.set(r.id, { code: r.code, name: r.name });
+    return m;
+  }, [regulators]);
 
   const { data: participants } = useQuery({
     queryKey: ['coordination_participants', caseId],
@@ -230,8 +254,18 @@ export default function CoordinationDetail() {
           backHref="/coordination"
           backLabel="All cases"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={statusMeta.className}>{statusMeta.label}</Badge>
+              {caseRow.primary_regulator_id && regMap.get(caseRow.primary_regulator_id) && (
+                <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200">
+                  Primary: {regMap.get(caseRow.primary_regulator_id)!.code}
+                </Badge>
+              )}
+              {caseRow.owner_regulator_id && caseRow.owner_regulator_id !== caseRow.primary_regulator_id && regMap.get(caseRow.owner_regulator_id) && (
+                <Badge variant="outline" className="bg-slate-100 text-slate-700">
+                  Owner: {regMap.get(caseRow.owner_regulator_id)!.code}
+                </Badge>
+              )}
               {isOwner && caseRow.status !== 'closed' && (
                 <Button variant="outline" size="sm" onClick={() => closeCase.mutate()}>Close Case</Button>
               )}
@@ -267,6 +301,7 @@ export default function CoordinationDetail() {
             <TabsTrigger value="thread"><MessageSquare className="h-4 w-4 mr-2" /> Thread</TabsTrigger>
             <TabsTrigger value="participants"><UserPlus className="h-4 w-4 mr-2" /> Participants ({participants?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="flags"><Flag className="h-4 w-4 mr-2" /> Flags ({flags?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="escalations"><AlertTriangle className="h-4 w-4 mr-2" /> Escalations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="thread" className="space-y-3">
@@ -310,6 +345,18 @@ export default function CoordinationDetail() {
 
           <TabsContent value="flags">
             <FlagsTab caseId={caseId!} flags={flags ?? []} canPost={!!me} currentUserId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="escalations">
+            <EscalationsTab
+              caseId={caseId!}
+              canParticipate={!!me}
+              isOwner={isOwner}
+              participants={(participants ?? []).map((p: any) => ({ user_id: p.user_id }))}
+              profileMap={profileMap}
+              subjectType={caseRow.subject_type}
+              subjectId={caseRow.subject_id}
+            />
           </TabsContent>
         </Tabs>
       </div>
