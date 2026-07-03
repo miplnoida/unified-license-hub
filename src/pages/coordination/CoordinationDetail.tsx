@@ -339,13 +339,17 @@ function ParticipantsTab({
   const invite = useMutation({
     mutationFn: async () => {
       if (!selectedUserId) throw new Error('Pick a user');
-      const { error } = await supabase.from('coordination_participants').insert({
+      const { data, error } = await supabase.from('coordination_participants').insert({
         case_id: caseId,
         user_id: selectedUserId,
         participant_role: role,
         invited_by: currentUserId!,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logCoordinationAction('coordination.participant.invited', 'coordination_participant', data.id, {
+        after: { user_id: selectedUserId, participant_role: role },
+        context: { caseId, participantId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Participant invited');
