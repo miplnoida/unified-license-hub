@@ -12,6 +12,7 @@ import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -622,6 +623,7 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {APPLICATION_STATUS_LABELS[app.status]}
               </Badge>
+              {isInternal && <HistoryButton entityType="application" entityId={app.id} title={`History — ${app.application_number}`} />}
             </div>
           }
         />

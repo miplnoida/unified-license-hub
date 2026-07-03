@@ -18,6 +18,7 @@ import { Download, Loader2, ShieldAlert } from 'lucide-react';
 import { OVERRIDE_MODULES, type RuleOverrideRow } from '@/lib/ruleOverrides';
 import { logExport } from '@/lib/complianceAudit';
 import { DiffViewer } from '@/components/audit/DiffViewer';
+import { ChangeHistoryDrawer } from '@/components/audit/ChangeHistoryDrawer';
 
 const ALL = '__all__';
 
@@ -32,6 +33,7 @@ export default function RuleOverrides() {
   const [fFrom, setFFrom] = useState('');
   const [fTo, setFTo] = useState('');
   const [selected, setSelected] = useState<RuleOverrideRow | null>(null);
+  const [timelineFor, setTimelineFor] = useState<RuleOverrideRow | null>(null);
 
   async function load() {
     setLoading(true);
@@ -244,6 +246,12 @@ export default function RuleOverrides() {
                   <DiffViewer before={selected.original_value} after={selected.overridden_value} />
                 </div>
 
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setTimelineFor(selected)}>
+                    View full entity timeline
+                  </Button>
+                </div>
+
                 {selected.metadata && Object.keys(selected.metadata).length > 0 && (
                   <div>
                     <div className="text-xs uppercase text-muted-foreground mb-1">Metadata</div>
@@ -257,6 +265,16 @@ export default function RuleOverrides() {
           )}
         </SheetContent>
       </Sheet>
+
+      {timelineFor && (
+        <ChangeHistoryDrawer
+          open={!!timelineFor}
+          onOpenChange={(o) => { if (!o) setTimelineFor(null); }}
+          entityType={timelineFor.entity_type}
+          entityId={timelineFor.entity_id}
+          title={`Timeline — ${timelineFor.entity_type}`}
+        />
+      )}
     </DashboardLayout>
   );
 }

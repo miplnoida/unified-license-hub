@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Save, Send, ShieldCheck, Users, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
@@ -157,7 +158,7 @@ export default function FitAndProperAssessmentDetail() {
           description={`Assessment ${assessment.assessment_type} · created ${new Date(assessment.created_at).toLocaleDateString()}`}
           backHref={person ? `/fit-and-proper/individuals/${person.id}` : '/fit-and-proper'}
           backLabel={person ? 'Individual' : 'Register'}
-          actions={<Badge variant="outline" className={meta.className}>{meta.label}</Badge>}
+          actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="fp_assessment" entityId={assessment.id} title="Assessment history" /></div>}
         />
 
         <Card>
