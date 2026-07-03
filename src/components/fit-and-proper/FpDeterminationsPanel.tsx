@@ -217,24 +217,34 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     mutationFn: async () => {
       if (!assessmentId || !assessment || !outcome) throw new Error('Nothing to finalize');
       if (!rationale.trim() || rationale.trim().length < 10) throw new Error('Rationale required (min 10 chars)');
-      const { data: prior } = await supabase.from('fp_determinations')
-        .select('id').eq('individual_id', individualId).eq('is_current', true).maybeSingle();
+      // Multi-regulator scoping (Phase 6 Gap 1): each regulator's determinations
+      // are independent — only supersede the current row for the SAME regulator.
+      const regulatorId = (assessment as any).regulator_id ?? null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const priorQ = (supabase.from('fp_determinations') as any)
+        .select('id').eq('individual_id', individualId).eq('is_current', true);
+      const { data: prior } = regulatorId
+        ? await priorQ.eq('regulator_id', regulatorId).maybeSingle()
+        : await priorQ.is('regulator_id', null).maybeSingle();
       if (prior) {
-        await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('fp_determinations') as any).update({ is_current: false }).eq('id', prior.id);
       }
-      const { data: inserted, error } = await supabase.from('fp_determinations').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: inserted, error } = await (supabase.from('fp_determinations') as any).insert({
         assessment_id: assessmentId, individual_id: individualId,
         outcome, rationale: rationale.trim(), determined_by: user!.id,
         supersedes_id: prior?.id ?? null, is_current: true,
         effective_from: new Date().toISOString().slice(0, 10),
+        regulator_id: regulatorId,
       }).select('id').single();
       if (error) throw error;
       await supabase.from('fp_assessments').update({
         status: 'determined', determined_at: new Date().toISOString(),
       }).eq('id', assessmentId);
       await logFpAction(`fp.determination.${outcome}`, 'fp_determination', inserted.id, {
-        after: { outcome, rationale: rationale.trim(), supersedes_id: prior?.id ?? null },
-        context: { individualId, assessmentId, determinationId: inserted.id },
+        after: { outcome, rationale: rationale.trim(), supersedes_id: prior?.id ?? null, regulator_id: regulatorId },
+        context: { individualId, assessmentId, determinationId: inserted.id, regulatorId },
         justification: rationale.trim(),
       });
     },
