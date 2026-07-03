@@ -1297,7 +1297,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           error_message: string | null
+          export_format: string | null
+          file_hash: string | null
           file_path: string | null
+          filters: Json | null
           from_date: string | null
           id: string
           module_filter: string | null
@@ -1311,7 +1314,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           error_message?: string | null
+          export_format?: string | null
+          file_hash?: string | null
           file_path?: string | null
+          filters?: Json | null
           from_date?: string | null
           id?: string
           module_filter?: string | null
@@ -1325,7 +1331,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           error_message?: string | null
+          export_format?: string | null
+          file_hash?: string | null
           file_path?: string | null
+          filters?: Json | null
           from_date?: string | null
           id?: string
           module_filter?: string | null

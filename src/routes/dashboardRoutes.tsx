@@ -59,6 +59,7 @@ const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceT
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
+const SecurityEvents = lazy(() => import('@/pages/admin/SecurityEvents'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -160,6 +161,7 @@ export const dashboardRoutes = (
     <Route path="/admin/document-intelligence" element={<M module="settings"><DocumentIntelligence /></M>} />
     <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
     <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
+    <Route path="/admin/security-events" element={<M module="settings"><SecurityEvents /></M>} />
     <Route path="/conduct" element={<M module="complaint_management"><ConductDashboard /></M>} />
     <Route path="/conduct/alerts" element={<M module="complaint_management"><ConductAlerts /></M>} />
     <Route path="/conduct/actions" element={<M module="complaint_management"><ConductActions /></M>} />

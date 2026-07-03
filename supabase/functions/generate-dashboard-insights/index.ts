@@ -1,0 +1,150 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+
+// Produces 3-5 narrative bullet insights + top 3 recommended actions for the
+// Executive Dashboard. Reads current cross-module metrics, feeds them to the
+// Lovable AI Gateway, returns strict JSON.
+// Never mutates data. In-memory 15-minute cache keyed by regulator.
+type Insight = { text: string; severity: 'info' | 'warning' | 'critical'; module?: string };
+type Action = { text: string; href: string; module?: string };
+type Payload = { insights: Insight[]; actions: Action[]; generated_at: string; source: 'ai' | 'fallback' };
+
+const CACHE = new Map<string, { at: number; payload: Payload }>();
+const TTL_MS = 15 * 60 * 1000;
+
+async function safeCount(supa: any, table: string, filter?: (q: any) => any) {
+  try {
+    let q: any = supa.from(table).select('id', { count: 'exact', head: true });
+    if (filter) q = filter(q);
+    const { count, error } = await q;
+    if (error) return 0;
+    return count ?? 0;
+  } catch { return 0; }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const supa = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const regulatorKey: string = body.regulator_id ?? 'global';
+    const force: boolean = body.force === true;
+
+    const cached = CACHE.get(regulatorKey);
+    if (!force && cached && Date.now() - cached.at < TTL_MS) {
+      return new Response(JSON.stringify({ ok: true, cached: true, ...cached.payload }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const thirtyAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+    const [openApps, submittedApps, activeLicenses, openBreaches, openEnforcement,
+      openComplaints, criticalRisk, highRisk, upcomingInspections, recentReturns,
+      unresolvedFpFindings, twinPeaksBlocked] = await Promise.all([
+      safeCount(supa, 'applications', (q) => q.in('status', ['submitted', 'under_review', 'rfi_raised', 'assigned'])),
+      safeCount(supa, 'applications', (q) => q.gte('created_at', thirtyAgo)),
+      safeCount(supa, 'licenses', (q) => q.eq('status', 'active')),
+      safeCount(supa, 'return_threshold_breaches', (q) => q.is('acknowledged_at', null)),
+      safeCount(supa, 'enforcement_actions', (q) => q.in('status', ['open', 'investigating', 'notice_issued', 'decision_pending'])),
+      safeCount(supa, 'complaints', (q) => q.in('status', ['open', 'investigating', 'pending'])),
+      safeCount(supa, 'entity_risk_scores', (q) => q.eq('is_current', true).eq('band', 'critical')),
+      safeCount(supa, 'entity_risk_scores', (q) => q.eq('is_current', true).eq('band', 'high')),
+      safeCount(supa, 'inspections', (q) => q.eq('status', 'scheduled').gte('scheduled_date', new Date().toISOString().slice(0, 10))),
+      safeCount(supa, 'returns_filed', (q) => q.gte('created_at', thirtyAgo)),
+      safeCount(supa, 'fp_findings', (q) => q.eq('resolution_status', 'needs_review')),
+      safeCount(supa, 'twinpeaks_clearances', (q) => q.eq('status', 'blocked')),
+    ]);
+
+    const metrics = {
+      open_applications: openApps,
+      applications_last_30d: submittedApps,
+      active_licenses: activeLicenses,
+      open_return_breaches: openBreaches,
+      open_enforcement: openEnforcement,
+      open_complaints: openComplaints,
+      critical_risk_entities: criticalRisk,
+      high_risk_entities: highRisk,
+      upcoming_inspections: upcomingInspections,
+      returns_filed_last_30d: recentReturns,
+      fp_findings_awaiting_review: unresolvedFpFindings,
+      twin_peaks_blocked_apps: twinPeaksBlocked,
+    };
+
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    let payload: Payload;
+
+    if (!apiKey) {
+      payload = fallback(metrics);
+    } else {
+      const prompt = `You are a chief regulatory analyst. Given these cross-module metrics, produce 3-5 concise insights (each <=180 chars) and 3 recommended actions with a target route.
+Return strict JSON: {"insights":[{"text":string,"severity":"info"|"warning"|"critical","module":string?}],"actions":[{"text":string,"href":string,"module":string?}]}
+Metrics: ${JSON.stringify(metrics)}
+Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /complaints, /supervision/risk, /inspections, /fit-and-proper, /supervision/plans, /conduct, /returns-management.`;
+
+      try {
+        const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: 'Return strict JSON only. No prose.' },
+              { role: 'user', content: prompt },
+            ],
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (!aiRes.ok) throw new Error(`AI gateway ${aiRes.status}`);
+        const raw = (await aiRes.json()).choices?.[0]?.message?.content ?? '{}';
+        const parsed = JSON.parse(raw);
+        const insights: Insight[] = Array.isArray(parsed.insights) ? parsed.insights.slice(0, 5) : [];
+        const actions: Action[] = Array.isArray(parsed.actions) ? parsed.actions.slice(0, 3) : [];
+        payload = {
+          insights: insights.length ? insights : fallback(metrics).insights,
+          actions: actions.length ? actions : fallback(metrics).actions,
+          generated_at: new Date().toISOString(),
+          source: 'ai',
+        };
+      } catch (_e) {
+        payload = fallback(metrics);
+      }
+    }
+
+    CACHE.set(regulatorKey, { at: Date.now(), payload });
+    return new Response(JSON.stringify({ ok: true, cached: false, ...payload }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
+    });
+  }
+});
+
+function fallback(m: Record<string, number>): Payload {
+  const ins: Insight[] = [];
+  if (m.open_return_breaches > 0)
+    ins.push({ text: `${m.open_return_breaches} return-threshold breaches await acknowledgement.`, severity: 'warning', module: 'returns' });
+  if (m.critical_risk_entities > 0)
+    ins.push({ text: `${m.critical_risk_entities} entities carry a critical risk band — review supervisory plans.`, severity: 'critical', module: 'risk' });
+  if (m.open_enforcement > 0)
+    ins.push({ text: `${m.open_enforcement} enforcement cases are open; ensure statutory clocks are tracked.`, severity: 'warning', module: 'enforcement' });
+  if (m.twin_peaks_blocked_apps > 0)
+    ins.push({ text: `${m.twin_peaks_blocked_apps} applications are blocked by twin-peaks clearance disputes.`, severity: 'warning', module: 'licensing' });
+  if (m.fp_findings_awaiting_review > 0)
+    ins.push({ text: `${m.fp_findings_awaiting_review} F&P findings awaiting analyst triage.`, severity: 'info', module: 'fit_and_proper' });
+  if (ins.length === 0)
+    ins.push({ text: 'All core supervisory queues are clear. Monitor upcoming filings.', severity: 'info' });
+
+  const acts: Action[] = [
+    { text: 'Clear breach acknowledgements', href: '/supervision/breaches', module: 'returns' },
+    { text: 'Review critical-risk entities', href: '/supervision/risk', module: 'risk' },
+    { text: 'Progress enforcement queue', href: '/enforcement', module: 'enforcement' },
+  ];
+  return { insights: ins.slice(0, 5), actions: acts, generated_at: new Date().toISOString(), source: 'fallback' };
+}
