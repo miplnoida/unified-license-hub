@@ -5197,6 +5197,8 @@ export type Database = {
         Row: {
           assessment_id: string
           check_type: string
+          citations: Json
+          confidence_score: number | null
           config_id: string | null
           created_at: string
           evidence_url: string | null
@@ -5204,6 +5206,10 @@ export type Database = {
           individual_id: string
           is_false_positive: boolean
           raw_payload: Json | null
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -5217,6 +5223,8 @@ export type Database = {
         Insert: {
           assessment_id: string
           check_type: string
+          citations?: Json
+          confidence_score?: number | null
           config_id?: string | null
           created_at?: string
           evidence_url?: string | null
@@ -5224,6 +5232,10 @@ export type Database = {
           individual_id: string
           is_false_positive?: boolean
           raw_payload?: Json | null
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -5237,6 +5249,8 @@ export type Database = {
         Update: {
           assessment_id?: string
           check_type?: string
+          citations?: Json
+          confidence_score?: number | null
           config_id?: string | null
           created_at?: string
           evidence_url?: string | null
@@ -5244,6 +5258,10 @@ export type Database = {
           individual_id?: string
           is_false_positive?: boolean
           raw_payload?: Json | null
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -5294,10 +5312,13 @@ export type Database = {
           id: string
           individual_id: string
           is_current: boolean
+          last_reassessment_at: string | null
           license_id: string | null
           licensee_id: string | null
+          next_reassessment_due: string | null
           notes: string | null
           ownership_pct: number | null
+          reassessment_cycle_months: number | null
           role_title: string | null
           role_type: string
           updated_at: string
@@ -5310,10 +5331,13 @@ export type Database = {
           id?: string
           individual_id: string
           is_current?: boolean
+          last_reassessment_at?: string | null
           license_id?: string | null
           licensee_id?: string | null
+          next_reassessment_due?: string | null
           notes?: string | null
           ownership_pct?: number | null
+          reassessment_cycle_months?: number | null
           role_title?: string | null
           role_type: string
           updated_at?: string
@@ -5326,10 +5350,13 @@ export type Database = {
           id?: string
           individual_id?: string
           is_current?: boolean
+          last_reassessment_at?: string | null
           license_id?: string | null
           licensee_id?: string | null
+          next_reassessment_due?: string | null
           notes?: string | null
           ownership_pct?: number | null
+          reassessment_cycle_months?: number | null
           role_title?: string | null
           role_type?: string
           updated_at?: string
