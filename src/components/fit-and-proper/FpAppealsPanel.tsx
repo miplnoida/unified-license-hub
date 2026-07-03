@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Scale } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { logFpAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   filed: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
