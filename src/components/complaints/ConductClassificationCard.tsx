@@ -17,6 +17,7 @@ interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
 const PRIORITIES = ['p1', 'p2', 'p3', 'p4'] as const;
+const SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
@@ -31,6 +32,8 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_indicator: !!complaint.vulnerability_indicator,
     vulnerability_notes: complaint.vulnerability_notes || '',
     priority: complaint.priority || '',
+    severity: complaint.severity || '',
+    sla_days: complaint.sla_days ?? '',
     assigned_team: complaint.assigned_team || '',
   });
   const [saving, setSaving] = useState(false);
@@ -54,37 +57,54 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     await logAudit({ action: 'complaint.conduct_classification_updated', entityType: 'complaint', entityId: complaint.id, metadata: payload });
   };
 
+  const buildPayload = () => ({
+    conduct_risk_category_id: form.conduct_risk_category_id || null,
+    product_id: form.product_id || null,
+    channel_id: form.channel_id || null,
+    customer_type: form.customer_type || null,
+    vulnerability_indicator: form.vulnerability_indicator,
+    vulnerability_notes: form.vulnerability_notes || null,
+    priority: form.priority || null,
+    severity: form.severity || null,
+    sla_days: form.sla_days === '' ? null : Number(form.sla_days),
+    assigned_team: form.assigned_team || null,
+  });
+
+  const detectOverridden = (payload: any): Record<string, { from: any; to: any }> => {
+    const snap = complaint.triage_result_snapshot?.outputs || null;
+    if (!snap || complaint.triage_source !== 'auto') return {};
+    const out: Record<string, { from: any; to: any }> = {};
+    const cmp = (key: string, currVal: any) => {
+      if (snap[key] !== undefined && snap[key] !== null && currVal !== snap[key]) {
+        out[key] = { from: snap[key], to: currVal };
+      }
+    };
+    cmp('severity', payload.severity);
+    cmp('priority', payload.priority);
+    cmp('sla_days', payload.sla_days);
+    cmp('assigned_team', payload.assigned_team);
+    // Category via code lookup
+    if (snap.conduct_risk_category_code) {
+      const currentCode = cats.find((c) => c.id === payload.conduct_risk_category_id)?.code || null;
+      if (currentCode !== snap.conduct_risk_category_code) {
+        out.conduct_risk_category_code = { from: snap.conduct_risk_category_code, to: currentCode };
+      }
+    }
+    return out;
+  };
+
   const save = async () => {
     setSaving(true);
     try {
-      const payload: any = {
-        conduct_risk_category_id: form.conduct_risk_category_id || null,
-        product_id: form.product_id || null,
-        channel_id: form.channel_id || null,
-        customer_type: form.customer_type || null,
-        vulnerability_indicator: form.vulnerability_indicator,
-        vulnerability_notes: form.vulnerability_notes || null,
-        priority: form.priority || null,
-        assigned_team: form.assigned_team || null,
-      };
-
-      // If the complaint was auto-triaged and human is overriding key outputs, require justification.
-      const auto = complaint.triage_source === 'auto';
-      const changedOutputs = auto && (
-        (complaint.priority && form.priority && complaint.priority !== form.priority) ||
-        (complaint.assigned_team && form.assigned_team && complaint.assigned_team !== form.assigned_team)
-      );
-      if (changedOutputs) {
-        setOverrideCtx({
-          from: { priority: complaint.priority, assigned_team: complaint.assigned_team },
-          to: { priority: form.priority, assigned_team: form.assigned_team },
-        });
+      const payload = buildPayload();
+      const overridden = detectOverridden(payload);
+      if (Object.keys(overridden).length > 0) {
+        setOverrideCtx({ from: Object.fromEntries(Object.entries(overridden).map(([k, v]) => [k, v.from])),
+                        to:   Object.fromEntries(Object.entries(overridden).map(([k, v]) => [k, v.to])) });
         setSaving(false);
         return;
       }
-
       await persist(payload);
-      payload.triage_source = payload.triage_source ?? complaint.triage_source ?? 'manual';
       toast.success('Classification saved');
       qc.invalidateQueries({ queryKey: ['complaint', complaint.id] });
       onChanged?.();
@@ -157,6 +177,17 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
             </Select>
           </div>
           <div>
+            <Label className="text-xs">Severity</Label>
+            <Select value={form.severity || 'none'} onValueChange={v => setForm({ ...form, severity: v === 'none' ? '' : v })}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent><SelectItem value="none">(unset)</SelectItem>{SEVERITIES.map(x => <SelectItem key={x} value={x} className="capitalize">{x}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">SLA (days)</Label>
+            <input type="number" min={0} className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.sla_days} onChange={e => setForm({ ...form, sla_days: e.target.value === '' ? '' : Number(e.target.value) })} />
+          </div>
+          <div>
             <Label className="text-xs">Assigned Team</Label>
             <input className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.assigned_team} onChange={e => setForm({ ...form, assigned_team: e.target.value })} placeholder="e.g. Conduct-Retail" />
           </div>
@@ -173,6 +204,9 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         <div className="grid gap-2 md:grid-cols-2 text-xs text-muted-foreground">
           <div>Repeat complaints (12m): <span className="font-medium text-foreground">{complaint.repeat_complaint_count ?? 0}</span></div>
           <div>SLA due: <span className="font-medium text-foreground">{complaint.sla_due_at ? new Date(complaint.sla_due_at).toLocaleString() : '—'}</span></div>
+          {complaint.triage_evaluated_at && <div>Triage evaluated: <span className="font-medium text-foreground">{new Date(complaint.triage_evaluated_at).toLocaleString()}</span></div>}
+          {complaint.triage_override_status && complaint.triage_override_status !== 'none' && <div>Override: <Badge variant="outline" className="capitalize">{complaint.triage_override_status}</Badge></div>}
+          {complaint.triage_last_error && <div className="col-span-2 text-destructive">Last triage error: {complaint.triage_last_error}</div>}
         </div>
 
         <Button onClick={save} disabled={saving} className="w-full"><Save className="h-4 w-4 mr-2" />{saving ? 'Saving…' : 'Save classification'}</Button>
@@ -192,17 +226,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
           title="Override auto-triage outputs"
           description="You are changing outputs that were set automatically by a triage rule. Provide a written justification."
           onOverridden={async () => {
-            await persist({
-              conduct_risk_category_id: form.conduct_risk_category_id || null,
-              product_id: form.product_id || null,
-              channel_id: form.channel_id || null,
-              customer_type: form.customer_type || null,
-              vulnerability_indicator: form.vulnerability_indicator,
-              vulnerability_notes: form.vulnerability_notes || null,
-              priority: form.priority || null,
-              assigned_team: form.assigned_team || null,
-              triage_source: 'override',
-            });
+            await persist({ ...buildPayload(), triage_source: 'override', triage_override_status: 'overridden' });
             toast.success('Overridden and saved');
             qc.invalidateQueries({ queryKey: ['complaint', complaint.id] });
             setOverrideCtx(null);

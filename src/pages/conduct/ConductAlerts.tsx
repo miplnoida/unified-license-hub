@@ -12,6 +12,7 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle2, XCircle, Bell } from 'lucide-react';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const SEV_VARIANT: Record<string, any> = { low: 'outline', medium: 'secondary', high: 'default', critical: 'destructive' };
 
@@ -20,6 +21,7 @@ export default function ConductAlerts() {
   const [rows, setRows] = useState<any[]>([]);
   const [status, setStatus] = useState('open');
   const [loading, setLoading] = useState(true);
+  const [overrideAlert, setOverrideAlert] = useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -40,11 +42,15 @@ export default function ConductAlerts() {
     await logAudit({ action: 'conduct_alert_acknowledged', entityType: 'conduct_alert', entityId: id });
     load();
   };
-  const close = async (id: string) => {
+  const doClose = async (id: string) => {
     const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', id);
     if (error) return toast.error(error.message);
     await logAudit({ action: 'conduct_alert_closed', entityType: 'conduct_alert', entityId: id });
     load();
+  };
+  const close = async (row: any) => {
+    if (row.triage_rule_id) { setOverrideAlert(row); return; }
+    await doClose(row.id);
   };
 
   return (
@@ -102,7 +108,7 @@ export default function ConductAlerts() {
                       <TableCell><Badge variant={r.status === 'open' ? 'destructive' : r.status === 'acknowledged' ? 'secondary' : 'default'} className="capitalize">{r.status}</Badge></TableCell>
                       <TableCell className="text-right">
                         {r.status === 'open' && <Button size="sm" variant="outline" onClick={() => ack(r.id)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
-                        {r.status !== 'closed' && <Button size="sm" variant="ghost" className="ml-1" onClick={() => close(r.id)}><XCircle className="h-3 w-3 mr-1" />Close</Button>}
+                        {r.status !== 'closed' && <Button size="sm" variant="ghost" className="ml-1" onClick={() => close(r)}><XCircle className="h-3 w-3 mr-1" />Close</Button>}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -112,6 +118,23 @@ export default function ConductAlerts() {
           </CardContent>
         </Card>
       </div>
+
+      {overrideAlert && (
+        <OverrideReasonDialog
+          open
+          onOpenChange={(o) => { if (!o) setOverrideAlert(null); }}
+          module="complaints"
+          entityType="conduct_alert"
+          entityId={overrideAlert.id}
+          ruleKey="complaints.conduct_alert.close_rule_generated"
+          originalValue={{ status: overrideAlert.status, triage_rule_id: overrideAlert.triage_rule_id }}
+          overriddenValue={{ status: 'closed' }}
+          metadata={{ source: 'ConductAlerts', complaint_id: overrideAlert.complaint_id, kind: overrideAlert.kind }}
+          title="Close rule-generated alert"
+          description="This alert was raised by an active triage rule. Provide a written justification before closing."
+          onOverridden={async () => { await doClose(overrideAlert.id); setOverrideAlert(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }

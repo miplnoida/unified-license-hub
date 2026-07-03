@@ -34,6 +34,8 @@ interface Outputs {
   sla_days?: number;
   assigned_team?: string;
   conduct_risk_category_code?: string;
+  generate_alert_kind?: string;
+  recommended_action?: string;
 }
 
 const FIELDS = [
@@ -44,18 +46,51 @@ const FIELDS = [
   { v: 'customer_type', l: 'Customer Type' },
   { v: 'customer_vulnerability', l: 'Customer Vulnerability' },
   { v: 'keywords', l: 'Keywords (subject + description)' },
-  { v: 'repeat_count', l: 'Repeat Complaint Count' },
+  { v: 'repeat_count', l: 'Repeat Complaint Count (12m)' },
+  { v: 'sla_days', l: 'Current SLA days' },
+  { v: 'severity', l: 'Current Severity' },
+  { v: 'priority', l: 'Current Priority' },
+  { v: 'assigned_team', l: 'Current Assigned Team' },
+  { v: 'age_days', l: 'Complaint Age (days)' },
 ];
+
+const COMMON_OPS = [
+  { v: 'eq', l: 'equals' }, { v: 'neq', l: 'not equals' },
+  { v: 'in', l: 'in' }, { v: 'not_in', l: 'not in' },
+  { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
+];
+const NUM_OPS = [
+  { v: 'eq', l: '=' }, { v: 'neq', l: '≠' },
+  { v: 'gte', l: '≥' }, { v: 'lte', l: '≤' },
+  { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
+];
+const TEXT_OPS = [
+  ...COMMON_OPS,
+  { v: 'contains_any', l: 'contains any of' },
+  { v: 'contains_all', l: 'contains all of' },
+];
+const BOOL_OPS = [{ v: 'is_true', l: 'is true' }, { v: 'is_false', l: 'is false' }];
+
 const OPS: Record<string, { v: string; l: string }[]> = {
-  complaint_type: [{ v: 'eq', l: 'is' }, { v: 'in', l: 'in' }],
-  product: [{ v: 'eq', l: 'is' }, { v: 'in', l: 'in' }],
-  channel: [{ v: 'eq', l: 'is' }, { v: 'in', l: 'in' }],
-  entity: [{ v: 'eq', l: 'is' }, { v: 'in', l: 'in' }],
-  customer_type: [{ v: 'eq', l: 'is' }, { v: 'in', l: 'in one of' }],
-  customer_vulnerability: [{ v: 'is_true', l: 'is vulnerable' }],
-  keywords: [{ v: 'contains_any', l: 'contains any of' }],
-  repeat_count: [{ v: 'gte', l: '≥' }, { v: 'lte', l: '≤' }, { v: 'eq', l: '=' }],
+  complaint_type: COMMON_OPS,
+  product: COMMON_OPS,
+  channel: COMMON_OPS,
+  entity: COMMON_OPS,
+  customer_type: COMMON_OPS,
+  customer_vulnerability: BOOL_OPS,
+  keywords: TEXT_OPS,
+  repeat_count: NUM_OPS,
+  sla_days: NUM_OPS,
+  severity: COMMON_OPS,
+  priority: COMMON_OPS,
+  assigned_team: TEXT_OPS,
+  age_days: NUM_OPS,
 };
+
+const NO_VALUE_OPS = new Set(['is_true', 'is_false', 'is_empty', 'is_not_empty']);
+const LIST_OPS = new Set(['in', 'not_in', 'contains_any', 'contains_all']);
+const NUM_FIELDS = new Set(['repeat_count', 'sla_days', 'age_days']);
+
 const SEVS = ['low', 'medium', 'high', 'critical'];
 const PRIOS = ['p1', 'p2', 'p3', 'p4'];
 
@@ -238,17 +273,18 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
                   <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                   <SelectContent>{(OPS[c.field] || []).map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
                 </Select>
-                {c.op === 'is_true' ? (
+                {NO_VALUE_OPS.has(c.op) ? (
                   <div className="col-span-4 text-xs text-muted-foreground pt-2">(no value)</div>
                 ) : (
                   <Input
                     className="col-span-4"
-                    placeholder={c.op === 'in' || c.op === 'contains_any' ? 'comma,separated,values' : 'value'}
+                    placeholder={LIST_OPS.has(c.op) ? 'comma,separated,values' : 'value'}
                     value={Array.isArray(c.value) ? c.value.join(',') : (c.value ?? '')}
                     onChange={e => {
                       const raw = e.target.value;
-                      const v = (c.op === 'in' || c.op === 'contains_any') ? raw.split(',').map(s => s.trim()).filter(Boolean) :
-                        (c.field === 'repeat_count' ? Number(raw) : raw);
+                      const v = LIST_OPS.has(c.op)
+                        ? raw.split(',').map(s => s.trim()).filter(Boolean)
+                        : (NUM_FIELDS.has(c.field) ? (raw === '' ? '' : Number(raw)) : raw);
                       setCond(i, { value: v });
                     }}
                   />
@@ -279,6 +315,8 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
               <div><Label className="text-xs">SLA days</Label><Input type="number" value={form.outputs?.sla_days ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, sla_days: e.target.value ? +e.target.value : undefined } })} /></div>
               <div><Label className="text-xs">Assigned team</Label><Input value={form.outputs?.assigned_team ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, assigned_team: e.target.value || undefined } })} placeholder="e.g. Conduct-Retail" /></div>
               <div className="col-span-2"><Label className="text-xs">Conduct risk category code</Label><Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" /></div>
+              <div><Label className="text-xs">Generate alert (kind)</Label><Input value={form.outputs?.generate_alert_kind ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: e.target.value || undefined } })} placeholder="e.g. thematic_spike" /></div>
+              <div><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
             </div>
           </div>
 
@@ -298,10 +336,11 @@ function SimulateDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     if (!complaintId.trim()) return;
     setRunning(true); setResult(null);
     const { data, error } = await supabase.functions.invoke('evaluate-complaint-triage', {
-      body: { complaint_id: complaintId.trim(), dry_run: true },
+      body: { complaint_id: complaintId.trim(), dry_run: true, triggered_by: 'admin.simulate' },
     });
     setRunning(false);
     if (error) { toast.error(error.message); return; }
+    await logAudit({ action: 'conduct_triage_rule_simulated', entityType: 'complaint', entityId: complaintId.trim(), metadata: { dry_run: true, matched_rule_id: data?.matched_rule?.id ?? null } });
     setResult(data);
   };
 

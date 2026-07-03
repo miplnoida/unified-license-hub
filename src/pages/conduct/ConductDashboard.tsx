@@ -20,7 +20,7 @@ export default function ConductDashboard() {
   const [channels, setChannels] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [licensees, setLicensees] = useState<any[]>([]);
-  const [f, setF] = useState({ product_id: 'all', channel_id: 'all', category_id: 'all', licensee_id: 'all', days: '90' });
+  const [f, setF] = useState({ product_id: 'all', channel_id: 'all', category_id: 'all', licensee_id: 'all', days: '90', severity: 'all', priority: 'all', customer_type: 'all', vulnerable: 'all', alert_status: 'all' });
   const [complaints, setComplaints] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
 
@@ -40,12 +40,17 @@ export default function ConductDashboard() {
     setLoading(true);
     const since = new Date(Date.now() - Number(f.days) * 24 * 3600 * 1000).toISOString();
     let cq = supabase.from('complaints')
-      .select('id, complaint_number, subject, severity, status, priority, product_id, channel_id, conduct_risk_category_id, licensee_id, created_at, sla_due_at, resolved_at, vulnerability_indicator')
+      .select('id, complaint_number, subject, severity, status, priority, product_id, channel_id, conduct_risk_category_id, licensee_id, created_at, sla_due_at, resolved_at, vulnerability_indicator, customer_type, repeat_complaint_count')
       .gte('created_at', since).order('created_at', { ascending: false }).limit(1000);
     if (f.product_id !== 'all') cq = cq.eq('product_id', f.product_id);
     if (f.channel_id !== 'all') cq = cq.eq('channel_id', f.channel_id);
     if (f.category_id !== 'all') cq = cq.eq('conduct_risk_category_id', f.category_id);
     if (f.licensee_id !== 'all') cq = cq.eq('licensee_id', f.licensee_id);
+    if (f.severity !== 'all') cq = cq.eq('severity', f.severity);
+    if (f.priority !== 'all') cq = cq.eq('priority', f.priority);
+    if (f.customer_type !== 'all') cq = cq.eq('customer_type', f.customer_type);
+    if (f.vulnerable === 'yes') cq = cq.eq('vulnerability_indicator', true);
+    if (f.vulnerable === 'no') cq = cq.eq('vulnerability_indicator', false);
     const { data: cData, error: cErr } = await cq;
     if (cErr) toast.error(cErr.message);
 
@@ -54,20 +59,24 @@ export default function ConductDashboard() {
     if (f.channel_id !== 'all') aq = aq.eq('channel_id', f.channel_id);
     if (f.category_id !== 'all') aq = aq.eq('conduct_risk_category_id', f.category_id);
     if (f.licensee_id !== 'all') aq = aq.eq('licensee_id', f.licensee_id);
+    if (f.alert_status !== 'all') aq = aq.eq('status', f.alert_status);
     const { data: aData } = await aq;
 
     setComplaints(cData || []); setAlerts(aData || []); setLoading(false);
   };
-  useEffect(() => { load(); }, [f.product_id, f.channel_id, f.category_id, f.licensee_id, f.days]);
+  useEffect(() => { load(); }, [f.product_id, f.channel_id, f.category_id, f.licensee_id, f.days, f.severity, f.priority, f.customer_type, f.vulnerable, f.alert_status]);
 
   const kpis = useMemo(() => {
     const total = complaints.length;
+    const openComplaints = complaints.filter(c => c.status !== 'closed' && c.status !== 'resolved').length;
     const openAlerts = alerts.filter(a => a.status === 'open').length;
     const critical = complaints.filter(c => c.severity === 'critical').length;
     const vulnerable = complaints.filter(c => c.vulnerability_indicator).length;
     const now = Date.now();
     const slaBreached = complaints.filter(c => !c.resolved_at && c.sla_due_at && new Date(c.sla_due_at).getTime() < now).length;
-    return { total, openAlerts, critical, vulnerable, slaBreached };
+    const slaAtRisk = complaints.filter(c => !c.resolved_at && c.sla_due_at && new Date(c.sla_due_at).getTime() >= now && new Date(c.sla_due_at).getTime() - now < 24 * 3600 * 1000).length;
+    const repeat = complaints.filter(c => (c.repeat_complaint_count ?? 0) >= 3).length;
+    return { total, openComplaints, openAlerts, critical, vulnerable, slaBreached, slaAtRisk, repeat };
   }, [complaints, alerts]);
 
   const byProduct = useMemo(() => groupBy(complaints, c => products.find(p => p.id === c.product_id)?.name || '—'), [complaints, products]);
@@ -91,15 +100,23 @@ export default function ConductDashboard() {
             <Filter label="Channel" value={f.channel_id} onChange={v => setF({ ...f, channel_id: v })} options={[['all', 'All'], ...channels.map(p => [p.id, p.name] as [string, string])]} />
             <Filter label="Risk Category" value={f.category_id} onChange={v => setF({ ...f, category_id: v })} options={[['all', 'All'], ...categories.map(p => [p.id, p.name] as [string, string])]} />
             <Filter label="Licensee" value={f.licensee_id} onChange={v => setF({ ...f, licensee_id: v })} options={[['all', 'All'], ...licensees.slice(0, 100).map(p => [p.id, p.name] as [string, string])]} />
+            <Filter label="Severity" value={f.severity} onChange={v => setF({ ...f, severity: v })} options={[['all', 'All'], ['low','Low'], ['medium','Medium'], ['high','High'], ['critical','Critical']]} />
+            <Filter label="Priority" value={f.priority} onChange={v => setF({ ...f, priority: v })} options={[['all','All'], ['p1','P1'], ['p2','P2'], ['p3','P3'], ['p4','P4']]} />
+            <Filter label="Customer type" value={f.customer_type} onChange={v => setF({ ...f, customer_type: v })} options={[['all','All'], ['retail','Retail'], ['sme','SME'], ['corporate','Corporate'], ['vulnerable','Vulnerable'], ['other','Other']]} />
+            <Filter label="Vulnerable" value={f.vulnerable} onChange={v => setF({ ...f, vulnerable: v })} options={[['all','All'], ['yes','Yes'], ['no','No']]} />
+            <Filter label="Alert status" value={f.alert_status} onChange={v => setF({ ...f, alert_status: v })} options={[['all','All'], ['open','Open'], ['acknowledged','Acknowledged'], ['closed','Closed']]} />
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
           <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Complaints" value={kpis.total} />
+          <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Open" value={kpis.openComplaints} />
           <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" />
           <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} />
           <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} />
           <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} />
+          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} />
+          <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} />
         </div>
 
         {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
@@ -141,6 +158,27 @@ export default function ConductDashboard() {
                         <TableCell className="text-xs">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Recent conduct alerts in scope</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Kind</TableHead><TableHead>Severity</TableHead><TableHead>Title</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {alerts.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No alerts in scope.</TableCell></TableRow> :
+                      alerts.slice(0, 25).map(a => (
+                        <TableRow key={a.id}>
+                          <TableCell className="text-xs">{new Date(a.created_at).toLocaleString()}</TableCell>
+                          <TableCell><Badge variant="outline" className="capitalize">{a.kind?.replace('_', ' ')}</Badge></TableCell>
+                          <TableCell><Badge variant={a.severity === 'critical' ? 'destructive' : 'outline'} className="capitalize">{a.severity}</Badge></TableCell>
+                          <TableCell className="max-w-md truncate">{a.complaint_id ? <Link className="text-primary hover:underline" to={`/complaints/${a.complaint_id}`}>{a.title}</Link> : a.title}</TableCell>
+                          <TableCell><Badge variant="secondary" className="capitalize">{a.status}</Badge></TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </CardContent>

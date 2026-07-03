@@ -109,10 +109,25 @@ export default function ComplaintsList() {
       email: user.email,
     };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { error } = await supabase.from('complaints').insert(insertData);
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id').single();
     if (error) { toast.error(error.message); setCreating(false); return; }
 
-    await logAudit({ action: 'complaint_created', entityType: 'complaint' });
+    await logAudit({ action: 'complaint_created', entityType: 'complaint', entityId: inserted?.id });
+
+    // Fire-and-forward auto triage. Surface failure visibly but don't rollback the complaint.
+    if (inserted?.id) {
+      try {
+        const { data: tr, error: trErr } = await supabase.functions.invoke('evaluate-complaint-triage', {
+          body: { complaint_id: inserted.id, triggered_by: 'intake' },
+        });
+        if (trErr || (tr && tr.success === false)) {
+          toast.warning(`Complaint filed, but auto-triage failed: ${trErr?.message || tr?.error || 'unknown error'}. It can be retried from complaint detail.`);
+        }
+      } catch (e: any) {
+        toast.warning(`Complaint filed, but auto-triage failed: ${e?.message || 'unknown'}. It can be retried from complaint detail.`);
+      }
+    }
+
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
     setNewSubject('');

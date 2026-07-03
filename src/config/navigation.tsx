@@ -124,6 +124,16 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Market Conduct',
+    items: [
+      { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
+      { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
+      { label: 'Risk Taxonomy', href: '/admin/conduct/risk-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+      { label: 'Products & Channels', href: '/admin/conduct/products-channels', icon: <Boxes className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+      { label: 'Triage Rules', href: '/admin/conduct/triage-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+    ],
+  },
+  {
     label: 'Workflows',
     items: [
       { label: 'Approval Workflows', href: '/workflows', icon: <GitBranch className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },
