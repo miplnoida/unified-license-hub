@@ -84,11 +84,11 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessmentId,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_votes')
-        .select('id, member_id, vote, justification, voted_at').eq('assessment_id', assessmentId!);
+        .select('id, member_id, vote, justification, voted_at, weight').eq('assessment_id', assessmentId!);
       if (error) throw error;
       const memberIds = (data ?? []).map((v: any) => v.member_id);
       if (!memberIds.length) return [];
-      const { data: mems } = await supabase.from('fp_committee_members').select('id, user_id, member_role').in('id', memberIds);
+      const { data: mems } = await supabase.from('fp_committee_members').select('id, user_id, member_role, vote_weight').in('id', memberIds);
       const userIds = (mems ?? []).map((m: any) => m.user_id);
       const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', userIds);
       const memMap = new Map((mems ?? []).map((m: any) => [m.id, m]));
