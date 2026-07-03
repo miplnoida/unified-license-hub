@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 type RiskLevel = 'green' | 'amber' | 'red';
 interface Metric { key: string; label: string; value: number | null; unit: string | null; risk_level: RiskLevel; threshold: number | null; null_reason?: string | null; }
@@ -133,6 +134,8 @@ export default function ReturnAnalysis() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4 mr-1" />Back</Button>
+              {selected?.id && <HistoryButton entityType="return_analysis" entityId={selected.id} title="Return analysis history" />}
+              {!selected?.id && id && <HistoryButton entityType="return_filed" entityId={id} title="Return history" />}
               <Button onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>
                 {regenerate.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Regenerate
