@@ -43,6 +43,9 @@ const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'
 const SufficiencyRules = lazy(() => import('@/pages/admin/SufficiencyRules'));
 const SufficiencyRuleSets = lazy(() => import('@/pages/admin/SufficiencyRuleSets'));
 const DecisionOptions = lazy(() => import('@/pages/admin/DecisionOptions'));
+const FpSectorDecisionRules = lazy(() => import('@/pages/admin/FpSectorDecisionRules'));
+const CaseAuditTrail = lazy(() => import('@/pages/admin/CaseAuditTrail'));
+const PrudentialEarlyWarnings = lazy(() => import('@/pages/supervision/PrudentialEarlyWarnings'));
 
 
 
@@ -112,6 +115,10 @@ export const adminRoutes = (
     <Route path="/admin/applications/bulk-intake" element={<A><BulkIntake /></A>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
+    <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper"><FpSectorDecisionRules /></M>} />
+    <Route path="/admin/case-audit" element={<M module="settings"><CaseAuditTrail /></M>} />
+    <Route path="/admin/case-audit/:entityType/:entityId" element={<M module="settings"><CaseAuditTrail /></M>} />
+    <Route path="/supervision/early-warnings" element={<M module="returns_management"><PrudentialEarlyWarnings /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
     <Route path="/admin/conduct/risk-taxonomy" element={<M module="complaint_management"><ConductRiskTaxonomy /></M>} />

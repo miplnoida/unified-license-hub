@@ -17,6 +17,7 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck, Mail, User, BarChart3 } from 'lucide-react';
+import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
@@ -68,6 +69,7 @@ export default function ComplaintsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<Complaint | null>(null);
+  const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [detailProfile, setDetailProfile] = useState<ComplainantProfile | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -109,7 +111,7 @@ export default function ComplaintsList() {
       email: user.email,
     };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
     if (error) { toast.error(error.message); setCreating(false); return; }
 
     await logAudit({ action: 'complaint_created', entityType: 'complaint', entityId: inserted?.id });
@@ -134,6 +136,19 @@ export default function ComplaintsList() {
     setNewDesc('');
     setNewTypeId('');
     setCreating(false);
+    // Surface printable acknowledgement (S4 DEMO-MCS-003).
+    if (inserted) {
+      setAckDialog({
+        id: inserted.id,
+        complaint_number: (inserted as any).complaint_number,
+        subject: (inserted as any).subject,
+        submitted_at: (inserted as any).created_at,
+        complainant_name: user.fullName ?? user.email ?? null,
+        complainant_email: (inserted as any).email ?? user.email ?? null,
+        channel: isInternal ? 'staff_intake' : 'consumer_portal',
+        sla_days: 20,
+      });
+    }
     loadComplaints();
   };
 
@@ -366,6 +381,14 @@ export default function ComplaintsList() {
           )}
         </DialogContent>
       </Dialog>
+
+      {ackDialog && (
+        <ComplaintAcknowledgement
+          open={!!ackDialog}
+          onOpenChange={(o) => !o && setAckDialog(null)}
+          complaint={ackDialog}
+        />
+      )}
     </DashboardLayout>
   );
 }

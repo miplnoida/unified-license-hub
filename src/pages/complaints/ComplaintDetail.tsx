@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer } from 'lucide-react';
+import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
@@ -46,6 +47,7 @@ export default function ComplaintDetail() {
   const [severity, setSeverity] = useState<string>('');
   const [escalateNote, setEscalateNote] = useState('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
+  const [ackOpen, setAckOpen] = useState(false);
 
   const { data: complaint, isLoading } = useQuery({
     queryKey: ['complaint', id],
@@ -213,6 +215,9 @@ export default function ComplaintDetail() {
           actions={
             <div className="flex items-center gap-2">
               <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
+              <Button variant="outline" size="sm" onClick={() => setAckOpen(true)}>
+                <Printer className="h-4 w-4 mr-2" />Reprint acknowledgement
+              </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to Complaints</Link>
               </Button>
@@ -361,6 +366,23 @@ export default function ComplaintDetail() {
               setSeverityOverride(null);
               await applySeverityChange(next);
             }}
+          />
+        )}
+
+        {ackOpen && complaint && (
+          <ComplaintAcknowledgement
+            open={ackOpen}
+            onOpenChange={setAckOpen}
+            complaint={{
+              id: complaint.id,
+              complaint_number: complaint.complaint_number,
+              subject: complaint.subject,
+              submitted_at: complaint.created_at,
+              complainant_name: (complaint as any).complainant_name ?? null,
+              complainant_email: (complaint as any).email ?? null,
+              channel: (complaint as any).channel ?? 'staff_intake',
+              sla_days: slaDays,
+            } as ComplaintAckInput}
           />
         )}
       </div>
