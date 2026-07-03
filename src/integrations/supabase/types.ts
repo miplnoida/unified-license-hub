@@ -1713,6 +1713,7 @@ export type Database = {
           subject: string
           triage_evaluated_at: string | null
           triage_last_error: string | null
+          triage_original_values: Json | null
           triage_override_status: string
           triage_result_snapshot: Json | null
           triage_rule_id: string | null
@@ -1752,6 +1753,7 @@ export type Database = {
           subject: string
           triage_evaluated_at?: string | null
           triage_last_error?: string | null
+          triage_original_values?: Json | null
           triage_override_status?: string
           triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
@@ -1791,6 +1793,7 @@ export type Database = {
           subject?: string
           triage_evaluated_at?: string | null
           triage_last_error?: string | null
+          triage_original_values?: Json | null
           triage_override_status?: string
           triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
@@ -2070,10 +2073,13 @@ export type Database = {
           product_id: string | null
           regulator_id: string | null
           severity: string
+          source: string | null
           status: string
           title: string
           triage_rule_id: string | null
           updated_at: string
+          window_end: string | null
+          window_start: string | null
         }
         Insert: {
           acknowledged_at?: string | null
@@ -2093,10 +2099,13 @@ export type Database = {
           product_id?: string | null
           regulator_id?: string | null
           severity?: string
+          source?: string | null
           status?: string
           title: string
           triage_rule_id?: string | null
           updated_at?: string
+          window_end?: string | null
+          window_start?: string | null
         }
         Update: {
           acknowledged_at?: string | null
@@ -2116,10 +2125,13 @@ export type Database = {
           product_id?: string | null
           regulator_id?: string | null
           severity?: string
+          source?: string | null
           status?: string
           title?: string
           triage_rule_id?: string | null
           updated_at?: string
+          window_end?: string | null
+          window_start?: string | null
         }
         Relationships: [
           {
@@ -2335,6 +2347,87 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_triage_audit_events: {
+        Row: {
+          actor_id: string | null
+          alerts_generated: Json | null
+          applied_outputs: Json | null
+          complaint_id: string | null
+          created_at: string
+          dry_run: boolean
+          error_message: string | null
+          evaluated_at: string
+          evaluated_summary: Json | null
+          function_version: string | null
+          id: string
+          input_snapshot: Json | null
+          matched_rule_id: string | null
+          matched_rule_name: string | null
+          new_values: Json | null
+          old_values: Json | null
+          outcome: string
+          rules_evaluated: number
+          triggered_by: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          alerts_generated?: Json | null
+          applied_outputs?: Json | null
+          complaint_id?: string | null
+          created_at?: string
+          dry_run?: boolean
+          error_message?: string | null
+          evaluated_at?: string
+          evaluated_summary?: Json | null
+          function_version?: string | null
+          id?: string
+          input_snapshot?: Json | null
+          matched_rule_id?: string | null
+          matched_rule_name?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          outcome: string
+          rules_evaluated?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          alerts_generated?: Json | null
+          applied_outputs?: Json | null
+          complaint_id?: string | null
+          created_at?: string
+          dry_run?: boolean
+          error_message?: string | null
+          evaluated_at?: string
+          evaluated_summary?: Json | null
+          function_version?: string | null
+          id?: string
+          input_snapshot?: Json | null
+          matched_rule_id?: string | null
+          matched_rule_name?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          outcome?: string
+          rules_evaluated?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_triage_audit_events_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_triage_audit_events_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
             referencedColumns: ["id"]
           },
         ]
