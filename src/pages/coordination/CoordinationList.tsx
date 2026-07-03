@@ -30,6 +30,18 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   closed: { label: 'Closed', className: 'bg-slate-100 text-slate-700 border-slate-200' },
 };
 
+const SUBJECT_TYPES = [
+  { value: 'application', label: 'Application' },
+  { value: 'license', label: 'License' },
+  { value: 'entity', label: 'Entity' },
+  { value: 'complaint', label: 'Complaint' },
+  { value: 'prudential_return', label: 'Prudential Return' },
+  { value: 'prudential_finding', label: 'Prudential Finding' },
+  { value: 'fp_assessment', label: 'Fit & Proper Assessment' },
+  { value: 'enforcement_action', label: 'Enforcement Action' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function CoordinationList() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -37,8 +49,19 @@ export default function CoordinationList() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    subject_type: 'application' as 'application' | 'license' | 'entity' | 'other',
+    subject_type: 'application' as string,
     subject_id: '',
+    primary_regulator_id: 'none' as string,
+  });
+
+  const { data: regulators } = useQuery({
+    queryKey: ['regulators_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators')
+        .select('id, code, name').eq('status', 'active').order('code');
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const { data: cases, isLoading } = useQuery({
@@ -46,7 +69,7 @@ export default function CoordinationList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coordination_cases')
-        .select('id, title, subject_type, subject_id, status, created_at, updated_at, owner_user_id')
+        .select('id, title, subject_type, subject_id, status, created_at, updated_at, owner_user_id, primary_regulator_id, owner_regulator_id')
         .order('updated_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -65,6 +88,7 @@ export default function CoordinationList() {
           subject_type: form.subject_type,
           subject_id: form.subject_id.trim() || null,
           owner_user_id: user.id,
+          primary_regulator_id: form.primary_regulator_id === 'none' ? null : form.primary_regulator_id,
         })
         .select('id')
         .single();
@@ -75,7 +99,7 @@ export default function CoordinationList() {
       toast.success('Coordination case created');
       qc.invalidateQueries({ queryKey: ['coordination_cases'] });
       setCreating(false);
-      setForm({ title: '', description: '', subject_type: 'application', subject_id: '' });
+      setForm({ title: '', description: '', subject_type: 'application', subject_id: '', primary_regulator_id: 'none' });
       window.location.href = `/coordination/${id}`;
     },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
