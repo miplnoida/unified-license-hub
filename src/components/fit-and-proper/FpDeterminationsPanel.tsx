@@ -275,12 +275,13 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
             <Card>
               <CardHeader><CardTitle className="text-base">Voting</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm flex-wrap">
                   <span>Total: <strong>{tally.total}</strong> / {committee.quorum}</span>
-                  <span className="text-green-700">Approve: {tally.approve}</span>
-                  <span className="text-amber-700">Conditional: {tally.conditional}</span>
-                  <span className="text-red-700">Reject: {tally.reject}</span>
+                  <span className="text-green-700">Approve: {tally.approve} <span className="text-xs">(w {tally.w_approve.toFixed(1)})</span></span>
+                  <span className="text-amber-700">Conditional: {tally.conditional} <span className="text-xs">(w {tally.w_conditional.toFixed(1)})</span></span>
+                  <span className="text-red-700">Reject: {tally.reject} <span className="text-xs">(w {tally.w_reject.toFixed(1)})</span></span>
                   <span className="text-slate-500">Abstain: {tally.abstain}</span>
+                  <span className="text-muted-foreground">Weighted total: {tally.w_total.toFixed(1)}</span>
                 </div>
 
                 {myMembership && !myVote && (
