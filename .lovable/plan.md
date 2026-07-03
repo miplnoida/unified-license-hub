@@ -1,94 +1,94 @@
-## Goal
-Complete Phase 2 Market Conduct so it is production-ready. Extend — do not replace — existing complaint pages, and reuse the existing audit + universal override framework, RLS conventions, and navigation.
+# Market Conduct Supervision — Production Hardening
 
-## Current state (verified)
-- Tables already exist: `conduct_risk_categories`, `conduct_products`, `conduct_channels`, `conduct_triage_rules`, `conduct_alerts`, `conduct_alert_thresholds`.
-- `complaints` already has: `conduct_risk_category_id`, `product_id`, `channel_id`, `licensee_id`, `customer_type`, `vulnerability_indicator`, `vulnerability_notes`, `repeat_complaint_count`, `priority`, `assigned_team`, `sla_days`, `sla_due_at`, `triage_source`, `triage_rule_id`.
-- Edge function `evaluate-complaint-triage` exists but is limited (few operators, no persistent audit row, no snapshot, no failure logging, alerts can duplicate, no dry-run audit).
-- Auto-triage only runs when the "Auto-triage" button is pressed; `ComplaintsList.tsx` intake dialog inserts without invoking it (and uses a broken `.n(` call).
-- Admin pages `RiskTaxonomy`, `ProductsChannels`, `TriageRules`, `ConductDashboard`, `ConductAlerts` exist and are already routed + linked from `AdminHub` (added in the prior turn).
+Close the remaining verified gaps in the Market Conduct module. Extend existing files only; do not replace complaint pages, audit framework, or override framework.
 
-## Gaps to close
-1. Triage engine coverage, auditability, duplicate-safe alerts, dry-run auditing, failure surfacing.
-2. Automatic triage on complaint creation.
-3. Full override support (severity, priority, team, SLA, category, product, channel, alert closure).
-4. Missing complaint columns for snapshot/override tracking; missing alert dedupe/rule linkage.
-5. Dashboard filter set + drilldowns + empty/loading states.
+## 1. Migration (single new file)
 
----
+`supabase/migrations/<ts>_conduct_hardening.sql`:
 
-## Plan
+- `complaints`: add `triage_evaluated_at timestamptz`, `triage_result_snapshot jsonb`, `triage_error text`, `triage_override_status text` (if not present). Also add originals block `triage_original_values jsonb` for override trail.
+- `conduct_alerts`: add `triage_rule_id uuid`, `dedupe_key text`, `source text`, `window_start timestamptz`, `window_end timestamptz`, `acknowledged_by/at`, `closed_by/at` if missing. Partial unique index on `dedupe_key WHERE status='open'`.
+- Extend `conduct_alerts.kind` allowed set to include `sla_at_risk`, `sla_breach`, `thematic_spike`, `high_risk_category`, `rule_triggered`, `critical_severity`, `vulnerable_customer`, `repeat_complaint` (drop old CHECK, recreate).
+- New table `conduct_triage_audit_events` (fallback when compliance_audit_logs schema is too rigid): complaint_id, evaluated_at, actor_id, dry_run, matched_rule_id, matched_rule_name, rules_evaluated, evaluated_summary jsonb, input_snapshot jsonb, old_values jsonb, new_values jsonb, applied_outputs jsonb, alerts_generated jsonb, error text, function_version text. Grants + RLS (staff read, service_role all).
+- Indexes: `complaints(product_id)`, `(channel_id)`, `(conduct_risk_category_id)`, `(licensee_id, created_at desc)`, `conduct_alerts(status, severity)`, `conduct_triage_rules(active, priority_order)`.
 
-### 1. Migration — `market_conduct_hardening`
-- **complaints**: add `triage_evaluated_at timestamptz`, `triage_result_snapshot jsonb`, `triage_override_status text default 'none'` (`none|overridden`), `triage_last_error text`. Add indexes on `(product_id)`, `(channel_id)`, `(conduct_risk_category_id)`, `(licensee_id)`, `(severity, status)`, `(priority, status)`, `(sla_due_at)`.
-- **conduct_triage_rules**: add `updated_by uuid`; index `(active, priority_order)`.
-- **conduct_alerts**: add `triage_rule_id uuid` (FK → `conduct_triage_rules(id)` ON DELETE SET NULL) and `dedupe_key text`; partial unique index `unique(dedupe_key) where dedupe_key is not null and status <> 'closed'`. Indexes on `(status, severity)`, `(licensee_id)`, `(product_id)`, `(channel_id)`, `(conduct_risk_category_id)`.
-- No new tables; existing RLS/grants remain valid (new columns inherit table policies).
-- Types file auto-regenerates after approval.
+## 2. Edge function `evaluate-complaint-triage`
 
-### 2. Edge function `evaluate-complaint-triage` (rewrite in place)
-- Body validation with Zod: `{ complaint_id: uuid, dry_run?: boolean, triggered_by?: string }`.
-- Field access: `complaint_type`, `product`, `channel`, `entity`, `customer_type`, `customer_vulnerability`, `keywords`, `repeat_count`, `sla_days`, `severity`, `priority`, `assigned_team`, `age_days`.
-- Operators: `eq`, `neq`, `in`, `not_in`, `contains_any`, `contains_all`, `gte`, `lte`, `is_true`, `is_false`, `is_empty`, `is_not_empty`.
-- Recompute `repeat_complaint_count` from last-12-month complaints matching complainant/entity/product/category before evaluation.
-- Iterate rules in `priority_order`; first-match wins.
-- Outputs supported: `severity`, `priority`, `sla_days`, `assigned_team`, `conduct_risk_category_code`, `generate_alert_kind`, `recommended_action`.
-- Compute `sla_due_at = created_at + sla_days` when `sla_days` is applied.
-- Persist to complaint: outputs + `triage_source='auto'`, `triage_rule_id`, `triage_evaluated_at=now()`, `triage_result_snapshot={inputs, matched_rule, outputs, evaluated_at, rules_evaluated}`, clear `triage_last_error`.
-- Alerts: kinds `critical_severity`, `vulnerable_customer`, `repeat_complaint`, `sla_at_risk`, `sla_breach`, `high_risk_category`, `rule_alert`. `dedupe_key = sha1(complaint_id + ':' + kind + ':' + (triage_rule_id||'none'))`. Insert with `onConflict:'dedupe_key', ignoreDuplicates:true`.
-- **Auditability**: every invocation writes to `compliance_audit_logs` with `action='complaint.triage_evaluated'`, `entity_type='complaint'`, `entity_id=complaint_id`, `metadata={dry_run, triggered_by, matched_rule_id, matched_rule_name, rules_evaluated, input_snapshot, old_values, new_values, outputs_applied, alerts_created, function_version:'v2'}`. No-match still audited. On thrown error, write `action='complaint.triage_failed'` with `error_message` + short stack and set `complaint.triage_last_error`; return 200 with `{success:false, error}` so intake never blocks.
-- Dry-run: no writes to complaints/alerts; audit row still written with `dry_run:true`.
+Full rewrite of evaluator (keep function name/route):
 
-### 3. Auto-triage on intake
-- Fix `ComplaintsList.tsx` new-complaint dialog: replace `.n(` with `.insert(nData).select('id').single()`; after success invoke `supabase.functions.invoke('evaluate-complaint-triage', { body: { complaint_id, triggered_by: 'intake' } })`; toast a warning on failure but keep the complaint (function already persisted `triage_last_error`).
-- Keep the manual "Auto-triage" button on `ConductClassificationCard`.
-- Search for other intake entry points (external/portal). If any exists, wire the same invocation; otherwise document that intake is centralized here.
+- **Operators**: `eq, neq, in, not_in, contains_any, contains_all, gte, lte, gt, lt, is_true, is_false, is_empty, is_not_empty`. Null-safe.
+- **Fields**: complaint_type, product_id, channel_id, licensee_id, customer_type, vulnerability_indicator, keywords(subject+description), repeat_count, sla_days, sla_due_at, days_open, severity, priority, assigned_team, conduct_risk_category_id/code, status.
+- **Outputs**: severity, priority, assigned_team, sla_days (→ recompute sla_due_at), conduct_risk_category_id/code, alert_kind, alert_severity, alert_title, alert_detail, recommended_action.
+- **Snapshot & originals**: capture pre-values; on first auto-triage write `triage_original_values`; always write `triage_result_snapshot` + `triage_evaluated_at`.
+- **Alerts** (duplicate-safe via `dedupe_key`):
+  - `critical_severity` (complaint_id+kind)
+  - `vulnerable_customer` (complaint_id+kind)
+  - `repeat_complaint` (complaint_id+kind, when repeat_count ≥ threshold)
+  - `sla_at_risk` (complaint_id+kind, within 20% of due)
+  - `sla_breach` (complaint_id+kind, now > sla_due_at, not resolved/closed)
+  - `high_risk_category` (complaint_id+category_id)
+  - `rule_triggered` (complaint_id+kind+rule_id)
+  - `thematic_spike` (kind + product/channel/category/licensee + 30d window, threshold from `conduct_alert_thresholds`)
+- **Audit**: insert into `conduct_triage_audit_events` for match, no-match, dry-run, success, error. Include alerts_generated + rules_evaluated summary.
+- **Dry run**: computes without writing complaint/alerts; still writes audit event with dry_run=true.
+- **Error path**: catches, writes audit with error, updates `complaints.triage_error`, returns 200 with `{ ok:false, error }`.
 
-### 4. `ConductClassificationCard` — full override coverage
-- Diff auto-set outputs from `triage_result_snapshot.outputs` (severity, priority, assigned_team, sla_days/sla_due_at, conduct_risk_category_id, product_id, channel_id) against the edited form.
-- If `triage_source in ('auto','override')` and any auto-set output changed, open `OverrideReasonDialog` (`ruleKey='complaints.triage.rule_output_override'`, `originalValue=snapshot.outputs`, `overriddenValue=new`, `metadata={triage_rule_id, changed_fields}`).
-- On confirm: persist + set `triage_source='override'`, `triage_override_status='overridden'`, recompute `sla_due_at` if `sla_days` changed. Universal framework already writes `rule_overrides` + audit.
-- Add read-only "Triage snapshot" panel showing matched rule, evaluated at, and last error (with a Retry button that re-invokes the function).
+## 3. Complaint intake auto-triage — `src/pages/complaints/ComplaintsList.tsx`
 
-### 5. Alerts — actions + rule-close override
-- `ConductAlerts.tsx`: add Acknowledge and Close actions (write `acknowledged_by/at`, `closed_by/at`) with audit rows.
-- When closing an alert generated from a rule (`triage_rule_id is not null`), require `OverrideReasonDialog` (`ruleKey='conduct.alert.rule_close_override'`).
-- Filters: status, severity, kind, entity, product, channel, category. Drilldown link to complaint.
+- Change insert to `.insert(insertData).select('id').single()`.
+- On success, `supabase.functions.invoke('evaluate-complaint-triage', { body: { complaint_id, triggered_by:'complaint_intake' } })`.
+- Success toast: "Complaint submitted and triaged"; failure: warning toast + `logAudit('complaint.triage_failed_after_submission', ...)`. Never fail submit on triage error.
 
-### 6. Triage rules admin polish (`/admin/conduct/triage-rules`)
-- Condition builder exposes every field/operator listed in §2.
-- Output builder for severity/priority/sla_days/assigned_team/category_code/generate_alert_kind/recommended_action.
-- "Simulate" invokes function with `dry_run:true`; shows matched_rule + diff.
-- Add `HistoryButton` per rule (`entityType='conduct_triage_rule'`).
-- Audit create/update/delete/toggle via existing `logAudit`.
+## 4. Triage rules admin — `src/pages/admin/conduct/TriageRules.tsx`
 
-### 7. Dashboard (`/conduct`)
-- Filters: date window, product, channel, category, entity, severity, priority, customer type, vulnerability, alert status.
-- KPIs: total, open, critical, vulnerable, sla_breached, sla_at_risk (<24h), open alerts, repeat complaints (>=2).
-- Recharts: complaints by product/channel/category/severity/entity; alerts by kind/status.
-- Recent complaints + recent alerts tables with drilldown links.
-- Loading skeletons + explicit empty states; no seeded data.
+- Condition builder: field dropdown (all fields §3), operator dropdown (all operators §3), value input adapting per type (dropdown for enums, tag input for `in/contains_*`).
+- Output builder: structured fields for severity/priority/assigned_team/sla_days/category/alert_* (no raw JSON for common outputs; keep JSON fallback for advanced).
+- Keep simulation, active toggle, priority_order, match_mode.
 
-### 8. Navigation & permissions
-- Verify `AdminHub` tiles for the five routes (already added). Gate on `complaint_management` module.
-- Verify operational sidebar exposes `/conduct` and `/conduct/alerts` for staff; if missing, add entries in the sidebar registry.
+## 5. Override completeness — `ConductClassificationCard.tsx`
 
-### 9. Regression + acceptance verification
-- `tsgo --noEmit` clean.
-- Playwright smoke: create complaint via `ComplaintsList` → confirm `compliance_audit_logs` row `complaint.triage_evaluated`, complaint updated, alerts inserted; re-run manual auto-triage → no duplicate alerts.
-- Override auto output → `rule_overrides` row, `triage_source='override'`.
-- Simulate rule → dry-run audit row, no complaint change.
-- Force failure (invalid rule condition) → `triage_failed` audit row, `triage_last_error` populated, complaint still created.
-- Existing complaint intake/detail/investigation/correspondence/enforcement escalation/analytics/public paths still work.
+- Diff against `triage_result_snapshot` for: severity, priority, assigned_team, sla_days, conduct_risk_category, product_id, channel_id.
+- Require OverrideReasonDialog for any change to auto-set field. Persist `triage_override_status='overridden'`, write override via existing framework with old (snapshot), new, rule_id, complaint_id, actor, timestamp.
+- Show snapshot summary and "original auto values" panel.
+
+## 6. Alerts inbox — `src/pages/conduct/ConductAlerts.tsx`
+
+- Columns: kind, severity, title, complaint link, licensee, product, channel, category, status, created_at.
+- Actions: acknowledge, close (close on rule-generated alerts requires override reason). Audit each status change.
+
+## 7. Dashboard — `src/pages/conduct/ConductDashboard.tsx`
+
+- Filters: date window, product, channel, category, licensee, severity, priority, customer_type, vulnerability, alert_status.
+- KPIs: total, open, critical, vulnerable, SLA breached, SLA at-risk, open alerts, repeat complaints. All from live queries.
+
+## 8. Navigation — `src/config/navigation.tsx`
+
+Add group "Market Conduct" (internal/admin, permission `complaint_management` or `market_conduct` consistent with existing):
+- Market Conduct Dashboard → `/conduct`
+- Conduct Alerts → `/conduct/alerts`
+- Risk Taxonomy → `/admin/conduct/risk-taxonomy`
+- Products & Channels → `/admin/conduct/products-channels`
+- Triage Rules → `/admin/conduct/triage-rules`
+
+## 9. Supabase types
+
+Regenerate `src/integrations/supabase/types.ts` post-migration to include new tables/columns; remove unnecessary `as any` where types now cover.
+
+## 10. Verify
+
+- `npm run build` (fix errors).
+- Manual smoke via Playwright: submit complaint → confirm triage row + audit event + alerts.
+- Report per acceptance checklist.
 
 ## Technical notes
-- No new tables; reuse `compliance_audit_logs` for triage auditing and `rule_overrides` for overrides.
-- Deterministic `dedupe_key` makes alert generation idempotent.
-- All new complaint columns are nullable/have defaults so existing rows and inserts keep working.
-- Edge function returns HTTP 200 with `{success:false,error}` on failure to keep intake resilient.
 
-## Deliverables
-- One migration (schema + indexes).
-- Rewritten `supabase/functions/evaluate-complaint-triage/index.ts`.
-- Edits: `ComplaintsList.tsx`, `ConductClassificationCard.tsx`, `ConductAlerts.tsx`, `TriageRules.tsx`, `ConductDashboard.tsx`, and sidebar registry if needed.
-- Final report: files changed, migration name, audit/override behaviour confirmation, unresolved gaps (if any).
+- Use `logAudit` for UI-side events; edge function writes directly to `conduct_triage_audit_events` with service role.
+- Dedupe: `INSERT ... ON CONFLICT (dedupe_key) WHERE status='open' DO NOTHING`.
+- Thematic spike threshold source: `conduct_alert_thresholds` (existing table).
+- Keep `verify_jwt=false` default for the edge function; validate `complaint_id` shape.
+- No changes to existing complaint intake/investigation/correspondence/enforcement flows beyond the insert-select + post-invoke.
+
+## Out of scope
+
+- Cron-based thematic sweep (current per-complaint check is sufficient for acceptance).
+- New portals or replacing existing complaint pages.
