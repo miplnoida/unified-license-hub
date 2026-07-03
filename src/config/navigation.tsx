@@ -128,9 +128,13 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
+      { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
+      { label: 'Thematic Reviews', href: '/supervision/thematic-reviews', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Risk Taxonomy', href: '/admin/conduct/risk-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
       { label: 'Products & Channels', href: '/admin/conduct/products-channels', icon: <Boxes className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
       { label: 'Triage Rules', href: '/admin/conduct/triage-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+      { label: 'Monitoring Rules', href: '/admin/conduct/monitoring-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+
     ],
   },
   {
