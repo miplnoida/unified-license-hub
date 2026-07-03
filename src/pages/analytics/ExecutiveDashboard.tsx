@@ -31,6 +31,7 @@ import {
   Legend,
 } from 'recharts';
 import { useMemo } from 'react';
+import { DashboardInsightsCard } from '@/components/analytics/DashboardInsightsCard';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 const BAND_COLOR: Record<Band, string> = {
@@ -303,6 +304,8 @@ export default function ExecutiveDashboard() {
             href="/billing/penalties"
           />
         </div>
+
+        <DashboardInsightsCard />
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
