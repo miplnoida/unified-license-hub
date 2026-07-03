@@ -11902,6 +11902,10 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      check_decision_gates: {
+        Args: { _application_id: string; _license_id: string }
+        Returns: Json
+      }
       check_primary_user_email_exists: {
         Args: { p_email: string }
         Returns: boolean
