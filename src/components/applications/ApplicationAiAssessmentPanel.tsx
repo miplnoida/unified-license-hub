@@ -691,4 +691,90 @@ function AnalystDecisionBar({
   );
 }
 
+function AIRoutingDecisionActions({
+  assessment,
+  currentUserId,
+  onSaved,
+}: {
+  assessment: Assessment;
+  currentUserId?: string;
+  onSaved: () => void | Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const routing = assessment.routing_recommendation || {};
+  const decision = assessment.routing_decision;
+
+  async function persistDecision(next: 'accepted' | 'overridden', reason?: string) {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('application_ai_assessments' as never)
+        .update({
+          routing_decision: next,
+          routing_decision_reason: reason ?? null,
+          routing_decision_by: currentUserId ?? null,
+          routing_decision_at: new Date().toISOString(),
+        } as never)
+        .eq('id', assessment.id);
+      if (error) throw error;
+      toast.success(next === 'accepted' ? 'AI routing accepted' : 'AI routing overridden');
+      await onSaved();
+    } catch (e: any) {
+      toast.error('Could not save routing decision', { description: e?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (decision) {
+    return (
+      <div className="flex items-center gap-2 text-xs pt-1 border-t">
+        <Badge variant={decision === 'accepted' ? 'secondary' : 'destructive'}>
+          {decision === 'accepted' ? 'Analyst accepted' : 'Analyst overrode'}
+        </Badge>
+        {assessment.routing_decision_at && (
+          <span className="text-muted-foreground">
+            {formatDistanceToNow(new Date(assessment.routing_decision_at), { addSuffix: true })}
+          </span>
+        )}
+        {assessment.routing_decision_reason && (
+          <span className="text-muted-foreground italic">— {assessment.routing_decision_reason}</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-2 pt-1 border-t">
+        <Button size="sm" variant="secondary" disabled={saving} onClick={() => persistDecision('accepted')}>
+          <ThumbsUp className="h-3.5 w-3.5 mr-1" /> Accept AI routing
+        </Button>
+        <Button size="sm" variant="outline" disabled={saving} onClick={() => setOverrideOpen(true)}>
+          <ThumbsDown className="h-3.5 w-3.5 mr-1" /> Override with reason
+        </Button>
+      </div>
+      <OverrideReasonDialog
+        open={overrideOpen}
+        onOpenChange={setOverrideOpen}
+        module="ai_assessments"
+        entityType="application_ai_assessment"
+        entityId={assessment.id}
+        ruleKey="ai.routing_recommendation"
+        title="Override AI routing recommendation"
+        originalValue={routing}
+        overriddenValue={{ recommended_route: 'analyst_directed' }}
+        metadata={{
+          application_id: assessment.application_id,
+          screen: 'ApplicationAiAssessmentPanel',
+        }}
+        onOverridden={async (_id) => {
+          await persistDecision('overridden', 'See rule_overrides for full justification');
+        }}
+      />
+    </>
+  );
+}
+
 export default ApplicationAiAssessmentPanel;
