@@ -106,6 +106,8 @@ export default function FitAndProperAssessmentDetail() {
           actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="fp_assessment" entityId={assessment.id} title="Assessment history" /></div>}
         />
 
+        <DecisionGatesBanner subjectType="fp_assessment" subjectId={assessment.id} compact />
+
         {hasPinnedForm ? (
           <PinnedPqForm
             assessmentId={assessment.id}
