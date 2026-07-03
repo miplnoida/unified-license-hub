@@ -725,6 +725,12 @@ export default function LicenseDetail() {
               </CardContent>
             </Card>
 
+            {isInternal && (
+              <LicenseSignaturePanel licenseId={license.id} />
+            )}
+
+
+
             {isInternal && license.status !== 'revoked' && license.status !== 'cancelled' && (
               <Card>
                 <CardHeader><CardTitle>License Actions</CardTitle></CardHeader>
