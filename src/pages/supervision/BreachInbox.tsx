@@ -58,6 +58,7 @@ export default function BreachInbox() {
   const [escTarget, setEscTarget] = useState<BreachRow | null>(null);
   const [escNote, setEscNote] = useState('');
   const [escPenalty, setEscPenalty] = useState('');
+  const [pendingOverride, setPendingOverride] = useState<null | { row: BreachRow; ruleKey: string; title: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
