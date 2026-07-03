@@ -8,7 +8,9 @@
 - ✅ Gap 11 (F&P weighted voting): `vote_weight` editable on `fp_committee_members`, `casting_vote_member_id` selector on committee, weighted tally + casting-vote tie-break in `FpDeterminationsPanel`, weight persisted on each `fp_committee_votes` row.
 - ✅ Gap 12 (F&P appeals): confirmed `FpAppealsPanel` fully implements filing, committee assignment, decision recording (with override dialog for overturn), reversal of prior `fp_determinations`, and full audit via `logFpAction`.
 - ✅ Gap 3 (Legal-access RLS): `has_legal_access()` gates `application_legal_notes`; denied-access events + viewer already surface in `ComplianceAuditLogs`.
-- ⏭️ Next: Phase 5B (Gap 6 twin-peaks clearance, Gap 5 supervisory plan auto-provision) then Phases 5C–5E.
+- ✅ Gap 6 (Twin-Peaks clearance + divergence): tables `twinpeaks_clearances`/`twinpeaks_disagreements` + `coordination_cases.clearance_required`, `TwinPeaksPanel` mounted in `ApplicationDetail`, approval blocked in `ConfigurableDecisionActions` unless override recorded.
+- ✅ Gap 5 (Auto-provisioning supervisory plan): trigger `trg_license_issued_seed_plan` on `licenses` insert/status→active materialises `supervisory_plans` + `supervisory_plan_actions` from best-matching template with template offset due dates.
+- ⏭️ Next: Phase 5C (F&P cycle scheduler, adverse-media confidence, trend dashboard, AI ingest).
 
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 
