@@ -212,8 +212,46 @@ export function FpConditionsPanel({ individualId }: Props) {
                     <Textarea rows={2} placeholder="Evidence / note" value={satNote} onChange={(e) => setSatNote(e.target.value)} />
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setSatisfyFor(null)}>Cancel</Button>
-                      <Button size="sm" variant="outline" onClick={() => satisfy.mutate({ id: c.id, waive: true })} disabled={satisfy.isPending}>Waive</Button>
-                      <Button size="sm" onClick={() => satisfy.mutate({ id: c.id })} disabled={satisfy.isPending}>Confirm satisfied</Button>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setPending({
+                          ruleKey: 'fit_and_proper.condition.waiver',
+                          title: 'Waive condition',
+                          original: { status: c.status, evidence_type: c.evidence_type },
+                          overridden: { status: 'waived', note: satNote || null },
+                          metadata: {
+                            source: 'phase1_override_framework',
+                            screen: 'FpConditionsPanel',
+                            condition_id: c.id,
+                            individual_id: individualId,
+                            previous_status: c.status,
+                            new_status: 'waived',
+                          },
+                          apply: async () => { await satisfy.mutateAsync({ id: c.id, waive: true }); },
+                        });
+                      }} disabled={satisfy.isPending}>Waive</Button>
+                      <Button size="sm" onClick={() => {
+                        const needsEvidence = c.evidence_type && c.evidence_type !== 'none';
+                        if (needsEvidence && satNote.trim().length < 5) {
+                          setPending({
+                            ruleKey: 'fit_and_proper.condition.evidence_bypass',
+                            title: 'Close condition without evidence',
+                            original: { status: c.status, evidence_type: c.evidence_type, note: c.satisfaction_note },
+                            overridden: { status: 'satisfied', note: satNote || null },
+                            metadata: {
+                              source: 'phase1_override_framework',
+                              screen: 'FpConditionsPanel',
+                              condition_id: c.id,
+                              individual_id: individualId,
+                              previous_status: c.status,
+                              new_status: 'satisfied',
+                              required_evidence_type: c.evidence_type,
+                            },
+                            apply: async () => { await satisfy.mutateAsync({ id: c.id }); },
+                          });
+                        } else {
+                          satisfy.mutate({ id: c.id });
+                        }
+                      }} disabled={satisfy.isPending}>Confirm satisfied</Button>
                     </div>
                   </div>
                 )}
@@ -222,6 +260,22 @@ export function FpConditionsPanel({ individualId }: Props) {
           })}
         </CardContent>
       </Card>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="fit_and_proper"
+          entityType="fp_condition"
+          entityId={String(pending.metadata.condition_id ?? individualId)}
+          ruleKey={pending.ruleKey}
+          title={pending.title}
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </div>
   );
 }
