@@ -24,7 +24,7 @@ export interface ApplicantMetrics {
   priority_lists: {
     recent_applications: Array<{ id: string; application_number: string | null; status: string; created_at: string; updated_at?: string | null; data?: any }>;
     pending_payments: Array<{ id: string; amount: number; status: string; created_at: string }>;
-    action_required: Array<{ id: string; application_number: string | null; status: string; updated_at: string }>;
+    action_required: Array<{ id: string; application_number: string | null; status: string; updated_at: string; application_id?: string; rfi_id?: string; item_count?: number }>;
   };
 }
 
@@ -84,13 +84,37 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
         scope,
       ).in('status', ACTION_REQUIRED_STATUSES).order('updated_at', { ascending: false }).limit(10);
 
-      const [recentAppsRes, pendingPaymentsRes, actionReqRes] = await Promise.all([
+      const openRfisQuery = supabase
+        .from('application_rfis' as any)
+        .select('id, application_id, raised_at, status, applications!inner(id, application_number, applicant_id)')
+        .in('status', ['open', 'responded'])
+        .eq('applications.applicant_id', userId!)
+        .order('raised_at', { ascending: false })
+        .limit(20);
+
+      const [recentAppsRes, pendingPaymentsRes, actionReqRes, openRfisRes] = await Promise.all([
         recentAppsQuery,
         supabase.from('payments').select('id, amount, status, created_at').eq('user_id', userId!).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5),
         actionRequiredQuery,
+        openRfisQuery,
       ]);
 
       const outstanding_amount = ((pendingPaymentsRes.data || []) as any[]).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+      // Merge open RFIs into action_required, deduped by application_id.
+      const statusRows = (actionReqRes.data || []) as any[];
+      const seenAppIds = new Set(statusRows.map((r) => r.id));
+      const rfiRows = ((openRfisRes.data || []) as any[])
+        .filter((r) => r.applications && !seenAppIds.has(r.application_id))
+        .map((r) => ({
+          id: r.id,
+          rfi_id: r.id,
+          application_id: r.application_id,
+          application_number: r.applications?.application_number ?? null,
+          status: 'rfi_open',
+          updated_at: r.raised_at,
+        }));
+      const mergedActionRequired = [...statusRows, ...rfiRows];
 
       return {
         applications: {
@@ -99,7 +123,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
           under_review,
           approved,
           rejected,
-          clarification_requested: clarification,
+          clarification_requested: clarification + rfiRows.length,
           resubmission_requested: resubmission,
         },
         payments: { pending: payPending, paid: payPaid, outstanding_amount },
@@ -107,7 +131,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
         priority_lists: {
           recent_applications: (recentAppsRes.data || []) as any,
           pending_payments: (pendingPaymentsRes.data || []) as any,
-          action_required: (actionReqRes.data || []) as any,
+          action_required: mergedActionRequired as any,
         },
       };
     },

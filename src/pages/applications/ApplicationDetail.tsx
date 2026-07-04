@@ -107,6 +107,7 @@ export default function ApplicationDetail() {
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>(initialTabParam || 'details');
+  const [openRfiCount, setOpenRfiCount] = useState<number>(0);
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
   const [taxSector, setTaxSector] = useState<string>('');
@@ -117,6 +118,34 @@ export default function ApplicationDetail() {
   const { data: allSubSectorsList = [] } = useSubSectors();
   const { data: allCategoriesList = [] } = useCategories();
   const { data: allFormTemplates = [] } = useFormTemplates(undefined, (app as any)?.regulator_id ?? undefined);
+
+  // Count open RFI items on this application (drives the badge next to the RFI tab).
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const { data: rfis } = await supabase
+        .from('application_rfis' as any)
+        .select('id')
+        .eq('application_id', id)
+        .in('status', ['open', 'responded']);
+      const rfiIds = ((rfis as any[]) || []).map((r) => r.id);
+      if (!rfiIds.length) {
+        if (!cancelled) setOpenRfiCount(0);
+        return;
+      }
+      const { count } = await supabase
+        .from('application_rfi_items' as any)
+        .select('id', { count: 'exact', head: true })
+        .in('rfi_id', rfiIds)
+        .neq('response_status', 'responded');
+      if (!cancelled) setOpenRfiCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, activeTab]);
+
 
 
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
@@ -830,7 +859,14 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="rfi">RFI</TabsTrigger>
+                <TabsTrigger value="rfi" className="gap-1.5">
+                  RFI
+                  {openRfiCount > 0 && (
+                    <Badge variant="destructive" className="h-4 min-w-[1rem] px-1 text-[10px] leading-none">
+                      {openRfiCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
               </TabsList>
