@@ -36,7 +36,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { toast } from 'sonner';
-import { Eye, Loader2, Users, Flag } from 'lucide-react';
+import { Eye, Loader2, Users, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApplicationCategory } from '@/lib/applicationCategory';
 
 
@@ -86,8 +87,118 @@ interface QueueRow {
   created_at: string;
   priority: number;
   priority_reason: string | null;
+  priority_set_by: string | null;
+  priority_set_at: string | null;
   assigned_to: string | null;
   data?: any;
+}
+
+const WAITING_APPLICANT_STATUSES = new Set([
+  'query_raised',
+  'resubmission_requested',
+  'info_requested',
+  'returned_for_correction',
+  'awaiting_applicant',
+]);
+
+const ON_HOLD_CLASS = 'bg-amber-100 text-amber-800 border-amber-200';
+
+interface ActionPriority {
+  effective: 1 | 2 | 3 | 4 | 5;
+  label: 'Critical' | 'High' | 'Normal' | 'Low' | 'Deferred' | 'On Hold';
+  reason: string;
+  isManualOverride: boolean;
+  isOnHold: boolean;
+  badgeClass: string;
+  sortKey: number; // Critical=0, High=1, Normal=2, On Hold=2.5, Low=3, Deferred=4
+}
+
+function pluralDays(n: number) {
+  return `${n} day${n === 1 ? '' : 's'}`;
+}
+
+function getEffectiveActionPriority(row: QueueRow): ActionPriority {
+  const iso = row.submitted_at || row.created_at;
+  const age = iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null;
+
+  // Manual override: explicit signals only. DB default is 3 with no set_by/at,
+  // so we require priority_set_at OR an explicit reason to treat as manual.
+  const hasManualSignal =
+    !!row.priority_set_at ||
+    (row.priority_reason?.trim().length ?? 0) > 0 ||
+    (!!row.priority_set_by && row.priority !== 3);
+
+  if (hasManualSignal) {
+    const meta = PRIORITY_META[row.priority] || PRIORITY_META[3];
+    const sortKey = row.priority === 5 ? 4 : row.priority === 4 ? 3 : row.priority === 3 ? 2 : row.priority === 2 ? 1 : 0;
+    return {
+      effective: (row.priority as 1 | 2 | 3 | 4 | 5) || 3,
+      label: meta.label as ActionPriority['label'],
+      reason: row.priority_reason?.trim() || 'Manually set by officer',
+      isManualOverride: true,
+      isOnHold: false,
+      badgeClass: meta.className,
+      sortKey,
+    };
+  }
+
+  // Waiting on applicant → On Hold
+  if (WAITING_APPLICANT_STATUSES.has(row.status)) {
+    return {
+      effective: 3,
+      label: 'On Hold',
+      reason: 'Waiting for applicant response',
+      isManualOverride: false,
+      isOnHold: true,
+      badgeClass: ON_HOLD_CLASS,
+      sortKey: 2.5,
+    };
+  }
+
+  // SLA-driven suggestion
+  if (age == null) {
+    return {
+      effective: 3,
+      label: 'Normal',
+      reason: 'No submission date',
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[3].className,
+      sortKey: 2,
+    };
+  }
+  const remaining = SLA_TARGET_DAYS - age;
+  if (remaining < 0) {
+    return {
+      effective: 1,
+      label: 'Critical',
+      reason: `SLA breached by ${pluralDays(-remaining)}`,
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[1].className,
+      sortKey: 0,
+    };
+  }
+  if (remaining <= 3) {
+    return {
+      effective: 2,
+      label: 'High',
+      reason: remaining === 0 ? 'Due today' : `Due in ${pluralDays(remaining)}`,
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[2].className,
+      sortKey: 1,
+    };
+  }
+  return {
+    effective: 3,
+    label: 'Normal',
+    reason: `${pluralDays(remaining)} remaining`,
+    isManualOverride: false,
+    isOnHold: false,
+    badgeClass: PRIORITY_META[3].className,
+    sortKey: 2,
+  };
 }
 
 
