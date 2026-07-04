@@ -656,7 +656,10 @@ export default function ApplicationDetail() {
       // `application.resubmitted` is written canonically by the status-change
       // trigger on public.applications and the approval_actions trigger.
 
-      toast.success(data?.message || 'Application resubmitted successfully');
+      {
+        const referenceNumber = (data as any)?.application_number || (data as any)?.reference || app.application_number;
+        toast.success(data?.message || 'Application resubmitted successfully', referenceNumber ? { description: `Reference: ${referenceNumber}` } : undefined);
+      }
       setActionComment('');
       loadData();
     } catch (err: any) {
