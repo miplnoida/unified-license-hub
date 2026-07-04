@@ -323,17 +323,30 @@ export default function ApplicationQueue() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
-      return (
-        r.application_number?.toLowerCase().includes(q) ||
-        (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
-        r.license_type?.toLowerCase().includes(q) ||
-        formatLicenseType(r.license_type).toLowerCase().includes(q) ||
-        cat.includes(q)
-      );
+    const base = !q
+      ? rows
+      : rows.filter((r) => {
+          const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
+          return (
+            r.application_number?.toLowerCase().includes(q) ||
+            (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
+            r.license_type?.toLowerCase().includes(q) ||
+            formatLicenseType(r.license_type).toLowerCase().includes(q) ||
+            cat.includes(q)
+          );
+        });
+    // Sort by effective action-priority urgency; breached/oldest first inside a bucket.
+    return [...base].sort((a, b) => {
+      const pa = getEffectiveActionPriority(a);
+      const pb = getEffectiveActionPriority(b);
+      if (pa.sortKey !== pb.sortKey) return pa.sortKey - pb.sortKey;
+      const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
+      const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
+      if (ageA !== ageB) return ageB - ageA;
+      const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+      const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+      return tb - ta;
     });
   }, [rows, search, applicants]);
 
