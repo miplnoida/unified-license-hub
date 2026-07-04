@@ -421,7 +421,7 @@ export default function ApplicationQueue() {
                           </Link>
                         </TableCell>
                         <TableCell>{applicants[r.applicant_id] || '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{r.license_type}</Badge></TableCell>
+                        <TableCell><Badge variant="outline">{formatLicenseType(r.license_type)}</Badge></TableCell>
                         <TableCell>
                           {getApplicationCategory(r.data) === 'post_license' ? (
                             <Badge variant="secondary">Post</Badge>
