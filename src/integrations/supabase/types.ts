@@ -6655,6 +6655,7 @@ export type Database = {
       }
       licensees: {
         Row: {
+          applicant_id: string | null
           category_id: string | null
           created_at: string
           id: string
@@ -6666,6 +6667,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          applicant_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
@@ -6677,6 +6679,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          applicant_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
