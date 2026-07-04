@@ -133,22 +133,30 @@ export default function ApplicationQueue() {
         .select(
           'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, data',
         )
-        .in('status', PENDING_STATUSES)
         .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500);
 
-      if (activeSectorId) {
-        // applications don't carry a sector column directly — filter via the
-        // JSONB `data.sector_id` / `data.resolved_sector_id` fields written
-        // by the form engine.
+      // Status filter
+      if (statusFilter === 'pending') {
+        q = q.in('status', PENDING_STATUSES);
+      } else if (statusFilter !== 'all') {
+        q = q.eq('status', statusFilter);
+      }
+
+      // Sector filter — applications don't carry a sector column directly,
+      // filter via the JSONB `data.sector_id` / `data.resolved_sector_id` fields.
+      const sectorIdToFilter =
+        sectorFilter === 'active' ? activeSectorId : sectorFilter === 'all' ? null : sectorFilter;
+      if (sectorIdToFilter) {
         q = q.or(
-          `data->>sector_id.eq.${activeSectorId},data->>resolved_sector_id.eq.${activeSectorId}`,
+          `data->>sector_id.eq.${sectorIdToFilter},data->>resolved_sector_id.eq.${sectorIdToFilter}`,
         );
       }
 
       const { data, error } = await q;
+
       if (cancelled) return;
       if (error) {
         toast.error(error.message || 'Failed to load queue');
