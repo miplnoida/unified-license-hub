@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,13 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Loader2, MessageSquare, Paperclip, Lock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageSquare, Paperclip, Lock, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useApplicationRfis, type Rfi, type RfiItem } from '@/hooks/useApplicationRfis';
 import { RaiseRfiDialog } from './RaiseRfiDialog';
-import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
+import { validateFile, ACCEPT_STRING, getSignedUrl } from '@/lib/secureFileUpload';
 
 interface ApplicationRfiTabProps {
   applicationId: string;
