@@ -859,7 +859,14 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="rfi">RFI</TabsTrigger>
+                <TabsTrigger value="rfi" className="gap-1.5">
+                  RFI
+                  {openRfiCount > 0 && (
+                    <Badge variant="destructive" className="h-4 min-w-[1rem] px-1 text-[10px] leading-none">
+                      {openRfiCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
               </TabsList>
