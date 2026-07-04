@@ -51,7 +51,7 @@ interface Options {
   enabled?: boolean;
 }
 
-const SELECT = 'id,workflow_id,entity_type,entity_id,status,current_step_id,current_step_key,started_at,created_at,updated_at,version_snapshot';
+const SELECT = 'id,workflow_id,entity_type,entity_id,status,current_step_id,current_step_key,started_at,created_at,updated_at,version_snapshot,paused_at,resumed_at,paused_reason,total_pause_seconds';
 
 interface ApplicationClockRow {
   id: string;
