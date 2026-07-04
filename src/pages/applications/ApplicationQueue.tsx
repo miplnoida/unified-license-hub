@@ -229,6 +229,7 @@ export default function ApplicationQueue() {
   const { activeSectorId, availableSectors } = useActiveSector();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('submitted_desc');
 
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
