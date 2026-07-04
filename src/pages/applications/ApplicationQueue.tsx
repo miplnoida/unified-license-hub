@@ -182,7 +182,7 @@ export default function ApplicationQueue() {
     }
     load();
     return () => { cancelled = true; };
-  }, [activeSectorId, refreshTick]);
+  }, [activeSectorId, refreshTick, statusFilter, sectorFilter]);
 
   // Load internal users once for assignee dropdown
   useEffect(() => {
