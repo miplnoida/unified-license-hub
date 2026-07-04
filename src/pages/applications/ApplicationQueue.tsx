@@ -75,7 +75,9 @@ interface QueueRow {
   priority: number;
   priority_reason: string | null;
   assigned_to: string | null;
+  data?: any;
 }
+
 
 interface InternalUser {
   id: string;
