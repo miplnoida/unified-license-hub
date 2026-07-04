@@ -368,6 +368,14 @@ export default function ApplicationQueue() {
                         </TableCell>
                         <TableCell>{applicants[r.applicant_id] || '—'}</TableCell>
                         <TableCell><Badge variant="outline">{r.license_type}</Badge></TableCell>
+                        <TableCell>
+                          {getApplicationCategory(r.data) === 'post_license' ? (
+                            <Badge variant="secondary">Post</Badge>
+                          ) : (
+                            <Badge variant="outline">Pre</Badge>
+                          )}
+                        </TableCell>
+
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
