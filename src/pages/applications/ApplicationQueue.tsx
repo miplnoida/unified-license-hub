@@ -515,7 +515,23 @@ export default function ApplicationQueue() {
                   <TableHead className="w-24">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
-                  <TableHead className="w-40">Priority</TableHead>
+                  <TableHead className="w-56">
+                    <TooltipProvider delayDuration={200}>
+                      <span className="inline-flex items-center gap-1">
+                        Action Priority
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" aria-label="About Action Priority" className="text-muted-foreground hover:text-foreground">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs">
+                            Action Priority is suggested from SLA and case status. Officers may override it manually.
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </TooltipProvider>
+                  </TableHead>
                   <TableHead className="w-56">Assignee</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
@@ -529,7 +545,7 @@ export default function ApplicationQueue() {
                 ) : (
                   filtered.map((r) => {
                     const age = daysSince(r.submitted_at || r.created_at);
-                    const pm = PRIORITY_META[r.priority] || PRIORITY_META[3];
+                    const ap = getEffectiveActionPriority(r);
                     return (
                       <TableRow key={r.id} className={selected.has(r.id) ? 'bg-muted/40' : ''}>
                         {canManage && (
@@ -558,26 +574,34 @@ export default function ApplicationQueue() {
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
-                          {canManage ? (
-                            <Select
-                              value={String(r.priority)}
-                              onValueChange={(v) => updateRow(r.id, { priority: Number(v) })}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5].map((p) => (
-                                  <SelectItem key={p} value={String(p)}>
-                                    <Flag className="inline h-3 w-3 mr-2" />
-                                    {p} — {PRIORITY_META[p].label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Badge className={pm.className}>{pm.label}</Badge>
-                          )}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge className={ap.badgeClass}>{ap.label}</Badge>
+                              {ap.isManualOverride && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-tight">
+                              {ap.reason}
+                            </div>
+                            {canManage && (
+                              <Select
+                                value={String(r.priority)}
+                                onValueChange={(v) => updateRow(r.id, { priority: Number(v) })}
+                              >
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue placeholder="Change" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[1, 2, 3, 4, 5].map((p) => (
+                                    <SelectItem key={p} value={String(p)}>
+                                      {PRIORITY_META[p].label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {canManage ? (
