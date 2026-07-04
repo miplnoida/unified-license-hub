@@ -37,6 +37,8 @@ import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { toast } from 'sonner';
 import { Eye, Loader2, Users, Flag } from 'lucide-react';
+import { getApplicationCategory } from '@/lib/applicationCategory';
+
 
 /**
  * Phase 2.3 — Application Triage Queue (ULRA-004)
