@@ -617,7 +617,13 @@ export default function ApplicationQueue() {
                             <Badge variant="outline">Pre</Badge>
                           )}
                         </TableCell>
-
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {r.submitted_at ? (
+                            <span>{formatDateTime(r.submitted_at)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">{formatDateTime(r.created_at)} <span className="italic">(created)</span></span>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
