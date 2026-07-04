@@ -336,19 +336,46 @@ export default function ApplicationQueue() {
             cat.includes(q)
           );
         });
-    // Sort by effective action-priority urgency; breached/oldest first inside a bucket.
-    return [...base].sort((a, b) => {
-      const pa = getEffectiveActionPriority(a);
-      const pb = getEffectiveActionPriority(b);
-      if (pa.sortKey !== pb.sortKey) return pa.sortKey - pb.sortKey;
-      const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
-      const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
-      if (ageA !== ageB) return ageB - ageA;
-      const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
-      const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
-      return tb - ta;
-    });
-  }, [rows, search, applicants]);
+    // Default: preserve DB order (newest submitted first). User may pick a sort.
+    const sorted = [...base];
+    switch (sortBy) {
+      case 'submitted_asc':
+        sorted.sort((a, b) => {
+          const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          return ta - tb;
+        });
+        break;
+      case 'submitted_desc':
+        sorted.sort((a, b) => {
+          const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          return tb - ta;
+        });
+        break;
+      case 'app_number':
+        sorted.sort((a, b) => (a.application_number || '').localeCompare(b.application_number || ''));
+        break;
+      case 'applicant':
+        sorted.sort((a, b) => (applicants[a.applicant_id] || '').localeCompare(applicants[b.applicant_id] || ''));
+        break;
+      case 'sla_age':
+        sorted.sort((a, b) => {
+          const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
+          const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
+          return ageB - ageA;
+        });
+        break;
+      case 'action_priority':
+        sorted.sort((a, b) => {
+          const pa = getEffectiveActionPriority(a);
+          const pb = getEffectiveActionPriority(b);
+          return pa.sortKey - pb.sortKey;
+        });
+        break;
+    }
+    return sorted;
+  }, [rows, search, applicants, sortBy]);
 
 
   const toggleRow = (id: string) => {
