@@ -13,6 +13,10 @@ export interface UseWorkflowSLAInput {
   escalationAfterHours?: number | null;
   /** Whether the SLA clock is paused (e.g. RFI sent). */
   paused?: boolean;
+  /** Accumulated pause seconds already persisted (workflow_instances.total_pause_seconds). */
+  pauseSeconds?: number | null;
+  /** ISO timestamp when the current live pause window began; adds (now − pausedSince) to the effective pause. */
+  pausedSince?: string | null;
   /**
    * Where escalation hours are measured from:
    *   - 'deadline' (default): escalation triggers `escalationAfterHours` after the SLA deadline.
@@ -59,7 +63,7 @@ export function computeWorkflowSLA(
   input: UseWorkflowSLAInput,
   now: Date = new Date(),
 ): WorkflowSLAResult {
-  const { startedAt, slaHours, warningThresholdPercent, escalationAfterHours, paused, escalationBasis = 'deadline' } = input;
+  const { startedAt, slaHours, warningThresholdPercent, escalationAfterHours, paused, pauseSeconds, pausedSince, escalationBasis = 'deadline' } = input;
 
   if (!startedAt || !slaHours || slaHours <= 0) {
     return {
@@ -75,9 +79,15 @@ export function computeWorkflowSLA(
 
   const startMs = new Date(startedAt).getTime();
   const nowMs = now.getTime();
-  const deadlineMs = startMs + slaHours * HOUR_MS;
+  const basePauseMs = Math.max(0, (pauseSeconds ?? 0) * 1000);
+  const liveExtraPauseMs = pausedSince
+    ? Math.max(0, nowMs - new Date(pausedSince).getTime())
+    : 0;
+  const effectivePauseMs = basePauseMs + liveExtraPauseMs;
+
+  const deadlineMs = startMs + slaHours * HOUR_MS + effectivePauseMs;
   const remainingHours = diffHours(deadlineMs, nowMs);
-  const elapsedHours = Math.max(0, diffHours(nowMs, startMs));
+  const elapsedHours = Math.max(0, diffHours(nowMs, startMs) - effectivePauseMs / HOUR_MS);
   const percentConsumed = Math.min(999, (elapsedHours / slaHours) * 100);
   const breachedByHours = remainingHours < 0 ? Math.abs(remainingHours) : 0;
 
@@ -130,6 +140,8 @@ export function useWorkflowSLA(input: UseWorkflowSLAInput, tickMs: number = 60_0
       input.warningThresholdPercent,
       input.escalationAfterHours,
       input.paused,
+      input.pauseSeconds,
+      input.pausedSince,
       input.escalationBasis,
       now,
     ],

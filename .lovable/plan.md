@@ -1,83 +1,59 @@
-## Gap
+## Root cause
 
-When a reviewer raises an RFI on an application:
-- **No notification** is sent to the applicant (`RaiseRfiDialog` only inserts rows + audit log; never calls `dispatchNotificationEvent`).
-- **Applicant dashboard "Action required"** only reads `applications.status` (`info_requested`, `resubmission_requested`, etc.) — raising an RFI does **not** change status, so the applicant sees nothing new.
-- **No count/badge on the RFI tab** in Application Detail — applicant has no visual cue that questions are waiting.
+The DB trigger `rfi_pause_sla` (migration `20260703140636…sql`) writes `paused_at` / `resumed_at` / `total_pause_seconds` on `workflow_instances` when an RFI is opened / responded / closed. It does **not** change `workflow_instances.status`.
 
-The RFI response UI itself (`ApplicationRfiTab`) already works for applicants; only the discovery + notify path is missing.
+But the SLA panel decides "paused" from `wi.status === 'paused'` and never subtracts pause time:
 
-## Changes
+- `src/lib/workflowSlaResolver.ts:142` — `const paused = wi.status === 'paused';`
+- `src/hooks/useWorkflowSlaInstances.ts:54` — `SELECT` list doesn't include `paused_at`, `resumed_at`, or `total_pause_seconds`.
+- `src/hooks/useWorkflowSLA.ts` — `elapsedHours = now − startedAt`; no `pauseSeconds` subtracted.
 
-### 1. Dispatch notification when RFI is raised — `src/components/applications/RaiseRfiDialog.tsx`
-After the RFI + items insert (right before `toast.success`), fire:
-```ts
-await dispatchNotificationEvent({
-  event_key: 'application.rfi_raised',
-  entity_type: 'application',
-  entity_id: applicationId,
-  payload: {
-    application_id: applicationId,
-    application_number: <fetched or passed in>,
-    rfi_id: rfiId,
-    item_count: items.length,
-    due_at: dueAtIso,
-    summary: summary.trim() || null,
-    applicant_id: <fetched from application>,
-  },
-});
-```
-Fire-and-forget — never block the reviewer flow.
+So the trigger fires correctly, but the UI never reads what it wrote → the timer keeps ticking through the RFI window and never adds the paused hours back on resume.
 
-### 2. Seed the notification event config — new migration
-Insert one row into `notification_event_configs` for `application.rfi_raised`:
-- `channels`: in-app + email
-- `recipient_rules`: `applicant` (resolves via `applications.applicant_id` from `entity_id`)
-- Title: `Information requested on {{application_number}}`
-- Body: `A reviewer has requested {{item_count}} clarification(s) on your application {{application_number}}. Please respond by {{due_at}}.`
-- Deep link: `/applications/{{application_id}}?tab=rfi`
+## Fixes (frontend only — DB trigger already writes the right data)
 
-Same GRANT/RLS pattern as existing event configs — no schema changes.
+### 1. Fetch pause columns — `src/hooks/useWorkflowSlaInstances.ts`
+Extend the `SELECT` constant to include `paused_at, resumed_at, total_pause_seconds, paused_reason`.
 
-### 3. Surface open RFIs in the applicant "Action required" list — `src/hooks/useApplicantMetrics.ts`
-Add a parallel query for open RFIs on this user's applications:
-```ts
-supabase
-  .from('application_rfis')
-  .select('id, application_id, raised_at, due_at, summary, applications!inner(id, application_number, applicant_id)')
-  .in('status', ['open','responded'])
-  .eq('applications.applicant_id', userId)
-  .order('raised_at', { ascending: false })
-  .limit(20)
-```
-Merge these into `priority_lists.action_required` as synthetic rows with a stable shape (`id` = rfi id, `application_number`, `status: 'rfi_open'`, `updated_at: raised_at`, plus `application_id`, `rfi_id`, `item_count`). Dedupe against status-derived rows by `application_id`.
+### 2. Extend row type — `src/lib/workflowSlaResolver.ts`
+Add `paused_at?: string | null`, `resumed_at?: string | null`, `total_pause_seconds?: number | null`, `paused_reason?: string | null` on `WorkflowInstanceRow`.
 
-Also bump `applications.clarification_requested` metric to include the open-RFI count so the "Action required" summary card is accurate.
+### 3. Compute paused + pauseSeconds from the row — `src/lib/workflowSlaResolver.ts` (`resolveSlaInputFromInstance`)
+- `paused = wi.status === 'paused' || (!!wi.paused_at && !wi.resumed_at)`.
+- Pass a new `pauseSeconds` value to the SLA input:
+  - `base = wi.total_pause_seconds ?? 0`
+  - if currently paused, add `(now − paused_at)` at render time (handled in `computeWorkflowSLA`, so the resolver only needs to pass the persisted base + `pausedSince`).
+- Pass `pausedSince: wi.paused_at ?? null` so the tick loop advances the live pause window.
 
-### 4. Render RFI rows in `ActionRequiredList` — `src/components/dashboard/applicant/ActionRequiredList.tsx`
-- Extend `REQUEST_TYPE_LABEL` with `rfi_open: 'Information Requested'`.
-- When a row's status is `rfi_open`, "Continue" button links to `/applications/{application_id}?tab=rfi`; otherwise keep current link.
-- Update the row's `ActionRequiredRow` type to allow the extra `application_id` field (optional).
+### 4. Subtract pause time from the clock — `src/hooks/useWorkflowSLA.ts`
+Extend `UseWorkflowSLAInput` with:
+- `pauseSeconds?: number` — accumulated paused seconds (`total_pause_seconds`).
+- `pausedSince?: string | null` — start of the current pause window; adds `(now − pausedSince)` to the effective pause when set.
 
-### 5. Add unread badge on the RFI tab — `src/pages/applications/ApplicationDetail.tsx`
-Fetch open RFI item count for this application (already available via `useApplicationRfis`, or a cheap count query) and render a small numeric badge next to the `RFI` `TabsTrigger` when > 0 and the viewer is the applicant. No layout change beyond the badge.
+Then in `computeWorkflowSLA`:
+- `effectivePauseMs = (pauseSeconds ?? 0) * 1000 + (pausedSince ? max(0, now − pausedSince) : 0)`.
+- Shift the deadline forward: `deadlineMs = startMs + slaHours*HOUR_MS + effectivePauseMs`.
+- Elapsed: `elapsedHours = max(0, (now − startMs − effectivePauseMs) / HOUR_MS)`.
+- `remainingHours` derived from the shifted deadline.
+- `label` still uses `'Paused'` when `paused`.
+- Re-include `pauseSeconds` and `pausedSince` in the memo/effect deps so the reactive hook recomputes.
 
-### 6. Deep-link the RFI tab — `src/pages/applications/ApplicationDetail.tsx`
-Honour `?tab=rfi` on mount so the notification/dashboard deep link opens the RFI tab directly. One-line effect using `useSearchParams`.
+### 5. Backfill existing rows — one-off DB update (via `supabase--insert`)
+The trigger only pauses when INSERT/UPDATE fires. For any application with an already-open RFI whose `workflow_instances.paused_at` is NULL, set `paused_at = the RFI's raised_at` so the panel reflects state immediately. Idempotent, service-role only.
 
-## Out of scope (unchanged)
+## Not changing
 
-- RFI response flow (already implemented for applicants).
-- SLA pause/resume behaviour on `approval_step_actions`.
-- Reviewer-side surfaces (queue, sufficiency panel).
-- No table/column additions.
+- DB trigger `rfi_pause_sla` — already correct.
+- `RaiseRfiDialog` / `ApplicationRfiTab` client-side updates to `approval_step_actions.paused_at` — kept as a secondary primitive.
+- `notification_event_configs` / notification wiring — unrelated.
+- SLA escalation sweeps — they'll naturally honour the shifted deadline once #4 is in.
 
 ## Verification
 
-1. On an admin/reviewer account, raise an RFI on an in-progress application.
-   - Applicant receives an in-app notification and email pointing to `/applications/:id?tab=rfi`.
-2. Log in as the applicant.
-   - Dashboard "Action required" card shows the application with label **Information Requested**.
-   - Application Detail shows a numeric badge on the **RFI** tab.
-   - Clicking Continue opens the RFI tab; applicant can respond as before.
-3. After the applicant responds to all items, the RFI status becomes `responded`; the dashboard row disappears; badge clears.
+1. Open an application under review with an active workflow. Note the SLA countdown.
+2. Raise an RFI. The `workflow_instances.paused_at` gets set (DB trigger).
+   - **Expected:** SLA badge changes to **Paused**, countdown freezes.
+3. Wait a few minutes, then respond to all RFI items (or close the RFI). The trigger writes `resumed_at`, increases `total_pause_seconds`, clears `paused_at`.
+   - **Expected:** SLA badge un-pauses; remaining hours are approximately the same as at step 2 (the pause window is added back).
+4. Repeat with a second RFI on the same application to confirm `total_pause_seconds` accumulates.
+5. Existing paused RFIs — after the backfill, their applications' SLA badges immediately show **Paused** without any user action.
