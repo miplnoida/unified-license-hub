@@ -11,6 +11,7 @@ const REQUEST_TYPE_LABEL: Record<string, string> = {
   resubmission_requested: 'Resubmission Requested',
   resubmission_required: 'Resubmission Required',
   returned_for_correction: 'Returned for Correction',
+  rfi_open: 'Information Requested',
 };
 
 export interface ActionRequiredRow {
@@ -18,6 +19,8 @@ export interface ActionRequiredRow {
   application_number: string | null;
   status: string;
   updated_at: string;
+  application_id?: string;
+  rfi_id?: string;
 }
 
 interface Props {
