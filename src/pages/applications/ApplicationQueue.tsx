@@ -192,12 +192,17 @@ export default function ApplicationQueue() {
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
-    return rows.filter((r) =>
-      r.application_number?.toLowerCase().includes(q) ||
-      (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
-      r.license_type?.toLowerCase().includes(q),
-    );
+    return rows.filter((r) => {
+      const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
+      return (
+        r.application_number?.toLowerCase().includes(q) ||
+        (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
+        r.license_type?.toLowerCase().includes(q) ||
+        cat.includes(q)
+      );
+    });
   }, [rows, search, applicants]);
+
 
   const toggleRow = (id: string) => {
     setSelected((prev) => {
