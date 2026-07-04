@@ -1298,26 +1298,45 @@ export default function ApplicationDetail() {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
+              const noTemplates = formTemplateIds.length === 0;
+              const needsForms = !noTemplates && !allFormsCompleted;
               const canSubmit = allFormsCompleted && paymentComplete && !licenseGate.isBlocked;
+              const filledCount = formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length;
               return (
                 <>
                   <div className="flex gap-2">
-                    <Button onClick={() => setShowReview(true)} disabled={processing || !canSubmit} className="flex-1">
+                    <Button
+                      onClick={() => {
+                        if (needsForms) {
+                          setActiveTab('form');
+                          setTimeout(() => {
+                            document.querySelector('[data-state="active"][role="tabpanel"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 50);
+                          return;
+                        }
+                        setShowReview(true);
+                      }}
+                      disabled={processing || noTemplates || licenseGate.isBlocked || (!needsForms && !canSubmit)}
+                      className="flex-1"
+                    >
                       <Send className="h-4 w-4 mr-2" />
                       {processing
                         ? 'Submitting...'
                         : licenseGate.isBlocked
                           ? 'License Not Active'
-                          : !allFormsCompleted
-                            ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
-                            : !paymentComplete
-                              ? 'Complete payment to submit'
-                              : 'Review & Submit'}
+                          : noTemplates
+                            ? 'No forms configured for this selection'
+                            : needsForms
+                              ? `Complete all forms (${filledCount}/${formTemplateIds.length})`
+                              : !paymentComplete
+                                ? 'Complete payment to submit'
+                                : 'Review & Submit'}
                     </Button>
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel
                     </Button>
                   </div>
+
                   <Dialog open={showReview} onOpenChange={setShowReview}>
                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
