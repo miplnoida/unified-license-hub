@@ -1,34 +1,43 @@
-# Fix: signature-upload modal auto-closes after picking a file
+# Fix: `licensees.applicant_id` column missing
 
 ## Root cause
 
-`ApplicationDetail.loadData()` unconditionally calls `setWorkflowChecked(false)` at line 295 before re-resolving the workflow. That value gates whether `<WorkflowPanel/>` is mounted:
+`public.provision_application_entity(_application_id uuid)` inserts into `public.licensees` with three columns:
 
-```ts
-const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
+```sql
+INSERT INTO public.licensees (license_id, name, applicant_id)
+VALUES (v_license.id, v_entity_name, v_app.applicant_id)
 ```
 
-`WorkflowActionPreviewDialog` (which owns the Upload-digital-signature UI) is rendered *inside* `WorkflowPanel` and its `previewState` open flag is local state on `WorkflowPanel`. So the moment `workflowChecked` flips to `false`, `WorkflowPanel` unmounts, `previewState` is destroyed, and the dialog disappears.
+but the current `licensees` schema only has: `id, name, sector_id, sub_sector_id, category_id, license_id, status, created_at, updated_at`. No `applicant_id`. That's why `perform_final_workflow_approval` (which calls `provision_application_entity`) returns `42703: column "applicant_id" of relation "licensees" does not exist` right after the earlier `context` fix unblocked the flow.
 
-`loadData()` is called from two places that fire around file-pick interaction:
-- `window` `focus` listener (line 381) — the OS file picker steals window focus; selecting a file restores focus → `loadData()` fires → dialog unmounts.
-- `approval_workflows` realtime subscription (line 388) — any update to the attached workflow row triggers a full refetch with the same reset.
+No other function/table reads `licensees.applicant_id` — the other matches for "applicant_id" refer to `applications.applicant_id` or `profiles.id` joins. Safe to add the column.
 
-Verified path: user clicks Approve → preview dialog opens → user clicks Upload → OS picker opens (blur) → picks a file (focus) → `onFocus`→`loadData()` → `setWorkflowChecked(false)` → WorkflowPanel unmounts → dialog closes before `handleSignatureUpload` can finish.
+## Fix (single migration)
 
-## Fix (single, minimal edit)
+Add the missing column and backfill:
 
-Edit `src/pages/applications/ApplicationDetail.tsx`:
+```sql
+ALTER TABLE public.licensees
+  ADD COLUMN IF NOT EXISTS applicant_id uuid
+    REFERENCES auth.users(id) ON DELETE SET NULL;
 
-1. Delete `setWorkflowChecked(false);` at the top of `loadData()`. The state is initialised to `false` at the `useState` site, so the very first `loadData()` still ends with `setWorkflowChecked(true)` and the initial gate behaves identically. Subsequent refetches simply update `workflowActive`/`workflowApprovalEnabled` in place — `WorkflowPanel` stays mounted, `previewState` survives, the signature dialog stays open through the upload.
+CREATE INDEX IF NOT EXISTS idx_licensees_applicant_id
+  ON public.licensees(applicant_id);
 
-That's the entire change. No behaviour change for the initial page load, no behaviour change for the "workflow just got disabled" case (we still re-resolve every refetch and unmount when appropriate — just without the transient false blip).
+-- Backfill from the license's holder (holder_id is set to applicant_id at issue time)
+UPDATE public.licensees l
+   SET applicant_id = lic.holder_id
+  FROM public.licenses lic
+ WHERE l.license_id = lic.id
+   AND l.applicant_id IS NULL
+   AND lic.holder_id IS NOT NULL;
+```
 
-No frontend refactor of the preview dialog or its file input needed. No RLS or backend change.
+No RLS/policy changes needed — `licensees` policies do not reference this column. No frontend or edge-function code changes needed.
 
 ## Verification
 
-1. As Analyst/Legal Compliance Reviewer, open a submitted application, click Approve on a step that requires digital signature → preview dialog opens.
-2. Click Upload → pick a valid PNG/JPG → dialog stays open, signature preview appears, Confirm & Send becomes enabled.
-3. Regression: reload the page — WorkflowPanel still hides correctly when the workflow is off / not configured.
-4. Regression: toggle the assigned workflow to inactive in another tab — realtime listener refreshes and the panel correctly disappears (still driven by `workflowActive`, which is authoritative).
+1. Re-run the failing action: as the reviewer, click Approve on the final step of application `APP-2026-000106` → `perform_final_workflow_approval` should now return `success:true` and provision the licensee row with `applicant_id` populated.
+2. `SELECT applicant_id FROM public.licensees WHERE license_id = ...` returns the applicant's user id.
+3. Existing rows are backfilled where the license has a holder; older rows without a holder simply keep `NULL` (nullable column, no constraint break).
