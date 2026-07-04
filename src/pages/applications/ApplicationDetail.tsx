@@ -119,6 +119,34 @@ export default function ApplicationDetail() {
   const { data: allCategoriesList = [] } = useCategories();
   const { data: allFormTemplates = [] } = useFormTemplates(undefined, (app as any)?.regulator_id ?? undefined);
 
+  // Count open RFI items on this application (drives the badge next to the RFI tab).
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const { data: rfis } = await supabase
+        .from('application_rfis' as any)
+        .select('id')
+        .eq('application_id', id)
+        .in('status', ['open', 'responded']);
+      const rfiIds = ((rfis as any[]) || []).map((r) => r.id);
+      if (!rfiIds.length) {
+        if (!cancelled) setOpenRfiCount(0);
+        return;
+      }
+      const { count } = await supabase
+        .from('application_rfi_items' as any)
+        .select('id', { count: 'exact', head: true })
+        .in('rfi_id', rfiIds)
+        .neq('response_status', 'responded');
+      if (!cancelled) setOpenRfiCount(count ?? 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, activeTab]);
+
+
 
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
   const isPreLicensee = useIsPreLicensee();
