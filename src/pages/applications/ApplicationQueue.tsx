@@ -333,6 +333,7 @@ export default function ApplicationQueue() {
                   <TableHead>App #</TableHead>
                   <TableHead>Applicant</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead className="w-24">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
                   <TableHead className="w-40">Priority</TableHead>
@@ -342,9 +343,10 @@ export default function ApplicationQueue() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+
                 ) : (
                   filtered.map((r) => {
                     const age = daysSince(r.submitted_at || r.created_at);
