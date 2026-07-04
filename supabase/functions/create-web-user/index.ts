@@ -136,6 +136,29 @@ Deno.serve(async (req) => {
         console.error("Failed to update profile:", updateError.message);
       }
 
+      // Belt-and-braces: for internal employees, strip any auto-seeded
+      // Applicant dynamic role that legacy triggers may have added, so the
+      // final dynamic-role set contains only the admin's selection.
+      if (user_type === 'employee') {
+        try {
+          const { data: applicantRoleRow } = await supabaseAdmin
+            .from('roles')
+            .select('id')
+            .eq('name', 'Applicant')
+            .maybeSingle();
+          const applicantRoleId = (applicantRoleRow as any)?.id;
+          if (applicantRoleId && !dynamicRoleIds.includes(applicantRoleId)) {
+            await supabaseAdmin
+              .from('user_dynamic_roles')
+              .delete()
+              .eq('user_id', userData.user.id)
+              .eq('role_id', applicantRoleId);
+          }
+        } catch (cleanupErr) {
+          console.error('Failed to strip auto-seeded Applicant dynamic role:', cleanupErr);
+        }
+      }
+
       // Persist all dynamic role assignments to user_dynamic_roles (source of truth for RBAC)
       if (dynamicRoleIds.length > 0) {
         const rows = dynamicRoleIds.map((rid) => ({ user_id: userData.user!.id, role_id: rid }));
@@ -146,6 +169,7 @@ Deno.serve(async (req) => {
           console.error("Failed to insert user_dynamic_roles:", udrError.message);
         }
       }
+
 
       // Reconcile user_roles to match the actual selection.
       // The on_auth_user_created trigger auto-inserts an 'applicant' row

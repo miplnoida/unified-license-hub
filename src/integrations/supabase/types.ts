@@ -13381,6 +13381,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_any_internal_role: { Args: { _user_id: string }; Returns: boolean }
       has_decision_gate_override: {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
