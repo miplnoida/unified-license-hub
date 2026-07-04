@@ -82,7 +82,15 @@ export function ActionRequiredList({ rows }: Props) {
                   </p>
                 </div>
                 <Button asChild size="sm">
-                  <Link to={`/applications/${a.id}`}>Continue</Link>
+                  <Link
+                    to={
+                      a.status === 'rfi_open'
+                        ? `/applications/${a.application_id ?? a.id}?tab=rfi`
+                        : `/applications/${a.id}`
+                    }
+                  >
+                    Continue
+                  </Link>
                 </Button>
               </div>
             );
