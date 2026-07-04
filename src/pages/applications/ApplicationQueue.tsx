@@ -132,7 +132,8 @@ export default function ApplicationQueue() {
         )
         .in('status', PENDING_STATUSES)
         .order('priority', { ascending: true })
-        .order('submitted_at', { ascending: true, nullsFirst: false })
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(500);
 
       if (activeSectorId) {
