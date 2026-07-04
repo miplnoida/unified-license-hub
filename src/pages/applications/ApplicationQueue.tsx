@@ -220,6 +220,7 @@ export default function ApplicationQueue() {
         r.application_number?.toLowerCase().includes(q) ||
         (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
         r.license_type?.toLowerCase().includes(q) ||
+        formatLicenseType(r.license_type).toLowerCase().includes(q) ||
         cat.includes(q)
       );
     });
