@@ -224,11 +224,20 @@ function slaChip(age: number | null) {
   return <Badge className="bg-green-100 text-green-800 border-green-200">{age}d / {SLA_TARGET_DAYS}d</Badge>;
 }
 
+const DATETIME_FMT = new Intl.DateTimeFormat(undefined, {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+});
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—';
+  try { return DATETIME_FMT.format(new Date(iso)); } catch { return '—'; }
+}
+
 export default function ApplicationQueue() {
   const { user } = useAuth();
   const { activeSectorId, availableSectors } = useActiveSector();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('submitted_desc');
 
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
@@ -254,7 +263,6 @@ export default function ApplicationQueue() {
         .select(
           'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, priority_set_by, priority_set_at, assigned_to, data',
         )
-        .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500);
@@ -336,19 +344,46 @@ export default function ApplicationQueue() {
             cat.includes(q)
           );
         });
-    // Sort by effective action-priority urgency; breached/oldest first inside a bucket.
-    return [...base].sort((a, b) => {
-      const pa = getEffectiveActionPriority(a);
-      const pb = getEffectiveActionPriority(b);
-      if (pa.sortKey !== pb.sortKey) return pa.sortKey - pb.sortKey;
-      const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
-      const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
-      if (ageA !== ageB) return ageB - ageA;
-      const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
-      const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
-      return tb - ta;
-    });
-  }, [rows, search, applicants]);
+    // Default: preserve DB order (newest submitted first). User may pick a sort.
+    const sorted = [...base];
+    switch (sortBy) {
+      case 'submitted_asc':
+        sorted.sort((a, b) => {
+          const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          return ta - tb;
+        });
+        break;
+      case 'submitted_desc':
+        sorted.sort((a, b) => {
+          const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          return tb - ta;
+        });
+        break;
+      case 'app_number':
+        sorted.sort((a, b) => (a.application_number || '').localeCompare(b.application_number || ''));
+        break;
+      case 'applicant':
+        sorted.sort((a, b) => (applicants[a.applicant_id] || '').localeCompare(applicants[b.applicant_id] || ''));
+        break;
+      case 'sla_age':
+        sorted.sort((a, b) => {
+          const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
+          const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
+          return ageB - ageA;
+        });
+        break;
+      case 'action_priority':
+        sorted.sort((a, b) => {
+          const pa = getEffectiveActionPriority(a);
+          const pb = getEffectiveActionPriority(b);
+          return pa.sortKey - pb.sortKey;
+        });
+        break;
+    }
+    return sorted;
+  }, [rows, search, applicants, sortBy]);
 
 
   const toggleRow = (id: string) => {
@@ -477,6 +512,17 @@ export default function ApplicationQueue() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-56"><SelectValue placeholder="Sort by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="submitted_desc">Sort: Newest submitted</SelectItem>
+                  <SelectItem value="submitted_asc">Sort: Oldest submitted</SelectItem>
+                  <SelectItem value="app_number">Sort: Application # (A→Z)</SelectItem>
+                  <SelectItem value="applicant">Sort: Applicant (A→Z)</SelectItem>
+                  <SelectItem value="sla_age">Sort: SLA age (oldest first)</SelectItem>
+                  <SelectItem value="action_priority">Sort: Action Priority</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2">
               {canManage && (
@@ -513,6 +559,7 @@ export default function ApplicationQueue() {
                   <TableHead>Applicant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="w-24">Category</TableHead>
+                  <TableHead className="w-40">Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
                   <TableHead className="w-56">
@@ -538,9 +585,9 @@ export default function ApplicationQueue() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
 
                 ) : (
                   filtered.map((r) => {
@@ -570,7 +617,13 @@ export default function ApplicationQueue() {
                             <Badge variant="outline">Pre</Badge>
                           )}
                         </TableCell>
-
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {r.submitted_at ? (
+                            <span>{formatDateTime(r.submitted_at)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">{formatDateTime(r.created_at)} <span className="italic">(created)</span></span>
+                          )}
+                        </TableCell>
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
