@@ -1,23 +1,58 @@
 ## Goal
 
-Ensure Applications Queue, Returns list, and Complaints list all show the most recently submitted rows at the top.
+Give staff on `/applications/queue` explicit control over which applications appear, so the count can match what they see elsewhere (e.g., the 43 in the admin panel) instead of being silently capped by the default pending-only + active-sector filter.
 
-## Findings
+## Changes — `src/pages/applications/ApplicationQueue.tsx`
 
-- **Complaints (`ComplaintsList.tsx`)** — already sorts by `created_at DESC`. No change needed.
-- **Returns (`returns-mgmt/ViewReturns.tsx`)** — already sorts by `submit_date DESC`, then `created_at DESC`. No change needed.
-- **Applications Queue (`ApplicationQueue.tsx`)** — currently sorts by `priority ASC`, then `submitted_at ASC` (oldest first). This is the only page that needs fixing.
+### 1. New filter controls in the toolbar
+Add two shadcn `Select` controls next to the existing search input:
 
-## Change
+- **Status** — options:
+  - `Pending (default)` → current behavior: `submitted, in_progress, resubmission_requested, query_raised`
+  - `Submitted`
+  - `In progress`
+  - `Resubmission requested`
+  - `Query raised`
+  - `Approved`
+  - `Rejected`
+  - `Withdrawn`
+  - `Draft`
+  - `All statuses`
+- **Sector** — options:
+  - `Active sector (default)` → uses `activeSectorId` (current behavior)
+  - One entry per sector from `useActiveSector().availableSectors`
+  - `All sectors`
 
-`src/pages/applications/ApplicationQueue.tsx` (query at lines ~134–135):
+Local state: `statusFilter` (default `'pending'`), `sectorFilter` (default `'active'`).
 
-- Keep `priority ASC` as the primary sort (business intent: critical items first).
-- Flip the secondary sort to `submitted_at DESC` (`ascending: false, nullsFirst: false`), and add a tertiary `created_at DESC` tiebreaker so drafts that were never submitted still bubble by recency.
+### 2. Query rebuilt from the filter values
+Replace the fixed `.in('status', PENDING_STATUSES)` and `activeSectorId` OR clause with:
 
-No changes to filters, columns, permissions, or the other two pages.
+- Status:
+  - `'pending'` → `.in('status', PENDING_STATUSES)`
+  - `'all'` → no status filter
+  - anything else → `.eq('status', value)`
+- Sector:
+  - `'active'` + `activeSectorId` present → keep existing OR filter on `data->>sector_id` / `data->>resolved_sector_id`
+  - `'all'` → no sector filter
+  - specific id → same OR filter using that id
+
+Re-run the fetch whenever either filter or `refreshTick` changes (extend the existing `useEffect` deps).
+
+### 3. Result count hint
+Under the toolbar, show a small muted line: `Showing N of up to 500 · Status: <label> · Sector: <label>`. Helps explain the number vs. the admin panel.
+
+### 4. KPIs
+Recompute the four KPI cards (Pending / Breached / Due Soon / Unassigned) from the currently loaded `rows`, as today — they naturally reflect the active filter, which is the desired behavior once the user widens the view.
+
+### 5. Everything else unchanged
+- Pre/Post column, priority, assignee, bulk update dialog, permissions, sorting (priority ASC → submitted_at DESC → created_at DESC) all untouched.
+- No backend, no route, no permission changes.
 
 ## Verification
 
-- Open `/applications/queue`: within each priority band, newest submissions appear on top.
-- `/complaints` and returns list continue to show newest first (unchanged).
+- Open `/applications/queue` — default view identical to today (Pending + active sector), same 25 rows.
+- Set Status = `All statuses`, Sector = `All sectors` → count grows to match the admin panel (~43).
+- Pick a single status (e.g., `Approved`) → only approved rows appear.
+- Pick a specific sector → only rows tagged to that sector appear; drafts/rows without a sector on `data` are excluded, matching existing sector-scoping semantics.
+- Bulk update, priority change, assignee change continue to work on whatever rows are visible.
