@@ -1,21 +1,31 @@
-## Problem
+## Goal
 
-On the Application Detail page (edit/resume flow), submitting an application shows a plain "Application submitted" toast without the reference number. The one-shot new-application flow shows the reference number because it renders the `SubmissionAcknowledgement` panel with `app.application_number`. Users editing a draft don't get that acknowledgement, so they never see the reference.
+Staff sidebar already has a single "All License Requests" link → `/applications/queue`. Make that queue explicitly show both pre- and post-licensing applications, differentiated by a new **Pre/Post** column. Leave licensee-facing menus and all other behavior untouched.
 
-## Fix (frontend only)
+## Changes
 
-In `src/pages/applications/ApplicationDetail.tsx`, inside `handleSubmit` (around line 452), enrich the success toast with the application reference number.
+### 1. `src/pages/applications/ApplicationQueue.tsx`
+- Include `data` in the row shape (already selected from the query; just extend `QueueRow` to keep it).
+- Derive category per row using existing helper:
+  ```ts
+  import { getApplicationCategoryLabel } from '@/lib/applicationCategory';
+  const category = getApplicationCategoryLabel(r.data); // "Pre-Licensee" | "Post-Licensee"
+  ```
+- Add a new **"Category"** column between **Type** and **Status**, rendering a small badge:
+  - Pre → outline/neutral badge "Pre"
+  - Post → secondary badge "Post"
+- Extend the search filter so typing "pre" / "post" also matches this new column.
+- No change to fetch query (already returns both categories — status-only filter).
 
-- Prefer the reference returned by the edge function if present (`data.application_number` / `data.reference`), otherwise fall back to `app.application_number` already loaded in state.
-- Use sonner's `toast.success(title, { description })` so the number is displayed prominently and stays copy-friendly:
-  - Title: `data?.message || 'Application submitted'`
-  - Description: `` `Reference: ${referenceNumber}` `` (only when a reference is available)
-- Same treatment for `handleResubmit`'s success toast (line ~656) so resubmitted applications also surface the reference — matches the user's expectation that reference should always appear post-submit.
+### 2. Navigation — no change
+`src/config/navigation.tsx` already exposes a single staff link ("All License Requests"). The two licensee-facing menu items ("Pre Licensing Applications", "Post Licensing Applications") stay as-is per the user's "don't change other working functionality" instruction.
 
-No other logic, no schema, no backend changes. The existing `loadData()` refresh after submit remains unchanged.
+### 3. No backend, no route, no permission changes.
 
 ## Verification
 
-1. Open `/applications/670791b1-...` (an in-progress draft), complete forms + payment, click Review & Submit → success toast shows `Reference: APP-…`.
-2. Trigger a resubmission from the applicant side → toast shows the reference.
-3. New one-shot submission flow (unchanged) still shows the acknowledgement panel with the reference.
+- Open `/applications/queue` as internal staff → table shows a new **Category** column with Pre / Post badges.
+- Rows include both pre-license applications and post-license applications (those with `data.type === 'post_license'` or `data.service_id`).
+- Searching "post" filters to post-licensing rows; "pre" to pre-licensing rows.
+- Existing bulk assign, priority, SLA chips, and links to `/applications/:id` remain unchanged.
+- Licensee sidebar (Pre / Post Licensing Applications) still navigates to `/applications?type=pre|post` with the same filtered list behavior.

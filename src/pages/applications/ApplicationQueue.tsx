@@ -37,6 +37,8 @@ import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { toast } from 'sonner';
 import { Eye, Loader2, Users, Flag } from 'lucide-react';
+import { getApplicationCategory } from '@/lib/applicationCategory';
+
 
 /**
  * Phase 2.3 — Application Triage Queue (ULRA-004)
@@ -75,7 +77,9 @@ interface QueueRow {
   priority: number;
   priority_reason: string | null;
   assigned_to: string | null;
+  data?: any;
 }
+
 
 interface InternalUser {
   id: string;
@@ -188,12 +192,17 @@ export default function ApplicationQueue() {
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
-    return rows.filter((r) =>
-      r.application_number?.toLowerCase().includes(q) ||
-      (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
-      r.license_type?.toLowerCase().includes(q),
-    );
+    return rows.filter((r) => {
+      const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
+      return (
+        r.application_number?.toLowerCase().includes(q) ||
+        (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
+        r.license_type?.toLowerCase().includes(q) ||
+        cat.includes(q)
+      );
+    });
   }, [rows, search, applicants]);
+
 
   const toggleRow = (id: string) => {
     setSelected((prev) => {
@@ -324,6 +333,7 @@ export default function ApplicationQueue() {
                   <TableHead>App #</TableHead>
                   <TableHead>Applicant</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead className="w-24">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
                   <TableHead className="w-40">Priority</TableHead>
@@ -333,9 +343,10 @@ export default function ApplicationQueue() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+
                 ) : (
                   filtered.map((r) => {
                     const age = daysSince(r.submitted_at || r.created_at);
@@ -357,6 +368,14 @@ export default function ApplicationQueue() {
                         </TableCell>
                         <TableCell>{applicants[r.applicant_id] || '—'}</TableCell>
                         <TableCell><Badge variant="outline">{r.license_type}</Badge></TableCell>
+                        <TableCell>
+                          {getApplicationCategory(r.data) === 'post_license' ? (
+                            <Badge variant="secondary">Post</Badge>
+                          ) : (
+                            <Badge variant="outline">Pre</Badge>
+                          )}
+                        </TableCell>
+
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
