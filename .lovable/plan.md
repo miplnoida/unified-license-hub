@@ -1,59 +1,33 @@
-## Root cause
+## Problem
 
-The DB trigger `rfi_pause_sla` (migration `20260703140636…sql`) writes `paused_at` / `resumed_at` / `total_pause_seconds` on `workflow_instances` when an RFI is opened / responded / closed. It does **not** change `workflow_instances.status`.
+DB trigger correctly writes `paused_at` / `total_pause_seconds` to `workflow_instances` when an RFI is raised, but the row's `status` stays `'active'`. `WorkflowPanel.tsx` (the SLA panel on the Application Detail page) derives its pause state solely from `status === 'paused'`, so it never sees the pause and the SLA badge keeps counting down.
 
-But the SLA panel decides "paused" from `wi.status === 'paused'` and never subtracts pause time:
+Verified in DB for the current app: `status = 'active'`, `paused_at = 2026-07-04 11:23:09Z`, `resumed_at = null`, `total_pause_seconds = 1182`, `paused_reason = 'RFI …'` — the trigger works; the UI ignores it.
 
-- `src/lib/workflowSlaResolver.ts:142` — `const paused = wi.status === 'paused';`
-- `src/hooks/useWorkflowSlaInstances.ts:54` — `SELECT` list doesn't include `paused_at`, `resumed_at`, or `total_pause_seconds`.
-- `src/hooks/useWorkflowSLA.ts` — `elapsedHours = now − startedAt`; no `pauseSeconds` subtracted.
+The generic resolver (`workflowSlaResolver.ts`) already handles this correctly. Only `WorkflowPanel.tsx` needs to be aligned.
 
-So the trigger fires correctly, but the UI never reads what it wrote → the timer keeps ticking through the RFI window and never adds the paused hours back on resume.
+## Fix (frontend only)
 
-## Fixes (frontend only — DB trigger already writes the right data)
+### `src/components/applications/WorkflowPanel.tsx`
 
-### 1. Fetch pause columns — `src/hooks/useWorkflowSlaInstances.ts`
-Extend the `SELECT` constant to include `paused_at, resumed_at, total_pause_seconds, paused_reason`.
+1. Treat an instance as paused when either `status === 'paused'` OR (`paused_at` set AND `resumed_at` null).
+   - Replace the `pausedInstance = instances.find(i => i.status === 'paused')` lookup with a helper `isInstancePaused(i) = i.status === 'paused' || (!!i.paused_at && !i.resumed_at)`.
+   - Because such a row is currently also counted as `activeInstance` (status='active'), also exclude paused rows from `activeInstance`, so `isPaused` resolves true and existing gating logic (disabled action buttons, "Workflow paused — awaiting applicant" banner, paused step badge) fires as designed.
 
-### 2. Extend row type — `src/lib/workflowSlaResolver.ts`
-Add `paused_at?: string | null`, `resumed_at?: string | null`, `total_pause_seconds?: number | null`, `paused_reason?: string | null` on `WorkflowInstanceRow`.
+2. Feed the paused duration into the SLA calculations at all three call sites (top-summary `StepSlaCell`, per-step `StepSlaCell` in the timeline, and the inline `useWorkflowSLA` call around line 1143):
+   - Pass `pauseSeconds: liveInstance?.total_pause_seconds ?? 0`.
+   - Pass `pausedSince: isPaused ? (liveInstance?.paused_at ?? null) : null`.
+   - Extend `StepSlaCell`'s props to accept `pauseSeconds` and `pausedSince` and forward them to `useWorkflowSLA`.
 
-### 3. Compute paused + pauseSeconds from the row — `src/lib/workflowSlaResolver.ts` (`resolveSlaInputFromInstance`)
-- `paused = wi.status === 'paused' || (!!wi.paused_at && !wi.resumed_at)`.
-- Pass a new `pauseSeconds` value to the SLA input:
-  - `base = wi.total_pause_seconds ?? 0`
-  - if currently paused, add `(now − paused_at)` at render time (handled in `computeWorkflowSLA`, so the resolver only needs to pass the persisted base + `pausedSince`).
-- Pass `pausedSince: wi.paused_at ?? null` so the tick loop advances the live pause window.
-
-### 4. Subtract pause time from the clock — `src/hooks/useWorkflowSLA.ts`
-Extend `UseWorkflowSLAInput` with:
-- `pauseSeconds?: number` — accumulated paused seconds (`total_pause_seconds`).
-- `pausedSince?: string | null` — start of the current pause window; adds `(now − pausedSince)` to the effective pause when set.
-
-Then in `computeWorkflowSLA`:
-- `effectivePauseMs = (pauseSeconds ?? 0) * 1000 + (pausedSince ? max(0, now − pausedSince) : 0)`.
-- Shift the deadline forward: `deadlineMs = startMs + slaHours*HOUR_MS + effectivePauseMs`.
-- Elapsed: `elapsedHours = max(0, (now − startMs − effectivePauseMs) / HOUR_MS)`.
-- `remainingHours` derived from the shifted deadline.
-- `label` still uses `'Paused'` when `paused`.
-- Re-include `pauseSeconds` and `pausedSince` in the memo/effect deps so the reactive hook recomputes.
-
-### 5. Backfill existing rows — one-off DB update (via `supabase--insert`)
-The trigger only pauses when INSERT/UPDATE fires. For any application with an already-open RFI whose `workflow_instances.paused_at` is NULL, set `paused_at = the RFI's raised_at` so the panel reflects state immediately. Idempotent, service-role only.
+3. No changes to `useWorkflowInstances` — it already does `select('*')`, so `paused_at`, `resumed_at`, `total_pause_seconds`, `paused_reason` are already returned.
 
 ## Not changing
 
-- DB trigger `rfi_pause_sla` — already correct.
-- `RaiseRfiDialog` / `ApplicationRfiTab` client-side updates to `approval_step_actions.paused_at` — kept as a secondary primitive.
-- `notification_event_configs` / notification wiring — unrelated.
-- SLA escalation sweeps — they'll naturally honour the shifted deadline once #4 is in.
+- DB trigger — it already writes the right data.
+- `useWorkflowSLA`, `workflowSlaResolver`, `useWorkflowSlaInstances` — already correct from the previous fix; the queue/list SLA badges are unaffected.
 
 ## Verification
 
-1. Open an application under review with an active workflow. Note the SLA countdown.
-2. Raise an RFI. The `workflow_instances.paused_at` gets set (DB trigger).
-   - **Expected:** SLA badge changes to **Paused**, countdown freezes.
-3. Wait a few minutes, then respond to all RFI items (or close the RFI). The trigger writes `resumed_at`, increases `total_pause_seconds`, clears `paused_at`.
-   - **Expected:** SLA badge un-pauses; remaining hours are approximately the same as at step 2 (the pause window is added back).
-4. Repeat with a second RFI on the same application to confirm `total_pause_seconds` accumulates.
-5. Existing paused RFIs — after the backfill, their applications' SLA badges immediately show **Paused** without any user action.
+1. Reload the application detail page for `DEMO-ULRA-005`. The current-step SLA badge should now render as **Paused** with the amber "Workflow paused — awaiting applicant" banner.
+2. Respond to / close the RFI → trigger sets `resumed_at` and increments `total_pause_seconds` → badge resumes counting from `(original deadline + paused duration)`.
+3. Raise a fresh RFI on another application → badge flips to **Paused** within the next 60s tick without a page reload (thanks to the resolver's tick).
