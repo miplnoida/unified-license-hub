@@ -1133,6 +1133,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           warningPct={s.sla_warning_threshold_percent}
                           escalationAfterHours={s.escalation_after_hours}
                           paused={status === 'paused'}
+                          pauseSeconds={livePauseSeconds}
+                          pausedSince={status === 'paused' ? livePausedSince : null}
                         />
                       ) : null}
                       {renderStatusBadge(status)}
@@ -1156,10 +1158,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                             warningThresholdPercent: s.sla_warning_threshold_percent,
                             escalationAfterHours: s.escalation_after_hours,
                             paused: false,
+                            pauseSeconds: livePauseSeconds,
                           }}
                           title={`SLA · ${s.name}`}
                         />
                       )}
+
 
 
                       {(actionsByStep.get(s.id)?.length ?? 0) > 0 && (
