@@ -1299,13 +1299,14 @@ export default function ApplicationDetail() {
 
             {/* Applicant submit action */}
             {isOwner && (app.status === 'draft' || app.status === 'in_progress') && (() => {
+              const taxonomyComplete = !!(appData?.sector_id && appData?.sub_sector_id && appData?.category_id);
               const allFormsCompleted = formTemplateIds.length > 0 && formTemplateIds.every(tid => {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
-              const noTemplates = formTemplateIds.length === 0;
-              const needsForms = !noTemplates && !allFormsCompleted;
-              const canSubmit = allFormsCompleted && paymentComplete && !licenseGate.isBlocked;
+              const noTemplates = taxonomyComplete && formTemplateIds.length === 0;
+              const needsForms = taxonomyComplete && formTemplateIds.length > 0 && !allFormsCompleted;
+              const canSubmit = taxonomyComplete && allFormsCompleted && paymentComplete && !licenseGate.isBlocked;
               const filledCount = formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length;
               return (
                 <>
@@ -1321,22 +1322,25 @@ export default function ApplicationDetail() {
                         }
                         setShowReview(true);
                       }}
-                      disabled={processing || noTemplates || licenseGate.isBlocked || (!needsForms && !canSubmit)}
+                      disabled={processing || !taxonomyComplete || noTemplates || licenseGate.isBlocked || (!needsForms && !canSubmit)}
                       className="flex-1"
                     >
                       <Send className="h-4 w-4 mr-2" />
                       {processing
                         ? 'Submitting...'
-                        : licenseGate.isBlocked
-                          ? 'License Not Active'
-                          : noTemplates
-                            ? 'No forms configured for this selection'
-                            : needsForms
-                              ? `Complete all forms (${filledCount}/${formTemplateIds.length})`
-                              : !paymentComplete
-                                ? 'Complete payment to submit'
-                                : 'Review & Submit'}
+                        : !taxonomyComplete
+                          ? 'Select sector, sub-sector and category'
+                          : licenseGate.isBlocked
+                            ? 'License Not Active'
+                            : noTemplates
+                              ? 'No forms configured for this selection'
+                              : needsForms
+                                ? `Complete all forms (${filledCount}/${formTemplateIds.length})`
+                                : !paymentComplete
+                                  ? 'Complete payment to submit'
+                                  : 'Review & Submit'}
                     </Button>
+
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel
                     </Button>
