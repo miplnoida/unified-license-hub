@@ -54,6 +54,9 @@ import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
 import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
+import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
