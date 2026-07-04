@@ -310,12 +310,39 @@ export default function ApplicationQueue() {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Input
-              placeholder="Search app #, applicant, license type"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-sm"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                placeholder="Search app #, applicant, license type"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-64"
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending (default)</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="in_progress">In progress</SelectItem>
+                  <SelectItem value="resubmission_requested">Resubmission requested</SelectItem>
+                  <SelectItem value="query_raised">Query raised</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sectorFilter} onValueChange={setSectorFilter}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active sector (default)</SelectItem>
+                  <SelectItem value="all">All sectors</SelectItem>
+                  {availableSectors.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2">
               {canManage && (
                 <Button
@@ -329,6 +356,11 @@ export default function ApplicationQueue() {
               )}
             </div>
           </div>
+
+          <div className="text-xs text-muted-foreground">
+            Showing {filtered.length} of up to 500 · Status: {statusFilter === 'pending' ? 'Pending' : statusFilter === 'all' ? 'All' : statusFilter.replace(/_/g, ' ')} · Sector: {sectorFilter === 'active' ? (activeSectorId ? (availableSectors.find((s) => s.id === activeSectorId)?.name || 'Active') : 'None') : sectorFilter === 'all' ? 'All' : (availableSectors.find((s) => s.id === sectorFilter)?.name || sectorFilter)}
+          </div>
+
 
           <div className="overflow-x-auto">
             <Table>
