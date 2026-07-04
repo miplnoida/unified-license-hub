@@ -107,6 +107,7 @@ export default function ApplicationDetail() {
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>(initialTabParam || 'details');
+  const [openRfiCount, setOpenRfiCount] = useState<number>(0);
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
   const [taxSector, setTaxSector] = useState<string>('');
