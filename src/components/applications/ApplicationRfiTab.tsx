@@ -467,3 +467,97 @@ function RfiItemRow({
     </div>
   );
 }
+
+interface AttachmentRow {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+}
+
+function formatBytes(bytes: number | null): string {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function RfiAttachmentList({ ids }: { ids: string[] }) {
+  const [rows, setRows] = useState<Record<string, AttachmentRow>>({});
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size, mime_type')
+        .in('id', ids);
+      if (cancelled) return;
+      const map: Record<string, AttachmentRow> = {};
+      ((data as any[]) || []).forEach((r) => { map[r.id] = r; });
+      setRows(map);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [ids.join(',')]);
+
+  const download = async (row: AttachmentRow) => {
+    setBusyId(row.id);
+    try {
+      const { url, error } = await getSignedUrl(row.file_path, 300);
+      if (!url) throw new Error(error || 'Could not generate download link');
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e: any) {
+      toast.error(e.message || 'Download failed');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+        <Loader2 className="h-3 w-3 animate-spin" /> Loading attachments…
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-1">
+      {ids.map((id) => {
+        const row = rows[id];
+        if (!row) {
+          return (
+            <div key={id} className="text-xs text-muted-foreground flex items-center gap-1">
+              <Paperclip className="h-3 w-3" /> Attachment no longer available
+            </div>
+          );
+        }
+        return (
+          <div key={id} className="flex items-center justify-between gap-2 rounded border bg-background px-2 py-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <Paperclip className="h-3 w-3 shrink-0" />
+              <span className="truncate text-xs">{row.file_name}</span>
+              {row.file_size != null && (
+                <span className="text-[10px] text-muted-foreground shrink-0">{formatBytes(row.file_size)}</span>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2"
+              onClick={() => download(row)}
+              disabled={busyId === row.id}
+            >
+              {busyId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
