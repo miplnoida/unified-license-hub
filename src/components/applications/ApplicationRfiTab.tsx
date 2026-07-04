@@ -424,10 +424,7 @@ function RfiItemRow({
               </div>
               {r.response_text && <div className="whitespace-pre-wrap">{r.response_text}</div>}
               {r.file_upload_ids.length > 0 && (
-                <div className="mt-2 text-xs flex items-center gap-1 text-muted-foreground">
-                  <Paperclip className="h-3 w-3" />
-                  {r.file_upload_ids.length} attachment{r.file_upload_ids.length === 1 ? '' : 's'}
-                </div>
+                <RfiAttachmentList ids={r.file_upload_ids} />
               )}
             </div>
           ))}
