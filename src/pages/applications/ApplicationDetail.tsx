@@ -449,7 +449,10 @@ export default function ApplicationDetail() {
         setProcessing(false);
         return;
       }
-      toast.success(data?.message || 'Application submitted');
+      {
+        const referenceNumber = (data as any)?.application_number || (data as any)?.reference || app.application_number;
+        toast.success(data?.message || 'Application submitted', referenceNumber ? { description: `Reference: ${referenceNumber}` } : undefined);
+      }
       loadData();
     } catch (e: any) {
       toast.error(e?.message || 'Failed to submit application');
