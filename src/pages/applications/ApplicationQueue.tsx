@@ -116,8 +116,8 @@ function slaChip(age: number | null) {
 export default function ApplicationQueue() {
   const { user } = useAuth();
   const { activeSectorId, availableSectors } = useActiveSector();
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
-  const [sectorFilter, setSectorFilter] = useState<string>('active');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sectorFilter, setSectorFilter] = useState<string>('all');
 
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
@@ -331,7 +331,7 @@ export default function ApplicationQueue() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending (default)</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="submitted">Submitted</SelectItem>
                   <SelectItem value="in_progress">In progress</SelectItem>
                   <SelectItem value="resubmission_requested">Resubmission requested</SelectItem>
@@ -346,7 +346,7 @@ export default function ApplicationQueue() {
               <Select value={sectorFilter} onValueChange={setSectorFilter}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active sector (default)</SelectItem>
+                  <SelectItem value="active">Active sector</SelectItem>
                   <SelectItem value="all">All sectors</SelectItem>
                   {availableSectors.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
