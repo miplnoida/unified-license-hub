@@ -143,7 +143,7 @@ export function resolveSlaInputFromInstance(
     wi.started_at ||
     wi.created_at ||
     null;
-  const paused = wi.status === 'paused';
+  const paused = wi.status === 'paused' || (!!wi.paused_at && !wi.resumed_at);
 
   return {
     startedAt,
@@ -151,5 +151,7 @@ export function resolveSlaInputFromInstance(
     warningThresholdPercent: step?.sla_warning_threshold_percent ?? 80,
     escalationAfterHours: step?.escalation_after_hours ?? null,
     paused,
+    pauseSeconds: wi.total_pause_seconds ?? 0,
+    pausedSince: paused ? (wi.paused_at ?? null) : null,
   };
 }
