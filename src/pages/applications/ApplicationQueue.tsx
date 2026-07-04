@@ -65,6 +65,16 @@ const PRIORITY_META: Record<number, { label: string; className: string }> = {
 
 const SLA_TARGET_DAYS = 15; // fallback target; workflow-specific SLA still shown elsewhere
 
+function formatLicenseType(raw?: string | null): string {
+  if (!raw) return '—';
+  const parts = raw.split(/\s*-\s*/).map((p) => p.trim()).filter(Boolean);
+  const dedup: string[] = [];
+  for (const p of parts) {
+    if (dedup[dedup.length - 1]?.toLowerCase() !== p.toLowerCase()) dedup.push(p);
+  }
+  return dedup.join(' - ') || raw;
+}
+
 interface QueueRow {
   id: string;
   application_number: string;
