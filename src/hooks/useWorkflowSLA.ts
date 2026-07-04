@@ -13,6 +13,10 @@ export interface UseWorkflowSLAInput {
   escalationAfterHours?: number | null;
   /** Whether the SLA clock is paused (e.g. RFI sent). */
   paused?: boolean;
+  /** Accumulated pause seconds already persisted (workflow_instances.total_pause_seconds). */
+  pauseSeconds?: number | null;
+  /** ISO timestamp when the current live pause window began; adds (now − pausedSince) to the effective pause. */
+  pausedSince?: string | null;
   /**
    * Where escalation hours are measured from:
    *   - 'deadline' (default): escalation triggers `escalationAfterHours` after the SLA deadline.
