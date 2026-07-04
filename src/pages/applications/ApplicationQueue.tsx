@@ -36,7 +36,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { toast } from 'sonner';
-import { Eye, Loader2, Users, Flag } from 'lucide-react';
+import { Eye, Loader2, Users, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApplicationCategory } from '@/lib/applicationCategory';
 
 
@@ -86,8 +87,118 @@ interface QueueRow {
   created_at: string;
   priority: number;
   priority_reason: string | null;
+  priority_set_by: string | null;
+  priority_set_at: string | null;
   assigned_to: string | null;
   data?: any;
+}
+
+const WAITING_APPLICANT_STATUSES = new Set([
+  'query_raised',
+  'resubmission_requested',
+  'info_requested',
+  'returned_for_correction',
+  'awaiting_applicant',
+]);
+
+const ON_HOLD_CLASS = 'bg-amber-100 text-amber-800 border-amber-200';
+
+interface ActionPriority {
+  effective: 1 | 2 | 3 | 4 | 5;
+  label: 'Critical' | 'High' | 'Normal' | 'Low' | 'Deferred' | 'On Hold';
+  reason: string;
+  isManualOverride: boolean;
+  isOnHold: boolean;
+  badgeClass: string;
+  sortKey: number; // Critical=0, High=1, Normal=2, On Hold=2.5, Low=3, Deferred=4
+}
+
+function pluralDays(n: number) {
+  return `${n} day${n === 1 ? '' : 's'}`;
+}
+
+function getEffectiveActionPriority(row: QueueRow): ActionPriority {
+  const iso = row.submitted_at || row.created_at;
+  const age = iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null;
+
+  // Manual override: explicit signals only. DB default is 3 with no set_by/at,
+  // so we require priority_set_at OR an explicit reason to treat as manual.
+  const hasManualSignal =
+    !!row.priority_set_at ||
+    (row.priority_reason?.trim().length ?? 0) > 0 ||
+    (!!row.priority_set_by && row.priority !== 3);
+
+  if (hasManualSignal) {
+    const meta = PRIORITY_META[row.priority] || PRIORITY_META[3];
+    const sortKey = row.priority === 5 ? 4 : row.priority === 4 ? 3 : row.priority === 3 ? 2 : row.priority === 2 ? 1 : 0;
+    return {
+      effective: (row.priority as 1 | 2 | 3 | 4 | 5) || 3,
+      label: meta.label as ActionPriority['label'],
+      reason: row.priority_reason?.trim() || 'Manually set by officer',
+      isManualOverride: true,
+      isOnHold: false,
+      badgeClass: meta.className,
+      sortKey,
+    };
+  }
+
+  // Waiting on applicant → On Hold
+  if (WAITING_APPLICANT_STATUSES.has(row.status)) {
+    return {
+      effective: 3,
+      label: 'On Hold',
+      reason: 'Waiting for applicant response',
+      isManualOverride: false,
+      isOnHold: true,
+      badgeClass: ON_HOLD_CLASS,
+      sortKey: 2.5,
+    };
+  }
+
+  // SLA-driven suggestion
+  if (age == null) {
+    return {
+      effective: 3,
+      label: 'Normal',
+      reason: 'No submission date',
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[3].className,
+      sortKey: 2,
+    };
+  }
+  const remaining = SLA_TARGET_DAYS - age;
+  if (remaining < 0) {
+    return {
+      effective: 1,
+      label: 'Critical',
+      reason: `SLA breached by ${pluralDays(-remaining)}`,
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[1].className,
+      sortKey: 0,
+    };
+  }
+  if (remaining <= 3) {
+    return {
+      effective: 2,
+      label: 'High',
+      reason: remaining === 0 ? 'Due today' : `Due in ${pluralDays(remaining)}`,
+      isManualOverride: false,
+      isOnHold: false,
+      badgeClass: PRIORITY_META[2].className,
+      sortKey: 1,
+    };
+  }
+  return {
+    effective: 3,
+    label: 'Normal',
+    reason: `${pluralDays(remaining)} remaining`,
+    isManualOverride: false,
+    isOnHold: false,
+    badgeClass: PRIORITY_META[3].className,
+    sortKey: 2,
+  };
 }
 
 
@@ -141,7 +252,7 @@ export default function ApplicationQueue() {
       let q = supabase
         .from('applications')
         .select(
-          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, data',
+          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, priority_set_by, priority_set_at, assigned_to, data',
         )
         .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
@@ -212,17 +323,30 @@ export default function ApplicationQueue() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
-      return (
-        r.application_number?.toLowerCase().includes(q) ||
-        (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
-        r.license_type?.toLowerCase().includes(q) ||
-        formatLicenseType(r.license_type).toLowerCase().includes(q) ||
-        cat.includes(q)
-      );
+    const base = !q
+      ? rows
+      : rows.filter((r) => {
+          const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
+          return (
+            r.application_number?.toLowerCase().includes(q) ||
+            (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
+            r.license_type?.toLowerCase().includes(q) ||
+            formatLicenseType(r.license_type).toLowerCase().includes(q) ||
+            cat.includes(q)
+          );
+        });
+    // Sort by effective action-priority urgency; breached/oldest first inside a bucket.
+    return [...base].sort((a, b) => {
+      const pa = getEffectiveActionPriority(a);
+      const pb = getEffectiveActionPriority(b);
+      if (pa.sortKey !== pb.sortKey) return pa.sortKey - pb.sortKey;
+      const ageA = daysSince(a.submitted_at || a.created_at) ?? -1;
+      const ageB = daysSince(b.submitted_at || b.created_at) ?? -1;
+      if (ageA !== ageB) return ageB - ageA;
+      const ta = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+      const tb = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+      return tb - ta;
     });
   }, [rows, search, applicants]);
 
@@ -391,7 +515,23 @@ export default function ApplicationQueue() {
                   <TableHead className="w-24">Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
-                  <TableHead className="w-40">Priority</TableHead>
+                  <TableHead className="w-56">
+                    <TooltipProvider delayDuration={200}>
+                      <span className="inline-flex items-center gap-1">
+                        Action Priority
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" aria-label="About Action Priority" className="text-muted-foreground hover:text-foreground">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs">
+                            Action Priority is suggested from SLA and case status. Officers may override it manually.
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </TooltipProvider>
+                  </TableHead>
                   <TableHead className="w-56">Assignee</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
@@ -405,7 +545,7 @@ export default function ApplicationQueue() {
                 ) : (
                   filtered.map((r) => {
                     const age = daysSince(r.submitted_at || r.created_at);
-                    const pm = PRIORITY_META[r.priority] || PRIORITY_META[3];
+                    const ap = getEffectiveActionPriority(r);
                     return (
                       <TableRow key={r.id} className={selected.has(r.id) ? 'bg-muted/40' : ''}>
                         {canManage && (
@@ -434,26 +574,34 @@ export default function ApplicationQueue() {
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
                         <TableCell>
-                          {canManage ? (
-                            <Select
-                              value={String(r.priority)}
-                              onValueChange={(v) => updateRow(r.id, { priority: Number(v) })}
-                            >
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5].map((p) => (
-                                  <SelectItem key={p} value={String(p)}>
-                                    <Flag className="inline h-3 w-3 mr-2" />
-                                    {p} — {PRIORITY_META[p].label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Badge className={pm.className}>{pm.label}</Badge>
-                          )}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge className={ap.badgeClass}>{ap.label}</Badge>
+                              {ap.isManualOverride && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-tight">
+                              {ap.reason}
+                            </div>
+                            {canManage && (
+                              <Select
+                                value={String(r.priority)}
+                                onValueChange={(v) => updateRow(r.id, { priority: Number(v) })}
+                              >
+                                <SelectTrigger className="h-7 text-xs">
+                                  <SelectValue placeholder="Change" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[1, 2, 3, 4, 5].map((p) => (
+                                    <SelectItem key={p} value={String(p)}>
+                                      {PRIORITY_META[p].label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {canManage ? (
@@ -507,7 +655,7 @@ export default function ApplicationQueue() {
                 <SelectContent>
                   <SelectItem value="none">No change</SelectItem>
                   {[1, 2, 3, 4, 5].map((p) => (
-                    <SelectItem key={p} value={String(p)}>{p} — {PRIORITY_META[p].label}</SelectItem>
+                    <SelectItem key={p} value={String(p)}>{PRIORITY_META[p].label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
