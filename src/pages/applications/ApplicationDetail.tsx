@@ -776,33 +776,119 @@ export default function ApplicationDetail() {
                           <p className="text-sm text-muted-foreground">License Type</p>
                           <p className="font-medium">{formatTaxonomyLabel(app.license_type)}</p>
                         </div>
-                        {appData.sector_name && (
-                          <div className="flex items-start gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Sector</p>
-                              <p className="text-sm font-medium">{appData.sector_name}</p>
+                        {taxonomyEditable && editingTaxonomy ? (
+                          <div className="col-span-2 space-y-3 border rounded-md p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold">Edit Sector Details</p>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="ghost" onClick={cancelEditTaxonomy} disabled={savingTaxonomy}>Cancel</Button>
+                                <Button
+                                  size="sm"
+                                  onClick={saveTaxonomy}
+                                  disabled={
+                                    savingTaxonomy ||
+                                    !taxSector || !taxSubSector || !taxCategory ||
+                                    (taxSector === (appData?.sector_id || '') &&
+                                     taxSubSector === (appData?.sub_sector_id || '') &&
+                                     taxCategory === (appData?.category_id || ''))
+                                  }
+                                >
+                                  {savingTaxonomy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Sector</Label>
+                                <Select
+                                  value={taxSector}
+                                  onValueChange={(v) => { setTaxSector(v); setTaxSubSector(''); setTaxCategory(''); }}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
+                                  <SelectContent>
+                                    {(allSectorsList as any[])
+                                      .filter((s: any) => s.status === 'active')
+                                      .map((s: any) => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Sub-Sector</Label>
+                                <Select
+                                  value={taxSubSector}
+                                  onValueChange={(v) => { setTaxSubSector(v); setTaxCategory(''); }}
+                                  disabled={!taxSector}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Select sub-sector" /></SelectTrigger>
+                                  <SelectContent>
+                                    {filteredTaxSubSectors.length === 0 ? (
+                                      <SelectItem value="__none__" disabled>No active sub-sectors</SelectItem>
+                                    ) : filteredTaxSubSectors.map((s: any) => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Category</Label>
+                                <Select
+                                  value={taxCategory}
+                                  onValueChange={setTaxCategory}
+                                  disabled={!taxSubSector}
+                                >
+                                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                                  <SelectContent>
+                                    {filteredTaxCategories.length === 0 ? (
+                                      <SelectItem value="__none__" disabled>No active categories</SelectItem>
+                                    ) : filteredTaxCategories.map((c: any) => (
+                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
+                        ) : (
+                          <>
+                            {appData.sector_name && (
+                              <div className="flex items-start gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Sector</p>
+                                  <p className="text-sm font-medium">{appData.sector_name}</p>
+                                </div>
+                              </div>
+                            )}
+                            {appData.sub_sector_name && (
+                              <div className="flex items-start gap-2">
+                                <Layers className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Sub-Sector</p>
+                                  <p className="text-sm font-medium">{appData.sub_sector_name}</p>
+                                </div>
+                              </div>
+                            )}
+                            {appData.category_name && (
+                              <div className="flex items-start gap-2">
+                                <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Category</p>
+                                  <p className="text-sm font-medium">{appData.category_name}</p>
+                                </div>
+                              </div>
+                            )}
+                            {taxonomyEditable && (
+                              <div className="col-span-2">
+                                <Button size="sm" variant="outline" onClick={startEditTaxonomy}>
+                                  <Edit className="h-4 w-4 mr-1" /> Change Sector / Sub-Sector / Category
+                                </Button>
+                              </div>
+                            )}
+                          </>
                         )}
-                        {appData.sub_sector_name && (
-                          <div className="flex items-start gap-2">
-                            <Layers className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Sub-Sector</p>
-                              <p className="text-sm font-medium">{appData.sub_sector_name}</p>
-                            </div>
-                          </div>
-                        )}
-                        {appData.category_name && (
-                          <div className="flex items-start gap-2">
-                            <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <div>
-                              <p className="text-sm text-muted-foreground">Category</p>
-                              <p className="text-sm font-medium">{appData.category_name}</p>
-                            </div>
-                          </div>
-                        )}
+
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
                           <p className="text-sm">{new Date(app.created_at).toLocaleString()}</p>
