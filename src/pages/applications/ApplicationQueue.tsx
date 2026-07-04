@@ -254,7 +254,6 @@ export default function ApplicationQueue() {
         .select(
           'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, priority_set_by, priority_set_at, assigned_to, data',
         )
-        .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500);
