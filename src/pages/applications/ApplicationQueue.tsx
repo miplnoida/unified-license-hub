@@ -105,7 +105,10 @@ function slaChip(age: number | null) {
 
 export default function ApplicationQueue() {
   const { user } = useAuth();
-  const { activeSectorId } = useActiveSector();
+  const { activeSectorId, availableSectors } = useActiveSector();
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [sectorFilter, setSectorFilter] = useState<string>('active');
+
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
   const [applicants, setApplicants] = useState<Record<string, string>>({});
@@ -130,22 +133,30 @@ export default function ApplicationQueue() {
         .select(
           'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, data',
         )
-        .in('status', PENDING_STATUSES)
         .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500);
 
-      if (activeSectorId) {
-        // applications don't carry a sector column directly — filter via the
-        // JSONB `data.sector_id` / `data.resolved_sector_id` fields written
-        // by the form engine.
+      // Status filter
+      if (statusFilter === 'pending') {
+        q = q.in('status', PENDING_STATUSES);
+      } else if (statusFilter !== 'all') {
+        q = q.eq('status', statusFilter);
+      }
+
+      // Sector filter — applications don't carry a sector column directly,
+      // filter via the JSONB `data.sector_id` / `data.resolved_sector_id` fields.
+      const sectorIdToFilter =
+        sectorFilter === 'active' ? activeSectorId : sectorFilter === 'all' ? null : sectorFilter;
+      if (sectorIdToFilter) {
         q = q.or(
-          `data->>sector_id.eq.${activeSectorId},data->>resolved_sector_id.eq.${activeSectorId}`,
+          `data->>sector_id.eq.${sectorIdToFilter},data->>resolved_sector_id.eq.${sectorIdToFilter}`,
         );
       }
 
       const { data, error } = await q;
+
       if (cancelled) return;
       if (error) {
         toast.error(error.message || 'Failed to load queue');
@@ -171,7 +182,7 @@ export default function ApplicationQueue() {
     }
     load();
     return () => { cancelled = true; };
-  }, [activeSectorId, refreshTick]);
+  }, [activeSectorId, refreshTick, statusFilter, sectorFilter]);
 
   // Load internal users once for assignee dropdown
   useEffect(() => {
@@ -299,12 +310,39 @@ export default function ApplicationQueue() {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Input
-              placeholder="Search app #, applicant, license type"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-sm"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                placeholder="Search app #, applicant, license type"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-64"
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending (default)</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="in_progress">In progress</SelectItem>
+                  <SelectItem value="resubmission_requested">Resubmission requested</SelectItem>
+                  <SelectItem value="query_raised">Query raised</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sectorFilter} onValueChange={setSectorFilter}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active sector (default)</SelectItem>
+                  <SelectItem value="all">All sectors</SelectItem>
+                  {availableSectors.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2">
               {canManage && (
                 <Button
@@ -318,6 +356,11 @@ export default function ApplicationQueue() {
               )}
             </div>
           </div>
+
+          <div className="text-xs text-muted-foreground">
+            Showing {filtered.length} of up to 500 · Status: {statusFilter === 'pending' ? 'Pending' : statusFilter === 'all' ? 'All' : statusFilter.replace(/_/g, ' ')} · Sector: {sectorFilter === 'active' ? (activeSectorId ? (availableSectors.find((s) => s.id === activeSectorId)?.name || 'Active') : 'None') : sectorFilter === 'all' ? 'All' : (availableSectors.find((s) => s.id === sectorFilter)?.name || sectorFilter)}
+          </div>
+
 
           <div className="overflow-x-auto">
             <Table>
