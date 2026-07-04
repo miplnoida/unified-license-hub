@@ -6,13 +6,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Loader2, MessageSquare, Paperclip, Lock, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageSquare, Paperclip, Lock, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useApplicationRfis, type Rfi, type RfiItem } from '@/hooks/useApplicationRfis';
 import { RaiseRfiDialog } from './RaiseRfiDialog';
-import { validateFile, ACCEPT_STRING, getSignedUrl } from '@/lib/secureFileUpload';
+import { validateFile, ACCEPT_STRING, getSignedUrl, secureDownload } from '@/lib/secureFileUpload';
 
 interface ApplicationRfiTabProps {
   applicationId: string;
@@ -486,7 +486,7 @@ function formatBytes(bytes: number | null): string {
 function RfiAttachmentList({ ids }: { ids: string[] }) {
   const [rows, setRows] = useState<Record<string, AttachmentRow>>({});
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<{ id: string; mode: 'view' | 'download' } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -505,16 +505,28 @@ function RfiAttachmentList({ ids }: { ids: string[] }) {
     return () => { cancelled = true; };
   }, [ids.join(',')]);
 
-  const download = async (row: AttachmentRow) => {
-    setBusyId(row.id);
+  const view = async (row: AttachmentRow) => {
+    setBusy({ id: row.id, mode: 'view' });
     try {
       const { url, error } = await getSignedUrl(row.file_path, 300);
-      if (!url) throw new Error(error || 'Could not generate download link');
+      if (!url) throw new Error(error || 'Could not generate view link');
       window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e: any) {
+      toast.error(e.message || 'Unable to open attachment');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const download = async (row: AttachmentRow) => {
+    setBusy({ id: row.id, mode: 'download' });
+    try {
+      const ok = await secureDownload(row.file_path, row.file_name);
+      if (!ok) throw new Error('Download failed');
     } catch (e: any) {
       toast.error(e.message || 'Download failed');
     } finally {
-      setBusyId(null);
+      setBusy(null);
     }
   };
 
@@ -546,15 +558,32 @@ function RfiAttachmentList({ ids }: { ids: string[] }) {
                 <span className="text-[10px] text-muted-foreground shrink-0">{formatBytes(row.file_size)}</span>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 px-2"
-              onClick={() => download(row)}
-              disabled={busyId === row.id}
-            >
-              {busyId === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2"
+                onClick={() => view(row)}
+                disabled={busy?.id === row.id}
+                title="View in new tab"
+              >
+                {busy?.id === row.id && busy.mode === 'view'
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <Eye className="h-3 w-3" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2"
+                onClick={() => download(row)}
+                disabled={busy?.id === row.id}
+                title="Download"
+              >
+                {busy?.id === row.id && busy.mode === 'download'
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <Download className="h-3 w-3" />}
+              </Button>
+            </div>
           </div>
         );
       })}
