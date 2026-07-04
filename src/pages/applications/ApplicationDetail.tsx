@@ -134,6 +134,59 @@ export default function ApplicationDetail() {
   const hasRenewalDiff = isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
   const hasSubmittedForms = formTemplateIds.length > 0;
 
+  const taxonomyEditable = !!app
+    && !forceReadOnlyView
+    && !isInternal
+    && (['draft', 'in_progress'].includes(normalizeApplicationStatus(app.status)));
+
+  const filteredTaxSubSectors = (allSubSectorsList as any[]).filter(
+    (s: any) => s.sector_id === taxSector && s.status === 'active'
+  );
+  const filteredTaxCategories = (allCategoriesList as any[]).filter(
+    (c: any) => c.sub_sector_id === taxSubSector && c.status === 'active'
+  );
+
+  const startEditTaxonomy = () => {
+    setTaxSector(appData?.sector_id || '');
+    setTaxSubSector(appData?.sub_sector_id || '');
+    setTaxCategory(appData?.category_id || '');
+    setEditingTaxonomy(true);
+  };
+
+  const cancelEditTaxonomy = () => {
+    setEditingTaxonomy(false);
+  };
+
+  const saveTaxonomy = async () => {
+    if (!app || !taxSector || !taxSubSector || !taxCategory) return;
+    setSavingTaxonomy(true);
+    try {
+      const sectorName = (allSectorsList as any[]).find((s: any) => s.id === taxSector)?.name || '';
+      const subSectorName = (allSubSectorsList as any[]).find((s: any) => s.id === taxSubSector)?.name || '';
+      const categoryName = (allCategoriesList as any[]).find((c: any) => c.id === taxCategory)?.name || '';
+      const nextData = {
+        ...(app.data as any),
+        sector_id: taxSector,
+        sub_sector_id: taxSubSector,
+        category_id: taxCategory,
+        sector_name: sectorName,
+        sub_sector_name: subSectorName,
+        category_name: categoryName,
+      };
+      const { error } = await supabase.from('applications').update({ data: nextData } as any).eq('id', app.id);
+      if (error) throw error;
+      setApp({ ...app, data: nextData } as any);
+      setEditingTaxonomy(false);
+      toast.success('Sector details updated');
+      queryClient.invalidateQueries({ queryKey: ['application', app.id] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update sector details');
+    } finally {
+      setSavingTaxonomy(false);
+    }
+  };
+
+
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.debug('[ApplicationDetail] rendered from src/pages/applications/ApplicationDetail.tsx');
