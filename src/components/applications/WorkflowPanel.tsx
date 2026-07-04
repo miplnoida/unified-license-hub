@@ -33,12 +33,16 @@ function StepSlaBadge({
   warningPct,
   escalationAfterHours,
   paused,
+  pauseSeconds,
+  pausedSince,
 }: {
   startedAt: string | null;
   slaHours: number | null;
   warningPct: number | null;
   escalationAfterHours: number | null;
   paused: boolean;
+  pauseSeconds?: number | null;
+  pausedSince?: string | null;
 }) {
   const sla = useWorkflowSLA({
     startedAt,
@@ -46,10 +50,13 @@ function StepSlaBadge({
     warningThresholdPercent: warningPct,
     escalationAfterHours,
     paused,
+    pauseSeconds,
+    pausedSince,
   });
   if (sla.status === 'unknown') return null;
   return <SlaStatusBadge sla={sla} />;
 }
+
 
 interface CanActResult {
   can_act: boolean;
