@@ -512,6 +512,17 @@ export default function ApplicationQueue() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-56"><SelectValue placeholder="Sort by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="submitted_desc">Sort: Newest submitted</SelectItem>
+                  <SelectItem value="submitted_asc">Sort: Oldest submitted</SelectItem>
+                  <SelectItem value="app_number">Sort: Application # (A→Z)</SelectItem>
+                  <SelectItem value="applicant">Sort: Applicant (A→Z)</SelectItem>
+                  <SelectItem value="sla_age">Sort: SLA age (oldest first)</SelectItem>
+                  <SelectItem value="action_priority">Sort: Action Priority</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2">
               {canManage && (
