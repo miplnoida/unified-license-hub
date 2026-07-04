@@ -224,6 +224,14 @@ function slaChip(age: number | null) {
   return <Badge className="bg-green-100 text-green-800 border-green-200">{age}d / {SLA_TARGET_DAYS}d</Badge>;
 }
 
+const DATETIME_FMT = new Intl.DateTimeFormat(undefined, {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+});
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—';
+  try { return DATETIME_FMT.format(new Date(iso)); } catch { return '—'; }
+}
+
 export default function ApplicationQueue() {
   const { user } = useAuth();
   const { activeSectorId, availableSectors } = useActiveSector();
