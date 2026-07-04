@@ -252,7 +252,7 @@ export default function ApplicationQueue() {
       let q = supabase
         .from('applications')
         .select(
-          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, data',
+          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, priority_set_by, priority_set_at, assigned_to, data',
         )
         .order('priority', { ascending: true })
         .order('submitted_at', { ascending: false, nullsFirst: false })
