@@ -1,30 +1,40 @@
-## Diagnosis
-On application `670791b1…` the DB shows:
-- `sector_id`, `sub_sector_id`, `category_id` are set.
-- `form_template_ids` = 1 template.
-- `forms_data` is empty (no keys).
+## Diagnosis (from the screenshots + code)
 
-The submit button in `src/pages/applications/ApplicationDetail.tsx` (lines ~1295-1320) is intentionally disabled while `allFormsCompleted` is false, showing the label "Complete all forms (0/1)". Selecting a sector does not fill forms — the applicant still has to complete each form under the **Submitted Forms** tab. So this isn't a bug in the taxonomy logic; it's a UX issue: the label reads like a call-to-action but the button is disabled with no obvious next step.
+Two bugs, both in `src/pages/applications/ApplicationDetail.tsx`:
 
-## Fix (UX only, frontend, minimal)
-When forms are incomplete, make the button a **navigator to the Submitted Forms tab** instead of a disabled submit.
+1. **Old forms leak after sector change.** `persistTaxonomy` only recomputes `form_template_ids` when the *new* triple is fully filled AND changed. When the user changes only the Sector (screenshot 2 shows Commercial Bank selected, Sub-Sector blank, Category disabled), the sub-sector/category get cleared but `form_template_ids` / `forms_data` keep the old Building Society template — so the Submitted Forms tab keeps showing the previous form.
+2. **"Complete all forms" button ignores incomplete taxonomy.** The button's disabled logic only checks templates/payment/license. With an incomplete triple but stale `form_template_ids`, the button navigates to Submitted Forms and lets the user proceed against the wrong form.
 
-Change in `src/pages/applications/ApplicationDetail.tsx`, applicant submit block:
+## Fix (frontend only, same file)
 
-1. Keep `allFormsCompleted` / `canSubmit` as-is.
-2. Split the single button into behavior modes based on state:
-   - `!allFormsCompleted` **AND** `formTemplateIds.length > 0` → button is **enabled**, label stays `Complete all forms (X/Y)`, icon `Edit`/`FileText`, `onClick` sets `activeTab = 'form'` (the Submitted Forms tab, which already renders when `hasSubmittedForms` is true). Scroll into view so user sees the accordion. No submit.
-   - `formTemplateIds.length === 0` → button disabled with label `No forms configured for this selection` (edge case for triples with zero matched templates; prevents silent lock).
-   - `licenseGate.isBlocked` → disabled `License Not Active` (unchanged).
-   - `!paymentComplete` → disabled `Complete payment to submit` (unchanged).
-   - `canSubmit` true → enabled `Review & Submit` opens the existing review dialog (unchanged).
-3. Cancel button and processing state remain unchanged.
+### A. Clear stale templates whenever the triple is broken
+In `persistTaxonomy`:
+- Compute `fullTriple = !!(secId && subId && catId)`.
+- If **not** `fullTriple`: set `form_template_ids = []`, `forms_data = {}`, `form_version_ids = {}` in `nextData` (in addition to writing the partial IDs/names). This removes the old form immediately when the user picks a new sector.
+- Keep the existing `fullTriple && tripleChanged` branch that resolves new matched templates and prunes stale keys.
 
-Nothing else in the file, no backend, no schema, no other tabs touched.
+### B. Gate the submit button on a complete triple
+In the applicant submit block:
+- Add `const taxonomyComplete = !!(appData?.sector_id && appData?.sub_sector_id && appData?.category_id);`
+- Priority order for the button label / disabled state (highest priority first):
+  1. `!taxonomyComplete` → **disabled**, label `Select sector, sub-sector and category`.
+  2. `noTemplates` (triple complete but zero matched templates) → **disabled**, label `No forms configured for this selection`.
+  3. `needsForms` → **enabled**, navigates to Submitted Forms tab (unchanged behavior, label `Complete all forms (X/Y)`).
+  4. `licenseGate.isBlocked` → disabled `License Not Active`.
+  5. `!paymentComplete` → disabled `Complete payment to submit`.
+  6. `canSubmit` → enabled `Review & Submit`.
+- Update `disabled` expression accordingly so an incomplete triple can never proceed.
 
-## Manual verification
-1. Open the same draft application → button now reads "Complete all forms (0/1)" and is clickable. Clicking switches to the Submitted Forms tab with the pending form open.
-2. Fill and save the form → returning to Details tab, button becomes "Review & Submit" (or "Complete payment to submit" if fees are unpaid) as before.
-3. Change sector to a triple with matching templates → button label updates to new X/Y count; click still routes to Submitted Forms.
-4. Change sector to a triple with no matching templates → button becomes disabled with the "No forms configured…" hint (no silent lock).
-5. Internal reviewer and submitted-status flows remain unchanged.
+### C. Nothing else changes
+- Cascading dropdowns, auto-save, activity tab, workflow, payments, RLS, and internal-reviewer view all stay as-is.
+- No backend or schema changes.
+
+## Manual verification (application `670791b1…`, DEMO-ULRA-002 gap)
+1. Open the draft app → change Sector to Commercial Bank → Sub-Sector and Category clear.
+2. Details tab immediately: submit button becomes **disabled** with `Select sector, sub-sector and category`.
+3. Submitted Forms tab: no longer shows the Building Society form (shows "No forms were submitted…" or the tab collapses).
+4. Pick a valid Sub-Sector and Category for Commercial Bank:
+   - If templates match → button becomes clickable as `Complete all forms (0/N)` and jumps to the new Commercial Bank forms.
+   - If no templates configured → button stays disabled with the "No forms configured…" hint.
+5. Complete forms → button transitions to `Complete payment to submit` → then `Review & Submit`.
+6. Reload page after each step → persistence holds; internal reviewer view unchanged.
