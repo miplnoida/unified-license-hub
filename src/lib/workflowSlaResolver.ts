@@ -32,6 +32,10 @@ export interface WorkflowInstanceRow {
   started_at: string | null;
   updated_at: string | null;
   version_snapshot: any;
+  paused_at?: string | null;
+  resumed_at?: string | null;
+  paused_reason?: string | null;
+  total_pause_seconds?: number | null;
 }
 
 export interface WorkflowSlaStepConfig {
