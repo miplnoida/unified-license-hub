@@ -1,34 +1,32 @@
-## Application Queue — Restore default order & add optional sort
+# Fix: "column table_name of relation audit_logs does not exist" on assign
 
-**Goal:** Show newest applications first by default (do not reorder by priority). Display submission datetime. Let users pick a sort field from the filter bar. Keep all other functionality intact.
+## Root cause
+The trigger function `public.log_application_triage_change()` (migration `20260702111736_...sql`, added with the Application Queue priority/assignment feature) writes to `public.audit_logs` using column names that don't exist on this project:
 
-### Changes (single file: `src/pages/applications/ApplicationQueue.tsx`)
+- Uses `table_name`, `record_id`, `old_values`, `new_values`
+- Actual columns: `entity_type`, `entity_id`, `old_value`, `new_value`
 
-1. **Default order = latest first**
-   - Remove the client-side sort by `getEffectiveActionPriority.sortKey` inside the `filtered` useMemo.
-   - Remove `.order('priority', ...)` from the Supabase query.
-   - Default DB order: `submitted_at desc nulls last`, then `created_at desc` (already present) → newest submission on top.
+Because the trigger fires `AFTER UPDATE OF priority, assigned_to`, every assignee/priority update from Application Queue (single row or bulk) fails with the reported error and no assignment is saved.
 
-2. **Show submission datetime**
-   - Add a new column **"Submitted"** between `Category` and `Status`.
-   - Render `submitted_at` formatted as `dd MMM yyyy, HH:mm` (fallback to `created_at` with a muted "created" label if not submitted). Use `Intl.DateTimeFormat` — no new deps.
-   - Bump the loading/empty `colSpan` from 10 → 11.
+## Fix (single migration)
+Redefine `public.log_application_triage_change()` to use the correct audit_logs columns and the canonical audit metadata shape used elsewhere in the app:
 
-3. **Sort control in the filter bar (user-driven only)**
-   - Add a `sortBy` state (default `'submitted_desc'`) and a `Select` next to the existing Status/Sector filters:
-     - Newest submitted (default)
-     - Oldest submitted
-     - Application # (A→Z)
-     - Applicant (A→Z)
-     - SLA age (oldest first)
-     - Action Priority (Critical → Deferred)
-   - Applied in the `filtered` useMemo after the search filter. No sort is auto-applied beyond the user's choice; default remains newest-first.
+- Replace `table_name` → `entity_type`
+- Replace `record_id` → `entity_id`
+- Replace `old_values` / `new_values` → `old_value` / `new_value`
+- Populate `metadata` with `{ source: 'trigger', application_id, reason }` so the entry renders on the unified EntityTimeline the same way sibling triggers do.
+- Keep both branches (priority change → `application.priority_changed`, assignee change → `application.assigned`).
+- Keep the trigger definition (`AFTER UPDATE OF priority, assigned_to`) unchanged — only the function body is replaced via `CREATE OR REPLACE FUNCTION`.
 
-4. **Preserved (unchanged)**
-   - `getEffectiveActionPriority` helper, Action Priority column with tooltip, Manual chip, per-row priority Select, bulk update dialog, assignee logic, SLA chip, search, status/sector filters, RLS query, applicant/user lookups, stats cards.
+No schema changes to `audit_logs`, no changes to Application Queue UI, no changes to other triggers.
 
-### Verification
-- Load page → rows ordered by newest `submitted_at` first (matches admin panel behaviour).
-- New "Submitted" column shows date + time.
-- Changing the Sort filter reorders the table; clearing it returns to newest-first.
-- Action Priority badges, manual override chip, bulk update, and assignee dropdown all still work.
+## Out of scope (not touched)
+- The pre-existing frontend files that also use the wrong shape (`RaiseRfiDialog.tsx`, `ApplicationRfiTab.tsx`, `ApplicationAiAssessmentPanel.tsx`) — they are not part of the reported flow and would be a separate cleanup.
+- Application Queue behavior, sorting, priority UI, tooltips — all preserved.
+
+## Verification
+1. Open `/applications/queue` as an admin.
+2. Change a row's Assignee via the per-row Select → toast "Updated", no error.
+3. Bulk-assign 2+ rows → toast success, no error.
+4. Change a row's Action Priority manually → still works.
+5. Confirm new rows appear in `audit_logs` with `action IN ('application.assigned','application.priority_changed')` and populated `entity_type='applications'`, `entity_id=<app id>`, `old_value`/`new_value` JSON.
