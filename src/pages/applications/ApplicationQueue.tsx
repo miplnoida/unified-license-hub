@@ -559,6 +559,7 @@ export default function ApplicationQueue() {
                   <TableHead>Applicant</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="w-24">Category</TableHead>
+                  <TableHead className="w-40">Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
                   <TableHead className="w-56">
