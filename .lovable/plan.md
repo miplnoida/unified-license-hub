@@ -1,42 +1,43 @@
-# Fix: Internal staff (any role) blocked from Applications Queue
+# Fix: Legal/Compliance Reviewer sees "Workflow is not active" on submitted applications
 
 ## Root cause
 
-RLS on `public.applications` hard-codes only five internal `app_role` values (`super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst`). The `legal_compliance` reviewer (`ratnpriyaemp@yopmail.com`) and any other internal role added later (e.g. `developer`, plus any future internal role) are not in that OR-chain, so the permissive SELECT policy `Applicants read own apps` never matches them → the queue returns 0 rows.
+The pre-license workflow *is* configured and active. The reviewer sees the manual "Review Actions" fallback because `resolveWorkflowApproval()` returns `no_matched_workflow` for them: RLS on the workflow-family tables hard-codes the same five internal roles (`super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst`) in every SELECT policy and omits `legal_compliance`. The reviewer's Supabase reads for `approval_workflows`, `approval_steps`, and `workflow_instances` come back empty, so the resolver falls back to manual actions and shows Configurable Decision Actions using default options.
 
-The same enumeration mistake exists in three places:
+Same enumeration mistake we just fixed on `public.applications`, repeated across the workflow subsystem:
 
-1. `public.has_any_internal_role(uuid)` — the helper that guards the restrictive `external_applications_*_capability_gate` policies. Hardcodes the same five roles.
-2. `public.handle_new_user()` — `internal_role_names` array used to skip the phantom-`applicant` auto-seed for admin-created employees. Hardcodes the same five.
-3. `public.applications` policies — the permissive SELECT policy `Applicants read own apps` and the UPDATE policy `Update apps` both spell out the five internal roles with individual `has_role(...)` calls.
+| Table | Policy | Currently hard-codes five roles |
+|---|---|---|
+| `approval_workflows` | `Internal users read workflows` | yes |
+| `approval_steps` | `Internal users read steps` | yes |
+| `workflow_instances` | `Internal users read workflow instances`, `Admins full access workflow instances` | yes |
+| `approval_actions` | `Read actions` | yes (also gated on `actor_id`) |
+| `approval_workflow_types` | `Internal users read workflow type config` | yes |
 
-We want a single source of truth for "internal role" so a new internal role added to the `app_role` enum in future automatically inherits queue access — no more per-role RLS edits. Row-level RLS is still enforced; the frontend `PermissionGate` + `useUserDynamicPermissions` layer continues to gate the Applications module by dynamic permission mapping, so an internal role that a super-admin has not granted the `applications` module to still won't see the sidebar entry or route.
+Once these SELECT policies use the enum-derived `public.has_any_internal_role(auth.uid())` helper (already deployed), the resolver matches the pre-license workflow for the reviewer and `WorkflowPanel` renders instead of the manual banner.
+
+## Behaviour after the fix
+
+- Legal/Compliance Reviewer viewing a submitted application → the same `WorkflowPanel` that Analyst/Supervisor see, driven by the pre-license workflow.
+- Which buttons/decisions are actually clickable is still governed inside `WorkflowPanel` by per-step role permissions (`approval_steps.assigned_roles` + step-action permissions). A step that is not assigned to Legal/Compliance renders as read-only for them — they see the timeline and can add remarks via the existing comment/action flow, without seeing approve/reject buttons that aren't theirs.
+- No change to who can *act* on a step. This migration only fixes *visibility* of workflow metadata so the correct panel renders. If the pre-license workflow doesn't currently assign Legal/Compliance to any step, they simply see the read-only workflow view — which matches the user's expectation ("not authorised to take actions on form", just comment for review).
+- No changes to write policies, no changes to the frontend, no changes to the resolver.
 
 ## Fix (single migration)
 
-1. **Rewrite `public.has_any_internal_role(_user_id)`** to derive "internal" from the enum itself, not a hard-coded list. It returns true when the user has any `user_roles.role` that is NOT one of the external roles (`applicant`, `pre_licensee`, `licensee_primary`, `licensee_secondary`, `developer` if we want to keep it non-internal — confirmed as internal in `INTERNAL_ROLES` client-side, so include it). Concretely: `role NOT IN ('applicant','pre_licensee','licensee_primary','licensee_secondary')`. `SECURITY DEFINER`, `SET search_path = public`, `STABLE`.
-   - This automatically covers `legal_compliance`, `developer`, and any future internal role added to the enum.
+1. **`approval_workflows`** — replace the five hard-coded `has_role(...)` clauses in `Internal users read workflows` with `public.has_any_internal_role(auth.uid())`.
+2. **`approval_steps`** — same treatment for `Internal users read steps`.
+3. **`workflow_instances`** — same treatment for both `Internal users read workflow instances` (keeping the applicant own-app EXISTS branch untouched) and `Admins full access workflow instances`.
+4. **`approval_actions`** — same treatment for `Read actions` (keep `auth.uid() = actor_id` branch intact so users always see their own posts).
+5. **`approval_workflow_types`** — same treatment for `Internal users read workflow type config`.
 
-2. **Rewrite the permissive SELECT policy `Applicants read own apps`** on `public.applications` to:
+The existing restrictive `external_users_denied_*` policies stay unchanged — they call `has_external_role`, which correctly returns false for pure internal reviewers. Admin-only write policies are also untouched.
 
-   ```sql
-   USING (auth.uid() = applicant_id OR public.has_any_internal_role(auth.uid()))
-   ```
-
-   Dropping the five hard-coded `has_role(...)` clauses. Same net effect for the existing five roles; adds coverage for every other internal role.
-
-3. **Rewrite the permissive UPDATE policy `Update apps`** the same way — replace the trailing four `has_role(...)` clauses (super_admin / admin / supervisor / licensing_officer) with `public.has_any_internal_role(auth.uid())`. Applicant + licensee self-edit branches are preserved unchanged.
-
-4. **Rewrite `public.handle_new_user()`** to use the same "not-external" definition instead of the hard-coded `internal_role_names` array. Any employee created with any internal role skips the phantom `applicant` seed. Bootstrap super-admin branch preserved.
-
-5. **One-off data repair** (idempotent, scoped to internal employees): for every `profiles` row where `user_type IN ('employee','internal_employee')` AND `user_roles` still contains `applicant` alongside at least one non-external role, delete the `applicant` row from `user_roles` and the `Applicant` row from `user_dynamic_roles`. Same shape as the previous cleanup, just broadened to cover legal_compliance / developer / future internal roles. Report affected count via `RAISE NOTICE`.
-
-No frontend changes. No changes to restrictive `external_*` gates (they already call `has_any_internal_role`, which is now correct for all internal roles). Licensee, PPOC, applicant, and insert policies untouched.
+No frontend changes. No new tables, columns, or helpers — `public.has_any_internal_role(uuid)` already exists from the previous migration.
 
 ## Verification
 
-1. Sign in as `ratnpriyaemp@yopmail.com` (Legal/Compliance Reviewer) → `/applications/queue` shows the full internal queue.
-2. Sign in as `anisha.emp@yopmail.com` (Analyst) → assigned case `APP-2026-000106` and the rest of the analyst-visible queue appear.
-3. Create a fresh employee with role Legal/Compliance Reviewer, then Developer → `user_roles` contains only that role, no `applicant`, and both accounts see the queue when the admin has granted the Applications module in dynamic permissions.
-4. Pure applicant user → still sees only own applications (regression check).
-5. Licensee primary/secondary and PPOC users → visibility unchanged.
+1. Sign in as `ratnpriyaemp@yopmail.com` (Legal/Compliance Reviewer) → open the same submitted application → the "Approval workflow is not active" banner is gone; `WorkflowPanel` renders with the pre-license workflow steps.
+2. Buttons Legal/Compliance is not assigned to remain unavailable; comment/remark entry works.
+3. Analyst, Supervisor, Licensing Officer, and Admin views are unchanged (regression check).
+4. Pure applicant / licensee views are unchanged — external denial policies still apply.
