@@ -655,7 +655,7 @@ export default function ApplicationQueue() {
                 <SelectContent>
                   <SelectItem value="none">No change</SelectItem>
                   {[1, 2, 3, 4, 5].map((p) => (
-                    <SelectItem key={p} value={String(p)}>{p} — {PRIORITY_META[p].label}</SelectItem>
+                    <SelectItem key={p} value={String(p)}>{PRIORITY_META[p].label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
