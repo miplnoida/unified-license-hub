@@ -1,37 +1,39 @@
-# Fix: two approved applications never got a licensee row
+# Fix: applicant name shows as UUID in Activity Trail
 
-## What I found
+## Root cause
 
-- `LIC-2026-000019` (APP-2026-000106, approved just now) IS visible on `/admin/licensees` — verified via the API response and a fresh screenshot of the page as super_admin. It renders as the 2nd row with status "Active". The user probably just needs a refresh for that one.
-- But two other approved + paid applications never got provisioned because they hit the earlier `context` / `applicant_id` failures inside `perform_final_workflow_approval` → `provision_application_entity`:
+`useEntityAuditLog` resolves actor names only from `public.profiles`. But applicants (pre-licensees) live in `public.pre_license_users`, not `profiles`. When the audit trail includes an action taken by a pre-licensee (e.g. "Application submitted" by Arya Deepti, `bbbbf700-…`), the profile lookup misses and the row falls back to showing the raw user UUID. Internal staff (Super Admin, Vidya Rani) resolve fine because they exist in `profiles`.
 
-| Application | Approved | Payment | License | Licensee |
-|---|---|---|---|---|
-| APP-2026-000100 | 2026-06-30 | completed | ❌ missing | ❌ missing |
-| APP-2026-000099 | 2026-06-30 | completed | ❌ missing | ❌ missing |
+Confirmed on `/applications/b9acc94b-…`: Super Admin and Vidya Rani show names; `bbbbf700-…` shows as UUID for every action taken by the applicant.
 
-They stay invisible on the Licensee Entities page because the licensee (and license) rows were never created. That matches "all approved licensees not showing" — anything approved before the two DB fixes we shipped today.
+RLS is already permissive enough — internal staff can read all `pre_license_users`, and pre-licensees can read their own row — so a client-side query works without extra migrations.
 
-## Fix (one-shot backfill)
+## Fix
 
-Now that `provision_application_entity` works (both column bugs are fixed), just re-run it for each orphaned application:
+Update `src/hooks/useEntityAuditLog.ts` so name resolution also queries `pre_license_users` and merges results into the actor name map. Profile match wins if both exist; otherwise use pre_license_users; otherwise fall back to `'System'` (when `user_id` is null) or the UUID.
 
-```sql
-SELECT public.provision_application_entity('2bd454a7-89d9-4667-a44e-561cab63d9ca'::uuid); -- APP-2026-000100
-SELECT public.provision_application_entity('e4213a8a-c344-4c45-8511-07b79c5576ad'::uuid); -- APP-2026-000099
+Pseudocode inside the hook, after the current `profiles` fetch:
+
+```ts
+const [{ data: profiles }, { data: preUsers }] = await Promise.all([
+  supabase.from('profiles').select('id, email, full_name').in('id', userIds),
+  supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
+]);
+preUsers?.forEach((u) => {
+  if (!nameMap[u.id]) nameMap[u.id] = u.full_name || u.email || u.id;
+});
+profiles?.forEach((p) => {
+  nameMap[p.id] = p.full_name || p.email || nameMap[p.id] || p.id;
+});
 ```
 
-The function is idempotent — it creates the license (if missing) and the licensee row, then returns the created ids. No schema change.
+Also change the final fallback so an unresolved UUID renders as a friendlier `'Unknown user'` label instead of the raw UUID.
 
-After the backfill I'll verify each application now has a `licenses` row and a `licensees` row, and both will appear on `/admin/licensees`.
+## Scope
 
-## No frontend or RLS changes
-
-- The page code and licensees RLS are correct — super_admin already sees every row.
-- The listing sort/pagination is fine; LIC-2026-000019 sits on page 1.
-- If the user later logs in as a non-admin internal role and still needs to see the Licensee Entities admin page, that's a separate RBAC change and would need a follow-up plan (currently the policy is admin/super_admin only, matching the module's admin-only route). Not in scope here.
+- One file edited: `src/hooks/useEntityAuditLog.ts`.
+- No DB migration, no RLS change, no component change (all timelines built on `EntityTimeline` inherit the fix — application, return, license, licensee, fit-and-proper, etc.).
 
 ## Verification
 
-1. `SELECT count(*) FROM public.applications WHERE status='approved' AND NOT EXISTS (SELECT 1 FROM public.licensees lc JOIN public.licenses l ON l.id=lc.license_id WHERE l.application_id=applications.id)` returns 0.
-2. Reload `/admin/licensees` — total count goes 13 → 15, and LIC numbers for the two backfilled applications appear.
+Reload `/applications/b9acc94b-9c28-486e-a48a-93bbc7b30c1a`, open the Activity tab, confirm rows previously labeled `bbbbf700-0a8b-…` now read `by Arya Deepti`.
