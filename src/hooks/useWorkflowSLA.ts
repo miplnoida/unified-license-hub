@@ -140,6 +140,8 @@ export function useWorkflowSLA(input: UseWorkflowSLAInput, tickMs: number = 60_0
       input.warningThresholdPercent,
       input.escalationAfterHours,
       input.paused,
+      input.pauseSeconds,
+      input.pausedSince,
       input.escalationBasis,
       now,
     ],
