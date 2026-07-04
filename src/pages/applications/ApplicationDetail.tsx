@@ -207,7 +207,6 @@ export default function ApplicationDetail() {
       // prune stale form data so the Submitted Forms tab reflects the new sector.
       if (fullTriple && tripleChanged) {
         const nextIds = resolveMatchedTemplateIds(secId, subId, catId);
-        const prevIds: string[] = currentData.form_template_ids || [];
         const keep = new Set(nextIds);
         const prevForms = (currentData.forms_data || {}) as Record<string, any>;
         const prevVersions = (currentData.form_version_ids || {}) as Record<string, string>;
@@ -218,8 +217,14 @@ export default function ApplicationDetail() {
         nextData.form_template_ids = nextIds;
         nextData.forms_data = nextForms;
         nextData.form_version_ids = nextVersions;
-        void prevIds;
+      } else if (!fullTriple) {
+        // Any partial selection invalidates the previously-linked forms — clear
+        // them so an incomplete triple can never leak the old sector's form.
+        nextData.form_template_ids = [];
+        nextData.forms_data = {};
+        nextData.form_version_ids = {};
       }
+
 
       const { error } = await supabase.from('applications').update({ data: nextData } as any).eq('id', app.id);
       if (error) throw error;
