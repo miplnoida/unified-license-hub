@@ -65,6 +65,16 @@ const PRIORITY_META: Record<number, { label: string; className: string }> = {
 
 const SLA_TARGET_DAYS = 15; // fallback target; workflow-specific SLA still shown elsewhere
 
+function formatLicenseType(raw?: string | null): string {
+  if (!raw) return '—';
+  const parts = raw.split(/\s*-\s*/).map((p) => p.trim()).filter(Boolean);
+  const dedup: string[] = [];
+  for (const p of parts) {
+    if (dedup[dedup.length - 1]?.toLowerCase() !== p.toLowerCase()) dedup.push(p);
+  }
+  return dedup.join(' - ') || raw;
+}
+
 interface QueueRow {
   id: string;
   application_number: string;
@@ -210,6 +220,7 @@ export default function ApplicationQueue() {
         r.application_number?.toLowerCase().includes(q) ||
         (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
         r.license_type?.toLowerCase().includes(q) ||
+        formatLicenseType(r.license_type).toLowerCase().includes(q) ||
         cat.includes(q)
       );
     });
@@ -411,7 +422,7 @@ export default function ApplicationQueue() {
                           </Link>
                         </TableCell>
                         <TableCell>{applicants[r.applicant_id] || '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{r.license_type}</Badge></TableCell>
+                        <TableCell><Badge variant="outline">{formatLicenseType(r.license_type)}</Badge></TableCell>
                         <TableCell>
                           {getApplicationCategory(r.data) === 'post_license' ? (
                             <Badge variant="secondary">Post</Badge>
