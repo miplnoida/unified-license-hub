@@ -278,8 +278,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const { data: actions = [] } = useEntityActions(entityType, applicationId);
   const queryClient = useQueryClient();
 
-  const activeInstance = instances.find(i => i.status === 'active');
-  const pausedInstance = instances.find(i => i.status === 'paused');
+  const isInstancePaused = (i: any) =>
+    i?.status === 'paused' || (!!i?.paused_at && !i?.resumed_at);
+  const activeInstance = instances.find(i => i.status === 'active' && !isInstancePaused(i));
+  const pausedInstance = instances.find(i => isInstancePaused(i));
   // Terminal instance = workflow already finished (approved/rejected/cancelled).
   // We still render a read-only timeline for these instead of the misleading
   // "No active workflow instance found" empty state.
@@ -315,6 +317,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isLastLevel = currentStepIdx >= 0 && currentStepIdx === steps.length - 1;
   const isPaused = !activeInstance && !!pausedInstance && !treatPausedAsActive && !isTerminal;
+  const livePauseSeconds = (liveInstance as any)?.total_pause_seconds ?? 0;
+  const livePausedSince = isPaused ? ((liveInstance as any)?.paused_at ?? null) : null;
+
 
   // Skip per-step authorization checks for terminal instances — no actions are
   // possible on a completed/cancelled workflow.
