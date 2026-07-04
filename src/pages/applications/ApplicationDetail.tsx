@@ -292,7 +292,9 @@ export default function ApplicationDetail() {
 
   const loadData = async () => {
     if (!id) return;
-    setWorkflowChecked(false);
+    // Note: do NOT reset workflowChecked to false here. Doing so unmounts
+    // <WorkflowPanel/> (and its open dialogs — e.g. signature upload) whenever
+    // loadData refetches (window focus after OS file picker, realtime updates).
     const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
 
     if (appRow) {

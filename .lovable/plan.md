@@ -1,43 +1,34 @@
-# Fix: Legal/Compliance Reviewer sees "Workflow is not active" on submitted applications
+# Fix: signature-upload modal auto-closes after picking a file
 
 ## Root cause
 
-The pre-license workflow *is* configured and active. The reviewer sees the manual "Review Actions" fallback because `resolveWorkflowApproval()` returns `no_matched_workflow` for them: RLS on the workflow-family tables hard-codes the same five internal roles (`super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst`) in every SELECT policy and omits `legal_compliance`. The reviewer's Supabase reads for `approval_workflows`, `approval_steps`, and `workflow_instances` come back empty, so the resolver falls back to manual actions and shows Configurable Decision Actions using default options.
+`ApplicationDetail.loadData()` unconditionally calls `setWorkflowChecked(false)` at line 295 before re-resolving the workflow. That value gates whether `<WorkflowPanel/>` is mounted:
 
-Same enumeration mistake we just fixed on `public.applications`, repeated across the workflow subsystem:
+```ts
+const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
+```
 
-| Table | Policy | Currently hard-codes five roles |
-|---|---|---|
-| `approval_workflows` | `Internal users read workflows` | yes |
-| `approval_steps` | `Internal users read steps` | yes |
-| `workflow_instances` | `Internal users read workflow instances`, `Admins full access workflow instances` | yes |
-| `approval_actions` | `Read actions` | yes (also gated on `actor_id`) |
-| `approval_workflow_types` | `Internal users read workflow type config` | yes |
+`WorkflowActionPreviewDialog` (which owns the Upload-digital-signature UI) is rendered *inside* `WorkflowPanel` and its `previewState` open flag is local state on `WorkflowPanel`. So the moment `workflowChecked` flips to `false`, `WorkflowPanel` unmounts, `previewState` is destroyed, and the dialog disappears.
 
-Once these SELECT policies use the enum-derived `public.has_any_internal_role(auth.uid())` helper (already deployed), the resolver matches the pre-license workflow for the reviewer and `WorkflowPanel` renders instead of the manual banner.
+`loadData()` is called from two places that fire around file-pick interaction:
+- `window` `focus` listener (line 381) — the OS file picker steals window focus; selecting a file restores focus → `loadData()` fires → dialog unmounts.
+- `approval_workflows` realtime subscription (line 388) — any update to the attached workflow row triggers a full refetch with the same reset.
 
-## Behaviour after the fix
+Verified path: user clicks Approve → preview dialog opens → user clicks Upload → OS picker opens (blur) → picks a file (focus) → `onFocus`→`loadData()` → `setWorkflowChecked(false)` → WorkflowPanel unmounts → dialog closes before `handleSignatureUpload` can finish.
 
-- Legal/Compliance Reviewer viewing a submitted application → the same `WorkflowPanel` that Analyst/Supervisor see, driven by the pre-license workflow.
-- Which buttons/decisions are actually clickable is still governed inside `WorkflowPanel` by per-step role permissions (`approval_steps.assigned_roles` + step-action permissions). A step that is not assigned to Legal/Compliance renders as read-only for them — they see the timeline and can add remarks via the existing comment/action flow, without seeing approve/reject buttons that aren't theirs.
-- No change to who can *act* on a step. This migration only fixes *visibility* of workflow metadata so the correct panel renders. If the pre-license workflow doesn't currently assign Legal/Compliance to any step, they simply see the read-only workflow view — which matches the user's expectation ("not authorised to take actions on form", just comment for review).
-- No changes to write policies, no changes to the frontend, no changes to the resolver.
+## Fix (single, minimal edit)
 
-## Fix (single migration)
+Edit `src/pages/applications/ApplicationDetail.tsx`:
 
-1. **`approval_workflows`** — replace the five hard-coded `has_role(...)` clauses in `Internal users read workflows` with `public.has_any_internal_role(auth.uid())`.
-2. **`approval_steps`** — same treatment for `Internal users read steps`.
-3. **`workflow_instances`** — same treatment for both `Internal users read workflow instances` (keeping the applicant own-app EXISTS branch untouched) and `Admins full access workflow instances`.
-4. **`approval_actions`** — same treatment for `Read actions` (keep `auth.uid() = actor_id` branch intact so users always see their own posts).
-5. **`approval_workflow_types`** — same treatment for `Internal users read workflow type config`.
+1. Delete `setWorkflowChecked(false);` at the top of `loadData()`. The state is initialised to `false` at the `useState` site, so the very first `loadData()` still ends with `setWorkflowChecked(true)` and the initial gate behaves identically. Subsequent refetches simply update `workflowActive`/`workflowApprovalEnabled` in place — `WorkflowPanel` stays mounted, `previewState` survives, the signature dialog stays open through the upload.
 
-The existing restrictive `external_users_denied_*` policies stay unchanged — they call `has_external_role`, which correctly returns false for pure internal reviewers. Admin-only write policies are also untouched.
+That's the entire change. No behaviour change for the initial page load, no behaviour change for the "workflow just got disabled" case (we still re-resolve every refetch and unmount when appropriate — just without the transient false blip).
 
-No frontend changes. No new tables, columns, or helpers — `public.has_any_internal_role(uuid)` already exists from the previous migration.
+No frontend refactor of the preview dialog or its file input needed. No RLS or backend change.
 
 ## Verification
 
-1. Sign in as `ratnpriyaemp@yopmail.com` (Legal/Compliance Reviewer) → open the same submitted application → the "Approval workflow is not active" banner is gone; `WorkflowPanel` renders with the pre-license workflow steps.
-2. Buttons Legal/Compliance is not assigned to remain unavailable; comment/remark entry works.
-3. Analyst, Supervisor, Licensing Officer, and Admin views are unchanged (regression check).
-4. Pure applicant / licensee views are unchanged — external denial policies still apply.
+1. As Analyst/Legal Compliance Reviewer, open a submitted application, click Approve on a step that requires digital signature → preview dialog opens.
+2. Click Upload → pick a valid PNG/JPG → dialog stays open, signature preview appears, Confirm & Send becomes enabled.
+3. Regression: reload the page — WorkflowPanel still hides correctly when the workflow is off / not configured.
+4. Regression: toggle the assigned workflow to inactive in another tab — realtime listener refreshes and the panel correctly disappears (still driven by `workflowActive`, which is authoritative).
