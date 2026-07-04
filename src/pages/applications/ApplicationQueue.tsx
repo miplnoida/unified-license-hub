@@ -105,7 +105,10 @@ function slaChip(age: number | null) {
 
 export default function ApplicationQueue() {
   const { user } = useAuth();
-  const { activeSectorId } = useActiveSector();
+  const { activeSectorId, availableSectors } = useActiveSector();
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [sectorFilter, setSectorFilter] = useState<string>('active');
+
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
   const [applicants, setApplicants] = useState<Record<string, string>>({});
