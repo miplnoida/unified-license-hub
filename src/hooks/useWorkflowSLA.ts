@@ -63,7 +63,7 @@ export function computeWorkflowSLA(
   input: UseWorkflowSLAInput,
   now: Date = new Date(),
 ): WorkflowSLAResult {
-  const { startedAt, slaHours, warningThresholdPercent, escalationAfterHours, paused, escalationBasis = 'deadline' } = input;
+  const { startedAt, slaHours, warningThresholdPercent, escalationAfterHours, paused, pauseSeconds, pausedSince, escalationBasis = 'deadline' } = input;
 
   if (!startedAt || !slaHours || slaHours <= 0) {
     return {
@@ -79,9 +79,15 @@ export function computeWorkflowSLA(
 
   const startMs = new Date(startedAt).getTime();
   const nowMs = now.getTime();
-  const deadlineMs = startMs + slaHours * HOUR_MS;
+  const basePauseMs = Math.max(0, (pauseSeconds ?? 0) * 1000);
+  const liveExtraPauseMs = pausedSince
+    ? Math.max(0, nowMs - new Date(pausedSince).getTime())
+    : 0;
+  const effectivePauseMs = basePauseMs + liveExtraPauseMs;
+
+  const deadlineMs = startMs + slaHours * HOUR_MS + effectivePauseMs;
   const remainingHours = diffHours(deadlineMs, nowMs);
-  const elapsedHours = Math.max(0, diffHours(nowMs, startMs));
+  const elapsedHours = Math.max(0, diffHours(nowMs, startMs) - effectivePauseMs / HOUR_MS);
   const percentConsumed = Math.min(999, (elapsedHours / slaHours) * 100);
   const breachedByHours = remainingHours < 0 ? Math.abs(remainingHours) : 0;
 
