@@ -1,39 +1,42 @@
-# Fix: applicant name shows as UUID in Activity Trail
 
-## Root cause
+# Plan — Non-Technical Demo Presentation Guide
 
-`useEntityAuditLog` resolves actor names only from `public.profiles`. But applicants (pre-licensees) live in `public.pre_license_users`, not `profiles`. When the audit trail includes an action taken by a pre-licensee (e.g. "Application submitted" by Arya Deepti, `bbbbf700-…`), the profile lookup misses and the row falls back to showing the raw user UUID. Internal staff (Super Admin, Vidya Rani) resolve fine because they exist in `profiles`.
+## Goal
+Add a single new Markdown file — `docs/DEMO_PRESENTATION_GUIDE_NON_TECHNICAL.md` — that a non-technical presenter can follow end to end. No application code changes.
 
-Confirmed on `/applications/b9acc94b-…`: Super Admin and Vidya Rani show names; `bbbbf700-…` shows as UUID for every action taken by the applicant.
+## Source coverage (57 demo IDs total)
+Every row from every uploaded spreadsheet will get its own step and its own row in the coverage matrix. IDs to be covered:
 
-RLS is already permissive enough — internal staff can read all `pre_license_users`, and pre-licensees can read their own row — so a client-side query works without extra migrations.
+- **Script 1 — Licensing (12):** DEMO-ULRA-001 … 012
+- **Script 2 — Fit & Proper (15):** DEMO-FPA-001 … 015
+- **Script 3 — Prudential (11):** DEMO-PRUD-001 … 011
+- **Script 4 — Market Conduct (10):** DEMO-MCS-001 … 010
+- **Script 5 — Dashboards / Reporting / Audit (9):** DEMO-DPA-001 … 009
 
-## Fix
+For each ID I will carry over: Scenario name, Detailed Steps, Vendor Actions, Expected Outputs, Evaluation Intent, Evidence Required, Requirement Mapping.
 
-Update `src/hooks/useEntityAuditLog.ts` so name resolution also queries `pre_license_users` and merges results into the actor name map. Profile match wins if both exist; otherwise use pre_license_users; otherwise fall back to `'System'` (when `user_id` is null) or the UUID.
+## Document structure (matches the requested format exactly)
 
-Pseudocode inside the hook, after the current `profiles` fetch:
+1. **Demo Preparation** — required accounts (Applicant, Licensing Officer, Analyst, Legal Reviewer, Approver, FP Assessor, FP Committee, Prudential Supervisor, Conduct Supervisor, Complainant, Admin), suggested demo data (Caribbean Trust Bank Ltd, Jonathan Williams CEO, etc.), browser setup (Chrome, 1440×900), tabs to pre-open (Dashboard, Applications queue, Fit & Proper register, Prudential returns, Conduct complaints, Reports, Audit), login order, fallback rules for partial features.
 
-```ts
-const [{ data: profiles }, { data: preUsers }] = await Promise.all([
-  supabase.from('profiles').select('id, email, full_name').in('id', userIds),
-  supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
-]);
-preUsers?.forEach((u) => {
-  if (!nameMap[u.id]) nameMap[u.id] = u.full_name || u.email || u.id;
-});
-profiles?.forEach((p) => {
-  nameMap[p.id] = p.full_name || p.email || nameMap[p.id] || p.id;
-});
-```
+2. **Demo Storyline** — one plain-English narrative that threads the five scripts into one story about Caribbean Trust Bank applying for a banking licence, going through RFI → analyst/legal review → Fit & Proper on CEO → prudential + conduct findings → Twin Peaks conditional clearance → issuance → ongoing supervision → dashboards & audit.
 
-Also change the final fallback so an unresolved UUID renders as a friendlier `'Unknown user'` label instead of the raw UUID.
+3. **Step-by-Step Demo Script** — 57 steps, one per spreadsheet ID, each in the mandated 8-field format (Purpose / Login as / Go to / Action / Values / Presenter script / Expected result / Evidence / Fallback). Steps grouped into 5 acts matching the scripts and their time slots.
 
-## Scope
+4. **Spreadsheet Coverage Matrix** — one big table with 57 rows, columns: Script | Feature/Action | Evaluation Intent | Expected Output | Evidence Required | Demo Step # | Screen/Page | Status (Covered / Partial / Not Available) | Presenter notes. Status assigned per what actually exists in this app (based on codebase: FP module, applications queue, RFI, workflow engine, twin-peaks clearance lib, returns, complaints, dashboards, audit, exports — most Covered; AI-assisted analyst review, weighted committee voting, adverse-media scoring, integration logs marked Partial with workaround).
 
-- One file edited: `src/hooks/useEntityAuditLog.ts`.
-- No DB migration, no RLS change, no component change (all timelines built on `EntityTimeline` inherit the fix — application, return, license, licensee, fit-and-proper, etc.).
+5. **Suggested Demo Data** — full sample values block as specified (applicant, licence, RFI, F&P, prudential, conduct, twin peaks, audit/reporting).
 
-## Verification
+6. **Presenter Script** — opening, per-module narration, transitions, closing — plain spoken language.
 
-Reload `/applications/b9acc94b-9c28-486e-a48a-93bbc7b30c1a`, open the Activity tab, confirm rows previously labeled `bbbbf700-0a8b-…` now read `by Arya Deepti`.
+7. **Timing Plan** — 45-minute plan aligned to spreadsheet time slots (8:45 → 6:00 compressed to ~5+8+7+7+8+5+5 min).
+
+8. **Presenter Checklist** — pre-demo readiness list.
+
+9. **Feature Gap Notes** — plain-English list of partial/planned items with what to show instead (e.g. AI screening: show manual screening + notes card; weighted voting: show determinations panel + rationale; integration logs: show audit + notifications log).
+
+## Deliverable
+One new file:
+- `docs/DEMO_PRESENTATION_GUIDE_NON_TECHNICAL.md`
+
+No other files created, modified, or deleted.
