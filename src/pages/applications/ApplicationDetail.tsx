@@ -107,6 +107,15 @@ export default function ApplicationDetail() {
   const [activeTab, setActiveTab] = useState<string>(initialTabParam || 'details');
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
+  const [editingTaxonomy, setEditingTaxonomy] = useState(false);
+  const [taxSector, setTaxSector] = useState<string>('');
+  const [taxSubSector, setTaxSubSector] = useState<string>('');
+  const [taxCategory, setTaxCategory] = useState<string>('');
+  const [savingTaxonomy, setSavingTaxonomy] = useState(false);
+  const { data: allSectorsList = [] } = useSectors();
+  const { data: allSubSectorsList = [] } = useSubSectors();
+  const { data: allCategoriesList = [] } = useCategories();
+
 
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
   const isPreLicensee = useIsPreLicensee();
