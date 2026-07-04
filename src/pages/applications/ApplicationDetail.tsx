@@ -55,7 +55,9 @@ import { ConfigurableDecisionActions } from '@/components/applications/Configura
 import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
+import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -107,7 +109,6 @@ export default function ApplicationDetail() {
   const [activeTab, setActiveTab] = useState<string>(initialTabParam || 'details');
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
-  const [editingTaxonomy, setEditingTaxonomy] = useState(false);
   const [taxSector, setTaxSector] = useState<string>('');
   const [taxSubSector, setTaxSubSector] = useState<string>('');
   const [taxCategory, setTaxCategory] = useState<string>('');
@@ -115,6 +116,7 @@ export default function ApplicationDetail() {
   const { data: allSectorsList = [] } = useSectors();
   const { data: allSubSectorsList = [] } = useSubSectors();
   const { data: allCategoriesList = [] } = useCategories();
+  const { data: allFormTemplates = [] } = useFormTemplates(undefined, (app as any)?.regulator_id ?? undefined);
 
 
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
@@ -139,6 +141,15 @@ export default function ApplicationDetail() {
     && !isInternal
     && (['draft', 'in_progress'].includes(normalizeApplicationStatus(app.status)));
 
+  // Sync local dropdown state with the loaded application record.
+  useEffect(() => {
+    if (!app) return;
+    setTaxSector(appData?.sector_id || '');
+    setTaxSubSector(appData?.sub_sector_id || '');
+    setTaxCategory(appData?.category_id || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app?.id]);
+
   const filteredTaxSubSectors = (allSubSectorsList as any[]).filter(
     (s: any) => s.sector_id === taxSector && s.status === 'active'
   );
@@ -146,38 +157,73 @@ export default function ApplicationDetail() {
     (c: any) => c.sub_sector_id === taxSubSector && c.status === 'active'
   );
 
-  const startEditTaxonomy = () => {
-    setTaxSector(appData?.sector_id || '');
-    setTaxSubSector(appData?.sub_sector_id || '');
-    setTaxCategory(appData?.category_id || '');
-    setEditingTaxonomy(true);
+  // Same priority ladder as NewApplication.tsx `matchedTemplates` memo.
+  const resolveMatchedTemplateIds = (secId: string, subId: string, catId: string): string[] => {
+    const published = (allFormTemplates as any[]).filter((t: any) =>
+      t.status === 'published' && (t.form_type === 'pre_license' || t.form_type === 'application')
+    );
+    const byCategory = published.filter((t: any) => t.category_id === catId);
+    if (byCategory.length > 0) return byCategory.map((t: any) => t.id);
+    const bySub = published.filter((t: any) => t.sub_sector_id === subId && !t.category_id);
+    if (bySub.length > 0) return bySub.map((t: any) => t.id);
+    const bySec = published.filter((t: any) => t.sector_id === secId && !t.sub_sector_id && !t.category_id);
+    if (bySec.length > 0) return bySec.map((t: any) => t.id);
+    const catObj = (allCategoriesList as any[]).find((c: any) => c.id === catId);
+    const subObj = (allSubSectorsList as any[]).find((s: any) => s.id === subId);
+    const secObj = (allSectorsList as any[]).find((s: any) => s.id === secId);
+    if (!catObj || !subObj || !secObj) return [];
+    return published
+      .filter((t: any) =>
+        (t.category && t.category === catObj.name) ||
+        (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
+        (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector))
+      .map((t: any) => t.id);
   };
 
-  const cancelEditTaxonomy = () => {
-    setEditingTaxonomy(false);
-  };
-
-  const saveTaxonomy = async () => {
-    if (!app || !taxSector || !taxSubSector || !taxCategory) return;
+  const persistTaxonomy = async (secId: string, subId: string, catId: string) => {
+    if (!app) return;
     setSavingTaxonomy(true);
     try {
-      const sectorName = (allSectorsList as any[]).find((s: any) => s.id === taxSector)?.name || '';
-      const subSectorName = (allSubSectorsList as any[]).find((s: any) => s.id === taxSubSector)?.name || '';
-      const categoryName = (allCategoriesList as any[]).find((c: any) => c.id === taxCategory)?.name || '';
-      const nextData = {
-        ...(app.data as any),
-        sector_id: taxSector,
-        sub_sector_id: taxSubSector,
-        category_id: taxCategory,
+      const sectorName = (allSectorsList as any[]).find((s: any) => s.id === secId)?.name || '';
+      const subSectorName = (allSubSectorsList as any[]).find((s: any) => s.id === subId)?.name || '';
+      const categoryName = (allCategoriesList as any[]).find((c: any) => c.id === catId)?.name || '';
+      const currentData = (app.data as any) || {};
+      const prevTriple = `${currentData.sector_id || ''}|${currentData.sub_sector_id || ''}|${currentData.category_id || ''}`;
+      const nextTriple = `${secId}|${subId}|${catId}`;
+      const tripleChanged = prevTriple !== nextTriple;
+      const fullTriple = !!(secId && subId && catId);
+
+      const nextData: any = {
+        ...currentData,
+        sector_id: secId || '',
+        sub_sector_id: subId || '',
+        category_id: catId || '',
         sector_name: sectorName,
         sub_sector_name: subSectorName,
         category_name: categoryName,
       };
+
+      // When the fully-selected triple changes, recompute form templates and
+      // prune stale form data so the Submitted Forms tab reflects the new sector.
+      if (fullTriple && tripleChanged) {
+        const nextIds = resolveMatchedTemplateIds(secId, subId, catId);
+        const prevIds: string[] = currentData.form_template_ids || [];
+        const keep = new Set(nextIds);
+        const prevForms = (currentData.forms_data || {}) as Record<string, any>;
+        const prevVersions = (currentData.form_version_ids || {}) as Record<string, string>;
+        const nextForms: Record<string, any> = {};
+        const nextVersions: Record<string, string> = {};
+        for (const tid of Object.keys(prevForms)) if (keep.has(tid)) nextForms[tid] = prevForms[tid];
+        for (const tid of Object.keys(prevVersions)) if (keep.has(tid)) nextVersions[tid] = prevVersions[tid];
+        nextData.form_template_ids = nextIds;
+        nextData.forms_data = nextForms;
+        nextData.form_version_ids = nextVersions;
+        void prevIds;
+      }
+
       const { error } = await supabase.from('applications').update({ data: nextData } as any).eq('id', app.id);
       if (error) throw error;
       setApp({ ...app, data: nextData } as any);
-      setEditingTaxonomy(false);
-      toast.success('Sector details updated');
       queryClient.invalidateQueries({ queryKey: ['application', app.id] });
     } catch (e: any) {
       toast.error(e?.message || 'Failed to update sector details');
@@ -185,6 +231,23 @@ export default function ApplicationDetail() {
       setSavingTaxonomy(false);
     }
   };
+
+  const handleTaxSectorChange = (v: string) => {
+    setTaxSector(v);
+    setTaxSubSector('');
+    setTaxCategory('');
+    void persistTaxonomy(v, '', '');
+  };
+  const handleTaxSubSectorChange = (v: string) => {
+    setTaxSubSector(v);
+    setTaxCategory('');
+    void persistTaxonomy(taxSector, v, '');
+  };
+  const handleTaxCategoryChange = (v: string) => {
+    setTaxCategory(v);
+    void persistTaxonomy(taxSector, taxSubSector, v);
+  };
+
 
 
   useEffect(() => {
@@ -776,78 +839,58 @@ export default function ApplicationDetail() {
                           <p className="text-sm text-muted-foreground">License Type</p>
                           <p className="font-medium">{formatTaxonomyLabel(app.license_type)}</p>
                         </div>
-                        {taxonomyEditable && editingTaxonomy ? (
-                          <div className="col-span-2 space-y-3 border rounded-md p-4 bg-muted/30">
+                        {taxonomyEditable ? (
+                          <div className="col-span-2 space-y-4">
                             <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold">Edit Sector Details</p>
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="ghost" onClick={cancelEditTaxonomy} disabled={savingTaxonomy}>Cancel</Button>
-                                <Button
-                                  size="sm"
-                                  onClick={saveTaxonomy}
-                                  disabled={
-                                    savingTaxonomy ||
-                                    !taxSector || !taxSubSector || !taxCategory ||
-                                    (taxSector === (appData?.sector_id || '') &&
-                                     taxSubSector === (appData?.sub_sector_id || '') &&
-                                     taxCategory === (appData?.category_id || ''))
-                                  }
-                                >
-                                  {savingTaxonomy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-                                </Button>
-                              </div>
+                              <p className="text-sm font-semibold">Sector Selection</p>
+                              {savingTaxonomy && (
+                                <span className="flex items-center text-xs text-muted-foreground">
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" /> Saving…
+                                </span>
+                              )}
                             </div>
-                            <div className="grid md:grid-cols-3 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Sector</Label>
-                                <Select
-                                  value={taxSector}
-                                  onValueChange={(v) => { setTaxSector(v); setTaxSubSector(''); setTaxCategory(''); }}
-                                >
-                                  <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
-                                  <SelectContent>
-                                    {(allSectorsList as any[])
-                                      .filter((s: any) => s.status === 'active')
-                                      .map((s: any) => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                      ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Sub-Sector</Label>
-                                <Select
-                                  value={taxSubSector}
-                                  onValueChange={(v) => { setTaxSubSector(v); setTaxCategory(''); }}
-                                  disabled={!taxSector}
-                                >
-                                  <SelectTrigger><SelectValue placeholder="Select sub-sector" /></SelectTrigger>
-                                  <SelectContent>
-                                    {filteredTaxSubSectors.length === 0 ? (
-                                      <SelectItem value="__none__" disabled>No active sub-sectors</SelectItem>
-                                    ) : filteredTaxSubSectors.map((s: any) => (
+                            <div className="space-y-2">
+                              <Label htmlFor="app-sector">Sector *</Label>
+                              <Select value={taxSector} onValueChange={handleTaxSectorChange}>
+                                <SelectTrigger id="app-sector">
+                                  <SelectValue placeholder="Select Sector" />
+                                </SelectTrigger>
+                                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
+                                  {(allSectorsList as any[])
+                                    .filter((s: any) => s.status === 'active')
+                                    .map((s: any) => (
                                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Category</Label>
-                                <Select
-                                  value={taxCategory}
-                                  onValueChange={setTaxCategory}
-                                  disabled={!taxSubSector}
-                                >
-                                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                                  <SelectContent>
-                                    {filteredTaxCategories.length === 0 ? (
-                                      <SelectItem value="__none__" disabled>No active categories</SelectItem>
-                                    ) : filteredTaxCategories.map((c: any) => (
-                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="app-subsector">Sub-Sector *</Label>
+                              <Select value={taxSubSector} onValueChange={handleTaxSubSectorChange} disabled={!taxSector}>
+                                <SelectTrigger id="app-subsector">
+                                  <SelectValue placeholder={taxSector ? 'Select Sub-Sector' : 'Select a sector first'} />
+                                </SelectTrigger>
+                                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
+                                  {filteredTaxSubSectors.map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="app-category">Category *</Label>
+                              <Select value={taxCategory} onValueChange={handleTaxCategoryChange} disabled={!taxSubSector}>
+                                <SelectTrigger id="app-category">
+                                  <SelectValue placeholder={taxSubSector ? 'Select Category' : 'Select a sub-sector first'} />
+                                </SelectTrigger>
+                                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
+                                  {filteredTaxCategories.map((c: any) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         ) : (
@@ -879,15 +922,9 @@ export default function ApplicationDetail() {
                                 </div>
                               </div>
                             )}
-                            {taxonomyEditable && (
-                              <div className="col-span-2">
-                                <Button size="sm" variant="outline" onClick={startEditTaxonomy}>
-                                  <Edit className="h-4 w-4 mr-1" /> Change Sector / Sub-Sector / Category
-                                </Button>
-                              </div>
-                            )}
                           </>
                         )}
+
 
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
