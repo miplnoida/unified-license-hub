@@ -127,20 +127,25 @@ export function useEntityAuditLog(opts: UseEntityAuditLogOptions) {
         new Set(rows.map((r) => r.user_id).filter(Boolean) as string[]),
       );
 
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (userIds.length) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .in('id', userIds);
+        const [{ data: profiles }, { data: preUsers }] = await Promise.all([
+          supabase.from('profiles').select('id, email, full_name').in('id', userIds),
+          supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
+        ]);
+        preUsers?.forEach((u: any) => {
+          nameMap[u.id] = u.full_name || u.email || u.id;
+        });
         profiles?.forEach((p: any) => {
-          nameMap[p.id] = p.full_name || p.email || p.id;
+          const label = p.full_name || p.email;
+          if (label) nameMap[p.id] = label;
+          else if (!nameMap[p.id]) nameMap[p.id] = p.id;
         });
       }
 
       return rows.map((r) => ({
         ...(r as Omit<EntityAuditRow, 'actor_name'>),
-        actor_name: r.user_id ? nameMap[r.user_id] || r.user_id : 'System',
+        actor_name: r.user_id ? nameMap[r.user_id] || 'Unknown user' : 'System',
       }));
     },
   });
