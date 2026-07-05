@@ -23,7 +23,7 @@ export default function PrudentialEntityProfile() {
   const { id } = useParams();
   const { data, isLoading, refetch } = useEntityHistoricalProfile(id);
   const evalStress = useEvaluateStressForReturn();
-  const audit = useEntityAuditLog({ entityType: 'licensee', entityId: id });
+  const audit = useEntityAuditHistory(id);
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
 
