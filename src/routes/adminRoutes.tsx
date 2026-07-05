@@ -113,9 +113,9 @@ export const adminRoutes = (
     <Route path="/admin/rfi-auto-rules" element={<M module="application_management"><RfiAutoRules /></M>} />
     <Route path="/admin/supervisory-plan-templates" element={<M module="application_management"><SupervisoryPlanTemplates /></M>} />
     <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
-    <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
-    <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
-    <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper"><FpSectorDecisionRules /></M>} />
+    <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />
+    <Route path="/admin/fp-committees" element={<M module="fit_and_proper_committee"><FpCommittees /></M>} />
+    <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper_screening"><FpSectorDecisionRules /></M>} />
     <Route path="/admin/case-audit" element={<M module="settings"><CaseAuditTrail /></M>} />
     <Route path="/admin/case-audit/:entityType/:entityId" element={<M module="settings"><CaseAuditTrail /></M>} />
     <Route path="/supervision/early-warnings" element={<M module="returns_management"><PrudentialEarlyWarnings /></M>} />
