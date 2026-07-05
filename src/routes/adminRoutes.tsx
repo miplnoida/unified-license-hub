@@ -103,7 +103,7 @@ export const adminRoutes = (
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />
     <Route path="/admin/integration-logs" element={<M module="settings"><IntegrationLogs /></M>} />
     <Route path="/admin/notification-templates" element={<M module="settings"><NotificationTemplates /></M>} />
-    <Route path="/admin/complaint-types" element={<M module="complaint_management"><ComplaintTypes /></M>} />
+    <Route path="/admin/complaint-types" element={<M module="complaint_type"><ComplaintTypes /></M>} />
     <Route path="/admin/approved-licensees" element={<M module="license_management"><ApprovedLicensees /></M>} />
     <Route path="/admin/registration-forms" element={<M module="form_management"><RegistrationFormBuilder /></M>} />
     <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
