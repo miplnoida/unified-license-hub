@@ -1,16 +1,58 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEntityHistoricalProfile } from '@/hooks/usePrudentialSupervision';
+import { useEntityHistoricalProfile, useEvaluateStressForReturn } from '@/hooks/usePrudentialSupervision';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { ChangeHistoryDrawer } from '@/components/audit/ChangeHistoryDrawer';
+import { useEntityAuditLog } from '@/hooks/useEntityAuditLog';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { useMemo, useState } from 'react';
+import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
+import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
+
+const RISK_TONE: Record<string, string> = {
+  critical: 'bg-destructive/10 text-destructive border-destructive/30',
+  high: 'bg-amber-500/10 text-amber-700 border-amber-200',
+  medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
+  low: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
+};
 
 export default function PrudentialEntityProfile() {
   const { id } = useParams();
-  const { data, isLoading } = useEntityHistoricalProfile(id);
+  const { data, isLoading, refetch } = useEntityHistoricalProfile(id);
+  const evalStress = useEvaluateStressForReturn();
+  const audit = useEntityAuditLog('licensee', id!);
+  const [createAction, setCreateAction] = useState<any>(null);
+  const [createEscalation, setCreateEscalation] = useState<any>(null);
+
+  const ratioTrend = useMemo(() => {
+    if (!data?.ratios) return [];
+    // Pivot ratios by return_id / period
+    const byReturn: Record<string, any> = {};
+    const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
+    (data.ratios || []).forEach((r: any) => {
+      const rf = returnsById[r.return_id];
+      const key = rf?.period_end_date || r.computed_at;
+      byReturn[key] = { period: key, ...(byReturn[key] || {}), [r.ratio_key]: Number(r.value) };
+    });
+    return Object.values(byReturn).sort((a: any, b: any) => a.period.localeCompare(b.period));
+  }, [data]);
+
   if (isLoading || !data?.entity) return <div className="p-6">Loading…</div>;
   const e: any = data.entity;
+  const latestAssess = data.assessments?.[0];
+  const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
+  const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
+  const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
+  const worstBreachSev = (() => {
+    const order = ['critical','high','medium','low'];
+    let worst: string | null = null;
+    (data.breaches || []).forEach((b: any) => { if (!worst || order.indexOf(b.severity) < order.indexOf(worst)) worst = b.severity; });
+    return worst;
+  })();
 
   return (
     <div className="p-6 space-y-4">
@@ -18,25 +60,50 @@ export default function PrudentialEntityProfile() {
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
           <p className="text-sm text-muted-foreground">
-            Status: <Badge variant="outline">{e.status || '—'}</Badge>
+            License: <Badge variant="outline">{e.status || '—'}</Badge>{' '}
+            {e.systemic_importance && <>· Systemic: <Badge>{e.systemic_importance}</Badge></>}
           </p>
         </div>
-        <HistoryButton entityType="licensee" entityId={e.id} title={`${e.name} history`} />
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
+          <Button size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
+          <HistoryButton entityType="licensee" entityId={e.id} title={`${e.name} history`} />
+        </div>
       </div>
 
-      <Tabs defaultValue="returns">
-        <TabsList>
+      <Tabs defaultValue="overview">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
-          <TabsTrigger value="ratios">Ratios</TabsTrigger>
+          <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
           <TabsTrigger value="breaches">Breaches</TabsTrigger>
           <TabsTrigger value="assessments">Assessments</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
+          <TabsTrigger value="stress">Stress Events</TabsTrigger>
+          <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid md:grid-cols-4 gap-3">
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest return</CardTitle></CardHeader>
+              <CardContent className="text-sm">{data.returns[0]?.period_end_date || '—'}<br /><Badge variant="outline">{data.returns[0]?.workflow_status || data.returns[0]?.status || '—'}</Badge></CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest rating</CardTitle></CardHeader>
+              <CardContent className="text-sm">{latestAssess?.overall_rating || '—'}<br /><span className="text-xs text-muted-foreground">{latestAssess?.status || 'no assessment'}</span></CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Worst breach</CardTitle></CardHeader>
+              <CardContent className="text-sm">{worstBreachSev ? <Badge className={RISK_TONE[worstBreachSev]}>{worstBreachSev}</Badge> : '—'}</CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open actions</CardTitle></CardHeader>
+              <CardContent className="text-sm">{openActions.length} <span className="text-destructive">({overdueActions.length} overdue)</span></CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open escalations</CardTitle></CardHeader>
+              <CardContent className="text-sm">{openEsc.length}</CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Recent stress events</CardTitle></CardHeader>
+              <CardContent className="text-sm">{(data.stress_events || []).filter((s: any) => !s.resolved_at).length}</CardContent></Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="returns">
           <Card><CardContent className="pt-4">
-            <Table><TableHeader><TableRow><TableHead>Return</TableHead><TableHead>Period end</TableHead><TableHead>Submitted</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>Return</TableHead><TableHead>Period end</TableHead><TableHead>Submitted</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.returns.map((r: any) => (
                   <TableRow key={r.id}>
@@ -44,22 +111,44 @@ export default function PrudentialEntityProfile() {
                     <TableCell>{r.period_end_date}</TableCell>
                     <TableCell>{r.submit_date ? new Date(r.submit_date).toLocaleDateString() : '—'}</TableCell>
                     <TableCell><Badge variant="outline">{r.workflow_status || r.status}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={async () => { await evalStress.mutateAsync(r.id); refetch(); }}>Evaluate stress</Button>
+                    </TableCell>
                   </TableRow>
                 ))}
-                {!data.returns.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No returns.</TableCell></TableRow>}
+                {!data.returns.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No returns.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>
 
         <TabsContent value="ratios">
-          <Card><CardContent className="pt-4">
+          <Card>
+            <CardHeader><CardTitle>Ratio trend</CardTitle></CardHeader>
+            <CardContent style={{ height: 300 }}>
+              {ratioTrend.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={ratioTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    {Object.keys(ratioTrend[0] as any).filter(k => k !== 'period').slice(0, 6).map((k, i) => (
+                      <Line key={k} dataKey={k} stroke={['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899'][i]} strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : <div className="text-sm text-muted-foreground">No ratios computed.</div>}
+            </CardContent>
+          </Card>
+          <Card className="mt-3"><CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.ratios.map((r: any) => (
+                {data.ratios.slice(0, 100).map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.label || r.ratio_key}</TableCell>
-                    <TableCell>{r.value}</TableCell>
-                    <TableCell>{new Date(r.computed_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="tabular-nums">{r.value}</TableCell>
+                    <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
                   </TableRow>
                 ))}
                 {!data.ratios.length && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No ratios yet.</TableCell></TableRow>}
@@ -69,17 +158,31 @@ export default function PrudentialEntityProfile() {
 
         <TabsContent value="breaches">
           <Card><CardContent className="pt-4">
-            <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Detected</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.breaches.map((b: any) => (
                   <TableRow key={b.id}>
                     <TableCell>{b.metric_key || b.ratio_key || '—'}</TableCell>
-                    <TableCell><Badge>{b.severity || '—'}</Badge></TableCell>
-                    <TableCell>{b.observed_value ?? b.value ?? '—'}</TableCell>
-                    <TableCell>{new Date(b.detected_at).toLocaleDateString()}</TableCell>
+                    <TableCell><Badge className={RISK_TONE[b.severity] || ''}>{b.severity || '—'}</Badge></TableCell>
+                    <TableCell className="tabular-nums">{b.observed_value ?? b.value ?? '—'}</TableCell>
+                    <TableCell className="tabular-nums">{b.threshold_value ?? '—'}</TableCell>
+                    <TableCell>{b.detected_at ? new Date(b.detected_at).toLocaleDateString() : '—'}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button size="sm" variant="ghost" onClick={() => setCreateAction({
+                        entity_id: e.id, source_type: 'return_breach', source_id: b.id,
+                        title: `Follow-up on breach: ${b.metric_key || b.ratio_key}`, severity: b.severity,
+                        description: `Breach detected on ${b.metric_key || b.ratio_key} (value ${b.observed_value ?? b.value}, threshold ${b.threshold_value}).`,
+                      })}>Create action</Button>
+                      {['critical','high'].includes(b.severity) && (
+                        <Button size="sm" variant="ghost" onClick={() => setCreateEscalation({
+                          entity_id: e.id, related_type: 'return', related_id: b.return_id,
+                          escalation_type: 'immediate_risk', reason: `${b.severity} breach on ${b.metric_key || b.ratio_key}`,
+                        })}>Escalate</Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
-                {!data.breaches.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
+                {!data.breaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>
@@ -111,7 +214,7 @@ export default function PrudentialEntityProfile() {
                   <TableRow key={a.id}>
                     <TableCell>{a.title}</TableCell>
                     <TableCell>{a.action_type}</TableCell>
-                    <TableCell><Badge>{a.severity}</Badge></TableCell>
+                    <TableCell><Badge className={RISK_TONE[a.severity] || ''}>{a.severity}</Badge></TableCell>
                     <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
                     <TableCell>{a.due_date || '—'}</TableCell>
                   </TableRow>
@@ -123,21 +226,65 @@ export default function PrudentialEntityProfile() {
 
         <TabsContent value="escalations">
           <Card><CardContent className="pt-4">
-            <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Reason</TableHead><TableHead>Status</TableHead><TableHead>Decided</TableHead></TableRow></TableHeader>
+            <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Reason</TableHead><TableHead>Status</TableHead><TableHead>Decision</TableHead><TableHead>Decided</TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.escalations.map((es: any) => (
                   <TableRow key={es.id}>
                     <TableCell>{es.escalation_type}</TableCell>
                     <TableCell className="max-w-md truncate">{es.reason}</TableCell>
                     <TableCell><Badge variant="outline">{es.status}</Badge></TableCell>
+                    <TableCell className="max-w-xs truncate">{es.decision || '—'}</TableCell>
                     <TableCell>{es.decided_at ? new Date(es.decided_at).toLocaleDateString() : '—'}</TableCell>
                   </TableRow>
                 ))}
-                {!data.escalations.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No escalations.</TableCell></TableRow>}
+                {!data.escalations.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No escalations.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>
+
+        <TabsContent value="stress">
+          <Card><CardContent className="pt-4">
+            <Table><TableHeader><TableRow><TableHead>Indicator</TableHead><TableHead>Metric</TableHead><TableHead>Observed</TableHead><TableHead>Severity</TableHead><TableHead>Triggered</TableHead><TableHead>Resolved</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {(data.stress_events || []).map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell>{s.prudential_stress_indicators?.label || s.indicator_id}</TableCell>
+                    <TableCell>{s.prudential_stress_indicators?.metric_key || '—'}</TableCell>
+                    <TableCell className="tabular-nums">{s.observed_value ?? '—'}</TableCell>
+                    <TableCell><Badge className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>{s.prudential_stress_indicators?.severity || '—'}</Badge></TableCell>
+                    <TableCell>{new Date(s.triggered_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{s.resolved_at ? new Date(s.resolved_at).toLocaleDateString() : '—'}</TableCell>
+                  </TableRow>
+                ))}
+                {!(data.stress_events || []).length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No stress events.</TableCell></TableRow>}
+              </TableBody></Table>
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <Card><CardContent className="pt-4">
+            <div className="text-sm">
+              {audit.data?.length ? (
+                <Table><TableHeader><TableRow><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Object</TableHead><TableHead>Actor</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {audit.data.slice(0, 100).map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell>{new Date(a.created_at).toLocaleString()}</TableCell>
+                        <TableCell>{a.action_type}</TableCell>
+                        <TableCell>{a.object_type}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.actor_id?.slice(0,8) || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : <div className="text-muted-foreground">No audit records.</div>}
+            </div>
+          </CardContent></Card>
+        </TabsContent>
       </Tabs>
+
+      <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
+      <CreatePrudentialEscalationDialog open={!!createEscalation} onOpenChange={(o) => !o && setCreateEscalation(null)} defaults={createEscalation} />
     </div>
   );
 }
