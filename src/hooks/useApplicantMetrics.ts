@@ -132,7 +132,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
           under_review,
           approved,
           rejected,
-          clarification_requested: clarification + rfiRows.length,
+          clarification_requested: mergedActionRequired.filter((r: any) => r.status === 'info_requested' || r.status === 'query_raised' || r.status === 'rfi_open').length,
           resubmission_requested: resubmission,
         },
         payments: { pending: payPending, paid: payPaid, outstanding_amount },
