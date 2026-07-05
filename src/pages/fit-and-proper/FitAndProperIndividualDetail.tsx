@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,8 +8,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Save, Plus, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
@@ -18,6 +22,7 @@ import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { logFpAction } from '@/lib/fpAudit';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
