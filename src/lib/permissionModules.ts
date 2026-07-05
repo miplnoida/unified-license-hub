@@ -23,6 +23,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'registration_management',
   'returns_management',
   'complaint_management',
+  'complaint_type',
   'user_management',
   'role_management',
   'report_management',
@@ -31,6 +32,11 @@ export const KNOWN_PERMISSION_MODULES = [
   'workflow_management',
   'settings',
   'fit_and_proper',
+  'fit_and_proper_initiation',
+  'fit_and_proper_screening',
+  'fit_and_proper_committee',
+  'market_conduct',
+  'market_conduct_investigation',
   'coordination',
 ] as const;
 
@@ -74,7 +80,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   
 
   // Complaints
-  ['/admin/complaint-types', 'complaint_management'],
+  ['/admin/complaint-types', 'complaint_type'],
   ['/complaints', 'complaint_management'],
 
   // Reports
@@ -83,16 +89,17 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
 
   // Fit & Proper
   ['/fit-and-proper', 'fit_and_proper'],
-  ['/admin/fp-screening-configs', 'fit_and_proper'],
-  ['/admin/fp-committees', 'fit_and_proper'],
+  ['/admin/fp-screening-configs', 'fit_and_proper_screening'],
+  ['/admin/fp-committees', 'fit_and_proper_committee'],
+  ['/admin/fp-sector-rules', 'fit_and_proper_screening'],
 
   // Twin Peaks Coordination
   ['/coordination', 'coordination'],
 
   // Market Conduct & Thematic Reviews
-  ['/conduct', 'complaint_management'],
-  ['/supervision/thematic-reviews', 'complaint_management'],
-  ['/admin/conduct', 'complaint_management'],
+  ['/conduct', 'market_conduct'],
+  ['/supervision/thematic-reviews', 'market_conduct'],
+  ['/admin/conduct', 'market_conduct'],
 
   // License action forms (sidebar module = license_management)
   ['/admin/license-action-forms', 'license_management'],

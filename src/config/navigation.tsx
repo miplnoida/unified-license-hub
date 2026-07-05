@@ -120,20 +120,21 @@ export const mainNavSections: NavSection[] = [
     label: 'Complaints',
     items: [
       { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensee_primary', 'licensee_secondary', 'pre_licensee', 'applicant'], module: 'complaint_management' },
-      { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+      { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_type', adminOnly: true },
     ],
   },
   {
     label: 'Market Conduct',
     items: [
-      { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
-      { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
-      { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
-      { label: 'Thematic Reviews', href: '/supervision/thematic-reviews', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
-      { label: 'Risk Taxonomy', href: '/admin/conduct/risk-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
-      { label: 'Products & Channels', href: '/admin/conduct/products-channels', icon: <Boxes className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
-      { label: 'Triage Rules', href: '/admin/conduct/triage-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
-      { label: 'Monitoring Rules', href: '/admin/conduct/monitoring-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
+      { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Thematic Reviews', href: '/supervision/thematic-reviews', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Risk Taxonomy', href: '/admin/conduct/risk-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
+      { label: 'Products & Channels', href: '/admin/conduct/products-channels', icon: <Boxes className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
+      { label: 'Triage Rules', href: '/admin/conduct/triage-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
+      { label: 'Monitoring Rules', href: '/admin/conduct/monitoring-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
+
 
     ],
   },
@@ -141,8 +142,8 @@ export const mainNavSections: NavSection[] = [
     label: 'Fit & Proper',
     items: [
       { label: 'Individual Register', href: '/fit-and-proper', icon: <UserCircle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' },
-      { label: 'Screening Configs', href: '/admin/fp-screening-configs', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper', adminOnly: true },
-      { label: 'Committees', href: '/admin/fp-committees', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper', adminOnly: true },
+      { label: 'Screening Configs', href: '/admin/fp-screening-configs', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper_screening', adminOnly: true },
+      { label: 'Committees', href: '/admin/fp-committees', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper_committee', adminOnly: true },
     ],
   },
   {

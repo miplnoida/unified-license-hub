@@ -103,7 +103,7 @@ export const adminRoutes = (
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />
     <Route path="/admin/integration-logs" element={<M module="settings"><IntegrationLogs /></M>} />
     <Route path="/admin/notification-templates" element={<M module="settings"><NotificationTemplates /></M>} />
-    <Route path="/admin/complaint-types" element={<M module="complaint_management"><ComplaintTypes /></M>} />
+    <Route path="/admin/complaint-types" element={<M module="complaint_type"><ComplaintTypes /></M>} />
     <Route path="/admin/approved-licensees" element={<M module="license_management"><ApprovedLicensees /></M>} />
     <Route path="/admin/registration-forms" element={<M module="form_management"><RegistrationFormBuilder /></M>} />
     <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
@@ -113,17 +113,17 @@ export const adminRoutes = (
     <Route path="/admin/rfi-auto-rules" element={<M module="application_management"><RfiAutoRules /></M>} />
     <Route path="/admin/supervisory-plan-templates" element={<M module="application_management"><SupervisoryPlanTemplates /></M>} />
     <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
-    <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
-    <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
-    <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper"><FpSectorDecisionRules /></M>} />
+    <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />
+    <Route path="/admin/fp-committees" element={<M module="fit_and_proper_committee"><FpCommittees /></M>} />
+    <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper_screening"><FpSectorDecisionRules /></M>} />
     <Route path="/admin/case-audit" element={<M module="settings"><CaseAuditTrail /></M>} />
     <Route path="/admin/case-audit/:entityType/:entityId" element={<M module="settings"><CaseAuditTrail /></M>} />
     <Route path="/supervision/early-warnings" element={<M module="returns_management"><PrudentialEarlyWarnings /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
-    <Route path="/admin/conduct/risk-taxonomy" element={<M module="complaint_management"><ConductRiskTaxonomy /></M>} />
-    <Route path="/admin/conduct/products-channels" element={<M module="complaint_management"><ConductProductsChannels /></M>} />
-    <Route path="/admin/conduct/triage-rules" element={<M module="complaint_management"><ConductTriageRules /></M>} />
+    <Route path="/admin/conduct/risk-taxonomy" element={<M module="market_conduct"><ConductRiskTaxonomy /></M>} />
+    <Route path="/admin/conduct/products-channels" element={<M module="market_conduct"><ConductProductsChannels /></M>} />
+    <Route path="/admin/conduct/triage-rules" element={<M module="market_conduct"><ConductTriageRules /></M>} />
     <Route path="/admin/sufficiency-rules" element={<M module="license_management"><SufficiencyRules /></M>} />
     <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
     <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
