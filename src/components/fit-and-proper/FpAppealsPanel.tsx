@@ -168,6 +168,19 @@ export function FpAppealsPanel({ individualId }: Props) {
         }).select('id').single();
         if (insErr) throw insErr;
         newDetId = inserted.id;
+
+        // License impact — record an auditable license action if a license was linked to this appeal.
+        if (appeal.license_id) {
+          try {
+            await supabase.from('license_actions').insert({
+              license_id: appeal.license_id,
+              action_type: 'fp_appeal_overturn',
+              actor_id: user!.id,
+              reason: `FP appeal ${decision === 'overturned_to_approved' ? 'overturned to approved' : 'overturned to conditional'}: ${note.trim()}`,
+              metadata: { appeal_id: appeal.id, individual_id: individualId, new_determination_id: newDetId, new_outcome: outcome },
+            });
+          } catch (e) { console.warn('license_actions insert failed', e); }
+        }
       }
 
       const { error } = await supabase.from('fp_appeals').update({
@@ -180,10 +193,16 @@ export function FpAppealsPanel({ individualId }: Props) {
       }).eq('id', appeal.id);
       if (error) throw error;
       await logFpAction('fp.appeal.decided', 'fp_appeal', appeal.id, {
-        after: { decision, new_determination_id: newDetId },
+        after: { decision, new_determination_id: newDetId, license_id: appeal.license_id ?? null },
         context: { individualId, appealId: appeal.id, determinationId: newDetId ?? appeal.determination_id },
         justification: note.trim(),
       });
+      // Fire a notification (no-op if no template configured).
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: appeal.id, payload: { decision, individual_id: individualId } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Appeal decided');
