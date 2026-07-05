@@ -70,6 +70,11 @@ const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews')
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
 const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
+const ConductEntitiesList = lazy(() => import('@/pages/conduct/ConductEntitiesList'));
+const ConductEntityProfile = lazy(() => import('@/pages/conduct/ConductEntityProfile'));
+const Investigations = lazy(() => import('@/pages/conduct/Investigations'));
+const InvestigationDetail = lazy(() => import('@/pages/conduct/InvestigationDetail'));
+const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
 const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
@@ -178,6 +183,11 @@ export const dashboardRoutes = (
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
     <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
+    <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
+    <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
+    <Route path="/conduct/investigations" element={<M module="market_conduct"><Investigations /></M>} />
+    <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
+    <Route path="/complaints/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
 
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />

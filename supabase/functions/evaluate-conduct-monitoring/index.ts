@@ -23,12 +23,16 @@ Deno.serve(async (req) => {
 
     for (const rule of (rules as Any[]) || []) {
       summary.evaluated++;
+      // Start a run-log row for auditability
+      const { data: runRow } = await supa.from('conduct_monitoring_rule_runs')
+        .insert({ rule_id: rule.id, status: 'started' }).select('id').maybeSingle();
+      let ruleMatched = 0;
+      let ruleAlerts = 0;
       try {
         const evaluations = await evaluateRule(supa, rule);
         for (const ev of evaluations) {
-          if (ev.matched) summary.matched++;
+          if (ev.matched) { summary.matched++; ruleMatched++; }
 
-          // Insert result (trigger will apply risk feedback)
           const { data: resRow, error: rErr } = await supa.from('conduct_monitoring_results')
             .insert({
               rule_id: rule.id,
@@ -44,7 +48,6 @@ Deno.serve(async (req) => {
           if (rErr) { summary.errors.push(`result:${rule.id}:${rErr.message}`); continue; }
           summary.results_written++;
 
-          // Alert on match — idempotent per (rule, entity, day)
           if (ev.matched) {
             const dedupeDay = new Date().toISOString().slice(0, 10);
             const dedupeKey = `mon:${rule.id}:${ev.entity_id || 'g'}:${ev.product_id || 'x'}:${dedupeDay}`;
@@ -65,13 +68,39 @@ Deno.serve(async (req) => {
               }).select('id').maybeSingle();
               if (alert?.id) {
                 summary.alerts_created++;
+                ruleAlerts++;
                 await supa.from('conduct_monitoring_results').update({ alert_id: alert.id }).eq('id', (resRow as Any).id);
+
+                // Fire notification event (best-effort)
+                try {
+                  await supa.functions.invoke('dispatch-notification-event', {
+                    body: {
+                      event_key: 'conduct_monitoring_rule_triggered',
+                      entity_type: 'conduct_alert',
+                      entity_id: alert.id,
+                      payload: { rule_name: rule.name, entity_id: ev.entity_id, alert_id: alert.id },
+                    },
+                  });
+                } catch { /* swallow */ }
               }
             }
           }
         }
+        if (runRow?.id) {
+          await supa.from('conduct_monitoring_rule_runs').update({
+            status: 'success', completed_at: new Date().toISOString(),
+            matched_count: ruleMatched, alerts_created: ruleAlerts,
+          }).eq('id', runRow.id);
+        }
       } catch (e) {
         summary.errors.push(`rule:${rule.id}:${(e as Error).message}`);
+        if (runRow?.id) {
+          await supa.from('conduct_monitoring_rule_runs').update({
+            status: 'failed', completed_at: new Date().toISOString(),
+            matched_count: ruleMatched, alerts_created: ruleAlerts,
+            error: (e as Error).message,
+          }).eq('id', runRow.id);
+        }
       }
     }
   } catch (e) {

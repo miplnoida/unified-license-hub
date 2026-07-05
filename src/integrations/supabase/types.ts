@@ -1756,6 +1756,8 @@ export type Database = {
           email: string | null
           enforcement_action_id: string | null
           id: string
+          intake_source: string | null
+          internal_created_by: string | null
           investigator_id: string | null
           license_holder_id: string | null
           licensee_id: string | null
@@ -1796,6 +1798,8 @@ export type Database = {
           email?: string | null
           enforcement_action_id?: string | null
           id?: string
+          intake_source?: string | null
+          internal_created_by?: string | null
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
@@ -1836,6 +1840,8 @@ export type Database = {
           email?: string | null
           enforcement_action_id?: string | null
           id?: string
+          intake_source?: string | null
+          internal_created_by?: string | null
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
@@ -2089,8 +2095,10 @@ export type Database = {
           action_type: string
           assigned_team: string | null
           assigned_to: string | null
+          cancellation_reason: string | null
           closed_at: string | null
           closed_by: string | null
+          completion_notes: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -2099,6 +2107,7 @@ export type Database = {
           entity_id: string | null
           id: string
           metadata: Json
+          outcome: string | null
           product_id: string | null
           source_id: string | null
           source_module: string
@@ -2107,13 +2116,16 @@ export type Database = {
           title: string
           updated_at: string
           waiver_override_id: string | null
+          waiver_reason: string | null
         }
         Insert: {
           action_type?: string
           assigned_team?: string | null
           assigned_to?: string | null
+          cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          completion_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -2122,6 +2134,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           metadata?: Json
+          outcome?: string | null
           product_id?: string | null
           source_id?: string | null
           source_module: string
@@ -2130,13 +2143,16 @@ export type Database = {
           title: string
           updated_at?: string
           waiver_override_id?: string | null
+          waiver_reason?: string | null
         }
         Update: {
           action_type?: string
           assigned_team?: string | null
           assigned_to?: string | null
+          cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          completion_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -2145,6 +2161,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           metadata?: Json
+          outcome?: string | null
           product_id?: string | null
           source_id?: string | null
           source_module?: string
@@ -2153,6 +2170,7 @@ export type Database = {
           title?: string
           updated_at?: string
           waiver_override_id?: string | null
+          waiver_reason?: string | null
         }
         Relationships: [
           {
@@ -2247,9 +2265,11 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          assigned_to: string | null
           channel_id: string | null
           closed_at: string | null
           closed_by: string | null
+          closure_reason: string | null
           complaint_id: string | null
           conduct_risk_category_id: string | null
           created_at: string
@@ -2273,9 +2293,11 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          assigned_to?: string | null
           channel_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          closure_reason?: string | null
           complaint_id?: string | null
           conduct_risk_category_id?: string | null
           created_at?: string
@@ -2299,9 +2321,11 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          assigned_to?: string | null
           channel_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
+          closure_reason?: string | null
           complaint_id?: string | null
           conduct_risk_category_id?: string | null
           created_at?: string
@@ -2432,6 +2456,185 @@ export type Database = {
           },
         ]
       }
+      conduct_evidence: {
+        Row: {
+          action_id: string | null
+          alert_id: string | null
+          complaint_id: string | null
+          confidentiality_level: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          evidence_type: string
+          file_id: string | null
+          file_url: string | null
+          id: string
+          investigation_id: string | null
+          metadata: Json
+          restricted: boolean
+          source: string | null
+          thematic_review_id: string | null
+          title: string
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          alert_id?: string | null
+          complaint_id?: string | null
+          confidentiality_level?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          evidence_type?: string
+          file_id?: string | null
+          file_url?: string | null
+          id?: string
+          investigation_id?: string | null
+          metadata?: Json
+          restricted?: boolean
+          source?: string | null
+          thematic_review_id?: string | null
+          title: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          alert_id?: string | null
+          complaint_id?: string | null
+          confidentiality_level?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          evidence_type?: string
+          file_id?: string | null
+          file_url?: string | null
+          id?: string
+          investigation_id?: string | null
+          metadata?: Json
+          restricted?: boolean
+          source?: string | null
+          thematic_review_id?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_evidence_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_evidence_access_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          evidence_id: string | null
+          id: string
+          ip_address: string | null
+          reason: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      conduct_investigations: {
+        Row: {
+          allegation: string
+          assigned_investigator: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_reason: string | null
+          code: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          licensee_id: string | null
+          metadata: Json
+          opened_by: string | null
+          outcome: string | null
+          priority: string
+          product_id: string | null
+          severity: string
+          source_id: string | null
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allegation: string
+          assigned_investigator?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_reason?: string | null
+          code?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          opened_by?: string | null
+          outcome?: string | null
+          priority?: string
+          product_id?: string | null
+          severity?: string
+          source_id?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allegation?: string
+          assigned_investigator?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_reason?: string | null
+          code?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          opened_by?: string | null
+          outcome?: string | null
+          priority?: string
+          product_id?: string | null
+          severity?: string
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conduct_monitoring_results: {
         Row: {
           alert_id: string | null
@@ -2519,6 +2722,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conduct_monitoring_rule_runs: {
+        Row: {
+          alerts_created: number
+          completed_at: string | null
+          error: string | null
+          executed_by: string | null
+          id: string
+          matched_count: number
+          rule_id: string | null
+          started_at: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          alerts_created?: number
+          completed_at?: string | null
+          error?: string | null
+          executed_by?: string | null
+          id?: string
+          matched_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          alerts_created?: number
+          completed_at?: string | null
+          error?: string | null
+          executed_by?: string | null
+          id?: string
+          matched_count?: number
+          rule_id?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
       }
       conduct_monitoring_rules: {
         Row: {
@@ -2637,6 +2879,7 @@ export type Database = {
           parent_id: string | null
           regulator_id: string | null
           severity_hint: string | null
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -2649,6 +2892,7 @@ export type Database = {
           parent_id?: string | null
           regulator_id?: string | null
           severity_hint?: string | null
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -2661,6 +2905,7 @@ export type Database = {
           parent_id?: string | null
           regulator_id?: string | null
           severity_hint?: string | null
+          sort_order?: number
           updated_at?: string
         }
         Relationships: [
@@ -13564,6 +13809,23 @@ export type Database = {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
       }
+      conduct_entity_audit_history: {
+        Args: { _entity_id: string }
+        Returns: {
+          action_type: string
+          actor_id: string
+          after_value: Json
+          before_value: Json
+          justification: string
+          logged_at: string
+          object_id: string
+          object_type: string
+        }[]
+      }
+      conduct_entity_profile_summary: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
       create_approval_workflow_with_steps: {
         Args: { _steps: Json; _workflow: Json }
         Returns: Json
@@ -14029,6 +14291,10 @@ export type Database = {
           _user_agent?: string
         }
         Returns: string
+      }
+      log_conduct_evidence_access: {
+        Args: { _action: string; _evidence_id: string; _reason?: string }
+        Returns: undefined
       }
       log_document_batch_action: {
         Args: { _action: string; _details?: Json; _group_id: string }
