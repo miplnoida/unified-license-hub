@@ -1,0 +1,169 @@
+import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useConductEntitySummary, useConductEntityAuditHistory } from '@/hooks/useMarketConduct';
+import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
+import { Loader2, ArrowLeft } from 'lucide-react';
+
+const sb = supabase as any;
+
+function useEntityList<T = any>(table: string, filterCol: string, id: string | undefined, select = '*') {
+  return useQuery({
+    enabled: !!id,
+    queryKey: [`entity-${table}`, id],
+    queryFn: async () => {
+      const { data, error } = await sb.from(table).select(select).eq(filterCol, id).order('created_at', { ascending: false }).limit(100);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as T[];
+    },
+  });
+}
+
+export default function ConductEntityProfile() {
+  const { id } = useParams<{ id: string }>();
+  const { data: entity } = useQuery({
+    enabled: !!id,
+    queryKey: ['entity', id],
+    queryFn: async () => {
+      const { data } = await sb.from('licensees')
+        .select('id, name, status, sector_id, sub_sector_id, sectors(name), sub_sectors(name)')
+        .eq('id', id).maybeSingle();
+      return data;
+    },
+  });
+  const { data: summary } = useConductEntitySummary(id);
+  const { data: audit } = useConductEntityAuditHistory(id);
+  const complaints = useEntityList('complaints', 'licensee_id', id, 'id, complaint_number, subject, status, severity, priority, created_at');
+  const alerts = useEntityList('conduct_alerts', 'licensee_id', id, 'id, title, kind, severity, status, created_at');
+  const actions = useEntityList('conduct_actions', 'entity_id', id, 'id, title, action_type, status, due_date, created_at');
+  const investigations = useEntityList('conduct_investigations', 'licensee_id', id, 'id, allegation, status, priority, severity, created_at');
+  const monitoring = useEntityList('conduct_monitoring_results', 'entity_id', id, 'id, rule_id, matched, evaluated_at, metrics');
+
+  if (!entity) {
+    return <DashboardLayout><div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div></DashboardLayout>;
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-4">
+        <PageHeader
+          title={entity.name}
+          description={`Market conduct profile · ${entity.sectors?.name || 'sector unknown'}`}
+          actions={<Button variant="ghost" asChild><Link to="/conduct/entities"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link></Button>}
+        />
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            ['Complaints total', summary?.complaints_total ?? 0],
+            ['Open complaints', summary?.complaints_open ?? 0],
+            ['High/Critical', summary?.complaints_high ?? 0],
+            ['Repeat', summary?.complaints_repeat ?? 0],
+            ['Open alerts', summary?.alerts_open ?? 0],
+            ['Open actions', summary?.actions_open ?? 0],
+            ['Open investigations', summary?.investigations_open ?? 0],
+            ['Thematic reviews', summary?.thematic_reviews ?? 0],
+          ].map(([label, val]) => (
+            <Card key={label as string}><CardContent className="p-4">
+              <div className="text-xs text-muted-foreground">{label}</div>
+              <div className="text-2xl font-semibold font-mono">{val as number}</div>
+            </CardContent></Card>
+          ))}
+        </div>
+
+        <Tabs defaultValue="overview">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="complaints">Complaints</TabsTrigger>
+            <TabsTrigger value="alerts">Alerts</TabsTrigger>
+            <TabsTrigger value="investigations">Investigations</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring Hits</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <Card><CardContent className="p-6 space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className="ml-2 capitalize">{entity.status}</Badge></div>
+              <div><span className="text-muted-foreground">Sector:</span> {entity.sectors?.name || '—'} / {entity.sub_sectors?.name || '—'}</div>
+            </CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="complaints">
+            <ListCard rows={complaints.data} loading={complaints.isLoading} columns={['complaint_number','subject','severity','priority','status','created_at']} linkFn={r => `/complaints/${r.id}`} />
+          </TabsContent>
+          <TabsContent value="alerts">
+            <ListCard rows={alerts.data} loading={alerts.isLoading} columns={['title','kind','severity','status','created_at']} linkFn={() => '/conduct/alerts'} />
+          </TabsContent>
+          <TabsContent value="investigations">
+            <ListCard rows={investigations.data} loading={investigations.isLoading} columns={['allegation','status','priority','severity','created_at']} linkFn={r => `/conduct/investigations/${r.id}`} />
+          </TabsContent>
+          <TabsContent value="evidence">
+            <EvidenceRepositoryPanel entityId={id} title="All evidence for this entity" />
+          </TabsContent>
+          <TabsContent value="actions">
+            <ListCard rows={actions.data} loading={actions.isLoading} columns={['title','action_type','status','due_date','created_at']} linkFn={() => '/conduct/actions'} />
+          </TabsContent>
+          <TabsContent value="monitoring">
+            <ListCard rows={monitoring.data} loading={monitoring.isLoading} columns={['rule_id','matched','evaluated_at']} linkFn={() => '/admin/conduct/monitoring-rules'} />
+          </TabsContent>
+          <TabsContent value="audit">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Unified audit history</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Object</TableHead><TableHead>Justification</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(audit ?? []).length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">No audit entries yet.</TableCell></TableRow>}
+                    {(audit ?? []).map((r: any, i: number) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs">{new Date(r.logged_at).toLocaleString()}</TableCell>
+                        <TableCell><Badge variant="outline">{r.action_type}</Badge></TableCell>
+                        <TableCell className="text-xs">{r.object_type}</TableCell>
+                        <TableCell className="text-xs max-w-md truncate">{r.justification || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+function ListCard({ rows, loading, columns, linkFn }: { rows: any[] | undefined; loading: boolean; columns: string[]; linkFn: (r: any) => string }) {
+  if (loading) return <Card><CardContent className="p-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></CardContent></Card>;
+  const r = rows ?? [];
+  if (r.length === 0) return <Card><CardContent className="p-6 text-center text-muted-foreground">Nothing recorded.</CardContent></Card>;
+  return (
+    <Card><CardContent className="p-0">
+      <Table>
+        <TableHeader><TableRow>{columns.map(c => <TableHead key={c}>{c.replace(/_/g, ' ')}</TableHead>)}<TableHead /></TableRow></TableHeader>
+        <TableBody>
+          {r.map((row: any) => (
+            <TableRow key={row.id}>
+              {columns.map(c => (
+                <TableCell key={c} className="text-sm">
+                  {typeof row[c] === 'boolean' ? String(row[c]) : (row[c] && String(row[c]).length > 60 ? String(row[c]).slice(0, 60) + '…' : row[c] ?? '—')}
+                </TableCell>
+              ))}
+              <TableCell className="text-right"><Button size="sm" variant="ghost" asChild><Link to={linkFn(row)}>Open</Link></Button></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </CardContent></Card>
+  );
+}
