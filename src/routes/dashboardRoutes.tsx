@@ -70,6 +70,11 @@ const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews')
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
 const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
+const ConductEntitiesList = lazy(() => import('@/pages/conduct/ConductEntitiesList'));
+const ConductEntityProfile = lazy(() => import('@/pages/conduct/ConductEntityProfile'));
+const Investigations = lazy(() => import('@/pages/conduct/Investigations'));
+const InvestigationDetail = lazy(() => import('@/pages/conduct/InvestigationDetail'));
+const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
 const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
