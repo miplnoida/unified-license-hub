@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,8 +8,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Save, Plus, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
@@ -18,9 +22,15 @@ import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { logFpAction } from '@/lib/fpAudit';
+
+const ROLE_TYPES = [
+  'director', 'chairperson', 'ceo', 'cfo', 'key_person', 'controller', 'shareholder', 'senior_manager', 'trustee', 'other',
+];
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
 
   const { data: person, isLoading } = useQuery({
     queryKey: ['fp_individual', id],
@@ -32,8 +42,28 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  // Access-denial audit — if authenticated user cannot see this individual, record the attempt.
+  useEffect(() => {
+    if (!isLoading && !person && id && user?.id) {
+      logFpAction('fp.individual.access_denied', 'fp_individual', id, {
+        context: { individualId: id },
+      }).catch(() => {/* best-effort */});
+    }
+  }, [isLoading, person, id, user?.id]);
+
   const qc = useQueryClient();
   const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [roleForm, setRoleForm] = useState({
+    role_type: 'director', role_title: '', licensee_id: 'none', effective_from: new Date().toISOString().slice(0, 10),
+    reassessment_cycle_months: '',
+  });
+  const [runningCycle, setRunningCycle] = useState(false);
+
+  const { data: licensees = [] } = useQuery({
+    queryKey: ['licensees-lookup-fp'],
+    queryFn: async () => (await supabase.from('licensees').select('id, name').order('name').limit(500)).data ?? [],
+  });
 
   const { data: roles } = useQuery({
     queryKey: ['fp_individual_roles', id],
@@ -46,6 +76,57 @@ export default function FitAndProperIndividualDetail() {
       return data ?? [];
     },
   });
+
+  const addRole = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error('No individual');
+      if (!roleForm.role_type) throw new Error('Role type required');
+      const months = roleForm.reassessment_cycle_months ? Number(roleForm.reassessment_cycle_months) : null;
+      if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+        throw new Error('Cycle must be 1-120 months');
+      }
+      const nextDue = months
+        ? (() => { const d = new Date(); d.setMonth(d.getMonth() + months); return d.toISOString().slice(0, 10); })()
+        : null;
+      const payload = {
+        individual_id: id,
+        role_type: roleForm.role_type,
+        role_title: roleForm.role_title.trim() || null,
+        licensee_id: roleForm.licensee_id === 'none' ? null : roleForm.licensee_id,
+        effective_from: roleForm.effective_from || null,
+        is_current: true,
+        reassessment_cycle_months: months,
+        next_reassessment_due: nextDue,
+        created_by: user?.id,
+      };
+      const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
+      if (error) throw error;
+      await logFpAction('fp.role.added', 'fp_individual_role', data.id, {
+        after: payload,
+        context: { individualId: id },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Role added — a role-change assessment can now be initiated');
+      setAddRoleOpen(false);
+      setRoleForm({ role_type: 'director', role_title: '', licensee_id: 'none', effective_from: new Date().toISOString().slice(0, 10), reassessment_cycle_months: '' });
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  async function runCycleNow() {
+    setRunningCycle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-cycle-scheduler', { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Scheduler failed');
+      toast.success(`Cycle scheduler ran — opened ${data.opened}, evaluated ${data.evaluated}, due ${data.due}`);
+      qc.invalidateQueries({ queryKey: ['fp_assessments', id] });
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    } catch (e: any) { toast.error(e?.message || 'Failed'); }
+    finally { setRunningCycle(false); }
+  }
 
   async function saveCycle(roleId: string) {
     const raw = cycleEdits[roleId];
@@ -119,7 +200,69 @@ export default function FitAndProperIndividualDetail() {
           </TabsList>
 
           <TabsContent value="roles">
-            <Card><CardContent className="p-4 space-y-2">
+            <Card><CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Roles link this individual to regulated entities. Adding a role enables role-change / material-change initiation.
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
+                    {runningCycle ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                    Run cycle scheduler
+                  </Button>
+                  <Dialog open={addRoleOpen} onOpenChange={setAddRoleOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add role</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Add role linkage</DialogTitle></DialogHeader>
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Role type *</Label>
+                          <Select value={roleForm.role_type} onValueChange={(v) => setRoleForm({ ...roleForm, role_type: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{ROLE_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>
+                            ))}</SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Role title (optional)</Label>
+                          <Input value={roleForm.role_title} onChange={(e) => setRoleForm({ ...roleForm, role_title: e.target.value })} placeholder="e.g. Board Member" />
+                        </div>
+                        <div>
+                          <Label>Licensee</Label>
+                          <Select value={roleForm.licensee_id} onValueChange={(v) => setRoleForm({ ...roleForm, licensee_id: v })}>
+                            <SelectTrigger><SelectValue placeholder="No licensee link" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No licensee link</SelectItem>
+                              {(licensees as any[]).map((l) => (
+                                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Effective from</Label>
+                            <Input type="date" value={roleForm.effective_from} onChange={(e) => setRoleForm({ ...roleForm, effective_from: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label>Reassessment cycle (months)</Label>
+                            <Input type="number" min={1} max={120} value={roleForm.reassessment_cycle_months} onChange={(e) => setRoleForm({ ...roleForm, reassessment_cycle_months: e.target.value })} placeholder="e.g. 24" />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setAddRoleOpen(false)}>Cancel</Button>
+                        <Button onClick={() => addRole.mutate()} disabled={addRole.isPending}>
+                          {addRole.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save role
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
               {(roles ?? []).length === 0 && <p className="text-sm text-muted-foreground">No roles linked yet.</p>}
               {(roles ?? []).map((r: any) => {
                 const editVal = cycleEdits[r.id];

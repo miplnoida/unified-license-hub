@@ -48,19 +48,38 @@ export default function FitAndProperIndividuals() {
       if (search.trim()) q = q.ilike('full_name', `%${search.trim()}%`);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const ids = (data ?? []).map((r: any) => r.id);
+      if (ids.length === 0) return data ?? [];
+      const { data: roleRows } = await supabase.from('fp_individual_roles')
+        .select('individual_id').in('individual_id', ids).eq('is_current', true);
+      const counts = new Map<string, number>();
+      for (const r of roleRows ?? []) counts.set(r.individual_id, (counts.get(r.individual_id) ?? 0) + 1);
+      return (data ?? []).map((r: any) => ({ ...r, role_count: counts.get(r.id) ?? 0 }));
     },
   });
 
   const create = useMutation({
     mutationFn: async () => {
       if (!form.full_name.trim()) throw new Error('Full name required');
+      const nid = form.national_id.trim();
+      const email = form.email.trim();
+      // Duplicate detection against national_id / email (unique identifier reuse)
+      if (nid || email) {
+        const orParts: string[] = [];
+        if (nid) orParts.push(`national_id.eq.${nid}`);
+        if (email) orParts.push(`email.eq.${email}`);
+        const { data: dup } = await supabase.from('fp_individuals')
+          .select('id, full_name, national_id, email').or(orParts.join(',')).limit(1).maybeSingle();
+        if (dup) {
+          throw new Error(`Existing individual "${dup.full_name}" already uses this identifier — open the existing profile instead of creating a duplicate.`);
+        }
+      }
       const payload = {
         full_name: form.full_name.trim(),
-        national_id: form.national_id.trim() || null,
+        national_id: nid || null,
         nationality: form.nationality.trim() || null,
         date_of_birth: form.date_of_birth || null,
-        email: form.email.trim() || null,
+        email: email || null,
         phone: form.phone.trim() || null,
         address: form.address.trim() || null,
         notes: form.notes.trim() || null,
@@ -131,6 +150,7 @@ export default function FitAndProperIndividuals() {
                 <TableHeader><TableRow>
                   <TableHead>Name</TableHead><TableHead>National ID</TableHead>
                   <TableHead>Nationality</TableHead><TableHead>Email</TableHead>
+                  <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead><TableHead />
                 </TableRow></TableHeader>
                 <TableBody>
@@ -140,6 +160,11 @@ export default function FitAndProperIndividuals() {
                       <TableCell className="text-xs font-mono">{r.national_id || '—'}</TableCell>
                       <TableCell className="text-xs">{r.nationality || '—'}</TableCell>
                       <TableCell className="text-xs">{r.email || '—'}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant="outline" className={r.role_count > 1 ? 'bg-amber-50 text-amber-800' : 'bg-slate-50 text-slate-700'}>
+                          {r.role_count ?? 0} active
+                        </Badge>
+                      </TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_META[r.status] || ''}>{r.status}</Badge></TableCell>
                       <TableCell><Link to={`/fit-and-proper/individuals/${r.id}`}><Button size="sm" variant="ghost">Open</Button></Link></TableCell>
                     </TableRow>

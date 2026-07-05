@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
+import { resolveFpSectorRule, evaluateFpCriteria } from '@/lib/fpSectorRules';
 
 const OUTCOME_META: Record<string, { label: string; className: string }> = {
   approved: { label: 'Approved', className: 'bg-green-100 text-green-800' },
@@ -41,11 +42,63 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessmentId,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_assessments')
-        .select('id, individual_id, status, committee_id, regulator_id').eq('id', assessmentId!).maybeSingle();
+        .select('id, individual_id, status, committee_id, regulator_id, role_id, licensee_id').eq('id', assessmentId!).maybeSingle();
       if (error) throw error;
       return data;
     },
   });
+
+  // Resolve sector context for sector-specific rule evaluation.
+  const { data: sectorContext } = useQuery({
+    queryKey: ['fp_sector_ctx', assessment?.licensee_id, assessment?.role_id],
+    enabled: !!assessment,
+    queryFn: async () => {
+      let sectorId: string | null = null;
+      let subSectorId: string | null = null;
+      let roleType: string | null = null;
+      if (assessment?.role_id) {
+        const { data: role } = await supabase.from('fp_individual_roles')
+          .select('role_type, licensee_id').eq('id', assessment.role_id).maybeSingle();
+        if (role) {
+          roleType = role.role_type;
+          if (role.licensee_id) {
+            const { data: lic } = await supabase.from('licensees').select('sector_id, sub_sector_id').eq('id', role.licensee_id).maybeSingle();
+            if (lic) { sectorId = lic.sector_id; subSectorId = lic.sub_sector_id; }
+          }
+        }
+      } else if (assessment?.licensee_id) {
+        const { data: lic } = await supabase.from('licensees').select('sector_id, sub_sector_id').eq('id', assessment.licensee_id).maybeSingle();
+        if (lic) { sectorId = lic.sector_id; subSectorId = lic.sub_sector_id; }
+      }
+      return { sectorId, subSectorId, roleType };
+    },
+  });
+
+  const { data: sectorRule } = useQuery({
+    queryKey: ['fp_sector_rule', sectorContext?.sectorId, sectorContext?.subSectorId, sectorContext?.roleType],
+    enabled: !!sectorContext?.sectorId,
+    queryFn: async () => resolveFpSectorRule(sectorContext!),
+  });
+
+  const { data: assessmentFindings } = useQuery({
+    queryKey: ['fp_det_findings', assessmentId],
+    enabled: !!assessmentId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_findings')
+        .select('check_type, severity, is_false_positive, resolution_status, confidence_score')
+        .eq('assessment_id', assessmentId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const criteriaEval = useMemo(() => {
+    const active = (assessmentFindings ?? []).filter((f: any) => !f.is_false_positive && f.resolution_status !== 'false_positive');
+    const completedChecks = Array.from(new Set(active.map((f: any) => f.check_type)));
+    const scores = active.map((f: any) => Number(f.confidence_score ?? 0)).filter((n: number) => Number.isFinite(n));
+    const avg = scores.length ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null;
+    return evaluateFpCriteria(sectorRule ?? null, { score: avg, completedChecks });
+  }, [assessmentFindings, sectorRule]);
 
   const { data: regulators = [] } = useQuery({
     queryKey: ['regulators-active'],
@@ -348,10 +401,29 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                   })}
                 </div>
 
+                {sectorRule && (
+                  <div className={`border rounded p-3 text-sm ${criteriaEval.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div className="font-medium flex items-center gap-2">
+                      <ShieldAlert className="h-4 w-4" />
+                      Sector rule: {sectorRule.name}
+                    </div>
+                    {criteriaEval.passed ? (
+                      <div className="text-xs mt-1 text-green-800">All sector criteria satisfied.</div>
+                    ) : (
+                      <div className="text-xs mt-1 space-y-1">
+                        {criteriaEval.failed.length > 0 && <div><strong>Missing mandatory checks:</strong> {criteriaEval.failed.join(', ')}</div>}
+                        {criteriaEval.disqualifiers.length > 0 && <div className="text-red-800"><strong>Disqualifiers present:</strong> {criteriaEval.disqualifiers.join(', ')}</div>}
+                        {criteriaEval.minScoreOk === false && <div><strong>Minimum confidence score not met.</strong></div>}
+                        {criteriaEval.warned.length > 0 && <div className="text-amber-800"><strong>Warnings:</strong> {criteriaEval.warned.join(', ')}</div>}
+                        <div className="text-muted-foreground">Sector rule failed — record rationale below explaining the override.</div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {quorumMet && outcome && assessment?.status !== 'determined' && (
                   <div className="border rounded p-3 bg-primary/5 space-y-2">
                     <div className="text-sm">Quorum reached — proposed outcome: <Badge variant="outline" className={OUTCOME_META[outcome].className}>{OUTCOME_META[outcome].label}</Badge></div>
-                    <Textarea rows={3} placeholder="Determination rationale (min 10 chars)…" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+                    <Textarea rows={3} placeholder={sectorRule && !criteriaEval.passed ? 'Rationale (min 10 chars) — must justify overriding sector rule' : 'Determination rationale (min 10 chars)…'} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                     <div className="flex justify-end">
                       <Button onClick={() => finalize.mutate()} disabled={finalize.isPending || rationale.trim().length < 10}>
                         {finalize.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

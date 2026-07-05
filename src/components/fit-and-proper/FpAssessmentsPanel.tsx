@@ -33,6 +33,12 @@ export function FpAssessmentsPanel({ individualId }: Props) {
   const [open, setOpen] = useState(false);
   const [assessmentType, setAssessmentType] = useState('initial');
   const [roleId, setRoleId] = useState<string>('none');
+  const [regulatorId, setRegulatorId] = useState<string>('none');
+
+  const { data: regulators = [] } = useQuery({
+    queryKey: ['regulators-active-fp'],
+    queryFn: async () => (await supabase.from('regulators').select('id, name').order('name')).data ?? [],
+  });
 
   const { data: assessments, isLoading } = useQuery({
     queryKey: ['fp_assessments', individualId],
@@ -68,6 +74,7 @@ export function FpAssessmentsPanel({ individualId }: Props) {
           individual_id: individualId,
           assessment_type: assessmentType,
           role_id: roleId === 'none' ? null : roleId,
+          regulator_id: regulatorId === 'none' ? null : regulatorId,
           licensee_id: role?.licensee_id ?? null,
           created_by: user?.id,
           status: 'draft',
@@ -127,8 +134,12 @@ export function FpAssessmentsPanel({ individualId }: Props) {
                   <Select value={assessmentType} onValueChange={setAssessmentType}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="initial">Initial</SelectItem>
+                      <SelectItem value="initial">Initial (new licence)</SelectItem>
                       <SelectItem value="renewal">Renewal / periodic review</SelectItem>
+                      <SelectItem value="change_of_role">Role change</SelectItem>
+                      <SelectItem value="triggered">Ad-hoc supervisory action</SelectItem>
+                      <SelectItem value="ongoing_monitoring">Ongoing monitoring</SelectItem>
+                      <SelectItem value="cycle">Cycle-based reassessment</SelectItem>
                       <SelectItem value="material_change">Material change</SelectItem>
                       <SelectItem value="adverse_event">Adverse event triggered</SelectItem>
                     </SelectContent>
@@ -144,6 +155,18 @@ export function FpAssessmentsPanel({ individualId }: Props) {
                         <SelectItem key={r.id} value={r.id}>
                           {r.role_type.replace(/_/g, ' ')}{r.role_title ? ` — ${r.role_title}` : ''}
                         </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Regulator (for multi-regulator isolation)</Label>
+                  <Select value={regulatorId} onValueChange={setRegulatorId}>
+                    <SelectTrigger><SelectValue placeholder="No regulator scope" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Cross-regulator (no scope)</SelectItem>
+                      {(regulators as any[]).map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

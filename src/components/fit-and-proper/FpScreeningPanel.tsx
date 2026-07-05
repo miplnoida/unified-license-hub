@@ -54,12 +54,40 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
     queryKey: ['fp_findings', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations, evidence_urls')
         .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  async function uploadEvidence(findingId: string, file: File) {
+    try {
+      const path = `fp/findings/${findingId}/${Date.now()}_${file.name}`;
+      const { error: upErr } = await supabase.storage.from('secure-documents').upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      // Append to evidence_urls jsonb array
+      const current = (findings ?? []).find((f: any) => f.id === findingId);
+      const existing = Array.isArray(current?.evidence_urls) ? current.evidence_urls : [];
+      const updated = [...existing, { path, name: file.name, uploaded_at: new Date().toISOString(), uploaded_by: user?.id }];
+      const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated }).eq('id', findingId);
+      if (error) throw error;
+      await logFpAction('fp.finding.evidence_uploaded', 'fp_finding', findingId, {
+        after: { evidence_path: path, name: file.name },
+        context: { individualId, assessmentId, findingId },
+      });
+      toast.success(`Evidence uploaded: ${file.name}`);
+      qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Upload failed');
+    }
+  }
+
+  async function openEvidence(path: string) {
+    const { data, error } = await supabase.storage.from('secure-documents').createSignedUrl(path, 300);
+    if (error || !data) { toast.error(error?.message || 'Signed URL failed'); return; }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  }
 
   const runScreening = async () => {
     if (!assessmentId) { toast.error('Open an assessment first to run screening.'); return; }
@@ -275,6 +303,25 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                   </div>
                 )}
                 {f.resolution_reason && <div className="text-xs italic mt-1">Resolution: {f.resolution_reason}</div>}
+                <div className="mt-2 border-t pt-2">
+                  <div className="text-xs font-medium mb-1">Evidence ({(Array.isArray(f.evidence_urls) ? f.evidence_urls : []).length})</div>
+                  {(Array.isArray(f.evidence_urls) ? f.evidence_urls : []).map((e: any, i: number) => (
+                    <div key={i} className="text-xs flex items-center gap-2">
+                      <button type="button" className="text-blue-700 underline" onClick={() => openEvidence(e.path)}>
+                        {e.name || e.path.split('/').pop()}
+                      </button>
+                      <span className="text-muted-foreground">{e.uploaded_at ? new Date(e.uploaded_at).toLocaleString() : ''}</span>
+                    </div>
+                  ))}
+                  <label className="mt-1 inline-flex items-center gap-2 text-xs cursor-pointer text-blue-700 hover:underline">
+                    <input type="file" className="hidden" onChange={(ev) => {
+                      const file = ev.target.files?.[0];
+                      if (file) uploadEvidence(f.id, file);
+                      ev.target.value = '';
+                    }} />
+                    + Upload evidence
+                  </label>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 {!resolved && (

@@ -234,6 +234,13 @@ function PinnedPqForm({
         newValue: { form_version_id: versionId, response_id: responseId, status },
         metadata: { individual_id: individualId, template_id: templateId },
       });
+      if (status === 'submitted') {
+        try {
+          await supabase.functions.invoke('dispatch-notification-event', {
+            body: { event_key: 'fp_assessment_submitted', entity_type: 'fp_assessment', entity_id: assessmentId, payload: { individual_id: individualId } },
+          });
+        } catch (e) { console.warn('dispatch-notification-event failed', e); }
+      }
     } finally {
       setSaving(false);
     }
@@ -338,6 +345,11 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
       }).eq('id', assessment.id);
       if (error) throw error;
       await logAudit({ action: 'fp_assessment.pq.submitted', entityType: 'fp_assessment', entityId: assessment.id, newValue: { legacy: true, status: 'submitted' } });
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_assessment_submitted', entity_type: 'fp_assessment', entity_id: assessment.id, payload: { individual_id: assessment.individual_id, legacy: true } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => { toast.success('Declaration submitted'); onSaved(); },
     onError: (e: any) => toast.error(e?.message || 'Submit failed'),

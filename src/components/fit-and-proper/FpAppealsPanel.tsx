@@ -14,6 +14,7 @@ import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
+  submitted: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
   filed: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
   under_review: { label: 'Under review', className: 'bg-amber-100 text-amber-800' },
   decided: { label: 'Decided', className: 'bg-slate-200 text-slate-800' },
@@ -79,6 +80,20 @@ export function FpAppealsPanel({ individualId }: Props) {
     },
   });
 
+  const { data: eligibleLicenses } = useQuery({
+    queryKey: ['fp_appeal_eligible_licenses', individualId],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from('fp_individual_roles')
+        .select('license_id, licensee_id').eq('individual_id', individualId).eq('is_current', true);
+      const licIds = Array.from(new Set((roles ?? []).map((r: any) => r.license_id).filter(Boolean)));
+      if (licIds.length === 0) return [];
+      const { data } = await supabase.from('licenses').select('id, license_number, license_type, status').in('id', licIds);
+      return data ?? [];
+    },
+  });
+
+  const [licenseId, setLicenseId] = useState<string>('none');
+
   const canFile = useMemo(() => {
     if (!currentDet) return false;
     if (!['rejected', 'conditional'].includes(currentDet.outcome)) return false;
@@ -95,18 +110,20 @@ export function FpAppealsPanel({ individualId }: Props) {
         determination_id: currentDet.id,
         filed_by: user!.id,
         grounds: grounds.trim(),
-        status: 'filed',
+        status: 'submitted',
         supporting_docs: [],
-      }).select('id').single();
+        license_id: licenseId && licenseId !== 'none' ? licenseId : null,
+      } as any).select('id').single();
       if (error) throw error;
       await logFpAction('fp.appeal.filed', 'fp_appeal', data.id, {
-        after: { determination_id: currentDet.id, status: 'filed' },
+        after: { determination_id: currentDet.id, status: 'submitted', license_id: licenseId !== 'none' ? licenseId : null },
         context: { individualId, appealId: data.id, determinationId: currentDet.id },
       });
     },
     onSuccess: () => {
       toast.success('Appeal filed');
       setGrounds('');
+      setLicenseId('none');
       qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
@@ -151,6 +168,19 @@ export function FpAppealsPanel({ individualId }: Props) {
         }).select('id').single();
         if (insErr) throw insErr;
         newDetId = inserted.id;
+
+        // License impact — record an auditable license action if a license was linked to this appeal.
+        if (appeal.license_id) {
+          try {
+            await supabase.from('license_actions').insert({
+              license_id: appeal.license_id,
+              action_type: 'fp_appeal_overturn',
+              actor_id: user!.id,
+              reason: `FP appeal ${decision === 'overturned_to_approved' ? 'overturned to approved' : 'overturned to conditional'}: ${note.trim()}`,
+              metadata: { appeal_id: appeal.id, individual_id: individualId, new_determination_id: newDetId, new_outcome: outcome },
+            });
+          } catch (e) { console.warn('license_actions insert failed', e); }
+        }
       }
 
       const { error } = await supabase.from('fp_appeals').update({
@@ -163,10 +193,16 @@ export function FpAppealsPanel({ individualId }: Props) {
       }).eq('id', appeal.id);
       if (error) throw error;
       await logFpAction('fp.appeal.decided', 'fp_appeal', appeal.id, {
-        after: { decision, new_determination_id: newDetId },
+        after: { decision, new_determination_id: newDetId, license_id: appeal.license_id ?? null },
         context: { individualId, appealId: appeal.id, determinationId: newDetId ?? appeal.determination_id },
         justification: note.trim(),
       });
+      // Fire a notification (no-op if no template configured).
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: appeal.id, payload: { decision, individual_id: individualId } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Appeal decided');
@@ -218,6 +254,20 @@ export function FpAppealsPanel({ individualId }: Props) {
                 <Textarea rows={4} value={grounds} onChange={(e) => setGrounds(e.target.value)}
                   placeholder="Explain the basis for challenging the determination…" />
               </div>
+              {(eligibleLicenses ?? []).length > 0 && (
+                <div>
+                  <Label className="text-xs">Link to license (optional — enables license-impact audit trail on overturn)</Label>
+                  <Select value={licenseId} onValueChange={setLicenseId}>
+                    <SelectTrigger><SelectValue placeholder="No license link" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No license link</SelectItem>
+                      {(eligibleLicenses ?? []).map((l: any) => (
+                        <SelectItem key={l.id} value={l.id}>{l.license_number || l.id.slice(0, 8)} · {l.license_type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex justify-end">
                 <Button onClick={() => fileAppeal.mutate()} disabled={fileAppeal.isPending || grounds.trim().length < 20}>
                   {fileAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -234,7 +284,7 @@ export function FpAppealsPanel({ individualId }: Props) {
         <CardContent className="space-y-3">
           {(appeals ?? []).length === 0 && <p className="text-sm text-muted-foreground">No appeals filed.</p>}
           {(appeals ?? []).map((a: any) => {
-            const sMeta = STATUS_META[a.status] || STATUS_META.filed;
+            const sMeta = STATUS_META[a.status] || STATUS_META.submitted;
             const dMeta = a.decision ? DECISION_META[a.decision] : null;
             return (
               <div key={a.id} className="border rounded p-3 space-y-2 text-sm">
@@ -245,7 +295,7 @@ export function FpAppealsPanel({ individualId }: Props) {
                 </div>
                 <div className="text-xs whitespace-pre-wrap">{a.grounds}</div>
 
-                {a.status === 'filed' && (
+                {(a.status === 'submitted' || a.status === 'filed') && (
                   <div className="border rounded p-2 bg-muted/30 space-y-2">
                     <Label className="text-xs">Assign appeal committee</Label>
                     <div className="flex gap-2 items-end">

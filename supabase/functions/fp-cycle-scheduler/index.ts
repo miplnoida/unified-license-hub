@@ -83,6 +83,20 @@ Deno.serve(async (req) => {
           new_values: { role_id: r.id, individual_id: r.individual_id, cycle_months: cycleMonths },
         });
 
+        // Fire a notification so assessors know a cycle-triggered assessment was opened.
+        try {
+          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/dispatch-notification-event`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+            body: JSON.stringify({
+              event_key: 'fp_cycle_assessment_opened',
+              entity_type: 'fp_assessment',
+              entity_id: created.id,
+              payload: { individual_id: r.individual_id, role_id: r.id, cycle_months: cycleMonths },
+            }),
+          });
+        } catch (e) { console.warn('[fp-cycle-scheduler] notify failed', e); }
+
         opened++;
       } catch (e) {
         errors.push(String(e instanceof Error ? e.message : e));

@@ -6,6 +6,7 @@ import { logIntegration } from '../_shared/integration-log.ts';
 type Any = any;
 
 const DEFAULT_RECHECK_DAYS = 30;
+const REMINDER_LOOKAHEAD_DAYS = 7;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -15,7 +16,17 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supa = createClient(supabaseUrl, serviceKey);
 
-  const summary = { scanned: 0, rescreened: 0, alerts: 0, errors: 0 };
+  async function dispatchNotification(event_key: string, entity_type: string, entity_id: string, payload: Any) {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/dispatch-notification-event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+        body: JSON.stringify({ event_key, entity_type, entity_id, payload }),
+      });
+    } catch (e) { console.warn('[fp-monitoring-sweep] notify failed', event_key, e); }
+  }
+
+  const summary = { scanned: 0, rescreened: 0, alerts: 0, reminders: 0, errors: 0 };
 
   try {
     let recheckDays = DEFAULT_RECHECK_DAYS;
@@ -68,13 +79,31 @@ Deno.serve(async (req) => {
           const events = escalations.map((f: Any) => ({
             individual_id: det.individual_id,
             determination_id: det.id,
-            event_type: `screening.${f.check_type}`,
+            // event_type must be one of the allowed CHECK values; use recheck_hit for any hit.
+            event_type: 'recheck_hit',
             severity: f.severity,
             summary: `[${f.check_type}] ${f.title || f.summary}`.slice(0, 500),
-            detail: { finding_id: f.id, run_id: invokeJson.run_id },
+            detail: { finding_id: f.id, run_id: invokeJson.run_id, check_type: f.check_type },
           }));
-          const { error: eErr } = await supa.from('fp_monitoring_events').insert(events);
-          if (!eErr) summary.alerts += escalations.length;
+          const { error: eErr, data: inserted } = await supa.from('fp_monitoring_events').insert(events).select('id');
+          if (!eErr) {
+            summary.alerts += escalations.length;
+            for (const ev of inserted ?? []) {
+              await dispatchNotification('fp_monitoring_alert', 'fp_monitoring_event', ev.id, {
+                individual_id: det.individual_id, determination_id: det.id, severity: 'high',
+              });
+            }
+          }
+        } else {
+          // Log a clean recheck outcome (informational; single event per sweep)
+          await supa.from('fp_monitoring_events').insert({
+            individual_id: det.individual_id,
+            determination_id: det.id,
+            event_type: 'recheck_ok',
+            severity: 'low',
+            summary: 'Recheck completed with no adverse findings',
+            detail: { run_id: invokeJson.run_id },
+          });
         }
       } catch (inner) {
         summary.errors++;
@@ -91,7 +120,7 @@ Deno.serve(async (req) => {
 
     for (const c of overdueConds ?? []) {
       try {
-        // Stamp overdue_at if the lifecycle trigger hasn't yet (row untouched since it went overdue)
+        // Stamp overdue_at if the lifecycle trigger hasn't yet
         if (!c.overdue_at) {
           await supa.from('fp_conditions').update({ overdue_at: new Date().toISOString() }).eq('id', c.id);
         }
@@ -105,26 +134,62 @@ Deno.serve(async (req) => {
         if (existing) continue;
         const daysOverdue = Math.max(1, Math.floor((Date.now() - new Date(c.due_date).getTime()) / 86400000));
         const severity = daysOverdue > 30 ? 'high' : daysOverdue > 7 ? 'medium' : 'low';
-        const { error: mErr } = await supa.from('fp_monitoring_events').insert({
+        const { data: mIns, error: mErr } = await supa.from('fp_monitoring_events').insert({
           individual_id: c.individual_id,
           determination_id: c.determination_id,
           event_type: 'condition_overdue',
           severity,
           summary: `Condition overdue by ${daysOverdue} day(s): ${(c.description || c.category).slice(0, 200)}`,
           detail: { condition_id: c.id, due_date: c.due_date, days_overdue: daysOverdue },
-        });
-        if (!mErr) summary.alerts++;
+        }).select('id').single();
+        if (!mErr) {
+          summary.alerts++;
+          await dispatchNotification('fp_condition_overdue', 'fp_condition', c.id, {
+            individual_id: c.individual_id, days_overdue: daysOverdue, severity,
+          });
+        }
       } catch (inner) {
         summary.errors++;
         console.error('[fp-monitoring-sweep] condition error', c.id, inner);
       }
+    }
+
+    // Reminder sweep for conditions due within N days that haven't been reminded yet.
+    const lookahead = new Date(Date.now() + REMINDER_LOOKAHEAD_DAYS * 86400 * 1000).toISOString().slice(0, 10);
+    const { data: soonConds } = await supa.from('fp_conditions')
+      .select('id, individual_id, determination_id, description, due_date, reminder_sent_at, status')
+      .eq('status', 'open')
+      .gte('due_date', today)
+      .lte('due_date', lookahead)
+      .is('reminder_sent_at', null);
+
+    for (const c of soonConds ?? []) {
+      try {
+        await supa.from('fp_monitoring_events').insert({
+          individual_id: c.individual_id,
+          determination_id: c.determination_id,
+          event_type: 'condition_due',
+          severity: 'low',
+          summary: `Condition due on ${c.due_date}: ${(c.description || '').slice(0, 200)}`,
+          detail: { condition_id: c.id, due_date: c.due_date, reminder: true },
+        });
+        await supa.from('fp_conditions').update({ reminder_sent_at: new Date().toISOString() }).eq('id', c.id);
+        await dispatchNotification('fp_condition_reminder', 'fp_condition', c.id, {
+          individual_id: c.individual_id, due_date: c.due_date,
+        });
+        summary.reminders++;
+      } catch (inner) {
+        summary.errors++;
+        console.error('[fp-monitoring-sweep] reminder error', c.id, inner);
+      }
+    }
 
     await logIntegration(supa as Any, {
       direction: 'outbound',
       integrationKey: 'fp-monitoring-sweep',
       status: 'success',
       requestSummary: `Recheck window ${recheckDays}d — scanned ${summary.scanned}`,
-      responseSummary: `Rescreened ${summary.rescreened}, alerts ${summary.alerts}, errors ${summary.errors}`,
+      responseSummary: `Rescreened ${summary.rescreened}, alerts ${summary.alerts}, reminders ${summary.reminders}, errors ${summary.errors}`,
       durationMs: Date.now() - started,
     });
 
