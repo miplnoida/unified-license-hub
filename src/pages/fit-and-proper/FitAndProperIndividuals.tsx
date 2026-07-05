@@ -150,6 +150,7 @@ export default function FitAndProperIndividuals() {
                 <TableHeader><TableRow>
                   <TableHead>Name</TableHead><TableHead>National ID</TableHead>
                   <TableHead>Nationality</TableHead><TableHead>Email</TableHead>
+                  <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead><TableHead />
                 </TableRow></TableHeader>
                 <TableBody>
@@ -159,6 +160,11 @@ export default function FitAndProperIndividuals() {
                       <TableCell className="text-xs font-mono">{r.national_id || '—'}</TableCell>
                       <TableCell className="text-xs">{r.nationality || '—'}</TableCell>
                       <TableCell className="text-xs">{r.email || '—'}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant="outline" className={r.role_count > 1 ? 'bg-amber-50 text-amber-800' : 'bg-slate-50 text-slate-700'}>
+                          {r.role_count ?? 0} active
+                        </Badge>
+                      </TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_META[r.status] || ''}>{r.status}</Badge></TableCell>
                       <TableCell><Link to={`/fit-and-proper/individuals/${r.id}`}><Button size="sm" variant="ghost">Open</Button></Link></TableCell>
                     </TableRow>
