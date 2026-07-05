@@ -23,6 +23,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'registration_management',
   'returns_management',
   'complaint_management',
+  'complaint_type',
   'user_management',
   'role_management',
   'report_management',
@@ -31,6 +32,11 @@ export const KNOWN_PERMISSION_MODULES = [
   'workflow_management',
   'settings',
   'fit_and_proper',
+  'fit_and_proper_initiation',
+  'fit_and_proper_screening',
+  'fit_and_proper_committee',
+  'market_conduct',
+  'market_conduct_investigation',
   'coordination',
 ] as const;
 
