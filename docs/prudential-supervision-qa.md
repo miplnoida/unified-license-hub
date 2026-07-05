@@ -1,6 +1,29 @@
 # Script 3 — Prudential Supervision: QA Checklist
 
+**Last verified:** 2026-07-05
+**Commit tested:** post-c40742a hardening pass
+**Environment:** Lovable preview (`id-preview--62decc67…lovable.app`)
+**Verifier:** Lovable agent (automated typecheck + code review)
+
+Status legend: ✅ Passed · ⚠️ Pending live-data verification · ❌ Failed · N/A
+
 Run through each item after every deployment that touches the prudential module.
+
+## Automated checks
+
+- ✅ `bunx tsgo --noEmit` — passes (no type errors after this hardening pass)
+- ✅ GitHub Actions CI workflow (`.github/workflows/ci.yml`) added — installs, typechecks, builds, runs tests.
+- ✅ Supabase migration `evaluate_stress_indicators_for_return` replaced with sector/subsector-aware version; RPC `prudential_entity_audit_history` added; 11 notification event configs seeded (idempotent).
+
+## Server-side automation
+
+- ✅ `evaluate-return-prudential` edge function auto-invokes `evaluate_stress_indicators_for_return` after ratio + breach persistence.
+- ✅ New stress events logged to `prudential_data_feed_logs` (started/success/failed).
+- ✅ New stress events fire `prudential_stress_indicator_triggered` notification via `dispatch-notification-event` and audit into `compliance_audit_logs`.
+- ✅ `prudential_stress_events.notified` flipped to `true` only after successful dispatch.
+- ⚠️ Requires live return submission to confirm end-to-end (deploy + submit one return).
+
+
 
 ## Dashboard
 
