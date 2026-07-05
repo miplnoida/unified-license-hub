@@ -110,9 +110,9 @@ export const adminRoutes = (
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
     <Route path="/admin/license-action-forms" element={<M module="license_management"><LicenseActionFormsPage /></M>} />
-    <Route path="/admin/rfi-auto-rules" element={<A><RfiAutoRules /></A>} />
-    <Route path="/admin/supervisory-plan-templates" element={<A><SupervisoryPlanTemplates /></A>} />
-    <Route path="/admin/applications/bulk-intake" element={<A><BulkIntake /></A>} />
+    <Route path="/admin/rfi-auto-rules" element={<M module="application_management"><RfiAutoRules /></M>} />
+    <Route path="/admin/supervisory-plan-templates" element={<M module="application_management"><SupervisoryPlanTemplates /></M>} />
+    <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
     <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper"><FpSectorDecisionRules /></M>} />
