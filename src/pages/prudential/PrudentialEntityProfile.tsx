@@ -264,14 +264,15 @@ export default function PrudentialEntityProfile() {
           <Card><CardContent className="pt-4">
             <div className="text-sm">
               {audit.data?.length ? (
-                <Table><TableHeader><TableRow><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Object</TableHead><TableHead>Actor</TableHead></TableRow></TableHeader>
+                <Table><TableHeader><TableRow><TableHead>When</TableHead><TableHead>Action</TableHead><TableHead>Object</TableHead><TableHead>Justification</TableHead><TableHead>Actor</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {audit.data.slice(0, 100).map((a: any) => (
-                      <TableRow key={a.id}>
-                        <TableCell>{new Date(a.created_at).toLocaleString()}</TableCell>
+                    {audit.data.slice(0, 200).map((a: any) => (
+                      <TableRow key={a.entry_id}>
+                        <TableCell className="whitespace-nowrap">{new Date(a.timestamp).toLocaleString()}</TableCell>
                         <TableCell>{a.action_type}</TableCell>
                         <TableCell>{a.object_type}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{a.actor_id?.slice(0,8) || '—'}</TableCell>
+                        <TableCell className="max-w-md truncate">{a.justification || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.user_id?.slice(0,8) || '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
