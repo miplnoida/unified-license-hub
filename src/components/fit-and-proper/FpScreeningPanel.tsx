@@ -303,6 +303,25 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                   </div>
                 )}
                 {f.resolution_reason && <div className="text-xs italic mt-1">Resolution: {f.resolution_reason}</div>}
+                <div className="mt-2 border-t pt-2">
+                  <div className="text-xs font-medium mb-1">Evidence ({(Array.isArray(f.evidence_urls) ? f.evidence_urls : []).length})</div>
+                  {(Array.isArray(f.evidence_urls) ? f.evidence_urls : []).map((e: any, i: number) => (
+                    <div key={i} className="text-xs flex items-center gap-2">
+                      <button type="button" className="text-blue-700 underline" onClick={() => openEvidence(e.path)}>
+                        {e.name || e.path.split('/').pop()}
+                      </button>
+                      <span className="text-muted-foreground">{e.uploaded_at ? new Date(e.uploaded_at).toLocaleString() : ''}</span>
+                    </div>
+                  ))}
+                  <label className="mt-1 inline-flex items-center gap-2 text-xs cursor-pointer text-blue-700 hover:underline">
+                    <input type="file" className="hidden" onChange={(ev) => {
+                      const file = ev.target.files?.[0];
+                      if (file) uploadEvidence(f.id, file);
+                      ev.target.value = '';
+                    }} />
+                    + Upload evidence
+                  </label>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 {!resolved && (
