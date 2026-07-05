@@ -4782,6 +4782,7 @@ export type Database = {
           grounds: string
           id: string
           individual_id: string
+          license_id: string | null
           new_determination_id: string | null
           status: string
           supporting_docs: Json
@@ -4800,6 +4801,7 @@ export type Database = {
           grounds: string
           id?: string
           individual_id: string
+          license_id?: string | null
           new_determination_id?: string | null
           status?: string
           supporting_docs?: Json
@@ -4818,6 +4820,7 @@ export type Database = {
           grounds?: string
           id?: string
           individual_id?: string
+          license_id?: string | null
           new_determination_id?: string | null
           status?: string
           supporting_docs?: Json
@@ -4843,6 +4846,20 @@ export type Database = {
             columns: ["individual_id"]
             isOneToOne: false
             referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_appeals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_appeals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
             referencedColumns: ["id"]
           },
           {
@@ -5140,6 +5157,7 @@ export type Database = {
           individual_id: string
           monitoring_owner: string | null
           overdue_at: string | null
+          reminder_sent_at: string | null
           satisfaction_note: string | null
           satisfied_at: string | null
           satisfied_by: string | null
@@ -5159,6 +5177,7 @@ export type Database = {
           individual_id: string
           monitoring_owner?: string | null
           overdue_at?: string | null
+          reminder_sent_at?: string | null
           satisfaction_note?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
@@ -5178,6 +5197,7 @@ export type Database = {
           individual_id?: string
           monitoring_owner?: string | null
           overdue_at?: string | null
+          reminder_sent_at?: string | null
           satisfaction_note?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
@@ -5291,6 +5311,7 @@ export type Database = {
           config_id: string | null
           created_at: string
           evidence_url: string | null
+          evidence_urls: Json
           id: string
           individual_id: string
           is_false_positive: boolean
@@ -5317,6 +5338,7 @@ export type Database = {
           config_id?: string | null
           created_at?: string
           evidence_url?: string | null
+          evidence_urls?: Json
           id?: string
           individual_id: string
           is_false_positive?: boolean
@@ -5343,6 +5365,7 @@ export type Database = {
           config_id?: string | null
           created_at?: string
           evidence_url?: string | null
+          evidence_urls?: Json
           id?: string
           individual_id?: string
           is_false_positive?: boolean
