@@ -270,14 +270,18 @@ export function useUpsertAssessment() {
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
       const user = (await sb.auth.getUser()).data.user;
       const payload: any = { ...row };
+      const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
+        const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
+        await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
         return data;
       } else {
         payload.created_by = user?.id;
         const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_assessment', data.id, null, data);
         return data;
       }
     },
@@ -291,17 +295,52 @@ export function useTransitionAssessment() {
     mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'approved'|'closed'; reason?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
       const now = new Date().toISOString();
+      const before = (await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle()).data;
       const patch: any = { status: to };
       if (to === 'submitted') patch.submitted_at = now;
-      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; }
+      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; if (reason) patch.review_notes = reason; }
       if (to === 'approved') { patch.approved_at = now; patch.approved_by = user?.id; }
       if (to === 'closed') patch.closed_at = now;
-      if (reason) patch.override_reason = reason;
       const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
       if (error) throw error;
+      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
+      await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
+      const eventMap: Record<string, string> = {
+        submitted: 'prudential_assessment_submitted',
+        reviewed: 'prudential_assessment_reviewed',
+        approved: 'prudential_assessment_approved',
+      };
+      if (eventMap[to] && before?.entity_id) {
+        const ent = (await sb.from('licensees').select('name').eq('id', before.entity_id).maybeSingle()).data;
+        await notify(eventMap[to], 'prudential_assessment', id, { entity_name: ent?.name, entity_id: before.entity_id, assessment_id: id });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
+  });
+}
+
+// Pull signals to prefill an assessment from a return
+export function useAssessmentPrefill(returnId?: string | null) {
+  return useQuery({
+    queryKey: ['prudential_assessment_prefill', returnId],
+    enabled: !!returnId,
+    queryFn: async () => {
+      const [rf, ratios, breaches, analysis, stress] = await Promise.all([
+        sb.from('returns_filed').select('id, entity_id, period_end_date, period_start_date').eq('id', returnId).maybeSingle(),
+        sb.from('return_calculated_ratios').select('*').eq('return_id', returnId),
+        sb.from('return_threshold_breaches').select('*').eq('return_id', returnId),
+        sb.from('return_consolidated_analysis').select('*').eq('return_id', returnId).order('computed_at', { ascending: false }).limit(1).maybeSingle(),
+        sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('return_id', returnId),
+      ]);
+      return {
+        return_row: rf.data,
+        ratios: ratios.data ?? [],
+        breaches: breaches.data ?? [],
+        analysis: analysis.data ?? null,
+        stress_events: stress.data ?? [],
+      };
+    },
   });
 }
 
