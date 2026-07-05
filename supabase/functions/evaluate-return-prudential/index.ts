@@ -402,6 +402,72 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- Auto-evaluate prudential stress indicators for this return ----
+    // Runs after ratio + breach persistence. Idempotent (unique on indicator_id+return_id).
+    // Failures never break the evaluator; they are logged into prudential_data_feed_logs.
+    try {
+      await admin.from("prudential_data_feed_logs").insert({
+        source: "evaluate-return-prudential", feed_type: "stress_evaluation",
+        status: "started", related_return_id: return_id, triggered_by: actor.id,
+      });
+      const { data: stressData, error: stressErr } = await admin.rpc(
+        "evaluate_stress_indicators_for_return", { _return_id: return_id }
+      );
+      if (stressErr) throw stressErr;
+      const newEvents = ((stressData as any)?.new_events ?? []) as Array<Record<string, unknown>>;
+      const updatedEvents = ((stressData as any)?.updated_events ?? []) as Array<unknown>;
+
+      await admin.from("prudential_data_feed_logs").insert({
+        source: "evaluate-return-prudential", feed_type: "stress_evaluation",
+        status: "success", related_return_id: return_id, triggered_by: actor.id,
+        row_count: newEvents.length + updatedEvents.length, completed_at: new Date().toISOString(),
+        metadata: { new: newEvents.length, updated: updatedEvents.length },
+      });
+
+      // Resolve entity name once for notification payloads
+      let entityName: string | null = null;
+      if (newEvents.length) {
+        const entId = (newEvents[0] as any).entity_id as string | undefined;
+        if (entId) {
+          const { data: ent } = await admin.from("licensees").select("name").eq("id", entId).maybeSingle();
+          entityName = (ent as any)?.name ?? null;
+        }
+      }
+
+      if (dispatch_notifications) {
+        for (const ev of newEvents) {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: "prudential_stress_indicator_triggered",
+                entity_type: "prudential_stress_event",
+                entity_id: ev.event_id,
+                payload: { ...ev, entity_name: entityName },
+              },
+            });
+            await admin.from("prudential_stress_events")
+              .update({ notified: true })
+              .eq("id", ev.event_id);
+            await admin.rpc("log_compliance_audit_as_actor", {
+              _actor_id: actor.id, _action_type: "CREATE",
+              _object_type: "prudential_stress_event", _object_id: ev.event_id,
+              _before_value: null, _after_value: ev, _justification: "Auto-triggered by return evaluation",
+              _ai_model_version: null, _ip_address: null, _user_agent: null,
+              _metadata: { source: "evaluate-return-prudential", return_id },
+            });
+          } catch (_) { /* best-effort per-event */ }
+        }
+      }
+    } catch (e) {
+      try {
+        await admin.from("prudential_data_feed_logs").insert({
+          source: "evaluate-return-prudential", feed_type: "stress_evaluation",
+          status: "failed", related_return_id: return_id, triggered_by: actor.id,
+          error: e instanceof Error ? e.message : String(e), completed_at: new Date().toISOString(),
+        });
+      } catch (_) { /* ignore */ }
+    }
+
     // Generate the consolidated analysis row (best-effort — never fails the evaluator).
     // Only run on the authoritative post-submit pass (skip pre-submit gating calls).
     if (dispatch_notifications) {

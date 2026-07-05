@@ -8015,6 +8015,7 @@ export type Database = {
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          signal_snapshot: Json
           status: string
           submitted_at: string | null
           updated_at: string
@@ -8041,6 +8042,7 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          signal_snapshot?: Json
           status?: string
           submitted_at?: string | null
           updated_at?: string
@@ -8067,6 +8069,7 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          signal_snapshot?: Json
           status?: string
           submitted_at?: string | null
           updated_at?: string
@@ -13640,23 +13643,7 @@ export type Database = {
       }
       evaluate_stress_indicators_for_return: {
         Args: { _return_id: string }
-        Returns: {
-          created_at: string
-          entity_id: string | null
-          id: string
-          indicator_id: string
-          notified: boolean
-          observed_value: number | null
-          resolved_at: string | null
-          return_id: string | null
-          triggered_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "prudential_stress_events"
-          isOneToOne: false
-          isSetofReturn: true
-        }
+        Returns: Json
       }
       expire_delegation_rules: { Args: never; Returns: number }
       external_can_access_application: {
@@ -14189,6 +14176,22 @@ export type Database = {
         Returns: Json
       }
       prudential_dashboard_metrics: { Args: never; Returns: Json }
+      prudential_entity_audit_history: {
+        Args: { _entity_id: string }
+        Returns: {
+          action_type: Database["public"]["Enums"]["compliance_audit_action"]
+          after_value: Json
+          before_value: Json
+          entry_id: string
+          justification: string
+          metadata: Json
+          object_id: string
+          object_type: string
+          timestamp: string
+          user_id: string
+          user_role: string
+        }[]
+      }
       prudential_sector_risk_distribution: {
         Args: never
         Returns: {
