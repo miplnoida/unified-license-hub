@@ -101,8 +101,17 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
 
       const outstanding_amount = ((pendingPaymentsRes.data || []) as any[]).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
-      // Merge open RFIs into action_required, deduped by application_id.
-      const statusRows = (actionReqRes.data || []) as any[];
+      const openRfiAppIds = new Set(((openRfisRes.data || []) as any[]).map((r) => r.application_id));
+
+      // Merge open RFIs into action_required, deduped by application_id. If an
+      // application is still parked in a legacy info/query status but there is
+      // no active RFI, do not keep showing it as applicant action-required.
+      const statusRows = ((actionReqRes.data || []) as any[]).filter((r) => {
+        if (r.status === 'info_requested' || r.status === 'query_raised') {
+          return openRfiAppIds.has(r.id);
+        }
+        return true;
+      });
       const seenAppIds = new Set(statusRows.map((r) => r.id));
       const rfiRows = ((openRfisRes.data || []) as any[])
         .filter((r) => r.applications && !seenAppIds.has(r.application_id))
@@ -123,7 +132,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
           under_review,
           approved,
           rejected,
-          clarification_requested: clarification + rfiRows.length,
+          clarification_requested: mergedActionRequired.filter((r: any) => r.status === 'info_requested' || r.status === 'query_raised' || r.status === 'rfi_open').length,
           resubmission_requested: resubmission,
         },
         payments: { pending: payPending, paid: payPaid, outstanding_amount },

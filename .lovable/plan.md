@@ -1,37 +1,29 @@
-## Scope
+## Plan
 
-Two focused fixes on the RFI feature. No changes to the working Audit tab or other modules.
+Fix the RFI display/status issue without changing unrelated modules.
 
-## 1. Notify applicant on RFI raise (in-app + email + dashboard)
+### What will change
+1. **Closed RFI item badges**
+   - In the RFI tab, when the parent RFI is `closed` or `cancelled`, unanswered items will no longer show the orange `pending` badge.
+   - They will show a neutral closed-state label such as `not responded` / `closed`, matching the existing “This RFI is closed to further responses” message.
 
-**File:** `src/components/applications/RaiseRfiDialog.tsx`
+2. **Response counter on closed RFIs**
+   - Keep the factual response count (`0/2 responded`) visible, but ensure it is not treated as an actionable pending state.
+   - If needed, adjust the label to avoid implying an active pending request.
 
-After the `application_rfis` + `application_rfi_items` inserts succeed, fire two side effects (both non-blocking, wrapped in try/catch, before the success toast):
+3. **Applicant dashboard action-required cleanup**
+   - Update applicant metrics so closed/cancelled RFIs never appear in the dashboard “Action required” list.
+   - Add a safety filter so applications in `info_requested` / `query_raised` are not shown as action-required if they no longer have an open/responded RFI.
 
-- **In-app notification:** insert a row into `notifications` for the applicant (`user_id = applications.applicant_id`) with:
-  - `title`: "Information requested on your application"
-  - `message`: RFI summary + item count + due date
-  - `type`: `'rfi'`, `link`: `/applications/{application_id}?tab=rfi`, `read: false`
-  This automatically surfaces in the applicant dashboard (already reads unread notifications) and header bell.
-- **Email + templated in-app fanout:** call `dispatchNotificationEvent` (from `@/lib/notificationEvents`) with `event_key: 'application.rfi_raised'`, `entity_type: 'application'`, `entity_id: application_id`, and payload containing `application_number`, `applicant_id`, `rfi_id`, `summary`, `due_at`, `item_count`, `link_url`. The dispatch pipeline resolves the applicant recipient and delivers email using the existing template infrastructure.
-- Look up `applicant_id` and `application_number` in a single small `applications` select before dispatching.
+4. **Close RFI persistence hardening**
+   - When staff close an RFI, also mark any remaining `application_rfi_items.response_status = 'skipped'` for that RFI.
+   - This prevents stale item-level `pending` values from resurfacing after reloads.
 
-No new edge function is needed — `dispatch-notification-event` already handles recipient resolution, email delivery, dedupe, and logging.
+### Files to update
+- `src/components/applications/ApplicationRfiTab.tsx`
+- `src/hooks/useApplicantMetrics.ts`
 
-## 2. Clear "pending / information requested" state when an RFI is closed
-
-**Problem:** When staff use the workflow action `request_more_info`, the RPC sets `applications.status = 'info_requested'`. Closing the RFI from the RFI tab only updates the RFI row and resumes the SLA — the application status stays `info_requested`, so the applicant's dashboard tile ("Information Requested") and the Applications list "Pending" bucket keep counting it.
-
-**Fix:** in `closeRfi` inside `src/components/applications/ApplicationRfiTab.tsx`, after the RFI + step-action updates succeed:
-
-- Fetch the current `applications.status` for this `application_id`.
-- If it is `info_requested` or `query_raised`, update it back to `under_review` (matching the status the workflow parks it at while paused).
-- Write an `audit_logs` entry noting the status revert with `old_status` / `new_status`.
-- Also fire `dispatchNotificationEvent` with `event_key: 'application.rfi_closed'` so the applicant sees the closure in-app + email.
-
-This is the minimal, targeted change: the RFI badge on the tab and the applicant dashboard's action-required list already filter by RFI status `in ('open','responded')`, so those clear correctly once the RFI row is closed — only the application-status side needed reverting.
-
-## Out of scope
-
-- Licensee Audit tab (already delivers full chronological trace, supervisory plan auto-creation, and time-bound corrective actions with `due_date` per action tier). No changes.
-- Workflow RPC, other approval flows, dashboards for other roles.
+### Validation
+- Verify the shown closed RFI no longer displays orange `pending` badges.
+- Verify closed RFIs are absent from applicant action-required/dashboard pending counts.
+- Keep existing RFI raise/response behavior unchanged.
