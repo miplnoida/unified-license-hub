@@ -407,10 +407,16 @@ function RfiItemRow({
           className={
             item.response_status === 'responded'
               ? 'bg-green-100 text-green-800 border-green-200'
-              : 'bg-orange-100 text-orange-800 border-orange-200'
+              : rfiStatus === 'closed' || rfiStatus === 'cancelled'
+                ? 'bg-muted text-muted-foreground border-border'
+                : 'bg-orange-100 text-orange-800 border-orange-200'
           }
         >
-          {item.response_status}
+          {item.response_status === 'responded'
+            ? 'responded'
+            : rfiStatus === 'closed' || rfiStatus === 'cancelled'
+              ? 'not responded'
+              : item.response_status}
         </Badge>
       </div>
 
