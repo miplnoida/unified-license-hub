@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useAssessment, useUpsertAssessment, useTransitionAssessment } from '@/hooks/usePrudentialSupervision';
+import { useAssessment, useUpsertAssessment, useTransitionAssessment, useAssessmentPrefill, useEvaluateStressForReturn } from '@/hooks/usePrudentialSupervision';
 import { useReturnComputedRatios, useReturnBreaches } from '@/hooks/usePrudentialConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { useEffect, useState } from 'react';
+import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 
 const CATEGORIES = ['capital', 'liquidity', 'asset_quality', 'profitability', 'concentration', 'governance', 'operational_resilience'];
 const RATINGS = ['1 - Strong', '2 - Satisfactory', '3 - Fair', '4 - Marginal', '5 - Unsatisfactory'];
