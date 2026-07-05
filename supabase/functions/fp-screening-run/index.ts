@@ -148,6 +148,30 @@ Deno.serve(async (req) => {
       await supa.from('fp_assessments').update({ status: 'screening' }).eq('id', assessmentId);
     }
 
+    // Auto-escalate high-severity findings: raise a manual_flag monitoring event and dispatch notification.
+    const highSev = findings.filter((f: Any) => f.severity === 'high');
+    if (highSev.length > 0) {
+      try {
+        await supa.from('fp_monitoring_events').insert(highSev.map((f: Any) => ({
+          individual_id: person.id,
+          event_type: 'manual_flag',
+          severity: 'high',
+          summary: `High-severity screening finding: ${f.title}`.slice(0, 500),
+          detail: { assessment_id: assessmentId, check_type: f.check_type, run_id: runRow.id },
+        })));
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/dispatch-notification-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+          body: JSON.stringify({
+            event_key: 'fp_high_severity_finding',
+            entity_type: 'fp_assessment',
+            entity_id: assessmentId,
+            payload: { individual_id: person.id, high_count: highSev.length, run_id: runRow.id },
+          }),
+        });
+      } catch (e) { console.warn('[fp-screening-run] escalation failed', e); }
+    }
+
     await logIntegration(supa as Any, {
       direction: 'outbound',
       integrationKey: 'fp-screening-run',
