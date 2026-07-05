@@ -153,6 +153,18 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Prudential Supervision',
+    items: [
+      { label: 'Prudential Dashboard', href: '/prudential/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Supervised Entities', href: '/prudential/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Assessments', href: '/prudential/assessments', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Actions Ledger', href: '/prudential/actions', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Escalations', href: '/prudential/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Stress Indicators', href: '/prudential/stress-indicators', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Risk Taxonomy', href: '/admin/prudential-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'prudential_supervision', adminOnly: true },
+    ],
+  },
+  {
     label: 'Workflows',
     items: [
       { label: 'Approval Workflows', href: '/workflows', icon: <GitBranch className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },

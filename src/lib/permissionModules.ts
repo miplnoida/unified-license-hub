@@ -38,6 +38,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'market_conduct',
   'market_conduct_investigation',
   'coordination',
+  'prudential_supervision',
 ] as const;
 
 /**
@@ -100,6 +101,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/conduct', 'market_conduct'],
   ['/supervision/thematic-reviews', 'market_conduct'],
   ['/admin/conduct', 'market_conduct'],
+
+  // Prudential Supervision (must come before generic /admin fallback)
+  ['/prudential', 'prudential_supervision'],
+  ['/admin/prudential-taxonomy', 'prudential_supervision'],
 
   // License action forms (sidebar module = license_management)
   ['/admin/license-action-forms', 'license_management'],
