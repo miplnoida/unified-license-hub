@@ -1,36 +1,31 @@
-## Restore Data API grants across the schema
+## Show Licensee Entities to all internal staff
 
-### Root cause of both issues
-`licensees`, `registrations`, and 221 other `public` tables have **no `GRANT`s** to `authenticated` / `service_role`. Without grants, PostgREST (the Data API the frontend uses) returns "permission denied" for every query — the app silently receives empty arrays.
+### Root cause
+The `licensees` table has only three RLS policies:
 
-Symptoms this explains:
+- `Admins manage licensees` — ALL for `super_admin`/`admin`
+- `Licensee users read own` — external licensee users
+- `PPOC read mapped licensees` — PPOCs
 
-1. **Licensee Entities blank for internal users** — `supabase.from('licensees').select('*')` (and the joined `sectors`, `sub_sectors`, `categories`, `licenses`, `applications`, `registrations`, `profiles`, `pre_license_users` queries) all return `[]` because none of those tables are grant-visible to `authenticated`. The RLS policies themselves are fine (`Admins manage licensees`, `Licensee users read own`, `PPOC read mapped licensees`).
-2. **Licensee Requests: filter broken, newest not first** — `RegistrationReview.tsx` queries `registrations` with `.order('created_at', { ascending: false })` and status filter; both work correctly in code. Query returns `[]` because `registrations` has no grants, so nothing renders and any filter looks broken.
-
-I confirmed this by inspecting `information_schema.role_table_grants` — 223 public tables have zero grants for the API roles. Row counts in the DB are intact.
+There is **no SELECT policy for other internal roles** (`supervisor`, `licensing_officer`, `analyst`, `legal_compliance`). RLS defaults to deny, so those staff users get zero rows even though grants are now correct.
 
 ### Fix (one migration)
+Add a read-only SELECT policy on `public.licensees` for the remaining internal roles:
 
-1. For every base table in `public` that has no `SELECT/INSERT/UPDATE/DELETE` grant to `authenticated`, run:
-   - `GRANT SELECT, INSERT, UPDATE, DELETE ON public.<table> TO authenticated;`
-   - `GRANT ALL ON public.<table> TO service_role;`
-   
-   Existing RLS policies stay untouched, so per-row access remains enforced (admins see admin rows, licensees see their own rows, PPOCs see mapped licensees, etc.).
+```sql
+CREATE POLICY "Internal staff read licensees"
+ON public.licensees FOR SELECT TO authenticated
+USING (
+  has_role(auth.uid(), 'supervisor'::app_role)
+  OR has_role(auth.uid(), 'licensing_officer'::app_role)
+  OR has_role(auth.uid(), 'analyst'::app_role)
+  OR has_role(auth.uid(), 'legal_compliance'::app_role)
+);
+```
 
-2. Add `GRANT SELECT ... TO anon` **only** for reference/public-facing tables that already have a permissive public read policy and are needed on unauthenticated pages:
-   - `countries`, `states`
-   - `master_data_items`, `master_data_types`
-   - `registration_form_configs`
-   - (`sectors`, `sub_sectors`, `categories`, `services`, `site_settings` already granted in prior migrations.)
+super_admin/admin continue to have full access via the existing ALL policy; external users are unchanged.
 
-   All other tables with a `TO public USING (true)` SELECT policy (e.g. `applications`, `licenses`, `workflow_instances`, `registrations`) are **not** widened to `anon` — those policies were intended for authenticated users; adding `anon` here would expose user data. RLS + authenticated grant is enough.
-
-### Verification
-- `Licensee Entities` page loads all 14 licensees for admins.
-- `Registration Review` / Licensee Requests page shows pending registrations sorted newest first, filters working.
-- No changes to permissions of any specific user role — RLS remains the sole per-row gate.
-
-### Out of scope
-- No policy edits, no schema/data changes, no frontend changes.
-- Not touching `auth`, `storage`, or other system schemas.
+### Not touched
+- No writes granted to the added roles — only SELECT.
+- No frontend changes.
+- No other tables.
