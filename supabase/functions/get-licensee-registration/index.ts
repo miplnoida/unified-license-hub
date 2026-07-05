@@ -104,25 +104,29 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const userId = claimsData?.claims?.sub as string | undefined;
+    if (claimsError || !userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const [{ data: isAdmin }, { data: isSuper }] = await Promise.all([
-      admin.rpc("has_role", { _user_id: user.id, _role: "admin" }),
-      admin.rpc("has_role", { _user_id: user.id, _role: "super_admin" }),
-    ]);
+    const internalRoles = ["admin", "super_admin", "supervisor", "licensing_officer", "analyst", "legal_compliance"] as const;
+    const roleChecks = await Promise.all(
+      internalRoles.map((role) => admin.rpc("has_role", { _user_id: userId, _role: role })),
+    );
+    const isInternal = roleChecks.some(({ data }) => data === true);
 
-    if (!isAdmin && !isSuper) {
+    if (!isInternal) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const body = await req.json().catch(() => ({}));
     const inputEntity = {
