@@ -496,12 +496,15 @@ export function useUpsertStressIndicator() {
   return useMutation({
     mutationFn: async (row: Partial<StressIndicator>) => {
       const payload = { ...row };
+      const before = row.id ? (await sb.from('prudential_stress_indicators').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);
         if (error) throw error;
+        await audit('UPDATE', 'prudential_stress_indicator', row.id, before, payload);
       } else {
-        const { error } = await sb.from('prudential_stress_indicators').insert(payload);
+        const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_stress_indicator', data.id, null, data);
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator saved'); },
@@ -514,6 +517,7 @@ export function useDeleteStressIndicator() {
     mutationFn: async (id: string) => {
       const { error } = await sb.from('prudential_stress_indicators').update({ is_active: false }).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_stress_indicator', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator deactivated'); },
   });
@@ -521,9 +525,25 @@ export function useDeleteStressIndicator() {
 export function useEvaluateStressForReturn() {
   return useMutation({
     mutationFn: async (returnId: string) => {
+      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'started', related_return_id: returnId });
       const { data, error } = await sb.rpc('evaluate_stress_indicators_for_return', { _return_id: returnId });
-      if (error) throw error;
-      return data as StressEvent[];
+      if (error) {
+        await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'failed', related_return_id: returnId, error: error.message, completed_at: new Date().toISOString() });
+        throw error;
+      }
+      const rows = (data ?? []) as StressEvent[];
+      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: rows.length, completed_at: new Date().toISOString() });
+      // Fire notifications per triggered event
+      for (const ev of rows) {
+        const ind = (await sb.from('prudential_stress_indicators').select('label, severity').eq('id', ev.indicator_id).maybeSingle()).data;
+        const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
+        await audit('INTEGRATION_EVENT', 'prudential_stress_event', ev.id, null, ev);
+        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.id, {
+          indicator_label: ind?.label, severity: ind?.severity, observed_value: ev.observed_value,
+          entity_name: ent?.name, entity_id: ev.entity_id, return_id: ev.return_id,
+        });
+      }
+      return rows;
     },
     onSuccess: (rows) => toast.success(`${rows.length} stress event(s) evaluated`),
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -538,6 +558,17 @@ export function useStressEvents(entityId?: string | null) {
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useSectorRiskDistribution() {
+  return useQuery({
+    queryKey: ['prudential_sector_risk_distribution'],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('prudential_sector_risk_distribution');
+      if (error) throw error;
+      return (data ?? []) as Array<{ sector_id: string; sector_name: string; entity_count: number; breach_count: number }>;
     },
   });
 }
