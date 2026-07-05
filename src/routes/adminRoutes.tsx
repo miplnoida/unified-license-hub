@@ -121,9 +121,9 @@ export const adminRoutes = (
     <Route path="/supervision/early-warnings" element={<M module="returns_management"><PrudentialEarlyWarnings /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
-    <Route path="/admin/conduct/risk-taxonomy" element={<M module="complaint_management"><ConductRiskTaxonomy /></M>} />
-    <Route path="/admin/conduct/products-channels" element={<M module="complaint_management"><ConductProductsChannels /></M>} />
-    <Route path="/admin/conduct/triage-rules" element={<M module="complaint_management"><ConductTriageRules /></M>} />
+    <Route path="/admin/conduct/risk-taxonomy" element={<M module="market_conduct"><ConductRiskTaxonomy /></M>} />
+    <Route path="/admin/conduct/products-channels" element={<M module="market_conduct"><ConductProductsChannels /></M>} />
+    <Route path="/admin/conduct/triage-rules" element={<M module="market_conduct"><ConductTriageRules /></M>} />
     <Route path="/admin/sufficiency-rules" element={<M module="license_management"><SufficiencyRules /></M>} />
     <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
     <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
