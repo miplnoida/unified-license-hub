@@ -1,52 +1,30 @@
-## Fix Critical Security Findings
+## Sectors, sub-sectors, categories and services look "deleted" — actually a permissions issue
 
-Five `error`-level findings from the scanner. All are RLS/policy issues on existing tables — one migration per fix, no app code changes required.
+### Diagnosis
+The data is intact:
 
-### 1. `site_settings` — SMTP/SMS credentials readable by anyone
-Current: `SELECT` policy `Anyone can read site_settings` open to `anon`+`authenticated`. Row `email_sms_settings` stores SMTP host, password, SMS API key in plaintext JSON.
+| Table        | Row count |
+|--------------|-----------|
+| sectors      | 9         |
+| sub_sectors  | 8         |
+| categories   | 8         |
+| services     | 16        |
 
-Fix:
-- Drop the permissive SELECT policy.
-- Add SELECT policy restricted to `super_admin` / `admin` via `has_role(auth.uid(), ...)` for keys containing credentials (`email_sms_settings`, and any future `*_settings` with secrets).
-- Add a second SELECT policy allowing `anon`+`authenticated` to read only public-facing keys (branding, site name, etc.) — filter with `key <> 'email_sms_settings'` (extendable list).
-- Verify `useEmailSmsSettings` still works for admins (it already runs from admin-only Settings pages).
+RLS policies still allow reads (SELECT `true` for anon/authenticated). What's missing are the **table-level `GRANT`s to `anon` / `authenticated` / `service_role`**. Without them, PostgREST (the Data API the app uses) refuses every query with a permission error, so every list in the UI renders empty — which looks exactly like the rows were deleted.
 
-### 2. `inspection_findings` — unrestricted write
-Current: SELECT/INSERT/UPDATE/DELETE all `authenticated` with `true`.
+This is a known Supabase gotcha: RLS alone is not enough; each `public` table must be granted to the API roles as well. The rows were never deleted.
 
-Fix:
-- Replace the four permissive policies with:
-  - SELECT: internal staff (`has_role` in `super_admin|admin|supervisor|analyst|licensing_officer`) OR the licensee owning the parent inspection's entity.
-  - INSERT/UPDATE/DELETE: internal staff roles only.
+### Fix (one migration)
 
-### 3. `return_threshold_breaches` — unrestricted update
-Current: `Staff can update breaches` uses `true`/`true`.
+Grant Data API access on the four reference tables to match their existing policies:
 
-Fix:
-- Replace UPDATE policy with `has_role(auth.uid(),'super_admin'|'admin'|'supervisor'|'analyst')`.
-- Add restrictive policy denying external roles on UPDATE.
+- `sectors`, `sub_sectors`, `categories`, `services`:
+  - `GRANT SELECT` to `anon` (they are used on public/registration pages) and to `authenticated`
+  - `GRANT INSERT, UPDATE, DELETE` to `authenticated` (admin-only writes are enforced by the existing RLS policies)
+  - `GRANT ALL` to `service_role`
 
-### 4. `sufficiency_evaluations` + `sufficiency_evaluation_results` — unrestricted insert/read
-Current: INSERT allows any authenticated user; SELECT `true`.
+No schema changes, no policy changes, no data changes. After the migration, the admin lists and the registration sector/sub-sector/category selectors will show the existing rows again.
 
-Fix:
-- INSERT: restrict to internal staff via `has_role`.
-- SELECT: internal staff always; external users only for rows tied to their own application (`application_id in (select id from applications where applicant_id = auth.uid())`). Same shape for `sufficiency_evaluation_results` joined via evaluation.
-
-### 5. `sectors` — anonymous write open to the internet
-Current: INSERT/UPDATE/DELETE policies scoped to `public` with `true`.
-
-Fix:
-- Drop the three write policies.
-- Recreate INSERT/UPDATE/DELETE restricted to `super_admin`/`admin`.
-- Keep SELECT open (sectors are reference data used on public pages).
-
-### Delivery
-
-- One migration per table group (5 migrations, or a single combined one — combined is fine since they're all policy DDL). Each follows: drop old policy → create new policy. No table structure changes, no GRANT changes needed (grants already exist).
-- After migration: re-run the security scanner to confirm the five error findings clear; mark any that pass as fixed with a short explanation.
-- Warn-level findings (document_extractions, enforcement_case_events, notification_digest_log, reinsurance_contracts, HIBP, function search_path, public bucket listing, etc.) are **not** in scope for this plan — happy to tackle them next if you want.
-
-### Not touched
-- No frontend changes. `useEmailSmsSettings`, sufficiency panels, inspection UIs, and sector admin pages already run under admin/internal contexts, so tightening RLS won't break them.
-- No changes to `auth`, `storage`, or config tables.
+### Out of scope
+- No frontend changes — the UI code is correct; it just can't read the tables today.
+- No changes to the 5 security-hardening migrations from the previous turn.
