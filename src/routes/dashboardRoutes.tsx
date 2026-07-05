@@ -70,6 +70,15 @@ const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews')
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
 const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
+const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
+const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
+const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
+const AssessmentsList = lazy(() => import('@/pages/prudential/AssessmentsList'));
+const AssessmentDetail = lazy(() => import('@/pages/prudential/AssessmentDetail'));
+const ActionsList = lazy(() => import('@/pages/prudential/ActionsList'));
+const EscalationsList = lazy(() => import('@/pages/prudential/EscalationsList'));
+const StressIndicatorsAdmin = lazy(() => import('@/pages/prudential/StressIndicatorsAdmin'));
+const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
