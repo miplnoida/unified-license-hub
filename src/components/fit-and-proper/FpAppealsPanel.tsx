@@ -254,6 +254,20 @@ export function FpAppealsPanel({ individualId }: Props) {
                 <Textarea rows={4} value={grounds} onChange={(e) => setGrounds(e.target.value)}
                   placeholder="Explain the basis for challenging the determination…" />
               </div>
+              {(eligibleLicenses ?? []).length > 0 && (
+                <div>
+                  <Label className="text-xs">Link to license (optional — enables license-impact audit trail on overturn)</Label>
+                  <Select value={licenseId} onValueChange={setLicenseId}>
+                    <SelectTrigger><SelectValue placeholder="No license link" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No license link</SelectItem>
+                      {(eligibleLicenses ?? []).map((l: any) => (
+                        <SelectItem key={l.id} value={l.id}>{l.license_number || l.id.slice(0, 8)} · {l.license_type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex justify-end">
                 <Button onClick={() => fileAppeal.mutate()} disabled={fileAppeal.isPending || grounds.trim().length < 20}>
                   {fileAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
