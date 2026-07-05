@@ -68,12 +68,68 @@ export function ApplicationRfiTab({
           .eq('id', rfi.approval_step_action_id);
       }
 
+      // If the application was parked in an info-requested state (either by the
+      // request_more_info workflow action or an earlier query), clear it back
+      // to under_review so applicant dashboards / list "Pending" buckets stop
+      // counting it once staff have closed the RFI.
+      let statusReverted: { from: string; to: string } | null = null;
+      try {
+        const { data: appRow } = await supabase
+          .from('applications')
+          .select('status, applicant_id, application_number')
+          .eq('id', applicationId)
+          .maybeSingle();
+        const currentStatus = (appRow as any)?.status;
+        if (currentStatus === 'info_requested' || currentStatus === 'query_raised') {
+          const nextStatus = 'under_review';
+          const { error: upErr } = await supabase
+            .from('applications')
+            .update({ status: nextStatus })
+            .eq('id', applicationId);
+          if (!upErr) statusReverted = { from: currentStatus, to: nextStatus };
+        }
+
+        // Notify applicant — in-app row + templated dispatch
+        const applicantId = (appRow as any)?.applicant_id ?? null;
+        const appNumber = (appRow as any)?.application_number ?? null;
+        if (applicantId) {
+          await supabase.from('notifications').insert({
+            user_id: applicantId,
+            title: 'Information request closed',
+            message: `The request for information${appNumber ? ` on ${appNumber}` : ''} has been closed.${closeNotesById[rfi.id] ? ` Notes: ${closeNotesById[rfi.id]}` : ''}`,
+            type: 'rfi',
+            channel: 'in_app',
+            entity_type: 'application',
+            entity_id: applicationId,
+          });
+        }
+        void dispatchNotificationEvent({
+          event_key: 'application.rfi_closed',
+          entity_type: 'application',
+          entity_id: applicationId,
+          payload: {
+            application_id: applicationId,
+            application_number: appNumber,
+            applicant_id: applicantId,
+            rfi_id: rfi.id,
+            closure_notes: closeNotesById[rfi.id] || null,
+            deep_link: `/applications/${applicationId}?tab=rfi`,
+          },
+        });
+      } catch {
+        // non-fatal
+      }
+
       await supabase.from('audit_logs' as any).insert({
         user_id: currentUserId,
         action: 'application.rfi_closed',
         table_name: 'applications',
         record_id: applicationId,
-        new_values: { rfi_id: rfi.id, closure_notes: closeNotesById[rfi.id] || null },
+        new_values: {
+          rfi_id: rfi.id,
+          closure_notes: closeNotesById[rfi.id] || null,
+          status_reverted: statusReverted,
+        },
       });
 
       toast.success('RFI closed');
@@ -84,6 +140,7 @@ export function ApplicationRfiTab({
       setClosing(null);
     }
   };
+
 
   return (
     <div className="space-y-4">
