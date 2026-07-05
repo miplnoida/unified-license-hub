@@ -183,6 +183,11 @@ export const dashboardRoutes = (
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
     <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
+    <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
+    <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
+    <Route path="/conduct/investigations" element={<M module="market_conduct"><Investigations /></M>} />
+    <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
+    <Route path="/complaints/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
 
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
