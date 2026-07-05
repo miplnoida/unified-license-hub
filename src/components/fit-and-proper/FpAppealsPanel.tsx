@@ -295,7 +295,7 @@ export function FpAppealsPanel({ individualId }: Props) {
                 </div>
                 <div className="text-xs whitespace-pre-wrap">{a.grounds}</div>
 
-                {a.status === 'filed' && (
+                {(a.status === 'submitted' || a.status === 'filed') && (
                   <div className="border rounded p-2 bg-muted/30 space-y-2">
                     <Label className="text-xs">Assign appeal committee</Label>
                     <div className="flex gap-2 items-end">
