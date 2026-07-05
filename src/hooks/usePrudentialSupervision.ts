@@ -1,8 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logComplianceAudit } from '@/lib/complianceAudit';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 const sb = supabase as any;
+
+// Fire-and-forget audit + notification helpers. Never block UI on failure.
+async function audit(
+  action_type: Parameters<typeof logComplianceAudit>[0]['action_type'],
+  object_type: string,
+  object_id: string | null | undefined,
+  before: any = null,
+  after: any = null,
+  justification?: string | null,
+) {
+  try {
+    await logComplianceAudit({
+      action_type,
+      object_type,
+      object_id: object_id ?? null,
+      before_value: before,
+      after_value: after,
+      justification: justification ?? null,
+    });
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[prudential audit] failed', e);
+  }
+}
+async function notify(event_key: string, entity_type: string, entity_id: string | null | undefined, payload: Record<string, unknown> = {}) {
+  if (!entity_id) return;
+  try {
+    await dispatchNotificationEvent({ event_key, entity_type, entity_id, payload });
+  } catch {
+    /* swallow */
+  }
+}
 
 // ---------- Types ----------
 export interface RiskTaxonomy { id: string; code: string; label: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; }
