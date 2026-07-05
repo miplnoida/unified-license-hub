@@ -1,30 +1,38 @@
-## Sectors, sub-sectors, categories and services look "deleted" — actually a permissions issue
+## Remove restrictive RLS policies on `file_uploads`
 
-### Diagnosis
-The data is intact:
+### Change
+Drop the three RESTRICTIVE policies on `public.file_uploads` so uploads are governed purely by the existing permissive policies:
 
-| Table        | Row count |
-|--------------|-----------|
-| sectors      | 9         |
-| sub_sectors  | 8         |
-| categories   | 8         |
-| services     | 16        |
+- `external_file_uploads_insert_capability_gate` (RESTRICTIVE, INSERT)
+- `external_file_uploads_update_capability_gate` (RESTRICTIVE, UPDATE)
+- `external_file_uploads_delete_capability_gate` (RESTRICTIVE, DELETE)
 
-RLS policies still allow reads (SELECT `true` for anon/authenticated). What's missing are the **table-level `GRANT`s to `anon` / `authenticated` / `service_role`**. Without them, PostgREST (the Data API the app uses) refuses every query with a permission error, so every list in the UI renders empty — which looks exactly like the rows were deleted.
+### Why this fixes the reported bug
+The INSERT restrictive policy required `external_can_upload_document_ref(...)` to return true for external users. That function has no branch for `entity_type = 'form_field' | 'registration' | 'document_version'`, so every registration and new-application file upload was denied with:
 
-This is a known Supabase gotcha: RLS alone is not enough; each `public` table must be granted to the API roles as well. The rows were never deleted.
+> new row violates row-level security policy "external_file_uploads_insert_capability_gate" for table "file_uploads"
 
-### Fix (one migration)
+Removing the restrictive gates lets the permissive policies decide access again.
 
-Grant Data API access on the four reference tables to match their existing policies:
+### Remaining protection after the change
+- INSERT: `Users insert uploads` — `auth.uid() = uploaded_by` (authenticated); `Allow anon registration file_uploads insert` — anon can only insert with `entity_type in ('registration','form_field','document_version')`.
+- SELECT: `Users read own uploads` (owner + admin/super_admin/supervisor) and the permissive `external_file_uploads_select_capability_gate` (adds capability-based reads for external users).
+- UPDATE/DELETE: `Admins update uploads` / `Admins delete uploads` — owner or admin/super_admin only.
 
-- `sectors`, `sub_sectors`, `categories`, `services`:
-  - `GRANT SELECT` to `anon` (they are used on public/registration pages) and to `authenticated`
-  - `GRANT INSERT, UPDATE, DELETE` to `authenticated` (admin-only writes are enforced by the existing RLS policies)
-  - `GRANT ALL` to `service_role`
+External users can no longer read/write arbitrary rows: writes still require `uploaded_by = auth.uid()`, and reads still require ownership or admin role.
 
-No schema changes, no policy changes, no data changes. After the migration, the admin lists and the registration sector/sub-sector/category selectors will show the existing rows again.
+### Migration
+One migration:
+
+```sql
+DROP POLICY IF EXISTS external_file_uploads_insert_capability_gate ON public.file_uploads;
+DROP POLICY IF EXISTS external_file_uploads_update_capability_gate ON public.file_uploads;
+DROP POLICY IF EXISTS external_file_uploads_delete_capability_gate ON public.file_uploads;
+```
+
+The permissive `external_file_uploads_select_capability_gate` stays — it broadens SELECT for external users with the right capability and is not the source of the error.
 
 ### Out of scope
-- No frontend changes — the UI code is correct; it just can't read the tables today.
-- No changes to the 5 security-hardening migrations from the previous turn.
+- No changes to `external_can_upload_document_ref` or any other function.
+- No frontend changes.
+- No changes to other tables' capability gates.
