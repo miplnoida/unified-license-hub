@@ -284,7 +284,7 @@ export function FpAppealsPanel({ individualId }: Props) {
         <CardContent className="space-y-3">
           {(appeals ?? []).length === 0 && <p className="text-sm text-muted-foreground">No appeals filed.</p>}
           {(appeals ?? []).map((a: any) => {
-            const sMeta = STATUS_META[a.status] || STATUS_META.filed;
+            const sMeta = STATUS_META[a.status] || STATUS_META.submitted;
             const dMeta = a.decision ? DECISION_META[a.decision] : null;
             return (
               <div key={a.id} className="border rounded p-3 space-y-2 text-sm">
