@@ -33,6 +33,12 @@ export function FpAssessmentsPanel({ individualId }: Props) {
   const [open, setOpen] = useState(false);
   const [assessmentType, setAssessmentType] = useState('initial');
   const [roleId, setRoleId] = useState<string>('none');
+  const [regulatorId, setRegulatorId] = useState<string>('none');
+
+  const { data: regulators = [] } = useQuery({
+    queryKey: ['regulators-active-fp'],
+    queryFn: async () => (await supabase.from('regulators').select('id, name').order('name')).data ?? [],
+  });
 
   const { data: assessments, isLoading } = useQuery({
     queryKey: ['fp_assessments', individualId],
