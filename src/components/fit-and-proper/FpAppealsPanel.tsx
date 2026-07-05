@@ -80,6 +80,20 @@ export function FpAppealsPanel({ individualId }: Props) {
     },
   });
 
+  const { data: eligibleLicenses } = useQuery({
+    queryKey: ['fp_appeal_eligible_licenses', individualId],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from('fp_individual_roles')
+        .select('license_id, licensee_id').eq('individual_id', individualId).eq('is_current', true);
+      const licIds = Array.from(new Set((roles ?? []).map((r: any) => r.license_id).filter(Boolean)));
+      if (licIds.length === 0) return [];
+      const { data } = await supabase.from('licenses').select('id, license_number, license_type, status').in('id', licIds);
+      return data ?? [];
+    },
+  });
+
+  const [licenseId, setLicenseId] = useState<string>('none');
+
   const canFile = useMemo(() => {
     if (!currentDet) return false;
     if (!['rejected', 'conditional'].includes(currentDet.outcome)) return false;
@@ -96,18 +110,20 @@ export function FpAppealsPanel({ individualId }: Props) {
         determination_id: currentDet.id,
         filed_by: user!.id,
         grounds: grounds.trim(),
-        status: 'filed',
+        status: 'submitted',
         supporting_docs: [],
-      }).select('id').single();
+        license_id: licenseId && licenseId !== 'none' ? licenseId : null,
+      } as any).select('id').single();
       if (error) throw error;
       await logFpAction('fp.appeal.filed', 'fp_appeal', data.id, {
-        after: { determination_id: currentDet.id, status: 'filed' },
+        after: { determination_id: currentDet.id, status: 'submitted', license_id: licenseId !== 'none' ? licenseId : null },
         context: { individualId, appealId: data.id, determinationId: currentDet.id },
       });
     },
     onSuccess: () => {
       toast.success('Appeal filed');
       setGrounds('');
+      setLicenseId('none');
       qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
