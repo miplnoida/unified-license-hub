@@ -200,7 +200,69 @@ export default function FitAndProperIndividualDetail() {
           </TabsList>
 
           <TabsContent value="roles">
-            <Card><CardContent className="p-4 space-y-2">
+            <Card><CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Roles link this individual to regulated entities. Adding a role enables role-change / material-change initiation.
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
+                    {runningCycle ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                    Run cycle scheduler
+                  </Button>
+                  <Dialog open={addRoleOpen} onOpenChange={setAddRoleOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add role</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Add role linkage</DialogTitle></DialogHeader>
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Role type *</Label>
+                          <Select value={roleForm.role_type} onValueChange={(v) => setRoleForm({ ...roleForm, role_type: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{ROLE_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>
+                            ))}</SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Role title (optional)</Label>
+                          <Input value={roleForm.role_title} onChange={(e) => setRoleForm({ ...roleForm, role_title: e.target.value })} placeholder="e.g. Board Member" />
+                        </div>
+                        <div>
+                          <Label>Licensee</Label>
+                          <Select value={roleForm.licensee_id} onValueChange={(v) => setRoleForm({ ...roleForm, licensee_id: v })}>
+                            <SelectTrigger><SelectValue placeholder="No licensee link" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No licensee link</SelectItem>
+                              {(licensees as any[]).map((l) => (
+                                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Effective from</Label>
+                            <Input type="date" value={roleForm.effective_from} onChange={(e) => setRoleForm({ ...roleForm, effective_from: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label>Reassessment cycle (months)</Label>
+                            <Input type="number" min={1} max={120} value={roleForm.reassessment_cycle_months} onChange={(e) => setRoleForm({ ...roleForm, reassessment_cycle_months: e.target.value })} placeholder="e.g. 24" />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setAddRoleOpen(false)}>Cancel</Button>
+                        <Button onClick={() => addRole.mutate()} disabled={addRole.isPending}>
+                          {addRole.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save role
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
               {(roles ?? []).length === 0 && <p className="text-sm text-muted-foreground">No roles linked yet.</p>}
               {(roles ?? []).map((r: any) => {
                 const editVal = cycleEdits[r.id];
