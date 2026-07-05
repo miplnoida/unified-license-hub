@@ -531,22 +531,35 @@ export function useEvaluateStressForReturn() {
         await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'failed', related_return_id: returnId, error: error.message, completed_at: new Date().toISOString() });
         throw error;
       }
-      const rows = (data ?? []) as StressEvent[];
-      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: rows.length, completed_at: new Date().toISOString() });
-      // Fire notifications per triggered event
-      for (const ev of rows) {
-        const ind = (await sb.from('prudential_stress_indicators').select('label, severity').eq('id', ev.indicator_id).maybeSingle()).data;
+      // RPC now returns jsonb { new_events, updated_events }
+      const newEvents = (data as any)?.new_events ?? [];
+      const updatedEvents = (data as any)?.updated_events ?? [];
+      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: newEvents.length + updatedEvents.length, completed_at: new Date().toISOString(), metadata: { new: newEvents.length, updated: updatedEvents.length } });
+      // Fire notifications per newly triggered event
+      for (const ev of newEvents) {
         const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
-        await audit('INTEGRATION_EVENT', 'prudential_stress_event', ev.id, null, ev);
-        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.id, {
-          indicator_label: ind?.label, severity: ind?.severity, observed_value: ev.observed_value,
-          entity_name: ent?.name, entity_id: ev.entity_id, return_id: ev.return_id,
+        await audit('CREATE', 'prudential_stress_event', ev.event_id, null, ev, 'Auto-triggered by supervisor stress re-run');
+        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.event_id, {
+          ...ev, entity_name: ent?.name,
         });
+        try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }
       }
-      return rows;
+      return { new: newEvents.length, updated: updatedEvents.length };
     },
-    onSuccess: (rows) => toast.success(`${rows.length} stress event(s) evaluated`),
+    onSuccess: (r) => toast.success(`${r.new} new · ${r.updated} updated stress event(s)`),
     onError: (e: any) => toast.error(e.message || 'Failed'),
+  });
+}
+
+export function useEntityAuditHistory(entityId?: string | null) {
+  return useQuery({
+    queryKey: ['prudential_entity_audit', entityId],
+    enabled: !!entityId,
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('prudential_entity_audit_history', { _entity_id: entityId });
+      if (error) throw error;
+      return (data ?? []) as Array<any>;
+    },
   });
 }
 export function useStressEvents(entityId?: string | null) {
