@@ -48,8 +48,20 @@ export default function FpPopulationTrends() {
     queryKey: ['fp_trend_appeals'],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_appeals')
-        .select('id, status, outcome, filed_at')
+        .select('id, status, decision, filed_at')
         .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: determinations } = useQuery({
+    queryKey: ['fp_trend_determinations'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_determinations')
+        .select('id, outcome, determined_at')
+        .order('determined_at', { ascending: false })
+        .limit(2000);
       if (error) throw error;
       return data ?? [];
     },
