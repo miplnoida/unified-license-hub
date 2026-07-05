@@ -92,12 +92,15 @@ export function useUpsertTaxonomy() {
   return useMutation({
     mutationFn: async (row: Partial<RiskTaxonomy>) => {
       const payload = { ...row };
+      const before = row.id ? (await sb.from('prudential_risk_taxonomy').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);
         if (error) throw error;
+        await audit('UPDATE', 'prudential_taxonomy', row.id, before, payload);
       } else {
-        const { error } = await sb.from('prudential_risk_taxonomy').insert(payload);
+        const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_taxonomy', data.id, null, data);
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
@@ -110,6 +113,7 @@ export function useDeleteTaxonomy() {
     mutationFn: async (id: string) => {
       const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_taxonomy', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy deactivated'); },
   });
