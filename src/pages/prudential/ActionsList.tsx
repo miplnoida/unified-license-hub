@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, RefreshCw } from 'lucide-react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 type CloseKind = 'completed' | 'waived' | 'cancelled';
 
@@ -32,7 +33,8 @@ export default function ActionsList() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Prudential Actions</h1>
         <div className="flex gap-2">
@@ -86,6 +88,7 @@ export default function ActionsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

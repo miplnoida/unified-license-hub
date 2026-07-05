@@ -6,6 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMemo, useState } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -44,7 +45,8 @@ export default function PrudentialEntitiesList() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Prudentially Supervised Entities</h1>
         <p className="text-sm text-muted-foreground">Universe of supervised entities with current prudential status</p>
@@ -146,6 +148,7 @@ export default function PrudentialEntitiesList() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

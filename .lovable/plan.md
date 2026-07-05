@@ -1,43 +1,32 @@
-## Findings
-- The prudential routes are registered in `dashboardRoutes` and the component files exist.
-- In the local running preview, the prudential URLs open for the injected super-admin session and the left sidebar shows the Prudential Supervision section.
-- If another user still sees 404 or no sidebar links, the likely cause is stale published frontend assets or that the current role/dynamic-role permission set does not include `prudential_supervision`.
+## Root cause
+The prudential pages are accessible, but they render as standalone page content. They do **not** wrap their content in `DashboardLayout`, which is the component that renders the left sidebar and header.
+
+This is not primarily an auth-session timing issue: the route guard allows the page, but the page component itself bypasses the app shell.
 
 ## Plan
-1. **Verify route wiring is loaded consistently**
-   - Confirm the prudential route block remains in the app route tree.
-   - Keep route paths unchanged:
-     - `/prudential/dashboard`
-     - `/prudential/entities`
-     - `/prudential/assessments`
-     - `/prudential/actions`
-     - `/prudential/escalations`
-     - `/prudential/stress-indicators`
-     - `/admin/prudential-taxonomy`
+1. **Wrap prudential pages with the app shell**
+   - Add `DashboardLayout` around the existing content for all prudential pages:
+     - `PrudentialDashboard`
+     - `PrudentialEntitiesList`
+     - `PrudentialEntityProfile`
+     - `AssessmentsList`
+     - `AssessmentDetail`
+     - `ActionsList`
+     - `EscalationsList`
+     - `StressIndicatorsAdmin`
+     - `PrudentialTaxonomyAdmin`
 
-2. **Fix sidebar visibility if needed only in navigation/permission wiring**
-   - Ensure all Prudential Supervision sidebar items are mapped to the `prudential_supervision` module.
-   - Ensure `/prudential/*` and `/admin/prudential-taxonomy` resolve to the same module in the route-permission map.
-   - Do not change prudential page logic, queries, forms, or backend behavior.
+2. **Preserve existing feature logic**
+   - Do not change queries, mutations, forms, filters, dialogs, or prudential workflows.
+   - Only adjust page layout/wrapping so the left sidebar and header appear consistently.
 
-3. **Check dynamic role permissions**
-   - Inspect whether the current non-super-admin role has permissions under `prudential_supervision`.
-   - If the catalog/seed is missing that module or its permission actions, add a minimal migration to create the missing permission module/actions only.
-   - Do not alter unrelated roles or permissions.
+3. **Avoid duplicate page padding/header issues**
+   - Replace each top-level `p-6` wrapper with normal inner spacing compatible with `DashboardLayout`, since the layout already provides page padding.
+   - Keep each page’s existing H1/title content unless it already duplicates the layout title awkwardly.
 
-4. **Validate locally**
-   - Run typecheck/build.
-   - Manually open each prudential URL in the preview.
-   - Confirm the left sidebar displays Prudential Supervision links for a role that has the `prudential_supervision` module.
+4. **Verify in preview**
+   - Open `/prudential/entities` and confirm the left sidebar is visible.
+   - Smoke-test the other prudential URLs to confirm the sidebar appears and content still renders.
 
-5. **Report exact cause if still failing**
-   - Classify the failure as one of:
-     - stale deployment
-     - missing component file
-     - failed lazy import
-     - route file not loaded
-     - permission guard issue
-     - module permission missing for current role
-
-6. **Publishing note**
-   - Publishing is still blocked by unresolved critical security scan findings unless you explicitly choose to address or acknowledge them first.
+5. **Report result**
+   - If sidebar still does not appear after layout wrapping, classify the remaining issue as either sidebar permission visibility or auth/session readiness; otherwise classify it as fixed layout omission.

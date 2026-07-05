@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function PrudentialTaxonomyAdmin() {
   const { data = [] } = useRiskTaxonomy();
@@ -17,7 +18,8 @@ export default function PrudentialTaxonomyAdmin() {
   const [form, setForm] = useState<any>({ is_active: true, sort_order: 100 });
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Prudential Risk Taxonomy</h1>
@@ -52,6 +54,7 @@ export default function PrudentialTaxonomyAdmin() {
           </TableBody>
         </Table>
       </CardContent></Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
