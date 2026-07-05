@@ -62,6 +62,12 @@ export function ApplicationRfiTab({
         .eq('id', rfi.id);
       if (error) throw error;
 
+      await supabase
+        .from('application_rfi_items' as any)
+        .update({ response_status: 'skipped' })
+        .eq('rfi_id', rfi.id)
+        .neq('response_status', 'responded');
+
       // Resume SLA on the linked approval step action if it was paused
       if (rfi.approval_step_action_id) {
         await supabase
@@ -223,6 +229,7 @@ function RfiCard({
   const totalItems = rfi.items?.length ?? 0;
   const respondedItems = rfi.items?.filter((i) => i.response_status === 'responded').length ?? 0;
   const isOpen = rfi.status === 'open' || rfi.status === 'responded';
+  const isClosed = rfi.status === 'closed' || rfi.status === 'cancelled';
 
   return (
     <Card>
@@ -246,7 +253,7 @@ function RfiCard({
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground ml-auto">
-                  {respondedItems}/{totalItems} responded
+                  {isClosed ? `${respondedItems}/${totalItems} responded · closed` : `${respondedItems}/${totalItems} responded`}
                 </span>
               </div>
               {rfi.summary && <p className="text-sm mt-2">{rfi.summary}</p>}
@@ -326,6 +333,7 @@ function RfiItemRow({
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const rfiClosed = rfiStatus === 'closed' || rfiStatus === 'cancelled';
 
   const canRespond =
     isApplicant &&
@@ -466,15 +474,15 @@ function RfiItemRow({
           className={
             item.response_status === 'responded'
               ? 'bg-green-100 text-green-800 border-green-200'
-              : rfiStatus === 'closed' || rfiStatus === 'cancelled'
+              : rfiClosed
                 ? 'bg-muted text-muted-foreground border-border'
                 : 'bg-orange-100 text-orange-800 border-orange-200'
           }
         >
           {item.response_status === 'responded'
             ? 'responded'
-            : rfiStatus === 'closed' || rfiStatus === 'cancelled'
-              ? 'not responded'
+            : rfiClosed
+              ? 'closed'
               : item.response_status}
         </Badge>
       </div>
@@ -524,7 +532,7 @@ function RfiItemRow({
         </div>
       )}
 
-      {!canRespond && isApplicant && item.response_status !== 'responded' && (
+      {!canRespond && isApplicant && rfiClosed && item.response_status !== 'responded' && (
         <div className="mt-3 text-xs text-muted-foreground flex items-center gap-1">
           <Lock className="h-3 w-3" /> This RFI is closed to further responses.
         </div>
