@@ -366,6 +366,13 @@ export function useCreateAction() {
       const payload: any = { ...row, created_by: user?.id };
       const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
       if (error) throw error;
+      await audit('CREATE', 'prudential_action', data.id, null, data);
+      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
+      if (data.assigned_to) {
+        await notify('prudential_action_assigned', 'prudential_action', data.id, {
+          action_title: data.title, entity_name: ent?.name, entity_id: data.entity_id, assigned_to: data.assigned_to,
+        });
+      }
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
@@ -375,16 +382,23 @@ export function useCreateAction() {
 export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, patch, waiver_reason }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string }) => {
+    mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
+      const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
       const body: any = { ...patch };
       if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
         body.closed_at = new Date().toISOString();
         body.closed_by = user?.id;
       }
       if (patch.status === 'waived' && waiver_reason) body.waiver_reason = waiver_reason;
+      if (patch.status === 'cancelled' && cancellation_reason) body.cancellation_reason = cancellation_reason;
+      if (patch.status === 'completed' && completion_notes) body.completion_notes = completion_notes;
       const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
+      if (patch.status === 'completed') {
+        await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -394,9 +408,18 @@ export function useMarkOverdue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await sb.rpc('mark_prudential_actions_overdue');
+      // Snapshot open/in-progress actions that will flip so we can audit + notify each
+      const { data: candidates } = await sb.from('prudential_actions')
+        .select('id, title, entity_id, assigned_to, licensees(name)')
+        .in('status', ['open','in_progress'])
+        .lt('due_date', new Date().toISOString().slice(0,10));
+      const { data: n, error } = await sb.rpc('mark_prudential_actions_overdue');
       if (error) throw error;
-      return data as number;
+      for (const a of (candidates ?? [])) {
+        await audit('UPDATE', 'prudential_action', a.id, { status: 'open_or_in_progress' }, { status: 'overdue' }, 'Automated overdue sweep');
+        await notify('prudential_action_overdue', 'prudential_action', a.id, { action_title: a.title, entity_name: a.licensees?.name, entity_id: a.entity_id, assigned_to: a.assigned_to });
+      }
+      return n as number;
     },
     onSuccess: (n) => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success(`${n} action(s) marked overdue`); },
   });
@@ -421,8 +444,12 @@ export function useCreateEscalation() {
   return useMutation({
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
       const user = (await sb.auth.getUser()).data.user;
+      if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
       const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
       if (error) throw error;
+      await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
+      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
+      await notify('prudential_escalation_created', 'prudential_escalation', data.id, { entity_name: ent?.name, entity_id: data.entity_id, reason: data.reason });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
@@ -434,13 +461,19 @@ export function useUpdateEscalation() {
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
       const user = (await sb.auth.getUser()).data.user;
+      const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
       const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
+        if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
         body.decided_at = new Date().toISOString();
         body.decision_by = user?.id;
       }
       const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
+      if (patch.status === 'resolved') {
+        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
