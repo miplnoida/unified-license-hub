@@ -77,12 +77,12 @@ export const adminRoutes = (
   <>
     <Route path="/admin" element={<A><AdminHub /></A>} />
 
-    <Route path="/admin/forms" element={<M module="form_management"><FormManagement /></M>} />
+    <Route path="/admin/forms" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormManagement /></ModuleRoute></P>} />
     <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
     <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
     <Route path="/admin/forms/internal" element={<Navigate to="/admin/forms?tab=internal" replace />} />
-    <Route path="/admin/forms/create" element={<M module="form_management"><FormBuilder /></M>} />
-    <Route path="/admin/forms/:templateId/view" element={<M module="form_management"><FormTemplateView /></M>} />
+    <Route path="/admin/forms/create" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormBuilder /></ModuleRoute></P>} />
+    <Route path="/admin/forms/:templateId/view" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormTemplateView /></ModuleRoute></P>} />
 
     <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
     <Route path="/admin/masters/sectors" element={<M module="settings"><MasterConfiguration /></M>} />
