@@ -21,7 +21,7 @@ export default function ConductEntitiesList() {
     queryKey: ['conduct-entities'],
     queryFn: async () => {
       const { data: lics, error } = await sb.from('licensees')
-        .select('id, name, licence_status, sector_id, sub_sector_id, sectors(name), sub_sectors(name)')
+        .select('id, name, status, sector_id, sub_sector_id, sectors(name), sub_sectors(name)')
         .order('name').limit(500);
       if (error) throw new Error(error.message);
       const ids = (lics ?? []).map((r: any) => r.id);
