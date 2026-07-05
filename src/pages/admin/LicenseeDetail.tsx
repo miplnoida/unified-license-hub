@@ -26,6 +26,7 @@ const InspectionsTab = lazy(() => import('@/components/entity-detail/Inspections
 const ReinsuranceTab = lazy(() => import('@/components/entity-detail/ReinsuranceTab'));
 const SupervisoryPlanTab = lazy(() => import('@/components/entity-detail/SupervisoryPlanTab'));
 const ProductsChannelsTab = lazy(() => import('@/components/entity-detail/ProductsChannelsTab'));
+const LicensingAuditTab = lazy(() => import('@/components/entity-detail/LicensingAuditTab'));
 
 interface LookupMap { [id: string]: string }
 
@@ -174,6 +175,7 @@ export default function LicenseeDetail() {
     { id: 'products-channels', label: 'Products & Channels', icon: Boxes },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
+    { id: 'audit', label: 'Audit', icon: Gavel },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
     { id: 'returns', label: 'Returns', icon: FileText },
     { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
@@ -272,6 +274,16 @@ export default function LicenseeDetail() {
             <TabsContent value="supervisory" className="mt-6">
               {loadedTabs.has('supervisory') && <SupervisoryPlanTab entityId={id!} />}
             </TabsContent>
+
+            <TabsContent value="audit" className="mt-6">
+              {loadedTabs.has('audit') && (
+                <LicensingAuditTab
+                  entityId={id!}
+                  onOpenSupervisoryTab={() => handleTabChange('supervisory')}
+                />
+              )}
+            </TabsContent>
+
 
 
             <TabsContent value="web-users" className="mt-6">
