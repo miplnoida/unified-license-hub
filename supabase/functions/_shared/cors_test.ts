@@ -20,6 +20,11 @@ Deno.test("isOriginAllowed: lovable.app subdomains are allowed by default", () =
   assertEquals(isOriginAllowed("https://preview--app.lovableproject.com"), true);
 });
 
+Deno.test("isOriginAllowed: custom published domain is allowed by default", () => {
+  Deno.env.delete("ALLOWED_ORIGINS");
+  assertEquals(isOriginAllowed("https://boj.skntreasury.com"), true);
+});
+
 Deno.test("isOriginAllowed: unknown origin is rejected by default", () => {
   Deno.env.delete("ALLOWED_ORIGINS");
   assertEquals(isOriginAllowed("https://evil.example.com"), false);
@@ -51,6 +56,13 @@ Deno.test("buildCorsHeaders: returns origin echo for allowed origin", () => {
   const h = buildCorsHeaders(req);
   assertEquals(h["Access-Control-Allow-Origin"], "http://localhost:3000");
   assertEquals(h["Vary"], "Origin");
+});
+
+Deno.test("buildCorsHeaders: returns custom published domain origin", () => {
+  Deno.env.delete("ALLOWED_ORIGINS");
+  const req = new Request("http://localhost/x", { headers: { origin: "https://boj.skntreasury.com" } });
+  const h = buildCorsHeaders(req);
+  assertEquals(h["Access-Control-Allow-Origin"], "https://boj.skntreasury.com");
 });
 
 Deno.test("buildCorsHeaders: returns 'null' for disallowed origin", () => {

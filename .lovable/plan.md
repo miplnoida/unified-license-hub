@@ -1,87 +1,57 @@
+## What is causing the error
 
-## Problem
+This is now clearly **not a signature payload size issue**.
 
-Market Conduct, Fit & Proper, and Twin Peaks Coordination menus are gated by the wrong permission modules, so any internal user with unrelated permissions (e.g. `complaint_management`) sees them, and users granted the correct semantic module (e.g. `market_conduct`) don't.
+The registration approval function uses a shared CORS allowlist in `supabase/functions/_shared/cors.ts`. That allowlist currently permits:
 
-The permission catalog in the DB already has dedicated modules for these areas, but the sidebar/routes still point at legacy keys:
+- localhost
+- `*.lovable.app`
+- `*.lovableproject.com`
+- `*.lovable.dev`
 
-| Menu group | Current key (wrong) | Correct DB module |
-|---|---|---|
-| Market Conduct (Conduct Dashboard/Alerts/Actions, Thematic Reviews, Risk Taxonomy, Products & Channels, Triage Rules, Monitoring Rules) | `complaint_management` | `market_conduct` |
-| Complaint Types admin | `complaint_management` | `complaint_type` |
-| FP Screening Configs | `fit_and_proper` | `fit_and_proper_screening` |
-| FP Committees | `fit_and_proper` | `fit_and_proper_committee` |
-| FP Sector Decision Rules | `fit_and_proper` | `fit_and_proper_screening` |
-| Coordination Cases | `coordination` | `coordination` (already OK — verify) |
+It does **not** permit the custom published domain:
 
-## Scope
+- `https://boj.skntreasury.com`
 
-Frontend-only. Three files:
-- `src/config/navigation.tsx` — update `module` on Market Conduct, Complaint Types, FP admin items
-- `src/routes/dashboardRoutes.tsx` + `src/routes/adminRoutes.tsx` — update `ModuleRoute module=` on the same routes
-- `src/lib/permissionModules.ts` — update `ROUTE_MODULE_MAP` entries for these paths and extend `KNOWN_PERMISSION_MODULES`
+So the same action works on the Lovable URL but fails on the custom published URL because the browser blocks the edge-function request during CORS/preflight. In the app this appears as:
 
-No DB changes, no edge functions, no changes to `Complaints` (`/complaints`) itself — it stays on `complaint_management` (it's the citizen-facing complaint intake, which matches DB `complaint_management` perms).
+`Failed to send a request to the edge function`
 
-## Fixes
+The secret list also shows no `ALLOWED_ORIGINS` secret is configured, so the function is using the default allowlist only.
 
-### A. Market Conduct — switch to `market_conduct` module
+## Fix plan
 
-Sidebar (`navigation.tsx` 129–136):
-- Conduct Dashboard `/conduct` → `module: 'market_conduct'`
-- Conduct Alerts `/conduct/alerts` → `module: 'market_conduct'`
-- Conduct Actions `/conduct/actions` → `module: 'market_conduct'`
-- Thematic Reviews `/supervision/thematic-reviews` → `module: 'market_conduct'`
-- Risk Taxonomy, Products & Channels, Triage Rules, Monitoring Rules (`/admin/conduct/*`) → `module: 'market_conduct'`
+### 1. Add the custom published domain to the backend CORS defaults
+Update `supabase/functions/_shared/cors.ts` so the default allowed origins also include:
 
-Routes:
-- `dashboardRoutes.tsx` 165–171: `/conduct`, `/conduct/alerts`, `/conduct/actions`, `/supervision/thematic-reviews`, `/supervision/thematic-reviews/new`, `/supervision/thematic-reviews/:id`, `/admin/conduct/monitoring-rules` → `<M module="market_conduct">`
-- `adminRoutes.tsx` 124–126: `/admin/conduct/risk-taxonomy`, `/admin/conduct/products-channels`, `/admin/conduct/triage-rules` → `<M module="market_conduct">`
+- `https://boj.skntreasury.com`
 
-### B. Complaint Types — switch to `complaint_type` module
+I will keep the existing Lovable domains untouched.
 
-- Sidebar 123 (`navigation.tsx`) — `module: 'complaint_type'`
-- Route `adminRoutes.tsx` 106 — `<M module="complaint_type">`
+### 2. Add a regression test for the custom domain
+Update `supabase/functions/_shared/cors_test.ts` to assert that:
 
-### C. Fit & Proper admin — switch to dedicated sub-modules
+- `https://boj.skntreasury.com` is allowed
+- unknown external domains remain blocked
 
-- Sidebar (`navigation.tsx` 144–145):
-  - Screening Configs `/admin/fp-screening-configs` → `module: 'fit_and_proper_screening'`
-  - Committees `/admin/fp-committees` → `module: 'fit_and_proper_committee'`
-- Routes (`adminRoutes.tsx` 116–118):
-  - `/admin/fp-screening-configs` → `<M module="fit_and_proper_screening">`
-  - `/admin/fp-committees` → `<M module="fit_and_proper_committee">`
-  - `/admin/fp-sector-rules` → `<M module="fit_and_proper_screening">`
+### 3. Redeploy the impacted function(s)
+Because this is shared backend code, redeploy at minimum:
 
-Individual Register (`/fit-and-proper*`) keeps the general `fit_and_proper` module — matches DB perms on that module.
+- `perform-registration-workflow-action`
 
-### D. ROUTE_MODULE_MAP updates (`permissionModules.ts` 41–104)
+If other edge functions are also called from the custom domain, they use the same shared CORS helper and may need redeploy too. I will prioritize the registration approval function because that is the broken flow.
 
-Replace/add so `getModuleForPath` matches route guards:
-- `['/conduct', 'market_conduct']`
-- `['/supervision/thematic-reviews', 'market_conduct']`
-- `['/admin/conduct', 'market_conduct']`
-- `['/admin/complaint-types', 'complaint_type']`
-- `['/admin/fp-screening-configs', 'fit_and_proper_screening']`
-- `['/admin/fp-committees', 'fit_and_proper_committee']`
-- `['/admin/fp-sector-rules', 'fit_and_proper_screening']`
+### 4. Verify
+After implementation:
 
-Also extend `KNOWN_PERMISSION_MODULES` with: `market_conduct`, `market_conduct_investigation`, `complaint_type`, `fit_and_proper_screening`, `fit_and_proper_committee`, `fit_and_proper_initiation` (documentation only; type is already `string`).
+- Test the approval/reject action from the custom published domain.
+- Confirm OPTIONS preflight returns `Access-Control-Allow-Origin: https://boj.skntreasury.com`.
+- Confirm the action request reaches `perform-registration-workflow-action` instead of failing before the function runs.
 
-### E. Confirm Twin Peaks Coordination
+## What I will not change
 
-Coordination sidebar already uses `module: 'coordination'` and the route (after previous fix) uses `<M module="coordination">`. Add a smoke check — no code change expected.
-
-## Verification
-
-1. `bunx tsgo --noEmit` clean.
-2. Grant a role only `market_conduct.view` — sidebar shows Market Conduct group, hides FP/Coordination/Complaint Types.
-3. Grant a role only `complaint_management.view` — sidebar shows citizen Complaints, hides Market Conduct group (regression fix).
-4. Grant a role only `fit_and_proper_committee.view` — sidebar hides Individual Register (correct) and shows only Committees; role with just `fit_and_proper.view` sees Individual Register only.
-5. Direct-URL access to `/conduct` with `complaint_management`-only role → AccessDenied.
-
-## Out of scope
-
-- Not creating new DB modules or seeding permissions.
-- Not refactoring `PortalRoute`, RLS, edge functions.
-- Not changing `/complaints`, `/complaints/analytics`, `/complaints/:id` — those remain on `complaint_management`.
+- No permission/role logic changes.
+- No workflow RPC/database changes.
+- No signature payload resizing.
+- No changes to the Supabase client.
+- No workaround like overriding `window.fetch`.
