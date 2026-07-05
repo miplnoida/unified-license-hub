@@ -7108,6 +7108,121 @@ export type Database = {
           },
         ]
       }
+      licensing_audit_determinations: {
+        Row: {
+          created_at: string
+          effective_date: string
+          entity_id: string
+          id: string
+          issued_at: string
+          issued_by: string
+          rationale: string
+          risk_rating_id: string | null
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          entity_id: string
+          id?: string
+          issued_at?: string
+          issued_by: string
+          rationale: string
+          risk_rating_id?: string | null
+          updated_at?: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          entity_id?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          rationale?: string
+          risk_rating_id?: string | null
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_audit_determinations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_audit_determinations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "licensing_audit_determinations_risk_rating_id_fkey"
+            columns: ["risk_rating_id"]
+            isOneToOne: false
+            referencedRelation: "risk_ratings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_audit_risk_profiles: {
+        Row: {
+          created_at: string
+          entity_id: string
+          generated_at: string
+          generated_by: string
+          id: string
+          key_drivers: Json
+          profile_score: number
+          snapshot: Json
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          generated_at?: string
+          generated_by: string
+          id?: string
+          key_drivers?: Json
+          profile_score: number
+          snapshot?: Json
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          key_drivers?: Json
+          profile_score?: number
+          snapshot?: Json
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_audit_risk_profiles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_audit_risk_profiles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       master_data_items: {
         Row: {
           code: string | null
