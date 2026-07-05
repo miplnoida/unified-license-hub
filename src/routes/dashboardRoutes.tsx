@@ -162,13 +162,13 @@ export const dashboardRoutes = (
     <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
     <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
     <Route path="/admin/security-events" element={<M module="settings"><SecurityEvents /></M>} />
-    <Route path="/conduct" element={<M module="complaint_management"><ConductDashboard /></M>} />
-    <Route path="/conduct/alerts" element={<M module="complaint_management"><ConductAlerts /></M>} />
-    <Route path="/conduct/actions" element={<M module="complaint_management"><ConductActions /></M>} />
-    <Route path="/supervision/thematic-reviews" element={<M module="complaint_management"><ThematicReviews /></M>} />
-    <Route path="/supervision/thematic-reviews/new" element={<M module="complaint_management"><NewThematicReview /></M>} />
-    <Route path="/supervision/thematic-reviews/:id" element={<M module="complaint_management"><ThematicReviewDetail /></M>} />
-    <Route path="/admin/conduct/monitoring-rules" element={<M module="complaint_management"><MonitoringRules /></M>} />
+    <Route path="/conduct" element={<M module="market_conduct"><ConductDashboard /></M>} />
+    <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
+    <Route path="/conduct/actions" element={<M module="market_conduct"><ConductActions /></M>} />
+    <Route path="/supervision/thematic-reviews" element={<M module="market_conduct"><ThematicReviews /></M>} />
+    <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
+    <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />
+    <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
 
   </>
 );
