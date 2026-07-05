@@ -24,8 +24,13 @@ import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { logFpAction } from '@/lib/fpAudit';
 
+const ROLE_TYPES = [
+  'director', 'chairperson', 'ceo', 'cfo', 'key_person', 'controller', 'shareholder', 'senior_manager', 'trustee', 'other',
+];
+
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
 
   const { data: person, isLoading } = useQuery({
     queryKey: ['fp_individual', id],
@@ -37,8 +42,28 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  // Access-denial audit — if authenticated user cannot see this individual, record the attempt.
+  useEffect(() => {
+    if (!isLoading && !person && id && user?.id) {
+      logFpAction('fp.individual.access_denied', 'fp_individual', id, {
+        context: { individualId: id },
+      }).catch(() => {/* best-effort */});
+    }
+  }, [isLoading, person, id, user?.id]);
+
   const qc = useQueryClient();
   const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [roleForm, setRoleForm] = useState({
+    role_type: 'director', role_title: '', licensee_id: 'none', effective_from: new Date().toISOString().slice(0, 10),
+    reassessment_cycle_months: '',
+  });
+  const [runningCycle, setRunningCycle] = useState(false);
+
+  const { data: licensees = [] } = useQuery({
+    queryKey: ['licensees-lookup-fp'],
+    queryFn: async () => (await supabase.from('licensees').select('id, name').order('name').limit(500)).data ?? [],
+  });
 
   const { data: roles } = useQuery({
     queryKey: ['fp_individual_roles', id],
@@ -51,6 +76,57 @@ export default function FitAndProperIndividualDetail() {
       return data ?? [];
     },
   });
+
+  const addRole = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error('No individual');
+      if (!roleForm.role_type) throw new Error('Role type required');
+      const months = roleForm.reassessment_cycle_months ? Number(roleForm.reassessment_cycle_months) : null;
+      if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+        throw new Error('Cycle must be 1-120 months');
+      }
+      const nextDue = months
+        ? (() => { const d = new Date(); d.setMonth(d.getMonth() + months); return d.toISOString().slice(0, 10); })()
+        : null;
+      const payload = {
+        individual_id: id,
+        role_type: roleForm.role_type,
+        role_title: roleForm.role_title.trim() || null,
+        licensee_id: roleForm.licensee_id === 'none' ? null : roleForm.licensee_id,
+        effective_from: roleForm.effective_from || null,
+        is_current: true,
+        reassessment_cycle_months: months,
+        next_reassessment_due: nextDue,
+        created_by: user?.id,
+      };
+      const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
+      if (error) throw error;
+      await logFpAction('fp.role.added', 'fp_individual_role', data.id, {
+        after: payload,
+        context: { individualId: id },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Role added — a role-change assessment can now be initiated');
+      setAddRoleOpen(false);
+      setRoleForm({ role_type: 'director', role_title: '', licensee_id: 'none', effective_from: new Date().toISOString().slice(0, 10), reassessment_cycle_months: '' });
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  async function runCycleNow() {
+    setRunningCycle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-cycle-scheduler', { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Scheduler failed');
+      toast.success(`Cycle scheduler ran — opened ${data.opened}, evaluated ${data.evaluated}, due ${data.due}`);
+      qc.invalidateQueries({ queryKey: ['fp_assessments', id] });
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    } catch (e: any) { toast.error(e?.message || 'Failed'); }
+    finally { setRunningCycle(false); }
+  }
 
   async function saveCycle(roleId: string) {
     const raw = cycleEdits[roleId];
