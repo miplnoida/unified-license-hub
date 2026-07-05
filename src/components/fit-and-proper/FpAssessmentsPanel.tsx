@@ -74,6 +74,7 @@ export function FpAssessmentsPanel({ individualId }: Props) {
           individual_id: individualId,
           assessment_type: assessmentType,
           role_id: roleId === 'none' ? null : roleId,
+          regulator_id: regulatorId === 'none' ? null : regulatorId,
           licensee_id: role?.licensee_id ?? null,
           created_by: user?.id,
           status: 'draft',
