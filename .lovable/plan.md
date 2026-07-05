@@ -1,72 +1,87 @@
 
-## Goal
+## Problem
 
-Align sidebar visibility with route guards so every left-panel menu is visible only to roles that can actually open the page, and hide any menu whose permission mapping is wrong or missing. No changes to unrelated working functionality.
+Market Conduct, Fit & Proper, and Twin Peaks Coordination menus are gated by the wrong permission modules, so any internal user with unrelated permissions (e.g. `complaint_management`) sees them, and users granted the correct semantic module (e.g. `market_conduct`) don't.
+
+The permission catalog in the DB already has dedicated modules for these areas, but the sidebar/routes still point at legacy keys:
+
+| Menu group | Current key (wrong) | Correct DB module |
+|---|---|---|
+| Market Conduct (Conduct Dashboard/Alerts/Actions, Thematic Reviews, Risk Taxonomy, Products & Channels, Triage Rules, Monitoring Rules) | `complaint_management` | `market_conduct` |
+| Complaint Types admin | `complaint_management` | `complaint_type` |
+| FP Screening Configs | `fit_and_proper` | `fit_and_proper_screening` |
+| FP Committees | `fit_and_proper` | `fit_and_proper_committee` |
+| FP Sector Decision Rules | `fit_and_proper` | `fit_and_proper_screening` |
+| Coordination Cases | `coordination` | `coordination` (already OK — verify) |
 
 ## Scope
 
-Frontend-only. Three files touched:
-- `src/config/navigation.tsx` (sidebar items)
-- `src/routes/dashboardRoutes.tsx` and `src/routes/adminRoutes.tsx` (route guards)
-- `src/lib/permissionModules.ts` (route→module map used by both the sidebar and the pre-licensee gate)
+Frontend-only. Three files:
+- `src/config/navigation.tsx` — update `module` on Market Conduct, Complaint Types, FP admin items
+- `src/routes/dashboardRoutes.tsx` + `src/routes/adminRoutes.tsx` — update `ModuleRoute module=` on the same routes
+- `src/lib/permissionModules.ts` — update `ROUTE_MODULE_MAP` entries for these paths and extend `KNOWN_PERMISSION_MODULES`
 
-No DB, no edge functions, no backend behavior changes.
+No DB changes, no edge functions, no changes to `Complaints` (`/complaints`) itself — it stays on `complaint_management` (it's the citizen-facing complaint intake, which matches DB `complaint_management` perms).
 
-## Fixes (grouped by category)
+## Fixes
 
-### A. Route guard fixes — sidebar shows item but route blocks the same user (or vice-versa)
+### A. Market Conduct — switch to `market_conduct` module
 
-1. **`/coordination` module mismatch (Critical)** — sidebar and `ROUTE_MODULE_MAP` say `coordination`, but the route guard says `application_management`. Change `dashboardRoutes.tsx` `<M module="application_management">` around `/coordination` and `/coordination/:caseId` to `module="coordination"`.
+Sidebar (`navigation.tsx` 129–136):
+- Conduct Dashboard `/conduct` → `module: 'market_conduct'`
+- Conduct Alerts `/conduct/alerts` → `module: 'market_conduct'`
+- Conduct Actions `/conduct/actions` → `module: 'market_conduct'`
+- Thematic Reviews `/supervision/thematic-reviews` → `module: 'market_conduct'`
+- Risk Taxonomy, Products & Channels, Triage Rules, Monitoring Rules (`/admin/conduct/*`) → `module: 'market_conduct'`
 
-2. **Form Management vs `developer` role** — sidebar allows `developer` but `ModuleRoute` default `allowedRoles` is `['super_admin','admin']`, so developers hit AccessDenied in legacy mode. Pass `allowedRoles={['super_admin','admin','developer']}` on the three `/admin/forms*` `ModuleRoute` wrappers.
+Routes:
+- `dashboardRoutes.tsx` 165–171: `/conduct`, `/conduct/alerts`, `/conduct/actions`, `/supervision/thematic-reviews`, `/supervision/thematic-reviews/new`, `/supervision/thematic-reviews/:id`, `/admin/conduct/monitoring-rules` → `<M module="market_conduct">`
+- `adminRoutes.tsx` 124–126: `/admin/conduct/risk-taxonomy`, `/admin/conduct/products-channels`, `/admin/conduct/triage-rules` → `<M module="market_conduct">`
 
-3. **`/change-sector` has no guard** — any authenticated user can open it via URL. Wrap with a licensee capability guard: `<PortalRoute area="licensing" capability="can_view_status">`. Sidebar already limits it to licensees; this brings the route in line.
+### B. Complaint Types — switch to `complaint_type` module
 
-4. **Stale `'reviewer'` role** in `/complaints` `ExternalPortalOrModule allowedRoles` — remove; it is not a valid `AppRole` and has no effect but is misleading.
+- Sidebar 123 (`navigation.tsx`) — `module: 'complaint_type'`
+- Route `adminRoutes.tsx` 106 — `<M module="complaint_type">`
 
-5. **`/admin/rfi-auto-rules`, `/admin/supervisory-plan-templates`, `/admin/applications/bulk-intake`** currently use `AdminRoute` (role-only). Wrap each in `ModuleRoute` with the module their sibling routes use (`application_management` for all three) so dynamic-role admins are checked consistently. Sidebar unaffected (not listed there).
+### C. Fit & Proper admin — switch to dedicated sub-modules
 
-### B. `ROUTE_MODULE_MAP` gaps — add missing entries so pre-licensee gate + `getModuleForPath` work correctly
+- Sidebar (`navigation.tsx` 144–145):
+  - Screening Configs `/admin/fp-screening-configs` → `module: 'fit_and_proper_screening'`
+  - Committees `/admin/fp-committees` → `module: 'fit_and_proper_committee'`
+- Routes (`adminRoutes.tsx` 116–118):
+  - `/admin/fp-screening-configs` → `<M module="fit_and_proper_screening">`
+  - `/admin/fp-committees` → `<M module="fit_and_proper_committee">`
+  - `/admin/fp-sector-rules` → `<M module="fit_and_proper_screening">`
 
-Add to `src/lib/permissionModules.ts` (placed above the broad `/admin` catch-all):
-- `['/conduct', 'complaint_management']`
-- `['/supervision/thematic-reviews', 'complaint_management']`
-- `['/admin/conduct', 'complaint_management']`
-- `['/admin/license-action-forms', 'license_management']`
-- `['/payments', 'application_management']`
-- `['/change-sector', 'license_management']`
+Individual Register (`/fit-and-proper*`) keeps the general `fit_and_proper` module — matches DB perms on that module.
 
-These match the modules already declared on the corresponding sidebar items / route guards; the missing prefixes were the only reason `getModuleForPath` returned null.
+### D. ROUTE_MODULE_MAP updates (`permissionModules.ts` 41–104)
 
-### C. Sidebar visibility tightening — hide items unauthorized for the current role
+Replace/add so `getModuleForPath` matches route guards:
+- `['/conduct', 'market_conduct']`
+- `['/supervision/thematic-reviews', 'market_conduct']`
+- `['/admin/conduct', 'market_conduct']`
+- `['/admin/complaint-types', 'complaint_type']`
+- `['/admin/fp-screening-configs', 'fit_and_proper_screening']`
+- `['/admin/fp-committees', 'fit_and_proper_committee']`
+- `['/admin/fp-sector-rules', 'fit_and_proper_screening']`
 
-1. **Payment History** (`navigation.tsx`) — add `module: 'application_management'` so the item respects dynamic role permissions instead of falling through to the role-only fallback that lets applicants without any granted portal access see it.
+Also extend `KNOWN_PERMISSION_MODULES` with: `market_conduct`, `market_conduct_investigation`, `complaint_type`, `fit_and_proper_screening`, `fit_and_proper_committee`, `fit_and_proper_initiation` (documentation only; type is already `string`).
 
-2. **Market Conduct group** (Conduct Dashboard, Conduct Alerts, Conduct Actions, Thematic Reviews, Risk Taxonomy, Products & Channels, Triage Rules, Monitoring Rules) — keep `complaint_management` module, but restrict sidebar `roles` to `ALL_INTERNAL` (already the case for four; the four admin ones already have `adminOnly: true`). Verify each item declares `module: 'complaint_management'` — no new module is created (out of scope).
+### E. Confirm Twin Peaks Coordination
 
-3. **Supervisory / analytics utility routes** (`/inspections`, `/supervision/plans`, `/supervision/risk`, `/executive`, `/alerts`) — these have no sidebar entries (hidden but reachable). Change their route guards from `module="settings"` to a semantically correct module they already share with the rest of the app: `returns_management` for `/supervision/*` and `/alerts`, `report_management` for `/executive`, `application_management` for `/inspections`. This prevents a user granted only "settings" (e.g. email templates) from viewing supervisory analytics.
-
-### D. Deliberately out of scope
-
-- No new permission modules (`market_conduct`, `audit_management`, `supervision`) will be created — that requires DB seeding + admin UI updates and touches "other working functionality". Flagged for follow-up.
-- No changes to `PortalRoute` capability semantics, RLS, edge functions, or the permission catalog itself.
-- No refactor of `ExternalPortalOrModule` or `RegistrationApprovalGate`.
+Coordination sidebar already uses `module: 'coordination'` and the route (after previous fix) uses `<M module="coordination">`. Add a smoke check — no code change expected.
 
 ## Verification
 
-1. Typecheck passes.
-2. Log in as each of these roles and confirm sidebar + direct URL agree:
-   - `super_admin` — sees everything, opens everything.
-   - `admin` — sees admin block, opens all admin routes.
-   - `developer` — sees Form Management and can open `/admin/forms` (fix A-2).
-   - `supervisor` / `analyst` — see internal items only, cannot open `/change-sector` (fix A-3), cannot open `/coordination` unless granted the `coordination` module (fix A-1).
-   - `licensee_primary` — sees My Licenses, Active Sector, Applications, Returns, Payments, Complaints; cannot open any `/admin/*` URL.
-   - `applicant` / `pre_licensee` — see only Dashboard + Pre-Licensing Applications + Payments + Complaints; cannot open `/change-sector`, `/admin/*`, `/coordination`, `/conduct*`, `/reports`, `/analytics`.
-3. Playwright smoke: unauthenticated user → `/change-sector` redirects to login; `analyst` logged in → typing `/change-sector` shows `AccessDenied`.
+1. `bunx tsgo --noEmit` clean.
+2. Grant a role only `market_conduct.view` — sidebar shows Market Conduct group, hides FP/Coordination/Complaint Types.
+3. Grant a role only `complaint_management.view` — sidebar shows citizen Complaints, hides Market Conduct group (regression fix).
+4. Grant a role only `fit_and_proper_committee.view` — sidebar hides Individual Register (correct) and shows only Committees; role with just `fit_and_proper.view` sees Individual Register only.
+5. Direct-URL access to `/conduct` with `complaint_management`-only role → AccessDenied.
 
-## Files to change
+## Out of scope
 
-- `src/routes/dashboardRoutes.tsx` — coordination module, /change-sector guard, remove 'reviewer', supervisory route modules
-- `src/routes/adminRoutes.tsx` — Form Management `allowedRoles`, wrap three admin-only routes in `ModuleRoute`
-- `src/config/navigation.tsx` — add `module` to Payment History
-- `src/lib/permissionModules.ts` — 6 new `ROUTE_MODULE_MAP` entries
+- Not creating new DB modules or seeding permissions.
+- Not refactoring `PortalRoute`, RLS, edge functions.
+- Not changing `/complaints`, `/complaints/analytics`, `/complaints/:id` — those remain on `complaint_management`.
