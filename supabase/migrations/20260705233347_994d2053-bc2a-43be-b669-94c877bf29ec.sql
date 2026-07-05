@@ -1,0 +1,2 @@
+ALTER TABLE public.fp_screening_runs DROP CONSTRAINT IF EXISTS fp_screening_runs_run_type_check;
+ALTER TABLE public.fp_screening_runs ADD CONSTRAINT fp_screening_runs_run_type_check CHECK (run_type = ANY (ARRAY['initial'::text, 'manual'::text, 'manual_rerun'::text, 'monitoring'::text, 'ai_media'::text, 'scheduled'::text]));
