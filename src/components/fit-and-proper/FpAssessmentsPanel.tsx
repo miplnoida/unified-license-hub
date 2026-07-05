@@ -134,8 +134,12 @@ export function FpAssessmentsPanel({ individualId }: Props) {
                   <Select value={assessmentType} onValueChange={setAssessmentType}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="initial">Initial</SelectItem>
+                      <SelectItem value="initial">Initial (new licence)</SelectItem>
                       <SelectItem value="renewal">Renewal / periodic review</SelectItem>
+                      <SelectItem value="change_of_role">Role change</SelectItem>
+                      <SelectItem value="triggered">Ad-hoc supervisory action</SelectItem>
+                      <SelectItem value="ongoing_monitoring">Ongoing monitoring</SelectItem>
+                      <SelectItem value="cycle">Cycle-based reassessment</SelectItem>
                       <SelectItem value="material_change">Material change</SelectItem>
                       <SelectItem value="adverse_event">Adverse event triggered</SelectItem>
                     </SelectContent>
