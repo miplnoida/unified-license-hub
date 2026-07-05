@@ -159,6 +159,18 @@ export function FpAssessmentsPanel({ individualId }: Props) {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Regulator (for multi-regulator isolation)</Label>
+                  <Select value={regulatorId} onValueChange={setRegulatorId}>
+                    <SelectTrigger><SelectValue placeholder="No regulator scope" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Cross-regulator (no scope)</SelectItem>
+                      {(regulators as any[]).map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
