@@ -44,7 +44,11 @@ Deno.serve(async (req) => {
     if (!assessmentId) throw new Error('No assessment context — open an assessment first.');
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) throw new Error('AI gateway key missing');
+    if (!apiKey) {
+      return new Response(JSON.stringify({ ok: false, error: 'AI media scan is not configured (Lovable AI key missing). Ask an admin to enable the AI gateway.', total_hits: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
+      });
+    }
 
     const prompt = `You are an adverse-media analyst producing regulator-grade evidence.
 Person: ${person.full_name}${person.nationality ? `, nationality ${person.nationality}` : ''}${person.date_of_birth ? `, DOB ${person.date_of_birth}` : ''}.
