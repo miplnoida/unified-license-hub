@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HistoryButton } from '@/components/audit/HistoryButton';
-import { ChangeHistoryDrawer } from '@/components/audit/ChangeHistoryDrawer';
 import { useEntityAuditLog } from '@/hooks/useEntityAuditLog';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useMemo, useState } from 'react';
