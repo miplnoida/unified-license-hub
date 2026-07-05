@@ -175,6 +175,7 @@ export default function LicenseeDetail() {
     { id: 'products-channels', label: 'Products & Channels', icon: Boxes },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
+    { id: 'audit', label: 'Audit', icon: Gavel },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
     { id: 'returns', label: 'Returns', icon: FileText },
     { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
