@@ -23,6 +23,11 @@ Deno.serve(async (req) => {
 
     for (const rule of (rules as Any[]) || []) {
       summary.evaluated++;
+      // Start a run-log row for auditability
+      const { data: runRow } = await supa.from('conduct_monitoring_rule_runs')
+        .insert({ rule_id: rule.id, status: 'started' }).select('id').maybeSingle();
+      let ruleMatched = 0;
+      let ruleAlerts = 0;
       try {
         const evaluations = await evaluateRule(supa, rule);
         for (const ev of evaluations) {
