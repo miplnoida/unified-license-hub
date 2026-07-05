@@ -14,6 +14,7 @@ import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
+  submitted: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
   filed: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
   under_review: { label: 'Under review', className: 'bg-amber-100 text-amber-800' },
   decided: { label: 'Decided', className: 'bg-slate-200 text-slate-800' },
