@@ -22,9 +22,13 @@ export default function AssessmentDetail() {
   const transition = useTransitionAssessment();
   const { data: ratios = [] } = useReturnComputedRatios(assessment?.return_id);
   const { data: breaches = [] } = useReturnBreaches(assessment?.return_id);
+  const { data: prefill } = useAssessmentPrefill(assessment?.return_id);
+  const evalStress = useEvaluateStressForReturn();
 
   const [form, setForm] = useState<any>({});
   const [overrideReason, setOverrideReason] = useState('');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [createAction, setCreateAction] = useState<any>(null);
 
   useEffect(() => { if (assessment) setForm(assessment); }, [assessment]);
 
