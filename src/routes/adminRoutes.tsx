@@ -77,12 +77,12 @@ export const adminRoutes = (
   <>
     <Route path="/admin" element={<A><AdminHub /></A>} />
 
-    <Route path="/admin/forms" element={<M module="form_management"><FormManagement /></M>} />
+    <Route path="/admin/forms" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormManagement /></ModuleRoute></P>} />
     <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
     <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
     <Route path="/admin/forms/internal" element={<Navigate to="/admin/forms?tab=internal" replace />} />
-    <Route path="/admin/forms/create" element={<M module="form_management"><FormBuilder /></M>} />
-    <Route path="/admin/forms/:templateId/view" element={<M module="form_management"><FormTemplateView /></M>} />
+    <Route path="/admin/forms/create" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormBuilder /></ModuleRoute></P>} />
+    <Route path="/admin/forms/:templateId/view" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormTemplateView /></ModuleRoute></P>} />
 
     <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
     <Route path="/admin/masters/sectors" element={<M module="settings"><MasterConfiguration /></M>} />
@@ -110,9 +110,9 @@ export const adminRoutes = (
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
     <Route path="/admin/license-action-forms" element={<M module="license_management"><LicenseActionFormsPage /></M>} />
-    <Route path="/admin/rfi-auto-rules" element={<A><RfiAutoRules /></A>} />
-    <Route path="/admin/supervisory-plan-templates" element={<A><SupervisoryPlanTemplates /></A>} />
-    <Route path="/admin/applications/bulk-intake" element={<A><BulkIntake /></A>} />
+    <Route path="/admin/rfi-auto-rules" element={<M module="application_management"><RfiAutoRules /></M>} />
+    <Route path="/admin/supervisory-plan-templates" element={<M module="application_management"><SupervisoryPlanTemplates /></M>} />
+    <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper"><FpCommittees /></M>} />
     <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper"><FpSectorDecisionRules /></M>} />

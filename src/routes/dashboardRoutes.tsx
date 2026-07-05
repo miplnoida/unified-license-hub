@@ -122,7 +122,7 @@ export const dashboardRoutes = (
 
     <Route path="/payments" element={<EP area="licensing" capability="can_view_status"><PaymentHistory /></EP>} />
     <Route path="/payments/:id" element={<EP area="licensing" capability="can_view_status"><PaymentDetail /></EP>} />
-    <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'reviewer', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
+    <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
     <Route path="/complaints/analytics" element={<M module="complaint_management"><ComplaintsAnalytics /></M>} />
     <Route path="/complaints/:id" element={<M module="complaint_management"><ComplaintDetail /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
@@ -138,10 +138,10 @@ export const dashboardRoutes = (
     <Route path="/profile" element={<P><Profile /></P>} />
     <Route path="/change-password" element={<P><ChangePassword /></P>} />
     <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
-    <Route path="/change-sector" element={<P><ChangeActiveSector /></P>} />
+    <Route path="/change-sector" element={<EP area="licensing" capability="can_view_status"><ChangeActiveSector /></EP>} />
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
-    <Route path="/coordination" element={<M module="application_management"><CoordinationList /></M>} />
-    <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
+    <Route path="/coordination" element={<M module="coordination"><CoordinationList /></M>} />
+    <Route path="/coordination/:caseId" element={<M module="coordination"><CoordinationDetail /></M>} />
     <Route path="/fit-and-proper" element={<M module="fit_and_proper"><FitAndProperIndividuals /></M>} />
     <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
     <Route path="/fit-and-proper/assessments/:id" element={<M module="fit_and_proper"><FitAndProperAssessmentDetail /></M>} />
@@ -150,13 +150,13 @@ export const dashboardRoutes = (
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="returns_management"><BreachInbox /></M>} />
-    <Route path="/inspections" element={<M module="settings"><InspectionsList /></M>} />
-    <Route path="/inspections/schedule" element={<M module="settings"><InspectionsCalendar /></M>} />
-    <Route path="/inspections/:id" element={<M module="settings"><InspectionDetail /></M>} />
-    <Route path="/supervision/plans" element={<M module="settings"><SupervisoryPlansDashboard /></M>} />
-    <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
-    <Route path="/executive" element={<M module="settings"><ExecutiveDashboard /></M>} />
-    <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
+    <Route path="/inspections" element={<M module="application_management"><InspectionsList /></M>} />
+    <Route path="/inspections/schedule" element={<M module="application_management"><InspectionsCalendar /></M>} />
+    <Route path="/inspections/:id" element={<M module="application_management"><InspectionDetail /></M>} />
+    <Route path="/supervision/plans" element={<M module="returns_management"><SupervisoryPlansDashboard /></M>} />
+    <Route path="/supervision/risk" element={<M module="returns_management"><RiskHeatmap /></M>} />
+    <Route path="/executive" element={<M module="report_management"><ExecutiveDashboard /></M>} />
+    <Route path="/alerts" element={<M module="returns_management"><AlertCenter /></M>} />
     <Route path="/admin/correspondence-templates" element={<M module="settings"><CorrespondenceTemplates /></M>} />
     <Route path="/admin/document-intelligence" element={<M module="settings"><DocumentIntelligence /></M>} />
     <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
