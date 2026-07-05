@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { useActions, useCreateAction, useUpdateAction, useMarkOverdue, usePrudentialEntities } from '@/hooks/usePrudentialSupervision';
+import { useActions, useUpdateAction, useMarkOverdue } from '@/hooks/usePrudentialSupervision';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, RefreshCw } from 'lucide-react';
-
-const TYPES = ['information_request','capital_plan','liquidity_plan','board_letter','onsite_inspection','enforcement_referral','restriction','monitoring'];
+import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 
 export default function ActionsList() {
   const { data = [] } = useActions();
