@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
+import { resolveFpSectorRule, evaluateFpCriteria } from '@/lib/fpSectorRules';
 
 const OUTCOME_META: Record<string, { label: string; className: string }> = {
   approved: { label: 'Approved', className: 'bg-green-100 text-green-800' },
