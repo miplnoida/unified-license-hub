@@ -179,6 +179,7 @@ export default function FpPopulationTrends() {
                       <Legend />
                       <Bar dataKey="total" fill="#1E3A8A" />
                       <Bar dataKey="approved" fill="#16A34A" />
+                      <Bar dataKey="conditional" fill="#F59E0B" />
                       <Bar dataKey="refused" fill="#DC2626" />
                     </BarChart>
                   </ResponsiveContainer>
