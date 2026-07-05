@@ -1,8 +1,41 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logComplianceAudit } from '@/lib/complianceAudit';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 const sb = supabase as any;
+
+// Fire-and-forget audit + notification helpers. Never block UI on failure.
+async function audit(
+  action_type: Parameters<typeof logComplianceAudit>[0]['action_type'],
+  object_type: string,
+  object_id: string | null | undefined,
+  before: any = null,
+  after: any = null,
+  justification?: string | null,
+) {
+  try {
+    await logComplianceAudit({
+      action_type,
+      object_type,
+      object_id: object_id ?? null,
+      before_value: before,
+      after_value: after,
+      justification: justification ?? null,
+    });
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[prudential audit] failed', e);
+  }
+}
+async function notify(event_key: string, entity_type: string, entity_id: string | null | undefined, payload: Record<string, unknown> = {}) {
+  if (!entity_id) return;
+  try {
+    await dispatchNotificationEvent({ event_key, entity_type, entity_id, payload });
+  } catch {
+    /* swallow */
+  }
+}
 
 // ---------- Types ----------
 export interface RiskTaxonomy { id: string; code: string; label: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; }
@@ -59,12 +92,15 @@ export function useUpsertTaxonomy() {
   return useMutation({
     mutationFn: async (row: Partial<RiskTaxonomy>) => {
       const payload = { ...row };
+      const before = row.id ? (await sb.from('prudential_risk_taxonomy').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);
         if (error) throw error;
+        await audit('UPDATE', 'prudential_taxonomy', row.id, before, payload);
       } else {
-        const { error } = await sb.from('prudential_risk_taxonomy').insert(payload);
+        const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_taxonomy', data.id, null, data);
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
@@ -77,39 +113,95 @@ export function useDeleteTaxonomy() {
     mutationFn: async (id: string) => {
       const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_taxonomy', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy deactivated'); },
   });
 }
 
 // ---------- Entities (universe) ----------
-export function usePrudentialEntities() {
+export interface EntityUniverseFilters {
+  search?: string;
+  sector_id?: string;
+  status?: string;
+  risk?: string;
+}
+export function usePrudentialEntities(filters?: EntityUniverseFilters) {
   return useQuery({
-    queryKey: ['prudential_entities'],
+    queryKey: ['prudential_entities', filters ?? {}],
     queryFn: async () => {
-      const { data: entities, error } = await sb
-        .from('licensees')
-        .select('id, name, status, sector_id, sub_sector_id, category_id, license_id')
-        .order('name');
+      let q = sb.from('licensees').select('id, name, status, sector_id, sub_sector_id, category_id, license_id, assigned_supervisor_id, systemic_importance').order('name');
+      if (filters?.sector_id) q = q.eq('sector_id', filters.sector_id);
+      if (filters?.status) q = q.eq('status', filters.status);
+      if (filters?.search) q = q.ilike('name', `%${filters.search}%`);
+      const { data: entities, error } = await q;
       if (error) throw error;
       const ids = (entities ?? []).map((e: any) => e.id);
       if (!ids.length) return [];
-      const [breachesRes, actionsRes, returnsRes] = await Promise.all([
-        sb.from('return_threshold_breaches').select('id, entity_id:return_id'),
+      // Returns per entity → then breaches through those return ids
+      const returnsRes = await sb.from('returns_filed')
+        .select('id, entity_id, submit_date, period_end_date, workflow_status, status')
+        .in('entity_id', ids)
+        .order('submit_date', { ascending: false });
+      const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
+      const [breachesRes, actionsRes, escRes, assessRes, stressRes] = await Promise.all([
+        returnIds.length
+          ? sb.from('return_threshold_breaches').select('id, return_id, severity').in('return_id', returnIds)
+          : Promise.resolve({ data: [] }),
         sb.from('prudential_actions').select('id, entity_id, status').in('entity_id', ids),
-        sb.from('returns_filed').select('id, entity_id, submit_date, period_end_date').in('entity_id', ids).order('submit_date', { ascending: false }),
+        sb.from('prudential_escalations').select('id, entity_id, status').in('entity_id', ids),
+        sb.from('prudential_assessments').select('id, entity_id, overall_rating, approved_at, created_at, status').in('entity_id', ids).order('created_at', { ascending: false }),
+        sb.from('prudential_stress_events').select('id, entity_id, resolved_at').in('entity_id', ids),
       ]);
-      const actionsByEntity: Record<string, number> = {};
-      (actionsRes.data ?? []).forEach((a: any) => {
-        if (['open','in_progress','overdue'].includes(a.status)) actionsByEntity[a.entity_id] = (actionsByEntity[a.entity_id] ?? 0) + 1;
+
+      // return_id -> entity_id
+      const returnToEntity: Record<string, string> = {};
+      const lastReturnByEntity: Record<string, { date: string; workflow_status?: string }> = {};
+      (returnsRes.data ?? []).forEach((r: any) => {
+        returnToEntity[r.id] = r.entity_id;
+        const d = r.submit_date || r.period_end_date;
+        if (d && !lastReturnByEntity[r.entity_id]) lastReturnByEntity[r.entity_id] = { date: d, workflow_status: r.workflow_status || r.status };
       });
-      const lastReturnByEntity: Record<string, string> = {};
-      (returnsRes.data ?? []).forEach((r: any) => { if (!lastReturnByEntity[r.entity_id]) lastReturnByEntity[r.entity_id] = r.submit_date || r.period_end_date; });
-      return (entities ?? []).map((e: any) => ({
+
+      const breachCounts: Record<string, { total: number; worst: string | null }> = {};
+      const sevOrder = ['critical','high','medium','low'];
+      (breachesRes.data ?? []).forEach((b: any) => {
+        const ent = returnToEntity[b.return_id]; if (!ent) return;
+        const cur = breachCounts[ent] || { total: 0, worst: null };
+        cur.total += 1;
+        if (!cur.worst || sevOrder.indexOf(b.severity) < sevOrder.indexOf(cur.worst)) cur.worst = b.severity;
+        breachCounts[ent] = cur;
+      });
+
+      const openActions: Record<string, number> = {};
+      const overdueActions: Record<string, number> = {};
+      (actionsRes.data ?? []).forEach((a: any) => {
+        if (['open','in_progress','overdue'].includes(a.status)) openActions[a.entity_id] = (openActions[a.entity_id] ?? 0) + 1;
+        if (a.status === 'overdue') overdueActions[a.entity_id] = (overdueActions[a.entity_id] ?? 0) + 1;
+      });
+      const openEsc: Record<string, number> = {};
+      (escRes.data ?? []).forEach((e: any) => {
+        if (['open','under_review'].includes(e.status)) openEsc[e.entity_id] = (openEsc[e.entity_id] ?? 0) + 1;
+      });
+      const latestAssess: Record<string, any> = {};
+      (assessRes.data ?? []).forEach((a: any) => { if (!latestAssess[a.entity_id]) latestAssess[a.entity_id] = a; });
+      const openStress: Record<string, number> = {};
+      (stressRes.data ?? []).forEach((s: any) => { if (!s.resolved_at) openStress[s.entity_id] = (openStress[s.entity_id] ?? 0) + 1; });
+
+      const rows = (entities ?? []).map((e: any) => ({
         ...e,
-        open_actions: actionsByEntity[e.id] ?? 0,
-        last_return: lastReturnByEntity[e.id] ?? null,
+        open_actions: openActions[e.id] ?? 0,
+        overdue_actions: overdueActions[e.id] ?? 0,
+        open_escalations: openEsc[e.id] ?? 0,
+        breach_count: breachCounts[e.id]?.total ?? 0,
+        worst_breach: breachCounts[e.id]?.worst ?? null,
+        stress_open: openStress[e.id] ?? 0,
+        last_return: lastReturnByEntity[e.id]?.date ?? null,
+        last_return_status: lastReturnByEntity[e.id]?.workflow_status ?? null,
+        latest_rating: latestAssess[e.id]?.overall_rating ?? null,
       }));
+      if (filters?.risk) return rows.filter(r => r.worst_breach === filters.risk);
+      return rows;
     },
   });
 }
@@ -119,13 +211,14 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
     queryKey: ['entity_prudential_profile', entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const [entityRes, returnsRes, breachesRes, assessRes, actionsRes, escRes] = await Promise.all([
+      const [entityRes, returnsRes, breachesRes, assessRes, actionsRes, escRes, stressRes] = await Promise.all([
         sb.from('licensees').select('*').eq('id', entityId).maybeSingle(),
         sb.from('returns_filed').select('id, unique_id, period_end_date, submit_date, workflow_status, status').eq('entity_id', entityId).order('period_end_date', { ascending: false }),
         sb.from('return_threshold_breaches').select('*').order('detected_at', { ascending: false }).limit(200),
         sb.from('prudential_assessments').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
         sb.from('prudential_actions').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
         sb.from('prudential_escalations').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
+        sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('entity_id', entityId).order('triggered_at', { ascending: false }),
       ]);
       const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
       const breaches = (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id));
@@ -140,6 +233,7 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
         assessments: assessRes.data ?? [],
         actions: actionsRes.data ?? [],
         escalations: escRes.data ?? [],
+        stress_events: stressRes.data ?? [],
       };
     },
   });
@@ -176,14 +270,18 @@ export function useUpsertAssessment() {
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
       const user = (await sb.auth.getUser()).data.user;
       const payload: any = { ...row };
+      const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
+        const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
+        await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
         return data;
       } else {
         payload.created_by = user?.id;
         const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_assessment', data.id, null, data);
         return data;
       }
     },
@@ -197,17 +295,52 @@ export function useTransitionAssessment() {
     mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'approved'|'closed'; reason?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
       const now = new Date().toISOString();
+      const before = (await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle()).data;
       const patch: any = { status: to };
       if (to === 'submitted') patch.submitted_at = now;
-      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; }
+      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; if (reason) patch.review_notes = reason; }
       if (to === 'approved') { patch.approved_at = now; patch.approved_by = user?.id; }
       if (to === 'closed') patch.closed_at = now;
-      if (reason) patch.override_reason = reason;
       const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
       if (error) throw error;
+      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
+      await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
+      const eventMap: Record<string, string> = {
+        submitted: 'prudential_assessment_submitted',
+        reviewed: 'prudential_assessment_reviewed',
+        approved: 'prudential_assessment_approved',
+      };
+      if (eventMap[to] && before?.entity_id) {
+        const ent = (await sb.from('licensees').select('name').eq('id', before.entity_id).maybeSingle()).data;
+        await notify(eventMap[to], 'prudential_assessment', id, { entity_name: ent?.name, entity_id: before.entity_id, assessment_id: id });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
+  });
+}
+
+// Pull signals to prefill an assessment from a return
+export function useAssessmentPrefill(returnId?: string | null) {
+  return useQuery({
+    queryKey: ['prudential_assessment_prefill', returnId],
+    enabled: !!returnId,
+    queryFn: async () => {
+      const [rf, ratios, breaches, analysis, stress] = await Promise.all([
+        sb.from('returns_filed').select('id, entity_id, period_end_date, period_start_date').eq('id', returnId).maybeSingle(),
+        sb.from('return_calculated_ratios').select('*').eq('return_id', returnId),
+        sb.from('return_threshold_breaches').select('*').eq('return_id', returnId),
+        sb.from('return_consolidated_analysis').select('*').eq('return_id', returnId).order('computed_at', { ascending: false }).limit(1).maybeSingle(),
+        sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('return_id', returnId),
+      ]);
+      return {
+        return_row: rf.data,
+        ratios: ratios.data ?? [],
+        breaches: breaches.data ?? [],
+        analysis: analysis.data ?? null,
+        stress_events: stress.data ?? [],
+      };
+    },
   });
 }
 
@@ -233,6 +366,13 @@ export function useCreateAction() {
       const payload: any = { ...row, created_by: user?.id };
       const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
       if (error) throw error;
+      await audit('CREATE', 'prudential_action', data.id, null, data);
+      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
+      if (data.assigned_to) {
+        await notify('prudential_action_assigned', 'prudential_action', data.id, {
+          action_title: data.title, entity_name: ent?.name, entity_id: data.entity_id, assigned_to: data.assigned_to,
+        });
+      }
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
@@ -242,16 +382,23 @@ export function useCreateAction() {
 export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, patch, waiver_reason }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string }) => {
+    mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
+      const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
       const body: any = { ...patch };
       if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
         body.closed_at = new Date().toISOString();
         body.closed_by = user?.id;
       }
       if (patch.status === 'waived' && waiver_reason) body.waiver_reason = waiver_reason;
+      if (patch.status === 'cancelled' && cancellation_reason) body.cancellation_reason = cancellation_reason;
+      if (patch.status === 'completed' && completion_notes) body.completion_notes = completion_notes;
       const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
+      if (patch.status === 'completed') {
+        await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -261,9 +408,18 @@ export function useMarkOverdue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await sb.rpc('mark_prudential_actions_overdue');
+      // Snapshot open/in-progress actions that will flip so we can audit + notify each
+      const { data: candidates } = await sb.from('prudential_actions')
+        .select('id, title, entity_id, assigned_to, licensees(name)')
+        .in('status', ['open','in_progress'])
+        .lt('due_date', new Date().toISOString().slice(0,10));
+      const { data: n, error } = await sb.rpc('mark_prudential_actions_overdue');
       if (error) throw error;
-      return data as number;
+      for (const a of (candidates ?? [])) {
+        await audit('UPDATE', 'prudential_action', a.id, { status: 'open_or_in_progress' }, { status: 'overdue' }, 'Automated overdue sweep');
+        await notify('prudential_action_overdue', 'prudential_action', a.id, { action_title: a.title, entity_name: a.licensees?.name, entity_id: a.entity_id, assigned_to: a.assigned_to });
+      }
+      return n as number;
     },
     onSuccess: (n) => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success(`${n} action(s) marked overdue`); },
   });
@@ -288,8 +444,12 @@ export function useCreateEscalation() {
   return useMutation({
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
       const user = (await sb.auth.getUser()).data.user;
+      if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
       const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
       if (error) throw error;
+      await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
+      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
+      await notify('prudential_escalation_created', 'prudential_escalation', data.id, { entity_name: ent?.name, entity_id: data.entity_id, reason: data.reason });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
@@ -301,13 +461,19 @@ export function useUpdateEscalation() {
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
       const user = (await sb.auth.getUser()).data.user;
+      const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
       const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
+        if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
         body.decided_at = new Date().toISOString();
         body.decision_by = user?.id;
       }
       const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
+      if (patch.status === 'resolved') {
+        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -330,12 +496,15 @@ export function useUpsertStressIndicator() {
   return useMutation({
     mutationFn: async (row: Partial<StressIndicator>) => {
       const payload = { ...row };
+      const before = row.id ? (await sb.from('prudential_stress_indicators').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
         const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);
         if (error) throw error;
+        await audit('UPDATE', 'prudential_stress_indicator', row.id, before, payload);
       } else {
-        const { error } = await sb.from('prudential_stress_indicators').insert(payload);
+        const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();
         if (error) throw error;
+        await audit('CREATE', 'prudential_stress_indicator', data.id, null, data);
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator saved'); },
@@ -348,6 +517,7 @@ export function useDeleteStressIndicator() {
     mutationFn: async (id: string) => {
       const { error } = await sb.from('prudential_stress_indicators').update({ is_active: false }).eq('id', id);
       if (error) throw error;
+      await audit('UPDATE', 'prudential_stress_indicator', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator deactivated'); },
   });
@@ -355,9 +525,25 @@ export function useDeleteStressIndicator() {
 export function useEvaluateStressForReturn() {
   return useMutation({
     mutationFn: async (returnId: string) => {
+      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'started', related_return_id: returnId });
       const { data, error } = await sb.rpc('evaluate_stress_indicators_for_return', { _return_id: returnId });
-      if (error) throw error;
-      return data as StressEvent[];
+      if (error) {
+        await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'failed', related_return_id: returnId, error: error.message, completed_at: new Date().toISOString() });
+        throw error;
+      }
+      const rows = (data ?? []) as StressEvent[];
+      await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: rows.length, completed_at: new Date().toISOString() });
+      // Fire notifications per triggered event
+      for (const ev of rows) {
+        const ind = (await sb.from('prudential_stress_indicators').select('label, severity').eq('id', ev.indicator_id).maybeSingle()).data;
+        const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
+        await audit('INTEGRATION_EVENT', 'prudential_stress_event', ev.id, null, ev);
+        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.id, {
+          indicator_label: ind?.label, severity: ind?.severity, observed_value: ev.observed_value,
+          entity_name: ent?.name, entity_id: ev.entity_id, return_id: ev.return_id,
+        });
+      }
+      return rows;
     },
     onSuccess: (rows) => toast.success(`${rows.length} stress event(s) evaluated`),
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -372,6 +558,17 @@ export function useStressEvents(entityId?: string | null) {
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
+    },
+  });
+}
+
+export function useSectorRiskDistribution() {
+  return useQuery({
+    queryKey: ['prudential_sector_risk_distribution'],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('prudential_sector_risk_distribution');
+      if (error) throw error;
+      return (data ?? []) as Array<{ sector_id: string; sector_name: string; entity_count: number; breach_count: number }>;
     },
   });
 }

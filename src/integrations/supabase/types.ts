@@ -6679,6 +6679,7 @@ export type Database = {
       licensees: {
         Row: {
           applicant_id: string | null
+          assigned_supervisor_id: string | null
           category_id: string | null
           created_at: string
           id: string
@@ -6687,10 +6688,12 @@ export type Database = {
           sector_id: string | null
           status: string
           sub_sector_id: string | null
+          systemic_importance: string | null
           updated_at: string
         }
         Insert: {
           applicant_id?: string | null
+          assigned_supervisor_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
@@ -6699,10 +6702,12 @@ export type Database = {
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
+          systemic_importance?: string | null
           updated_at?: string
         }
         Update: {
           applicant_id?: string | null
+          assigned_supervisor_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
@@ -6711,6 +6716,7 @@ export type Database = {
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
+          systemic_importance?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7906,6 +7912,7 @@ export type Database = {
         Row: {
           action_type: string
           assigned_to: string | null
+          cancellation_reason: string | null
           closed_at: string | null
           closed_by: string | null
           completion_notes: string | null
@@ -7927,6 +7934,7 @@ export type Database = {
         Insert: {
           action_type: string
           assigned_to?: string | null
+          cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
           completion_notes?: string | null
@@ -7948,6 +7956,7 @@ export type Database = {
         Update: {
           action_type?: string
           assigned_to?: string | null
+          cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
           completion_notes?: string | null
@@ -8003,6 +8012,7 @@ export type Database = {
           rationale: string | null
           recommended_response: string | null
           return_id: string | null
+          review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -8028,6 +8038,7 @@ export type Database = {
           rationale?: string | null
           recommended_response?: string | null
           return_id?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -8053,6 +8064,7 @@ export type Database = {
           rationale?: string | null
           recommended_response?: string | null
           return_id?: string | null
+          review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -8148,6 +8160,7 @@ export type Database = {
           evidence: Json
           id: string
           outcome: string | null
+          priority: string | null
           reason: string | null
           related_id: string | null
           related_type: string
@@ -8165,6 +8178,7 @@ export type Database = {
           evidence?: Json
           id?: string
           outcome?: string | null
+          priority?: string | null
           reason?: string | null
           related_id?: string | null
           related_type: string
@@ -8182,6 +8196,7 @@ export type Database = {
           evidence?: Json
           id?: string
           outcome?: string | null
+          priority?: string | null
           reason?: string | null
           related_id?: string | null
           related_type?: string
@@ -14174,6 +14189,15 @@ export type Database = {
         Returns: Json
       }
       prudential_dashboard_metrics: { Args: never; Returns: Json }
+      prudential_sector_risk_distribution: {
+        Args: never
+        Returns: {
+          breach_count: number
+          entity_count: number
+          sector_id: string
+          sector_name: string
+        }[]
+      }
       publish_prudential_ratio: { Args: { _ratio_id: string }; Returns: number }
       publish_prudential_threshold: {
         Args: { _effective_from?: string; _threshold_id: string }

@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useAssessment, useUpsertAssessment, useTransitionAssessment } from '@/hooks/usePrudentialSupervision';
+import { useAssessment, useUpsertAssessment, useTransitionAssessment, useAssessmentPrefill, useEvaluateStressForReturn } from '@/hooks/usePrudentialSupervision';
 import { useReturnComputedRatios, useReturnBreaches } from '@/hooks/usePrudentialConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { useEffect, useState } from 'react';
+import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 
 const CATEGORIES = ['capital', 'liquidity', 'asset_quality', 'profitability', 'concentration', 'governance', 'operational_resilience'];
 const RATINGS = ['1 - Strong', '2 - Satisfactory', '3 - Fair', '4 - Marginal', '5 - Unsatisfactory'];
@@ -21,9 +22,13 @@ export default function AssessmentDetail() {
   const transition = useTransitionAssessment();
   const { data: ratios = [] } = useReturnComputedRatios(assessment?.return_id);
   const { data: breaches = [] } = useReturnBreaches(assessment?.return_id);
+  const { data: prefill } = useAssessmentPrefill(assessment?.return_id);
+  const evalStress = useEvaluateStressForReturn();
 
   const [form, setForm] = useState<any>({});
   const [overrideReason, setOverrideReason] = useState('');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [createAction, setCreateAction] = useState<any>(null);
 
   useEffect(() => { if (assessment) setForm(assessment); }, [assessment]);
 
@@ -92,12 +97,26 @@ export default function AssessmentDetail() {
             <div><Label>Conclusion</Label><Textarea disabled={!canEdit} value={form.conclusion || ''} onChange={(e) => setForm({ ...form, conclusion: e.target.value })} /></div>
             <div><Label>Recommended response</Label><Textarea disabled={!canEdit} value={form.recommended_response || ''} onChange={(e) => setForm({ ...form, recommended_response: e.target.value })} /></div>
             <div><Label>Linked return id (optional)</Label><Input disabled={!canEdit} value={form.return_id || ''} onChange={(e) => setForm({ ...form, return_id: e.target.value || null })} /></div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {canEdit && <Button onClick={save}>Save</Button>}
-              {form.status === 'draft' && <Button variant="secondary" onClick={async () => { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); }}>Submit</Button>}
-              {form.status === 'submitted' && <Button variant="secondary" onClick={() => transition.mutate({ id: id!, to: 'reviewed' })}>Mark reviewed</Button>}
-              {form.status === 'reviewed' && <Button onClick={() => transition.mutate({ id: id!, to: 'approved' })}>Approve</Button>}
-              {form.status === 'approved' && <Button variant="outline" onClick={() => transition.mutate({ id: id!, to: 'closed' })}>Close</Button>}
+              {form.status === 'draft' && (
+                <Button variant="secondary" disabled={!form.rationale} onClick={async () => { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); }}>Submit for review</Button>
+              )}
+              {form.status === 'submitted' && (
+                <Button variant="secondary" disabled={!reviewNotes.trim()} onClick={() => transition.mutate({ id: id!, to: 'reviewed', reason: reviewNotes })}>Mark reviewed</Button>
+              )}
+              {form.status === 'reviewed' && (
+                <Button onClick={() => transition.mutate({ id: id!, to: 'approved' })}>Approve</Button>
+              )}
+              {form.status === 'approved' && (
+                <Button variant="outline" onClick={() => transition.mutate({ id: id!, to: 'closed' })}>Close</Button>
+              )}
+              {form.status === 'submitted' && (
+                <div className="w-full">
+                  <Label>Review notes {form.status === 'submitted' && <span className="text-destructive">*</span>}</Label>
+                  <Textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} rows={2} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -105,19 +124,63 @@ export default function AssessmentDetail() {
         <Card>
           <CardHeader><CardTitle>Signals</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {assessment.return_id && (
+              <div>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => evalStress.mutate(assessment.return_id!)}>Re-run stress evaluation</Button>
+              </div>
+            )}
             <div>
               <div className="font-medium mb-1">Breaches ({breaches.length})</div>
-              {breaches.slice(0, 5).map((b: any) => <div key={b.id} className="flex justify-between border-b py-1"><span>{b.metric_key || b.ratio_key}</span><Badge>{b.severity}</Badge></div>)}
+              {breaches.slice(0, 6).map((b: any) => (
+                <div key={b.id} className="flex justify-between border-b py-1 gap-2">
+                  <span className="truncate">{b.metric_key || b.ratio_key}</span>
+                  <span className="flex items-center gap-1">
+                    <Badge>{b.severity}</Badge>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setCreateAction({
+                      entity_id: assessment.entity_id, source_type: 'assessment', source_id: id,
+                      title: `Address breach: ${b.metric_key || b.ratio_key}`, severity: b.severity,
+                      description: `From assessment. ${b.metric_key || b.ratio_key} = ${b.observed_value ?? b.value}, threshold ${b.threshold_value}.`,
+                    })}>Action</Button>
+                  </span>
+                </div>
+              ))}
               {!breaches.length && <div className="text-muted-foreground">None</div>}
             </div>
             <div>
               <div className="font-medium mb-1">Ratios ({ratios.length})</div>
-              {ratios.slice(0, 8).map((r: any) => <div key={r.id} className="flex justify-between border-b py-1"><span>{r.label || r.ratio_key}</span><span>{r.value}</span></div>)}
+              {ratios.slice(0, 8).map((r: any) => <div key={r.id} className="flex justify-between border-b py-1"><span>{r.label || r.ratio_key}</span><span className="tabular-nums">{r.value}</span></div>)}
               {!ratios.length && <div className="text-muted-foreground">None</div>}
             </div>
+            {prefill?.stress_events?.length ? (
+              <div>
+                <div className="font-medium mb-1">Stress events ({prefill.stress_events.length})</div>
+                {prefill.stress_events.slice(0, 5).map((s: any) => (
+                  <div key={s.id} className="flex justify-between border-b py-1">
+                    <span className="truncate">{s.prudential_stress_indicators?.label || s.indicator_id}</span>
+                    <Badge>{s.prudential_stress_indicators?.severity}</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {prefill?.analysis ? (
+              <div>
+                <div className="font-medium mb-1">Consolidated analysis</div>
+                <div className="text-xs text-muted-foreground">Health score: {(prefill.analysis as any).health_score ?? '—'}</div>
+              </div>
+            ) : null}
+            {form.recommended_response ? (
+              <div>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => setCreateAction({
+                  entity_id: assessment.entity_id, source_type: 'assessment', source_id: id,
+                  title: 'Follow-up on assessment recommendation', description: form.recommended_response,
+                })}>Create action from recommendation</Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
+
+      <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
     </div>
   );
 }

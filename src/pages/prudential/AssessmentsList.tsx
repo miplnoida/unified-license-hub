@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react';
 export default function AssessmentsList() {
   const [params] = useSearchParams();
   const entityFilter = params.get('entity') || undefined;
+  const returnParam = params.get('return') || undefined;
   const { data = [] } = useAssessments(entityFilter ? { entity_id: entityFilter } : undefined);
   const { data: entities = [] } = usePrudentialEntities();
   const upsert = useUpsertAssessment();
@@ -21,6 +22,7 @@ export default function AssessmentsList() {
   const [entityId, setEntityId] = useState(entityFilter || '');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
+  const [returnId, setReturnId] = useState(returnParam || '');
 
   return (
     <div className="p-6 space-y-4">
@@ -41,10 +43,12 @@ export default function AssessmentsList() {
                 <div><Label>Period start</Label><Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} /></div>
                 <div><Label>Period end</Label><Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} /></div>
               </div>
+              <div><Label>Linked return id (optional)</Label>
+                <Input value={returnId} onChange={(e) => setReturnId(e.target.value)} placeholder="Prefills signals from this return" /></div>
             </div>
             <DialogFooter>
               <Button disabled={!entityId} onClick={async () => {
-                const r = await upsert.mutateAsync({ entity_id: entityId, period_start: periodStart || null, period_end: periodEnd || null, status: 'draft' } as any);
+                const r = await upsert.mutateAsync({ entity_id: entityId, return_id: returnId || null, period_start: periodStart || null, period_end: periodEnd || null, status: 'draft' } as any);
                 setOpen(false);
                 if (r?.id) window.location.href = `/prudential/assessments/${r.id}`;
               }}>Create</Button>
