@@ -89,6 +89,19 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // Twin Peaks Coordination
   ['/coordination', 'coordination'],
 
+  // Market Conduct & Thematic Reviews
+  ['/conduct', 'complaint_management'],
+  ['/supervision/thematic-reviews', 'complaint_management'],
+  ['/admin/conduct', 'complaint_management'],
+
+  // License action forms (sidebar module = license_management)
+  ['/admin/license-action-forms', 'license_management'],
+
+  // Payments (sidebar module = application_management)
+  ['/payments', 'application_management'],
+
+  // Licensee sector switcher
+  ['/change-sector', 'license_management'],
 
   // Settings + audit + notifications + master data
   ['/settings', 'settings'],
