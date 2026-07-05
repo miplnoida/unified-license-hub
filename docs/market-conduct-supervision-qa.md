@@ -21,7 +21,7 @@ Legend: ✅ Passed · ⏳ Pending live data · ❌ Failed · N/A
 | 8 | Investigations lifecycle `/conduct/investigations` + detail with status transitions | ✅ | Closing requires ≥10-char outcome via SweetAlert. |
 | 9 | Evidence repository with restricted access + access log | ✅ | `EvidenceRepositoryPanel` component; RLS blocks restricted rows from non-admins; `log_conduct_evidence_access` RPC records view/download/restrict/unrestrict/denied. |
 | 10 | Conduct actions lifecycle (complete/waive/cancel with mandatory reasons) | ✅ | `useCompleteAction`/`useWaiveAction`/`useCancelAction` enforce reasons + persist `outcome`, `waiver_reason`, `cancellation_reason`, `completion_notes`. |
-| 11 | Monitoring rules automatic execution with run log | ✅ | `evaluate-conduct-monitoring` edge function now writes `conduct_monitoring_rule_runs` rows and dispatches `conduct_monitoring_rule_triggered`. Schedule via existing `process-queue` or pg_cron (documented). |
+| 11 | Monitoring rules automatic execution with run log | ✅ | `evaluate-conduct-monitoring` writes `conduct_monitoring_rule_runs`, dedupes alerts via `dedupe_key`, and dispatches `conduct_monitoring_rule_triggered`. pg_cron job `evaluate-conduct-monitoring-15min` scheduled to run every 15 minutes. Manual "Run Now" available from `/admin/conduct/monitoring-rules`. |
 | 12 | Conduct dashboard drilldowns | ✅ | Existing `ConductDashboard` preserved; links now route via new entity/investigation pages. |
 | 13 | Notification event configs for 18 conduct events seeded (idempotent upsert) | ✅ | See migration `market_conduct_completion`. |
 | 14 | Audit coverage of all material decisions | ✅ | All mutations in `useMarketConduct` call `logComplianceAudit`; evidence access uses SECURITY DEFINER RPC. |
