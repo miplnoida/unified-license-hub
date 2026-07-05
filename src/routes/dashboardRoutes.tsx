@@ -179,5 +179,14 @@ export const dashboardRoutes = (
     <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
 
+    <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
+    <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
+    <Route path="/prudential/entities/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />
+    <Route path="/prudential/assessments" element={<M module="prudential_supervision"><AssessmentsList /></M>} />
+    <Route path="/prudential/assessments/:id" element={<M module="prudential_supervision"><AssessmentDetail /></M>} />
+    <Route path="/prudential/actions" element={<M module="prudential_supervision"><ActionsList /></M>} />
+    <Route path="/prudential/escalations" element={<M module="prudential_supervision"><EscalationsList /></M>} />
+    <Route path="/prudential/stress-indicators" element={<M module="prudential_supervision"><StressIndicatorsAdmin /></M>} />
+    <Route path="/admin/prudential-taxonomy" element={<M module="prudential_supervision"><PrudentialTaxonomyAdmin /></M>} />
   </>
 );
