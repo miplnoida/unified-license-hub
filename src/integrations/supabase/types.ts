@@ -7902,6 +7902,309 @@ export type Database = {
           },
         ]
       }
+      prudential_actions: {
+        Row: {
+          action_type: string
+          assigned_to: string | null
+          closed_at: string | null
+          closed_by: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          entity_contact: string | null
+          entity_id: string
+          id: string
+          severity: string
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+          waiver_reason: string | null
+        }
+        Insert: {
+          action_type: string
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_contact?: string | null
+          entity_id: string
+          id?: string
+          severity?: string
+          source_id?: string | null
+          source_type: string
+          status?: string
+          title: string
+          updated_at?: string
+          waiver_reason?: string | null
+        }
+        Update: {
+          action_type?: string
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_contact?: string | null
+          entity_id?: string
+          id?: string
+          severity?: string
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      prudential_assessments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          auto_suggested_rating: string | null
+          closed_at: string | null
+          conclusion: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          evidence_refs: Json
+          id: string
+          overall_rating: string | null
+          override_reason: string | null
+          period_end: string | null
+          period_start: string | null
+          ratings: Json
+          rationale: string | null
+          recommended_response: string | null
+          return_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_suggested_rating?: string | null
+          closed_at?: string | null
+          conclusion?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          evidence_refs?: Json
+          id?: string
+          overall_rating?: string | null
+          override_reason?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          ratings?: Json
+          rationale?: string | null
+          recommended_response?: string | null
+          return_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_suggested_rating?: string | null
+          closed_at?: string | null
+          conclusion?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          evidence_refs?: Json
+          id?: string
+          overall_rating?: string | null
+          override_reason?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          ratings?: Json
+          rationale?: string | null
+          recommended_response?: string | null
+          return_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_assessments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_assessments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_assessments_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_data_feed_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          feed_type: string
+          id: string
+          metadata: Json
+          related_return_id: string | null
+          row_count: number | null
+          source: string
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          feed_type: string
+          id?: string
+          metadata?: Json
+          related_return_id?: string | null
+          row_count?: number | null
+          source: string
+          started_at?: string
+          status: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          feed_type?: string
+          id?: string
+          metadata?: Json
+          related_return_id?: string | null
+          row_count?: number | null
+          source?: string
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_data_feed_logs_related_return_id_fkey"
+            columns: ["related_return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_escalations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decision: string | null
+          decision_by: string | null
+          entity_id: string
+          escalation_type: string
+          evidence: Json
+          id: string
+          outcome: string | null
+          reason: string | null
+          related_id: string | null
+          related_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          decision_by?: string | null
+          entity_id: string
+          escalation_type: string
+          evidence?: Json
+          id?: string
+          outcome?: string | null
+          reason?: string | null
+          related_id?: string | null
+          related_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          decision_by?: string | null
+          entity_id?: string
+          escalation_type?: string
+          evidence?: Json
+          id?: string
+          outcome?: string | null
+          reason?: string | null
+          related_id?: string | null
+          related_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_escalations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_escalations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       prudential_ratio_versions: {
         Row: {
           display_format: string | null
@@ -7957,6 +8260,7 @@ export type Database = {
           ratio_key: string
           recommendation_template: string | null
           return_config_id: string
+          taxonomy_code: string | null
           updated_at: string
         }
         Insert: {
@@ -7972,6 +8276,7 @@ export type Database = {
           ratio_key: string
           recommendation_template?: string | null
           return_config_id: string
+          taxonomy_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -7987,6 +8292,7 @@ export type Database = {
           ratio_key?: string
           recommendation_template?: string | null
           return_config_id?: string
+          taxonomy_code?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7995,6 +8301,184 @@ export type Database = {
             columns: ["return_config_id"]
             isOneToOne: false
             referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_risk_taxonomy: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_risk_taxonomy_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_risk_taxonomy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_stress_events: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          indicator_id: string
+          notified: boolean
+          observed_value: number | null
+          resolved_at: string | null
+          return_id: string | null
+          triggered_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          indicator_id: string
+          notified?: boolean
+          observed_value?: number | null
+          resolved_at?: string | null
+          return_id?: string | null
+          triggered_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          indicator_id?: string
+          notified?: boolean
+          observed_value?: number | null
+          resolved_at?: string | null
+          return_id?: string | null
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_stress_events_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_stress_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_stress_indicators: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          direction: string
+          escalate: boolean
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string
+          notify_roles: Json
+          sector_id: string | null
+          severity: string
+          sub_sector_id: string | null
+          taxonomy_code: string | null
+          threshold_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          escalate?: boolean
+          id?: string
+          is_active?: boolean
+          label: string
+          metric_key: string
+          notify_roles?: Json
+          sector_id?: string | null
+          severity?: string
+          sub_sector_id?: string | null
+          taxonomy_code?: string | null
+          threshold_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          escalate?: boolean
+          id?: string
+          is_active?: boolean
+          label?: string
+          metric_key?: string
+          notify_roles?: Json
+          sector_id?: string | null
+          severity?: string
+          sub_sector_id?: string | null
+          taxonomy_code?: string | null
+          threshold_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_stress_indicators_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_indicators_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
             referencedColumns: ["id"]
           },
         ]
@@ -8067,6 +8551,7 @@ export type Database = {
           return_config_id: string
           return_type_id: string | null
           sector_id: string | null
+          taxonomy_code: string | null
           unit: string | null
           updated_at: string
           upper_value: number | null
@@ -8086,6 +8571,7 @@ export type Database = {
           return_config_id: string
           return_type_id?: string | null
           sector_id?: string | null
+          taxonomy_code?: string | null
           unit?: string | null
           updated_at?: string
           upper_value?: number | null
@@ -8105,6 +8591,7 @@ export type Database = {
           return_config_id?: string
           return_type_id?: string | null
           sector_id?: string | null
+          taxonomy_code?: string | null
           unit?: string | null
           updated_at?: string
           upper_value?: number | null
@@ -13136,6 +13623,26 @@ export type Database = {
         Args: { _form_data?: Json; _return_id: string }
         Returns: Json
       }
+      evaluate_stress_indicators_for_return: {
+        Args: { _return_id: string }
+        Returns: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          indicator_id: string
+          notified: boolean
+          observed_value: number | null
+          resolved_at: string | null
+          return_id: string | null
+          triggered_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "prudential_stress_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       expire_delegation_rules: { Args: never; Returns: number }
       external_can_access_application: {
         Args: { _application_id: string; _capability: string; _user_id: string }
@@ -13590,6 +14097,7 @@ export type Database = {
         Returns: Json
       }
       mark_expired_licenses: { Args: never; Returns: number }
+      mark_prudential_actions_overdue: { Args: never; Returns: number }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
@@ -13665,6 +14173,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      prudential_dashboard_metrics: { Args: never; Returns: Json }
       publish_prudential_ratio: { Args: { _ratio_id: string }; Returns: number }
       publish_prudential_threshold: {
         Args: { _effective_from?: string; _threshold_id: string }
@@ -13769,6 +14278,7 @@ export type Database = {
           return_config_id: string
           return_type_id: string | null
           sector_id: string | null
+          taxonomy_code: string | null
           unit: string | null
           updated_at: string
           upper_value: number | null
