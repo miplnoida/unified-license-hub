@@ -134,6 +134,12 @@ export const MODULE_REGISTRY: Record<PermissionModule, Omit<ModuleRegistryEntry,
     description: 'Cross-regulator coordination cases, participants, clearance, flags and escalations.',
     actions: ['view', 'create', 'edit', 'approve', 'reject'],
   },
+  prudential_supervision: {
+    module: 'prudential_supervision',
+    label: 'Prudential Supervision',
+    description: 'Prudentially supervised entities, risk taxonomy, supervisory assessments, actions ledger, escalations and stress indicators.',
+    actions: ['view', 'create', 'edit', 'approve', 'reject'],
+  },
 };
 
 /** Collect every leaf nav item (with href) flat. */
