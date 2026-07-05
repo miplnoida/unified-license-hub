@@ -13,6 +13,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { useApplicationRfis, type Rfi, type RfiItem } from '@/hooks/useApplicationRfis';
 import { RaiseRfiDialog } from './RaiseRfiDialog';
 import { validateFile, ACCEPT_STRING, getSignedUrl, secureDownload } from '@/lib/secureFileUpload';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+
 
 interface ApplicationRfiTabProps {
   applicationId: string;
