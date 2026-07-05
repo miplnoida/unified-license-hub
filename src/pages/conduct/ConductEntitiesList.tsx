@@ -89,7 +89,7 @@ export default function ConductEntitiesList() {
                     <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/conduct/entities/${r.id}`)}>
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.sectors?.name || '—'}{r.sub_sectors?.name ? ` / ${r.sub_sectors.name}` : ''}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{r.licence_status || 'unknown'}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className="capitalize">{r.status || 'unknown'}</Badge></TableCell>
                       <TableCell className="text-right font-mono">{r.complaints_open}</TableCell>
                       <TableCell className="text-right font-mono">{r.complaints_high}</TableCell>
                       <TableCell className="text-right font-mono">{r.alerts_open}</TableCell>
