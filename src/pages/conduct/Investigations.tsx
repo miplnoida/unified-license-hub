@@ -86,7 +86,7 @@ export default function Investigations() {
                       <TableCell className="max-w-md truncate">{r.allegation}</TableCell>
                       <TableCell><Badge variant="outline" className="capitalize">{r.priority}</Badge></TableCell>
                       <TableCell><Badge variant="outline" className="capitalize">{r.severity}</Badge></TableCell>
-                      <TableCell><Badge className="capitalize">{r.status.replaceAll('_',' ')}</Badge></TableCell>
+                      <TableCell><Badge className="capitalize">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                       <TableCell>{r.due_date || '—'}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
@@ -108,7 +108,7 @@ export default function Investigations() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['manual','complaint','alert','thematic_review','monitoring_rule'].map(s => (
-                    <SelectItem key={s} value={s}>{s.replaceAll('_',' ')}</SelectItem>
+                    <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
