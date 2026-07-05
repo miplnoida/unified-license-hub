@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 function Stat({ label, value, to, tone }: { label: string; value: number | string; to?: string; tone?: 'default'|'warning'|'danger'|'success' }) {
   const color = tone === 'danger' ? 'text-destructive' : tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : '';
@@ -40,7 +41,8 @@ export default function PrudentialDashboard() {
   const recentFailedFeeds = feeds.filter((f: any) => f.status === 'failed').slice(0, 5);
 
   return (
-    <div className="p-6 space-y-6">
+    <DashboardLayout>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Prudential Supervision</h1>
@@ -164,6 +166,7 @@ export default function PrudentialDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

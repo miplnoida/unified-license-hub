@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus } from 'lucide-react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function StressIndicatorsAdmin() {
   const { data = [] } = useStressIndicators();
@@ -20,7 +21,8 @@ export default function StressIndicatorsAdmin() {
   const [form, setForm] = useState<any>({ direction: 'gt', severity: 'medium', is_active: true, escalate: false });
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Stress Indicators</h1>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -85,6 +87,7 @@ export default function StressIndicatorsAdmin() {
           {!data.length && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No indicators.</TableCell></TableRow>}
         </TableBody></Table>
       </CardContent></Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

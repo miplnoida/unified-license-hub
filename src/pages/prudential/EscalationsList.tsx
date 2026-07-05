@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function EscalationsList() {
   const { data = [] } = useEscalations();
@@ -27,7 +28,8 @@ export default function EscalationsList() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Prudential Escalations</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New escalation</Button>
@@ -76,6 +78,7 @@ export default function EscalationsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

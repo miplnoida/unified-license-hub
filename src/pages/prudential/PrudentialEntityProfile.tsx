@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -40,7 +41,7 @@ export default function PrudentialEntityProfile() {
     return Object.values(byReturn).sort((a: any, b: any) => a.period.localeCompare(b.period));
   }, [data]);
 
-  if (isLoading || !data?.entity) return <div className="p-6">Loading…</div>;
+  if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
   const latestAssess = data.assessments?.[0];
   const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
@@ -54,7 +55,8 @@ export default function PrudentialEntityProfile() {
   })();
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
@@ -285,6 +287,7 @@ export default function PrudentialEntityProfile() {
 
       <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
       <CreatePrudentialEscalationDialog open={!!createEscalation} onOpenChange={(o) => !o && setCreateEscalation(null)} defaults={createEscalation} />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

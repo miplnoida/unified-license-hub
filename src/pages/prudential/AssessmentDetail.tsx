@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { useEffect, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const CATEGORIES = ['capital', 'liquidity', 'asset_quality', 'profitability', 'concentration', 'governance', 'operational_resilience'];
 const RATINGS = ['1 - Strong', '2 - Satisfactory', '3 - Fair', '4 - Marginal', '5 - Unsatisfactory'];
@@ -32,7 +33,7 @@ export default function AssessmentDetail() {
 
   useEffect(() => { if (assessment) setForm(assessment); }, [assessment]);
 
-  if (!assessment) return <div className="p-6">Loading…</div>;
+  if (!assessment) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
 
   // Auto-suggest rating: worst breach severity → suggested rating
   const worst = breaches.reduce((acc: string, b: any) => {
@@ -53,7 +54,8 @@ export default function AssessmentDetail() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Assessment</h1>
@@ -181,6 +183,7 @@ export default function AssessmentDetail() {
       </div>
 
       <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

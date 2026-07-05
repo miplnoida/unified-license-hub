@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function AssessmentsList() {
   const [params] = useSearchParams();
@@ -25,7 +26,8 @@ export default function AssessmentsList() {
   const [returnId, setReturnId] = useState(returnParam || '');
 
   return (
-    <div className="p-6 space-y-4">
+    <DashboardLayout>
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Supervisory Assessments</h1>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -75,6 +77,7 @@ export default function AssessmentsList() {
           {!data.length && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">No assessments.</TableCell></TableRow>}
         </TableBody></Table>
       </CardContent></Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
