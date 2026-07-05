@@ -95,21 +95,26 @@ export default function FpPopulationTrends() {
   }, [findings]);
 
   const assessmentThroughput = useMemo(() => {
-    const buckets: Record<string, { month: string; total: number; approved: number; refused: number }> = {};
+    const buckets: Record<string, { month: string; total: number; approved: number; refused: number; conditional: number }> = {};
     for (const a of assessments ?? []) {
       const m = monthKey(a.created_at);
-      const b = buckets[m] ?? (buckets[m] = { month: m, total: 0, approved: 0, refused: 0 });
+      const b = buckets[m] ?? (buckets[m] = { month: m, total: 0, approved: 0, refused: 0, conditional: 0 });
       b.total++;
-      if (a.status === 'approved') b.approved++;
-      if (a.status === 'refused' || a.status === 'declined') b.refused++;
+    }
+    for (const d of determinations ?? []) {
+      const m = monthKey(d.determined_at);
+      const b = buckets[m] ?? (buckets[m] = { month: m, total: 0, approved: 0, refused: 0, conditional: 0 });
+      if (d.outcome === 'approved') b.approved++;
+      if (d.outcome === 'rejected') b.refused++;
+      if (d.outcome === 'conditional') b.conditional++;
     }
     return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
-  }, [assessments]);
+  }, [assessments, determinations]);
 
   const appealStats = useMemo(() => {
     const total = (appeals ?? []).length;
-    const upheld = (appeals ?? []).filter((a: any) => a.outcome === 'upheld').length;
-    const dismissed = (appeals ?? []).filter((a: any) => a.outcome === 'dismissed').length;
+    const upheld = (appeals ?? []).filter((a: any) => a.decision === 'upheld' || a.decision === 'partially_upheld' || a.decision === 'overturned_to_approved' || a.decision === 'overturned_to_conditional').length;
+    const dismissed = (appeals ?? []).filter((a: any) => a.decision === 'dismissed' || a.decision === 'upheld_original').length;
     const pending = total - upheld - dismissed;
     return { total, upheld, dismissed, pending };
   }, [appeals]);
