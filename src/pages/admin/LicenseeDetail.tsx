@@ -26,6 +26,7 @@ const InspectionsTab = lazy(() => import('@/components/entity-detail/Inspections
 const ReinsuranceTab = lazy(() => import('@/components/entity-detail/ReinsuranceTab'));
 const SupervisoryPlanTab = lazy(() => import('@/components/entity-detail/SupervisoryPlanTab'));
 const ProductsChannelsTab = lazy(() => import('@/components/entity-detail/ProductsChannelsTab'));
+const LicensingAuditTab = lazy(() => import('@/components/entity-detail/LicensingAuditTab'));
 
 interface LookupMap { [id: string]: string }
 
