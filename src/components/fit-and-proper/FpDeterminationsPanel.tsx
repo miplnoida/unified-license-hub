@@ -401,10 +401,29 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                   })}
                 </div>
 
+                {sectorRule && (
+                  <div className={`border rounded p-3 text-sm ${criteriaEval.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div className="font-medium flex items-center gap-2">
+                      <ShieldAlert className="h-4 w-4" />
+                      Sector rule: {sectorRule.name}
+                    </div>
+                    {criteriaEval.passed ? (
+                      <div className="text-xs mt-1 text-green-800">All sector criteria satisfied.</div>
+                    ) : (
+                      <div className="text-xs mt-1 space-y-1">
+                        {criteriaEval.failed.length > 0 && <div><strong>Missing mandatory checks:</strong> {criteriaEval.failed.join(', ')}</div>}
+                        {criteriaEval.disqualifiers.length > 0 && <div className="text-red-800"><strong>Disqualifiers present:</strong> {criteriaEval.disqualifiers.join(', ')}</div>}
+                        {criteriaEval.minScoreOk === false && <div><strong>Minimum confidence score not met.</strong></div>}
+                        {criteriaEval.warned.length > 0 && <div className="text-amber-800"><strong>Warnings:</strong> {criteriaEval.warned.join(', ')}</div>}
+                        <div className="text-muted-foreground">Sector rule failed — record rationale below explaining the override.</div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {quorumMet && outcome && assessment?.status !== 'determined' && (
                   <div className="border rounded p-3 bg-primary/5 space-y-2">
                     <div className="text-sm">Quorum reached — proposed outcome: <Badge variant="outline" className={OUTCOME_META[outcome].className}>{OUTCOME_META[outcome].label}</Badge></div>
-                    <Textarea rows={3} placeholder="Determination rationale (min 10 chars)…" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+                    <Textarea rows={3} placeholder={sectorRule && !criteriaEval.passed ? 'Rationale (min 10 chars) — must justify overriding sector rule' : 'Determination rationale (min 10 chars)…'} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                     <div className="flex justify-end">
                       <Button onClick={() => finalize.mutate()} disabled={finalize.isPending || rationale.trim().length < 10}>
                         {finalize.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
