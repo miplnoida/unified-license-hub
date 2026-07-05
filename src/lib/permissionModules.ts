@@ -102,6 +102,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/supervision/thematic-reviews', 'market_conduct'],
   ['/admin/conduct', 'market_conduct'],
 
+  // Prudential Supervision (must come before generic /admin fallback)
+  ['/prudential', 'prudential_supervision'],
+  ['/admin/prudential-taxonomy', 'prudential_supervision'],
+
   // License action forms (sidebar module = license_management)
   ['/admin/license-action-forms', 'license_management'],
 
