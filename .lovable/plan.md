@@ -1,32 +1,27 @@
-## Root cause
-The prudential pages are accessible, but they render as standalone page content. They do **not** wrap their content in `DashboardLayout`, which is the component that renders the left sidebar and header.
+## Add Edit support to Prudential Risk Taxonomy
 
-This is not primarily an auth-session timing issue: the route guard allows the page, but the page component itself bypasses the app shell.
+Currently `src/pages/prudential/PrudentialTaxonomyAdmin.tsx` only supports creating a new category and deactivating an existing one. There is no way to edit code, label, description, sort order, or reactivate a deactivated category.
 
-## Plan
-1. **Wrap prudential pages with the app shell**
-   - Add `DashboardLayout` around the existing content for all prudential pages:
-     - `PrudentialDashboard`
-     - `PrudentialEntitiesList`
-     - `PrudentialEntityProfile`
-     - `AssessmentsList`
-     - `AssessmentDetail`
-     - `ActionsList`
-     - `EscalationsList`
-     - `StressIndicatorsAdmin`
-     - `PrudentialTaxonomyAdmin`
+### Changes
 
-2. **Preserve existing feature logic**
-   - Do not change queries, mutations, forms, filters, dialogs, or prudential workflows.
-   - Only adjust page layout/wrapping so the left sidebar and header appear consistently.
+1. **Reuse the existing dialog for both Create and Edit**
+   - Convert the current "New category" dialog into a shared form dialog that supports two modes: create (empty form) and edit (prefilled from selected row).
+   - Pass the row's `id` through to `useUpsertTaxonomy` so it performs an update instead of an insert.
 
-3. **Avoid duplicate page padding/header issues**
-   - Replace each top-level `p-6` wrapper with normal inner spacing compatible with `DashboardLayout`, since the layout already provides page padding.
-   - Keep each page’s existing H1/title content unless it already duplicates the layout title awkwardly.
+2. **Add an Actions column with Edit**
+   - Add an "Edit" button (pencil icon) on each row that opens the dialog prefilled with that row's values.
+   - Keep the existing Deactivate button next to it.
+   - For rows where `is_active === false`, show a "Reactivate" button instead of "Deactivate" (sets `is_active: true` via the same upsert).
 
-4. **Verify in preview**
-   - Open `/prudential/entities` and confirm the left sidebar is visible.
-   - Smoke-test the other prudential URLs to confirm the sidebar appears and content still renders.
+3. **Form fields in edit mode**
+   - Code, Label, Description, Sort order (same fields as create).
+   - Also expose an "Active" toggle so admins can activate/deactivate directly from the edit dialog.
 
-5. **Report result**
-   - If sidebar still does not appear after layout wrapping, classify the remaining issue as either sidebar permission visibility or auth/session readiness; otherwise classify it as fixed layout omission.
+4. **No backend / schema / permission changes**
+   - `useUpsertTaxonomy` already handles both insert and update paths, so no hook or migration work is needed.
+   - Purely a UI change scoped to `PrudentialTaxonomyAdmin.tsx`.
+
+### Verification
+
+- Open `/admin/prudential-taxonomy`, click Edit on a row, change the label, save, and confirm the row updates in place.
+- Confirm Deactivate still works and that deactivated rows show a Reactivate button.
