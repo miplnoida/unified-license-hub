@@ -190,9 +190,14 @@ export default function ComplaintsList() {
           actions={
             <div className="flex gap-2">
               {isInternal && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link to="/complaints/new"><PlusCircle className="h-4 w-4 mr-2" />New Complaint</Link>
+                  </Button>
+                </>
               )}
               {!isInternal && (
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
