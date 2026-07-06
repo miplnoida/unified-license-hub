@@ -14970,6 +14970,15 @@ export type Database = {
         Args: { p_assessment_id: string; p_inv_id: string; p_token: string }
         Returns: boolean
       }
+      submit_declaration_form: {
+        Args: {
+          p_assessment_id: string
+          p_form_data?: Json
+          p_inv_id: string
+          p_token: string
+        }
+        Returns: boolean
+      }
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json

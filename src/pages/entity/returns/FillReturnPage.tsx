@@ -3,8 +3,11 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getReturnFormStatus, statusLabel, type ReturnFormStatus } from '@/lib/returnsFormProgress';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useReturnById, useReturnConfigForms, useReturnFormData,
@@ -222,6 +225,7 @@ export default function FillReturnPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [completedForms, setCompletedForms] = useState<Set<string>>(new Set());
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
 
@@ -241,15 +245,39 @@ export default function FillReturnPage() {
     }
   }, [savedFormData]);
 
-  // Set initial tab
-  const tabs = useMemo(() => {
-    const t = [...new Set(effectiveConfigForms.map((f: any) => f.tab_name || 'General'))];
-    return t;
+  // One tab per linked form (ordered by display_order, then name).
+  const orderedForms = useMemo(() => {
+    return [...effectiveConfigForms].sort((a: any, b: any) => {
+      const oa = a.display_order ?? 0;
+      const ob = b.display_order ?? 0;
+      if (oa !== ob) return oa - ob;
+      return (a.form_templates?.name || '').localeCompare(b.form_templates?.name || '');
+    });
   }, [effectiveConfigForms]);
+
+  const tabs = useMemo(() => orderedForms.map((f: any) => f.form_id as string), [orderedForms]);
 
   useEffect(() => {
     if (tabs.length > 0 && !activeTab) setActiveTab(tabs[0]);
   }, [tabs, activeTab]);
+
+  const formStatuses = useMemo(() => {
+    const m: Record<string, ReturnFormStatus> = {};
+    for (const f of orderedForms) m[f.form_id] = getReturnFormStatus(f.form_id, allData, completedForms);
+    return m;
+  }, [orderedForms, allData, completedForms]);
+
+  const completedCount = orderedForms.filter((f: any) => formStatuses[f.form_id] === 'completed').length;
+  const allComplete = orderedForms.length > 0 && completedCount === orderedForms.length;
+
+  const toggleCompleted = useCallback((formId: string, done: boolean) => {
+    setCompletedForms(prev => {
+      const next = new Set(prev);
+      if (done) next.add(formId); else next.delete(formId);
+      return next;
+    });
+  }, []);
+
 
   // Auto-save every 60 seconds
   useEffect(() => {
@@ -639,15 +667,51 @@ export default function FillReturnPage() {
           </Alert>
         )}
 
+        {/* Multi-form progress strip */}
+        {orderedForms.length > 1 && (
+          <div className="bg-card border rounded-lg p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm">
+                <span className="font-semibold">Forms in this return: {orderedForms.length}</span>
+                <span className="text-muted-foreground ml-2">
+                  {completedCount} / {orderedForms.length} completed
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {orderedForms.map((cf: any, i: number) => {
+                  const s = formStatuses[cf.form_id];
+                  const variant: any =
+                    s === 'completed' ? 'default' : s === 'in_progress' ? 'secondary' : 'outline';
+                  return (
+                    <Badge
+                      key={cf.form_id}
+                      variant={variant}
+                      className="cursor-pointer"
+                      onClick={() => setActiveTab(cf.form_id)}
+                    >
+                      {i + 1}. {cf.form_templates?.name || 'Form'} · {statusLabel(s)}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+            <Progress value={(completedCount / orderedForms.length) * 100} className="h-1.5" />
+          </div>
+        )}
+
         {/* Tabbed forms using FormRenderer + final Review tab */}
         {(tabs.length > 0 || loadingFallbackForms) && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto">
-              {tabs.map(tab => (
-                <TabsTrigger key={tab} value={tab} className="gap-1">
-                  {tab}
-                </TabsTrigger>
-              ))}
+              {orderedForms.map((cf: any, i: number) => {
+                const s = formStatuses[cf.form_id];
+                return (
+                  <TabsTrigger key={cf.form_id} value={cf.form_id} className="gap-1">
+                    {s === 'completed' && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                    <span>{i + 1}. {cf.form_templates?.name || 'Form'}</span>
+                  </TabsTrigger>
+                );
+              })}
               {isEditable && (
                 <TabsTrigger value="__review__" className="gap-1">
                   <Eye className="h-3 w-3" /> Review &amp; Submit
@@ -655,66 +719,97 @@ export default function FillReturnPage() {
               )}
             </TabsList>
 
-            {tabs.map(tab => {
-              const tabForms = effectiveConfigForms
-                .filter((f: any) => (f.tab_name || 'General') === tab)
-                .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
-
-              return (
-                <TabsContent key={tab} value={tab} className="space-y-4">
-                  {tabForms.map((cf: any) => (
-                    <Card key={cf.id}>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">
-                          {cf.form_templates?.name || 'Form'}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <SingleReturnForm
-                          returnId={id!}
-                          formTemplateId={cf.form_id}
-                          initialData={allData[cf.form_id] || {}}
-                          readOnly={!isEditable}
-                          onDataChange={handleDataChange}
-                          saving={saving}
+            {orderedForms.map((cf: any, i: number) => (
+              <TabsContent key={cf.form_id} value={cf.form_id} className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between gap-2 flex-wrap">
+                      <span>
+                        Form {i + 1} of {orderedForms.length} — {cf.form_templates?.name || 'Form'}
+                      </span>
+                      <Badge
+                        variant={
+                          formStatuses[cf.form_id] === 'completed'
+                            ? 'default'
+                            : formStatuses[cf.form_id] === 'in_progress'
+                            ? 'secondary'
+                            : 'outline'
+                        }
+                        className="text-[10px]"
+                      >
+                        {statusLabel(formStatuses[cf.form_id])}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SingleReturnForm
+                      returnId={id!}
+                      formTemplateId={cf.form_id}
+                      initialData={allData[cf.form_id] || {}}
+                      readOnly={!isEditable}
+                      onDataChange={handleDataChange}
+                      saving={saving}
+                    />
+                    {isEditable && (
+                      <div className="mt-4 pt-3 border-t flex items-center gap-2">
+                        <Checkbox
+                          id={`complete-${cf.form_id}`}
+                          checked={completedForms.has(cf.form_id)}
+                          onCheckedChange={(v) => toggleCompleted(cf.form_id, v === true)}
                         />
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {tabForms.length === 0 && (
-                    <p className="text-sm text-muted-foreground py-4">No forms assigned to this tab.</p>
-                  )}
-                </TabsContent>
-              );
-            })}
+                        <label
+                          htmlFor={`complete-${cf.form_id}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          I've completed this form
+                        </label>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
 
             {isEditable && (
               <TabsContent value="__review__" className="space-y-4">
+                {!allComplete && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      {orderedForms.length - completedCount} of {orderedForms.length} form
+                      {orderedForms.length - completedCount === 1 ? '' : 's'} still need to be
+                      marked as completed before you can submit.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <ReturnReviewPanel
                   loading={submitting}
+                  disabled={!allComplete}
                   onAcknowledge={() =>
                     handleSubmit(
                       'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
                     )
-}
-
+                  }
                   returnSummary={[
                     { label: 'Reference', value: returnData?.unique_id || null },
                     { label: 'Return Type', value: returnData?.return_configs?.name || null },
                     { label: 'Period', value: `${returnData?.return_period || ''} ${returnData?.return_year || ''}`.trim() || null },
                     { label: 'Due Date', value: returnData?.due_date ? format(new Date(returnData.due_date), 'PP') : null },
                   ]}
-                  forms={effectiveConfigForms.map((cf: any) => ({
+                  forms={orderedForms.map((cf: any) => ({
                     formId: cf.form_id,
                     name: cf.form_templates?.name || 'Form',
                     tabName: cf.tab_name || 'General',
+                    status: formStatuses[cf.form_id],
                   }))}
                   allData={allData}
+                  onJumpToForm={(fid) => setActiveTab(fid)}
                 />
               </TabsContent>
             )}
           </Tabs>
         )}
+
 
         {!loadingFallbackForms && tabs.length === 0 && (
           <Card>
