@@ -1577,6 +1577,11 @@ function EditableFieldRow({ field, onChange, onDelete }: EditableFieldProps) {
     <div className="border rounded-md bg-background">
       <div className="flex items-center gap-2 px-3 py-2">
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        {field.lineCode && (
+          <span className="font-mono text-[10px] text-muted-foreground shrink-0 min-w-[3.5rem] text-right">
+            {field.lineCode}
+          </span>
+        )}
         <Input className="h-7 text-xs flex-1" value={field.label}
           onChange={e => onChange(field.id, { label: e.target.value, fieldName: toFieldName(e.target.value) })} />
         <Select value={field.type} onValueChange={(v: FieldType) => onChange(field.id, { type: v })}>
