@@ -1,31 +1,37 @@
+## Goal
+Make the Approval Workflows list show the same active workflow data on the BOJ custom domain as it does in the Lovable preview.
+
 ## Diagnosis
+The screenshot confirms the domain is rendering the workflows page but returning `0` workflows. Since the same regulator and workflow data show correctly in preview, this is most likely one of these:
 
-- Preview (lovable.app) shows the Approval Workflows correctly.
-- Published site (boj.skntreasury.com / "BOJ") shows an empty Workflows page.
-- Data + code are fine — the DB has 7 active workflows for your regulator and `/workflows` renders them in preview.
+1. **Published frontend is stale** and still using old workflow filters/query logic.
+2. **Published runtime context differs** from preview, such as active regulator, role, or stored session/context state.
+3. **Domain-side query is being blocked or filtered** by backend policies/permissions or mismatched workflow type values.
 
-The gap is a **publish/deploy mismatch**: recent changes to `src/pages/workflows/WorkflowList.tsx`, `src/hooks/useWorkflowEngine.ts`, and related workflow files have not yet been pushed to the published build. Your custom domain is still serving an older bundle whose queries/filters don't line up with the current schema (e.g. new `entity_type` values like `pre_application` / `post_application` / `return`), so the old build fetches nothing and shows "No workflows yet".
+## Plan
+1. **First republish the current app build** so the custom domain receives the same frontend code as preview.
+   - This is the fastest and least invasive fix.
+   - No app code changes are needed if the issue is only a stale deployment.
 
-## Fix
+2. **Before publishing, run/check the security scan requirement.**
+   - If critical security findings still block publishing, either fix them or get explicit approval to ignore/manage them.
+   - After the blocker is cleared, publish the app.
 
-Re-publish the project so the custom domain (BOJ) picks up the current build.
+3. **After publish, verify the BOJ domain workflow page.**
+   - Confirm the workflow count is no longer `0`.
+   - Confirm active workflows and steps appear.
+   - Confirm the same admin account/regulator context is selected.
 
-No code changes are needed for this.
+4. **If the published domain still shows zero after publishing, investigate the domain session/query path.**
+   - Compare the workflow list query used by the page against current backend data.
+   - Check whether active regulator context is missing or stale on the domain.
+   - Check whether workflow `entity_type` / workflow type filters exclude existing records.
+   - Check whether backend access policies/grants differ for the signed-in admin role.
 
-## Optional follow-up (only if it still fails after publish)
+5. **Apply a targeted code/backend fix only if verification shows publish alone did not resolve it.**
+   - Normalize workflow type filters to include existing active workflow types.
+   - Add a fallback for missing active regulator context if appropriate.
+   - Fix backend access rules only if the admin role is incorrectly denied workflow rows.
 
-If, after publishing, BOJ still shows an empty Workflows page while preview is fine, we would:
-
-1. Read `approval_workflow_types` and `approval_workflows` from the browser under the BOJ session to confirm RLS/roles resolve the same way.
-2. Confirm the header shows the same active regulator as preview.
-3. Check console/network errors on the deployed BOJ page.
-
-No app code would change unless one of those checks surfaces a real bug.
-
-## Action
-
-Publish the project:
-
-<presentation-actions>
-<presentation-open-publish>Publish your app</presentation-open-publish>
-</presentation-actions>
+## Expected outcome
+The custom domain `/workflows` page should show the existing active approval workflows instead of the empty “No workflows yet” panel.
