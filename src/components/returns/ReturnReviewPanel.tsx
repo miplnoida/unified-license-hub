@@ -4,16 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, FileText, Eye, Loader2 } from 'lucide-react';
+import { CheckCircle2, FileText, Eye, Loader2, ArrowRight } from 'lucide-react';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { statusLabel, type ReturnFormStatus } from '@/lib/returnsFormProgress';
+
+interface ReturnFormEntry {
+  formId: string;
+  name: string;
+  tabName: string;
+  status?: ReturnFormStatus;
+}
 
 interface ReturnReviewPanelProps {
   returnSummary: { label: string; value: string | number | null | undefined }[];
-  forms: Array<{ formId: string; name: string; tabName: string }>;
+  forms: ReturnFormEntry[];
   allData: Record<string, Record<string, any>>;
   onAcknowledge: () => void;
+  onJumpToForm?: (formId: string) => void;
   loading?: boolean;
+  disabled?: boolean;
   title?: string;
   description?: string;
 }
@@ -22,14 +32,18 @@ interface FormReviewBlockProps {
   formId: string;
   name: string;
   tabName: string;
+  status?: ReturnFormStatus;
   data: Record<string, any>;
+  onJumpToForm?: (formId: string) => void;
 }
 
-function FormReviewBlock({ formId, name, tabName, data }: FormReviewBlockProps) {
+function FormReviewBlock({ formId, name, tabName, status, data, onJumpToForm }: FormReviewBlockProps) {
   const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
 
   const loading = vLoading || sLoading;
+  const statusVariant: any =
+    status === 'completed' ? 'default' : status === 'in_progress' ? 'secondary' : 'outline';
 
   return (
     <Card>
@@ -38,6 +52,22 @@ function FormReviewBlock({ formId, name, tabName, data }: FormReviewBlockProps) 
           <FileText className="h-4 w-4 text-primary" />
           <span>{name}</span>
           <Badge variant="outline" className="text-[10px]">{tabName}</Badge>
+          {status && (
+            <Badge variant={statusVariant} className="text-[10px]">
+              {statusLabel(status)}
+            </Badge>
+          )}
+          {onJumpToForm && (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="ml-auto h-auto p-0 text-xs"
+              onClick={() => onJumpToForm(formId)}
+            >
+              Go to form <ArrowRight className="h-3 w-3 ml-1" />
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -70,11 +100,14 @@ export function ReturnReviewPanel({
   forms,
   allData,
   onAcknowledge,
+  onJumpToForm,
   loading = false,
+  disabled = false,
   title = 'Review & Submit Return',
   description = 'Verify all entered data below. Submission is final.',
 }: ReturnReviewPanelProps) {
   const [acknowledged, setAcknowledged] = useState(false);
+
 
   return (
     <Card>
