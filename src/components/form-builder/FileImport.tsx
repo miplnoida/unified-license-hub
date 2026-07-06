@@ -833,8 +833,8 @@ function parseLineItemReturnSheet(
       const cell = sheet[addr];
       const fieldName = globalFieldMap.get(addr)!;
       const fieldLabel = layout.columnHeaders.length === 1
-        ? `${lineNum} ${label}`
-        : `${lineNum} ${label} — ${layout.columnHeaders[ci]}`;
+        ? label
+        : `${label} — ${layout.columnHeaders[ci]}`;
 
       let fieldType: FieldType = 'decimal';
       let calculatedExpression: string | undefined;
@@ -859,6 +859,7 @@ function parseLineItemReturnSheet(
         required: false,
         placeholder: fieldType === 'decimal' ? '0.00' : undefined,
         calculatedExpression,
+        lineCode: lineNum,
       });
     }
   }
