@@ -209,7 +209,7 @@ export function useWorkflowTypeConfigs() {
 
 // ─── Queries ───
 
-export function useWorkflows(regulatorId?: string | null, entityType?: string) {
+export function useWorkflows(regulatorId?: string | null, entityType?: string, enabled = true) {
   return useQuery({
     queryKey: ['approval_workflows', regulatorId, entityType],
     queryFn: async () => {
@@ -220,6 +220,7 @@ export function useWorkflows(regulatorId?: string | null, entityType?: string) {
       if (error) throw error;
       return (data || []) as unknown as Workflow[];
     },
+    enabled,
   });
 }
 
