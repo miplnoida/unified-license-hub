@@ -172,13 +172,17 @@ export function ReturnReviewPanel({
               id="ack-return"
               checked={acknowledged}
               onCheckedChange={(v) => setAcknowledged(v === true)}
-              disabled={disabled}
             />
             <Label htmlFor="ack-return" className="text-sm leading-relaxed cursor-pointer">
               I confirm that the data submitted in this return is accurate and complete to the best
               of my knowledge.
             </Label>
           </div>
+          {disabled && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Mark every form as completed before you can submit.
+            </p>
+          )}
           <div className="mt-3 flex justify-end">
             <Button
               onClick={onAcknowledge}
