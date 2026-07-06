@@ -625,6 +625,250 @@ function parseFinancialSheet(
   return { sections, crossSheetRefs };
 }
 
+// ─── Line-item Return Layout ───
+// Detects simple 3+ column layouts used by regulatory returns:
+//   Col A = hierarchical line number (1, 1.1, 1.1.1, …)
+//   Col B = label
+//   Col C..N = numeric values (with optional Year/Period header in rows 1-2)
+
+interface LineItemLayout {
+  numberCol: number;      // usually 0 (col A)
+  labelCol: number;       // usually 1 (col B)
+  dataColStart: number;   // usually 2 (col C)
+  dataColEnd: number;     // inclusive
+  dataStartRow: number;   // first row with a line number
+  columnHeaders: string[];
+  periodLabel: string;    // e.g. "Q1 2022" for form naming
+}
+
+const LINE_NUM_RE = /^\d+(\.\d+)*$/;
+
+function detectLineItemReturnLayout(sheet: any, data: string[][]): LineItemLayout | null {
+  if (!data || data.length < 10) return null;
+
+  // Find first row where col A matches the line-number pattern
+  let dataStartRow = -1;
+  for (let r = 0; r < Math.min(data.length, 30); r++) {
+    const a = String(data[r]?.[0] ?? '').trim();
+    const b = String(data[r]?.[1] ?? '').trim();
+    if (LINE_NUM_RE.test(a) && b.length > 0) {
+      dataStartRow = r;
+      break;
+    }
+  }
+  if (dataStartRow < 0) return null;
+
+  // Require enough line-item rows below the start
+  let lineItemRows = 0;
+  let labeledRows = 0;
+  let maxDataCol = 1;
+  for (let r = dataStartRow; r < data.length; r++) {
+    const row = data[r] || [];
+    const a = String(row[0] ?? '').trim();
+    const b = String(row[1] ?? '').trim();
+    if (LINE_NUM_RE.test(a)) {
+      lineItemRows++;
+      if (b.length > 0) labeledRows++;
+      for (let c = row.length - 1; c >= 2; c--) {
+        const v = row[c];
+        if (v !== '' && v !== null && v !== undefined) { maxDataCol = Math.max(maxDataCol, c); break; }
+      }
+    }
+  }
+  if (lineItemRows < 8) return null;
+  if (labeledRows < lineItemRows * 0.8) return null;
+
+  const dataColStart = 2;
+  const dataColEnd = Math.max(maxDataCol, dataColStart);
+
+  // Build column headers from rows above dataStartRow (usually row 1 = year, row 2 = period)
+  const columnHeaders: string[] = [];
+  for (let c = dataColStart; c <= dataColEnd; c++) {
+    const parts: string[] = [];
+    for (let r = 0; r < dataStartRow; r++) {
+      const v = String(data[r]?.[c] ?? '').trim();
+      if (v) parts.push(v);
+    }
+    columnHeaders.push(parts.length > 0 ? parts.join(' ') : `Value ${c - dataColStart + 1}`);
+  }
+
+  const periodLabel = columnHeaders[0] || 'Value';
+
+  return {
+    numberCol: 0,
+    labelCol: 1,
+    dataColStart,
+    dataColEnd,
+    dataStartRow,
+    columnHeaders,
+    periodLabel,
+  };
+}
+
+function parseLineItemReturnSheet(
+  sheetName: string,
+  data: string[][],
+  layout: LineItemLayout,
+  sheet: any,
+  XLSX: any,
+): { sections: FormSection[]; crossSheetRefs: CrossSheetRef[]; formTitle: string } {
+  const sections: FormSection[] = [];
+  const crossSheetRefs: CrossSheetRef[] = [];
+
+  // Global address → fieldName map so intra-sheet formulas resolve
+  const globalFieldMap = new Map<string, string>();
+  for (let r = layout.dataStartRow; r < data.length; r++) {
+    const row = data[r] || [];
+    const lineNum = String(row[layout.numberCol] ?? '').trim();
+    if (!LINE_NUM_RE.test(lineNum)) continue;
+    for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
+      const colIdx = layout.dataColStart + ci;
+      const addr = XLSX.utils.encode_cell({ r, c: colIdx });
+      globalFieldMap.set(addr, toFieldName(`line_${lineNum.replace(/\./g, '_')}_col_${ci + 1}`));
+    }
+  }
+
+  function cellRefToFieldName(cellRef: string): string | null {
+    const m = cellRef.replace(/\$/g, '').match(/^([A-Z]+)(\d+)$/i);
+    if (!m) return null;
+    const c = XLSX.utils.decode_col(m[1].toUpperCase());
+    const r = parseInt(m[2], 10) - 1;
+    return globalFieldMap.get(XLSX.utils.encode_cell({ r, c })) || null;
+  }
+
+  function convertFormulaLocal(rawFormula: string, currentSheet: string): FormulaInfo {
+    const referencedFields: string[] = [];
+    const sheetCrossRefs: CrossSheetRef[] = [];
+    let expression = rawFormula.replace(/^=\s*/, '');
+
+    // Cross-sheet refs
+    expression = expression.replace(/'?([^'!,()+*/\-\s]+)'?!(\$?[A-Z]+\$?\d+)/gi, (match, refSheet, cellRef) => {
+      const colLetters = cellRef.replace(/[\$\d]/g, '').toUpperCase();
+      const fieldName = `${toFieldName(refSheet)}_${colLetters.toLowerCase()}`;
+      sheetCrossRefs.push({
+        sourceSheet: currentSheet,
+        sourceField: '',
+        targetSheet: String(refSheet).trim(),
+        targetField: fieldName,
+        formula: rawFormula,
+      });
+      return `{${toFieldName(refSheet)}.${fieldName}}`;
+    });
+
+    // SUM/AVERAGE ranges
+    const replaceRange = (fnName: 'SUM' | 'AVERAGE') => {
+      const re = new RegExp(`${fnName}\\(([^)]+)\\)`, 'gi');
+      expression = expression.replace(re, (_, range: string) => {
+        const parts = range.split(':');
+        if (parts.length !== 2) return `${fnName}(${range})`;
+        const s = parts[0].replace(/\$/g, '').match(/^([A-Z]+)(\d+)$/i);
+        const e = parts[1].replace(/\$/g, '').match(/^([A-Z]+)(\d+)$/i);
+        if (!s || !e) return `${fnName}(${range})`;
+        const sc = XLSX.utils.decode_col(s[1]);
+        const ec = XLSX.utils.decode_col(e[1]);
+        const sr = parseInt(s[2], 10);
+        const er = parseInt(e[2], 10);
+        const fields: string[] = [];
+        for (let rr = sr; rr <= er; rr++) {
+          for (let cc = sc; cc <= ec; cc++) {
+            const fn = globalFieldMap.get(XLSX.utils.encode_cell({ r: rr - 1, c: cc }));
+            if (fn) {
+              fields.push(fn);
+              if (!referencedFields.includes(fn)) referencedFields.push(fn);
+            }
+          }
+        }
+        if (fields.length === 0) return `${fnName}(${range})`;
+        if (fnName === 'SUM') return fields.map(f => `{${f}}`).join(' + ');
+        return `(${fields.map(f => `{${f}}`).join(' + ')}) / ${fields.length}`;
+      });
+    };
+    replaceRange('SUM');
+    replaceRange('AVERAGE');
+
+    // Individual same-sheet refs
+    expression = expression.replace(/\$?([A-Z]+)\$?(\d+)/gi, (match) => {
+      const fn = cellRefToFieldName(match);
+      if (fn) {
+        if (!referencedFields.includes(fn)) referencedFields.push(fn);
+        return `{${fn}}`;
+      }
+      return match;
+    });
+
+    return { raw: rawFormula, expression, referencedFields, crossSheetRefs: sheetCrossRefs };
+  }
+
+  // Build sections. Top-level line numbers (single segment) start a section.
+  let currentSection: FormSection | null = null;
+  let sortOrder = 0;
+
+  const openSection = (title: string) => {
+    if (currentSection && currentSection.fields.length > 0) sections.push(currentSection);
+    currentSection = {
+      id: crypto.randomUUID(),
+      title,
+      sortOrder: sortOrder++,
+      isRepeatable: false,
+      fields: [],
+    };
+  };
+
+  for (let r = layout.dataStartRow; r < data.length; r++) {
+    const row = data[r] || [];
+    const lineNum = String(row[layout.numberCol] ?? '').trim();
+    const label = String(row[layout.labelCol] ?? '').trim();
+    if (!LINE_NUM_RE.test(lineNum) || !label) continue;
+
+    const depth = lineNum.split('.').length;
+    if (depth === 1) {
+      openSection(`${lineNum} ${label}`);
+    } else if (!currentSection) {
+      openSection(sheetName);
+    }
+
+    for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
+      const colIdx = layout.dataColStart + ci;
+      const addr = XLSX.utils.encode_cell({ r, c: colIdx });
+      const cell = sheet[addr];
+      const fieldName = globalFieldMap.get(addr)!;
+      const fieldLabel = layout.columnHeaders.length === 1
+        ? `${lineNum} ${label}`
+        : `${lineNum} ${label} — ${layout.columnHeaders[ci]}`;
+
+      let fieldType: FieldType = 'decimal';
+      let calculatedExpression: string | undefined;
+
+      if (cell && cell.f) {
+        fieldType = 'calculated';
+        const info = convertFormulaLocal(cell.f, sheetName);
+        calculatedExpression = info.expression;
+        if (info.crossSheetRefs.length > 0) {
+          info.crossSheetRefs.forEach(ref => { ref.sourceField = fieldName; });
+          crossSheetRefs.push(...info.crossSheetRefs);
+        }
+      } else if (cell && typeof cell.v === 'string' && cell.v.trim() && isNaN(Number(cell.v))) {
+        fieldType = 'text';
+      }
+
+      currentSection!.fields.push({
+        id: crypto.randomUUID(),
+        type: fieldType,
+        label: fieldLabel,
+        fieldName,
+        required: false,
+        placeholder: fieldType === 'decimal' ? '0.00' : undefined,
+        calculatedExpression,
+      });
+    }
+  }
+
+  if (currentSection && (currentSection as FormSection).fields.length > 0) sections.push(currentSection);
+
+  return { sections, crossSheetRefs, formTitle: layout.periodLabel };
+}
+
+
 async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> {
   const XLSX = await import('xlsx');
   const buffer = await file.arrayBuffer();
@@ -638,30 +882,59 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
     const data: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     if (data.length === 0) continue;
 
-    // ── Try financial statement layout first ──
-    const financialLayout = detectFinancialLayout(sheet, data, XLSX);
-    if (financialLayout) {
-      const { sections, crossSheetRefs: sheetCrossRefs } = parseFinancialSheet(
-        sheetName, data, financialLayout, sheet, XLSX
-      );
-      const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
-      if (fieldCount > 0) {
-        sheets.push({
-          sheetName,
-          formName: `${sheetName} - ${financialLayout.formTitle}`,
-          sections,
-          fieldCount,
-          selected: true,
-          crossSheetRefs: sheetCrossRefs,
-        });
-        allCrossSheetRefs.push(...sheetCrossRefs);
+    try {
+      // ── Try line-item return layout first (line no. / label / value) ──
+      const lineItemLayout = detectLineItemReturnLayout(sheet, data);
+      if (lineItemLayout) {
+        const { sections, crossSheetRefs: sheetCrossRefs, formTitle } = parseLineItemReturnSheet(
+          sheetName, data, lineItemLayout, sheet, XLSX
+        );
+        const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+        if (fieldCount > 0) {
+          sheets.push({
+            sheetName,
+            formName: formTitle ? `${sheetName} - ${formTitle}` : sheetName,
+            sections,
+            fieldCount,
+            selected: true,
+            crossSheetRefs: sheetCrossRefs,
+          });
+          allCrossSheetRefs.push(...sheetCrossRefs);
+        }
+        continue;
       }
-      continue;
+
+      // ── Try financial statement layout ──
+      const financialLayout = detectFinancialLayout(sheet, data, XLSX);
+      if (financialLayout) {
+        const { sections, crossSheetRefs: sheetCrossRefs } = parseFinancialSheet(
+          sheetName, data, financialLayout, sheet, XLSX
+        );
+        const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+        if (fieldCount > 0) {
+          sheets.push({
+            sheetName,
+            formName: `${sheetName} - ${financialLayout.formTitle}`,
+            sections,
+            fieldCount,
+            selected: true,
+            crossSheetRefs: sheetCrossRefs,
+          });
+          allCrossSheetRefs.push(...sheetCrossRefs);
+        }
+        continue;
+      }
+    } catch (sheetErr) {
+      console.warn(`[FileImport] Skipping sheet "${sheetName}" (structured parse failed):`, sheetErr);
+      // fall through to generic detection below
     }
+
+    try {
 
     // ── Original parsing logic ──
     const headers = data[0].map(h => String(h).trim()).filter(Boolean);
     if (headers.length === 0) continue;
+
 
     const dataRows = data.slice(1).filter(row => row.some(cell => String(cell).trim()));
     const headersLower = headers.map(h => h.toLowerCase());
@@ -899,10 +1172,15 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
       });
       allCrossSheetRefs.push(...sheetCrossRefs);
     }
+
+    } catch (fallbackErr) {
+      console.warn(`[FileImport] Skipping sheet "${sheetName}" (fallback parse failed):`, fallbackErr);
+    }
   }
 
   return { fileName: file.name, sheets, allCrossSheetRefs };
 }
+
 
 // ─── Checkbox Detection Helpers ───
 
