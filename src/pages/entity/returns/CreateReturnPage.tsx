@@ -213,7 +213,11 @@ export default function CreateReturnPage() {
   };
 
   const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const START_YEAR = 2021;
+  const yearOptions = Array.from(
+    { length: Math.max(1, currentYear - START_YEAR + 1) },
+    (_, i) => currentYear - i,
+  );
 
   return (
     <DashboardLayout>
