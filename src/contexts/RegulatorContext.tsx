@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,10 +27,30 @@ const RegulatorContext = createContext<RegulatorContextType | undefined>(undefin
 
 const STORAGE_KEY = 'active-regulator-id';
 
+function getStoredRegulatorId(): string | null {
+  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+}
+
+function persistRegulatorId(id: string | null) {
+  try {
+    if (id) localStorage.setItem(STORAGE_KEY, id);
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch { /* storage unavailable */ }
+}
+
+function pickDefaultRegulator(regulators: Regulator[]): Regulator | null {
+  if (regulators.length === 0) return null;
+
+  return (
+    regulators.find(r => r.settings?.default === true || r.settings?.is_default === true) ||
+    regulators.find(r => String(r.code).toUpperCase() === 'R001') ||
+    regulators.find(r => /\bboj\b|bank of jamaica/i.test(`${r.name} ${r.code}`)) ||
+    regulators[0]
+  );
+}
+
 export function RegulatorProvider({ children }: { children: ReactNode }) {
-  const [activeRegulatorId, setActiveRegulatorId] = useState<string | null>(() => {
-    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
-  });
+  const [activeRegulatorId, setActiveRegulatorId] = useState<string | null>(() => getStoredRegulatorId());
 
   const { data: regulators = [], isLoading } = useQuery({
     queryKey: ['regulators'],
@@ -41,24 +61,38 @@ export function RegulatorProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Auto-select first regulator if none selected
+  // Auto-select a valid regulator. Custom domains can have their own localStorage,
+  // so stale or alphabetically selected contexts must be corrected before scoped
+  // admin pages query empty data sets.
   useEffect(() => {
-    if (!activeRegulatorId && regulators.length > 0) {
-      setActiveRegulatorId(regulators[0].id);
-      localStorage.setItem(STORAGE_KEY, regulators[0].id);
-    }
-  }, [regulators, activeRegulatorId]);
+    if (isLoading || regulators.length === 0) return;
 
-  const activeRegulator = regulators.find(r => r.id === activeRegulatorId) || null;
+    const selected = activeRegulatorId
+      ? regulators.find(r => r.id === activeRegulatorId)
+      : null;
+
+    if (selected) return;
+
+    const fallback = pickDefaultRegulator(regulators);
+    if (fallback) {
+      setActiveRegulatorId(fallback.id);
+      persistRegulatorId(fallback.id);
+    }
+  }, [regulators, activeRegulatorId, isLoading]);
+
+  const activeRegulator = useMemo(
+    () => regulators.find(r => r.id === activeRegulatorId) || null,
+    [regulators, activeRegulatorId],
+  );
 
   const setActiveRegulator = useCallback((id: string) => {
     setActiveRegulatorId(id);
-    localStorage.setItem(STORAGE_KEY, id);
+    persistRegulatorId(id);
   }, []);
 
   const clearActiveRegulator = useCallback(() => {
     setActiveRegulatorId(null);
-    localStorage.removeItem(STORAGE_KEY);
+    persistRegulatorId(null);
   }, []);
 
   return (
