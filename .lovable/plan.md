@@ -1,37 +1,38 @@
-## Goal
-Make the Approval Workflows list show the same active workflow data on the BOJ custom domain as it does in the Lovable preview.
+## What I found
+The backend contains active workflows, including:
 
-## Diagnosis
-The screenshot confirms the domain is rendering the workflows page but returning `0` workflows. Since the same regulator and workflow data show correctly in preview, this is most likely one of these:
+- Pre License Approval Workflow
+- Post Application Workflow
+- Building Society Pre License Workflow
+- Complaint Management Workflow
+- Registration Workflow
+- Return Workflow
 
-1. **Published frontend is stale** and still using old workflow filters/query logic.
-2. **Published runtime context differs** from preview, such as active regulator, role, or stored session/context state.
-3. **Domain-side query is being blocked or filtered** by backend policies/permissions or mismatched workflow type values.
+They are all under regulator id `8dd8ac87-...` / **Regulator 1**.
 
-## Plan
-1. **First republish the current app build** so the custom domain receives the same frontend code as preview.
-   - This is the fastest and least invasive fix.
-   - No app code changes are needed if the issue is only a stale deployment.
+The custom domain is likely selecting a different active regulator from browser storage/default ordering. The regulator context currently auto-selects the first active regulator alphabetically when none is stored. In this database, that is **ABC Prudential Authority**, which has no approval workflows, so the page correctly renders but shows `0`.
 
-2. **Before publishing, run/check the security scan requirement.**
-   - If critical security findings still block publishing, either fix them or get explicit approval to ignore/manage them.
-   - After the blocker is cleared, publish the app.
+## Fix plan
+1. **Make regulator context self-healing**
+   - If the stored regulator id is missing, invalid, or no longer in the active regulator list, replace it with a valid regulator instead of continuing with a stale value.
+   - This prevents custom domains from silently querying an empty regulator scope.
 
-3. **After publish, verify the BOJ domain workflow page.**
-   - Confirm the workflow count is no longer `0`.
-   - Confirm active workflows and steps appear.
-   - Confirm the same admin account/regulator context is selected.
+2. **Prefer the BOJ/default regulator consistently**
+   - Update default regulator selection so the BOJ domain does not accidentally pick the alphabetically first demo/test regulator.
+   - Prefer a configured/current regulator when available; otherwise fall back safely.
 
-4. **If the published domain still shows zero after publishing, investigate the domain session/query path.**
-   - Compare the workflow list query used by the page against current backend data.
-   - Check whether active regulator context is missing or stale on the domain.
-   - Check whether workflow `entity_type` / workflow type filters exclude existing records.
-   - Check whether backend access policies/grants differ for the signed-in admin role.
+3. **Improve the workflows page empty state**
+   - Show which regulator context is currently being used when no workflows are returned.
+   - This avoids the misleading “No workflows yet” message when workflows exist under another regulator.
 
-5. **Apply a targeted code/backend fix only if verification shows publish alone did not resolve it.**
-   - Normalize workflow type filters to include existing active workflow types.
-   - Add a fallback for missing active regulator context if appropriate.
-   - Fix backend access rules only if the admin role is incorrectly denied workflow rows.
+4. **Make the workflow query wait for valid regulator context**
+   - Avoid firing the workflows query before the active regulator has been validated.
+   - This prevents a temporary or stale `activeRegulatorId` from caching an empty result.
 
-## Expected outcome
-The custom domain `/workflows` page should show the existing active approval workflows instead of the empty “No workflows yet” panel.
+5. **Verify after implementation**
+   - Confirm the workflows page queries the regulator that actually owns the workflows.
+   - Confirm the list shows the existing active workflows instead of `0`.
+   - Republish again after the code fix so the custom domain receives it.
+
+## Expected result
+The BOJ domain `/workflows` page will show the existing active approval workflows instead of the empty panel.
