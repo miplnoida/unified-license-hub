@@ -1,70 +1,60 @@
+# Split line number and label into separate columns on import
 
-## Why the error appears
+## Why this is happening
 
-I opened your `quarter1-return.xlsx` and traced it through the Excel importer (`src/components/form-builder/FileImport.tsx` → `parseExcelMultiSheet`). The file is shaped like this:
+In `src/components/form-builder/FileImport.tsx` → `parseLineItemReturnSheet` (around lines 825, 835–837), every generated field's `label` is built by concatenating the line number and the label from column B:
 
-```text
-Row 1:  A=""       B=""              C=2022     ← year, only value in C1
-Row 2:  A=""       B=""              C="Q1"     ← period label
-Row 3:  A=1        B="ASSETS - BS"   C=230064
-Row 4:  A=1.1      B="LIQUID FUNDS"  C=57613.2
-Row 5:  A="1.1.1"  B="NOTES..."      C=5110.8
-...     319 rows total, then two empty sheets (Sheet2, Sheet3)
+```ts
+openSection(`${lineNum} ${label}`);
+// ...
+const fieldLabel = layout.columnHeaders.length === 1
+  ? `${lineNum} ${label}`
+  : `${lineNum} ${label} — ${layout.columnHeaders[ci]}`;
 ```
 
-The importer tries three layouts, and this file matches **none** of them:
-
-1. **Financial-statement layout** (`detectFinancialLayout`) — requires either a "Go to TOC" link **or** `Cover!` / "financial year" / "period end" metadata in the first 8 rows. Your workbook has neither → skipped.
-2. **Template layout** — requires header row with `Label` / `Field Name` / `Type` / etc. Your row 1 is `("", "", 2022)` → no template headers → skipped.
-3. **Auto-detect fallback** — treats row 1 as column headers. After `filter(Boolean)` your only header is `"2022"`, so the parser either (a) collapses everything into a single field called "2022" and drops the 317 real line items, or (b) throws inside the row-oriented branch because `headers.length` is 1 while column A/B mix numbers and text — which surfaces as the toast **"Failed to parse the uploaded file. Please check the format."**
-
-So the error is not about a corrupt file — the importer simply doesn't recognise this common **line-number / label / value** return layout that Bank of Jamaica-style prudential returns use.
+The `FormField` model (`src/types/formBuilder.ts`) has only a single `label` string, so both pieces get flattened into one column when the form is rendered. Nothing preserves column A separately, which is why the imported form shows `"1.1 LIQUID FUNDS"` in one cell instead of `1.1 | LIQUID FUNDS | value` like your Excel screenshot.
 
 ## Fix
 
-Add a fourth detector in `FileImport.tsx` for line-item return workbooks, and route it through a small dedicated parser. No other files change.
+Keep the line number as a distinct piece of data and render it as its own column in front of the label — no schema/DB changes, purely presentational.
 
-### 1. `detectLineItemReturnLayout(sheet, data)`
-Return a layout when a sheet matches all of:
-- ≥ 10 non-empty rows.
-- Column A of most data rows is a hierarchical line number (`1`, `1.1`, `1.1.1`, `1.1.2.5.2`, …) — regex `^\d+(\.\d+)*$`.
-- Column B of the same rows is non-empty text (label).
-- At least one column ≥ C contains numeric values for the same rows.
-- Detects period metadata from top rows (`year` = first numeric like `2022` in C1..E2, `period` = first text like `Q1/Q2/Q3/Q4/H1/H2/FY` in C1..E2) — used only for form naming, not required.
-- Value column headers = `Q1`, `Q2`, `Prior Year`, etc. taken from row 2 when present, otherwise `Value` / `Value 2` …
-
-### 2. `parseLineItemReturnSheet(sheetName, data, layout, sheet, XLSX)`
-- Iterate rows from the first line-item row.
-- Section grouping: rows whose line number has **1 segment** (`1`, `2`, `3`) start a new `FormSection` using the label as its title. Deeper rows (`1.1`, `1.1.1`, …) become fields inside the current section, with the label prefixed by the line number for uniqueness.
-- Each field:
-  - `label` = `"{lineNo} {label}"`
-  - `fieldName` = `toFieldName(line_{dotted}_col_{n})` (stable, matches the existing financial parser convention so `form_field_dependencies` keeps working)
-  - `type` = `decimal` for numeric columns, `text` otherwise
-  - Preserve any Excel formula on that cell via the existing `convertFormula` helper so ratios and totals become `calculated` fields.
-- Return one `FormSection` per top-level line item, plus any collected `crossSheetRefs`.
-
-### 3. Wire it in
-In `parseExcelMultiSheet`, before the current `detectFinancialLayout` call, add:
-
+### 1. `src/types/formBuilder.ts`
+Add one optional field:
 ```ts
-const lineItemLayout = detectLineItemReturnLayout(sheet, data);
-if (lineItemLayout) {
-  const { sections, crossSheetRefs } = parseLineItemReturnSheet(sheetName, data, lineItemLayout, sheet, XLSX);
-  // …push sheet, continue
-}
+// Optional hierarchical code shown as a leading column (e.g. "1.1.2.1" for
+// prudential return line items). Imported from Excel column A.
+lineCode?: string;
 ```
 
-Keep the existing detectors as fallbacks so nothing else regresses.
+### 2. `src/components/form-builder/FileImport.tsx` (`parseLineItemReturnSheet`)
+- Set `lineCode: lineNum` on every generated field.
+- Change `label` to the pure column-B text (no `${lineNum}` prefix). For multi-column returns keep the period suffix, e.g. `` `${label} — ${columnHeaders[ci]}` ``.
+- Section titles: keep `${lineNum} ${label}` (sections are single headings, so combined is fine and helps navigation), OR alternatively store the section's own `lineCode` on the first child — sections stay as today to avoid touching `FormSection`.
+- `fieldName` generation stays identical (`line_{dotted}_col_{n}`) so existing form-field dependencies and formula resolution keep working.
 
-### 4. Guard the fallback throw
-Wrap the row-oriented branch in a defensive try/catch that logs and skips the sheet instead of aborting the whole workbook — so a single unrecognised sheet never blocks import of the good ones. Empty sheets like your `Sheet2` / `Sheet3` are already skipped, but a defensive skip prevents future edge cases.
+### 3. Renderer: show `lineCode` as a leading column
+In the form renderer used for filled-in returns (`src/components/form-renderer/FormRenderer.tsx` and the field row component it uses), when a field has `lineCode`:
+- Render a small monospaced left-aligned cell with the code, then the label, then the input — mirroring the Excel layout in the screenshot.
+- When `lineCode` is absent, render the current layout unchanged so all other forms are untouched.
+- Read-only preview (`FormTemplateView`) uses the same renderer, so it benefits automatically.
+
+### 4. Form builder canvas (admin edit view)
+Where the builder lists fields inside a section, prefix the field row with `lineCode` (dim/monospace) when present, so admins editing an imported return see the same 3-column shape. No editing UI added for `lineCode` in this pass — it's populated only by the importer.
 
 ## Verification
 
-- Re-import `quarter1-return.xlsx`; expect a return template named "quarter1-return" with one form ("Sheet1"), sections `1 ASSETS - BS`, `1.1 LIQUID FUNDS` (nested under ASSETS), etc., and a numeric field per line item under the `Q1 2022` column.
-- Existing financial-statement templates (JMF prudential workbooks with `Cover!` / `Go to TOC`) still parse unchanged — new detector short-circuits only when the line-number pattern matches.
-- Empty trailing sheets remain skipped.
+- Re-import `quarter1-return.xlsx`. Expect:
+  - Section `1 ASSETS - BS`
+  - Fields inside show `1.1  LIQUID FUNDS  [value]`, `1.1.1  NOTES AND COINS - BS  [value]`, etc., in three visible columns matching the screenshot.
+- Non-return forms (no `lineCode`) render exactly as before — regression-free.
+- Existing imported returns without `lineCode` still render correctly (property is optional).
+- Formulas still resolve: `fieldName` scheme unchanged, `calculatedExpression` untouched.
 
 ## Files touched
 
-- `src/components/form-builder/FileImport.tsx` — add two functions, one call site, one defensive try/catch. No DB, RLS, edge functions, or other UI files change.
+- `src/types/formBuilder.ts` — add optional `lineCode`.
+- `src/components/form-builder/FileImport.tsx` — populate `lineCode`, stop prefixing `label`.
+- `src/components/form-renderer/FormRenderer.tsx` (and the small field-row component it uses) — render leading code column when present.
+- Form builder field-row component under `src/components/form-builder/` — show `lineCode` prefix in the admin canvas.
+
+No DB migrations, RLS changes, or edge function changes.

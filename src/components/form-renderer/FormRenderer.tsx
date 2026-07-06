@@ -787,9 +787,16 @@ export function FormRenderer({
     const isUploading = uploadingFields[field.fieldName];
 
     const fieldLabel = !isDisplayOnlyFieldType(field.type) && field.type !== 'checkbox' ? (
-      <Label className="text-sm">
-        {field.label}
-        {required && <span className="text-destructive ml-1">*</span>}
+      <Label className="text-sm flex items-baseline gap-2">
+        {field.lineCode && (
+          <span className="font-mono text-xs text-muted-foreground shrink-0 min-w-[3.5rem]">
+            {field.lineCode}
+          </span>
+        )}
+        <span>
+          {field.label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </span>
       </Label>
     ) : null;
 
