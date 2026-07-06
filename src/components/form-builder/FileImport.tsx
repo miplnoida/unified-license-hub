@@ -929,11 +929,12 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
       // fall through to generic detection below
     }
 
-
+    try {
 
     // ── Original parsing logic ──
     const headers = data[0].map(h => String(h).trim()).filter(Boolean);
     if (headers.length === 0) continue;
+
 
     const dataRows = data.slice(1).filter(row => row.some(cell => String(cell).trim()));
     const headersLower = headers.map(h => h.toLowerCase());
