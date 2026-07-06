@@ -1,30 +1,40 @@
-## What I found
-The workflow data exists and the Super Admin role mapping exists, but these workflow tables have **no Data API table grants** for `authenticated` or `service_role`:
 
-- `approval_workflows`
-- `approval_steps`
-- `approval_workflow_types`
-- `user_roles`
-- `profiles`
+## Problem
 
-That means the browser client can receive empty/blocked results even though the backend rows and RLS policies are present.
+1. **"Submission stopped because the latest draft could not be saved."** — The submit flow calls `handleSave()` first, which upserts into `return_form_data`. The DB check shows **no Data API GRANTs** exist on `return_form_data` (and other return tables), so the client gets `permission denied` and the save silently fails. Same root cause as the recent workflow-tables grants regression.
 
-## Fix plan
-1. **Add explicit Data API grants for workflow access tables**
-   - Grant `SELECT, INSERT, UPDATE, DELETE` to signed-in users on workflow tables that already have RLS policies.
-   - Grant `ALL` to backend service role for the same tables.
-   - Do not add anonymous access.
+2. **Balance Sheet & P&L stacked on one tab in the View page.** `ViewReturnPage` builds tabs from `f.tab_name` (`[...new Set(effectiveConfigForms.map(f => f.tab_name))]`). Both forms share the same `tab_name` (e.g. "General"), so they render inside one tab, stacked. `FillReturnPage` already uses one-tab-per-form correctly.
 
-2. **Keep existing RLS policies unchanged**
-   - Super Admin/internal access will still be controlled by the current role policies.
-   - This only restores table reachability through the app API.
+## Changes
 
-3. **Verify from the app path**
-   - Re-check that the workflow tables are reachable through the signed-in Super Admin context.
-   - Confirm `/workflows` shows the 8 existing records.
+### 1. Restore missing Data API grants on return tables (migration)
 
-4. **Republish after the migration**
-   - Publish the current build again so the BOJ domain gets both the latest frontend fix and backend permission fix.
+Grant `SELECT, INSERT, UPDATE, DELETE` to `authenticated` and `ALL` to `service_role` on every return/compliance table currently missing them:
 
-## Expected result
-Super Admin on the BOJ domain will see the existing approval workflows instead of `0` records.
+- `return_form_data`
+- `returns_filed`
+- `return_audit_log`
+- `return_requests`
+- `return_comments`
+- `return_calculated_ratios`
+- `return_threshold_breaches`
+- `return_validation_run_log`
+- `return_configs`, `return_configurations`, `return_config_forms`, `return_documents`, `return_due_dates`, `return_form_versions`, `return_notification_templates`, `return_notifications_log`, `return_templates`, `return_types`, `return_validation_rules`, `return_validation_rule_versions`, `return_consolidated_analysis`, `return_cutoff_config`
+- `compliance_returns`, `compliance_audit_logs`
+
+No RLS changes — existing policies stay authoritative.
+
+### 2. Split each form into its own tab on ViewReturnPage
+
+In `src/pages/entity/returns/ViewReturnPage.tsx`, key tabs by `form_id` (like `FillReturnPage`), so Balance Sheet and P&L each get their own tab labelled by form name. Preserve tab order via `display_order`.
+
+### 3. Surface real save errors
+
+In `FillReturnPage.handleSave`, include the underlying error message in the toast when a save fails (`Failed to save draft: <reason>`) so future permission/RLS issues are visible immediately instead of showing only the generic "submission stopped" message.
+
+## Verification
+
+- After migration, re-check `information_schema.role_table_grants` for the tables above.
+- Open a return, edit a field, click **Save Draft** → expect success toast.
+- Click **Submit** on a completed return → expect submission to proceed past the save step.
+- Open a submitted return in View mode → expect Balance Sheet and P&L on two separate tabs.

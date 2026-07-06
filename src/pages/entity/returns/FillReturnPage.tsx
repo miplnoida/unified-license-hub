@@ -328,7 +328,8 @@ export default function FillReturnPage() {
       return true;
     } catch (e: any) {
       console.error('[FillReturn] save failed', e);
-      toast.error(e?.message || 'Failed to save draft');
+      const reason = e?.message || e?.error_description || 'Unknown error';
+      toast.error(`Failed to save draft: ${reason}`);
       return false;
     } finally {
       setSaving(false);
