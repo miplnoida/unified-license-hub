@@ -143,8 +143,10 @@ function resolveDefaultRoleForSector(
 }
 
 export default function WorkflowList() {
-  const { activeRegulatorId } = useRegulator();
-  const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
+  const { activeRegulatorId, activeRegulator, regulators, isLoading: regulatorLoading, setActiveRegulator } = useRegulator();
+  const regulatorContextReady = !regulatorLoading && (!!activeRegulatorId || regulators.length === 0);
+  const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId, undefined, regulatorContextReady);
+  const { data: allWorkflowsForRecovery = [], isLoading: allWorkflowsLoading } = useWorkflows(null, undefined, regulatorContextReady && !!activeRegulatorId);
   const {
     data: workflowTypeConfigs = [],
     isLoading: typesLoading,
@@ -217,6 +219,32 @@ export default function WorkflowList() {
 
   // Templates dialog
   const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  useEffect(() => {
+    if (!regulatorContextReady || allWorkflowsLoading || isLoading) return;
+    if (!activeRegulatorId || workflows.length > 0 || allWorkflowsForRecovery.length === 0) return;
+
+    const counts = allWorkflowsForRecovery.reduce<Record<string, number>>((acc, workflow) => {
+      if (!workflow.regulator_id) return acc;
+      acc[workflow.regulator_id] = (acc[workflow.regulator_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const bestRegulatorId = Object.entries(counts)
+      .filter(([id]) => id !== activeRegulatorId && regulators.some(regulator => regulator.id === id))
+      .sort(([, a], [, b]) => b - a)[0]?.[0];
+
+    if (bestRegulatorId) setActiveRegulator(bestRegulatorId);
+  }, [
+    activeRegulatorId,
+    allWorkflowsForRecovery,
+    allWorkflowsLoading,
+    isLoading,
+    regulatorContextReady,
+    regulators,
+    setActiveRegulator,
+    workflows.length,
+  ]);
 
   // Default the create form's Used For to the first visible type as soon as config loads.
   useEffect(() => {
@@ -804,12 +832,12 @@ export default function WorkflowList() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {isLoading ? (
+                {regulatorLoading || isLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
                 ) : workflows.length === 0 ? (
                   <div className="text-center py-8">
                     <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
-                    <p className="text-sm text-muted-foreground">No workflows yet</p>
+                    <p className="text-sm text-muted-foreground">No workflows for {activeRegulator?.name || 'the selected regulator'}</p>
                     <Button variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
                       <Plus className="h-3.5 w-3.5 mr-1" /> Create First Workflow
                     </Button>
