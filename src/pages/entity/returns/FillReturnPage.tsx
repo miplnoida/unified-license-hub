@@ -225,6 +225,7 @@ export default function FillReturnPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [completedForms, setCompletedForms] = useState<Set<string>>(new Set());
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
 
@@ -244,15 +245,39 @@ export default function FillReturnPage() {
     }
   }, [savedFormData]);
 
-  // Set initial tab
-  const tabs = useMemo(() => {
-    const t = [...new Set(effectiveConfigForms.map((f: any) => f.tab_name || 'General'))];
-    return t;
+  // One tab per linked form (ordered by display_order, then name).
+  const orderedForms = useMemo(() => {
+    return [...effectiveConfigForms].sort((a: any, b: any) => {
+      const oa = a.display_order ?? 0;
+      const ob = b.display_order ?? 0;
+      if (oa !== ob) return oa - ob;
+      return (a.form_templates?.name || '').localeCompare(b.form_templates?.name || '');
+    });
   }, [effectiveConfigForms]);
+
+  const tabs = useMemo(() => orderedForms.map((f: any) => f.form_id as string), [orderedForms]);
 
   useEffect(() => {
     if (tabs.length > 0 && !activeTab) setActiveTab(tabs[0]);
   }, [tabs, activeTab]);
+
+  const formStatuses = useMemo(() => {
+    const m: Record<string, ReturnFormStatus> = {};
+    for (const f of orderedForms) m[f.form_id] = getReturnFormStatus(f.form_id, allData, completedForms);
+    return m;
+  }, [orderedForms, allData, completedForms]);
+
+  const completedCount = orderedForms.filter((f: any) => formStatuses[f.form_id] === 'completed').length;
+  const allComplete = orderedForms.length > 0 && completedCount === orderedForms.length;
+
+  const toggleCompleted = useCallback((formId: string, done: boolean) => {
+    setCompletedForms(prev => {
+      const next = new Set(prev);
+      if (done) next.add(formId); else next.delete(formId);
+      return next;
+    });
+  }, []);
+
 
   // Auto-save every 60 seconds
   useEffect(() => {
