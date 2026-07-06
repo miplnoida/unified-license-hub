@@ -1172,10 +1172,15 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
       });
       allCrossSheetRefs.push(...sheetCrossRefs);
     }
+
+    } catch (fallbackErr) {
+      console.warn(`[FileImport] Skipping sheet "${sheetName}" (fallback parse failed):`, fallbackErr);
+    }
   }
 
   return { fileName: file.name, sheets, allCrossSheetRefs };
 }
+
 
 // ─── Checkbox Detection Helpers ───
 
