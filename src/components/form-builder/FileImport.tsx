@@ -882,26 +882,54 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
     const data: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     if (data.length === 0) continue;
 
-    // ── Try financial statement layout first ──
-    const financialLayout = detectFinancialLayout(sheet, data, XLSX);
-    if (financialLayout) {
-      const { sections, crossSheetRefs: sheetCrossRefs } = parseFinancialSheet(
-        sheetName, data, financialLayout, sheet, XLSX
-      );
-      const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
-      if (fieldCount > 0) {
-        sheets.push({
-          sheetName,
-          formName: `${sheetName} - ${financialLayout.formTitle}`,
-          sections,
-          fieldCount,
-          selected: true,
-          crossSheetRefs: sheetCrossRefs,
-        });
-        allCrossSheetRefs.push(...sheetCrossRefs);
+    try {
+      // ── Try line-item return layout first (line no. / label / value) ──
+      const lineItemLayout = detectLineItemReturnLayout(sheet, data);
+      if (lineItemLayout) {
+        const { sections, crossSheetRefs: sheetCrossRefs, formTitle } = parseLineItemReturnSheet(
+          sheetName, data, lineItemLayout, sheet, XLSX
+        );
+        const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+        if (fieldCount > 0) {
+          sheets.push({
+            sheetName,
+            formName: formTitle ? `${sheetName} - ${formTitle}` : sheetName,
+            sections,
+            fieldCount,
+            selected: true,
+            crossSheetRefs: sheetCrossRefs,
+          });
+          allCrossSheetRefs.push(...sheetCrossRefs);
+        }
+        continue;
       }
-      continue;
+
+      // ── Try financial statement layout ──
+      const financialLayout = detectFinancialLayout(sheet, data, XLSX);
+      if (financialLayout) {
+        const { sections, crossSheetRefs: sheetCrossRefs } = parseFinancialSheet(
+          sheetName, data, financialLayout, sheet, XLSX
+        );
+        const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+        if (fieldCount > 0) {
+          sheets.push({
+            sheetName,
+            formName: `${sheetName} - ${financialLayout.formTitle}`,
+            sections,
+            fieldCount,
+            selected: true,
+            crossSheetRefs: sheetCrossRefs,
+          });
+          allCrossSheetRefs.push(...sheetCrossRefs);
+        }
+        continue;
+      }
+    } catch (sheetErr) {
+      console.warn(`[FileImport] Skipping sheet "${sheetName}" (structured parse failed):`, sheetErr);
+      // fall through to generic detection below
     }
+
+
 
     // ── Original parsing logic ──
     const headers = data[0].map(h => String(h).trim()).filter(Boolean);
