@@ -4696,6 +4696,7 @@ export type Database = {
           help_text: string | null
           id: string
           label: string
+          line_code: string | null
           options: Json | null
           placeholder: string | null
           required: boolean
@@ -4719,6 +4720,7 @@ export type Database = {
           help_text?: string | null
           id?: string
           label: string
+          line_code?: string | null
           options?: Json | null
           placeholder?: string | null
           required?: boolean
@@ -4742,6 +4744,7 @@ export type Database = {
           help_text?: string | null
           id?: string
           label?: string
+          line_code?: string | null
           options?: Json | null
           placeholder?: string | null
           required?: boolean

@@ -1,60 +1,60 @@
-# Split line number and label into separate columns on import
+# Show the line-number column everywhere in the import + form flow
 
-## Why this is happening
+## Why the numbers still don't show
 
-In `src/components/form-builder/FileImport.tsx` → `parseLineItemReturnSheet` (around lines 825, 835–837), every generated field's `label` is built by concatenating the line number and the label from column B:
+The previous change added `lineCode` to `FormField` and rendered it in `SectionManager` and `FormRenderer`, but three code paths still ignore it, so the number column keeps disappearing:
 
-```ts
-openSection(`${lineNum} ${label}`);
-// ...
-const fieldLabel = layout.columnHeaders.length === 1
-  ? `${lineNum} ${label}`
-  : `${lineNum} ${label} — ${layout.columnHeaders[ci]}`;
-```
-
-The `FormField` model (`src/types/formBuilder.ts`) has only a single `label` string, so both pieces get flattened into one column when the form is rendered. Nothing preserves column A separately, which is why the imported form shows `"1.1 LIQUID FUNDS"` in one cell instead of `1.1 | LIQUID FUNDS | value` like your Excel screenshot.
+1. **`FileImport.tsx` → `EditableFieldRow`** (the Preview step of the import dialog, ~lines 1574–1598) shows only `field.label`. When users open the "Preview & Edit" step before committing the import, they see just the labels — no line numbers.
+2. **`FormBuilder.tsx` → `FieldPreview`** (preview dialog, ~lines 45–51) shows only `field.label`.
+3. **DB round-trip loses `lineCode`.** `form_fields` has no `line_code` column, `sectionsToFieldRows` in `useFormTemplates.ts` doesn't write it, and `fieldRowsToSections` doesn't read it. `handleMultiSheetImport` currently writes only `form_versions.schema_snapshot`, which keeps `lineCode` — but the moment the user hits **Save Form** in the builder, `useSaveFormTemplate` normalizes into `form_fields` and drops `lineCode`. On next load, `useVersionSections` prefers the snapshot when present, but any admin who re-saves without a schema snapshot loses it permanently.
 
 ## Fix
 
-Keep the line number as a distinct piece of data and render it as its own column in front of the label — no schema/DB changes, purely presentational.
+### 1. Persist `line_code` in the database
+- Migration `supabase/migrations/<ts>_add_form_fields_line_code.sql`:
+  - `ALTER TABLE public.form_fields ADD COLUMN IF NOT EXISTS line_code text;`
+  - No RLS/grant changes (existing policies cover new columns).
+- Regenerate types is handled automatically; if `src/integrations/supabase/types.ts` needs a manual bump, we won't touch it — code accesses `line_code` via `as any` where necessary (matches existing patterns for other loose columns in this file).
 
-### 1. `src/types/formBuilder.ts`
-Add one optional field:
-```ts
-// Optional hierarchical code shown as a leading column (e.g. "1.1.2.1" for
-// prudential return line items). Imported from Excel column A.
-lineCode?: string;
-```
+### 2. `src/hooks/useFormTemplates.ts`
+- Add `line_code: string | null` to `FormFieldRow`.
+- `sectionsToFieldRows`: include `line_code: f.lineCode || null`.
+- `fieldRowsToSections`: set `lineCode: row.line_code || undefined` on the built `FormField`.
 
-### 2. `src/components/form-builder/FileImport.tsx` (`parseLineItemReturnSheet`)
-- Set `lineCode: lineNum` on every generated field.
-- Change `label` to the pure column-B text (no `${lineNum}` prefix). For multi-column returns keep the period suffix, e.g. `` `${label} — ${columnHeaders[ci]}` ``.
-- Section titles: keep `${lineNum} ${label}` (sections are single headings, so combined is fine and helps navigation), OR alternatively store the section's own `lineCode` on the first child — sections stay as today to avoid touching `FormSection`.
-- `fieldName` generation stays identical (`line_{dotted}_col_{n}`) so existing form-field dependencies and formula resolution keep working.
+### 3. `src/components/form-builder/FileImport.tsx`
+- Update `EditableFieldRow`: render a small monospaced `lineCode` chip before the label input:
+  ```tsx
+  {field.lineCode && (
+    <span className="font-mono text-[10px] text-muted-foreground shrink-0 min-w-[3.5rem] text-right">
+      {field.lineCode}
+    </span>
+  )}
+  ```
+  Position it right after the drag handle, before the label input. No editing UI for `lineCode` yet — it's read-only in preview.
 
-### 3. Renderer: show `lineCode` as a leading column
-In the form renderer used for filled-in returns (`src/components/form-renderer/FormRenderer.tsx` and the field row component it uses), when a field has `lineCode`:
-- Render a small monospaced left-aligned cell with the code, then the label, then the input — mirroring the Excel layout in the screenshot.
-- When `lineCode` is absent, render the current layout unchanged so all other forms are untouched.
-- Read-only preview (`FormTemplateView`) uses the same renderer, so it benefits automatically.
+### 4. `src/pages/admin/FormBuilder.tsx`
+- `FieldPreview` (~line 45): prepend the same `lineCode` chip to the label so the builder's Preview dialog matches the runtime renderer.
 
-### 4. Form builder canvas (admin edit view)
-Where the builder lists fields inside a section, prefix the field row with `lineCode` (dim/monospace) when present, so admins editing an imported return see the same 3-column shape. No editing UI added for `lineCode` in this pass — it's populated only by the importer.
+### 5. No changes needed
+- `SectionManager` and `FormRenderer` already render `lineCode` — those were done in the previous turn.
+- `FileImport.tsx` parser already populates `lineCode` on every field.
+- `migrateSectionsToRows` already preserves unknown FormField props via object spread.
 
 ## Verification
 
-- Re-import `quarter1-return.xlsx`. Expect:
-  - Section `1 ASSETS - BS`
-  - Fields inside show `1.1  LIQUID FUNDS  [value]`, `1.1.1  NOTES AND COINS - BS  [value]`, etc., in three visible columns matching the screenshot.
-- Non-return forms (no `lineCode`) render exactly as before — regression-free.
-- Existing imported returns without `lineCode` still render correctly (property is optional).
-- Formulas still resolve: `fieldName` scheme unchanged, `calculatedExpression` untouched.
+- Re-import `quarter1-return.xlsx`:
+  - Preview & Edit step shows `1.1  LIQUID FUNDS  …`, `1.1.1  NOTES AND COINS - BS  …` etc. with the number in a distinct leading column.
+  - After confirming the import, the form list edit view (SectionManager) shows numbers next to each field.
+  - The Preview dialog in the builder shows numbers next to each field.
+  - Filling the form via `FormRenderer` (licensee portal, admin view-only) shows numbers.
+- Save the form once and reload: numbers still show (because `line_code` now round-trips through `form_fields`).
+- Non-return forms (no `lineCode`) render exactly as before.
 
 ## Files touched
 
-- `src/types/formBuilder.ts` — add optional `lineCode`.
-- `src/components/form-builder/FileImport.tsx` — populate `lineCode`, stop prefixing `label`.
-- `src/components/form-renderer/FormRenderer.tsx` (and the small field-row component it uses) — render leading code column when present.
-- Form builder field-row component under `src/components/form-builder/` — show `lineCode` prefix in the admin canvas.
+- `supabase/migrations/<timestamp>_add_form_fields_line_code.sql` — one-line ALTER.
+- `src/hooks/useFormTemplates.ts` — 3 small edits (row interface + two mappers).
+- `src/components/form-builder/FileImport.tsx` — 4-line JSX addition in `EditableFieldRow`.
+- `src/pages/admin/FormBuilder.tsx` — 4-line JSX addition in `FieldPreview`.
 
-No DB migrations, RLS changes, or edge function changes.
+No RLS, edge function, or renderer changes beyond what's above.
