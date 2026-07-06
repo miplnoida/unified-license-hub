@@ -79,7 +79,9 @@ describe("platform/http/invokeFn", () => {
     });
     const res = await invokeFn("fn", {});
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.code).toBe("VALIDATION_ERROR");
+    if (!res.ok) {
+      expect(res.error.code).toBe("VALIDATION_ERROR");
+    }
   });
 
   it("wraps transport errors as RemoteServiceError", async () => {
@@ -89,7 +91,9 @@ describe("platform/http/invokeFn", () => {
     });
     const res = await invokeFn("fn");
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.code).toBe("REMOTE_SERVICE_ERROR");
+    if (!res.ok) {
+      expect(res.error.code).toBe("REMOTE_SERVICE_ERROR");
+    }
   });
 
   it("propagates the caller-supplied correlation id", async () => {
