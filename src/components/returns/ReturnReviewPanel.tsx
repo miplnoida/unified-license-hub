@@ -140,7 +140,14 @@ export function ReturnReviewPanel({
 
         {/* Per-form filled values rendered as read-only forms */}
         <div className="space-y-4">
-          <div className="text-sm font-semibold">Submitted Form Data</div>
+          <div className="text-sm font-semibold">
+            Submitted Form Data
+            {forms.length > 0 && (
+              <span className="text-muted-foreground font-normal ml-2">
+                ({forms.length} form{forms.length === 1 ? '' : 's'})
+              </span>
+            )}
+          </div>
           {forms.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">No forms to review.</p>
           ) : (
@@ -150,7 +157,9 @@ export function ReturnReviewPanel({
                 formId={f.formId}
                 name={f.name}
                 tabName={f.tabName}
+                status={f.status}
                 data={allData[f.formId] || {}}
+                onJumpToForm={onJumpToForm}
               />
             ))
           )}
@@ -163,6 +172,7 @@ export function ReturnReviewPanel({
               id="ack-return"
               checked={acknowledged}
               onCheckedChange={(v) => setAcknowledged(v === true)}
+              disabled={disabled}
             />
             <Label htmlFor="ack-return" className="text-sm leading-relaxed cursor-pointer">
               I confirm that the data submitted in this return is accurate and complete to the best
@@ -172,13 +182,14 @@ export function ReturnReviewPanel({
           <div className="mt-3 flex justify-end">
             <Button
               onClick={onAcknowledge}
-              disabled={!acknowledged || loading}
+              disabled={!acknowledged || loading || disabled}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
               Acknowledge & Submit
             </Button>
           </div>
         </div>
+
       </CardContent>
     </Card>
   );
