@@ -3,8 +3,11 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getReturnFormStatus, statusLabel, type ReturnFormStatus } from '@/lib/returnsFormProgress';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useReturnById, useReturnConfigForms, useReturnFormData,
