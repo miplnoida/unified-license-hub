@@ -201,14 +201,17 @@ export default function ViewReturnPage() {
     if ((d as any).form_version_id) versionByForm[d.form_id] = (d as any).form_version_id;
   });
 
-  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
+  // One tab per form (Balance Sheet, P&L, etc.), ordered by display_order.
+  const orderedForms = [...effectiveConfigForms].sort(
+    (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0),
+  );
+  const tabs = orderedForms.map((f: any) => f.form_id as string);
 
   useEffect(() => {
     if (tabs.length === 0) {
       if (activeTab) setActiveTab('');
       return;
     }
-
     if (!activeTab || !tabs.includes(activeTab)) {
       setActiveTab(tabs[0]);
     }
