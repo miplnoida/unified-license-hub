@@ -1,38 +1,30 @@
 ## What I found
-The backend contains active workflows, including:
+The workflow data exists and the Super Admin role mapping exists, but these workflow tables have **no Data API table grants** for `authenticated` or `service_role`:
 
-- Pre License Approval Workflow
-- Post Application Workflow
-- Building Society Pre License Workflow
-- Complaint Management Workflow
-- Registration Workflow
-- Return Workflow
+- `approval_workflows`
+- `approval_steps`
+- `approval_workflow_types`
+- `user_roles`
+- `profiles`
 
-They are all under regulator id `8dd8ac87-...` / **Regulator 1**.
-
-The custom domain is likely selecting a different active regulator from browser storage/default ordering. The regulator context currently auto-selects the first active regulator alphabetically when none is stored. In this database, that is **ABC Prudential Authority**, which has no approval workflows, so the page correctly renders but shows `0`.
+That means the browser client can receive empty/blocked results even though the backend rows and RLS policies are present.
 
 ## Fix plan
-1. **Make regulator context self-healing**
-   - If the stored regulator id is missing, invalid, or no longer in the active regulator list, replace it with a valid regulator instead of continuing with a stale value.
-   - This prevents custom domains from silently querying an empty regulator scope.
+1. **Add explicit Data API grants for workflow access tables**
+   - Grant `SELECT, INSERT, UPDATE, DELETE` to signed-in users on workflow tables that already have RLS policies.
+   - Grant `ALL` to backend service role for the same tables.
+   - Do not add anonymous access.
 
-2. **Prefer the BOJ/default regulator consistently**
-   - Update default regulator selection so the BOJ domain does not accidentally pick the alphabetically first demo/test regulator.
-   - Prefer a configured/current regulator when available; otherwise fall back safely.
+2. **Keep existing RLS policies unchanged**
+   - Super Admin/internal access will still be controlled by the current role policies.
+   - This only restores table reachability through the app API.
 
-3. **Improve the workflows page empty state**
-   - Show which regulator context is currently being used when no workflows are returned.
-   - This avoids the misleading “No workflows yet” message when workflows exist under another regulator.
+3. **Verify from the app path**
+   - Re-check that the workflow tables are reachable through the signed-in Super Admin context.
+   - Confirm `/workflows` shows the 8 existing records.
 
-4. **Make the workflow query wait for valid regulator context**
-   - Avoid firing the workflows query before the active regulator has been validated.
-   - This prevents a temporary or stale `activeRegulatorId` from caching an empty result.
-
-5. **Verify after implementation**
-   - Confirm the workflows page queries the regulator that actually owns the workflows.
-   - Confirm the list shows the existing active workflows instead of `0`.
-   - Republish again after the code fix so the custom domain receives it.
+4. **Republish after the migration**
+   - Publish the current build again so the BOJ domain gets both the latest frontend fix and backend permission fix.
 
 ## Expected result
-The BOJ domain `/workflows` page will show the existing active approval workflows instead of the empty panel.
+Super Admin on the BOJ domain will see the existing approval workflows instead of `0` records.
