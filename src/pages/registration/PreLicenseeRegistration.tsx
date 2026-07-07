@@ -502,16 +502,30 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
-    if (!form.sectorId) errs.sectorId = 'Sector is required';
-    if (!form.subSectorId) errs.subSectorId = 'Sub-sector is required';
-    if (!form.categoryId) errs.categoryId = 'Category is required';
+    // Accept either the hardcoded form state (legacy configs) or the dynamic
+    // schema values (new backend-configured forms where sector/sub_sector/
+    // category are dynamic fields).
+    const dynSector = String(dynamicFormData.sector || '');
+    const dynSubSector = String(dynamicFormData.sub_sector || '');
+    const dynCategory = String(dynamicFormData.category || '');
+    // If the dynamic schema owns sector selection, don't block "Next" on
+    // earlier steps — validateDynamicStep will enforce required-ness on the
+    // Sector step itself.
+    const dynamicOwnsSector = (config?.formSchema || []).some(st =>
+      st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))
+    );
+    if (dynamicOwnsSector) return true;
+    if (!form.sectorId && !dynSector) errs.sectorId = 'Sector is required';
+    if (!form.subSectorId && !dynSubSector) errs.subSectorId = 'Sub-sector is required';
+    if (!form.categoryId && !dynCategory) errs.categoryId = 'Category is required';
     if (Object.keys(errs).length > 0) {
       setDynamicErrors(prev => ({ ...prev, ...errs }));
       toast.error('Please select sector, sub-sector and category to continue.');
       return false;
     }
     return true;
-  }, [form.sectorId, form.subSectorId, form.categoryId]);
+  }, [form.sectorId, form.subSectorId, form.categoryId, dynamicFormData, config?.formSchema]);
+
 
   const emailUniqueness = emailUniquenessPreview;
 
@@ -912,6 +926,32 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         return;
       }
 
+      // Derive addresses from dynamic form data when the schema owns them
+      // (backend-configured form). Falls back to hardcoded form state for
+      // legacy configs.
+      const d = latestDynamicFormData as Record<string, unknown>;
+      const dynamicMailing = {
+        street: String(d.mailing_street || ''),
+        city: String(d.mailing_city || ''),
+        state: String(d.mailing_state || ''),
+        country: String(d.mailing_country || ''),
+        postCode: String(d.mailing_postcode || ''),
+      };
+      const dynamicPhysical = {
+        street: String(d.physical_street || ''),
+        city: String(d.physical_city || ''),
+        state: String(d.physical_state || ''),
+        country: String(d.physical_country || ''),
+        postCode: String(d.physical_postcode || ''),
+      };
+      const dynSameAsMailing = d.same_as_mailing === true || d.same_as_mailing === 'true';
+      const hasDynamicMailing = !!(dynamicMailing.street || dynamicMailing.city || dynamicMailing.country);
+      const effectiveMailing = hasDynamicMailing ? dynamicMailing : form.mailingAddress;
+      const effectiveSameAsMailing = hasDynamicMailing ? dynSameAsMailing : form.sameAsMailing;
+      const effectivePhysical = effectiveSameAsMailing
+        ? effectiveMailing
+        : (hasDynamicMailing ? dynamicPhysical : form.physicalAddress);
+
       const { data, error } = await supabase.functions.invoke('register-pre-licensee', {
         body: {
           email: emailVal,
@@ -923,9 +963,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           sector_id: form.sectorId || String(latestDynamicFormData.sector || ''),
           sub_sector_id: form.subSectorId || String(latestDynamicFormData.sub_sector || ''),
           category_id: form.categoryId || String(latestDynamicFormData.category || ''),
-          mailing_address: form.mailingAddress,
-          physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
-          same_as_mailing: form.sameAsMailing,
+          mailing_address: effectiveMailing,
+          physical_address: effectivePhysical,
+          same_as_mailing: effectiveSameAsMailing,
           telephone: form.telephone || String(latestDynamicFormData.telephone || ''),
           username: form.username || String(latestDynamicFormData.username || '') || null,
           registration_number: form.registrationNumber || String(latestDynamicFormData.registration_number || '') || null,
@@ -934,6 +974,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           terms_accepted: true, // validated before reaching submit
         },
       });
+
 
       if (error) {
         const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
@@ -1263,8 +1304,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 pb-8">
-        {/* Licensee Type Scope — only on first step, when not already rendered by EntityDetailsStep */}
-        {currentStep === 0 && !steps.some(s => s.type === 'static' && s.id === 'entity') && (
+        {/* Licensee Type Scope — only on first step, when not already rendered by
+            EntityDetailsStep AND the dynamic schema does not itself supply
+            sector fields (avoids duplicating sector selection). */}
+        {currentStep === 0
+          && !steps.some(s => s.type === 'static' && s.id === 'entity')
+          && !(config?.formSchema || []).some(st => st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))) && (
           <div className="mb-6">
             <SectorSelectionSection
               sectorId={form.sectorId}
@@ -1281,6 +1326,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             />
           </div>
         )}
+
 
         <div className="transition-all duration-300 ease-in-out">
           {renderStep()}
