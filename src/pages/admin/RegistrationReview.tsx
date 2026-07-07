@@ -1,16 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2, Eye, Search } from 'lucide-react';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
+
+const formatStatusLabel = (s: string) =>
+  s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 
 interface PendingRegistration {
   id: string;
