@@ -304,7 +304,7 @@ export default function RegistrationReviewDetail() {
                     const resolved = resolveReviewValue(field, rawValue);
                     content = renderScalar(resolved);
                   } else {
-                    content = renderScalar(rawValue);
+                    content = renderScalar(fallbackResolve(key, rawValue));
                   }
                   return <Row key={key} label={label}>{content}</Row>;
                 })}
