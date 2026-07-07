@@ -502,16 +502,30 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
-    if (!form.sectorId) errs.sectorId = 'Sector is required';
-    if (!form.subSectorId) errs.subSectorId = 'Sub-sector is required';
-    if (!form.categoryId) errs.categoryId = 'Category is required';
+    // Accept either the hardcoded form state (legacy configs) or the dynamic
+    // schema values (new backend-configured forms where sector/sub_sector/
+    // category are dynamic fields).
+    const dynSector = String(dynamicFormData.sector || '');
+    const dynSubSector = String(dynamicFormData.sub_sector || '');
+    const dynCategory = String(dynamicFormData.category || '');
+    // If the dynamic schema owns sector selection, don't block "Next" on
+    // earlier steps — validateDynamicStep will enforce required-ness on the
+    // Sector step itself.
+    const dynamicOwnsSector = (config?.formSchema || []).some(st =>
+      st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))
+    );
+    if (dynamicOwnsSector) return true;
+    if (!form.sectorId && !dynSector) errs.sectorId = 'Sector is required';
+    if (!form.subSectorId && !dynSubSector) errs.subSectorId = 'Sub-sector is required';
+    if (!form.categoryId && !dynCategory) errs.categoryId = 'Category is required';
     if (Object.keys(errs).length > 0) {
       setDynamicErrors(prev => ({ ...prev, ...errs }));
       toast.error('Please select sector, sub-sector and category to continue.');
       return false;
     }
     return true;
-  }, [form.sectorId, form.subSectorId, form.categoryId]);
+  }, [form.sectorId, form.subSectorId, form.categoryId, dynamicFormData, config?.formSchema]);
+
 
   const emailUniqueness = emailUniquenessPreview;
 
