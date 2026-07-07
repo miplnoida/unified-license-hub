@@ -52,6 +52,41 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
 
+  // Wire the "Same as Mailing Address" checkbox: when true, hide physical_*
+  // fields and mirror the mailing_* values into their physical_* counterparts.
+  const hasSameAsMailingField = useMemo(
+    () => allFields.some(f => f.fieldName === 'same_as_mailing'),
+    [allFields],
+  );
+  const sameAsMailing = data.same_as_mailing === true || data.same_as_mailing === 'true';
+
+  // On toggle → true, copy each mailing_<suffix> value into its physical_<suffix>
+  // sibling so downstream state (submission, review) reflects the choice.
+  const previousSameAsMailing = useRef<boolean>(sameAsMailing);
+  useEffect(() => {
+    if (!hasSameAsMailingField) return;
+    if (sameAsMailing && !previousSameAsMailing.current) {
+      const physicalNames = allFields
+        .map(f => f.fieldName)
+        .filter(n => n && n.startsWith('physical_')) as string[];
+      for (const physName of physicalNames) {
+        const suffix = physName.slice('physical_'.length);
+        const mailingName = `mailing_${suffix}`;
+        const mailingVal = data[mailingName];
+        if (mailingVal !== undefined && mailingVal !== null && mailingVal !== '') {
+          if (data[physName] !== mailingVal) onChange(physName, mailingVal);
+        }
+      }
+    }
+    previousSameAsMailing.current = sameAsMailing;
+    // Intentionally exclude `data` from deps to avoid a copy loop; we only
+    // want to act on the false→true edge of the checkbox.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sameAsMailing, hasSameAsMailingField]);
+
+  const shouldSkipField = (field: RegField | null | undefined) =>
+    !!(field && sameAsMailing && field.fieldName && field.fieldName.startsWith('physical_'));
+
   // Compute initial entry count for repeatable steps based on already-saved data.
   // Any saved key matching `<baseFieldName>__<n>` raises the count to n+1.
   const initialEntryCount = useMemo(() => {
@@ -70,11 +105,13 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
 
   const [entryCount, setEntryCount] = useState<number>(initialEntryCount);
 
+
   const renderRows = (entryIndex: number) => (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-12">
       {step.rows.flatMap(row =>
         row.columns.map((col, colIdx) => {
           const baseField = col.field;
+          if (shouldSkipField(baseField)) return null;
           const effectiveName = baseField
             ? (entryIndex === 0 ? baseField.fieldName : `${baseField.fieldName}__${entryIndex}`)
             : '';
@@ -109,6 +146,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
       )}
     </div>
   );
+
 
   return (
     <Card>
@@ -160,37 +198,42 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
             )}
           </div>
         ) : (
-          step.rows.map(row => (
-            <div
-              key={row.id}
-              className="grid gap-4 grid-cols-1 md:grid-cols-12"
-            >
-              {row.columns.map((col, colIdx) => (
-                <div
-                  key={colIdx}
-                  className="col-span-1"
-                  style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
-                >
-                  {col.field ? (
-                    <InteractiveField
-                      field={col.field}
-                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                      error={errors[col.field.fieldName]}
-                      onChange={onChange}
-                      onBlur={onBlur}
-                      readOnly={readOnly}
-                      allData={data}
-                      allFields={allFields}
-                      uploadCtx={uploadCtx}
-                    />
-                  ) : (
-                    <div className="h-10" />
-                  )}
-                </div>
-              ))}
-            </div>
-          ))
+          step.rows.map(row => {
+            const visibleColumns = row.columns.filter(col => !shouldSkipField(col.field));
+            if (visibleColumns.length === 0) return null;
+            return (
+              <div
+                key={row.id}
+                className="grid gap-4 grid-cols-1 md:grid-cols-12"
+              >
+                {visibleColumns.map((col, colIdx) => (
+                  <div
+                    key={colIdx}
+                    className="col-span-1"
+                    style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
+                  >
+                    {col.field ? (
+                      <InteractiveField
+                        field={col.field}
+                        value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                        error={errors[col.field.fieldName]}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        readOnly={readOnly}
+                        allData={data}
+                        allFields={allFields}
+                        uploadCtx={uploadCtx}
+                      />
+                    ) : (
+                      <div className="h-10" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })
         )}
+
 
         {step.rows.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">No fields in this step.</p>

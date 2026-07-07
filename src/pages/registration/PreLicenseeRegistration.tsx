@@ -357,12 +357,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       }
     }
 
+    const sameAsMailing = dynamicFormData.same_as_mailing === true || dynamicFormData.same_as_mailing === 'true';
+
     const validateOneEntry = (entryIndex: number) => {
       for (const row of stepData.rows) {
         for (const col of row.columns) {
           const field = col.field;
           if (!field) continue;
           if (isDisplayOnlyField(field)) continue;
+          // Skip physical address fields entirely when "Same as Mailing Address" is checked.
+          if (sameAsMailing && field.fieldName && field.fieldName.startsWith('physical_')) continue;
           const effectiveName = entryIndex === 0
             ? field.fieldName
             : `${field.fieldName}__${entryIndex}`;
@@ -372,6 +376,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             errs[effectiveName] = `${field.label} is required`;
             continue;
           }
+
           if (val && typeof val !== 'object' && field.validation) {
             const v = field.validation;
             const strVal = String(val);
