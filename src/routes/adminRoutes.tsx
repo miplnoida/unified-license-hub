@@ -30,6 +30,7 @@ const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFor
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
+const RegistrationReviewDetail = lazy(() => import('@/pages/admin/RegistrationReviewDetail'));
 const LicenseActionFormsPage = lazy(() => import('@/pages/admin/LicenseActionFormsPage'));
 const RfiAutoRules = lazy(() => import('@/pages/admin/RfiAutoRules'));
 const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPlanTemplates'));
