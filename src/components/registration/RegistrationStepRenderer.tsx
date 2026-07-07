@@ -198,37 +198,42 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
             )}
           </div>
         ) : (
-          step.rows.map(row => (
-            <div
-              key={row.id}
-              className="grid gap-4 grid-cols-1 md:grid-cols-12"
-            >
-              {row.columns.map((col, colIdx) => (
-                <div
-                  key={colIdx}
-                  className="col-span-1"
-                  style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
-                >
-                  {col.field ? (
-                    <InteractiveField
-                      field={col.field}
-                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                      error={errors[col.field.fieldName]}
-                      onChange={onChange}
-                      onBlur={onBlur}
-                      readOnly={readOnly}
-                      allData={data}
-                      allFields={allFields}
-                      uploadCtx={uploadCtx}
-                    />
-                  ) : (
-                    <div className="h-10" />
-                  )}
-                </div>
-              ))}
-            </div>
-          ))
+          step.rows.map(row => {
+            const visibleColumns = row.columns.filter(col => !shouldSkipField(col.field));
+            if (visibleColumns.length === 0) return null;
+            return (
+              <div
+                key={row.id}
+                className="grid gap-4 grid-cols-1 md:grid-cols-12"
+              >
+                {visibleColumns.map((col, colIdx) => (
+                  <div
+                    key={colIdx}
+                    className="col-span-1"
+                    style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
+                  >
+                    {col.field ? (
+                      <InteractiveField
+                        field={col.field}
+                        value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                        error={errors[col.field.fieldName]}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        readOnly={readOnly}
+                        allData={data}
+                        allFields={allFields}
+                        uploadCtx={uploadCtx}
+                      />
+                    ) : (
+                      <div className="h-10" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })
         )}
+
 
         {step.rows.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">No fields in this step.</p>
