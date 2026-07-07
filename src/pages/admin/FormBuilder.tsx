@@ -421,6 +421,11 @@ export default function FormBuilder() {
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
+    if (formType === 'returns') {
+      if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
+      if (!selectedSubSector) { toast.error('Sub-Sector is required for returns forms.'); return; }
+      if (!selectedCategory) { toast.error('Category is required for returns forms.'); return; }
+    }
     setIsSaving(true);
     try {
       const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
