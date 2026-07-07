@@ -710,7 +710,7 @@ export default function FormBuilder() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {formType !== 'internal' && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Sector</Label>
+                  <Label className="text-xs">Sector{formType === 'returns' && <span className="text-destructive"> *</span>}</Label>
                   <Select value={selectedSector} onValueChange={handleSectorChange} disabled={isViewMode}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Select sector" /></SelectTrigger>
                     <SelectContent>
