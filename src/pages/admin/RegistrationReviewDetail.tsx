@@ -153,6 +153,22 @@ export default function RegistrationReviewDetail() {
     return map;
   }, [schemaFields]);
 
+  const { data: countriesList = [] } = useQuery({
+    queryKey: ['countries-review-detail'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('countries' as never)
+        .select('id,name');
+      if (error) throw error;
+      return (data || []) as unknown as { id: string; name: string }[];
+    },
+  });
+  const countriesMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    (countriesList as any[]).forEach(c => { m[String(c.id)] = c.name; });
+    return m;
+  }, [countriesList]);
+
   const documents = useMemo(() => {
     const d = reg?.documents_metadata;
     if (!d) return [];
