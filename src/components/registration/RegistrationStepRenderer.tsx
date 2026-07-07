@@ -293,7 +293,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
