@@ -52,6 +52,41 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
 
+  // Wire the "Same as Mailing Address" checkbox: when true, hide physical_*
+  // fields and mirror the mailing_* values into their physical_* counterparts.
+  const hasSameAsMailingField = useMemo(
+    () => allFields.some(f => f.fieldName === 'same_as_mailing'),
+    [allFields],
+  );
+  const sameAsMailing = data.same_as_mailing === true || data.same_as_mailing === 'true';
+
+  // On toggle → true, copy each mailing_<suffix> value into its physical_<suffix>
+  // sibling so downstream state (submission, review) reflects the choice.
+  const previousSameAsMailing = useRef<boolean>(sameAsMailing);
+  useEffect(() => {
+    if (!hasSameAsMailingField) return;
+    if (sameAsMailing && !previousSameAsMailing.current) {
+      const physicalNames = allFields
+        .map(f => f.fieldName)
+        .filter(n => n && n.startsWith('physical_')) as string[];
+      for (const physName of physicalNames) {
+        const suffix = physName.slice('physical_'.length);
+        const mailingName = `mailing_${suffix}`;
+        const mailingVal = data[mailingName];
+        if (mailingVal !== undefined && mailingVal !== null && mailingVal !== '') {
+          if (data[physName] !== mailingVal) onChange(physName, mailingVal);
+        }
+      }
+    }
+    previousSameAsMailing.current = sameAsMailing;
+    // Intentionally exclude `data` from deps to avoid a copy loop; we only
+    // want to act on the false→true edge of the checkbox.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sameAsMailing, hasSameAsMailingField]);
+
+  const shouldSkipField = (field: RegField | null | undefined) =>
+    !!(field && sameAsMailing && field.fieldName && field.fieldName.startsWith('physical_'));
+
   // Compute initial entry count for repeatable steps based on already-saved data.
   // Any saved key matching `<baseFieldName>__<n>` raises the count to n+1.
   const initialEntryCount = useMemo(() => {
@@ -69,6 +104,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
   }, [step.isRepeatable, allFields, data]);
 
   const [entryCount, setEntryCount] = useState<number>(initialEntryCount);
+
 
   const renderRows = (entryIndex: number) => (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-12">
