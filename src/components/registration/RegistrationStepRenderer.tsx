@@ -18,8 +18,21 @@ import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { uploadVersionedDocument } from '@/lib/documentVersioning';
 
-interface Props {
+/** Optional context that enables versioned uploads for `file` fields.
+ * When provided, uploaded documents are recorded in `document_groups` /
+ * `document_versions` so admin/licensee views can show version badges and
+ * history. Signature (image-only) fields are unaffected.
+ */
+export interface RegistrationUploadContext {
+  userId?: string | null;
+  entityType?: string;
+  entityId?: string | null;
+  formId?: string | null;
+}
+
+interface Props extends RegistrationUploadContext {
   step: RegStep;
   data: Record<string, unknown>;
   errors: Record<string, string>;
