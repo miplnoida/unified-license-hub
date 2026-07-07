@@ -571,6 +571,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           onChange={handleChange}
           readOnly={readOnly}
           error={error}
+          uploadCtx={uploadCtx}
         />
       );
       break;
