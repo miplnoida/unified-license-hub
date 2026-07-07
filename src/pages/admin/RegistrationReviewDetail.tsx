@@ -186,16 +186,31 @@ export default function RegistrationReviewDetail() {
 
   const entityData: Record<string, any> = reg.entity_specific_data || {};
 
-  const SKIP_KEYS = new Set(['password', 'confirm_password', 'same_as_mailing']);
+  const isPasswordKey = (k: string) => k.toLowerCase().includes('password');
+  const SKIP_EXACT = new Set(['same_as_mailing']);
+  const shouldSkip = (k: string) => SKIP_EXACT.has(k) || isPasswordKey(k);
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const countryLookupKey = (k: string) => {
+    const lk = k.toLowerCase();
+    return lk.includes('nationality') || lk.includes('country') || lk.includes('citizenship');
+  };
+
+  const fallbackResolve = (key: string, val: unknown): unknown => {
+    if (typeof val !== 'string' || !UUID_RE.test(val)) return val;
+    if (countryLookupKey(key)) return countriesMap[val] ?? val;
+    return val;
+  };
 
   const buildAddress = (prefix: 'mailing' | 'physical') => {
     const base: Record<string, any> = { ...(prefix === 'mailing' ? reg.mailing_address : reg.physical_address) || {} };
     const prefixUnderscore = `${prefix}_`;
     Object.entries(entityData).forEach(([k, v]) => {
       if (!k.startsWith(prefixUnderscore)) return;
+      if (shouldSkip(k)) return;
       const sub = k.slice(prefixUnderscore.length);
       const field = fieldByName.get(k);
-      const resolved = field ? resolveReviewValue(field, v) : v;
+      const resolved = field ? resolveReviewValue(field, v) : fallbackResolve(k, v);
       if (resolved != null && resolved !== '') base[sub] = resolved;
     });
     return base;
