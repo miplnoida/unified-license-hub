@@ -1864,9 +1864,9 @@ export default function NewApplication() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="sector">Sector *</Label>
-                <Select value={selectedSector} onValueChange={handleSectorChange}>
+                <Select value={selectedSector} onValueChange={handleSectorChange} disabled={sectorsEmpty}>
                   <SelectTrigger id="sector">
-                    <SelectValue placeholder="Select Sector" />
+                    <SelectValue placeholder={sectorsEmpty ? 'No sectors available' : 'Select Sector'} />
                   </SelectTrigger>
                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                     {sectors.map(s => (
@@ -1874,7 +1874,14 @@ export default function NewApplication() {
                     ))}
                   </SelectContent>
                 </Select>
+                {sectorsEmpty && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    No sectors are configured for your assigned regulator. Please contact the administrator.
+                  </p>
+                )}
               </div>
+
 
               <div className="space-y-2">
                 <Label htmlFor="subsector">Sub-Sector *</Label>
