@@ -421,6 +421,11 @@ export default function FormBuilder() {
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
+    if (formType === 'returns') {
+      if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
+      if (!selectedSubSector) { toast.error('Sub-Sector is required for returns forms.'); return; }
+      if (!selectedCategory) { toast.error('Category is required for returns forms.'); return; }
+    }
     setIsSaving(true);
     try {
       const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
@@ -511,6 +516,9 @@ export default function FormBuilder() {
   }, []);
 
   const handleMultiSheetImport = useCallback(async (result: MultiSheetParseResult) => {
+    if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
+    if (!selectedSubSector) { toast.error('Sub-Sector is required for returns forms.'); return; }
+    if (!selectedCategory) { toast.error('Category is required for returns forms.'); return; }
     try {
       setIsSaving(true);
       const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
@@ -702,7 +710,7 @@ export default function FormBuilder() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {formType !== 'internal' && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Sector</Label>
+                  <Label className="text-xs">Sector{formType === 'returns' && <span className="text-destructive"> *</span>}</Label>
                   <Select value={selectedSector} onValueChange={handleSectorChange} disabled={isViewMode}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Select sector" /></SelectTrigger>
                     <SelectContent>
@@ -713,7 +721,7 @@ export default function FormBuilder() {
               )}
               {formType !== 'internal' && selectedSector && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Sub-Sector</Label>
+                  <Label className="text-xs">Sub-Sector{formType === 'returns' && <span className="text-destructive"> *</span>}</Label>
                   <Select value={selectedSubSector} onValueChange={handleSubSectorChange} disabled={isViewMode}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Select sub-sector" /></SelectTrigger>
                     <SelectContent>
@@ -724,7 +732,7 @@ export default function FormBuilder() {
               )}
               {formType !== 'internal' && selectedSubSector && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Category</Label>
+                  <Label className="text-xs">Category{formType === 'returns' && <span className="text-destructive"> *</span>}</Label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isViewMode}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
