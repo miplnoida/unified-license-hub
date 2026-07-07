@@ -1,41 +1,27 @@
-## Add Balance Sheet & P&L returns forms for remaining sectors
+## Add Balance Sheet & P&L returns forms for Money Service Business
 
-### Current state
-Balance Sheet + P&L returns forms exist for 3 sectors: **Building Society**, **Commercial Bank**, **Financial Holding Company / Group**. The Commercial Bank pair is quarterly and published (v2); the other two pairs are not yet marked quarterly. Each form is a `form_templates` row (`form_type='returns'`) with a matching `form_versions` schema snapshot and a legacy `forms` row.
+Now that Money Service Business has sub-sector and category in master data, clone the Commercial Bank Balance Sheet and P&L returns templates for this sector — matching the same pattern used for the previous 6 sectors.
 
-### Remaining sectors to add
-Balance Sheet + P&L will be created for these 6 sectors (each with matching sub-sector + category already in master data):
+### Target taxonomy
+- Sector: Money Service Business (`79bdf821-4ba0-4b59-9b46-0c1c6f1373e9`)
+- Sub-Sector: Money Service Business (`427fb41f-6043-41ec-8ee0-f983f69155ab`)
+- Category: Money Service Business (`f000a07e-5691-499a-befc-4456c2bd20e5`)
 
-1. Financial Group
-2. General Insurance
-3. Life Insurance
-4. Merchant Bank
-5. Micro-credit Institution
-6. Securities Dealer
+### What gets created (data-only, no code changes)
+Two new `form_templates` rows + matching `form_versions` v1 snapshots:
 
-**Money Service Business** is skipped — it has no sub-sector or category in master data, so the mandatory taxonomy on Returns forms can't be satisfied. If you want it included, add a sub-sector + category for it first (or tell me to auto-create them).
+1. **Balance Sheet** — cloned from Commercial Bank Balance Sheet (5 sections)
+2. **P&L** — cloned from Commercial Bank P&L (7 sections)
 
-### What gets created per sector (data-only migration, no code changes)
-For each of the 6 sectors, insert:
-
-- **Balance Sheet** — `form_templates` row cloned from Commercial Bank Balance Sheet (5 sections) + a `form_versions` v1 with the same `schema_snapshot` + legacy `forms` row.
-- **P&L** — `form_templates` row cloned from Commercial Bank P&L (7 sections) + a `form_versions` v1 + legacy `forms` row.
-
-Fields set on every new template:
+Each new template gets:
 - `form_type = 'returns'`
-- `return_type_id = QUARTERLY` (c7634c02-b23f-4ca9-9651-8fdb867e76f4)
-- `sector_id` / `sub_sector_id` / `category_id` and their text-name mirrors set to the target sector's values
+- `return_type_id = c7634c02-b23f-4ca9-9651-8fdb867e76f4` (Quarterly)
+- `sector_id` / `sub_sector_id` / `category_id` set to MSB values (plus text-name mirrors)
+- `regulator_id` copied from source Commercial Bank template
 - `tab_name = 'Sheet1'`, `form_order = 0`, `is_reusable = true`
-- `regulator_id` copied from the source Commercial Bank template
-- `status = 'draft'` (matches the safe default; publish from the Form list when ready)
-
-Also backfill the 2 existing pairs that are missing `return_type_id`: set Building Society and Financial Holding Company / Group Balance Sheet + P&L to `return_type_id = QUARTERLY`.
+- `status = 'draft'` (publish from Form list when ready)
 
 ### Out of scope
-- No changes to `FormBuilder.tsx` or any other code.
-- No changes to `return_configurations` (that table is a separate scheduling layer and isn't currently linked to these template rows).
-- No changes to schemas, RLS, or other form types.
-
-### Confirm before I run
-1. Skip Money Service Business (default) or auto-create a sub-sector + category named "Money Service Business" for it?
-2. Create the new forms as **draft** (default) or **published** immediately?
+- No changes to `FormBuilder.tsx` or any other code
+- No changes to `return_configurations`, schemas, RLS, or other form types
+- No touching the already-created 9 sectors
