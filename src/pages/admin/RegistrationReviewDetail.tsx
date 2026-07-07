@@ -94,7 +94,7 @@ function collectSchemaFields(schema: RegFormSchema | undefined): RegField[] {
 
 export default function RegistrationReviewDetail() {
   const { registrationId } = useParams<{ registrationId: string }>();
-  const navigate = useNavigate();
+  
 
   const [reg, setReg] = useState<RegistrationRow | null>(null);
   const [wf, setWf] = useState<WorkflowInfo>({ workflow_id: null });
