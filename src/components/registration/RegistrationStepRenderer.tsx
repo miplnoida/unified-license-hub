@@ -210,6 +210,7 @@ interface FieldProps {
   readOnly?: boolean;
   allData: Record<string, unknown>;
   allFields: RegField[];
+  uploadCtx?: RegistrationUploadContext;
 }
 
 function useCountries() {
