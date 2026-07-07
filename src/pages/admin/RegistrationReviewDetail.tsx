@@ -183,7 +183,26 @@ export default function RegistrationReviewDetail() {
     );
   }
 
-  const entityData = reg.entity_specific_data || {};
+  const entityData: Record<string, any> = reg.entity_specific_data || {};
+
+  const SKIP_KEYS = new Set(['password', 'confirm_password', 'same_as_mailing']);
+
+  const buildAddress = (prefix: 'mailing' | 'physical') => {
+    const base: Record<string, any> = { ...(prefix === 'mailing' ? reg.mailing_address : reg.physical_address) || {} };
+    const prefixUnderscore = `${prefix}_`;
+    Object.entries(entityData).forEach(([k, v]) => {
+      if (!k.startsWith(prefixUnderscore)) return;
+      const sub = k.slice(prefixUnderscore.length);
+      const field = fieldByName.get(k);
+      const resolved = field ? resolveReviewValue(field, v) : v;
+      if (resolved != null && resolved !== '') base[sub] = resolved;
+    });
+    return base;
+  };
+
+  const resolvedMailing = buildAddress('mailing');
+  const resolvedPhysical = buildAddress('physical');
+  const sameAsMailing = !!reg.same_as_mailing || entityData.same_as_mailing === true || entityData.same_as_mailing === 'true';
 
   return (
     <DashboardLayout>
@@ -196,124 +215,125 @@ export default function RegistrationReviewDetail() {
           actions={<Badge variant="outline" className="capitalize">{formatStatusLabel(reg.status)}</Badge>}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader><CardTitle>Applicant & Contact</CardTitle></CardHeader>
-              <CardContent>
-                <Row label="Applicant Name">{renderScalar(reg.applicant_name)}</Row>
-                {reg.applicant_name_alt ? <Row label="Alternate Name">{renderScalar(reg.applicant_name_alt)}</Row> : null}
-                <Row label="First Name">{renderScalar(reg.first_name)}</Row>
-                <Row label="Last Name">{renderScalar(reg.last_name)}</Row>
-                <Row label="Email">{renderScalar(reg.email)}</Row>
-                <Row label="Telephone">{renderScalar(reg.telephone)}</Row>
-                <Row label="Username">{renderScalar(reg.username)}</Row>
-                <Row label="Registration Number">{renderScalar(reg.registration_number)}</Row>
-                <Row label="Submitted">{new Date(reg.created_at).toLocaleString()}</Row>
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle>Applicant & Contact</CardTitle></CardHeader>
+            <CardContent>
+              <Row label="Applicant Name">{renderScalar(reg.applicant_name)}</Row>
+              {reg.applicant_name_alt ? <Row label="Alternate Name">{renderScalar(reg.applicant_name_alt)}</Row> : null}
+              <Row label="First Name">{renderScalar(reg.first_name)}</Row>
+              <Row label="Last Name">{renderScalar(reg.last_name)}</Row>
+              <Row label="Email">{renderScalar(reg.email)}</Row>
+              <Row label="Telephone">{renderScalar(reg.telephone)}</Row>
+              <Row label="Username">{renderScalar(reg.username)}</Row>
+              <Row label="Registration Number">{renderScalar(reg.registration_number)}</Row>
+              <Row label="Submitted">{new Date(reg.created_at).toLocaleString()}</Row>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Sector Classification</CardTitle></CardHeader>
-              <CardContent>
-                <Row label="Sector">{renderScalar(sectorName)}</Row>
-                <Row label="Sub-sector">{renderScalar(subSectorName)}</Row>
-                <Row label="Category">{renderScalar(categoryName)}</Row>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader><CardTitle>Sector Classification</CardTitle></CardHeader>
+            <CardContent>
+              <Row label="Sector">{renderScalar(sectorName)}</Row>
+              <Row label="Sub-sector">{renderScalar(subSectorName)}</Row>
+              <Row label="Category">{renderScalar(categoryName)}</Row>
+            </CardContent>
+          </Card>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader><CardTitle>Mailing Address</CardTitle></CardHeader>
-              <CardContent><AddressBlock addr={reg.mailing_address} /></CardContent>
+              <CardContent><AddressBlock addr={resolvedMailing} /></CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   Physical Address
-                  {reg.same_as_mailing ? <Badge variant="secondary" className="text-xs">Same as mailing</Badge> : null}
+                  {sameAsMailing ? <Badge variant="secondary" className="text-xs">Same as mailing</Badge> : null}
                 </CardTitle>
               </CardHeader>
-              <CardContent><AddressBlock addr={reg.physical_address} /></CardContent>
-            </Card>
-
-            {Object.keys(entityData).length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Application Details</CardTitle></CardHeader>
-                <CardContent>
-                  {Object.entries(entityData).map(([key, rawValue]) => {
-                    const field = fieldByName.get(key);
-                    if (field && isDisplayOnlyField(field)) return null;
-                    const label = field?.label || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    let content: React.ReactNode;
-                    if (isAttachmentValue(rawValue)) {
-                      content = <AttachmentDisplay value={rawValue} />;
-                    } else if (field) {
-                      const resolved = resolveReviewValue(field, rawValue);
-                      content = renderScalar(resolved);
-                    } else {
-                      content = renderScalar(rawValue);
-                    }
-                    return <Row key={key} label={label}>{content}</Row>;
-                  })}
-                </CardContent>
-              </Card>
-            )}
-
-            {documents.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Uploaded Documents</CardTitle></CardHeader>
-                <CardContent>
-                  <AttachmentDisplay value={documents.map((d: any) => d.value ?? d)} />
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader><CardTitle>Declarations</CardTitle></CardHeader>
-              <CardContent>
-                <Row label="Terms Accepted">{reg.terms_accepted ? 'Yes' : 'No'}</Row>
-                <Row label="Email Verified">{reg.email_verified ? 'Yes' : 'No'}</Row>
-              </CardContent>
+              <CardContent><AddressBlock addr={resolvedPhysical} /></CardContent>
             </Card>
           </div>
 
-          <div className="lg:col-span-1">
+          {Object.keys(entityData).length > 0 && (
             <Card>
-              <CardHeader><CardTitle>Approval Workflow</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Application Details</CardTitle></CardHeader>
               <CardContent>
-                {wf.workflow_id ? (
-                  <ErrorBoundary
-                    context="RegistrationReviewDetail · WorkflowPanel"
-                    fallback={
-                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
-                        <p className="font-medium text-destructive">Unable to load workflow details</p>
-                      </div>
-                    }
-                  >
-                    <WorkflowPanel
-                      entityType="registration"
-                      entityNoun="registration"
-                      applicationId={reg.id}
-                      workflowId={wf.workflow_id}
-                      workflowEnabled={true}
-                      applicationStatus={reg.status}
-                      onStatusChange={load}
-                    />
-                  </ErrorBoundary>
-                ) : (
-                  <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
-                    <p className="font-medium">No Registration workflow attached</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Configure one under <strong>Approval Workflows → Used For: Registration</strong> and re-trigger workflow start.
-                    </p>
-                  </div>
-                )}
+                {Object.entries(entityData).map(([key, rawValue]) => {
+                  if (SKIP_KEYS.has(key)) return null;
+                  if (key.startsWith('mailing_') || key.startsWith('physical_')) return null;
+                  const field = fieldByName.get(key);
+                  if (field && isDisplayOnlyField(field)) return null;
+                  const label = field?.label || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  let content: React.ReactNode;
+                  if (isAttachmentValue(rawValue)) {
+                    content = <AttachmentDisplay value={rawValue} />;
+                  } else if (field) {
+                    const resolved = resolveReviewValue(field, rawValue);
+                    content = renderScalar(resolved);
+                  } else {
+                    content = renderScalar(rawValue);
+                  }
+                  return <Row key={key} label={label}>{content}</Row>;
+                })}
               </CardContent>
             </Card>
-          </div>
+          )}
+
+          {documents.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Uploaded Documents</CardTitle></CardHeader>
+              <CardContent>
+                <AttachmentDisplay value={documents.map((d: any) => d.value ?? d)} />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader><CardTitle>Declarations</CardTitle></CardHeader>
+            <CardContent>
+              <Row label="Terms Accepted">{reg.terms_accepted ? 'Yes' : 'No'}</Row>
+              <Row label="Email Verified">{reg.email_verified ? 'Yes' : 'No'}</Row>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Approval Workflow</CardTitle></CardHeader>
+            <CardContent>
+              {wf.workflow_id ? (
+                <ErrorBoundary
+                  context="RegistrationReviewDetail · WorkflowPanel"
+                  fallback={
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                      <p className="font-medium text-destructive">Unable to load workflow details</p>
+                    </div>
+                  }
+                >
+                  <WorkflowPanel
+                    entityType="registration"
+                    entityNoun="registration"
+                    applicationId={reg.id}
+                    workflowId={wf.workflow_id}
+                    workflowEnabled={true}
+                    applicationStatus={reg.status}
+                    onStatusChange={load}
+                  />
+                </ErrorBoundary>
+              ) : (
+                <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
+                  <p className="font-medium">No Registration workflow attached</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Configure one under <strong>Approval Workflows → Used For: Registration</strong> and re-trigger workflow start.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>
   );
 }
+
