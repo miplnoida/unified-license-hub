@@ -40,6 +40,14 @@ export default function RegistrationReview() {
   const [rows, setRows] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<PendingRegistration | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('registrations')
+      .select('id, applicant_name, email, status, registration_reference, created_at, sector_id')
 
   const load = useCallback(async () => {
     setLoading(true);
