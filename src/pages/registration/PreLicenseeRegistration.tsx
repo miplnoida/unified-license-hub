@@ -926,6 +926,32 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         return;
       }
 
+      // Derive addresses from dynamic form data when the schema owns them
+      // (backend-configured form). Falls back to hardcoded form state for
+      // legacy configs.
+      const d = latestDynamicFormData as Record<string, unknown>;
+      const dynamicMailing = {
+        street: String(d.mailing_street || ''),
+        city: String(d.mailing_city || ''),
+        state: String(d.mailing_state || ''),
+        country: String(d.mailing_country || ''),
+        postCode: String(d.mailing_postcode || ''),
+      };
+      const dynamicPhysical = {
+        street: String(d.physical_street || ''),
+        city: String(d.physical_city || ''),
+        state: String(d.physical_state || ''),
+        country: String(d.physical_country || ''),
+        postCode: String(d.physical_postcode || ''),
+      };
+      const dynSameAsMailing = d.same_as_mailing === true || d.same_as_mailing === 'true';
+      const hasDynamicMailing = !!(dynamicMailing.street || dynamicMailing.city || dynamicMailing.country);
+      const effectiveMailing = hasDynamicMailing ? dynamicMailing : form.mailingAddress;
+      const effectiveSameAsMailing = hasDynamicMailing ? dynSameAsMailing : form.sameAsMailing;
+      const effectivePhysical = effectiveSameAsMailing
+        ? effectiveMailing
+        : (hasDynamicMailing ? dynamicPhysical : form.physicalAddress);
+
       const { data, error } = await supabase.functions.invoke('register-pre-licensee', {
         body: {
           email: emailVal,
@@ -937,9 +963,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           sector_id: form.sectorId || String(latestDynamicFormData.sector || ''),
           sub_sector_id: form.subSectorId || String(latestDynamicFormData.sub_sector || ''),
           category_id: form.categoryId || String(latestDynamicFormData.category || ''),
-          mailing_address: form.mailingAddress,
-          physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
-          same_as_mailing: form.sameAsMailing,
+          mailing_address: effectiveMailing,
+          physical_address: effectivePhysical,
+          same_as_mailing: effectiveSameAsMailing,
           telephone: form.telephone || String(latestDynamicFormData.telephone || ''),
           username: form.username || String(latestDynamicFormData.username || '') || null,
           registration_number: form.registrationNumber || String(latestDynamicFormData.registration_number || '') || null,
@@ -948,6 +974,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           terms_accepted: true, // validated before reaching submit
         },
       });
+
 
       if (error) {
         const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
