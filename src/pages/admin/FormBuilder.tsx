@@ -732,7 +732,7 @@ export default function FormBuilder() {
               )}
               {formType !== 'internal' && selectedSubSector && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Category</Label>
+                  <Label className="text-xs">Category{formType === 'returns' && <span className="text-destructive"> *</span>}</Label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isViewMode}>
                     <SelectTrigger className="h-9"><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
