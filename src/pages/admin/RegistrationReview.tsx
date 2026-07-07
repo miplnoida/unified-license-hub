@@ -35,9 +35,9 @@ interface PendingRegistration {
 }
 
 export default function RegistrationReview() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewing, setReviewing] = useState<PendingRegistration | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
