@@ -1,10 +1,16 @@
-In `src/pages/admin/RegistrationReviewDetail.tsx`:
+## Make Sector, Sub-Sector, Category mandatory in Returns Form Builder
 
-1. **Hide password fields** — extend `SKIP_KEYS` logic so any `entity_specific_data` key whose lowercased name contains `password` is skipped (covers `primary_user_password`, `confirm_primary_user_password`, and existing `password`/`confirm_password`). Apply this in both the Application Details loop and the address builder.
+Scope: `src/pages/admin/FormBuilder.tsx` only. Applies when `formType === 'returns'`.
 
-2. **Resolve lookup values for older submissions** — when a schema field isn't in `fieldByName` (older registration whose form config has since changed), fall back to resolving UUID-looking values:
-   - Fetch countries via a small `useQuery` in this component (id → name).
-   - If the key name (lowercased) contains `nationality`, `country`, or `citizenship` and the raw value is a UUID string, look it up in the countries map and render the name (fallback to raw if not found).
-   - Same treatment inside `buildAddress` for any prefixed key.
+### Changes
 
-No changes to workflow, schema, DB, or other pages.
+1. **Labels** (lines ~705, 716, 727): when `formType === 'returns'`, append a red asterisk to the "Sector", "Sub-Sector", "Category" labels.
+
+2. **Save guard** in `handleSave` (around line 422): before proceeding, if `formType === 'returns'`, validate:
+   - `selectedSector` is set → else `toast.error('Sector is required for returns forms')` and return.
+   - `selectedSubSector` is set → else toast and return.
+   - `selectedCategory` is set → else toast and return.
+
+3. **Publish guard**: apply the same 3 checks in the publish handler (around line 516) so a returns form cannot be published without the taxonomy.
+
+No changes to DB, other form types, or unrelated code.
