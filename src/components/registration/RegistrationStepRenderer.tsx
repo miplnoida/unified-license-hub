@@ -84,8 +84,6 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sameAsMailing, hasSameAsMailingField]);
 
-  const shouldSkipField = (field: RegField | null | undefined) =>
-    !!(field && sameAsMailing && field.fieldName && field.fieldName.startsWith('physical_'));
 
   // Compute initial entry count for repeatable steps based on already-saved data.
   // Any saved key matching `<baseFieldName>__<n>` raises the count to n+1.
@@ -111,7 +109,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
       {step.rows.flatMap(row =>
         row.columns.map((col, colIdx) => {
           const baseField = col.field;
-          if (shouldSkipField(baseField)) return null;
+          
           const effectiveName = baseField
             ? (entryIndex === 0 ? baseField.fieldName : `${baseField.fieldName}__${entryIndex}`)
             : '';
@@ -199,14 +197,12 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
           </div>
         ) : (
           step.rows.map(row => {
-            const visibleColumns = row.columns.filter(col => !shouldSkipField(col.field));
-            if (visibleColumns.length === 0) return null;
             return (
               <div
                 key={row.id}
                 className="grid gap-4 grid-cols-1 md:grid-cols-12"
               >
-                {visibleColumns.map((col, colIdx) => (
+                {row.columns.map((col, colIdx) => (
                   <div
                     key={colIdx}
                     className="col-span-1"
