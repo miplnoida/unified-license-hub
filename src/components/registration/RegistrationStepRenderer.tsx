@@ -640,13 +640,14 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
 }
 
 /** File upload field that actually uploads to secure storage */
-function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }: {
+function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, uploadCtx }: {
   field: RegField;
   value: unknown;
   onChange: (val: unknown) => void;
   readOnly?: boolean;
   error?: string;
   imageOnly?: boolean;
+  uploadCtx?: RegistrationUploadContext;
 }) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
