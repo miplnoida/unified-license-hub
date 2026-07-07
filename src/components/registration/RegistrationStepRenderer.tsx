@@ -111,6 +111,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
       {step.rows.flatMap(row =>
         row.columns.map((col, colIdx) => {
           const baseField = col.field;
+          if (shouldSkipField(baseField)) return null;
           const effectiveName = baseField
             ? (entryIndex === 0 ? baseField.fieldName : `${baseField.fieldName}__${entryIndex}`)
             : '';
@@ -145,6 +146,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
       )}
     </div>
   );
+
 
   return (
     <Card>
