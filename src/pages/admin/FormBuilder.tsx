@@ -516,6 +516,9 @@ export default function FormBuilder() {
   }, []);
 
   const handleMultiSheetImport = useCallback(async (result: MultiSheetParseResult) => {
+    if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
+    if (!selectedSubSector) { toast.error('Sub-Sector is required for returns forms.'); return; }
+    if (!selectedCategory) { toast.error('Category is required for returns forms.'); return; }
     try {
       setIsSaving(true);
       const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
