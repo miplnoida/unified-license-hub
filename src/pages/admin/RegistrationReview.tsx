@@ -242,7 +242,7 @@ export default function RegistrationReview() {
                         </TableCell>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="default" onClick={() => setReviewing(r)}>
+                          <Button size="sm" variant="default" onClick={() => navigate(`/admin/registration-review/${r.id}`)}>
                             <Eye className="h-4 w-4 mr-1" /> Open Review
                           </Button>
                         </TableCell>
@@ -256,53 +256,6 @@ export default function RegistrationReview() {
           </CardContent>
         </Card>
       </div>
-
-      <Sheet open={!!reviewing} onOpenChange={(o) => { if (!o) setReviewing(null); }}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          {reviewing && (
-            <>
-              <SheetHeader className="mb-4">
-                <SheetTitle>Registration Review · {reviewing.registration_reference}</SheetTitle>
-                <SheetDescription>
-                  {reviewing.applicant_name} · {reviewing.email}
-                </SheetDescription>
-              </SheetHeader>
-              {reviewing.workflow_id ? (
-                <ErrorBoundary
-                  context="RegistrationReview · WorkflowPanel"
-                  fallback={
-                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
-                      <p className="font-medium text-destructive">Unable to load workflow details</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        An unexpected error occurred while rendering this registration's workflow.
-                        Please refresh the page or contact an administrator.
-                      </p>
-                    </div>
-                  }
-                >
-                  <WorkflowPanel
-                    entityType="registration"
-                    entityNoun="registration"
-                    applicationId={reviewing.id}
-                    workflowId={reviewing.workflow_id}
-                    workflowEnabled={true}
-                    applicationStatus={reviewing.status}
-                    onStatusChange={refreshReviewing}
-                  />
-                </ErrorBoundary>
-              ) : (
-                <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
-                  <p className="font-medium">No Registration workflow attached</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    No active Registration workflow could be matched for this submission. Configure one under
-                    <strong> Approval Workflows → Used For: Registration</strong> and re-trigger workflow start.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
     </DashboardLayout>
   );
 }
