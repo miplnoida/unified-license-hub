@@ -225,8 +225,6 @@ export default function RegistrationReviewDetail() {
               <Row label="Last Name">{renderScalar(reg.last_name)}</Row>
               <Row label="Email">{renderScalar(reg.email)}</Row>
               <Row label="Telephone">{renderScalar(reg.telephone)}</Row>
-              <Row label="Username">{renderScalar(reg.username)}</Row>
-              <Row label="Registration Number">{renderScalar(reg.registration_number)}</Row>
               <Row label="Submitted">{new Date(reg.created_at).toLocaleString()}</Row>
             </CardContent>
           </Card>
