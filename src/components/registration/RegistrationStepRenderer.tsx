@@ -708,6 +708,47 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
 
     setUploading(true);
     try {
+      // Non-signature uploads: prefer the versioned document pipeline so the
+      // stored value carries {groupId, versionId, version}. AttachmentDisplay
+      // uses those to render the v# badge + history in admin/licensee views.
+      // Requires: caller passed uploadCtx.userId and a stable formId.
+      if (!imageOnly && uploadCtx?.userId && uploadCtx?.formId) {
+        const existing = (value && typeof value === 'object' && !Array.isArray(value))
+          ? (value as Record<string, unknown>)
+          : null;
+        const existingGroupId = (existing?.groupId || (existing as any)?.group_id) as string | undefined;
+        const docType = (field as any).documentType || field.fieldName || 'document';
+        const res = await uploadVersionedDocument({
+          file,
+          userId: uploadCtx.userId,
+          entityType: uploadCtx.entityType || 'registration',
+          entityId: uploadCtx.entityId ?? null,
+          documentType: docType,
+          documentLabel: field.label || field.fieldName,
+          displayName: file.name,
+          formId: uploadCtx.formId,
+          fieldId: field.id,
+          groupId: existingGroupId,
+        });
+        if (res.success === true) {
+          onChange({
+            name: file.name,
+            path: '',
+            size: file.size,
+            type: file.type,
+            groupId: res.data.groupId,
+            versionId: res.data.versionId,
+            version: res.data.version,
+            uploadId: res.data.fileUploadId,
+            documentType: docType,
+          });
+          toast.success(`${file.name} uploaded (v${res.data.version})`);
+        } else {
+          toast.error(res.error || 'Upload failed');
+        }
+        return;
+      }
+
       const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
       const subdir = imageOnly ? 'registrations/signatures' : 'registrations';
       const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
