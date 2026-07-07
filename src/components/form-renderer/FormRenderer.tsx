@@ -1115,6 +1115,47 @@ export function FormRenderer({
                                       if (colErr) { toast.error(colErr); return; }
                                     }
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: true }));
+                                    if (formId) {
+                                      const docType = (col as any).documentType || `${field.fieldName}.${col.id}`;
+                                      const existing = row[col.id] as any;
+                                      const res = await uploadVersionedDocument({
+                                        file,
+                                        userId: user.id,
+                                        entityType: entityType || 'form_submission',
+                                        entityId: entityId || applicationId || submissionId || null,
+                                        documentType: docType,
+                                        documentLabel: col.label || field.label || col.id,
+                                        displayName: file.name,
+                                        formId,
+                                        fieldId: `${field.id}.${col.id}`,
+                                        submissionId: submissionId || applicationId || undefined,
+                                        groupId: existing?.groupId,
+                                      });
+                                      setUploadingFields(prev => ({ ...prev, [cellKey]: false }));
+                                      if (res.success === true) {
+                                        const newData = [...tableData];
+                                        newData[rowIdx] = {
+                                          ...newData[rowIdx],
+                                          [col.id]: {
+                                            name: file.name,
+                                            url: '',
+                                            type: file.type,
+                                            size: file.size,
+                                            filePath: '',
+                                            uploadId: res.data.fileUploadId,
+                                            groupId: res.data.groupId,
+                                            versionId: res.data.versionId,
+                                            version: res.data.version,
+                                            documentType: docType,
+                                          },
+                                        };
+                                        onChange(field.fieldName, newData);
+                                        toast.success(`${file.name} uploaded (v${res.data.version})`);
+                                      } else {
+                                        toast.error((res as { success: false; error: string }).error || 'Upload failed');
+                                      }
+                                      return;
+                                    }
                                     const result = await uploadFormFile(file, user.id, applicationId);
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: false }));
                                     if (result.success && result.data) {

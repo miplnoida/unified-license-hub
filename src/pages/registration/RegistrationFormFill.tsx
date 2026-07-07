@@ -360,6 +360,9 @@ export default function RegistrationFormFill() {
           onSubmit={handleSubmitClick}
           saving={saving}
           stepStorageKey={stepStorageKey}
+          formId={formId}
+          entityType="registration"
+          entityId={resolvedSubmissionId}
         />
 
         {pendingData && (

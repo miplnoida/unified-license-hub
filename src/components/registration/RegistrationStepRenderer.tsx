@@ -18,8 +18,21 @@ import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { uploadVersionedDocument } from '@/lib/documentVersioning';
 
-interface Props {
+/** Optional context that enables versioned uploads for `file` fields.
+ * When provided, uploaded documents are recorded in `document_groups` /
+ * `document_versions` so admin/licensee views can show version badges and
+ * history. Signature (image-only) fields are unaffected.
+ */
+export interface RegistrationUploadContext {
+  userId?: string | null;
+  entityType?: string;
+  entityId?: string | null;
+  formId?: string | null;
+}
+
+interface Props extends RegistrationUploadContext {
   step: RegStep;
   data: Record<string, unknown>;
   errors: Record<string, string>;
@@ -32,7 +45,9 @@ interface Props {
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, userId, entityType, entityId, formId }: Props) {
+  const uploadCtx: RegistrationUploadContext = { userId, entityType, entityId, formId };
+
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
@@ -82,7 +97,9 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                   readOnly={readOnly}
                   allData={data}
                   allFields={allFields}
+                  uploadCtx={uploadCtx}
                 />
+
               ) : (
                 <div className="h-10" />
               )}
@@ -164,6 +181,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                       readOnly={readOnly}
                       allData={data}
                       allFields={allFields}
+                      uploadCtx={uploadCtx}
                     />
                   ) : (
                     <div className="h-10" />
@@ -192,6 +210,7 @@ interface FieldProps {
   readOnly?: boolean;
   allData: Record<string, unknown>;
   allFields: RegField[];
+  uploadCtx?: RegistrationUploadContext;
 }
 
 function useCountries() {
@@ -274,7 +293,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
@@ -552,6 +571,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           onChange={handleChange}
           readOnly={readOnly}
           error={error}
+          uploadCtx={uploadCtx}
         />
       );
       break;
@@ -620,13 +640,14 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
 }
 
 /** File upload field that actually uploads to secure storage */
-function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }: {
+function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, uploadCtx }: {
   field: RegField;
   value: unknown;
   onChange: (val: unknown) => void;
   readOnly?: boolean;
   error?: string;
   imageOnly?: boolean;
+  uploadCtx?: RegistrationUploadContext;
 }) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -687,6 +708,47 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }:
 
     setUploading(true);
     try {
+      // Non-signature uploads: prefer the versioned document pipeline so the
+      // stored value carries {groupId, versionId, version}. AttachmentDisplay
+      // uses those to render the v# badge + history in admin/licensee views.
+      // Requires: caller passed uploadCtx.userId and a stable formId.
+      if (!imageOnly && uploadCtx?.userId && uploadCtx?.formId) {
+        const existing = (value && typeof value === 'object' && !Array.isArray(value))
+          ? (value as Record<string, unknown>)
+          : null;
+        const existingGroupId = (existing?.groupId || (existing as any)?.group_id) as string | undefined;
+        const docType = (field as any).documentType || field.fieldName || 'document';
+        const res = await uploadVersionedDocument({
+          file,
+          userId: uploadCtx.userId,
+          entityType: uploadCtx.entityType || 'registration',
+          entityId: uploadCtx.entityId ?? null,
+          documentType: docType,
+          documentLabel: field.label || field.fieldName,
+          displayName: file.name,
+          formId: uploadCtx.formId,
+          fieldId: field.id,
+          groupId: existingGroupId,
+        });
+        if (res.success === true) {
+          onChange({
+            name: file.name,
+            path: '',
+            size: file.size,
+            type: file.type,
+            groupId: res.data.groupId,
+            versionId: res.data.versionId,
+            version: res.data.version,
+            uploadId: res.data.fileUploadId,
+            documentType: docType,
+          });
+          toast.success(`${file.name} uploaded (v${res.data.version})`);
+        } else {
+          toast.error(res.error || 'Upload failed');
+        }
+        return;
+      }
+
       const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
       const subdir = imageOnly ? 'registrations/signatures' : 'registrations';
       const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
