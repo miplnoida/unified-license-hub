@@ -45,7 +45,9 @@ interface Props extends RegistrationUploadContext {
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, userId, entityType, entityId, formId }: Props) {
+  const uploadCtx: RegistrationUploadContext = { userId, entityType, entityId, formId };
+
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
