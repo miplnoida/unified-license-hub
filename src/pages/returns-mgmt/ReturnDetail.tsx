@@ -171,7 +171,10 @@ export default function ReturnDetail() {
     if (d.form_version_id) versionByForm[d.form_id] = d.form_version_id;
   });
 
-  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
+  const orderedForms = [...effectiveConfigForms].sort(
+    (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0),
+  );
+  const tabs = orderedForms.map((f: any) => f.form_id as string);
   const [activeTab, setActiveTab] = useState('');
   useEffect(() => {
     if (tabs.length === 0) { if (activeTab) setActiveTab(''); return; }
