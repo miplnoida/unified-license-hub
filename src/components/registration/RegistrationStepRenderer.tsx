@@ -97,7 +97,9 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                   readOnly={readOnly}
                   allData={data}
                   allFields={allFields}
+                  uploadCtx={uploadCtx}
                 />
+
               ) : (
                 <div className="h-10" />
               )}
