@@ -292,7 +292,7 @@ export default function RegistrationReviewDetail() {
               <CardHeader><CardTitle>Application Details</CardTitle></CardHeader>
               <CardContent>
                 {Object.entries(entityData).map(([key, rawValue]) => {
-                  if (SKIP_KEYS.has(key)) return null;
+                  if (shouldSkip(key)) return null;
                   if (key.startsWith('mailing_') || key.startsWith('physical_')) return null;
                   const field = fieldByName.get(key);
                   if (field && isDisplayOnlyField(field)) return null;
