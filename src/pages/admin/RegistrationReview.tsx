@@ -122,12 +122,6 @@ export default function RegistrationReview() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Keep the open drawer's row in sync after any action
-  const refreshReviewing = useCallback(async () => {
-    if (!reviewing) return;
-    await load();
-    setReviewing(prev => prev ? rows.find(r => r.id === prev.id) ?? prev : prev);
-  }, [load, reviewing, rows]);
 
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
