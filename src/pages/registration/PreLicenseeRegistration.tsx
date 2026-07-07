@@ -1044,6 +1044,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
               onBlur={handleDynamicFieldBlur}
+              userId={session?.user?.id ?? null}
+              entityType="registration"
+              entityId={updateContext?.registration?.id ?? null}
+              formId={config?.id ?? null}
             />
           );
         }
