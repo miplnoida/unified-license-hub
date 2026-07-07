@@ -171,7 +171,10 @@ export default function ReturnDetail() {
     if (d.form_version_id) versionByForm[d.form_id] = d.form_version_id;
   });
 
-  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
+  const orderedForms = [...effectiveConfigForms].sort(
+    (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0),
+  );
+  const tabs = orderedForms.map((f: any) => f.form_id as string);
   const [activeTab, setActiveTab] = useState('');
   useEffect(() => {
     if (tabs.length === 0) { if (activeTab) setActiveTab(''); return; }
@@ -489,36 +492,34 @@ export default function ReturnDetail() {
             {tabs.length > 0 && (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="flex-wrap h-auto">
-                  {tabs.map(t => <TabsTrigger key={t} value={t}>{t}</TabsTrigger>)}
+                  {orderedForms.map((cf: any) => (
+                    <TabsTrigger key={cf.form_id} value={cf.form_id}>
+                      {cf.form_templates?.name || cf.tab_name || 'Form'}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
-                {tabs.map(tab => (
-                  <TabsContent key={tab} value={tab} className="space-y-4">
-                    {effectiveConfigForms
-                      .filter(f => f.tab_name === tab)
-                      .sort((a, b) => a.display_order - b.display_order)
-                      .map(cf => {
-                        const formComments = comments.filter((c: any) => c.form_id === cf.form_id);
-                        return (
-                          <div key={cf.id} className="space-y-2">
-                            <ReadOnlyFormBlock
-                              formId={cf.form_id}
-                              name={cf.form_templates?.name || 'Form'}
-                              data={valuesByForm[cf.form_id] || {}}
-                              pinnedVersionId={versionByForm[cf.form_id] || null}
-                            />
-                            {formComments.length > 0 && (
-                              <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
-                                <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
-                                {formComments.map((c: any) => <p key={c.id} className="text-sm">• {c.comment_text}</p>)}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </TabsContent>
-                ))}
+                {orderedForms.map((cf: any) => {
+                  const formComments = comments.filter((c: any) => c.form_id === cf.form_id);
+                  return (
+                    <TabsContent key={cf.form_id} value={cf.form_id} className="space-y-4">
+                      <ReadOnlyFormBlock
+                        formId={cf.form_id}
+                        name={cf.form_templates?.name || 'Form'}
+                        data={valuesByForm[cf.form_id] || {}}
+                        pinnedVersionId={versionByForm[cf.form_id] || null}
+                      />
+                      {formComments.length > 0 && (
+                        <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
+                          <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
+                          {formComments.map((c: any) => <p key={c.id} className="text-sm">• {c.comment_text}</p>)}
+                        </div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
               </Tabs>
             )}
+
 
             {workflowEnabled ? (
               <ReturnWorkflowPanel
