@@ -1,24 +1,22 @@
 ## Goal
-On the public applicant registration flow, the final "Review & Submit" step currently lists every form field including **Password** and **Confirm Password** (shown as plain digits in the summary). Hide those two fields from that review summary — they are for account creation only, not for display.
+Registration Review currently filters the list to a hardcoded set of "in-flight" statuses. Show **all** registration requests, and add a status filter so reviewers can narrow the view.
 
 ## Change
 
-**File:** `src/pages/registration/PreLicenseeRegistration.tsx`
+**File:** `src/pages/admin/RegistrationReview.tsx`
 
-In `buildReviewSections()` (schema-driven branch, ~line 1109), skip password and confirm-password fields when building the review list. Uses the existing helpers already imported at the top of the file:
+1. **Fetch all statuses** — remove the `.in('status', [...])` filter in `load()`. Query returns every registration ordered by `created_at desc`.
 
-- `isRegistrationPasswordField(field)`
-- `isRegistrationConfirmPasswordField(field)`
+2. **Add status filter UI** — above the table, add a shadcn `Select` filter:
+   - Options: `All statuses` (default), plus each distinct status present in the loaded rows (dynamically derived, formatted with underscores → spaces + title case). Fallback baseline includes: `pending_verification`, `pending_review`, `in_progress`, `approved`, `rejected`, `resubmission_required`, `returned_for_correction`, `info_requested`.
+   - Store selection in local state `statusFilter` (default `'all'`).
+   - Also add a simple text search box (applicant name / email / reference) for usability.
 
-Insert an early `return` inside the `s.rows.forEach(...c.field...)` loop, right after the display-only handling and before the attachment/value push:
+3. **Client-side filtering** — derive `filteredRows` via `useMemo` applying `statusFilter` and search text against `rows`. Table renders `filteredRows`. Empty-state message adjusts when filter is active ("No registrations match the current filter").
 
-```ts
-if (isRegistrationPasswordField(f) || isRegistrationConfirmPasswordField(f)) return;
-```
-
-That's the only change. Password entry fields still appear during the actual form steps, values are still captured and submitted for account creation — they just don't render on the Review page.
+4. **Row count indicator** — small muted text showing `Showing X of Y` next to filters.
 
 ## Out of scope
-- Admin-side review screens (already filter password via `SENSITIVE_DYNAMIC_KEYS` in `BackgroundInfoTab`).
-- Registration form builder / admin preview page.
-- Field editor defaults (password field stays in the form config).
+- Workflow drawer behavior, hydration logic, SLA columns — untouched.
+- Server-side filtering / pagination.
+- Bulk actions.
