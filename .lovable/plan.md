@@ -1,29 +1,19 @@
-## Revision — Keep Sector Information as in the legacy form
+## Remove duplicate Sector step
 
-The prior plan already places **Sector Information** in the new dynamic `form_schema` (Sector → Sub-Sector → Category, all required, cascading). This revision only clarifies that the Sector step must match the legacy config **exactly** — same fields, same labels, same required flags, same cascading behavior, same UI (rendered by the existing `SectorSelectionSection` inside the dynamic stepper).
+The active `Standard Registration (v2)` config has 3 steps: Applicant & Address, PPOC, and Sector Selection. On the public `/register` page, the sector selection is also rendered by the hardcoded `SectorSelectionSection` card on Step 1 (Applicant & Address), so users see the same three cascading dropdowns twice — once on step 1 and again on step 3.
 
-### Change to the plan
-- In the new `Standard Registration (v2)` `form_schema`, the **Sector Information** step is copied verbatim from the legacy config row (`id='22a5fcb8-...'`):
-  - Field 1: `sector_id` — Sector * (Select, active sectors, scoped by resolved regulator)
-  - Field 2: `sub_sector_id` — Sub-Sector * (Select, cascades from sector)
-  - Field 3: `category_id` — Category * (Select, cascades from sub-sector)
-  - Same helper text: *"Select the sector, sub-sector, and category for your license application."*
-  - Same step title: *"Sector Selection Information"*
-- No new sector-related fields, no reordering inside the Sector step, no styling change.
-- All other parts of the previous plan stand: legacy row flipped inactive; new row inserted active/default; Applicant & Address, PPOC, Documents, Declarations steps mirror the screenshots; no schema DDL; no middle name; sector-dropdown fallback in `NewApplication.tsx` unchanged.
+### Change
+- Remove the third step (`id: "step-sector"`) from the `form_schema` of the active registration config (`registration_form_configs.id = 'd488a0b7-eea2-4c24-aca0-58373ba55597'`), leaving only:
+  1. Applicant & Address
+  2. Principal Point of Contact
+- Sector, Sub-Sector, and Category continue to be captured via the existing hardcoded `SectorSelectionSection` on Step 1 (which already writes `sector_id`, `sub_sector_id`, `category_id` to the `registrations` table).
 
-### Implementation touch points
-- **Database:** re-issue the same `UPDATE` + `INSERT` on `registration_form_configs`, with the Sector step JSON copied byte-for-byte from the legacy row's `form_schema`.
-- **Frontend:** no additional changes beyond the previous plan — `SectorSelectionSection.tsx` already renders these three fields with cascading behavior and is what the dynamic stepper already uses.
-
-### Out of scope
-- No changes to `useSectors`, RegulatorContext, admin master data, or the sector-empty fallback logic in `NewApplication.tsx`.
-- No Middle Name, no auth/OTP/document/approval changes.
+### Not changing
+- No schema/DDL changes.
+- No frontend code changes — `PreLicenseeRegistration.tsx` and `SectorSelectionSection.tsx` stay as-is.
+- Legacy config (`22a5fcb8-…`) remains inactive; v2 stays active/default.
+- Rollback: single `UPDATE` restoring the removed step JSON.
 
 ### Verification
-- `/admin/registration-forms`: new row Active/Default, legacy row Inactive.
-- `/register`: Sector step renders the same three cascading selects as the legacy form, with identical labels and validation.
-- Playwright smoke: complete a new registration, confirm `sector_id`, `sub_sector_id`, `category_id` land on `registrations`.
-
-### Rollback
-- Single `UPDATE` flipping `is_active`/`is_default` back to the legacy row.
+- `/register` shows 2 steps in the stepper; sector selection appears only on Step 1.
+- Complete a registration end-to-end; confirm `sector_id`, `sub_sector_id`, `category_id` still land on `registrations`.
