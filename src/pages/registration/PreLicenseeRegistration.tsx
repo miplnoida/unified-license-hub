@@ -1109,6 +1109,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
           const f = c.field;
+          // Hide credential fields from the review summary
+          if (isRegistrationPasswordField(f) || isRegistrationConfirmPasswordField(f)) return;
           // Render display-only fields inline (heading/info/divider), no value
           if (isDisplayOnlyField(f)) {
             const kind = resolveDisplayKind(f.type);
