@@ -1,16 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2, Eye, Search } from 'lucide-react';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
+
+const formatStatusLabel = (s: string) =>
+  s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 
 interface PendingRegistration {
   id: string;
@@ -34,28 +40,16 @@ export default function RegistrationReview() {
   const [rows, setRows] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<PendingRegistration | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from('registrations')
       .select('id, applicant_name, email, status, registration_reference, created_at, sector_id')
-      .in('status', [
-        'submitted',
-        'pending',
-        'pending_review',
-        'under_review',
-        'in_progress',
-        'in_review',
-        'resubmission_required',
-        'resubmission_requested',
-        'returned_for_correction',
-        'return_for_correction',
-        'info_requested',
-        'more_info_requested',
-        'query_raised',
-      ])
       .order('created_at', { ascending: false });
+
 
     const base = (data || []) as PendingRegistration[];
     if (base.length === 0) {
@@ -137,13 +131,62 @@ export default function RegistrationReview() {
     setReviewing(prev => prev ? rows.find(r => r.id === prev.id) ?? prev : prev);
   }, [load, reviewing, rows]);
 
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach(r => r.status && set.add(r.status));
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter(r => {
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        (r.applicant_name || '').toLowerCase().includes(q) ||
+        (r.email || '').toLowerCase().includes(q) ||
+        (r.registration_reference || '').toLowerCase().includes(q)
+      );
+    });
+  }, [rows, statusFilter, search]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Registration Review"
-          description="Review and act on pending licensee registrations through the configured Registration approval workflow."
+          description="Review and act on licensee registration requests through the configured Registration approval workflow."
         />
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search reference, applicant or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {statusOptions.map(s => (
+                  <SelectItem key={s} value={s}>{formatStatusLabel(s)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!loading && (
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredRows.length} of {rows.length}
+            </p>
+          )}
+        </div>
 
         <Card>
           <CardContent className="p-0">
@@ -151,8 +194,10 @@ export default function RegistrationReview() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : rows.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground">No registrations awaiting review.</div>
+            ) : filteredRows.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                {rows.length === 0 ? 'No registrations found.' : 'No registrations match the current filter.'}
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
@@ -171,7 +216,8 @@ export default function RegistrationReview() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map(r => {
+                    {filteredRows.map(r => {
+
                       const deadline = r.sla_hours && r.step_started_at
                         ? new Date(new Date(r.step_started_at).getTime() + r.sla_hours * 3600_000)
                         : null;
