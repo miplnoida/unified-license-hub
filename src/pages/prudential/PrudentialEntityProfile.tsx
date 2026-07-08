@@ -221,7 +221,7 @@ export default function PrudentialEntityProfile() {
                     <Tooltip />
                     <Legend />
                     {Object.keys(ratioTrend[0] as any).filter(k => k !== 'period').slice(0, 6).map((k, i) => (
-                      <Line key={k} dataKey={k} stroke={['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899'][i]} strokeWidth={2} dot={false} />
+                      <Line key={k} dataKey={k} name={ratioLabels[k]?.label || k} stroke={['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899'][i]} strokeWidth={2} dot={false} />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
