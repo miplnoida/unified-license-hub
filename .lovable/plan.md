@@ -1,27 +1,21 @@
-## Add Balance Sheet & P&L returns forms for Money Service Business
+## Fix pre/post application review UI — balance label/value columns
 
-Now that Money Service Business has sub-sector and category in master data, clone the Commercial Bank Balance Sheet and P&L returns templates for this sector — matching the same pattern used for the previous 6 sectors.
+**File:** `src/components/applications/ReviewAcknowledgement.tsx` (field-row layout inside the Accordion, ~lines 207–257)
 
-### Target taxonomy
-- Sector: Money Service Business (`79bdf821-4ba0-4b59-9b46-0c1c6f1373e9`)
-- Sub-Sector: Money Service Business (`427fb41f-6043-41ec-8ee0-f983f69155ab`)
-- Category: Money Service Business (`f000a07e-5691-499a-befc-4456c2bd20e5`)
+### Problem
+Each review row uses `flex justify-between` with a narrow `min-w-[140px]` label and a value column capped at `max-w-[300px]`, right-aligned. On wide screens the label area stays visually empty while long answers (like Corporate Structure Details) get squeezed into a thin right-hand column that scrolls forever.
 
-### What gets created (data-only, no code changes)
-Two new `form_templates` rows + matching `form_versions` v1 snapshots:
+### Change
+Convert the row to a responsive 1/3 label + 2/3 value grid, left-aligned:
 
-1. **Balance Sheet** — cloned from Commercial Bank Balance Sheet (5 sections)
-2. **P&L** — cloned from Commercial Bank P&L (7 sections)
+- Replace the `flex items-start justify-between gap-4` row wrapper with `grid grid-cols-1 md:grid-cols-3 gap-4`.
+- Label span: keep muted style, drop `min-w-[140px] shrink-0`; occupy `md:col-span-1`. Keep the "Changed" badge behavior.
+- Value container: `md:col-span-2`, switch `items-end` → `items-start`, remove `text-right` and `max-w-[300px]` caps on the text spans so long answers wrap across the full 2/3 column.
+- Attachment blocks: keep existing `AttachmentDisplay` but drop the `max-w-[360px]` cap and right-alignment so they align with the value column edge.
+- "Was: …" original-value hint stays under the value, left-aligned.
+- Preserve the yellow "changed" highlight, hover state, and all existing conditional branches (attachment / boolean / null / string).
 
-Each new template gets:
-- `form_type = 'returns'`
-- `return_type_id = c7634c02-b23f-4ca9-9651-8fdb867e76f4` (Quarterly)
-- `sector_id` / `sub_sector_id` / `category_id` set to MSB values (plus text-name mirrors)
-- `regulator_id` copied from source Commercial Bank template
-- `tab_name = 'Sheet1'`, `form_order = 0`, `is_reusable = true`
-- `status = 'draft'` (publish from Form list when ready)
+No changes to logic, data flow, section headers, table-diff renderer, or display-only field renderer. No other files touched.
 
-### Out of scope
-- No changes to `FormBuilder.tsx` or any other code
-- No changes to `return_configurations`, schemas, RLS, or other form types
-- No touching the already-created 9 sectors
+### Result
+Long text answers fill the available width and read top-to-bottom instead of squeezing into a narrow right column, while short answers still sit cleanly next to their label.
