@@ -1,47 +1,41 @@
-## Scope
+## Goal
 
-Populate return `RET-2026-00027` (Q1 2022, entity: **New FinCorp Commercial Bank Limited**, return id `b100bd21-b90e-4cbf-b59f-20794db3e208`) with values from the uploaded workbook:
+Populate Balance Sheet and P&L data for New FinCorp Commercial Bank Limited for all remaining periods present in the uploaded workbook, matching what was done for Q1 2022.
 
-- Sheet **New FinCorp CB - BalSheet** → form **Balance Sheet** (`59ebe8fc…`, version `dead2bcf…`)
-- Sheet **New FinCorp CB - P&L** → form **P&L** (`7ac713bf…`, version `84869d01…`)
+## Periods to create (13)
 
-Only column **Q1 2022** (col_1) will be written. Only this one entity. All other entities untouched. Workflow status stays `WIP` (no submission).
+From workbook columns (2021 columns are empty, so skipped):
 
-## What's already there
+- 2022: Q2, Q3, Q4
+- 2023: Q1, Q2, Q3, Q4
+- 2024: Q1, Q2, Q3, Q4
+- 2025: Q1, Q2
 
-- Balance Sheet section **1 ASSETS** is already saved (64 rows, `line_1_*_col_1`). Those rows will be preserved and updated only if the workbook value differs (upsert on `(return_id, form_id, field_id)`).
-- Sections **2, 3, 7, 8** of the Balance Sheet are missing → will be inserted.
-- Entire **P&L** form is empty → will be inserted.
+## Steps
 
-## Plan
+1. **Create 13 rows in `returns_filed`**, cloning the shape of the existing Q1 2022 return (`RET-2026-00027`):
+   - `entity_id` = `30a3c4cb-ad53-4020-a5c4-d216a5ac1eb1`
+   - `return_configuration_id` = `b5d22673-48f4-4cd0-8962-25cf3ed28d9e`
+   - `on_behalf_of_licensee_id` = same
+   - `created_by` / `updated_by` = same submitter used on Q1 2022
+   - `period_start_date` / `period_end_date` = quarter bounds
+   - `due_date` = quarter end + 30 days (matches Q1 2022 pattern: 2022-03-31 → 2022-04-30)
+   - `workflow_status` = `WIP`, `status` = `active`, `version` = `1.0`
+   - `unique_id` = next sequential `RET-2026-000NN` values
+   - Fresh `id` (uuid) generated per row
 
-1. **Extract Q1 2022 values from Excel**
-   - For each row in both sheets, read column A (line code) and the Q1 2022 column (index 6).
-   - Skip rows with no line code or a blank value.
+2. **Load Balance Sheet + P&L values per period** into `return_form_data`:
+   - Re-run the Excel mapping script for each `(year, quarter)` column pair.
+   - Upsert into `return_form_data` using the same `ON CONFLICT (return_id, form_id, field_id) DO UPDATE` pattern already used for Q1 2022.
+   - Same form IDs / form_version IDs: BS `59ebe8fc… / dead2bcf…`, P&L `7ac713bf… / 84869d01…`.
+   - Skips: the ~23 Memoranda-adjacent Balance Sheet lines whose line codes still collide with the current schema will remain unmapped (same limitation as Q1 2022).
 
-2. **Resolve field mapping via `form_versions.schema_snapshot`**
-   - For each form version, flatten every field across sections (including nested `rows[*].fields`) and index by `lineCode` → list of `{ fieldName, label }`.
-   - Only use `_col_1` fieldNames (Q1 = period 1).
-   - When Excel has duplicate line codes (memoranda block: 8.1, 8.2, 8.8, 8.9, 8.18…), match by row label similarity (case-insensitive substring) to pick the correct dedup suffix (`_b`, `_c`, …).
-   - Log any Excel row that can't be mapped and skip it (report at the end).
-
-3. **Upsert into `return_form_data`**
-   - Row shape: `return_id`, `form_id`, `form_version_id`, `field_id = fieldName`, `field_name = fieldName`, `field_value` (rounded to 2 decimals as string).
-   - Use `ON CONFLICT (return_id, form_id, field_id) DO UPDATE SET field_value = EXCLUDED.field_value, updated_at = now()`.
-   - Executed as a single migration so it's reviewable and reversible.
-
-4. **Report**
-   - After running, show:
-     - Rows inserted / updated per form.
-     - Any Excel line codes that couldn't be mapped to a schema field (so the user can confirm they're intentional gaps like the 8.1 memoranda dedup).
+3. **Verification**:
+   - Confirm 14 rows exist in `returns_filed` for this entity.
+   - Confirm each new return has ~294 BS rows + ~36 P&L rows in `return_form_data`.
 
 ## Out of scope
 
-- No changes to any other licensee, return, form, or workflow config.
-- No submission — return remains `WIP` for the user to review and submit in the UI.
-- No changes to the form schemas or calculated-field logic (already fixed in the previous turn).
-
-## Technical notes
-
-- Executed via one `supabase--migration` call using inline JSON of the extracted `{fieldName: value}` map (built in Python from the workbook, then embedded in the SQL as a `jsonb` literal). SQL unpacks it with `jsonb_each_text` and upserts.
-- Data types: values stored as text (matches existing column and existing 1.x rows).
+- Not submitting the returns — they will remain as WIP drafts, matching Q1 2022's state (per your choice).
+- Not touching Q1 2026 (`RET-2026-00026`) — the workbook has no data for that period.
+- No frontend/schema changes; database-data only.
