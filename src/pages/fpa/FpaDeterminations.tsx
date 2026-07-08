@@ -684,7 +684,7 @@ export default function FpaDeterminations() {
 
       const { data: inserted, error } = await supabase
         .from('fp_determinations')
-        .insert(payload)
+        .insert(payload as any)
         .select('id')
         .single();
       if (error) throw error;

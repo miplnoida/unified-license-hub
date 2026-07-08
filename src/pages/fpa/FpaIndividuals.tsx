@@ -320,7 +320,7 @@ export default function FpaIndividuals() {
       if (form.address.trim()) payload.address = form.address.trim();
       if (form.notes.trim()) payload.notes = form.notes.trim();
 
-      const { error } = await supabase.from('fp_individuals').insert(payload);
+      const { error } = await supabase.from('fp_individuals').insert(payload as any);
       if (error) throw error;
     },
     onSuccess: () => {

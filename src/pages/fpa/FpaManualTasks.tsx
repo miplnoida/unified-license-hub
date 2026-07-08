@@ -297,7 +297,7 @@ export default function FpaManualTasks() {
       const { data: rawFindings, error } = await query;
       if (error) throw error;
 
-      const findings = (rawFindings ?? []) as Finding[];
+      const findings = (rawFindings ?? []) as unknown as Finding[];
 
       // individual_id is always present (non-nullable in schema), so look up
       // names directly without any assessment-based fallback.
