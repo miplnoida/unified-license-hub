@@ -416,7 +416,14 @@ function parseFinancialSheet(
     }
   };
 
-  // First pass: assign field names to all data cells
+  // First pass: assign field names to all data cells.
+  // Two spreadsheet rows can share the same "line number" (e.g. two rows both
+  // labelled 1.3.1). Without disambiguation they'd collapse to the same
+  // field_name and the renderer would treat their answers as one shared value.
+  // Track used names per sheet and suffix _b, _c, ... on collision so each
+  // cell owns a unique field_name (cellAddr → fieldName mapping keeps formulas
+  // pointing at the correct cell).
+  const usedFieldNames = new Set<string>();
   for (let r = layout.dataStartRow; r < data.length; r++) {
     const row = data[r] || [];
     const lineNum = String(row[layout.numberCol] || '').trim();
@@ -427,7 +434,15 @@ function parseFinancialSheet(
     for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
       const colIdx = layout.dataColStart + ci;
       const cellAddr = XLSX.utils.encode_cell({ r, c: colIdx });
-      const fieldName = toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
+      const base = toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
+      let fieldName = base;
+      let suffixIdx = 1; // 1 => _b, 2 => _c, ...
+      while (usedFieldNames.has(fieldName)) {
+        fieldName = `${base}_${String.fromCharCode(97 + suffixIdx)}`;
+        suffixIdx += 1;
+        if (suffixIdx > 25) { fieldName = `${base}_${r}_${ci}`; break; }
+      }
+      usedFieldNames.add(fieldName);
       globalFieldMap.set(cellAddr, fieldName);
       const colLetter = XLSX.utils.encode_col(colIdx);
       colRowFieldMap.set(`${colLetter}${r + 1}`, fieldName);
