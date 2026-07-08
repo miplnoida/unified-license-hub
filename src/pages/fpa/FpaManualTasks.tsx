@@ -1,0 +1,468 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import {
+  Loader2,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  User,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  ShieldAlert,
+  MessageSquare,
+} from 'lucide-react';
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+function severityColor(severity: string) {
+  switch (severity?.toLowerCase()) {
+    case 'high':
+      return 'bg-rose-500';
+    case 'medium':
+      return 'bg-amber-400';
+    case 'low':
+      return 'bg-emerald-500';
+    default:
+      return 'bg-slate-300';
+  }
+}
+
+function severityBadgeVariant(severity: string): 'destructive' | 'default' | 'secondary' | 'outline' {
+  switch (severity?.toLowerCase()) {
+    case 'high':
+      return 'destructive';
+    case 'medium':
+      return 'default';
+    default:
+      return 'secondary';
+  }
+}
+
+function routingLabel(severity: string) {
+  return severity?.toLowerCase() === 'high' ? 'SUPERVISOR QUEUE' : 'ASSESSOR REVIEW';
+}
+
+function truncate(text: string | null | undefined, max = 120) {
+  if (!text) return null;
+  return text.length <= max ? text : text.slice(0, max) + '…';
+}
+
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function todayIso() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+// ─── types ───────────────────────────────────────────────────────────────────
+
+// individual_id and assessment_id are non-nullable per the fp_findings Row schema in types.ts
+interface Finding {
+  id: string;
+  assessment_id: string;
+  individual_id: string;
+  title: string | null;
+  summary: string | null;
+  severity: string | null;
+  resolution_status: string | null;
+  check_type: string | null;
+  source: string | null;
+  review_note: string | null;
+  created_at: string | null;
+  resolved_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  // joined
+  individual_name?: string | null;
+}
+
+// ─── stat card ───────────────────────────────────────────────────────────────
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number | undefined;
+  accent: string;
+}) {
+  return (
+    <Card className="flex-1 min-w-0">
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className={`flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center ${accent}`}>
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold tabular-nums leading-tight">
+            {value ?? <Loader2 className="h-5 w-5 animate-spin inline" />}
+          </p>
+          <p className="text-xs text-muted-foreground leading-tight">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── task card ───────────────────────────────────────────────────────────────
+
+function TaskCard({ finding, onAssign, assigning }: { finding: Finding; onAssign: () => void; assigning: boolean }) {
+  const isHigh = finding.severity?.toLowerCase() === 'high';
+
+  return (
+    <div className="relative flex rounded-lg border bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* severity stripe */}
+      <div className={`w-1 flex-shrink-0 ${severityColor(finding.severity ?? '')}`} aria-hidden="true" />
+
+      <div className="flex flex-col flex-1 gap-3 p-4">
+        {/* header row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <Badge variant={severityBadgeVariant(finding.severity ?? '')} className="text-xs uppercase tracking-wide shrink-0">
+              {finding.severity ?? '—'}
+            </Badge>
+            <Badge
+              className={`text-xs font-semibold tracking-wide shrink-0 ${
+                isHigh
+                  ? 'bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                  : 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100'
+              }`}
+              variant="outline"
+            >
+              {routingLabel(finding.severity ?? '')}
+            </Badge>
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap shrink-0">
+            {formatDate(finding.created_at)}
+          </span>
+        </div>
+
+        {/* title */}
+        <p className="font-semibold text-sm leading-snug text-foreground">
+          {finding.title ?? 'Untitled finding'}
+        </p>
+
+        {/* summary */}
+        {finding.summary && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {truncate(finding.summary)}
+          </p>
+        )}
+
+        <Separator className="my-0.5" />
+
+        {/* meta row */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <User className="h-3.5 w-3.5" />
+            {finding.individual_name ?? 'Unknown individual'}
+          </span>
+          {finding.check_type && (
+            <span className="flex items-center gap-1">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              {finding.check_type.replace(/_/g, ' ')}
+            </span>
+          )}
+          {finding.source && (
+            <span className="flex items-center gap-1">
+              <ClipboardList className="h-3.5 w-3.5" />
+              {finding.source}
+            </span>
+          )}
+          {finding.resolution_status && (
+            <span className="flex items-center gap-1 capitalize">
+              <Clock className="h-3.5 w-3.5" />
+              {finding.resolution_status.replace(/_/g, ' ')}
+            </span>
+          )}
+        </div>
+
+        {/* review note */}
+        {finding.review_note && (
+          <div className="flex gap-1.5 text-xs bg-muted/50 rounded px-2 py-1.5">
+            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+            <span className="text-muted-foreground">{truncate(finding.review_note, 140)}</span>
+          </div>
+        )}
+
+        {/* action row */}
+        <div className="flex items-center gap-2 pt-0.5">
+          {finding.resolution_status === 'open' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-8"
+              onClick={onAssign}
+              disabled={assigning}
+            >
+              {assigning ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <User className="h-3.5 w-3.5 mr-1.5" />}
+              Assign to Me
+            </Button>
+          )}
+          <Button size="sm" variant="secondary" className="text-xs h-8 ml-auto" asChild>
+            <Link to={`/fpa/manual-tasks/${finding.id}`}>
+              Open
+              <ChevronRight className="h-3.5 w-3.5 ml-1" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── main page ───────────────────────────────────────────────────────────────
+
+export default function FpaManualTasks() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  // Severity filter uses lowercase values that match DB storage directly
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // ── fetch findings joined with individuals ────────────────────────────────
+  // individual_id is always non-null per the fp_findings schema, so we look
+  // up names directly without any assessment fallback.
+  const { data: findings, isLoading } = useQuery<Finding[]>({
+    queryKey: ['fpa_manual_tasks', severityFilter, statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('fp_findings')
+        .select(
+          `id, assessment_id, individual_id, title, summary, severity,
+           resolution_status, check_type, source, review_note,
+           created_at, resolved_at, reviewed_at, reviewed_by`
+        )
+        .in('resolution_status', ['open', 'under_review'])
+        .in('severity', ['high', 'medium', 'low'])
+        .order('created_at', { ascending: false });
+
+      if (severityFilter !== 'all') {
+        query = query.eq('severity', severityFilter);
+      }
+      if (statusFilter !== 'all') {
+        query = query.eq('resolution_status', statusFilter);
+      }
+
+      const { data: rawFindings, error } = await query;
+      if (error) throw error;
+
+      const findings = (rawFindings ?? []) as Finding[];
+
+      // individual_id is always present (non-nullable in schema), so look up
+      // names directly without any assessment-based fallback.
+      const individualIds = [...new Set(findings.map((f) => f.individual_id))];
+      let individualNameMap: Record<string, string> = {};
+
+      if (individualIds.length > 0) {
+        const { data: individuals } = await supabase
+          .from('fp_individuals')
+          .select('id, full_name')
+          .in('id', individualIds);
+        (individuals ?? []).forEach((ind: { id: string; full_name: string }) => {
+          individualNameMap[ind.id] = ind.full_name;
+        });
+      }
+
+      return findings.map((f) => ({
+        ...f,
+        individual_name: individualNameMap[f.individual_id] ?? null,
+      }));
+    },
+  });
+
+  // ── stat queries ──────────────────────────────────────────────────────────
+  // Unassigned = resolution_status is 'open' (no assigned_to column exists;
+  // open status is the canonical indicator that no one has claimed the task).
+  const {
+    data: allFindings,
+    isError: isStatsError,
+  } = useQuery<Finding[]>({
+    queryKey: ['fpa_manual_tasks_all_stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_findings')
+        .select('id, resolution_status, resolved_at, reviewed_at, reviewed_by')
+        .in('resolution_status', ['open', 'under_review', 'resolved'])
+        .in('severity', ['high', 'medium', 'low']);
+      if (error) throw error;
+      return (data ?? []) as Finding[];
+    },
+  });
+
+  // Use resolution_status === 'open' as the reliable "unassigned" indicator.
+  // reviewed_at being null is not a reliable assignment proxy since a finding
+  // can be reviewed without being assigned via the manual queue.
+  const statsUnassigned = isStatsError ? 0 : allFindings?.filter(
+    (f) => f.resolution_status === 'open'
+  ).length;
+  const statsInProgress = isStatsError ? 0 : allFindings?.filter(
+    (f) => f.resolution_status === 'under_review'
+  ).length;
+  const statsCompletedToday = isStatsError ? 0 : allFindings?.filter(
+    (f) => f.resolved_at && f.resolved_at >= todayIso()
+  ).length;
+
+  // ── assign mutation ───────────────────────────────────────────────────────
+  // Records reviewed_by so the audit trail reflects which user claimed the task.
+  const assignMutation = useMutation({
+    mutationFn: async (findingId: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('fp_findings')
+        .update({
+          resolution_status: 'under_review',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user.id,
+        })
+        .eq('id', findingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Assigned — task is now In Progress.');
+      qc.invalidateQueries({ queryKey: ['fpa_manual_tasks'] });
+      qc.invalidateQueries({ queryKey: ['fpa_manual_tasks_all_stats'] });
+    },
+    onError: (e: Error) => toast.error(e?.message ?? 'Assignment failed'),
+  });
+
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  const handleAssign = (id: string) => {
+    setAssigningId(id);
+    assignMutation.mutate(id, { onSettled: () => setAssigningId(null) });
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <PageHeader
+          title="Manual Review Queue"
+          description="Manual screening tasks for adverse findings requiring human review — FPA-006"
+        />
+
+        {/* stats row */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <StatCard
+            icon={AlertTriangle}
+            label="Unassigned"
+            value={statsUnassigned}
+            accent="bg-rose-500"
+          />
+          <StatCard
+            icon={Clock}
+            label="In Progress"
+            value={statsInProgress}
+            accent="bg-amber-500"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="Completed Today"
+            value={statsCompletedToday}
+            accent="bg-emerald-500"
+          />
+        </div>
+
+        {isStatsError && (
+          <p className="text-xs text-destructive">
+            Stats could not be loaded. Counts above show 0 as a fallback.
+          </p>
+        )}
+
+        {/* filter bar */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Severity</span>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="h-9 w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All severities</SelectItem>
+                <SelectItem value="high">HIGH</SelectItem>
+                <SelectItem value="medium">MEDIUM</SelectItem>
+                <SelectItem value="low">LOW</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Status</span>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(severityFilter !== 'all' || statusFilter !== 'all') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 text-xs"
+              onClick={() => { setSeverityFilter('all'); setStatusFilter('all'); }}
+            >
+              Clear filters
+            </Button>
+          )}
+
+          <span className="ml-auto text-xs text-muted-foreground">
+            {findings !== undefined ? (
+              <>
+                {findings.length} task{findings.length !== 1 ? 's' : ''}
+              </>
+            ) : null}
+          </span>
+        </div>
+
+        {/* task grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading tasks…</span>
+          </div>
+        ) : !findings || findings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+            <CalendarDays className="h-8 w-8 opacity-40" />
+            <p className="text-sm">No tasks match the current filters.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {findings.map((finding) => (
+              <TaskCard
+                key={finding.id}
+                finding={finding}
+                onAssign={() => handleAssign(finding.id)}
+                assigning={assigningId === finding.id && assignMutation.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}

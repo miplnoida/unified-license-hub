@@ -18,6 +18,12 @@ const SEVERITY_CLASS: Record<string, string> = {
   low: 'bg-slate-100 text-slate-700',
 };
 
+const ROUTING_BADGE: Record<string, { label: string; className: string }> = {
+  high: { label: 'SUPERVISOR QUEUE', className: 'bg-red-100 text-red-800 border-red-300' },
+  medium: { label: 'ASSESSOR REVIEW', className: 'bg-amber-50 text-amber-800 border-amber-300' },
+  low: { label: 'ASSESSOR REVIEW', className: 'bg-slate-100 text-slate-700 border-slate-300' },
+};
+
 interface Props { individualId: string; assessmentId?: string | null }
 
 type PendingOverride = {
@@ -159,6 +165,22 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       context: { individualId, assessmentId, findingId: resolving.id },
       justification: resolutionReason.trim(),
     });
+
+    // C1 — dispatch supervisor notification for HIGH true-positive findings
+    const resolvedFinding = (findings ?? []).find((f: any) => f.id === resolving.id);
+    if (resolving.status === 'true_positive' && resolvedFinding?.severity === 'high') {
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'fp_high_finding_confirmed',
+            entity_type: 'fp_finding',
+            entity_id: resolving.id,
+            payload: { individual_id: individualId, assessment_id: assessmentId, finding_title: resolving.title, severity: 'high' },
+          },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed for high finding', e); }
+    }
+
     toast.success('Finding resolved');
     setResolving(null);
     setResolutionReason('');
@@ -277,6 +299,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
+                  {(() => { const r = ROUTING_BADGE[f.severity] || ROUTING_BADGE.low; return <Badge variant="outline" className={r.className}>{r.label}</Badge>; })()}
                   <span className="text-xs text-muted-foreground">{f.check_type}</span>
                   {f.source && <span className="text-xs text-muted-foreground">· source: {f.source}</span>}
                   {typeof f.confidence_score === 'number' && (

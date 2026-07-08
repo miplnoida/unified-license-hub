@@ -1,0 +1,611 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Loader2, Users, ClipboardList, AlertTriangle, ShieldCheck,
+  ArrowRight, Zap, Eye, Search, FileText, CheckSquare,
+  TrendingUp, Brain, Layers, Gavel, SlidersHorizontal,
+  Scale, GitBranch, Timer, Megaphone, Activity,
+} from 'lucide-react';
+
+// ─── Stat card types ────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: number | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  icon: React.ReactNode;
+  accentClass: string;
+  subLabel?: string;
+}
+
+function StatCard({ label, value, isLoading, isError, icon, accentClass, subLabel }: StatCardProps) {
+  return (
+    <Card className="relative overflow-hidden">
+      <CardContent className="pt-5 pb-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+            <p className="text-3xl font-bold tabular-nums text-foreground">
+              {isLoading ? (
+                <Loader2 className="h-7 w-7 animate-spin text-muted-foreground inline" />
+              ) : isError ? (
+                <AlertTriangle className="h-6 w-6 text-destructive inline" />
+              ) : (
+                value ?? 0
+              )}
+            </p>
+            {isError ? (
+              <p className="text-xs text-destructive mt-1">Failed to load</p>
+            ) : (
+              subLabel && <p className="text-xs text-muted-foreground mt-1">{subLabel}</p>
+            )}
+          </div>
+          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${accentClass}`}>
+            {icon}
+          </div>
+        </div>
+      </CardContent>
+      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${accentClass.replace('bg-', 'bg-').replace('/10', '')}`} />
+    </Card>
+  );
+}
+
+// ─── Scenario card types ─────────────────────────────────────────────────────
+
+interface Scenario {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  icon: React.ReactNode;
+}
+
+interface ScenarioCardProps {
+  scenario: Scenario;
+  borderColor: string;
+  badgeClass: string;
+}
+
+function ScenarioCard({ scenario, borderColor, badgeClass }: ScenarioCardProps) {
+  const isPatternRoute = scenario.route.includes(':');
+  return (
+    <Card className={`border-l-4 ${borderColor} transition-shadow hover:shadow-md group`}>
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Badge variant="outline" className={`text-xs font-mono font-semibold px-1.5 py-0 ${badgeClass}`}>
+                {scenario.id}
+              </Badge>
+              <div className="text-muted-foreground">{scenario.icon}</div>
+            </div>
+            <h3 className="font-semibold text-sm text-foreground leading-snug">{scenario.title}</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{scenario.description}</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          {isPatternRoute ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" disabled className="h-7 px-3 text-xs gap-1.5">
+                  View
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Select an individual from the Individual Register to view their profile</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button asChild size="sm" variant="outline" className="h-7 px-3 text-xs gap-1.5 group-hover:border-primary/50 group-hover:text-primary transition-colors">
+              <Link to={scenario.route}>
+                View
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Assessment type banner item ─────────────────────────────────────────────
+
+interface AssessmentTypeBucket {
+  type: string;
+  count: number;
+  total: number;
+}
+
+function AssessmentTypeBar({ bucket }: { bucket: AssessmentTypeBucket }) {
+  const pct = bucket.total > 0 ? Math.round((bucket.count / bucket.total) * 100) : 0;
+  const label = bucket.type
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <span className="text-xs text-muted-foreground w-32 shrink-0 truncate">{label}</span>
+      <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+        <div
+          className="h-2 rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-xs font-semibold tabular-nums text-foreground w-8 text-right">{bucket.count}</span>
+    </div>
+  );
+}
+
+// ─── Scenario definitions ─────────────────────────────────────────────────────
+
+const TAB_A_SCENARIOS: Scenario[] = [
+  {
+    id: 'FPA-001',
+    title: 'Initiation Pathways',
+    description: '4 assessment initiation types: New Licence, Ongoing Monitor, Ad-hoc, Cycle-Based',
+    route: '/fpa/initiation',
+    icon: <Zap className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-002',
+    title: 'Individual Register',
+    description: 'Register individuals, detect duplicates, manage multi-role flags',
+    route: '/fpa/individuals',
+    icon: <Users className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-003',
+    title: 'Subject Profile',
+    description: 'Full subject profile with access control and role history — open an individual record to view',
+    route: '/fpa/individuals/:id',
+    icon: <Eye className="h-3.5 w-3.5" />,
+  },
+];
+
+const TAB_B_SCENARIOS: Scenario[] = [
+  {
+    id: 'FPA-004',
+    title: 'Declarations',
+    description: 'Send declarations, track notification delivery, manage responses',
+    route: '/fpa/declarations',
+    icon: <FileText className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-005',
+    title: 'Screening Hub',
+    description: 'Configure checks, run automated adverse media and sanctions screening',
+    route: '/fpa/screening',
+    icon: <Search className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-006',
+    title: 'Manual Review Queue',
+    description: 'Manual screening tasks with evidence upload and outcome recording',
+    route: '/fpa/manual-tasks',
+    icon: <CheckSquare className="h-3.5 w-3.5" />,
+  },
+];
+
+const TAB_C_SCENARIOS: Scenario[] = [
+  {
+    id: 'FPA-007',
+    title: 'Findings Console',
+    description: 'Severity-coded findings with supervisor routing and escalation',
+    route: '/fpa/findings',
+    icon: <AlertTriangle className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-008',
+    title: 'Trends & History',
+    description: 'Historical finding trends and population comparison analytics',
+    route: '/fpa/trends',
+    icon: <TrendingUp className="h-3.5 w-3.5" />,
+  },
+];
+
+const TAB_D_SCENARIOS: Scenario[] = [
+  {
+    id: 'FPA-009',
+    title: 'AI Analysis',
+    description: 'AI-generated analysis with human override and confidence scoring',
+    route: '/fpa/ai-analysis',
+    icon: <Brain className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-010',
+    title: 'Sector Rules',
+    description: 'Sector-specific decision rules and role-type criteria',
+    route: '/fpa/sector-rules',
+    icon: <Layers className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-011',
+    title: 'Multi-Regulator',
+    description: 'Side-by-side determinations across multiple regulators',
+    route: '/fpa/determinations',
+    icon: <GitBranch className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-012',
+    title: 'Committee Voting',
+    description: 'Weighted voting with quorum tracking and outcome calculation',
+    route: '/fpa/committee',
+    icon: <Gavel className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-013',
+    title: 'Conditions & SLA',
+    description: 'Conditional determinations with SLA breach monitoring',
+    route: '/fpa/conditions',
+    icon: <Timer className="h-3.5 w-3.5" />,
+  },
+];
+
+const TAB_E_SCENARIOS: Scenario[] = [
+  {
+    id: 'FPA-014',
+    title: 'Appeals',
+    description: 'Appeal management with license impact and timeline tracking',
+    route: '/fpa/appeals',
+    icon: <Scale className="h-3.5 w-3.5" />,
+  },
+  {
+    id: 'FPA-015',
+    title: 'Monitoring & Audit',
+    description: 'Monitoring event stream and full compliance audit trail',
+    route: '/fpa/monitoring',
+    icon: <Activity className="h-3.5 w-3.5" />,
+  },
+];
+
+// ─── Theme configs per tab ────────────────────────────────────────────────────
+
+const THEME = {
+  A: {
+    border: 'border-l-blue-500',
+    badge: 'border-blue-200 text-blue-700 bg-blue-50',
+    label: 'text-blue-600',
+    dot: 'bg-blue-500',
+  },
+  B: {
+    border: 'border-l-purple-500',
+    badge: 'border-purple-200 text-purple-700 bg-purple-50',
+    label: 'text-purple-600',
+    dot: 'bg-purple-500',
+  },
+  C: {
+    border: 'border-l-red-500',
+    badge: 'border-red-200 text-red-700 bg-red-50',
+    label: 'text-red-600',
+    dot: 'bg-red-500',
+  },
+  D: {
+    border: 'border-l-green-500',
+    badge: 'border-green-200 text-green-700 bg-green-50',
+    label: 'text-green-600',
+    dot: 'bg-green-500',
+  },
+  E: {
+    border: 'border-l-amber-500',
+    badge: 'border-amber-200 text-amber-700 bg-amber-50',
+    label: 'text-amber-600',
+    dot: 'bg-amber-500',
+  },
+};
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
+export default function FpaDashboard() {
+  // Stat: total individuals
+  const { data: individualsCount, isLoading: loadingIndividuals, isError: isErrorIndividuals } = useQuery({
+    queryKey: ['fpa_stat_individuals'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('fp_individuals')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Stat: active assessments (not closed or determined)
+  const { data: activeAssessments, isLoading: loadingAssessments, isError: isErrorAssessments } = useQuery({
+    queryKey: ['fpa_stat_active_assessments'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('fp_assessments')
+        .select('*', { count: 'exact', head: true })
+        .not('status', 'in', '("closed","determined")');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Stat: open findings
+  const { data: openFindings, isLoading: loadingFindings, isError: isErrorFindings } = useQuery({
+    queryKey: ['fpa_stat_open_findings'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('fp_findings')
+        .select('*', { count: 'exact', head: true })
+        .eq('resolution_status', 'open');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Stat: active conditions
+  const { data: activeConditions, isLoading: loadingConditions, isError: isErrorConditions } = useQuery({
+    queryKey: ['fpa_stat_active_conditions'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('fp_conditions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Assessment type breakdown
+  const { data: assessmentTypeData, isLoading: loadingTypeData, isError: isErrorTypeData } = useQuery({
+    queryKey: ['fpa_stat_assessment_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_assessments')
+        .select('assessment_type');
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ assessment_type: string | null }>;
+      const counts: Record<string, number> = {};
+      for (const row of rows) {
+        const t = row.assessment_type ?? 'unknown';
+        counts[t] = (counts[t] ?? 0) + 1;
+      }
+      const total = rows.length;
+      return Object.entries(counts)
+        .map(([type, count]) => ({ type, count, total }))
+        .sort((a, b) => b.count - a.count);
+    },
+  });
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <PageHeader
+          title="FP Assessment Hub"
+          description="All 15 scenarios for the Fit & Proper Assessment module"
+        />
+
+        {/* ── Stats row ─────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Individuals"
+            value={individualsCount as number | undefined}
+            isLoading={loadingIndividuals}
+            isError={isErrorIndividuals}
+            icon={<Users className="h-5 w-5 text-blue-600" />}
+            accentClass="bg-blue-50 text-blue-600"
+            subLabel="Registered subjects"
+          />
+          <StatCard
+            label="Active Assessments"
+            value={activeAssessments as number | undefined}
+            isLoading={loadingAssessments}
+            isError={isErrorAssessments}
+            icon={<ClipboardList className="h-5 w-5 text-purple-600" />}
+            accentClass="bg-purple-50 text-purple-600"
+            subLabel="In progress"
+          />
+          <StatCard
+            label="Open Findings"
+            value={openFindings as number | undefined}
+            isLoading={loadingFindings}
+            isError={isErrorFindings}
+            icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
+            accentClass="bg-red-50 text-red-600"
+            subLabel="Pending resolution"
+          />
+          <StatCard
+            label="Active Conditions"
+            value={activeConditions as number | undefined}
+            isLoading={loadingConditions}
+            isError={isErrorConditions}
+            icon={<ShieldCheck className="h-5 w-5 text-green-600" />}
+            accentClass="bg-green-50 text-green-600"
+            subLabel="Under monitoring"
+          />
+        </div>
+
+        {/* ── Scenario tabs ──────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-base font-semibold text-foreground">Demo Scenarios</h2>
+            <Badge variant="secondary" className="text-xs">
+              {TAB_A_SCENARIOS.length + TAB_B_SCENARIOS.length + TAB_C_SCENARIOS.length + TAB_D_SCENARIOS.length + TAB_E_SCENARIOS.length} scenarios
+            </Badge>
+          </div>
+
+          <Tabs defaultValue="A">
+            <TabsList className="h-9 mb-4 gap-1">
+              <TabsTrigger value="A" className="text-xs gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
+                Tab A · Initiation
+              </TabsTrigger>
+              <TabsTrigger value="B" className="text-xs gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-purple-500 inline-block" />
+                Tab B · Declarations
+              </TabsTrigger>
+              <TabsTrigger value="C" className="text-xs gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
+                Tab C · Findings
+              </TabsTrigger>
+              <TabsTrigger value="D" className="text-xs gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
+                Tab D · Decisioning
+              </TabsTrigger>
+              <TabsTrigger value="E" className="text-xs gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                Tab E · Appeals
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab A – Initiation */}
+            <TabsContent value="A">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Scenarios covering how assessments are initiated — from new licence applications to cycle-based and ad-hoc triggers.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TAB_A_SCENARIOS.map((s) => (
+                  <ScenarioCard
+                    key={s.id}
+                    scenario={s}
+                    borderColor={THEME.A.border}
+                    badgeClass={THEME.A.badge}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Tab B – Declarations & Screening */}
+            <TabsContent value="B">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Scenarios covering declaration workflows, automated screening configuration, and manual review task management.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TAB_B_SCENARIOS.map((s) => (
+                  <ScenarioCard
+                    key={s.id}
+                    scenario={s}
+                    borderColor={THEME.B.border}
+                    badgeClass={THEME.B.badge}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Tab C – Adverse Findings */}
+            <TabsContent value="C">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Scenarios covering how adverse findings are surfaced, severity-coded, escalated, and tracked over time.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TAB_C_SCENARIOS.map((s) => (
+                  <ScenarioCard
+                    key={s.id}
+                    scenario={s}
+                    borderColor={THEME.C.border}
+                    badgeClass={THEME.C.badge}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Tab D – Decisioning */}
+            <TabsContent value="D">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Scenarios covering AI-assisted analysis, sector rules, multi-regulator determinations, committee voting, and conditional approvals.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TAB_D_SCENARIOS.map((s) => (
+                  <ScenarioCard
+                    key={s.id}
+                    scenario={s}
+                    borderColor={THEME.D.border}
+                    badgeClass={THEME.D.badge}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Tab E – Appeals & Monitoring */}
+            <TabsContent value="E">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Scenarios covering the appeal lifecycle and the ongoing monitoring and audit trail post-determination.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TAB_E_SCENARIOS.map((s) => (
+                  <ScenarioCard
+                    key={s.id}
+                    scenario={s}
+                    borderColor={THEME.E.border}
+                    badgeClass={THEME.E.badge}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* ── Assessment type breakdown banner ───────────────────────── */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-muted-foreground" />
+                Assessment Type Breakdown
+              </CardTitle>
+              {loadingTypeData && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+          </CardHeader>
+          <Separator />
+          <CardContent className="pt-4">
+            {isErrorTypeData ? (
+              <p className="text-sm text-destructive text-center py-4">
+                Failed to load assessment breakdown. Check your connection and permissions.
+              </p>
+            ) : !loadingTypeData && (!assessmentTypeData || assessmentTypeData.length === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No assessments found. Run a demo scenario to populate data.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {(assessmentTypeData ?? []).map((bucket) => (
+                  <AssessmentTypeBar key={bucket.type} bucket={bucket} />
+                ))}
+              </div>
+            )}
+
+            {/* Legend row with all tabs */}
+            <div className="mt-4 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1.5">
+              {[
+                { key: 'A', label: 'Initiation', theme: THEME.A },
+                { key: 'B', label: 'Declarations & Screening', theme: THEME.B },
+                { key: 'C', label: 'Adverse Findings', theme: THEME.C },
+                { key: 'D', label: 'Decisioning', theme: THEME.D },
+                { key: 'E', label: 'Appeals & Monitoring', theme: THEME.E },
+              ].map(({ key, label, theme }) => (
+                <span key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
+                  Tab {key} — {label}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}

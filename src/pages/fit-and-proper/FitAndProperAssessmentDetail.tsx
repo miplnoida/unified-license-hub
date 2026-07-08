@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, ShieldCheck, Users, CheckCircle2, XCircle, Save, Send, Plus, Trash2, FileText } from 'lucide-react';
+import { Loader2, ShieldCheck, Users, CheckCircle2, XCircle, Save, Send, Plus, Trash2, FileText, Sparkles, UserCheck } from 'lucide-react';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { migrateSectionsToRows } from '@/lib/formRows';
@@ -108,6 +108,9 @@ export default function FitAndProperAssessmentDetail() {
 
         <DecisionGatesBanner subjectType="fp_assessment" subjectId={assessment.id} compact />
 
+        {/* D1 — AI analysis card */}
+        <AiAnalysisCard assessmentId={assessment.id} individualId={assessment.individual_id} />
+
         {hasPinnedForm ? (
           <PinnedPqForm
             assessmentId={assessment.id}
@@ -134,6 +137,114 @@ export default function FitAndProperAssessmentDetail() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// ─── D1 AI Analysis Card ───
+function AiAnalysisCard({ assessmentId, individualId }: { assessmentId: string; individualId: string }) {
+  const { data: findings = [], isLoading } = useQuery({
+    queryKey: ['fp_findings_for_assessment', assessmentId],
+    enabled: !!assessmentId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_findings')
+        .select('id, check_type, severity, title, summary, source, confidence_score, is_false_positive, raw_payload, created_at, resolution_status')
+        .eq('assessment_id', assessmentId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const aiFindings = (findings as any[]).filter(
+    (f) => f.check_type === 'adverse_media' || String(f.source || '').toLowerCase().includes('ai')
+  );
+  const assessorFindings = (findings as any[]).filter(
+    (f) => f.check_type !== 'adverse_media' && !String(f.source || '').toLowerCase().includes('ai')
+  );
+
+  const SEVERITY_CLASS: Record<string, string> = {
+    high: 'bg-red-100 text-red-800',
+    medium: 'bg-amber-100 text-amber-800',
+    low: 'bg-slate-100 text-slate-700',
+  };
+
+  if (isLoading) return null;
+  if (findings.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-blue-600" />
+          AI Analysis &amp; Assessor Notes
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {aiFindings.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">AI-identified findings ({aiFindings.length})</span>
+            </div>
+            <div className="space-y-2">
+              {aiFindings.map((f: any) => {
+                const assessorNote = f.raw_payload && typeof f.raw_payload === 'object' ? (f.raw_payload as any).assessor_note : null;
+                return (
+                  <div key={f.id} className={`border rounded p-3 text-sm ${f.is_false_positive ? 'opacity-60' : 'border-blue-100 bg-blue-50/30'}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
+                      <span className="font-medium">{f.title}</span>
+                      {typeof f.confidence_score === 'number' && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">AI confidence {Number(f.confidence_score).toFixed(0)}%</Badge>
+                      )}
+                      {f.is_false_positive && <Badge variant="outline" className="bg-slate-100 text-slate-600">dismissed</Badge>}
+                    </div>
+                    {f.summary && <p className="text-xs text-muted-foreground mt-1">{f.summary}</p>}
+                    {assessorNote && (
+                      <div className="mt-2 border-t border-blue-100 pt-2 flex items-start gap-2">
+                        <UserCheck className="h-3 w-3 mt-0.5 text-green-600 flex-shrink-0" />
+                        <p className="text-xs text-green-800 italic">Assessor note: {assessorNote}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {assessorFindings.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <UserCheck className="h-3.5 w-3.5 text-green-600" />
+              <span className="text-sm font-medium text-green-800">Assessor-raised findings ({assessorFindings.length})</span>
+            </div>
+            <div className="space-y-2">
+              {assessorFindings.map((f: any) => {
+                const assessorNote = f.raw_payload && typeof f.raw_payload === 'object' ? (f.raw_payload as any).assessor_note : null;
+                return (
+                  <div key={f.id} className={`border rounded p-3 text-sm ${f.is_false_positive ? 'opacity-60' : ''}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
+                      <span className="font-medium">{f.title}</span>
+                      <span className="text-xs text-muted-foreground">· {f.check_type}{f.source ? ` · ${f.source}` : ''}</span>
+                    </div>
+                    {f.summary && <p className="text-xs text-muted-foreground mt-1">{f.summary}</p>}
+                    {assessorNote && (
+                      <p className="text-xs italic mt-1 text-green-800">Note: {assessorNote}</p>
+                    )}
+                    {f.resolution_status && (
+                      <p className="text-xs mt-1 text-muted-foreground">Status: {String(f.resolution_status).replace(/_/g, ' ')}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

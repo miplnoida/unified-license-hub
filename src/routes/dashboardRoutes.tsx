@@ -47,6 +47,28 @@ const FitAndProperIndividuals = lazy(() => import('@/pages/fit-and-proper/FitAnd
 const FitAndProperIndividualDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividualDetail'));
 const FitAndProperAssessmentDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperAssessmentDetail'));
 const FpPopulationTrends = lazy(() => import('@/pages/fit-and-proper/FpPopulationTrends'));
+const InvitationTracker = lazy(() => import('@/pages/fit-and-proper/InvitationTracker'));
+const FpInitiationLog = lazy(() => import('@/pages/fit-and-proper/FpInitiationLog'));
+const FpScheduler = lazy(() => import('@/pages/fit-and-proper/FpScheduler'));
+const ManualScreeningQueue = lazy(() => import('@/pages/fit-and-proper/ManualScreeningQueue'));
+const ManualTaskDetail = lazy(() => import('@/pages/fit-and-proper/ManualTaskDetail'));
+const FpaDashboard = lazy(() => import('@/pages/fpa/FpaDashboard'));
+const FpaInitiation = lazy(() => import('@/pages/fpa/FpaInitiation'));
+const FpaIndividuals = lazy(() => import('@/pages/fpa/FpaIndividuals'));
+const FpaIndividualProfile = lazy(() => import('@/pages/fpa/FpaIndividualProfile'));
+const FpaDeclarations = lazy(() => import('@/pages/fpa/FpaDeclarations'));
+const FpaScreening = lazy(() => import('@/pages/fpa/FpaScreening'));
+const FpaManualTasks = lazy(() => import('@/pages/fpa/FpaManualTasks'));
+const FpaManualTaskDetail = lazy(() => import('@/pages/fpa/FpaManualTaskDetail'));
+const FpaFindings = lazy(() => import('@/pages/fpa/FpaFindings'));
+const FpaTrends = lazy(() => import('@/pages/fpa/FpaTrends'));
+const FpaAiAnalysis = lazy(() => import('@/pages/fpa/FpaAiAnalysis'));
+const FpaSectorRules = lazy(() => import('@/pages/fpa/FpaSectorRules'));
+const FpaDeterminations = lazy(() => import('@/pages/fpa/FpaDeterminations'));
+const FpaCommittee = lazy(() => import('@/pages/fpa/FpaCommittee'));
+const FpaConditions = lazy(() => import('@/pages/fpa/FpaConditions'));
+const FpaAppeals = lazy(() => import('@/pages/fpa/FpaAppeals'));
+const FpaMonitoring = lazy(() => import('@/pages/fpa/FpaMonitoring'));
 const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
 const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
@@ -160,6 +182,11 @@ export const dashboardRoutes = (
     <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
     <Route path="/fit-and-proper/assessments/:id" element={<M module="fit_and_proper"><FitAndProperAssessmentDetail /></M>} />
     <Route path="/fit-and-proper/trends" element={<M module="fit_and_proper"><FpPopulationTrends /></M>} />
+    <Route path="/fit-and-proper/invitations" element={<M module="fit_and_proper"><InvitationTracker /></M>} />
+    <Route path="/fit-and-proper/initiation-log" element={<M module="fit_and_proper"><FpInitiationLog /></M>} />
+    <Route path="/fit-and-proper/scheduler" element={<M module="fit_and_proper"><FpScheduler /></M>} />
+    <Route path="/fit-and-proper/screening-queue" element={<M module="fit_and_proper"><ManualScreeningQueue /></M>} />
+    <Route path="/fit-and-proper/screening-queue/:id" element={<M module="fit_and_proper"><ManualTaskDetail /></M>} />
     <Route path="/enforcement" element={<M module="license_management"><EnforcementList /></M>} />
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
@@ -198,5 +225,22 @@ export const dashboardRoutes = (
     <Route path="/prudential/escalations" element={<M module="prudential_supervision"><EscalationsList /></M>} />
     <Route path="/prudential/stress-indicators" element={<M module="prudential_supervision"><StressIndicatorsAdmin /></M>} />
     <Route path="/admin/prudential-taxonomy" element={<M module="prudential_supervision"><PrudentialTaxonomyAdmin /></M>} />
+    <Route path="/fpa" element={<M module="fit_and_proper"><FpaDashboard /></M>} />
+    <Route path="/fpa/initiation" element={<M module="fit_and_proper"><FpaInitiation /></M>} />
+    <Route path="/fpa/individuals" element={<M module="fit_and_proper"><FpaIndividuals /></M>} />
+    <Route path="/fpa/individuals/:id" element={<M module="fit_and_proper"><FpaIndividualProfile /></M>} />
+    <Route path="/fpa/declarations" element={<M module="fit_and_proper"><FpaDeclarations /></M>} />
+    <Route path="/fpa/screening" element={<M module="fit_and_proper"><FpaScreening /></M>} />
+    <Route path="/fpa/manual-tasks" element={<M module="fit_and_proper"><FpaManualTasks /></M>} />
+    <Route path="/fpa/manual-tasks/:id" element={<M module="fit_and_proper"><FpaManualTaskDetail /></M>} />
+    <Route path="/fpa/findings" element={<M module="fit_and_proper"><FpaFindings /></M>} />
+    <Route path="/fpa/trends" element={<M module="fit_and_proper"><FpaTrends /></M>} />
+    <Route path="/fpa/ai-analysis" element={<M module="fit_and_proper"><FpaAiAnalysis /></M>} />
+    <Route path="/fpa/sector-rules" element={<M module="fit_and_proper"><FpaSectorRules /></M>} />
+    <Route path="/fpa/determinations" element={<M module="fit_and_proper"><FpaDeterminations /></M>} />
+    <Route path="/fpa/committee" element={<M module="fit_and_proper"><FpaCommittee /></M>} />
+    <Route path="/fpa/conditions" element={<M module="fit_and_proper"><FpaConditions /></M>} />
+    <Route path="/fpa/appeals" element={<M module="fit_and_proper"><FpaAppeals /></M>} />
+    <Route path="/fpa/monitoring" element={<M module="fit_and_proper"><FpaMonitoring /></M>} />
   </>
 );

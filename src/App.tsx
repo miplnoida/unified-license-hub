@@ -17,6 +17,7 @@ import { dashboardRoutes } from "@/routes/dashboardRoutes";
 import { adminRoutes } from "@/routes/adminRoutes";
 import { settingsRoutes } from "@/routes/settingsRoutes";
 import { returnsRoutes } from "@/routes/returnsRoutes";
+import { fpaRoutes } from "@/routes/fpaRoutes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function AppRoutes() {
           {adminRoutes}
           {settingsRoutes}
           {returnsRoutes}
+          {fpaRoutes}
         </Routes>
       </Suspense>
     </ErrorBoundary>
