@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useCreateAction, usePrudentialEntities } from '@/hooks/usePrudentialSupervision';
+import { useInternalUsers } from '@/hooks/useInternalUsers';
 
 const TYPES = ['information_request','capital_plan','liquidity_plan','board_letter','onsite_inspection','enforcement_referral','restriction','monitoring'];
 
@@ -18,6 +19,7 @@ interface Defaults {
   severity?: 'low'|'medium'|'high'|'critical';
   action_type?: string;
   due_date?: string;
+  assigned_to?: string;
 }
 
 interface Props {
@@ -30,6 +32,7 @@ interface Props {
 export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onCreated }: Props) {
   const create = useCreateAction();
   const { data: entities = [] } = usePrudentialEntities();
+  const { data: internalUsers = [] } = useInternalUsers();
   const [form, setForm] = useState<any>({});
 
   useEffect(() => {
@@ -40,7 +43,10 @@ export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onC
   }, [open, defaults]);
 
   const submit = async () => {
-    const res: any = await create.mutateAsync(form);
+    // Coerce sentinel 'unassigned' back to null so DB column stays clean.
+    const payload = { ...form };
+    if (payload.assigned_to === 'unassigned' || payload.assigned_to === '') payload.assigned_to = null;
+    const res: any = await create.mutateAsync(payload);
     onOpenChange(false);
     if (res?.id && onCreated) onCreated(res.id);
   };
@@ -73,7 +79,24 @@ export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onC
               </Select>
             </div>
           </div>
-          <div><Label>Due date</Label><Input type="date" value={form.due_date || ''} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Assign to</Label>
+              <Select value={form.assigned_to || 'unassigned'} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {internalUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name || u.email || u.id.slice(0, 8)}
+                      {u.primary_role ? ` · ${u.primary_role}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Due date</Label><Input type="date" value={form.due_date || ''} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
