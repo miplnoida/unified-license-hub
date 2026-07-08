@@ -43,7 +43,9 @@ function formatRatio(value: any, fmt?: string) {
 
 function toCsv(rows: Array<Record<string, any>>): string {
   if (!rows.length) return '';
-  const headers = Array.from(rows.reduce((s, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
+  const headerSet = new Set<string>();
+  rows.forEach((r) => Object.keys(r).forEach((k) => headerSet.add(k)));
+  const headers = Array.from(headerSet);
   const esc = (v: any) => {
     if (v == null) return '';
     const s = String(v);
