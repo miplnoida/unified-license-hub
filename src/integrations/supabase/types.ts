@@ -14493,6 +14493,14 @@ export type Database = {
           version_id: string
         }[]
       }
+      get_fp_declaration_form_public: {
+        Args: never
+        Returns: {
+          schema_snapshot: Json
+          template_id: string
+          version_id: string
+        }[]
+      }
       get_fp_determination_audit_log: {
         Args: { _determination_id: string }
         Returns: {

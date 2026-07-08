@@ -1,54 +1,43 @@
-## Problem
+## Goal
+Mark all 16 returns for "New FinCorp Commercial Bank Limited" (2022 Q1 – 2025 Q4) as submitted and fully approved through the return approval workflow. Leave 2026 Q1 untouched (stays WIP).
 
-Every P&L form (all 11 sector templates, `form_templates.name = 'P&L'`) was built with **four fields per line code** — one each for 2022 Q1, Q2, Q3, Q4. Each return is already scoped to a single quarter via `returns_filed.period_start_date` / `period_end_date`, so a return should collect **one value per line**, not four.
+## Scope
 
-Example (Commercial Bank P&L, published version `84869d01-…`):
+Entity: `New FinCorp Commercial Bank Limited` (`30a3c4cb-…`)
+Active return workflow: `Return Workflow` (`f42f76d0-…`) with steps Level 1 → Level 2 → VAL.
 
-```
-line 4  OPERATING INCOME — 2022 Q1   (fieldName: line_4_col_1)
-line 4  OPERATING INCOME — 2022 Q2   (fieldName: line_4_col_2)   ← wrong
-line 4  OPERATING INCOME — 2022 Q3   (fieldName: line_4_col_3)   ← wrong
-line 4  OPERATING INCOME — 2022 Q4   (fieldName: line_4_col_4)   ← wrong
-```
+Affected 16 rows in `returns_filed` (currently all `WIP`, no workflow attached):
+- 2022 Q1–Q4, 2023 Q1–Q4, 2024 Q1–Q4, 2025 Q1–Q4
 
-Every P&L version has the same shape: **36 unique line codes, 144 total fields** (36 × 4). Balance Sheet is unaffected (294 unique lines / 317 fields, essentially 1 col per line).
+## Changes (data-only, via `supabase--insert`)
 
-## Data check (no data migration needed)
+1. **Attach workflow + submit**
+   Update the 16 rows:
+   - `workflow_id = f42f76d0-3a96-4e87-a08b-90a34bd576f7`
+   - `workflow_status = 'SUB'`
+   - `submit_date = now()`
+   - `current_step_id = Level 1 step id`
+   - `ontime_status` computed from `submit_date` vs `due_date` (`on_time` if ≤ due_date else `late`).
 
-For the FinCorp Commercial Bank entity, all 17 quarterly P&L data rows were saved under `col_1` only. Zero rows exist in `col_2`/`col_3`/`col_4`. Collapsing the schema will not orphan any stored values.
+2. **Approve Level 1 → Level 2**
+   Insert `approval_actions` rows (`entity_type='return'`, `action_type='approve'`, `step_id=Level 1`, `actor_id` = a regulator/admin uid) and advance `current_step_id` to Level 2.
 
-## Fix
+3. **Approve Level 2 → Validated**
+   Insert `approval_actions` rows for Level 2 approve, then set:
+   - `workflow_status = 'VAL'`
+   - `current_step_id = NULL`
 
-Single migration that rewrites `schema_snapshot` for every P&L `form_versions` row (11 templates × 1–2 versions each):
+4. **Audit trail**
+   Insert `return_audit_log` entries for submit + each approval so the timeline reflects the transitions.
 
-For each row in `rows[]`:
-- If `fields[0].fieldName` matches `line_..._col_[2-4]` → drop the row.
-- If `fields[0].fieldName` matches `line_..._col_1` → strip the trailing ` — 2022 Qn` from `label`.
+## Non-goals / preserved behavior
+- No schema/RLS/code changes.
+- 2026 Q1 return (`87a20403-…`) is untouched.
+- No changes to `return_form_data`, form definitions, or workflow configuration.
+- No notifications dispatched (pure data backfill).
 
-Result per P&L form: 36 rows, one field each, labelled `OPERATING INCOME`, `INTEREST INCOME`, `LOANS, ADVANCES & DISC.`, etc.
+## Verification
+After apply, query `returns_filed` for the entity and confirm 16 rows show `VAL` with `submit_date` set and 2026 Q1 still `WIP`. Spot-check `approval_actions` and `return_audit_log` for one return.
 
-Applied to both `draft` and `published` versions so the current published Commercial Bank / Building Society P&L forms are corrected too (they are the ones licensees actually see).
-
-## Out of scope
-
-- Balance Sheet schemas (already single-column).
-- Any code changes — `FormRenderer` already reads the schema as-is.
-- The BS/P&L data already loaded for FinCorp Commercial Bank (Q1 2022 – Q4 2025). Existing `col_1` values remain and will render correctly under the new schema.
-- Any workflow, calculation, or UI logic.
-
-## Verification after migration
-
-```sql
-SELECT fv.id, ft.sector,
-       COUNT(DISTINCT f->>'lineCode')  AS unique_lines,
-       COUNT(*)                         AS total_fields
-FROM form_versions fv
-JOIN form_templates ft ON ft.id = fv.template_id,
-     jsonb_array_elements(schema_snapshot) s,
-     jsonb_array_elements(s->'rows')       r,
-     jsonb_array_elements(r->'fields')     f
-WHERE ft.name = 'P&L'
-GROUP BY fv.id, ft.sector;
-```
-
-Expected: every P&L version reports `unique_lines = total_fields = 36`.
+## Open question
+Which user should be recorded as the approver for the `approval_actions` / `updated_by` fields? If you don't specify, I'll use the entity's `assigned_supervisor_id` when set, otherwise the first active regulator admin user.
