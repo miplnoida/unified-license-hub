@@ -6068,6 +6068,60 @@ export type Database = {
         }
         Relationships: []
       }
+      fp_screening_execution_rules: {
+        Row: {
+          assessment_type: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string | null
+          screening_config_id: string
+          sector_id: string | null
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          screening_config_id: string
+          sector_id?: string | null
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          screening_config_id?: string
+          sector_id?: string | null
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_screening_execution_rules_screening_config_id_fkey"
+            columns: ["screening_config_id"]
+            isOneToOne: false
+            referencedRelation: "fp_screening_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_screening_execution_rules_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fp_screening_runs: {
         Row: {
           assessment_id: string
@@ -14977,7 +15031,7 @@ export type Database = {
           p_inv_id: string
           p_token: string
         }
-        Returns: boolean
+        Returns: Json
       }
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
