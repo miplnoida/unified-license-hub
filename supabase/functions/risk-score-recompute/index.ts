@@ -71,12 +71,24 @@ Deno.serve(async (req) => {
     for (const lic of licensees ?? []) {
       const eid = (lic as any).id as string;
 
-      // Fetch signal counts in parallel.
-      const [breachesR, complaintsR, overdueR, enforcementR, findingsR, rolesR] = await Promise.all([
-        supabase.from('return_threshold_breaches')
-          .select('id, returns_filed!inner(entity_id, on_behalf_of_licensee_id)', { count: 'exact', head: true })
+      // Prudential breaches: first collect the entity's return ids, then count
+      // unacknowledged breaches against them. This avoids a foreignTable OR
+      // filter combined with head:true, which does not return a reliable count.
+      const { data: entityReturnRows } = await supabase.from('returns_filed')
+        .select('id')
+        .or(`entity_id.eq.${eid},on_behalf_of_licensee_id.eq.${eid}`);
+      const entityReturnIds = (entityReturnRows ?? []).map((r: any) => r.id);
+      let breachCount = 0;
+      if (entityReturnIds.length > 0) {
+        const { count } = await supabase.from('return_threshold_breaches')
+          .select('id', { count: 'exact', head: true })
           .is('acknowledged_at', null)
-          .or(`entity_id.eq.${eid},on_behalf_of_licensee_id.eq.${eid}`, { foreignTable: 'returns_filed' }),
+          .in('return_id', entityReturnIds);
+        breachCount = count ?? 0;
+      }
+
+      // Fetch remaining signal counts in parallel.
+      const [complaintsR, overdueR, enforcementR, findingsR, rolesR] = await Promise.all([
         supabase.from('complaints').select('id', { count: 'exact', head: true })
           .eq('licensee_id', eid).neq('status', 'resolved'),
         supabase.from('returns_filed').select('id', { count: 'exact', head: true })
