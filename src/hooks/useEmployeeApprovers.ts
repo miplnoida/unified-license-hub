@@ -25,6 +25,7 @@ export interface EmployeeApprover {
   department: string | null;
   designation: string | null;
   primary_role: string | null;
+  status: string | null;
 }
 
 const INTERNAL_APP_ROLES = new Set([
@@ -75,6 +76,7 @@ export function useEmployeeApprovers(search?: string) {
           department: (p.department as string | null) ?? null,
           designation: null,
           primary_role: roleByUser.get(p.id) ?? null,
+          status: (p.status as string | null) ?? null,
         }))
         .filter(u => {
           if (!q) return true;

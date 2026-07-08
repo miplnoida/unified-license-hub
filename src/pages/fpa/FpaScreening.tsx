@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +30,7 @@ import {
   TrendingUp,
   AlertCircle,
 } from 'lucide-react';
+import AutoScreeningRulesTab from '@/components/fpa/AutoScreeningRulesTab';
 
 // ─── add-config form types ────────────────────────────────────────────────────
 
@@ -369,242 +371,255 @@ export default function FpaScreening() {
           description="Configure screening checks and run automated adverse media/sanctions screening — FPA-005"
         />
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Total Runs"
-            value={totalRuns}
-            icon={Activity}
-            accent="bg-slate-100 text-slate-600"
-          />
-          <StatCard
-            label="Completed"
-            value={completedRuns}
-            icon={CheckCircle2}
-            accent="bg-green-100 text-green-600"
-          />
-          <StatCard
-            label="With Hits"
-            value={withHits}
-            icon={AlertTriangle}
-            accent="bg-amber-100 text-amber-600"
-          />
-          <StatCard
-            label="Failed"
-            value={failedRuns}
-            icon={XCircle}
-            accent="bg-red-100 text-red-600"
-          />
-        </div>
+        <Tabs defaultValue="runs" className="space-y-5">
+          <TabsList>
+            <TabsTrigger value="runs">Screening Runs</TabsTrigger>
+            <TabsTrigger value="automation">Automatic Screening Execution</TabsTrigger>
+          </TabsList>
 
-        {/* Main two-panel layout */}
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-
-          {/* Left panel — Screening Configurations (~40%) */}
-          <div className="w-full lg:w-[40%] space-y-3">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">Screening Configurations</h2>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setAddConfigOpen(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Add Config
-              </Button>
+          <TabsContent value="runs" className="space-y-5 mt-0">
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard
+                label="Total Runs"
+                value={totalRuns}
+                icon={Activity}
+                accent="bg-slate-100 text-slate-600"
+              />
+              <StatCard
+                label="Completed"
+                value={completedRuns}
+                icon={CheckCircle2}
+                accent="bg-green-100 text-green-600"
+              />
+              <StatCard
+                label="With Hits"
+                value={withHits}
+                icon={AlertTriangle}
+                accent="bg-amber-100 text-amber-600"
+              />
+              <StatCard
+                label="Failed"
+                value={failedRuns}
+                icon={XCircle}
+                accent="bg-red-100 text-red-600"
+              />
             </div>
 
-            {configsLoading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading configurations…
-              </div>
-            )}
+            {/* Main two-panel layout */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start">
 
-            {!configsLoading && (!configs || configs.length === 0) && (
-              <Card className="border-dashed">
-                <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                  No screening configurations found.
-                </CardContent>
-              </Card>
-            )}
-
-            {(configs ?? []).map((config: any) => (
-              <Card key={config.id} className="border-border/60 hover:border-border transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {config.display_label || config.key}
-                      </p>
-                      {config.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {config.description}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-shrink-0 gap-1.5 h-7 px-2.5 text-xs"
-                      onClick={() => openRunDialog(config)}
-                    >
-                      <Play className="h-3 w-3" />
-                      Run Now
-                    </Button>
+              {/* Left panel — Screening Configurations (~40%) */}
+              <div className="w-full lg:w-[40%] space-y-3">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-foreground">Screening Configurations</h2>
                   </div>
+                  <Button size="sm" variant="outline" onClick={() => setAddConfigOpen(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add Config
+                  </Button>
+                </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                    {config.check_type && (
-                      <Badge variant="outline" className="text-xs font-medium">
-                        {config.check_type.replace(/_/g, ' ')}
-                      </Badge>
-                    )}
-                    {/* {config.provider && (
-                      <Badge variant="secondary" className="text-xs">
-                        {config.provider}
-                      </Badge>
-                    )} */}
-                    {severityBadge(config.severity_default)}
-
-                    <div className="ml-auto">
-                      <button
-                        type="button"
-                        disabled={toggleConfigMutation.isPending}
-                        onClick={() =>
-                          toggleConfigMutation.mutate({ id: config.id, isActive: !config.is_active })
-                        }
-                        className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label={config.is_active ? 'Active — click to deactivate' : 'Inactive — click to activate'}
-                      >
-                        {config.is_active ? (
-                          <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-200 cursor-pointer">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-200 cursor-pointer">
-                            Inactive
-                          </Badge>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Vertical separator on desktop */}
-          <Separator orientation="vertical" className="hidden lg:block self-stretch" />
-
-          {/* Right panel — Recent Screening Runs (~60%) */}
-          <div className="w-full lg:flex-1 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold text-foreground">Recent Screening Runs</h2>
-              <span className="text-xs text-muted-foreground">(last 50)</span>
-            </div>
-
-            <Card className="border-border/60">
-              <CardContent className="p-0">
-                {runsLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+                {configsLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading runs…
-                  </div>
-                ) : !runs || runs.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-muted-foreground">
-                    No screening runs yet. Use "Run Now" on a configuration to start.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="pl-4">Individual</TableHead>
-                          <TableHead>Run Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Checks</TableHead>
-                          <TableHead className="text-right">Hits</TableHead>
-                          <TableHead>Started</TableHead>
-                          <TableHead>Duration</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {runs.map((run: any) => {
-                          const hits = run.total_hits ?? 0;
-
-                          return (
-                            <TableRow
-                              key={run.id}
-                              className="cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => openRunDetail(run)}
-                            >
-                              <TableCell className="pl-4 font-medium text-sm">
-                                {run.individual?.full_name ?? (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell>{runTypeBadge(run.run_type ?? 'manual')}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                  {run.status === 'running' && (
-                                    <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
-                                  )}
-                                  {runStatusBadge(run.status)}
-                                  {run.status === 'running' && (
-                                    <button
-                                      type="button"
-                                      title="Cancel stuck run"
-                                      disabled={cancelRunMutation.isPending}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        cancelRunMutation.mutate(run.id);
-                                      }}
-                                      className="ml-1 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-                                    >
-                                      <XCircle className="h-3.5 w-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm">
-                                {run.total_checks != null ? run.total_checks : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums text-sm">
-                                {hits > 0 ? (
-                                  <span className="font-semibold text-red-600">{hits}</span>
-                                ) : run.total_hits != null ? (
-                                  <span className="text-muted-foreground">0</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {formatRelative(run.started_at)}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground tabular-nums">
-                                {run.status === 'running' ? (
-                                  <span className="text-blue-500 flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    Running…
-                                  </span>
-                                ) : (
-                                  formatDuration(run.started_at, run.completed_at)
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                    Loading configurations…
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+
+                {!configsLoading && (!configs || configs.length === 0) && (
+                  <Card className="border-dashed">
+                    <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                      No screening configurations found.
+                    </CardContent>
+                  </Card>
+                )}
+
+                {(configs ?? []).map((config: any) => (
+                  <Card key={config.id} className="border-border/60 hover:border-border transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {config.display_label || config.key}
+                          </p>
+                          {config.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                              {config.description}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-shrink-0 gap-1.5 h-7 px-2.5 text-xs"
+                          onClick={() => openRunDialog(config)}
+                        >
+                          <Play className="h-3 w-3" />
+                          Run Now
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                        {config.check_type && (
+                          <Badge variant="outline" className="text-xs font-medium">
+                            {config.check_type.replace(/_/g, ' ')}
+                          </Badge>
+                        )}
+                        {/* {config.provider && (
+                          <Badge variant="secondary" className="text-xs">
+                            {config.provider}
+                          </Badge>
+                        )} */}
+                        {severityBadge(config.severity_default)}
+
+                        <div className="ml-auto">
+                          <button
+                            type="button"
+                            disabled={toggleConfigMutation.isPending}
+                            onClick={() =>
+                              toggleConfigMutation.mutate({ id: config.id, isActive: !config.is_active })
+                            }
+                            className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label={config.is_active ? 'Active — click to deactivate' : 'Inactive — click to activate'}
+                          >
+                            {config.is_active ? (
+                              <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-200 cursor-pointer">
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-200 cursor-pointer">
+                                Inactive
+                              </Badge>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Vertical separator on desktop */}
+              <Separator orientation="vertical" className="hidden lg:block self-stretch" />
+
+              {/* Right panel — Recent Screening Runs (~60%) */}
+              <div className="w-full lg:flex-1 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-sm font-semibold text-foreground">Recent Screening Runs</h2>
+                  <span className="text-xs text-muted-foreground">(last 50)</span>
+                </div>
+
+                <Card className="border-border/60">
+                  <CardContent className="p-0">
+                    {runsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading runs…
+                      </div>
+                    ) : !runs || runs.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-muted-foreground">
+                        No screening runs yet. Use "Run Now" on a configuration to start.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/40">
+                              <TableHead className="pl-4">Individual</TableHead>
+                              <TableHead>Run Type</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Checks</TableHead>
+                              <TableHead className="text-right">Hits</TableHead>
+                              <TableHead>Started</TableHead>
+                              <TableHead>Duration</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {runs.map((run: any) => {
+                              const hits = run.total_hits ?? 0;
+
+                              return (
+                                <TableRow
+                                  key={run.id}
+                                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                  onClick={() => openRunDetail(run)}
+                                >
+                                  <TableCell className="pl-4 font-medium text-sm">
+                                    {run.individual?.full_name ?? (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>{runTypeBadge(run.run_type ?? 'manual')}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1.5">
+                                      {run.status === 'running' && (
+                                        <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                                      )}
+                                      {runStatusBadge(run.status)}
+                                      {run.status === 'running' && (
+                                        <button
+                                          type="button"
+                                          title="Cancel stuck run"
+                                          disabled={cancelRunMutation.isPending}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            cancelRunMutation.mutate(run.id);
+                                          }}
+                                          className="ml-1 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                                        >
+                                          <XCircle className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {run.total_checks != null ? run.total_checks : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {hits > 0 ? (
+                                      <span className="font-semibold text-red-600">{hits}</span>
+                                    ) : run.total_hits != null ? (
+                                      <span className="text-muted-foreground">0</span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">
+                                    {formatRelative(run.started_at)}
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground tabular-nums">
+                                    {run.status === 'running' ? (
+                                      <span className="text-blue-500 flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        Running…
+                                      </span>
+                                    ) : (
+                                      formatDuration(run.started_at, run.completed_at)
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="automation" className="mt-0">
+            <AutoScreeningRulesTab />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add Config dialog */}

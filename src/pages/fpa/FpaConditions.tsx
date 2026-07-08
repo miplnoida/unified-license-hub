@@ -33,6 +33,9 @@ import {
   ShieldCheck,
   ListChecks,
   Gauge,
+  Bell,
+  History,
+  RefreshCw,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -83,7 +86,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 
 function isOverdue(cond: RawCondition): boolean {
   return (
-    cond.status === 'active' &&
+    cond.status === 'open' &&
     !!cond.due_date &&
     cond.due_date < TODAY
   );
@@ -113,9 +116,10 @@ function truncate(s: string | null, len: number): string {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
-    case 'active':    return 'bg-blue-100 text-blue-800 border border-blue-300';
+    case 'open':      return 'bg-blue-100 text-blue-800 border border-blue-300';
     case 'satisfied': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
     case 'waived':    return 'bg-slate-100 text-slate-600 border border-slate-300';
+    case 'overdue':   return 'bg-red-100 text-red-800 border border-red-300';
     default:          return 'bg-slate-100 text-slate-600 border border-slate-200';
   }
 }
@@ -189,6 +193,9 @@ export default function FpaConditions() {
   // Waive dialog
   const [waiveTarget, setWaiveTarget] = useState<RawCondition | null>(null);
   const [waiveReason, setWaiveReason] = useState('');
+
+  // History (breach/reminder log) dialog
+  const [historyTarget, setHistoryTarget] = useState<RawCondition | null>(null);
 
   // ---------------------------------------------------------------------------
   // Data: conditions + joined individuals + determinations
@@ -287,7 +294,7 @@ export default function FpaConditions() {
   const stats = useMemo(() => {
     const all = conditions ?? [];
     const total = all.length;
-    const active = all.filter((c) => c.status === 'active').length;
+    const active = all.filter((c) => c.status === 'open').length;
     const overdueList = all.filter(isOverdue);
     const overdueCnt = overdueList.length;
     const satisfied = all.filter((c) => c.status === 'satisfied').length;
@@ -356,6 +363,76 @@ export default function FpaConditions() {
     onError: (e: any) => toast.error(e?.message ?? 'Update failed'),
   });
 
+  // Sends a reminder for a single condition right now — mirrors the reminder
+  // half of fp-monitoring-sweep, scoped to one row, for on-demand demoing.
+  const sendReminderMutation = useMutation({
+    mutationFn: async (cond: RawCondition) => {
+      const { error: evErr } = await (supabase as any).from('fp_monitoring_events').insert({
+        individual_id: cond.individual_id,
+        determination_id: cond.determination_id,
+        event_type: 'condition_due',
+        severity: 'low',
+        summary: `Condition due on ${cond.due_date}: ${(cond.description || '').slice(0, 200)}`,
+        detail: { condition_id: cond.id, due_date: cond.due_date, reminder: true, manual: true },
+      });
+      if (evErr) throw evErr;
+
+      const { error: updErr } = await (supabase as any)
+        .from('fp_conditions')
+        .update({ reminder_sent_at: new Date().toISOString() })
+        .eq('id', cond.id);
+      if (updErr) throw updErr;
+
+      await supabase.functions.invoke('dispatch-notification-event', {
+        body: {
+          event_key: 'fp_condition_reminder',
+          entity_type: 'fp_condition',
+          entity_id: cond.id,
+          payload: { individual_id: cond.individual_id, due_date: cond.due_date },
+        },
+      }).catch(() => { /* notification dispatch failure shouldn't block the reminder record */ });
+    },
+    onSuccess: () => {
+      toast.success('Reminder sent and logged.');
+      qc.invalidateQueries({ queryKey: ['fp_conditions_page'] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to send reminder'),
+  });
+
+  // Runs the full monitoring sweep now (reminders + overdue detection across
+  // every condition), instead of waiting for the scheduled cron job.
+  const runSweepMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('fp-monitoring-sweep', { body: {} });
+      if (error) throw error;
+      return data as { ok: boolean; scanned: number; rescreened: number; alerts: number; reminders: number; errors: number };
+    },
+    onSuccess: (data) => {
+      toast.success(
+        data?.ok
+          ? `Sweep complete — ${data.alerts} alert(s), ${data.reminders} reminder(s) sent.`
+          : 'Sweep completed with errors — check integration logs.',
+      );
+      qc.invalidateQueries({ queryKey: ['fp_conditions_page'] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Sweep failed'),
+  });
+
+  const { data: historyEvents, isLoading: historyLoading } = useQuery({
+    queryKey: ['fp_condition_history', historyTarget?.id],
+    enabled: !!historyTarget,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('fp_monitoring_events')
+        .select('id, event_type, severity, summary, created_at, acknowledged_at')
+        .eq('individual_id', historyTarget!.individual_id)
+        .contains('detail', { condition_id: historyTarget!.id })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!addIndividualId) throw new Error('Individual is required');
@@ -373,7 +450,7 @@ export default function FpaConditions() {
           category: addCategory.trim(),
           due_date: addDueDate,
           monitoring_owner: addMonitoringOwner.trim() || null,
-          status: 'active',
+          status: 'open',
           created_by: user?.id ?? null,
         });
       if (error) throw error;
@@ -403,10 +480,24 @@ export default function FpaConditions() {
           title="Conditions & SLA"
           description="Conditional Fit &amp; Proper determinations with SLA breach monitoring — FPA-013"
           actions={
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Condition
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => runSweepMutation.mutate()}
+                disabled={runSweepMutation.isPending}
+                title="Runs the same reminder + overdue-detection sweep that's scheduled every 6 hours"
+              >
+                {runSweepMutation.isPending
+                  ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  : <RefreshCw className="h-4 w-4 mr-1.5" />}
+                Run Sweep Now
+              </Button>
+              <Button size="sm" onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Condition
+              </Button>
+            </div>
           }
         />
 
@@ -451,7 +542,7 @@ export default function FpaConditions() {
                 colorClass="bg-card text-card-foreground"
               />
               <StatCard
-                label="Active"
+                label="Open"
                 value={stats.active}
                 icon={<Clock className="h-7 w-7" />}
                 colorClass="bg-blue-50 border-blue-200 text-blue-900"
@@ -494,7 +585,7 @@ export default function FpaConditions() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All statuses</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
                         <SelectItem value="satisfied">Satisfied</SelectItem>
                         <SelectItem value="waived">Waived</SelectItem>
                       </SelectContent>
@@ -579,7 +670,7 @@ export default function FpaConditions() {
                         {filtered.map((cond) => {
                           const overdue = isOverdue(cond);
                           const daysOv = cond.due_date && overdue ? daysOverdue(cond.due_date) : 0;
-                          const daysUntilDue = cond.due_date && cond.status === 'active' && !overdue
+                          const daysUntilDue = cond.due_date && cond.status === 'open' && !overdue
                             ? daysUntil(cond.due_date)
                             : null;
 
@@ -624,6 +715,12 @@ export default function FpaConditions() {
                                       <span className="text-[10px] text-red-600 tabular-nums">{daysOv}d</span>
                                     </span>
                                   )}
+                                  {cond.reminder_sent_at && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      <Bell className="h-2.5 w-2.5" />
+                                      Reminded {fmtDate(cond.reminder_sent_at)}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
 
@@ -648,7 +745,7 @@ export default function FpaConditions() {
 
                               {/* Days Until Due */}
                               <TableCell className="py-3 text-right tabular-nums">
-                                {cond.status === 'active' && cond.due_date ? (
+                                {cond.status === 'open' && cond.due_date ? (
                                   overdue ? (
                                     <span className="text-xs font-semibold text-red-600">{daysOv} days overdue</span>
                                   ) : (
@@ -663,36 +760,55 @@ export default function FpaConditions() {
 
                               {/* Actions */}
                               <TableCell className="py-3 text-right">
-                                {cond.status === 'active' && (
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 px-2 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                                      onClick={() => {
-                                        setSatisfyTarget(cond);
-                                        setSatisfyNote('');
-                                      }}
-                                    >
-                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                      Mark Satisfied
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 px-2 text-xs text-slate-600"
-                                      onClick={() => {
-                                        setWaiveTarget(cond);
-                                        setWaiveReason('');
-                                      }}
-                                    >
-                                      Waive
-                                    </Button>
-                                  </div>
-                                )}
-                                {cond.status !== 'active' && (
-                                  <span className="text-xs text-muted-foreground italic">No actions</span>
-                                )}
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {cond.status === 'open' && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                                        onClick={() => {
+                                          setSatisfyTarget(cond);
+                                          setSatisfyNote('');
+                                        }}
+                                      >
+                                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                        Mark Satisfied
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2 text-xs text-slate-600"
+                                        onClick={() => {
+                                          setWaiveTarget(cond);
+                                          setWaiveReason('');
+                                        }}
+                                      >
+                                        Waive
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2 text-xs text-slate-600"
+                                        disabled={sendReminderMutation.isPending}
+                                        onClick={() => sendReminderMutation.mutate(cond)}
+                                        title="Send reminder now and log it"
+                                      >
+                                        <Bell className="h-3.5 w-3.5 mr-1" />
+                                        Remind
+                                      </Button>
+                                    </>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-xs text-slate-600"
+                                    onClick={() => setHistoryTarget(cond)}
+                                    title="View reminder / breach log"
+                                  >
+                                    <History className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -831,6 +947,66 @@ export default function FpaConditions() {
               {waiveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirm Waiver
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* History dialog — reminder / SLA breach log for one condition       */}
+      {/* ----------------------------------------------------------------- */}
+      <Dialog open={!!historyTarget} onOpenChange={(open) => { if (!open) setHistoryTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
+              Reminder &amp; Breach Log
+            </DialogTitle>
+          </DialogHeader>
+
+          {historyTarget && (
+            <div className="space-y-4">
+              <div className="rounded-md border bg-muted/50 p-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Condition</p>
+                <p className="text-sm font-medium">{historyTarget.individual_name}</p>
+                <p className="text-sm text-muted-foreground">{historyTarget.description ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">Due: {fmtDate(historyTarget.due_date)}</p>
+              </div>
+
+              {historyLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading log…
+                </div>
+              ) : !historyEvents || historyEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  No reminders or breaches logged yet for this condition.
+                </p>
+              ) : (
+                <ul className="space-y-2 max-h-72 overflow-y-auto">
+                  {historyEvents.map((ev: any) => (
+                    <li key={ev.id} className="rounded-md border p-2.5 text-xs space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-semibold tracking-wide ${
+                          ev.event_type === 'condition_overdue'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {ev.event_type === 'condition_overdue' ? 'BREACH' : 'REMINDER'}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{new Date(ev.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-foreground">{ev.summary}</p>
+                      {ev.acknowledged_at && (
+                        <p className="text-muted-foreground">Acknowledged {new Date(ev.acknowledged_at).toLocaleString()}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setHistoryTarget(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

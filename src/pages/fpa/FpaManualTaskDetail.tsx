@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import {
   Dialog,
   DialogContent,
@@ -168,18 +170,21 @@ export default function FpaManualTaskDetail() {
   });
 
   // ── Evidence upload handler ───────────────────────────────────────────────
+  // The 'fp-evidence' bucket is private (screening evidence is sensitive), so
+  // we store the storage path — not a public URL — and mint a fresh signed
+  // URL on demand whenever a file is opened (see openEvidenceFile below).
 
   const handleEvidenceUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !findingId) return;
 
     setUploadingEvidence(true);
-    const uploadedUrls: string[] = [];
+    const uploadedPaths: string[] = [];
     const errors: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const ext = file.name.split('.').pop();
-      const path = `${findingId}/${Date.now()}-${i}.${ext}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${findingId}/${Date.now()}-${i}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('fp-evidence')
@@ -190,20 +195,14 @@ export default function FpaManualTaskDetail() {
         continue;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('fp-evidence')
-        .getPublicUrl(path);
-
-      if (urlData?.publicUrl) {
-        uploadedUrls.push(urlData.publicUrl);
-      }
+      uploadedPaths.push(path);
     }
 
-    if (uploadedUrls.length > 0) {
-      const currentUrls: string[] = Array.isArray(finding?.evidence_urls)
+    if (uploadedPaths.length > 0) {
+      const currentPaths: string[] = Array.isArray(finding?.evidence_urls)
         ? finding.evidence_urls
         : [];
-      const merged = [...currentUrls, ...uploadedUrls];
+      const merged = [...currentPaths, ...uploadedPaths];
 
       const { error: dbError } = await supabase
         .from('fp_findings')
@@ -211,10 +210,10 @@ export default function FpaManualTaskDetail() {
         .eq('id', findingId);
 
       if (dbError) {
-        toast.error(`Uploaded files but failed to save URLs: ${dbError.message}`);
+        toast.error(`Uploaded files but failed to save: ${dbError.message}`);
       } else {
         toast.success(
-          `${uploadedUrls.length} file${uploadedUrls.length > 1 ? 's' : ''} uploaded successfully`,
+          `${uploadedPaths.length} file${uploadedPaths.length > 1 ? 's' : ''} uploaded successfully`,
         );
         qc.invalidateQueries({ queryKey: ['fpa_finding_detail', findingId] });
       }
@@ -226,6 +225,23 @@ export default function FpaManualTaskDetail() {
 
     setUploadingEvidence(false);
   };
+
+  // Evidence paths are opaque storage keys, not public URLs — mint a
+  // short-lived signed URL each time a file is opened.
+  const openEvidenceFile = async (path: string) => {
+    const { data, error } = await supabase.storage.from('fp-evidence').createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) {
+      toast.error(`Failed to open file: ${error?.message ?? 'Unknown error'}`);
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  function evidenceFileName(path: string) {
+    const name = path.split('/').pop() ?? path;
+    // Strip the "<timestamp>-<index>-" prefix added at upload time, if present.
+    return name.replace(/^\d+-\d+-/, '');
+  }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -241,6 +257,33 @@ export default function FpaManualTaskDetail() {
   const handleDragLeave = () => {
     setIsDragOver(false);
   };
+
+  // ── Assignment ─────────────────────────────────────────────────────────────
+
+  const { data: allEmployees } = useEmployeeApprovers();
+  const activeEmployees = (allEmployees ?? []).filter((e) => e.status === 'active');
+
+  const assignMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!findingId) throw new Error('No finding ID');
+      if (!user?.id) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('fp_findings')
+        .update({
+          assigned_to: userId,
+          resolution_status: 'under_review',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user.id,
+        } as any)
+        .eq('id', findingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Task assigned.');
+      qc.invalidateQueries({ queryKey: ['fpa_finding_detail', findingId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Assignment failed'),
+  });
 
   // ── Save notes mutation ───────────────────────────────────────────────────
 
@@ -470,17 +513,16 @@ export default function FpaManualTaskDetail() {
                       Evidence URLs
                     </p>
                     <ul className="space-y-1.5">
-                      {evidenceUrls.map((url: string, i: number) => (
+                      {evidenceUrls.map((path: string, i: number) => (
                         <li key={i}>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
+                          <button
+                            type="button"
+                            onClick={() => openEvidenceFile(path)}
+                            className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1 text-left"
                           >
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                            {url}
-                          </a>
+                            {evidenceFileName(path)}
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -566,17 +608,16 @@ export default function FpaManualTaskDetail() {
                       Attached Evidence
                     </p>
                     <ul className="space-y-1.5">
-                      {evidenceUrls.map((url: string, i: number) => (
+                      {evidenceUrls.map((path: string, i: number) => (
                         <li key={i}>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
+                          <button
+                            type="button"
+                            onClick={() => openEvidenceFile(path)}
+                            className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1 text-left"
                           >
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                            {url}
-                          </a>
+                            {evidenceFileName(path)}
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -749,6 +790,43 @@ export default function FpaManualTaskDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Assignment */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Assignment
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={finding.assigned_to ?? undefined}
+                  onValueChange={(v) => assignMutation.mutate(v)}
+                  disabled={assignMutation.isPending}
+                >
+                  <SelectTrigger>
+                    {assignMutation.isPending ? (
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Assigning…
+                      </span>
+                    ) : (
+                      <SelectValue placeholder="Assign to…" />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeEmployees.length === 0 && (
+                      <SelectItem value="__none__" disabled>No active employees found</SelectItem>
+                    )}
+                    {activeEmployees.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.full_name || e.email || e.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
 
             {/* Finding Meta */}
             <Card>

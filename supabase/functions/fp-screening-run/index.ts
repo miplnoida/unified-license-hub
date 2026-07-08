@@ -55,6 +55,10 @@ Deno.serve(async (req) => {
     const assessmentId: string | undefined = body.assessment_id;
     const runType: string = body.run_type || 'manual';
     const triggeredBy: string | null = body.triggered_by || null;
+    // Optional: scope this run to a specific set of screening processes (used by
+    // automatic screening execution rules). Omitted = run every active config,
+    // preserving today's manual "Run Now" behavior.
+    const configIds: string[] | undefined = Array.isArray(body.config_ids) && body.config_ids.length ? body.config_ids : undefined;
     if (!assessmentId) {
       return new Response(JSON.stringify({ ok: false, error: 'assessment_id required' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
@@ -65,7 +69,9 @@ Deno.serve(async (req) => {
     const { data: person, error: pErr } = await supa.from('fp_individuals').select('id, full_name, nationality, national_id').eq('id', assessment.individual_id).maybeSingle();
     if (pErr || !person) throw new Error(pErr?.message || 'Individual not found');
 
-    const { data: configs, error: cErr } = await supa.from('fp_screening_configs').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+    let configsQuery = supa.from('fp_screening_configs').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+    if (configIds) configsQuery = configsQuery.in('id', configIds);
+    const { data: configs, error: cErr } = await configsQuery;
     if (cErr) throw new Error(cErr.message);
     const activeConfigs = configs ?? [];
 

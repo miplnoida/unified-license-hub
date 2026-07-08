@@ -26,6 +26,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logFpAction } from '@/lib/fpAudit';
 import {
   Loader2,
   Brain,
@@ -40,6 +41,8 @@ import {
   BarChart3,
   Pencil,
   ExternalLink,
+  History,
+  ListChecks,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -76,6 +79,37 @@ interface AiFinding {
 interface OverrideForm {
   decision: 'false_positive' | 'confirmed' | 'under_review' | '';
   reason: string;
+}
+
+interface ScreeningRunInfo {
+  id: string;
+  run_type: string | null;
+  status: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  total_checks: number | null;
+  total_hits: number | null;
+  config_snapshot: any;
+}
+
+// Mirrors the self-declaration keys fp-screening-run itself checks per
+// check_type (see supabase/functions/fp-screening-run/index.ts) — used here to
+// flag when the declarant answered "No" but an AI/automated finding of the
+// same category exists on the assessment.
+const DECLARATION_KEYS_BY_CHECK_TYPE: Record<string, string[]> = {
+  criminal_history: ['criminal_conviction', 'criminal_pending', 'director_disqualified', 'civil_judgment'],
+  regulator_watchlist: ['license_refused', 'license_revoked', 'disciplinary_proceedings'],
+  credit_history: ['bankruptcy', 'insolvent_director'],
+  pep: ['other_regulated_roles'],
+};
+
+function findInconsistency(finding: AiFinding, questionnaire: Record<string, { answer?: string }>): string | null {
+  if (finding.is_false_positive || finding.resolution_status === 'false_positive') return null;
+  const keys = DECLARATION_KEYS_BY_CHECK_TYPE[finding.check_type ?? ''];
+  if (!keys) return null;
+  const deniedKeys = keys.filter((k) => questionnaire?.[k]?.answer === 'no');
+  if (deniedKeys.length === 0) return null;
+  return `Self-declaration answered "No" to ${deniedKeys.join(', ').replace(/_/g, ' ')}, but this ${(finding.check_type ?? '').replace(/_/g, ' ')} finding is still active.`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -116,6 +150,8 @@ function severityBadge(severity: string | null) {
   }
 }
 
+// confidence_score is stored 0-100 (see fp-ai-media-ingest and fp-screening-run
+// edge functions) — do not treat it as a 0-1 fraction.
 function confidenceBadge(score: number | null) {
   if (score === null || score === undefined) {
     return (
@@ -124,23 +160,24 @@ function confidenceBadge(score: number | null) {
       </Badge>
     );
   }
-  if (score >= 0.8) {
+  const pct = Math.round(score);
+  if (pct >= 80) {
     return (
       <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-xs font-mono">
-        HIGH CONF · {(score * 100).toFixed(0)}%
+        HIGH CONF · {pct}%
       </Badge>
     );
   }
-  if (score >= 0.5) {
+  if (pct >= 50) {
     return (
       <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs font-mono">
-        MED CONF · {(score * 100).toFixed(0)}%
+        MED CONF · {pct}%
       </Badge>
     );
   }
   return (
     <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs font-mono">
-      LOW CONF · {(score * 100).toFixed(0)}%
+      LOW CONF · {pct}%
     </Badge>
   );
 }
@@ -245,23 +282,42 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
           ? finding.raw_payload
           : {};
 
-      const updatedPayload = {
-        ...existingPayload,
-        human_override: {
-          decision: form.decision,
-          reason: form.reason.trim(),
-          by: user?.email ?? user?.id ?? 'unknown',
-          at: now,
-        },
+      // Preserve prior overrides instead of replacing them, so a second
+      // override doesn't erase the trail of what the AI originally said and
+      // what earlier reviewers decided.
+      const priorHistory: unknown[] = Array.isArray((existingPayload as any).override_history)
+        ? (existingPayload as any).override_history
+        : [];
+      const previousOverride = (existingPayload as any).human_override ?? null;
+
+      const newOverride = {
+        decision: form.decision,
+        reason: form.reason.trim(),
+        by: user?.email ?? user?.id ?? 'unknown',
+        at: now,
       };
 
-      // Use the typed supabase client directly (no 'as any' cast)
+      const updatedPayload = {
+        ...existingPayload,
+        human_override: newOverride,
+        override_history: previousOverride ? [...priorHistory, previousOverride] : priorHistory,
+      };
+
+      const beforeState = {
+        resolution_status: finding.resolution_status,
+        is_false_positive: finding.is_false_positive,
+        resolution_reason: (finding as any).resolution_reason ?? null,
+      };
+
       const { error, count } = await supabase
         .from('fp_findings')
         .update({
           resolution_status: form.decision,
+          resolution_reason: form.reason.trim(),
+          is_false_positive: form.decision === 'false_positive',
           review_note: form.reason.trim(),
           reviewed_at: now,
+          reviewed_by: user?.id ?? null,
           raw_payload: updatedPayload,
         })
         .eq('id', finding.id)
@@ -273,6 +329,21 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
       if (count !== null && count === 0) {
         throw new Error('Finding not found or already deleted.');
       }
+
+      await logFpAction('fp.finding.override', 'fp_finding', finding.id, {
+        before: beforeState,
+        after: {
+          resolution_status: form.decision,
+          is_false_positive: form.decision === 'false_positive',
+          resolution_reason: form.reason.trim(),
+        },
+        context: {
+          individualId: finding.individual_id ?? undefined,
+          assessmentId: finding.assessment_id ?? undefined,
+          findingId: finding.id,
+        },
+        justification: form.reason.trim(),
+      });
     },
     onSuccess: () => {
       toast.success('AI decision overridden.');
@@ -374,11 +445,12 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
 
 interface FindingCardProps {
   finding: AiFinding;
+  inconsistency: string | null;
   onOverride: (finding: AiFinding) => void;
   onViewIndividual: (individualId: string) => void;
 }
 
-function FindingCard({ finding, onOverride, onViewIndividual }: FindingCardProps) {
+function FindingCard({ finding, inconsistency, onOverride, onViewIndividual }: FindingCardProps) {
   const citations = parseCitations(finding.citations);
   const assessorNote =
     finding.raw_payload &&
@@ -393,6 +465,13 @@ function FindingCard({ finding, onOverride, onViewIndividual }: FindingCardProps
     finding.raw_payload.human_override
       ? finding.raw_payload.human_override
       : null;
+
+  const overrideHistory: any[] =
+    finding.raw_payload &&
+    typeof finding.raw_payload === 'object' &&
+    Array.isArray(finding.raw_payload.override_history)
+      ? finding.raw_payload.override_history
+      : [];
 
   const isOverridden = !!humanOverride;
 
@@ -455,6 +534,16 @@ function FindingCard({ finding, onOverride, onViewIndividual }: FindingCardProps
             </p>
           )}
 
+          {/* Inconsistency flag: self-declaration vs. finding */}
+          {inconsistency && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+              <span className="leading-relaxed">
+                <span className="font-semibold">Inconsistency detected.</span> {inconsistency}
+              </span>
+            </div>
+          )}
+
           {/* Citations */}
           {citations.length > 0 && (
             <div className="space-y-1">
@@ -494,12 +583,31 @@ function FindingCard({ finding, onOverride, onViewIndividual }: FindingCardProps
               {humanOverride && (
                 <p className="text-xs text-muted-foreground mt-1">
                   by {humanOverride.by ?? 'reviewer'} &mdash; {humanOverride.reason ?? ''}
+                  <span className="ml-1 text-muted-foreground/70">
+                    ({new Date(humanOverride.at).toLocaleString()})
+                  </span>
                 </p>
               )}
               {finding.review_note && !humanOverride && (
                 <p className="text-xs text-muted-foreground mt-0.5 italic">
                   {finding.review_note}
                 </p>
+              )}
+              {overrideHistory.length > 0 && (
+                <details className="mt-1.5">
+                  <summary className="text-xs text-muted-foreground cursor-pointer inline-flex items-center gap-1 hover:text-foreground">
+                    <History className="h-3 w-3" />
+                    {overrideHistory.length} prior override{overrideHistory.length !== 1 ? 's' : ''}
+                  </summary>
+                  <ul className="mt-1 space-y-1 pl-4 border-l">
+                    {overrideHistory.map((h: any, i: number) => (
+                      <li key={i} className="text-xs text-muted-foreground">
+                        <span className="font-medium">{h.decision}</span> by {h.by ?? 'reviewer'} &mdash; {h.reason ?? ''}{' '}
+                        <span className="text-muted-foreground/70">({h.at ? new Date(h.at).toLocaleString() : '—'})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
             <Button
@@ -573,6 +681,41 @@ export default function FpaAiAnalysis() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as AiFinding[];
+    },
+  });
+
+  // ── Self-declaration data (for inconsistency detection) ─────────────────────
+
+  const { data: declarationQuestionnaire } = useQuery({
+    queryKey: ['fp_assessment_declaration', selectedAssessmentId],
+    enabled: !!selectedAssessmentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_assessments')
+        .select('declaration_data')
+        .eq('id', selectedAssessmentId!)
+        .maybeSingle();
+      if (error) throw error;
+      const decl = (data?.declaration_data as any) ?? {};
+      return (decl.questionnaire ?? {}) as Record<string, { answer?: string }>;
+    },
+  });
+
+  // ── Latest screening run (AI output log / data sources evidence) ────────────
+
+  const { data: latestRun } = useQuery({
+    queryKey: ['fp_ai_latest_run', selectedAssessmentId],
+    enabled: !!selectedAssessmentId,
+    queryFn: async (): Promise<ScreeningRunInfo | null> => {
+      const { data, error } = await supabase
+        .from('fp_screening_runs')
+        .select('id, run_type, status, started_at, completed_at, total_checks, total_hits, config_snapshot')
+        .eq('assessment_id', selectedAssessmentId!)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as ScreeningRunInfo) ?? null;
     },
   });
 
@@ -668,6 +811,45 @@ export default function FpaAiAnalysis() {
           </CardContent>
         </Card>
 
+        {/* Screening Run evidence — durable record of what ran and against which data sources */}
+        {latestRun && (
+          <Card className="border-slate-200 bg-slate-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-muted-foreground" />
+                Screening Run Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>Run type: <span className="font-medium text-foreground">{latestRun.run_type ?? '—'}</span></span>
+                <span>Status: <span className="font-medium text-foreground">{latestRun.status ?? '—'}</span></span>
+                <span>Checks: <span className="font-medium text-foreground tabular-nums">{latestRun.total_checks ?? '—'}</span></span>
+                <span>Hits: <span className="font-medium text-foreground tabular-nums">{latestRun.total_hits ?? '—'}</span></span>
+                <span>
+                  Started:{' '}
+                  <span className="font-medium text-foreground">
+                    {latestRun.started_at ? new Date(latestRun.started_at).toLocaleString() : '—'}
+                  </span>
+                </span>
+              </div>
+              {Array.isArray(latestRun.config_snapshot) && latestRun.config_snapshot.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Data sources / screening processes used in this run</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {latestRun.config_snapshot.map((c: any, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs font-mono">
+                        {(c.key ?? c.check_type ?? 'config')}
+                        {c.check_type ? ` · ${c.check_type}` : ''}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Main content */}
         {showEmpty ? (
           <Card className="border-dashed">
@@ -706,6 +888,7 @@ export default function FpaAiAnalysis() {
                 <FindingCard
                   key={finding.id}
                   finding={finding}
+                  inconsistency={findInconsistency(finding, declarationQuestionnaire ?? {})}
                   onOverride={(f) => setOverrideFinding(f)}
                   onViewIndividual={handleViewIndividual}
                 />
@@ -733,6 +916,7 @@ export default function FpaAiAnalysis() {
                       finding.raw_payload.human_override
                         ? finding.raw_payload.human_override
                         : null;
+                    const inconsistent = findInconsistency(finding, declarationQuestionnaire ?? {});
 
                     return (
                       <div key={finding.id} className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
@@ -746,6 +930,12 @@ export default function FpaAiAnalysis() {
                               <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-50 text-xs gap-1">
                                 <UserCheck className="h-3 w-3" />
                                 Override
+                              </Badge>
+                            )}
+                            {inconsistent && (
+                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 text-xs gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Inconsistent
                               </Badge>
                             )}
                           </div>

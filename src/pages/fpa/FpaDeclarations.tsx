@@ -25,6 +25,7 @@ import {
   Loader2, Plus, Bell, Send, Copy, CheckCheck, ClipboardList,
   FileText, Clock, AlertCircle, RefreshCw, Eye,
 } from 'lucide-react';
+import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -639,12 +640,12 @@ export default function FpaDeclarations() {
                           <SelectValue placeholder={selectedIndividual ? 'Select assessment…' : 'Select individual first'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {(individualAssessments ?? []).filter((a: any) => a.status === 'draft').map((a: any) => (
+                          {(individualAssessments ?? []).filter((a: any) => canRequestDeclaration(a.status)).map((a: any) => (
                             <SelectItem key={a.id} value={a.id}>
                               {a.assessment_type ?? 'Assessment'} · {fmtDate(a.created_at)}
                             </SelectItem>
                           ))}
-                          {selectedIndividual && (individualAssessments ?? []).filter((a: any) => a.status === 'draft').length === 0 && !assessmentsError && (
+                          {selectedIndividual && (individualAssessments ?? []).filter((a: any) => canRequestDeclaration(a.status)).length === 0 && !assessmentsError && (
                             <SelectItem value="__none__" disabled>No pending assessments found</SelectItem>
                           )}
                         </SelectContent>
@@ -878,7 +879,7 @@ export default function FpaDeclarations() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs"
-                                  disabled={sendReminder.isPending || row.status !== 'draft'}
+                                  disabled={sendReminder.isPending || !canRequestDeclaration(row.status)}
                                   onClick={() => sendReminder.mutate(row.id)}
                                 >
                                   {sendReminder.isPending

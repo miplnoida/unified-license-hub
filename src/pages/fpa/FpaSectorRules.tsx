@@ -57,7 +57,12 @@ const ROLE_TYPES = [
   'controller', 'shareholder', 'senior_manager', 'trustee', 'other',
 ] as const;
 
-const PRIORITIES = ['high', 'medium', 'low'] as const;
+// Matches fp_findings.check_type / fp_screening_configs.check_type — the values
+// resolveFpSectorRule/evaluateFpCriteria (src/lib/fpSectorRules.ts) actually
+// compare against when a determination is evaluated.
+const KNOWN_CHECK_TYPES = [
+  'sanctions', 'pep', 'adverse_media', 'criminal_history', 'regulator_watchlist', 'credit_history',
+] as const;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -80,12 +85,10 @@ interface RuleRow {
 
 interface CriteriaForm {
   description: string;
-  priority: string;
-  probity_score_min: string;
-  character_assessment_required: boolean;
-  qualification_required: boolean;
-  background_check_required: boolean;
-  declaration_required: boolean;
+  min_score: string;
+  mandatory_checks: string;
+  disqualifiers: string;
+  warnings: string;
 }
 
 interface RuleFormState {
@@ -100,12 +103,10 @@ interface RuleFormState {
 
 const EMPTY_CRITERIA: CriteriaForm = {
   description: '',
-  priority: 'medium',
-  probity_score_min: '',
-  character_assessment_required: false,
-  qualification_required: false,
-  background_check_required: false,
-  declaration_required: false,
+  min_score: '',
+  mandatory_checks: '',
+  disqualifiers: '',
+  warnings: '',
 };
 
 const EMPTY_FORM: RuleFormState = {
@@ -119,31 +120,41 @@ const EMPTY_FORM: RuleFormState = {
 };
 
 // ── Criteria helpers ───────────────────────────────────────────────────────────
+// This shape — { min_score, mandatory_checks[], disqualifiers[], warnings[] } —
+// is not a UI convention; it's exactly what resolveFpSectorRule/evaluateFpCriteria
+// in src/lib/fpSectorRules.ts read when a determination is evaluated. Keeping
+// this page's payload aligned with that evaluator is what makes a rule
+// configured here actually affect a decision.
+
+function csv(v: string): string[] {
+  return v.split(',').map((s) => s.trim()).filter(Boolean);
+}
 
 function parseCriteriaToForm(criteria: any): CriteriaForm {
   if (!criteria || typeof criteria !== 'object') {
     return { ...EMPTY_CRITERIA, description: typeof criteria === 'string' ? criteria : '' };
   }
+  const joinArr = (v: any) => (Array.isArray(v) ? v.join(', ') : '');
   return {
     description: criteria.description ?? '',
-    priority: criteria.priority ?? 'medium',
-    probity_score_min: criteria.probity_score_min != null ? String(criteria.probity_score_min) : '',
-    character_assessment_required: criteria.character_assessment_required ?? false,
-    qualification_required: criteria.qualification_required ?? false,
-    background_check_required: criteria.background_check_required ?? false,
-    declaration_required: criteria.declaration_required ?? false,
+    min_score: criteria.min_score != null ? String(criteria.min_score) : '',
+    mandatory_checks: joinArr(criteria.mandatory_checks),
+    disqualifiers: joinArr(criteria.disqualifiers),
+    warnings: joinArr(criteria.warnings),
   };
 }
 
 function buildCriteriaPayload(form: CriteriaForm): object {
-  const payload: Record<string, any> = { priority: form.priority };
+  const payload: Record<string, any> = {};
   if (form.description.trim()) payload.description = form.description.trim();
-  const score = parseFloat(form.probity_score_min);
-  if (!isNaN(score)) payload.probity_score_min = score;
-  if (form.character_assessment_required) payload.character_assessment_required = true;
-  if (form.qualification_required) payload.qualification_required = true;
-  if (form.background_check_required) payload.background_check_required = true;
-  if (form.declaration_required) payload.declaration_required = true;
+  const score = parseFloat(form.min_score);
+  if (!isNaN(score)) payload.min_score = score;
+  const mandatoryChecks = csv(form.mandatory_checks);
+  if (mandatoryChecks.length) payload.mandatory_checks = mandatoryChecks;
+  const disqualifiers = csv(form.disqualifiers);
+  if (disqualifiers.length) payload.disqualifiers = disqualifiers;
+  const warnings = csv(form.warnings);
+  if (warnings.length) payload.warnings = warnings;
   return payload;
 }
 
@@ -151,14 +162,13 @@ function formatCriteriaPreview(criteria: any): string {
   if (!criteria || typeof criteria !== 'object') return '—';
   const parts: string[] = [];
   if (criteria.description) parts.push(String(criteria.description).slice(0, 60));
-  if (criteria.probity_score_min != null) parts.push(`Min score: ${criteria.probity_score_min}`);
-  const flags = [
-    criteria.character_assessment_required && 'Character',
-    criteria.qualification_required && 'Qualification',
-    criteria.background_check_required && 'Background',
-    criteria.declaration_required && 'Declaration',
-  ].filter(Boolean);
-  if (flags.length) parts.push(`Requires: ${(flags as string[]).join(', ')}`);
+  if (criteria.min_score != null) parts.push(`Min score: ${criteria.min_score}`);
+  if (Array.isArray(criteria.mandatory_checks) && criteria.mandatory_checks.length) {
+    parts.push(`Requires: ${criteria.mandatory_checks.join(', ')}`);
+  }
+  if (Array.isArray(criteria.disqualifiers) && criteria.disqualifiers.length) {
+    parts.push(`Disqualifies: ${criteria.disqualifiers.join(', ')}`);
+  }
   return parts.join(' · ').slice(0, 100) || '—';
 }
 
@@ -179,15 +189,6 @@ function activeBadge(is_active: boolean | null) {
       <span className="h-1.5 w-1.5 rounded-full bg-red-400 inline-block" />Inactive
     </Badge>
   );
-}
-
-function priorityBadge(priority: string | undefined) {
-  if (!priority) return <span className="text-muted-foreground text-sm">—</span>;
-  if (priority === 'high')
-    return <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs capitalize">High</Badge>;
-  if (priority === 'medium')
-    return <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs capitalize">Medium</Badge>;
-  return <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs capitalize">Low</Badge>;
 }
 
 // ── Stat Card ──────────────────────────────────────────────────────────────────
@@ -356,44 +357,69 @@ function RuleDialog({
 
           {/* ── Criteria builder ── */}
           <div>
-            <p className="text-sm font-semibold mb-3">Rule Criteria</p>
+            <p className="text-sm font-semibold mb-1">Rule Criteria</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Evaluated automatically against an individual's completed screening checks when a
+              determination is recorded on the Determinations page.
+            </p>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <Label>Priority <span className="text-red-500">*</span></Label>
-                <Select
-                  value={form.criteria.priority}
-                  onValueChange={(v) => setCriteria('priority', v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>
-                  Min. Probity Score{' '}
-                  <span className="text-xs font-normal text-muted-foreground">(0–100, optional)</span>
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder="e.g. 70"
-                  value={form.criteria.probity_score_min}
-                  onChange={(e) => setCriteria('probity_score_min', e.target.value)}
-                />
-              </div>
+            <div className="mb-3">
+              <Label>
+                Min. Confidence Score{' '}
+                <span className="text-xs font-normal text-muted-foreground">(0–100, optional)</span>
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="e.g. 70"
+                value={form.criteria.min_score}
+                onChange={(e) => setCriteria('min_score', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Average AI confidence score across active findings must meet this minimum.
+              </p>
             </div>
 
             <div className="mb-3">
+              <Label>Mandatory Checks <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
+              <Input
+                placeholder="e.g. criminal_history, sanctions"
+                value={form.criteria.mandatory_checks}
+                onChange={(e) => setCriteria('mandatory_checks', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                A finding of each check type below must exist and be active. Known types:{' '}
+                {KNOWN_CHECK_TYPES.join(', ')}.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <Label>Disqualifiers <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
+                <Input
+                  placeholder="e.g. sanctions"
+                  value={form.criteria.disqualifiers}
+                  onChange={(e) => setCriteria('disqualifiers', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Presence of any of these check types fails the rule outright.
+                </p>
+              </div>
+              <div>
+                <Label>Warnings <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
+                <Input
+                  placeholder="e.g. pep"
+                  value={form.criteria.warnings}
+                  onChange={(e) => setCriteria('warnings', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Missing checks here are flagged but don't fail the rule.
+                </p>
+              </div>
+            </div>
+
+            <div>
               <Label>Description / Rationale</Label>
               <Textarea
                 rows={3}
@@ -401,31 +427,6 @@ function RuleDialog({
                 value={form.criteria.description}
                 onChange={(e) => setCriteria('description', e.target.value)}
               />
-            </div>
-
-            <div className="rounded-md border bg-muted/30 p-3 space-y-2.5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Required Checks
-              </p>
-              {(
-                [
-                  ['character_assessment_required', 'Character Assessment required'],
-                  ['qualification_required', 'Qualification / Certification required'],
-                  ['background_check_required', 'Background / Criminal Check required'],
-                  ['declaration_required', 'Statutory Declaration required'],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-3">
-                  <Switch
-                    id={key}
-                    checked={form.criteria[key] as boolean}
-                    onCheckedChange={(v) => setCriteria(key, v)}
-                  />
-                  <Label htmlFor={key} className="cursor-pointer font-normal text-sm">
-                    {label}
-                  </Label>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -690,7 +691,6 @@ export default function FpaSectorRules() {
                       <TableHead>Sector</TableHead>
                       <TableHead>Sub-Sector</TableHead>
                       <TableHead>Role Type</TableHead>
-                      <TableHead>Priority</TableHead>
                       <TableHead>Criteria Summary</TableHead>
                       <TableHead className="text-center">Ver.</TableHead>
                       <TableHead>Status</TableHead>
@@ -701,7 +701,6 @@ export default function FpaSectorRules() {
                   <TableBody>
                     {filtered.map((rule) => {
                       const isExpanded = expandedIds.has(rule.id);
-                      const priority = typeof rule.criteria === 'object' ? rule.criteria?.priority : undefined;
                       return (
                         <React.Fragment key={rule.id}>
                           <TableRow
@@ -733,7 +732,6 @@ export default function FpaSectorRules() {
                                 ? <Badge variant="outline" className="text-xs font-normal capitalize">{rule.role_type.replace(/_/g, ' ')}</Badge>
                                 : <span className="text-muted-foreground italic text-sm">Any</span>}
                             </TableCell>
-                            <TableCell>{priorityBadge(priority)}</TableCell>
                             <TableCell className="max-w-[200px]">
                               <span className="text-xs text-muted-foreground truncate block">
                                 {formatCriteriaPreview(rule.criteria)}
@@ -765,7 +763,7 @@ export default function FpaSectorRules() {
 
                           {isExpanded && (
                             <TableRow className="bg-muted/20 hover:bg-muted/20">
-                              <TableCell colSpan={11} className="py-0">
+                              <TableCell colSpan={10} className="py-0">
                                 <div className="py-3 px-4">
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                                     Full Criteria
@@ -807,7 +805,7 @@ export default function FpaSectorRules() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
-                <strong>Priority</strong> (High / Medium / Low) determines which rule takes precedence when multiple rules match the same sector and role.
+                When several active rules match, the <strong>most specific</strong> one wins — an exact sector + sub-sector + role type match beats a sector-only match.
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />

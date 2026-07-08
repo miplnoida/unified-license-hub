@@ -36,6 +36,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logFpAction } from '@/lib/fpAudit';
+import { resolveFpSectorRule, evaluateFpCriteria, type CriteriaEvaluation } from '@/lib/fpSectorRules';
 import {
   Loader2,
   Plus,
@@ -45,10 +47,13 @@ import {
   AlertTriangle,
   Clock,
   ShieldCheck,
+  ShieldAlert,
   ExternalLink,
   LayoutList,
   Columns2,
   AlertCircle,
+  History,
+  Building2,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -84,6 +89,14 @@ interface AssessmentDetail {
   individual_id: string | null;
   assessment_type: string | null;
   status: string | null;
+  role_id: string | null;
+  licensee_id: string | null;
+  regulator_id: string | null;
+}
+
+interface RegulatorRow {
+  id: string;
+  name: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -191,48 +204,129 @@ function StatCard({
   );
 }
 
-// ── Assessment Detail Dialog ─────────────────────────────────────────────────
+// ── Determination Detail Dialog ─────────────────────────────────────────────
+// Shows the assessment context plus an access log — every open is itself
+// logged via logFpAction, and the RPC below reads that same trail back so
+// "who has looked at this determination and when" is inspectable evidence,
+// not just an assertion.
 
-function AssessmentDetailDialog({
+interface AuditLogEntry {
+  id: string;
+  action: string;
+  user_id: string | null;
+  actor_name: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
+function DeterminationDetailDialog({
+  determination,
   assessment,
   individualName,
+  regulatorName,
   trigger,
 }: {
-  assessment: AssessmentDetail;
+  determination: DeterminationRow;
+  assessment: AssessmentDetail | undefined;
   individualName: string;
+  regulatorName: string | null;
   trigger: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+
+  const { data: accessLog, isLoading: loadingLog } = useQuery({
+    queryKey: ['fp_determination_audit_log', determination.id],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_fp_determination_audit_log' as any, {
+        _determination_id: determination.id,
+      });
+      if (error) throw error;
+      return (data ?? []) as AuditLogEntry[];
+    },
+  });
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    if (v) {
+      logFpAction('fp.determination.viewed', 'fp_determination', determination.id, {
+        context: {
+          individualId: determination.individual_id,
+          assessmentId: determination.assessment_id,
+          determinationId: determination.id,
+          regulatorId: determination.regulator_id ?? undefined,
+        },
+      });
+    }
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Assessment Detail</DialogTitle>
+          <DialogTitle>Determination Detail</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-1 text-sm">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
-              ID
-            </p>
-            <p className="font-mono text-xs">{assessment.id}</p>
-          </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
               Individual
             </p>
             <p>{individualName}</p>
           </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
-              Assessment Type
-            </p>
-            <p>{assessment.assessment_type?.replace(/_/g, ' ') ?? '—'}</p>
+          <div className="flex gap-6">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
+                Outcome
+              </p>
+              <OutcomeBadge outcome={determination.outcome} />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
+                Regulator
+              </p>
+              <p className="text-sm">{regulatorName ?? <span className="text-muted-foreground italic">Not set</span>}</p>
+            </div>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
-              Status
+              Rationale
             </p>
-            <Badge variant="outline">{assessment.status ?? '—'}</Badge>
+            <p className="text-sm leading-relaxed">{determination.rationale ?? '—'}</p>
+          </div>
+          {assessment && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
+                Assessment
+              </p>
+              <p>{assessment.assessment_type?.replace(/_/g, ' ') ?? '—'} · <Badge variant="outline">{assessment.status ?? '—'}</Badge></p>
+            </div>
+          )}
+
+          <Separator />
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <History className="h-3 w-3" />
+              Access Log
+            </p>
+            {loadingLog ? (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" /> Loading…</p>
+            ) : !accessLog || accessLog.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No log entries yet.</p>
+            ) : (
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                {accessLog.map((entry) => (
+                  <li key={entry.id} className="text-xs text-muted-foreground flex items-center justify-between gap-2">
+                    <span>
+                      <span className="font-medium text-foreground">{entry.actor_name ?? 'Unknown user'}</span>{' '}
+                      {entry.action.replace(/^fp\.determination\./, '').replace(/_/g, ' ')}
+                    </span>
+                    <span className="tabular-nums whitespace-nowrap">{new Date(entry.created_at).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -245,9 +339,11 @@ function AssessmentDetailDialog({
 function ComparisonCard({
   individualName,
   determinations,
+  regulatorMap,
 }: {
   individualName: string;
   determinations: DeterminationRow[];
+  regulatorMap: Record<string, string>;
 }) {
   const outcomes = determinations.map((d) => d.outcome).filter(Boolean);
   const uniqueOutcomes = new Set(outcomes);
@@ -285,8 +381,10 @@ function ComparisonCard({
                 <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-0.5">
                   Regulator
                 </p>
-                <p className="text-xs font-semibold font-mono text-foreground">
-                  {det.regulator_id ?? <span className="italic text-muted-foreground">Not set</span>}
+                <p className="text-xs font-semibold text-foreground">
+                  {det.regulator_id
+                    ? (regulatorMap[det.regulator_id] ?? det.regulator_id.slice(0, 8) + '…')
+                    : <span className="italic text-muted-foreground font-normal">Not set</span>}
                 </p>
               </div>
 
@@ -343,6 +441,7 @@ export default function FpaDeterminations() {
   const [view, setView] = useState<'list' | 'comparison'>('list');
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
   const [currentFilter, setCurrentFilter] = useState<CurrentFilter>('all');
+  const [regulatorFilter, setRegulatorFilter] = useState<string>('all');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -383,13 +482,28 @@ export default function FpaDeterminations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_assessments')
-        .select('id, individual_id, assessment_type, status')
+        .select('id, individual_id, assessment_type, status, role_id, licensee_id, regulator_id')
         .order('created_at', { ascending: false })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as AssessmentDetail[];
     },
   });
+
+  const { data: regulators } = useQuery({
+    queryKey: ['regulators_minimal'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators').select('id, name').order('name');
+      if (error) throw error;
+      return (data ?? []) as RegulatorRow[];
+    },
+  });
+
+  const regulatorMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const r of regulators ?? []) m[r.id] = r.name;
+    return m;
+  }, [regulators]);
 
   // ── Derived data ───────────────────────────────────────────────────────────
 
@@ -427,9 +541,10 @@ export default function FpaDeterminations() {
       if (outcomeFilter !== 'all' && d.outcome !== outcomeFilter) return false;
       if (currentFilter === 'current' && !d.is_current) return false;
       if (currentFilter === 'superseded' && d.is_current) return false;
+      if (regulatorFilter !== 'all' && (d.regulator_id ?? '__none__') !== regulatorFilter) return false;
       return true;
     });
-  }, [enriched, outcomeFilter, currentFilter]);
+  }, [enriched, outcomeFilter, currentFilter, regulatorFilter]);
 
   // Comparison view: group by individual, show only those with >1 determination
   const comparisonGroups = useMemo(() => {
@@ -450,6 +565,74 @@ export default function FpaDeterminations() {
     return (assessments ?? []).filter((a) => a.individual_id === form.individual_id);
   }, [assessments, form.individual_id]);
 
+  const selectedAssessmentObj = useMemo(
+    () => (assessments ?? []).find((a) => a.id === form.assessment_id) ?? null,
+    [assessments, form.assessment_id],
+  );
+
+  // A regulator is inherent to the assessment (fp_assessments.regulator_id) —
+  // when set, it drives the determination's regulator rather than a free pick,
+  // so a determination can never end up attributed to a different regulator
+  // than the assessment it's based on.
+  const assessmentRegulatorId = selectedAssessmentObj?.regulator_id ?? null;
+
+  // ── Sector-specific decision logic (mirrors FpDeterminationsPanel) ─────────
+
+  const { data: sectorContext } = useQuery({
+    queryKey: ['fpa_det_sector_ctx', selectedAssessmentObj?.role_id, selectedAssessmentObj?.licensee_id],
+    enabled: !!selectedAssessmentObj,
+    queryFn: async () => {
+      let sectorId: string | null = null;
+      let subSectorId: string | null = null;
+      let roleType: string | null = null;
+      if (selectedAssessmentObj?.role_id) {
+        const { data: role } = await supabase
+          .from('fp_individual_roles')
+          .select('role_type, licensee_id')
+          .eq('id', selectedAssessmentObj.role_id)
+          .maybeSingle();
+        if (role) {
+          roleType = role.role_type;
+          if (role.licensee_id) {
+            const { data: lic } = await supabase.from('licensees').select('sector_id, sub_sector_id').eq('id', role.licensee_id).maybeSingle();
+            if (lic) { sectorId = lic.sector_id; subSectorId = lic.sub_sector_id; }
+          }
+        }
+      } else if (selectedAssessmentObj?.licensee_id) {
+        const { data: lic } = await supabase.from('licensees').select('sector_id, sub_sector_id').eq('id', selectedAssessmentObj.licensee_id).maybeSingle();
+        if (lic) { sectorId = lic.sector_id; subSectorId = lic.sub_sector_id; }
+      }
+      return { sectorId, subSectorId, roleType };
+    },
+  });
+
+  const { data: sectorRule } = useQuery({
+    queryKey: ['fpa_det_sector_rule', sectorContext?.sectorId, sectorContext?.subSectorId, sectorContext?.roleType],
+    enabled: !!sectorContext?.sectorId,
+    queryFn: async () => resolveFpSectorRule(sectorContext!),
+  });
+
+  const { data: assessmentFindings } = useQuery({
+    queryKey: ['fpa_det_findings', form.assessment_id],
+    enabled: !!form.assessment_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_findings')
+        .select('check_type, severity, is_false_positive, resolution_status, confidence_score')
+        .eq('assessment_id', form.assessment_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const criteriaEval: CriteriaEvaluation = useMemo(() => {
+    const active = (assessmentFindings ?? []).filter((f: any) => !f.is_false_positive && f.resolution_status !== 'false_positive');
+    const completedChecks = Array.from(new Set(active.map((f: any) => f.check_type)));
+    const scores = active.map((f: any) => Number(f.confidence_score ?? 0)).filter((n: number) => Number.isFinite(n));
+    const avg = scores.length ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : null;
+    return evaluateFpCriteria(sectorRule ?? null, { score: avg, completedChecks });
+  }, [assessmentFindings, sectorRule]);
+
   // ── Insert mutation ────────────────────────────────────────────────────────
 
   const addDetermination = useMutation({
@@ -458,7 +641,33 @@ export default function FpaDeterminations() {
       if (!form.individual_id) throw new Error('Individual is required.');
       if (!form.assessment_id) throw new Error('Assessment is required.');
       if (!form.outcome) throw new Error('Outcome is required.');
-      if (!form.rationale.trim()) throw new Error('Rationale is required.');
+      if (form.rationale.trim().length < 10) {
+        throw new Error(
+          sectorRule && !criteriaEval.passed
+            ? 'Rationale must justify overriding the sector rule (min 10 characters).'
+            : 'Rationale is required (min 10 characters).',
+        );
+      }
+
+      // A regulator is inherent to the assessment; fall back to a manual pick
+      // only when the assessment itself has no regulator attached.
+      const resolvedRegulatorId = assessmentRegulatorId ?? (form.regulator_id.trim() || null);
+
+      // Multi-regulator scoping: only supersede the current determination for
+      // the SAME regulator (or the same "unscoped" bucket) — a different
+      // regulator's current determination for this individual is untouched.
+      const priorQuery = supabase
+        .from('fp_determinations')
+        .select('id')
+        .eq('individual_id', form.individual_id)
+        .eq('is_current', true);
+      const { data: prior } = resolvedRegulatorId
+        ? await priorQuery.eq('regulator_id', resolvedRegulatorId).maybeSingle()
+        : await priorQuery.is('regulator_id', null).maybeSingle();
+
+      if (prior) {
+        await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);
+      }
 
       const payload: Record<string, any> = {
         individual_id: form.individual_id,
@@ -467,13 +676,35 @@ export default function FpaDeterminations() {
         rationale: form.rationale.trim(),
         is_current: true,
         determined_by: user.id,
+        supersedes_id: prior?.id ?? null,
+        regulator_id: resolvedRegulatorId,
       };
       if (form.effective_from) payload.effective_from = form.effective_from;
       if (form.effective_to) payload.effective_to = form.effective_to;
-      if (form.regulator_id.trim()) payload.regulator_id = form.regulator_id.trim();
 
-      const { error } = await supabase.from('fp_determinations').insert(payload);
+      const { data: inserted, error } = await supabase
+        .from('fp_determinations')
+        .insert(payload)
+        .select('id')
+        .single();
       if (error) throw error;
+
+      await logFpAction(`fp.determination.${form.outcome}`, 'fp_determination', inserted.id, {
+        after: {
+          outcome: form.outcome,
+          rationale: form.rationale.trim(),
+          regulator_id: resolvedRegulatorId,
+          supersedes_id: prior?.id ?? null,
+          sector_rule_passed: sectorRule ? criteriaEval.passed : null,
+        },
+        context: {
+          individualId: form.individual_id,
+          assessmentId: form.assessment_id,
+          determinationId: inserted.id,
+          regulatorId: resolvedRegulatorId ?? undefined,
+        },
+        justification: form.rationale.trim(),
+      });
     },
     onSuccess: () => {
       toast.success('Determination recorded.');
@@ -583,6 +814,81 @@ export default function FpaDeterminations() {
                     </Select>
                   </div>
 
+                  {/* Regulator — inherent to the assessment when it has one */}
+                  <div>
+                    <Label>Regulator</Label>
+                    {assessmentRegulatorId ? (
+                      <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/40 text-sm">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        {regulatorMap[assessmentRegulatorId] ?? assessmentRegulatorId}
+                        <span className="text-xs text-muted-foreground ml-auto">from assessment</span>
+                      </div>
+                    ) : (
+                      <Select
+                        value={form.regulator_id}
+                        onValueChange={(v) => setForm((f) => ({ ...f, regulator_id: v }))}
+                        disabled={!form.assessment_id}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={form.assessment_id ? 'No regulator set on assessment — pick one (optional)' : 'Select an assessment first'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(regulators ?? []).map((r) => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Sector-specific decision logic */}
+                  {sectorRule && (
+                    <div className={`rounded-md border p-3 text-sm ${criteriaEval.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="font-medium flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" />
+                        Sector rule: {sectorRule.name}
+                      </div>
+                      {criteriaEval.passed ? (
+                        <p className="text-xs mt-1 text-emerald-800">All sector criteria satisfied.</p>
+                      ) : (
+                        <div className="text-xs mt-1 space-y-1 text-red-800">
+                          {criteriaEval.failed.length > 0 && (
+                            <p><strong>Missing mandatory checks:</strong> {criteriaEval.failed.join(', ')}</p>
+                          )}
+                          {criteriaEval.disqualifiers.length > 0 && (
+                            <p><strong>Disqualifiers present:</strong> {criteriaEval.disqualifiers.join(', ')}</p>
+                          )}
+                          {criteriaEval.minScoreOk === false && <p><strong>Minimum confidence score not met.</strong></p>}
+                          {criteriaEval.warned.length > 0 && (
+                            <p className="text-amber-800"><strong>Warnings:</strong> {criteriaEval.warned.join(', ')}</p>
+                          )}
+                          <p className="text-muted-foreground">Record rationale below explaining the override.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Outcome */}
+                  <div>
+                    <Label>
+                      Outcome <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={form.outcome}
+                      onValueChange={(v) => setForm((f) => ({ ...f, outcome: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select outcome…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fit">Fit</SelectItem>
+                        <SelectItem value="not_fit">Not Fit</SelectItem>
+                        <SelectItem value="conditional">Conditionally Fit</SelectItem>
+                        <SelectItem value="deferred">Deferred</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Rationale */}
                   <div>
                     <Label>
@@ -592,7 +898,11 @@ export default function FpaDeterminations() {
                       rows={3}
                       value={form.rationale}
                       onChange={(e) => setForm((f) => ({ ...f, rationale: e.target.value }))}
-                      placeholder="Provide the basis for this determination…"
+                      placeholder={
+                        sectorRule && !criteriaEval.passed
+                          ? 'Rationale (min 10 chars) — must justify overriding the sector rule…'
+                          : 'Provide the basis for this determination (min 10 chars)…'
+                      }
                     />
                   </div>
 
@@ -619,18 +929,6 @@ export default function FpaDeterminations() {
                       />
                     </div>
                   </div>
-
-                  {/* Regulator ID */}
-                  <div>
-                    <Label>Regulator ID</Label>
-                    <Input
-                      value={form.regulator_id}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, regulator_id: e.target.value }))
-                      }
-                      placeholder="e.g. SEC-NG, CBN, NAICOM"
-                    />
-                  </div>
                 </div>
 
                 <DialogFooter>
@@ -644,7 +942,7 @@ export default function FpaDeterminations() {
                       !form.individual_id ||
                       !form.assessment_id ||
                       !form.outcome ||
-                      !form.rationale.trim()
+                      form.rationale.trim().length < 10
                     }
                   >
                     {addDetermination.isPending && (
@@ -780,6 +1078,19 @@ export default function FpaDeterminations() {
                       <SelectItem value="superseded">Superseded only</SelectItem>
                     </SelectContent>
                   </Select>
+                  {/* Regulator filter */}
+                  <Select value={regulatorFilter} onValueChange={setRegulatorFilter}>
+                    <SelectTrigger className="h-8 w-44 text-xs">
+                      <SelectValue placeholder="Filter regulator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All regulators</SelectItem>
+                      <SelectItem value="__none__">No regulator set</SelectItem>
+                      {(regulators ?? []).map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -817,8 +1128,10 @@ export default function FpaDeterminations() {
                           <TableCell className="font-medium whitespace-nowrap">
                             {det.individual_name ?? '—'}
                           </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            {det.regulator_id ?? <span className="italic">—</span>}
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {det.regulator_id
+                              ? (regulatorMap[det.regulator_id] ?? <span className="font-mono">{det.regulator_id.slice(0, 8)}…</span>)
+                              : <span className="italic">—</span>}
                           </TableCell>
                           <TableCell>
                             <OutcomeBadge outcome={det.outcome} />
@@ -843,9 +1156,11 @@ export default function FpaDeterminations() {
                           </TableCell>
                           <TableCell>
                             {det.assessment_id && assessmentMap[det.assessment_id] && (
-                              <AssessmentDetailDialog
+                              <DeterminationDetailDialog
+                                determination={det}
                                 assessment={assessmentMap[det.assessment_id]}
                                 individualName={det.individual_name ?? det.individual_id}
+                                regulatorName={det.regulator_id ? (regulatorMap[det.regulator_id] ?? null) : null}
                                 trigger={
                                   <Button
                                     size="sm"
@@ -904,6 +1219,7 @@ export default function FpaDeterminations() {
                     key={individualId}
                     individualName={name}
                     determinations={rows}
+                    regulatorMap={regulatorMap}
                   />
                 );
               })

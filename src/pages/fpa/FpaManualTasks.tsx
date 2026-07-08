@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEmployeeApprovers, type EmployeeApprover } from '@/hooks/useEmployeeApprovers';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -88,6 +89,7 @@ interface Finding {
   resolved_at: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
+  assigned_to: string | null;
   // joined
   individual_name?: string | null;
 }
@@ -124,7 +126,17 @@ function StatCard({
 
 // ─── task card ───────────────────────────────────────────────────────────────
 
-function TaskCard({ finding, onAssign, assigning }: { finding: Finding; onAssign: () => void; assigning: boolean }) {
+function TaskCard({
+  finding,
+  employees,
+  onAssign,
+  assigning,
+}: {
+  finding: Finding;
+  employees: EmployeeApprover[];
+  onAssign: (userId: string) => void;
+  assigning: boolean;
+}) {
   const isHigh = finding.severity?.toLowerCase() === 'high';
 
   return (
@@ -205,18 +217,27 @@ function TaskCard({ finding, onAssign, assigning }: { finding: Finding; onAssign
 
         {/* action row */}
         <div className="flex items-center gap-2 pt-0.5">
-          {['pending', 'needs_review', 'true_positive_draft'].includes(finding.resolution_status ?? '') && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs h-8"
-              onClick={onAssign}
-              disabled={assigning}
-            >
-              {assigning ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <User className="h-3.5 w-3.5 mr-1.5" />}
-              Assign to Me
-            </Button>
-          )}
+          <Select value={finding.assigned_to ?? undefined} onValueChange={onAssign} disabled={assigning}>
+            <SelectTrigger className="h-8 text-xs w-48">
+              {assigning ? (
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Assigning…
+                </span>
+              ) : (
+                <SelectValue placeholder="Assign to…" />
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              {employees.length === 0 && (
+                <SelectItem value="__none__" disabled>No active employees found</SelectItem>
+              )}
+              {employees.map((e) => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.full_name || e.email || e.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" variant="secondary" className="text-xs h-8 ml-auto" asChild>
             <Link to={`/fpa/manual-tasks/${finding.id}`}>
               Open
@@ -250,12 +271,14 @@ export default function FpaManualTasks() {
       // 'under_review' is set by the "Assign to Me" action.
       const ACTIONABLE_STATUSES = ['pending', 'needs_review', 'true_positive_draft', 'under_review'];
 
+      // assigned_to is cast via `as any` below — it's a recently-added column
+      // not yet reflected in the generated Supabase types.
       let query = supabase
-        .from('fp_findings')
+        .from('fp_findings' as any)
         .select(
           `id, assessment_id, individual_id, title, summary, severity,
            resolution_status, check_type, source, review_note,
-           created_at, resolved_at, reviewed_at, reviewed_by`
+           created_at, resolved_at, reviewed_at, reviewed_by, assigned_to`
         )
         .in('resolution_status', ACTIONABLE_STATUSES)
         .in('severity', ['high', 'medium', 'low'])
@@ -298,9 +321,14 @@ export default function FpaManualTasks() {
     },
   });
 
+  // ── active employees for the assignee dropdown ────────────────────────────
+  const { data: allEmployees } = useEmployeeApprovers();
+  const activeEmployees = (allEmployees ?? []).filter((e) => e.status === 'active');
+
   // ── stat queries ──────────────────────────────────────────────────────────
-  // Unassigned = resolution_status is 'open' (no assigned_to column exists;
-  // open status is the canonical indicator that no one has claimed the task).
+  // Unassigned = resolution_status is one of the pre-claim states — status is
+  // the reliable indicator since a task can be assigned without having been
+  // reviewed yet.
   const {
     data: allFindings,
     isError: isStatsError,
@@ -331,22 +359,24 @@ export default function FpaManualTasks() {
   ).length;
 
   // ── assign mutation ───────────────────────────────────────────────────────
-  // Records reviewed_by so the audit trail reflects which user claimed the task.
+  // assigned_to records who the task is assigned to; reviewed_by records the
+  // current user as the one who performed the assignment action.
   const assignMutation = useMutation({
-    mutationFn: async (findingId: string) => {
+    mutationFn: async ({ findingId, userId }: { findingId: string; userId: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('fp_findings')
         .update({
+          assigned_to: userId,
           resolution_status: 'under_review',
           reviewed_at: new Date().toISOString(),
           reviewed_by: user.id,
-        })
+        } as any)
         .eq('id', findingId);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Assigned — task is now In Progress.');
+      toast.success('Task assigned.');
       qc.invalidateQueries({ queryKey: ['fpa_manual_tasks'] });
       qc.invalidateQueries({ queryKey: ['fpa_manual_tasks_all_stats'] });
     },
@@ -355,9 +385,9 @@ export default function FpaManualTasks() {
 
   const [assigningId, setAssigningId] = useState<string | null>(null);
 
-  const handleAssign = (id: string) => {
-    setAssigningId(id);
-    assignMutation.mutate(id, { onSettled: () => setAssigningId(null) });
+  const handleAssign = (findingId: string, userId: string) => {
+    setAssigningId(findingId);
+    assignMutation.mutate({ findingId, userId }, { onSettled: () => setAssigningId(null) });
   };
 
   return (
@@ -464,7 +494,8 @@ export default function FpaManualTasks() {
               <TaskCard
                 key={finding.id}
                 finding={finding}
-                onAssign={() => handleAssign(finding.id)}
+                employees={activeEmployees}
+                onAssign={(userId) => handleAssign(finding.id, userId)}
                 assigning={assigningId === finding.id && assignMutation.isPending}
               />
             ))}

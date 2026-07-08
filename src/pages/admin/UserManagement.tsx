@@ -38,6 +38,12 @@ interface UserRecord {
   role_id?: string;
   dynamic_role_ids?: string[];
   avatar_url?: string | null;
+  regulator_id?: string | null;
+}
+
+interface RegulatorOption {
+  id: string;
+  name: string;
 }
 
 function generatePassword(length = 14): string {
@@ -112,12 +118,25 @@ export default function UserManagement() {
   const [resetUserEmail, setResetUserEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [profileDialog, setProfileDialog] = useState(false);
-  const [profileForm, setProfileForm] = useState({ full_name: '', avatar_url: '' as string });
+  const [profileForm, setProfileForm] = useState({ full_name: '', avatar_url: '' as string, regulator_id: '' as string });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [pendingAvatarPreview, setPendingAvatarPreview] = useState<string>('');
+  const [regulators, setRegulators] = useState<RegulatorOption[]>([]);
 
   const { data: dynamicRoles = [] } = useRoles();
+
+  useEffect(() => {
+    supabase.from('regulators').select('id, name').order('name').then(({ data }) => {
+      setRegulators((data ?? []) as RegulatorOption[]);
+    });
+  }, []);
+
+  const regulatorMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const r of regulators) m[r.id] = r.name;
+    return m;
+  }, [regulators]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -258,7 +277,7 @@ export default function UserManagement() {
 
   const openProfileEdit = (u: UserRecord) => {
     setEditingUser(u);
-    setProfileForm({ full_name: u.full_name || '', avatar_url: u.avatar_url || '' });
+    setProfileForm({ full_name: u.full_name || '', avatar_url: u.avatar_url || '', regulator_id: u.regulator_id || '' });
     setProfileDialog(true);
   };
 
@@ -282,6 +301,7 @@ export default function UserManagement() {
       .update({
         full_name: profileForm.full_name.trim(),
         avatar_url: profileForm.avatar_url || null,
+        regulator_id: profileForm.regulator_id || null,
       } as any)
       .eq('id', editingUser.id);
     if (error) {
@@ -293,6 +313,7 @@ export default function UserManagement() {
       ...x,
       full_name: profileForm.full_name.trim(),
       avatar_url: profileForm.avatar_url || null,
+      regulator_id: profileForm.regulator_id || null,
     } : x));
     toast.success('Profile updated');
     setSaving(false);
@@ -455,6 +476,13 @@ export default function UserManagement() {
       )
     },
     { key: 'entity_name', label: 'Entity', render: (r) => <span className="text-sm">{r.entity_name || '—'}</span> },
+    {
+      key: 'regulator_id' as any, label: 'Regulator', render: (r) => (
+        r.regulator_id
+          ? <Badge variant="outline" className="text-xs">{regulatorMap[r.regulator_id] ?? '—'}</Badge>
+          : <span className="text-xs text-muted-foreground">—</span>
+      )
+    },
     {
       key: 'created_at', label: 'Joined', render: (r) => (
         <span className="text-sm text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
@@ -803,6 +831,25 @@ export default function UserManagement() {
                 <Label>Email</Label>
                 <Input value={editingUser.email} readOnly className="bg-muted" />
                 <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Regulator</Label>
+                <Select
+                  value={profileForm.regulator_id || '__none__'}
+                  onValueChange={(v) => setProfileForm(p => ({ ...p, regulator_id: v === '__none__' ? '' : v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Not assigned to a regulator" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not assigned</SelectItem>
+                    {regulators.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When set, this employee only sees Fit &amp; Proper determinations for their own regulator (segregation of duties).
+                </p>
               </div>
             </div>
           )}

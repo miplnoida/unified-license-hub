@@ -36,6 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import {
   FileText,
   RefreshCw,
@@ -1082,7 +1083,7 @@ export default function FpaInitiation() {
               <Button variant="outline" size="sm" onClick={() => setDetailDialogOpen(false)}>
                 Close
               </Button>
-              {selectedAssessment && selectedAssessment.individual_id && (
+              {selectedAssessment && selectedAssessment.individual_id && canRequestDeclaration(selectedAssessment.status) && (
                 <Button
                   size="sm"
                   className="gap-1.5"
