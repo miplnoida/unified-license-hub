@@ -5,20 +5,61 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HistoryButton } from '@/components/audit/HistoryButton';
-import { useEntityAuditLog } from '@/hooks/useEntityAuditLog';
+import { History, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
+import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
+  red: 'bg-destructive/10 text-destructive border-destructive/30',
   high: 'bg-amber-500/10 text-amber-700 border-amber-200',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-200',
   medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
+  warn: 'bg-amber-500/10 text-amber-700 border-amber-200',
+  breach: 'bg-destructive/10 text-destructive border-destructive/30',
   low: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
 };
+
+function formatRatio(value: any, fmt?: string) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  switch ((fmt || '').toLowerCase()) {
+    case 'percent':
+    case 'percentage':
+      return `${(n * 100).toFixed(2)}%`;
+    case 'multiple':
+    case 'ratio':
+      return `${n.toFixed(2)}x`;
+    case 'currency':
+      return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    default:
+      return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }
+}
+
+function toCsv(rows: Array<Record<string, any>>): string {
+  if (!rows.length) return '';
+  const headers = Array.from(rows.reduce((s, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
+  const esc = (v: any) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(','), ...rows.map((r) => headers.map((h) => esc(r[h])).join(','))].join('\n');
+}
+
+function downloadCsv(name: string, rows: Array<Record<string, any>>) {
+  const csv = toCsv(rows);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export default function PrudentialEntityProfile() {
   const { id } = useParams();
