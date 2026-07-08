@@ -1,41 +1,54 @@
-## Goal
+## Problem
 
-Populate Balance Sheet and P&L data for New FinCorp Commercial Bank Limited for all remaining periods present in the uploaded workbook, matching what was done for Q1 2022.
+Every P&L form (all 11 sector templates, `form_templates.name = 'P&L'`) was built with **four fields per line code** — one each for 2022 Q1, Q2, Q3, Q4. Each return is already scoped to a single quarter via `returns_filed.period_start_date` / `period_end_date`, so a return should collect **one value per line**, not four.
 
-## Periods to create (13)
+Example (Commercial Bank P&L, published version `84869d01-…`):
 
-From workbook columns (2021 columns are empty, so skipped):
+```
+line 4  OPERATING INCOME — 2022 Q1   (fieldName: line_4_col_1)
+line 4  OPERATING INCOME — 2022 Q2   (fieldName: line_4_col_2)   ← wrong
+line 4  OPERATING INCOME — 2022 Q3   (fieldName: line_4_col_3)   ← wrong
+line 4  OPERATING INCOME — 2022 Q4   (fieldName: line_4_col_4)   ← wrong
+```
 
-- 2022: Q2, Q3, Q4
-- 2023: Q1, Q2, Q3, Q4
-- 2024: Q1, Q2, Q3, Q4
-- 2025: Q1, Q2
+Every P&L version has the same shape: **36 unique line codes, 144 total fields** (36 × 4). Balance Sheet is unaffected (294 unique lines / 317 fields, essentially 1 col per line).
 
-## Steps
+## Data check (no data migration needed)
 
-1. **Create 13 rows in `returns_filed`**, cloning the shape of the existing Q1 2022 return (`RET-2026-00027`):
-   - `entity_id` = `30a3c4cb-ad53-4020-a5c4-d216a5ac1eb1`
-   - `return_configuration_id` = `b5d22673-48f4-4cd0-8962-25cf3ed28d9e`
-   - `on_behalf_of_licensee_id` = same
-   - `created_by` / `updated_by` = same submitter used on Q1 2022
-   - `period_start_date` / `period_end_date` = quarter bounds
-   - `due_date` = quarter end + 30 days (matches Q1 2022 pattern: 2022-03-31 → 2022-04-30)
-   - `workflow_status` = `WIP`, `status` = `active`, `version` = `1.0`
-   - `unique_id` = next sequential `RET-2026-000NN` values
-   - Fresh `id` (uuid) generated per row
+For the FinCorp Commercial Bank entity, all 17 quarterly P&L data rows were saved under `col_1` only. Zero rows exist in `col_2`/`col_3`/`col_4`. Collapsing the schema will not orphan any stored values.
 
-2. **Load Balance Sheet + P&L values per period** into `return_form_data`:
-   - Re-run the Excel mapping script for each `(year, quarter)` column pair.
-   - Upsert into `return_form_data` using the same `ON CONFLICT (return_id, form_id, field_id) DO UPDATE` pattern already used for Q1 2022.
-   - Same form IDs / form_version IDs: BS `59ebe8fc… / dead2bcf…`, P&L `7ac713bf… / 84869d01…`.
-   - Skips: the ~23 Memoranda-adjacent Balance Sheet lines whose line codes still collide with the current schema will remain unmapped (same limitation as Q1 2022).
+## Fix
 
-3. **Verification**:
-   - Confirm 14 rows exist in `returns_filed` for this entity.
-   - Confirm each new return has ~294 BS rows + ~36 P&L rows in `return_form_data`.
+Single migration that rewrites `schema_snapshot` for every P&L `form_versions` row (11 templates × 1–2 versions each):
+
+For each row in `rows[]`:
+- If `fields[0].fieldName` matches `line_..._col_[2-4]` → drop the row.
+- If `fields[0].fieldName` matches `line_..._col_1` → strip the trailing ` — 2022 Qn` from `label`.
+
+Result per P&L form: 36 rows, one field each, labelled `OPERATING INCOME`, `INTEREST INCOME`, `LOANS, ADVANCES & DISC.`, etc.
+
+Applied to both `draft` and `published` versions so the current published Commercial Bank / Building Society P&L forms are corrected too (they are the ones licensees actually see).
 
 ## Out of scope
 
-- Not submitting the returns — they will remain as WIP drafts, matching Q1 2022's state (per your choice).
-- Not touching Q1 2026 (`RET-2026-00026`) — the workbook has no data for that period.
-- No frontend/schema changes; database-data only.
+- Balance Sheet schemas (already single-column).
+- Any code changes — `FormRenderer` already reads the schema as-is.
+- The BS/P&L data already loaded for FinCorp Commercial Bank (Q1 2022 – Q4 2025). Existing `col_1` values remain and will render correctly under the new schema.
+- Any workflow, calculation, or UI logic.
+
+## Verification after migration
+
+```sql
+SELECT fv.id, ft.sector,
+       COUNT(DISTINCT f->>'lineCode')  AS unique_lines,
+       COUNT(*)                         AS total_fields
+FROM form_versions fv
+JOIN form_templates ft ON ft.id = fv.template_id,
+     jsonb_array_elements(schema_snapshot) s,
+     jsonb_array_elements(s->'rows')       r,
+     jsonb_array_elements(r->'fields')     f
+WHERE ft.name = 'P&L'
+GROUP BY fv.id, ft.sector;
+```
+
+Expected: every P&L version reports `unique_lines = total_fields = 36`.
