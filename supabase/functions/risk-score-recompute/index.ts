@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       }
 
       const components = {
-        prudential_breaches: breachesR.count ?? 0,
+        prudential_breaches: breachCount,
         open_complaints: complaintsR.count ?? 0,
         overdue_returns: overdueR.count ?? 0,
         open_enforcement: enforcementR.count ?? 0,
