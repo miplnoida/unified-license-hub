@@ -1,4 +1,4 @@
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
@@ -216,6 +216,7 @@ export const dashboardRoutes = (
     <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
     <Route path="/complaints/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
 
+    <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
     <Route path="/prudential/entities/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />

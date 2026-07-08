@@ -356,11 +356,22 @@ Deno.serve(async (req) => {
       else if (check(t.warn_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "warn", risk_level: "amber", value: v, threshold_value: t.warn_value, comparator: t.comparator, threshold_version: t.current_version ?? 1 });
     }
     for (const b of breaches) {
-      await admin.rpc("record_return_breach", {
+      const { data: breachId } = await admin.rpc("record_return_breach", {
         _return_id: return_id, _metric_key: b.metric_key, _level: b.level,
         _value: b.value, _threshold_value: b.threshold_value, _comparator: b.comparator,
         _risk_level: b.risk_level,
       });
+      // Per-breach audit row (in addition to aggregate row below).
+      try {
+        await admin.rpc("log_compliance_audit_as_actor", {
+          _actor_id: actor.id, _action_type: "CREATE",
+          _object_type: "return_threshold_breach",
+          _object_id: (breachId as string) || null,
+          _before_value: null, _after_value: b, _justification: null,
+          _ai_model_version: null, _ip_address: null, _user_agent: null,
+          _metadata: { source: "evaluate-return-prudential", return_id },
+        });
+      } catch (_) { /* audit best-effort */ }
     }
 
     // Audit log via existing shared helper (best-effort)
@@ -456,6 +467,68 @@ Deno.serve(async (req) => {
               _ai_model_version: null, _ip_address: null, _user_agent: null,
               _metadata: { source: "evaluate-return-prudential", return_id },
             });
+
+            // ---- Auto-escalation for indicators flagged escalate=true ----
+            // Idempotent: skip if an open escalation already references this event.
+            if ((ev as any).escalate === true && ev.event_id) {
+              try {
+                const { data: existing } = await admin
+                  .from("prudential_escalations")
+                  .select("id")
+                  .eq("related_type", "stress_event")
+                  .eq("related_id", ev.event_id)
+                  .in("status", ["open", "under_review"])
+                  .maybeSingle();
+                if (!existing) {
+                  const severity = String((ev as any).severity || "medium");
+                  const priorityMap: Record<string, string> = {
+                    critical: "urgent", high: "high", medium: "normal", low: "low",
+                  };
+                  const reason =
+                    `Auto-escalated: stress indicator "${(ev as any).label || (ev as any).metric_key}" ` +
+                    `triggered on return (observed ${(ev as any).observed_value}).`;
+                  const { data: esc } = await admin
+                    .from("prudential_escalations")
+                    .insert({
+                      entity_id: (ev as any).entity_id,
+                      related_type: "stress_event",
+                      related_id: ev.event_id,
+                      escalation_type: "stress_indicator_auto",
+                      reason,
+                      status: "open",
+                      priority: priorityMap[severity] || "normal",
+                      created_by: actor.id,
+                    })
+                    .select()
+                    .single();
+                  if (esc) {
+                    await admin.functions.invoke("dispatch-notification-event", {
+                      body: {
+                        event_key: "prudential_escalation_created",
+                        entity_type: "prudential_escalation",
+                        entity_id: (esc as any).id,
+                        payload: {
+                          entity_name: entityName,
+                          entity_id: (ev as any).entity_id,
+                          reason,
+                          severity,
+                          auto: true,
+                        },
+                      },
+                    });
+                    await admin.rpc("log_compliance_audit_as_actor", {
+                      _actor_id: actor.id, _action_type: "CREATE",
+                      _object_type: "prudential_escalation",
+                      _object_id: (esc as any).id,
+                      _before_value: null, _after_value: esc,
+                      _justification: "Auto-escalated from stress indicator",
+                      _ai_model_version: null, _ip_address: null, _user_agent: null,
+                      _metadata: { source: "evaluate-return-prudential", return_id, stress_event_id: ev.event_id },
+                    });
+                  }
+                }
+              } catch (_) { /* auto-escalation best-effort */ }
+            }
           } catch (_) { /* best-effort per-event */ }
         }
       }
