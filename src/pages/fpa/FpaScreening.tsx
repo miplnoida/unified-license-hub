@@ -757,11 +757,11 @@ export default function FpaScreening() {
                   {selectedConfig.check_type.replace(/_/g, ' ')}
                 </Badge>
               )}
-              {selectedConfig.provider && (
+              {/* {selectedConfig.provider && (
                 <Badge variant="secondary" className="text-xs">
                   {selectedConfig.provider}
                 </Badge>
-              )}
+              )} */}
               {severityBadge(selectedConfig.severity_default)}
             </div>
           )}
@@ -827,14 +827,29 @@ export default function FpaScreening() {
                       No assessments for this individual
                     </SelectItem>
                   )}
-                  {(assessments ?? []).map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.assessment_type ?? 'Assessment'}{' '}
-                      <span className="text-muted-foreground text-xs">
-                        — {a.status} · {new Date(a.created_at).toLocaleDateString()}
-                      </span>
-                    </SelectItem>
-                  ))}
+                  {(assessments ?? []).map((a: any, idx: number, arr: any[]) => {
+                    const d = new Date(a.created_at);
+                    const dateStr = d.toLocaleDateString();
+                    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    // detect if another assessment has same type+status+date → show time to distinguish
+                    const hasDuplicate = arr.some(
+                      (b) =>
+                        b.id !== a.id &&
+                        b.assessment_type === a.assessment_type &&
+                        b.status === a.status &&
+                        new Date(b.created_at).toLocaleDateString() === dateStr,
+                    );
+                    const shortId = a.id.slice(-6).toUpperCase();
+                    return (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.assessment_type ?? 'Assessment'}{' '}
+                        <span className="text-muted-foreground text-xs">
+                          — {a.status} · {dateStr}
+                          {hasDuplicate && <>, {timeStr} <span className="opacity-50">#{shortId}</span></>}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

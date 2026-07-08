@@ -85,9 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('[Auth] Failed to hydrate user profile:', err);
-      // Keep session alive but with null user — route guards will show fallback
-      setUser(null);
-      setMfaStatus('not_required');
+      // Do NOT call setUser(null) here. Clearing user on a transient network
+      // error would trigger the !user guard in ProtectedRoute, unmounting the
+      // current page and destroying any open dialogs / in-progress form state.
+      // The existing user object remains valid — only clear it on explicit logout.
     }
   }, []);
 
@@ -97,25 +98,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hydrateUser, session]);
 
   useEffect(() => {
-    // Set up listener BEFORE getSession (per Supabase best practice)
+    // onAuthStateChange fires for EVERY Supabase auth event — including
+    // TOKEN_REFRESHED and SIGNED_IN triggered by Supabase's own visibility
+    // listener when the browser tab regains focus. If we call setLoading(true)
+    // here, the route guard renders <AuthLoadingScreen />, which unmounts the
+    // current page and destroys all open dialogs and in-progress form state.
+    //
+    // Fix: onAuthStateChange NEVER controls the loading gate. It only silently
+    // updates session/user in the background. The loading gate is set once on
+    // mount and cleared only after the initial getSession() resolves.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
-        setLoading(true);
         setSession(newSession);
         if (newSession) {
-          // Defer hydration to avoid Supabase deadlock
+          // Defer hydration to avoid Supabase client deadlock
           setTimeout(() => {
-            hydrateUser(newSession).finally(() => setLoading(false));
+            hydrateUser(newSession).catch(err =>
+              console.warn('[Auth] background re-hydration failed:', err)
+            );
           }, 0);
         } else {
+          // Genuine sign-out — clear user so route guard redirects to login
           setUser(null);
           clear2FAState();
-          setLoading(false);
         }
       }
     );
 
-    // Initial session check
+    // Initial session check — the ONLY place that lowers the loading gate.
+    // After this resolves, loading stays false forever; tab switches, token
+    // refreshes, and session revalidations all happen silently.
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       if (existing) {
         setSession(existing);

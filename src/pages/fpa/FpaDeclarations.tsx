@@ -152,9 +152,9 @@ export default function FpaDeclarations() {
   // form state
   const [selectedIndividual, setSelectedIndividual] = useState('');
   const [selectedAssessment, setSelectedAssessment] = useState('');
-  const [channel, setChannel] = useState<'EMAIL' | 'SMS' | 'BOTH'>('EMAIL');
+  const [channel] = useState<'EMAIL'>('EMAIL');
   const [recipientEmail, setRecipientEmail] = useState('');
-  const [recipientPhone, setRecipientPhone] = useState('');
+
   const [note, setNote] = useState('');
 
   // identity-gate verification hash state
@@ -275,7 +275,7 @@ export default function FpaDeclarations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_individuals' as any)
-        .select('id, full_name, national_id, date_of_birth')
+        .select('id, full_name, national_id, date_of_birth, email')
         .order('full_name')
         .limit(200);
       if (error) throw error;
@@ -345,7 +345,7 @@ export default function FpaDeclarations() {
           verification_hash: verificationHash,
           channel: channel,
           recipient_email: recipientEmail.trim() || null,
-          recipient_phone: recipientPhone.trim() || null,
+          recipient_phone: null,
           status: 'PENDING',
           expires_at: expiresAt,
         });
@@ -380,11 +380,65 @@ export default function FpaDeclarations() {
         _justification: `Declaration invitation created via ${channel} channel`,
       });
 
-      // Return the raw token so we can build the portal URL client-side
-      return rawToken;
+      // 6. Send the invitation email with the secure portal link
+      const portalLink = `${window.location.origin}/declaration/${rawToken}`;
+      let emailSent = false;
+      if (recipientEmail.trim()) {
+        const individualName = (individuals ?? []).find((i: any) => i.id === selectedIndividual)?.full_name || 'Applicant';
+        const emailSubject = 'Fit & Proper Declaration — Action Required';
+        const emailText = [
+          `Dear ${individualName},`,
+          '',
+          'You have been invited to complete a Fit & Proper Personal Questionnaire Declaration.',
+          '',
+          'Please use the link below to access the secure declaration form:',
+          portalLink,
+          '',
+          'When prompted, verify your identity using your date of birth and the last 4 digits of your national ID.',
+          '',
+          'This link expires in 7 days. If you did not expect this request, please disregard this message.',
+          '',
+          'Regards,',
+          'The Compliance Team',
+        ].join('\n');
+        const emailHtml = `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a">
+            <h2 style="margin-top:0;color:#111827">Fit &amp; Proper Declaration — Action Required</h2>
+            <p>Dear <strong>${individualName}</strong>,</p>
+            <p>You have been invited to complete a <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>.</p>
+            <p>Click the button below to access the secure declaration form:</p>
+            <p style="text-align:center;margin:32px 0">
+              <a href="${portalLink}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
+                Complete Declaration Form
+              </a>
+            </p>
+            <p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br>
+              <span style="word-break:break-all;color:#2563eb">${portalLink}</span>
+            </p>
+            <p>When prompted, you will need your <strong>date of birth</strong> and the <strong>last 4 digits of your national ID</strong> to verify your identity.</p>
+            <p style="color:#dc2626;font-size:13px">⚠ This link expires in 7 days.</p>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+            <p style="font-size:12px;color:#9ca3af">This is an automated message from the Regulatory Compliance Portal. Do not reply to this email.</p>
+          </div>`;
+
+        try {
+          const { data: emailResult } = await supabase.functions.invoke('send-notification', {
+            body: { type: 'email', to: recipientEmail.trim(), subject: emailSubject, body: emailText, html: emailHtml },
+          });
+          emailSent = emailResult?.success === true;
+        } catch {
+          // Email send threw — invitation row is still valid; caller gets a warning
+        }
+      }
+
+      return { rawToken, emailSent, recipientEmail: recipientEmail.trim() };
     },
-    onSuccess: (rawToken: string) => {
-      toast.success('Declaration request sent');
+    onSuccess: ({ rawToken, emailSent, recipientEmail: toEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
+      if (toEmail && !emailSent) {
+        toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
+      } else {
+        toast.success(toEmail ? `Declaration request sent to ${toEmail}` : 'Declaration invitation created');
+      }
       qc.invalidateQueries({ queryKey: ['fpa_declaration_queue'] });
       qc.invalidateQueries({ queryKey: ['fpa_declaration_stats'] });
       qc.invalidateQueries({ queryKey: ['fpa_notif_log'] });
@@ -404,6 +458,7 @@ export default function FpaDeclarations() {
     setManualLast4('');
 
     const ind = (individuals ?? []).find((i: any) => i.id === id) as any;
+    if (ind?.email) setRecipientEmail(ind.email);
     if (ind?.date_of_birth && ind?.national_id && ind.national_id.length >= 4) {
       const dob = ind.date_of_birth as string; // "YYYY-MM-DD"
       const last4 = (ind.national_id as string).slice(-4);
@@ -431,7 +486,6 @@ export default function FpaDeclarations() {
     setSelectedAssessment('');
     setChannel('EMAIL');
     setRecipientEmail('');
-    setRecipientPhone('');
     setNote('');
     setVerificationHash('');
     setManualDob('');
@@ -585,60 +639,37 @@ export default function FpaDeclarations() {
                           <SelectValue placeholder={selectedIndividual ? 'Select assessment…' : 'Select individual first'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {(individualAssessments ?? []).map((a: any) => (
+                          {(individualAssessments ?? []).filter((a: any) => a.status === 'draft').map((a: any) => (
                             <SelectItem key={a.id} value={a.id}>
-                              {a.assessment_type ?? 'Assessment'} · {a.status} · {fmtDate(a.created_at)}
+                              {a.assessment_type ?? 'Assessment'} · {fmtDate(a.created_at)}
                             </SelectItem>
                           ))}
-                          {selectedIndividual && (individualAssessments ?? []).length === 0 && !assessmentsError && (
-                            <SelectItem value="__none__" disabled>No assessments found</SelectItem>
+                          {selectedIndividual && (individualAssessments ?? []).filter((a: any) => a.status === 'draft').length === 0 && !assessmentsError && (
+                            <SelectItem value="__none__" disabled>No pending assessments found</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Channel */}
+                    {/* Channel — fixed to Email */}
                     <div className="space-y-1.5">
                       <Label htmlFor="decl-channel">Delivery Channel</Label>
-                      <Select value={channel} onValueChange={(v) => setChannel(v as 'EMAIL' | 'SMS' | 'BOTH')}>
-                        <SelectTrigger id="decl-channel">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="EMAIL">Email</SelectItem>
-                          <SelectItem value="SMS">SMS</SelectItem>
-                          <SelectItem value="BOTH">Both</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center h-9 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
+                        Email
+                      </div>
                     </div>
 
                     {/* Recipient email */}
-                    {(channel === 'EMAIL' || channel === 'BOTH') && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="decl-email">Recipient Email</Label>
-                        <Input
-                          id="decl-email"
-                          type="email"
-                          placeholder="applicant@example.com"
-                          value={recipientEmail}
-                          onChange={(e) => setRecipientEmail(e.target.value)}
-                        />
-                      </div>
-                    )}
-
-                    {/* Recipient phone */}
-                    {(channel === 'SMS' || channel === 'BOTH') && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="decl-phone">Recipient Phone</Label>
-                        <Input
-                          id="decl-phone"
-                          type="tel"
-                          placeholder="+1234567890"
-                          value={recipientPhone}
-                          onChange={(e) => setRecipientPhone(e.target.value)}
-                        />
-                      </div>
-                    )}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="decl-email">Recipient Email</Label>
+                      <Input
+                        id="decl-email"
+                        type="email"
+                        placeholder="applicant@example.com"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                      />
+                    </div>
 
                     {/* Note */}
                     <div className="space-y-1.5">
@@ -847,7 +878,7 @@ export default function FpaDeclarations() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs"
-                                  disabled={sendReminder.isPending}
+                                  disabled={sendReminder.isPending || row.status !== 'draft'}
                                   onClick={() => sendReminder.mutate(row.id)}
                                 >
                                   {sendReminder.isPending

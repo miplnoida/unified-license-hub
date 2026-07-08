@@ -205,7 +205,7 @@ function TaskCard({ finding, onAssign, assigning }: { finding: Finding; onAssign
 
         {/* action row */}
         <div className="flex items-center gap-2 pt-0.5">
-          {finding.resolution_status === 'open' && (
+          {['pending', 'needs_review', 'true_positive_draft'].includes(finding.resolution_status ?? '') && (
             <Button
               size="sm"
               variant="outline"
@@ -245,6 +245,11 @@ export default function FpaManualTasks() {
   const { data: findings, isLoading } = useQuery<Finding[]>({
     queryKey: ['fpa_manual_tasks', severityFilter, statusFilter],
     queryFn: async () => {
+      // The DB trigger sets resolution_status to 'pending', 'needs_review',
+      // 'true_positive_draft', or 'false_positive_draft' on insert.
+      // 'under_review' is set by the "Assign to Me" action.
+      const ACTIONABLE_STATUSES = ['pending', 'needs_review', 'true_positive_draft', 'under_review'];
+
       let query = supabase
         .from('fp_findings')
         .select(
@@ -252,14 +257,17 @@ export default function FpaManualTasks() {
            resolution_status, check_type, source, review_note,
            created_at, resolved_at, reviewed_at, reviewed_by`
         )
-        .in('resolution_status', ['open', 'under_review'])
+        .in('resolution_status', ACTIONABLE_STATUSES)
         .in('severity', ['high', 'medium', 'low'])
         .order('created_at', { ascending: false });
 
       if (severityFilter !== 'all') {
         query = query.eq('severity', severityFilter);
       }
-      if (statusFilter !== 'all') {
+      if (statusFilter === 'open') {
+        // 'open' covers all unassigned states before someone claims a task
+        query = query.in('resolution_status', ['pending', 'needs_review', 'true_positive_draft']);
+      } else if (statusFilter !== 'all') {
         query = query.eq('resolution_status', statusFilter);
       }
 
@@ -302,7 +310,7 @@ export default function FpaManualTasks() {
       const { data, error } = await supabase
         .from('fp_findings')
         .select('id, resolution_status, resolved_at, reviewed_at, reviewed_by')
-        .in('resolution_status', ['open', 'under_review', 'resolved'])
+        .in('resolution_status', ['pending', 'needs_review', 'true_positive_draft', 'under_review', 'resolved'])
         .in('severity', ['high', 'medium', 'low']);
       if (error) throw error;
       return (data ?? []) as Finding[];
@@ -313,7 +321,7 @@ export default function FpaManualTasks() {
   // reviewed_at being null is not a reliable assignment proxy since a finding
   // can be reviewed without being assigned via the manual queue.
   const statsUnassigned = isStatsError ? 0 : allFindings?.filter(
-    (f) => f.resolution_status === 'open'
+    (f) => ['pending', 'needs_review', 'true_positive_draft'].includes(f.resolution_status ?? '')
   ).length;
   const statsInProgress = isStatsError ? 0 : allFindings?.filter(
     (f) => f.resolution_status === 'under_review'
@@ -413,7 +421,7 @@ export default function FpaManualTasks() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="open">Unreviewed</SelectItem>
                 <SelectItem value="under_review">Under Review</SelectItem>
               </SelectContent>
             </Select>

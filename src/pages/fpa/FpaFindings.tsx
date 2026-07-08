@@ -92,16 +92,32 @@ function routingBadge(sev: string): { label: string; cls: string } {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
-    case 'open':
+    case 'pending':
       return 'bg-blue-100 text-blue-800 border border-blue-300';
-    case 'under_review':
+    case 'needs_review':
       return 'bg-amber-100 text-amber-800 border border-amber-300';
-    case 'confirmed':
+    case 'true_positive_draft':
       return 'bg-red-100 text-red-800 border border-red-300';
-    case 'false_positive':
+    case 'false_positive_draft':
       return 'bg-green-100 text-green-800 border border-green-300';
+    case 'under_review':
+      return 'bg-purple-100 text-purple-800 border border-purple-300';
+    case 'resolved':
+      return 'bg-slate-100 text-slate-700 border border-slate-200';
     default:
       return 'bg-slate-100 text-slate-600 border border-slate-200';
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'pending':          return 'Pending';
+    case 'needs_review':     return 'Needs Review';
+    case 'true_positive_draft': return 'True Positive';
+    case 'false_positive_draft': return 'False Positive';
+    case 'under_review':    return 'Under Review';
+    case 'resolved':        return 'Resolved';
+    default:                return status.replace(/_/g, ' ') || '—';
   }
 }
 
@@ -272,11 +288,11 @@ export default function FpaFindings() {
 
     // Quick tab filter
     if (quickTab === 'action') {
-      rows = rows.filter((f) => ['open', 'under_review'].includes(normStatus(f.resolution_status)));
+      rows = rows.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status)));
     } else if (quickTab === 'high') {
       rows = rows.filter((f) => normSeverity(f.severity) === 'HIGH');
     } else if (quickTab === 'confirmed') {
-      rows = rows.filter((f) => normStatus(f.resolution_status) === 'confirmed');
+      rows = rows.filter((f) => normStatus(f.resolution_status) === 'true_positive_draft');
     }
 
     // Severity filter
@@ -307,8 +323,8 @@ export default function FpaFindings() {
       high: all.filter((f) => normSeverity(f.severity) === 'HIGH').length,
       medium: all.filter((f) => normSeverity(f.severity) === 'MEDIUM').length,
       low: all.filter((f) => normSeverity(f.severity) === 'LOW').length,
-      open: all.filter((f) => normStatus(f.resolution_status) === 'open').length,
-      confirmed: all.filter((f) => normStatus(f.resolution_status) === 'confirmed').length,
+      open: all.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status))).length,
+      confirmed: all.filter((f) => normStatus(f.resolution_status) === 'true_positive_draft').length,
     };
   }, [findings]);
 
@@ -453,10 +469,12 @@ export default function FpaFindings() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ALL">All statuses</SelectItem>
-                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="needs_review">Needs Review</SelectItem>
+                        <SelectItem value="true_positive_draft">True Positive</SelectItem>
+                        <SelectItem value="false_positive_draft">False Positive</SelectItem>
                         <SelectItem value="under_review">Under Review</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="false_positive">False Positive</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -505,9 +523,7 @@ export default function FpaFindings() {
                 </TabsTrigger>
                 <TabsTrigger value="action" className="text-xs">
                   Requiring Action
-                  <span className="ml-1.5 tabular-nums text-muted-foreground">
-                    ({stats.open + (findings ?? []).filter((f) => normStatus(f.resolution_status) === 'under_review').length})
-                  </span>
+                  <span className="ml-1.5 tabular-nums text-muted-foreground">({stats.open})</span>
                 </TabsTrigger>
                 <TabsTrigger value="high" className="text-xs">
                   HIGH Priority
@@ -551,7 +567,7 @@ export default function FpaFindings() {
                                 const sev = normSeverity(finding.severity);
                                 const status = normStatus(finding.resolution_status);
                                 const routing = routingBadge(sev);
-                                const canEscalate = sev === 'HIGH' && status === 'confirmed';
+                                const canEscalate = sev === 'HIGH' && !['false_positive_draft', 'resolved'].includes(status);
 
                                 // Left severity stripe color
                                 const stripeColor =
@@ -626,7 +642,7 @@ export default function FpaFindings() {
                                       <span
                                         className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${statusBadgeClass(status)}`}
                                       >
-                                        {status.replace(/_/g, ' ') || '—'}
+                                        {statusLabel(status)}
                                       </span>
                                     </TableCell>
 
@@ -700,7 +716,9 @@ export default function FpaFindings() {
           {escalateTarget && (
             <div className="space-y-4">
               <div className="rounded-md border bg-red-50 border-red-200 p-3 space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-700">HIGH SEVERITY — Confirmed Adverse</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                  HIGH SEVERITY — {statusLabel(normStatus(escalateTarget.resolution_status))}
+                </p>
                 <p className="text-sm font-medium text-red-900">{escalateTarget.title ?? '—'}</p>
                 {escalateTarget.source && (
                   <p className="text-xs text-red-700 opacity-80">Source: {escalateTarget.source}</p>

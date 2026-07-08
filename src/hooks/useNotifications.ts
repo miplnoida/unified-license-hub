@@ -39,6 +39,7 @@ export function useNotifications() {
 
     const channel = supabase
       .channel('notif-' + user.id)
+      // New notification arrives → prepend to list
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -48,6 +49,32 @@ export function useNotifications() {
         const n = payload.new as Notification;
         if (n.channel === 'in_app') {
           setNotifications(prev => [n, ...prev]);
+        }
+      })
+      // Notification updated (e.g. marked read) → merge new values into existing row.
+      // This fires whenever ANY instance calls markRead / markAllRead, keeping the
+      // header badge and the notification list in sync across components.
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const n = payload.new as Notification;
+        setNotifications(prev =>
+          prev.map(existing => existing.id === n.id ? { ...existing, ...n } : existing)
+        );
+      })
+      // Notification deleted → remove from list
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const deleted = payload.old as { id: string };
+        if (deleted?.id) {
+          setNotifications(prev => prev.filter(existing => existing.id !== deleted.id));
         }
       })
       .subscribe();
