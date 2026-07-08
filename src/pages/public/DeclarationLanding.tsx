@@ -151,7 +151,7 @@ export default function DeclarationLanding() {
         p_token: token,
         p_inv_id: invitationId,
         p_assessment_id: assessmentId,
-        p_form_data: payload,
+        p_form_data: payload as any,
       });
 
       if (error) throw error;
