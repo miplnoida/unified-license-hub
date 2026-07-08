@@ -331,19 +331,24 @@ Deno.serve(async (req) => {
       const v = c.value;
       const check = (limit: number | null) => {
         if (limit == null) return false;
+        // Comparator expresses the REQUIRED condition; a breach is when the
+        // value fails that condition. e.g. ">=" limit means "value must be
+        // >= limit", so breach when v < limit.
         switch (t.comparator) {
-          case ">":  return v >  limit;
-          case ">=": return v >= limit;
-          case "<":  return v <  limit;
-          case "<=": return v <= limit;
+          case ">":  return v <= limit;
+          case ">=": return v <  limit;
+          case "<":  return v >= limit;
+          case "<=": return v >  limit;
           case "=":
-          case "==": return v === limit;
+          case "==": return v !== limit;
           case "between":
+            // Required: limit <= v <= upper_value → breach when outside
             if (t.upper_value == null) return false;
             return v < limit || v > t.upper_value;
           case "outside":
+            // Required: v outside [limit, upper_value] → breach when inside
             if (t.upper_value == null) return false;
-            return v < limit || v > t.upper_value;
+            return v >= limit && v <= t.upper_value;
           default:   return false;
         }
       };
