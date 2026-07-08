@@ -235,7 +235,7 @@ export default function FpaDeclarations() {
       if (byStatus.error) throw byStatus.error;
 
       const merged = new Map<string, any>();
-      for (const r of [...(withDecl.data ?? []), ...(byStatus.data ?? [])]) {
+      for (const r of [...(withDecl.data ?? []), ...(byStatus.data ?? [])] as any[]) {
         merged.set(r.id, r);
       }
       return Array.from(merged.values()).sort(
