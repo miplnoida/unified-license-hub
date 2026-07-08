@@ -1,18 +1,28 @@
+## Findings
+- For the specific return `RET-2026-00027`, row **1.4** is configured as a calculated field:
+  - `1.4 = 1.4.1 + 1.4.2 + 1.4.3`
+- The saved backend data currently contains rows `1`, `1.1`, `1.2`, and `1.3`, but **does not contain saved values for `1.4`, `1.4.1`, `1.4.2`, or `1.4.3`**.
+- The UI displays calculated fields using `evaluateFormula(...)`, but calculated results are not written back into `formData`, so they are not included when the return is saved/submitted.
+- Because the submitted/saved dataset lacks `line_1_4_col_1`, downstream review/validation/audit views can show row 1.4 as missing or zero even if the UI visually calculated it.
+
 ## Plan
+1. Update `FormRenderer` so calculated fields are included in the merged save/submit payload.
+   - Compute every visible calculated field from the current form data.
+   - Add the computed value into `getMergedData()` under the calculated field’s `fieldName`.
+   - Keep the field itself read-only in the UI.
 
-1. **Patch the actual rendered snapshot source**
-   - Add one database migration that rewrites `form_versions.schema_snapshot` for every version.
-   - The previous DB fix updated `section.fields`, but the live renderer uses `section.rows[*].fields` when rows exist. The affected Balance Sheet v1.0 snapshot still has duplicate `fieldName` values inside `rows`, including the two 1.3.1 fields.
+2. Prevent stale calculated values.
+   - Recalculate just before draft save, next/submit actions, and parent `onChange` propagation.
+   - Do not rely on users manually touching calculated fields.
 
-2. **Deduplicate both snapshot shapes in the same pass**
-   - For each section, walk `rows[*].fields` in visual order and rename duplicate `fieldName`s to `_b`, `_c`, etc.
-   - Rebuild `section.fields` from the corrected row fields so both structures match.
-   - Preserve the first occurrence unchanged so existing saved values remain attached to the original field.
+3. Add a runtime safety guard for missing calculated dependencies.
+   - Missing source fields remain treated as `0`, matching the existing formula evaluator behavior.
+   - Invalid formula output remains `Error`, but will not overwrite numeric source fields.
 
-3. **Do not alter submitted values directly**
-   - Leave `return_form_data` untouched. Existing values remain under their current field names.
-   - The duplicated second field will now save independently under its corrected `_b`/`_c` key instead of sharing the first field’s value.
+4. Backfill the affected return/form data directly in the backend.
+   - For return `RET-2026-00027`, insert/update `line_1_4_col_1` using the configured formula and currently saved child values.
+   - Since child rows `1.4.1`, `1.4.2`, and `1.4.3` are also absent, their saved values will be treated as `0` unless the user enters them in the UI.
 
-4. **Verify against the affected URL/data**
-   - Run read-only checks after migration to confirm zero duplicate `fieldName`s remain in either `schema_snapshot[*].fields` or `schema_snapshot[*].rows[*].fields`.
-   - Specifically check the Balance Sheet v1.0 version used by return `b100bd21-b90e-4cbf-b59f-20794db3e208` and confirm the two 1.3.1 rows have distinct keys.
+5. Verify after implementation.
+   - Confirm the UI save payload includes `line_1_4_col_1`.
+   - Confirm the backend has a `return_form_data` row for `line_1_4_col_1` after saving.
