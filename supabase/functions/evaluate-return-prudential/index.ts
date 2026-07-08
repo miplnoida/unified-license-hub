@@ -359,12 +359,8 @@ Deno.serve(async (req) => {
       await admin.rpc("record_return_breach", {
         _return_id: return_id, _metric_key: b.metric_key, _level: b.level,
         _value: b.value, _threshold_value: b.threshold_value, _comparator: b.comparator,
+        _risk_level: b.risk_level,
       });
-      try {
-        await admin.from("return_threshold_breaches")
-          .update({ risk_level: b.risk_level, threshold_version: b.threshold_version })
-          .eq("return_id", return_id).eq("metric_key", b.metric_key).is("risk_level", null);
-      } catch (_) { /* enrichment optional */ }
     }
 
     // Audit log via existing shared helper (best-effort)

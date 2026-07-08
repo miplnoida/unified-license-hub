@@ -14893,6 +14893,7 @@ export type Database = {
           _level: string
           _metric_key: string
           _return_id: string
+          _risk_level?: string
           _threshold_value: number
           _value: number
         }
