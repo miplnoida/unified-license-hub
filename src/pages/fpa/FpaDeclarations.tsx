@@ -485,7 +485,7 @@ export default function FpaDeclarations() {
   function resetDialog() {
     setSelectedIndividual('');
     setSelectedAssessment('');
-    setChannel('EMAIL');
+    // channel is fixed to EMAIL
     setRecipientEmail('');
     setNote('');
     setVerificationHash('');
