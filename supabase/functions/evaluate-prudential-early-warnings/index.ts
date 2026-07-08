@@ -10,6 +10,16 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+
+  // Feed log row — updated at the end with the outcome for dashboard visibility.
+  const { data: logRow } = await supa.from('prudential_data_feed_logs').insert({
+    source: 'evaluate-prudential-early-warnings',
+    feed_type: 'early_warning_sweep',
+    status: 'started',
+    started_at: new Date().toISOString(),
+  }).select().single();
+  const logId: string | null = (logRow as any)?.id ?? null;
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: warnings, error } = await (supa.from('v_prudential_early_warnings') as any)
@@ -45,6 +55,15 @@ Deno.serve(async (req) => {
       } catch (_e) { /* noop */ }
     }
 
+    if (logId) {
+      await supa.from('prudential_data_feed_logs').update({
+        status: 'success',
+        row_count: (warnings ?? []).length,
+        completed_at: new Date().toISOString(),
+        metadata: { critical: criticalRows.length, notifications_dispatched: notified },
+      }).eq('id', logId);
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       total_warnings: (warnings ?? []).length,
@@ -52,7 +71,14 @@ Deno.serve(async (req) => {
       notifications_dispatched: notified,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+    const message = (e as Error).message;
+    if (logId) {
+      await supa.from('prudential_data_feed_logs').update({
+        status: 'failed', error: message,
+        completed_at: new Date().toISOString(),
+      }).eq('id', logId);
+    }
+    return new Response(JSON.stringify({ ok: false, error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
     });
   }

@@ -385,6 +385,17 @@ export function useUpdateAction() {
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+      // Enforce mandatory notes at hook layer for terminal transitions,
+      // so a direct hook caller cannot bypass the UI's 5-char guard.
+      if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
+        throw new Error('Completion notes are required (min 5 characters) to complete an action');
+      }
+      if (patch.status === 'waived' && (!waiver_reason || waiver_reason.trim().length < 5)) {
+        throw new Error('Waiver reason is required (min 5 characters) to waive an action');
+      }
+      if (patch.status === 'cancelled' && (!cancellation_reason || cancellation_reason.trim().length < 5)) {
+        throw new Error('Cancellation reason is required (min 5 characters) to cancel an action');
+      }
       const body: any = { ...patch };
       if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
         body.closed_at = new Date().toISOString();
@@ -398,6 +409,13 @@ export function useUpdateAction() {
       await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
       if (patch.status === 'completed') {
         await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
+      }
+      // Re-notify the new assignee if assignment changed.
+      if (patch.assigned_to && before?.assigned_to !== patch.assigned_to) {
+        await notify('prudential_action_assigned', 'prudential_action', id, {
+          action_title: before?.title, entity_name: before?.licensees?.name,
+          entity_id: before?.entity_id, assigned_to: patch.assigned_to, reassigned: true,
+        });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
@@ -473,6 +491,8 @@ export function useUpdateEscalation() {
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
       if (patch.status === 'resolved') {
         await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
+      } else if (patch.status === 'withdrawn') {
+        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision, outcome: 'withdrawn' });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },

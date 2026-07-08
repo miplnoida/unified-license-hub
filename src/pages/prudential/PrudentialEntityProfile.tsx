@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
+import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -168,6 +169,7 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
           <TabsTrigger value="stress">Stress Events</TabsTrigger>
+          <TabsTrigger value="peers">Peer Comparison</TabsTrigger>
           <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
 
@@ -354,6 +356,14 @@ export default function PrudentialEntityProfile() {
           </CardContent></Card>
         </TabsContent>
 
+        <TabsContent value="peers">
+          <PeerComparisonTab
+            entity={e}
+            ratios={data.ratios || []}
+            returns={data.returns || []}
+          />
+        </TabsContent>
+
         <TabsContent value="audit">
           <Card><CardContent className="pt-4">
             <div className="text-sm">
@@ -382,5 +392,77 @@ export default function PrudentialEntityProfile() {
       <PrudentialEntityHistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} entityId={e.id} entityName={e.name} />
       </div>
     </DashboardLayout>
+  );
+}
+
+// --- Peer Comparison tab (uses usePeerSnapshot per ratio_key) ---
+function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: any[]; returns: any[] }) {
+  // Latest computed ratio per ratio_key, plus its period_end from returns.
+  const returnsById = useMemo(() => {
+    const m: Record<string, any> = {};
+    (returns || []).forEach((r) => { m[r.id] = r; });
+    return m;
+  }, [returns]);
+  const latestByKey = useMemo(() => {
+    const byKey: Record<string, any> = {};
+    (ratios || []).forEach((r: any) => {
+      const cur = byKey[r.ratio_key];
+      const ts = r.computed_at || returnsById[r.return_id]?.period_end_date;
+      const curTs = cur ? (cur.computed_at || returnsById[cur.return_id]?.period_end_date) : null;
+      if (!cur || (ts && (!curTs || ts > curTs))) byKey[r.ratio_key] = r;
+    });
+    return byKey;
+  }, [ratios, returnsById]);
+  const rows = Object.values(latestByKey) as any[];
+  if (!rows.length) return (
+    <Card><CardContent className="pt-4 text-sm text-muted-foreground">No ratios available for peer comparison.</CardContent></Card>
+  );
+  return (
+    <Card><CardContent className="pt-4">
+      <Table>
+        <TableHeader><TableRow>
+          <TableHead>Ratio</TableHead><TableHead>Period</TableHead>
+          <TableHead className="text-right">Entity</TableHead>
+          <TableHead className="text-right">Peer Median</TableHead>
+          <TableHead className="text-right">Peer P90</TableHead>
+          <TableHead className="text-right">Peer Range</TableHead>
+          <TableHead className="text-right">Sample</TableHead>
+          <TableHead className="text-right">Δ vs Median</TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <PeerRow key={r.ratio_key} row={r} entity={entity} period={returnsById[r.return_id]?.period_end_date} />
+          ))}
+        </TableBody>
+      </Table>
+    </CardContent></Card>
+  );
+}
+
+function PeerRow({ row, entity, period }: { row: any; entity: any; period?: string }) {
+  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null);
+  const p = peer.data as any;
+  const entityVal = Number(row.value);
+  const delta = p?.median != null && Number.isFinite(entityVal)
+    ? entityVal - Number(p.median) : null;
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{row.ratio_key}</TableCell>
+      <TableCell>{period || '—'}</TableCell>
+      <TableCell className="text-right tabular-nums">{formatRatio(row.value, row.display_format)}</TableCell>
+      <TableCell className="text-right tabular-nums">{p?.median != null ? formatRatio(p.median, row.display_format) : (peer.isLoading ? '…' : '—')}</TableCell>
+      <TableCell className="text-right tabular-nums">{p?.p90 != null ? formatRatio(p.p90, row.display_format) : '—'}</TableCell>
+      <TableCell className="text-right tabular-nums text-xs text-muted-foreground">
+        {p?.min != null && p?.max != null ? `${formatRatio(p.min, row.display_format)} – ${formatRatio(p.max, row.display_format)}` : '—'}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">{p?.count ?? '—'}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {delta != null ? (
+          <Badge variant="outline" className={delta >= 0 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-amber-500/10 text-amber-700 border-amber-200'}>
+            {delta >= 0 ? '+' : ''}{formatRatio(delta, row.display_format)}
+          </Badge>
+        ) : '—'}
+      </TableCell>
+    </TableRow>
   );
 }
