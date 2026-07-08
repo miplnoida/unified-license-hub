@@ -247,28 +247,34 @@ export default function PrudentialEntityProfile() {
           <Card><CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.breaches.map((b: any) => (
-                  <TableRow key={b.id}>
-                    <TableCell>{b.metric_key || b.ratio_key || '—'}</TableCell>
-                    <TableCell><Badge className={RISK_TONE[b.severity] || ''}>{b.severity || '—'}</Badge></TableCell>
-                    <TableCell className="tabular-nums">{b.observed_value ?? b.value ?? '—'}</TableCell>
-                    <TableCell className="tabular-nums">{b.threshold_value ?? '—'}</TableCell>
-                    <TableCell>{b.detected_at ? new Date(b.detected_at).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="sm" variant="ghost" onClick={() => setCreateAction({
-                        entity_id: e.id, source_type: 'return_breach', source_id: b.id,
-                        title: `Follow-up on breach: ${b.metric_key || b.ratio_key}`, severity: b.severity,
-                        description: `Breach detected on ${b.metric_key || b.ratio_key} (value ${b.observed_value ?? b.value}, threshold ${b.threshold_value}).`,
-                      })}>Create action</Button>
-                      {['critical','high'].includes(b.severity) && (
-                        <Button size="sm" variant="ghost" onClick={() => setCreateEscalation({
-                          entity_id: e.id, related_type: 'return', related_id: b.return_id,
-                          escalation_type: 'immediate_risk', reason: `${b.severity} breach on ${b.metric_key || b.ratio_key}`,
-                        })}>Escalate</Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {data.breaches.map((b: any) => {
+                  const sev = b.risk_level || b.severity || b.level;
+                  const val = b.value ?? b.observed_value;
+                  const metric = b.metric_key || b.ratio_key || '—';
+                  const fmt = ratioLabels[metric]?.fmt;
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell>{ratioLabels[metric]?.label || metric}</TableCell>
+                      <TableCell><Badge className={RISK_TONE[sev] || ''}>{sev || '—'}</Badge></TableCell>
+                      <TableCell className="tabular-nums">{val != null ? formatRatio(val, fmt) : '—'}</TableCell>
+                      <TableCell className="tabular-nums">{b.threshold_value != null ? formatRatio(b.threshold_value, fmt) : '—'}</TableCell>
+                      <TableCell>{b.detected_at ? new Date(b.detected_at).toLocaleDateString() : '—'}</TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button size="sm" variant="ghost" onClick={() => setCreateAction({
+                          entity_id: e.id, source_type: 'return_breach', source_id: b.id,
+                          title: `Follow-up on breach: ${metric}`, severity: sev,
+                          description: `Breach detected on ${metric} (value ${val}, threshold ${b.threshold_value}).`,
+                        })}>Create action</Button>
+                        {['critical','high','red','breach'].includes(sev) && (
+                          <Button size="sm" variant="ghost" onClick={() => setCreateEscalation({
+                            entity_id: e.id, related_type: 'return', related_id: b.return_id,
+                            escalation_type: 'immediate_risk', reason: `${sev} breach on ${metric}`,
+                          })}>Escalate</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {!data.breaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
