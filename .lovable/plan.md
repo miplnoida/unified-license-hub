@@ -1,47 +1,38 @@
-# Fix: Return-form fields sharing values (1.3.1 overlap)
+## Problem
 
-## Root cause
+Runtime form rendering keys values by `fieldName` from `form_versions.schema_snapshot` (JSONB). The previous fix deduped `form_fields` rows but never rewrote the snapshots, so existing published versions (v1.0 and v2.0 of "Balance Sheet", and any other affected template) still contain two entries sharing the same `fieldName` — causing values to bleed between the two 1.3.1 rows.
 
-In `form_fields`, multiple rows in the same section share the same `field_name` (e.g. `line_1_3_1_col_1`) but have different labels ("ELIGIBLE AS LIQUID ASSETS…" vs "FROM BANK OF JAMAICA…"). The renderer keys form values by `field_name`, so typing into one row writes to the shared key and both rows display the same value (399 in the screenshot).
-
-Evidence from DB (section `14c3cfed…`):
-- `line_1_3_1_col_1` → "ELIGIBLE AS LIQUID ASSETS…"
-- `line_1_3_1_col_1` → "FROM BANK OF JAMAICA…" (duplicate key)
-- `line_1_3_1_col_1_new` → "FROM BANK OF JAMAICA…" (earlier manual patch attempt)
-
-Same pattern repeats across sections `7adde37e…` and `f226b7df…`, and for other line codes (1.3.2 OTHER, 1.3.2.1, 1.3.2.2). Likely produced by the Excel import when two spreadsheet rows share a numeric code prefix.
+Confirmed in DB: snapshot for version `dead2bcf-…` (v1.0) contains two `line_1_3_1_col_1` items with different labels.
 
 ## Fix
 
-Two parts:
+**Single DB migration** that rewrites `form_versions.schema_snapshot` in place:
 
-### 1. Data migration — de-duplicate existing `field_name` values
+For every row in `form_versions`:
+1. Walk each section in the snapshot array.
+2. Within each section's `fields` array, track seen `fieldName` values.
+3. On a duplicate, rename to `<original>_b`, `_c`, … (matching the suffix scheme already used in `form_fields` and in `FileImport.tsx`), preserving the first occurrence so any existing saved values on the first field remain intact.
+4. Write the mutated JSONB back.
 
-For every section, detect duplicate `field_name`s and rename the 2nd, 3rd, … occurrence by appending `_b`, `_c`, … while keeping the first occurrence stable (so already-saved values on the first row remain intact).
-
-```text
-per section:
-  group by field_name
-  order duplicates by sort_order, id
-  keep the first
-  rename subsequent to `${field_name}_b`, `_c`, …
-  ensure new names don't collide with existing rows
-```
-
-Applied to `form_fields`. No changes to submitted `return_form_data` payloads — existing rows keyed by the old duplicate key already only match the first (kept) field, which matches current on-screen behavior; the newly-renamed rows will simply start blank, which is the intended state.
-
-### 2. Import guard — prevent recurrence
-
-In the returns/form Excel importer (the code path that seeds `form_fields`), when a candidate `field_name` already exists inside the same section, auto-suffix `_b`, `_c`, … before insert. I'll locate the importer via `rg` on `form_fields` inserts under `src/lib/` and `supabase/functions/` and add the suffixing there. No behavior change for non-colliding imports.
-
-## Out of scope
-
-- No renderer change: `field_name` uniqueness per section is the right contract.
-- No touch to submitted historical data.
-- No UI change to the numeric prefix column ("1.3.1" is a label artifact, not the key).
+Implemented as a PL/pgSQL DO block using `jsonb_set` / `jsonb_array_elements`, so it handles every affected version (not just Balance Sheet) in one pass.
 
 ## Verification
 
-- Re-query duplicates: `select section_id, field_name, count(*) from form_fields group by 1,2 having count(*) > 1;` returns 0 rows.
-- Reload the BS weekly return: the two "1.3.1" rows accept independent values.
-- Re-run an Excel import with an intentionally colliding sheet: second row lands as `_b` and both render/save independently.
+After the migration, this query must return 0 rows:
+
+```sql
+SELECT fv.id, s->>'id' AS section_id, f->>'fieldName' AS field_name, count(*)
+FROM form_versions fv,
+     jsonb_array_elements(fv.schema_snapshot) s,
+     jsonb_array_elements(s->'fields') f
+GROUP BY 1,2,3
+HAVING count(*) > 1;
+```
+
+Then reload the Balance Sheet return in the licensee portal and confirm the two 1.3.1 rows accept independent values.
+
+## Out of scope
+
+- No code changes (importer + form_fields dedupe are already fixed).
+- No touching of previously submitted `return_form_data` — values remain attached to whichever `fieldName` they were saved under.
+- `application_form_versions` snapshots are not touched (returns issue only); can be added later if the same symptom shows up for applications.
