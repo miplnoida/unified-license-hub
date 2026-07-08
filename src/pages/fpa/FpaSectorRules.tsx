@@ -525,9 +525,9 @@ export default function FpaSectorRules() {
         role_type: form.role_type || null,
         version: form.version,
         is_active: form.is_active,
-        criteria: buildCriteriaPayload(form.criteria),
+        criteria: buildCriteriaPayload(form.criteria) as any,
         created_by: user?.id ?? null,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
