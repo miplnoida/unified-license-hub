@@ -234,7 +234,7 @@ export default function PrudentialEntityProfile() {
                 {data.ratios.slice(0, 100).map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.label || r.ratio_key}</TableCell>
-                    <TableCell className="tabular-nums">{r.value}</TableCell>
+                    <TableCell className="tabular-nums">{formatRatio(r.value, r.display_format)}</TableCell>
                     <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
                   </TableRow>
                 ))}
