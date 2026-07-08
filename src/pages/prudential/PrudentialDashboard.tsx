@@ -177,3 +177,28 @@ export default function PrudentialDashboard() {
     </DashboardLayout>
   );
 }
+
+function RunSweepButton() {
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const run = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('prudential-monitoring-sweep', { body: {} });
+      if (error) throw error;
+      const evaluated = (data as any)?.returns_evaluated ?? 0;
+      const failed = (data as any)?.failed ?? 0;
+      toast.success(`Sweep complete: ${evaluated} return(s) re-evaluated${failed ? `, ${failed} failed` : ''}`);
+      qc.invalidateQueries({ queryKey: ['prudential_feed_logs'] });
+      qc.invalidateQueries({ queryKey: ['prudential_dashboard_metrics'] });
+      qc.invalidateQueries({ queryKey: ['prudential_entities'] });
+    } catch (e: any) {
+      toast.error(e.message || 'Sweep failed');
+    } finally { setBusy(false); }
+  };
+  return (
+    <Button variant="default" size="sm" disabled={busy} onClick={run}>
+      <Play className="h-4 w-4 mr-2" />{busy ? 'Sweeping…' : 'Run monitoring sweep'}
+    </Button>
+  );
+}
