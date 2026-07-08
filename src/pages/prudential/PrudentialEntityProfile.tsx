@@ -153,7 +153,8 @@ export default function PrudentialEntityProfile() {
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
           <Button size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
-          <HistoryButton entityType="licensee" entityId={e.id} title={`${e.name} history`} />
+          <Button size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
+          <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}><History className="h-3 w-3 mr-1" />History</Button>
         </div>
       </div>
 
