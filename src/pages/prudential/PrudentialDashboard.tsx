@@ -2,9 +2,13 @@ import { usePrudentialDashboardMetrics, useMarkOverdue, useStressEvents, useActi
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Play } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 function Stat({ label, value, to, tone }: { label: string; value: number | string; to?: string; tone?: 'default'|'warning'|'danger'|'success' }) {
   const color = tone === 'danger' ? 'text-destructive' : tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : '';
@@ -48,9 +52,12 @@ export default function PrudentialDashboard() {
           <h1 className="text-2xl font-semibold">Prudential Supervision</h1>
           <p className="text-sm text-muted-foreground">Consolidated prudential oversight</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => markOverdue.mutate()}>
-          <RefreshCw className="h-4 w-4 mr-2" />Sweep overdue actions
-        </Button>
+        <div className="flex gap-2">
+          <RunSweepButton />
+          <Button variant="outline" size="sm" onClick={() => markOverdue.mutate()}>
+            <RefreshCw className="h-4 w-4 mr-2" />Sweep overdue actions
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
