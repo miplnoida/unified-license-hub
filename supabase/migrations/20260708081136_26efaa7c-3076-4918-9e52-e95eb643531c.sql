@@ -1,0 +1,2 @@
+ALTER TABLE public.sufficiency_evaluations DROP CONSTRAINT sufficiency_evaluations_triggered_by_check;
+ALTER TABLE public.sufficiency_evaluations ADD CONSTRAINT sufficiency_evaluations_triggered_by_check CHECK (triggered_by = ANY (ARRAY['manual','submit','workflow','rfi_response','system','application_submitted','application_opened','rfi_created','rfi_closed','decision_attempt']));

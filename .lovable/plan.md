@@ -1,26 +1,21 @@
-## Update `fp-screening-run` edge function to questionnaire-only parsing
+## Fix pre/post application review UI — balance label/value columns
 
-Overwrite `supabase/functions/fp-screening-run/index.ts` with the uploaded version that reads declaration answers from `declaration_data.questionnaire.<key> = { answer, explanation }` instead of the legacy flat fields.
+**File:** `src/components/applications/ReviewAcknowledgement.tsx` (field-row layout inside the Accordion, ~lines 207–257)
 
-### Scope
-- Single file change: `supabase/functions/fp-screening-run/index.ts`.
-- No DB schema, RLS, table, or frontend changes.
-- Auto-deploys on write.
+### Problem
+Each review row uses `flex justify-between` with a narrow `min-w-[140px]` label and a value column capped at `max-w-[300px]`, right-aligned. On wide screens the label area stays visually empty while long answers (like Corporate Structure Details) get squeezed into a thin right-hand column that scrolls forever.
 
-### Behavior after deploy
-- Criminal / credit / regulator findings fire from the new questionnaire keys:
-  - `criminal_conviction`, `criminal_pending`, `director_disqualified`, `civil_judgment`
-  - `bankruptcy`, `insolvent_director`
-  - `license_refused`, `license_revoked`, `disciplinary_proceedings`
-- PEP keyword scan also reads `q.other_regulated_roles`.
-- Sanctions + adverse-media (AI) logic unchanged.
-- Run row creation, config snapshot, high-severity escalation, notification dispatch, and integration logging unchanged.
+### Change
+Convert the row to a responsive 1/3 label + 2/3 value grid, left-aligned:
 
-### Accepted trade-off
-Legacy assessments whose `declaration_data` is still in the flat shape (`criminal_record`, `financial_soundness`, `regulatory_history`, `disqualifications`, `bankruptcy`, `disciplinary`) will **not** generate criminal / credit / regulator findings on re-run. Only sanctions + adverse-media checks would fire for those.
+- Replace the `flex items-start justify-between gap-4` row wrapper with `grid grid-cols-1 md:grid-cols-3 gap-4`.
+- Label span: keep muted style, drop `min-w-[140px] shrink-0`; occupy `md:col-span-1`. Keep the "Changed" badge behavior.
+- Value container: `md:col-span-2`, switch `items-end` → `items-start`, remove `text-right` and `max-w-[300px]` caps on the text spans so long answers wrap across the full 2/3 column.
+- Attachment blocks: keep existing `AttachmentDisplay` but drop the `max-w-[360px]` cap and right-alignment so they align with the value column edge.
+- "Was: …" original-value hint stays under the value, left-aligned.
+- Preserve the yellow "changed" highlight, hover state, and all existing conditional branches (attachment / boolean / null / string).
 
-### Rollback
-Chat revert or History tab restores the previous version; auto-redeploys immediately. No data migration needed.
+No changes to logic, data flow, section headers, table-diff renderer, or display-only field renderer. No other files touched.
 
-### Verification
-Tail `fp-screening-run` logs after the next manual screening run to confirm success and expected finding counts.
+### Result
+Long text answers fill the available width and read top-to-bottom instead of squeezing into a narrow right column, while short answers still sit cleanly next to their label.

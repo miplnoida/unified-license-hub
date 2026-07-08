@@ -30,7 +30,7 @@ import {
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { usePpoc } from '@/contexts/PpocContext';
 import { resolveApplicationFeeBreakdown, resolveApplicationFeeBreakdownMeta } from '@/lib/applicationFeeBreakdown';
 
@@ -124,9 +124,58 @@ export default function NewApplication() {
 
   const { data: appSettings } = useApplicationSettings();
 
-  const { data: sectors = [] } = useSectors(activeRegulator?.id);
-  const { data: allSubSectors = [] } = useSubSectors(activeRegulator?.id);
-  const { data: allCategories = [] } = useCategories(activeRegulator?.id);
+  // Resolve the applicant's assigned regulator from their most recent
+  // registration. Used as a fallback when the header's active regulator has
+  // no sectors configured (e.g. the applicant belongs to a different
+  // regulator than the one currently selected in the switcher).
+  const { data: applicantRegulatorId } = useQuery({
+    queryKey: ['applicant-registration-regulator', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data: regs } = await supabase
+        .from('registrations')
+        .select('sector_id')
+        .eq('user_id', user!.id)
+        .in('status', ['approved', 'in_progress', 'pending_review'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const sid = (regs?.[0] as any)?.sector_id;
+      if (!sid) return null;
+      const { data: s } = await supabase
+        .from('sectors' as any)
+        .select('regulator_id')
+        .eq('id', sid)
+        .maybeSingle();
+      return ((s as any)?.regulator_id as string | null) ?? null;
+    },
+  });
+
+  const primarySectors = useSectors(activeRegulator?.id);
+  const primarySubSectors = useSubSectors(activeRegulator?.id);
+  const primaryCategories = useCategories(activeRegulator?.id);
+
+  // Fallback queries scoped to the applicant's own regulator. Only used when
+  // the primary (header-scoped) list is empty for that entity type.
+  const fallbackEnabled = !!applicantRegulatorId && applicantRegulatorId !== activeRegulator?.id;
+  const fallbackSectors = useSectors(fallbackEnabled ? applicantRegulatorId : undefined);
+  const fallbackSubSectors = useSubSectors(fallbackEnabled ? applicantRegulatorId : undefined);
+  const fallbackCategories = useCategories(fallbackEnabled ? applicantRegulatorId : undefined);
+
+  const sectors = (primarySectors.data && primarySectors.data.length > 0)
+    ? primarySectors.data
+    : (fallbackSectors.data ?? []);
+  const allSubSectors = (primarySubSectors.data && primarySubSectors.data.length > 0)
+    ? primarySubSectors.data
+    : (fallbackSubSectors.data ?? []);
+  const allCategories = (primaryCategories.data && primaryCategories.data.length > 0)
+    ? primaryCategories.data
+    : (fallbackCategories.data ?? []);
+
+  const sectorsEmpty =
+    !primarySectors.isLoading &&
+    (!fallbackEnabled || !fallbackSectors.isLoading) &&
+    sectors.length === 0;
+
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
 
   // Re-application guard state. The actual per-triple check runs in
@@ -1815,9 +1864,9 @@ export default function NewApplication() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="sector">Sector *</Label>
-                <Select value={selectedSector} onValueChange={handleSectorChange}>
+                <Select value={selectedSector} onValueChange={handleSectorChange} disabled={sectorsEmpty}>
                   <SelectTrigger id="sector">
-                    <SelectValue placeholder="Select Sector" />
+                    <SelectValue placeholder={sectorsEmpty ? 'No sectors available' : 'Select Sector'} />
                   </SelectTrigger>
                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                     {sectors.map(s => (
@@ -1825,7 +1874,14 @@ export default function NewApplication() {
                     ))}
                   </SelectContent>
                 </Select>
+                {sectorsEmpty && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    No sectors are configured for your assigned regulator. Please contact the administrator.
+                  </p>
+                )}
               </div>
+
 
               <div className="space-y-2">
                 <Label htmlFor="subsector">Sub-Sector *</Label>
