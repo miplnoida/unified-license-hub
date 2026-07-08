@@ -3572,6 +3572,78 @@ export type Database = {
         }
         Relationships: []
       }
+      declaration_invitations: {
+        Row: {
+          assessment_id: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          failed_identity_attempts: number
+          id: string
+          individual_id: string
+          opened_at: string | null
+          recipient_email: string | null
+          recipient_phone: string | null
+          sent_at: string | null
+          status: string
+          submitted_at: string | null
+          token_hash: string
+          verification_hash: string
+        }
+        Insert: {
+          assessment_id: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          failed_identity_attempts?: number
+          id?: string
+          individual_id: string
+          opened_at?: string | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          token_hash: string
+          verification_hash: string
+        }
+        Update: {
+          assessment_id?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          failed_identity_attempts?: number
+          id?: string
+          individual_id?: string
+          opened_at?: string | null
+          recipient_email?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          token_hash?: string
+          verification_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declaration_invitations_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declaration_invitations_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delegation_rules: {
         Row: {
           condition: Json
@@ -4624,6 +4696,7 @@ export type Database = {
           help_text: string | null
           id: string
           label: string
+          line_code: string | null
           options: Json | null
           placeholder: string | null
           required: boolean
@@ -4647,6 +4720,7 @@ export type Database = {
           help_text?: string | null
           id?: string
           label: string
+          line_code?: string | null
           options?: Json | null
           placeholder?: string | null
           required?: boolean
@@ -4670,6 +4744,7 @@ export type Database = {
           help_text?: string | null
           id?: string
           label?: string
+          line_code?: string | null
           options?: Json | null
           placeholder?: string | null
           required?: boolean
@@ -5821,6 +5896,76 @@ export type Database = {
           },
         ]
       }
+      fp_manual_screening_tasks: {
+        Row: {
+          assessment_id: string
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string | null
+          finding_id: string
+          id: string
+          individual_id: string
+          notes: string | null
+          outcome: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          finding_id: string
+          id?: string
+          individual_id: string
+          notes?: string | null
+          outcome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          finding_id?: string
+          id?: string
+          individual_id?: string
+          notes?: string | null
+          outcome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_manual_screening_tasks_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_manual_screening_tasks_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "fp_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_manual_screening_tasks_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fp_monitoring_events: {
         Row: {
           acknowledged_at: string | null
@@ -6046,6 +6191,41 @@ export type Database = {
             columns: ["sub_sector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_task_evidence: {
+        Row: {
+          file_name: string
+          file_path: string
+          id: string
+          task_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          id?: string
+          task_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          id?: string
+          task_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_task_evidence_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "fp_manual_screening_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -14226,6 +14406,17 @@ export type Database = {
         Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
       }
+      get_declaration_invitation_public: {
+        Args: { p_token: string }
+        Returns: {
+          assessment_id: string
+          expires_at: string
+          failed_identity_attempts: number
+          id: string
+          individual_name: string
+          status: string
+        }[]
+      }
       get_form_version_usage_counts: {
         Args: { _template_id: string }
         Returns: {
@@ -14775,6 +14966,19 @@ export type Database = {
         Args: { _ack_text?: string; _application_id: string }
         Returns: Json
       }
+      submit_declaration_by_token: {
+        Args: { p_assessment_id: string; p_inv_id: string; p_token: string }
+        Returns: boolean
+      }
+      submit_declaration_form: {
+        Args: {
+          p_assessment_id: string
+          p_form_data?: Json
+          p_inv_id: string
+          p_token: string
+        }
+        Returns: boolean
+      }
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
@@ -14796,6 +15000,14 @@ export type Database = {
         Returns: boolean
       }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
+      verify_declaration_identity: {
+        Args: { p_dob: string; p_last4id: string; p_token: string }
+        Returns: {
+          assessment_id: string
+          invitation_id: string
+          verified: boolean
+        }[]
+      }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json

@@ -54,6 +54,9 @@ export interface FormField {
   // Each file becomes its own versioned document group. Default (undefined/false) keeps the
   // existing single-file behavior unchanged.
   allowMultiple?: boolean;
+  // Optional hierarchical code shown as a leading column (e.g. "1.1.2.1" for
+  // prudential return line items). Imported from Excel column A.
+  lineCode?: string;
 }
 
 export type FieldType =

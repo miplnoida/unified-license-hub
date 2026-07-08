@@ -70,6 +70,7 @@ export interface FormFieldRow {
   content: string | null;
   table_columns: any[] | null;
   calculated_expression: string | null;
+  line_code: string | null;
   created_at: string;
 }
 
@@ -131,6 +132,7 @@ function sectionsToFieldRows(
         content: f.content || null,
         table_columns: f.tableColumns || null,
         calculated_expression: f.calculatedExpression || null,
+        line_code: f.lineCode || null,
       });
 
       if (f.conditionalLogic) {
@@ -193,6 +195,7 @@ function fieldRowsToSections(
       content: row.content || undefined,
       tableColumns: row.table_columns || undefined,
       calculatedExpression: row.calculated_expression || undefined,
+      lineCode: (row as any).line_code || undefined,
       conditionalLogic: conditionsByField.get(row.id) || undefined,
     };
     section.fields.push(field);

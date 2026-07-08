@@ -44,9 +44,14 @@ function toFieldName(label: string): string {
 // Lightweight read-only field renderer used only by the preview dialog.
 function FieldPreview({ field }: { field: FormField }) {
   const label = (
-    <Label className="text-sm">
-      {field.label}
-      {field.required && <span className="text-destructive ml-1">*</span>}
+    <Label className="text-sm flex items-baseline gap-2">
+      {field.lineCode && (
+        <span className="font-mono text-xs text-muted-foreground">{field.lineCode}</span>
+      )}
+      <span>
+        {field.label}
+        {field.required && <span className="text-destructive ml-1">*</span>}
+      </span>
     </Label>
   );
   let control: React.ReactNode;

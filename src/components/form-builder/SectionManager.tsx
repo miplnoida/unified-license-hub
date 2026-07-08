@@ -353,7 +353,12 @@ export function SectionManager({
                               {getFieldIcon(field.type)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium truncate">{field.label}</p>
+                              <p className="text-xs font-medium truncate">
+                                {field.lineCode && (
+                                  <span className="font-mono text-muted-foreground mr-2">{field.lineCode}</span>
+                                )}
+                                {field.label}
+                              </p>
                               <p className="text-[10px] text-muted-foreground truncate">{field.fieldName}</p>
                             </div>
                             {field.required && <Badge variant="outline" className="text-[10px] px-1 shrink-0">Req</Badge>}

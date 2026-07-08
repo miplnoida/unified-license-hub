@@ -787,9 +787,16 @@ export function FormRenderer({
     const isUploading = uploadingFields[field.fieldName];
 
     const fieldLabel = !isDisplayOnlyFieldType(field.type) && field.type !== 'checkbox' ? (
-      <Label className="text-sm">
-        {field.label}
-        {required && <span className="text-destructive ml-1">*</span>}
+      <Label className="text-sm flex items-baseline gap-2">
+        {field.lineCode && (
+          <span className="font-mono text-xs text-muted-foreground shrink-0 min-w-[3.5rem]">
+            {field.lineCode}
+          </span>
+        )}
+        <span>
+          {field.label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </span>
       </Label>
     ) : null;
 
@@ -808,9 +815,19 @@ export function FormRenderer({
         input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{resolveDisplayOnlyFieldText(field)}</p>;
       }
 
+      const showLineCode = fieldType !== 'divider' && !!field.lineCode;
       return (
         <div className="space-y-1.5" data-field-name={field.fieldName}>
-          {input}
+          {showLineCode ? (
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-xs text-muted-foreground shrink-0 min-w-[3.5rem]">
+                {field.lineCode}
+              </span>
+              <div className="flex-1">{input}</div>
+            </div>
+          ) : (
+            input
+          )}
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
       );
