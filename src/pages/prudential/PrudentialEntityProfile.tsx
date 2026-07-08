@@ -68,18 +68,26 @@ export default function PrudentialEntityProfile() {
   const audit = useEntityAuditHistory(id);
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const ratioLabels = useMemo(() => {
+    const m: Record<string, { label: string; fmt?: string }> = {};
+    (data?.ratios || []).forEach((r: any) => {
+      if (!m[r.ratio_key]) m[r.ratio_key] = { label: r.label || r.ratio_key, fmt: r.display_format };
+    });
+    return m;
+  }, [data?.ratios]);
 
   const ratioTrend = useMemo(() => {
-    if (!data?.ratios) return [];
-    // Pivot ratios by return_id / period
-    const byReturn: Record<string, any> = {};
+    if (!data?.ratios) return [] as any[];
+    const byPeriod: Record<string, any> = {};
     const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
     (data.ratios || []).forEach((r: any) => {
       const rf = returnsById[r.return_id];
       const key = rf?.period_end_date || r.computed_at;
-      byReturn[key] = { period: key, ...(byReturn[key] || {}), [r.ratio_key]: Number(r.value) };
+      byPeriod[key] = { period: key, ...(byPeriod[key] || {}), [r.ratio_key]: Number(r.value) };
     });
-    return Object.values(byReturn).sort((a: any, b: any) => a.period.localeCompare(b.period));
+    return Object.values(byPeriod).sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
   }, [data]);
 
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
@@ -89,11 +97,45 @@ export default function PrudentialEntityProfile() {
   const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
   const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
   const worstBreachSev = (() => {
-    const order = ['critical','high','medium','low'];
+    const order = ['red','breach','critical','amber','warn','high','medium','low'];
     let worst: string | null = null;
-    (data.breaches || []).forEach((b: any) => { if (!worst || order.indexOf(b.severity) < order.indexOf(worst)) worst = b.severity; });
+    (data.breaches || []).forEach((b: any) => {
+      const s = b.risk_level || b.severity || b.level;
+      if (!s) return;
+      if (!worst || order.indexOf(s) < order.indexOf(worst)) worst = s;
+    });
     return worst;
   })();
+
+  const exportProfile = () => {
+    const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(`${e.name}-ratios-${stamp}.csv`, (data.ratios || []).map((r: any) => {
+      const rf = returnsById[r.return_id];
+      return {
+        ratio_key: r.ratio_key,
+        label: r.label || r.ratio_key,
+        period_end: rf?.period_end_date ?? '',
+        value_raw: r.value,
+        value_formatted: formatRatio(r.value, r.display_format),
+        display_format: r.display_format ?? '',
+        computed_at: r.computed_at ?? '',
+      };
+    }));
+    downloadCsv(`${e.name}-breaches-${stamp}.csv`, (data.breaches || []).map((b: any) => {
+      const rf = returnsById[b.return_id];
+      return {
+        metric_key: b.metric_key || b.ratio_key || '',
+        level: b.level || '',
+        risk_level: b.risk_level || b.severity || '',
+        value: b.value ?? b.observed_value ?? '',
+        threshold_value: b.threshold_value ?? '',
+        comparator: b.comparator ?? '',
+        period_end: rf?.period_end_date ?? '',
+        detected_at: b.detected_at ?? '',
+      };
+    }));
+  };
 
   return (
     <DashboardLayout>
