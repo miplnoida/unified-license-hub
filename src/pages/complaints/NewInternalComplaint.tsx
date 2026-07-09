@@ -12,6 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
+import { useAuth } from '@/contexts/AuthContext';
+import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
+import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { toast } from 'sonner';
 
 const sb = supabase as any;
