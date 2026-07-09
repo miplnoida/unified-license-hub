@@ -11973,6 +11973,7 @@ export type Database = {
       roles: {
         Row: {
           created_at: string
+          dashboard_tier: string
           description: string | null
           id: string
           is_system: boolean
@@ -11983,6 +11984,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
@@ -11993,6 +11995,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
