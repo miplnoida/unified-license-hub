@@ -1,16 +1,14 @@
-Plan to fix the remaining schema-cache error:
+Plan to fix the remaining error:
 
-1. Replace the current prudential assessment embedded relationship query with the explicit backend FK relationship syntax:
-   - Use `licensee:licensees!prudential_assessments_entity_id_fkey(name)` instead of the current alias form.
-   - Apply this in both the assessment list and single assessment detail queries.
+1. Fix the real failing path: assessment save/update is sending UI-only relationship fields (`licensee` / `licensees`) back to `prudential_assessments`, so the backend treats them as missing table columns.
 
-2. Update any UI/data typing that expects `licensees.name` so it also reads the corrected `licensee.name` shape without breaking existing display code.
+2. Harden `useUpsertAssessment` by sanitizing the payload before insert/update:
+   - Remove `licensee`, `licensees`, and any other embedded/display-only fields before writing.
+   - Keep valid assessment columns such as rating, rationale, conclusion, status, entity/return IDs, notes, timestamps, and audit fields.
 
-3. Add a safe fallback if the embedded relationship still fails due to backend schema cache lag:
-   - Fetch `prudential_assessments` normally.
-   - Fetch matching `licensees` by `entity_id`.
-   - Merge the licensee name client-side.
+3. Also adjust the Assessment Detail save call to avoid spreading the full loaded row blindly, so future embedded read fields are not accidentally written back.
 
-4. Verify the failing prudential page/query no longer requests a non-existent `licensees` column and that the page renders assessment rows/details correctly.
+4. Verify with the current assessment detail route that clicking Save no longer produces:
+   - `Could not find the 'licensee' column of 'prudential_assessments' in the schema cache`
 
-No approval workflow, return submission, or prudential calculation logic will be changed.
+No workflow transitions, prudential calculations, thresholds, or return submission logic will be changed.
