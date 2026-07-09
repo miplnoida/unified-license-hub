@@ -623,3 +623,61 @@ export function useReturnNotificationsLog(filters?: { templateCode?: string; sta
     },
   });
 }
+
+// ─── Live Return Notification Event Configs (active system) ───
+export function useReturnEventConfigs() {
+  return useQuery({
+    queryKey: ['return_event_configs'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('notification_event_configs')
+        .select('*')
+        .like('event_key', 'return.%')
+        .order('event_key');
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+}
+
+export function useMutateReturnEventConfig() {
+  const qc = useQueryClient();
+  return {
+    update: useMutation({
+      mutationFn: async ({ id, ...payload }: any) => {
+        const { error } = await (supabase as any)
+          .from('notification_event_configs')
+          .update(payload)
+          .eq('id', id);
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['return_event_configs'] });
+        toast.success('Template updated');
+      },
+      onError: (e: any) => toast.error(e.message),
+    }),
+  };
+}
+
+// ─── Live Return Dispatch Log (active system) ───
+export function useReturnDispatchLog(filters?: { status?: string; channel?: string; eventKey?: string }) {
+  return useQuery({
+    queryKey: ['return_dispatch_log', filters],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from('notification_dispatch_log')
+        .select('*')
+        .like('event_key', 'return.%')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (filters?.status) q = q.eq('status', filters.status);
+      if (filters?.channel) q = q.eq('channel', filters.channel);
+      if (filters?.eventKey) q = q.eq('event_key', filters.eventKey);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+}
+
