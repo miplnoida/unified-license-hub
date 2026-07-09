@@ -56,15 +56,17 @@ describe('evaluateAccountingReconciliation', () => {
     expect(r.checks.find((c) => c.key === 'pnl_reconcile')?.skipped).toBe(true);
   });
 
-  it('blocks when form is present but total fields are empty', () => {
-    const data = { bs: { line_1_col_1: '1000' }, pl: {} };
-    const r = evaluateAccountingReconciliation(data, forms);
+  it('passes when all totals are empty (LHS/RHS/Diff all zero)', () => {
+    const r = evaluateAccountingReconciliation({ bs: {}, pl: {} }, forms);
+    expect(r.passed).toBe(true);
+    expect(r.checks.find((c) => c.key === 'bs_balance')?.ok).toBe(true);
+    expect(r.checks.find((c) => c.key === 'pnl_reconcile')?.ok).toBe(true);
+    expect(r.checks.find((c) => c.key === 'bs_pnl_link')?.ok).toBe(true);
+  });
+
+  it('blocks partial fills where one side is empty', () => {
+    const r = evaluateAccountingReconciliation({ bs: { line_1_col_1: '1000' }, pl: {} }, forms);
     expect(r.passed).toBe(false);
-    const bs = r.checks.find((c) => c.key === 'bs_balance')!;
-    expect(bs.skipped).toBe(false);
-    expect(bs.ok).toBe(false);
-    const pl = r.checks.find((c) => c.key === 'pnl_reconcile')!;
-    expect(pl.skipped).toBe(false);
-    expect(pl.ok).toBe(false);
+    expect(r.checks.find((c) => c.key === 'bs_balance')?.ok).toBe(false);
   });
 });

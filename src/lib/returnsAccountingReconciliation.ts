@@ -114,17 +114,19 @@ export function evaluateAccountingReconciliation(
       if (totalLiabilities === null) missingParts.push('Total Liabilities');
       if (totalEquity === null) missingParts.push('Total Equity');
     }
+    const allZero = lhs === 0 && rhs === 0 && diff === 0;
+    const ok = !skipped && diff === 0 && (!missing || allZero);
     checks.push({
       key: 'bs_balance',
       label: 'Balance Sheet balances',
       lhsLabel: 'Total Assets',
       rhsLabel: 'Total Liabilities + Total Equity',
       lhs, rhs, diff,
-      ok: !skipped && !missing && diff === 0,
+      ok,
       skipped,
       reason: skipped
         ? 'No Balance Sheet form on this return.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+        : (missing && !ok) ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
@@ -141,17 +143,19 @@ export function evaluateAccountingReconciliation(
       if (totalExpenses === null) missingParts.push('Total Expenses');
       if (preTaxProfit === null) missingParts.push('Pre-tax Profit');
     }
+    const allZero = lhs === 0 && rhs === 0 && diff === 0;
+    const ok = !skipped && diff === 0 && (!missing || allZero);
     checks.push({
       key: 'pnl_reconcile',
       label: 'P&L reconciles',
       lhsLabel: 'Total Income − Total Expenses',
       rhsLabel: 'Pre-tax Profits',
       lhs, rhs, diff,
-      ok: !skipped && !missing && diff === 0,
+      ok,
       skipped,
       reason: skipped
         ? 'No P&L form on this return.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+        : (missing && !ok) ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
@@ -172,11 +176,9 @@ export function evaluateAccountingReconciliation(
       lhsLabel: 'BS-derived Total Income & Pre-tax',
       rhsLabel: 'P&L Total Income & Pre-tax',
       lhs, rhs, diff: 0,
-      ok: !skipped && !missing,
+      ok: !skipped,
       skipped,
-      reason: skipped
-        ? 'Requires both Balance Sheet and P&L forms.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+      reason: skipped ? 'Requires both Balance Sheet and P&L forms.' : undefined,
     });
   }
 
