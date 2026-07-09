@@ -104,15 +104,31 @@ export default function ComplaintsList() {
       return;
     }
     setCreating(true);
-    const insertData: any = {
-      complainant_id: user.id,
-      subject: newSubject.trim(),
-      description: newDesc.trim(),
-      email: user.email,
-    };
+    const insertData: any = isInternal
+      ? {
+          subject: newSubject.trim(),
+          description: newDesc.trim(),
+          email: user.email || null,
+          severity: 'medium',
+          priority: 'p3',
+          status: 'open',
+          intake_source: 'internal',
+          internal_created_by: user.id,
+        }
+      : {
+          complainant_id: user.id,
+          subject: newSubject.trim(),
+          description: newDesc.trim(),
+          email: user.email,
+        };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
     const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
-    if (error) { toast.error(error.message); setCreating(false); return; }
+    if (error) {
+      if (import.meta.env.DEV) console.error('[complaint create] failed', { code: error.code, message: error.message, details: error.details, hint: error.hint, insertData });
+      toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
+      setCreating(false);
+      return;
+    }
 
     await logAudit({ action: 'complaint_created', entityType: 'complaint', entityId: inserted?.id });
 
