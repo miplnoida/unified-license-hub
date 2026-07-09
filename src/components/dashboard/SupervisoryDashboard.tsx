@@ -90,13 +90,13 @@ export function SupervisoryDashboard() {
           <MetricCard title={RETURN_DRILLDOWNS.overdue.label} value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to={returnDrilldownTo('overdue')} />
         )}
         {can.risk && (
-          <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} />
+          <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} to="/admin/entities?risk=high" />
         )}
         {can.fees && (
           <MetricCard title="Outstanding Fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/payments?status=pending" />
         )}
         {can.enforcement && (
-          <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
+          <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} to="/enforcement/actions?status=open" />
         )}
         {can.returns && (
           <MetricCard title="Open Breaches" value={openBreaches ?? 0} icon={ShieldAlert} tone="destructive" loading={openBreaches === undefined} to="/supervision/breaches" />
