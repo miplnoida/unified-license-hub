@@ -14181,6 +14181,10 @@ export type Database = {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_return_filed: {
+        Args: { _return_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
