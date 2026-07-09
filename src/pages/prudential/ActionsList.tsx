@@ -88,8 +88,10 @@ export default function ActionsList() {
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCloseFor(null)}>Back</Button>
-            <Button disabled={!note.trim() || note.trim().length < 5} onClick={submitClose}>Confirm</Button>
+            <Button variant="ghost" disabled={update.isPending} onClick={() => setCloseFor(null)}>Back</Button>
+            <Button disabled={!note.trim() || note.trim().length < 5 || update.isPending} onClick={submitClose}>
+              {update.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Confirm'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
