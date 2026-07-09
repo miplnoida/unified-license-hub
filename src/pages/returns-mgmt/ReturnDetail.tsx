@@ -237,6 +237,7 @@ export default function ReturnDetail() {
   const { data: revisions = [], isLoading: revisionsLoading, error: revisionsError } = useReturnRevisions(id);
   const editBaselineRev = pickEditBaseline(revisions);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
 
 
