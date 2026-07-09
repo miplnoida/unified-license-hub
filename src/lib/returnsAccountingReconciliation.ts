@@ -143,17 +143,19 @@ export function evaluateAccountingReconciliation(
       if (totalExpenses === null) missingParts.push('Total Expenses');
       if (preTaxProfit === null) missingParts.push('Pre-tax Profit');
     }
+    const allZero = lhs === 0 && rhs === 0 && diff === 0;
+    const ok = !skipped && diff === 0 && (!missing || allZero);
     checks.push({
       key: 'pnl_reconcile',
       label: 'P&L reconciles',
       lhsLabel: 'Total Income − Total Expenses',
       rhsLabel: 'Pre-tax Profits',
       lhs, rhs, diff,
-      ok: !skipped && !missing && diff === 0,
+      ok,
       skipped,
       reason: skipped
         ? 'No P&L form on this return.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+        : (missing && !ok) ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
