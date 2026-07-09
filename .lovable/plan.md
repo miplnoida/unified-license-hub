@@ -1,43 +1,53 @@
 ## Problem
 
-On `/admin/returns/queue/87a20403-...`, the tabular submitted-data view is empty even though 6 rows exist across 2 forms in `return_form_data`. Version comparison works because we already routed revision reads through the `can_view_return_filed` visibility helper in the previous fix.
+On the admin Return Detail page, the top-right **History** button opens a drawer that:
 
-The current `SELECT` policy on `return_form_data` only allows:
-- `created_by = auth.uid()`, or
-- static admin/regulator roles (`super_admin`, `admin`, `supervisor`, `analyst`, `licensing_officer`), or
-- licensee/PPOC mappings.
+1. **Shows nothing** — it queries `audit_logs` with `entity_type = "return_filed"`, but return audit rows are stored under `entity_type = "return"` (and richer data lives in `return_audit_log` + `approval_actions`).
+2. **Renders raw JSON** via `DiffViewer` (before/after JSON blobs), which is unreadable for non-technical reviewers.
 
-Reviewers routed to this return through the workflow (e.g. `legal_compliance` and other non-listed roles) don't match any branch, so `useReturnFormData` returns `[]` and `<ReturnDataTable>` renders with no values. The revisions RPC bypasses this because it uses the workflow-aware helper; the main table read does not.
+The inline "Activity & History" card in the sidebar already renders friendly rows from `return_audit_log`; the drawer should match that experience.
 
 ## Fix
 
-Extend the SELECT visibility on `return_form_data` to reuse the same `public.can_view_return_filed(auth.uid(), return_id)` helper we introduced for revisions, so anyone the workflow assigns to the return can read its submitted values on the admin queue view.
+### 1. Wire the History drawer to the correct return data source
+Replace the empty `audit_logs` fetch with the same unified source already used by the sidebar:
+- `return_audit_log` (labels, status transitions, comments, event keys)
+- `approval_actions` (workflow decisions, actor, remarks)
+- Merge chronologically, newest first.
 
-### Backend (single migration)
+Sidebar and drawer will show the same events, but the drawer gives a full-height, filterable view.
 
-1. Drop existing SELECT policy `Licensee viewers read return_form_data` on `public.return_form_data`.
-2. Recreate it as:
-   ```sql
-   CREATE POLICY "Return viewers read return_form_data"
-     ON public.return_form_data FOR SELECT
-     USING (public.can_view_return_filed(auth.uid(), return_id));
-   ```
-   The helper already covers: creator, static admin/supervisor/analyst roles, licensee/PPOC mapping, external capability gate, and workflow-assigned reviewers — matching (and superseding) the current branches.
-3. Keep the external capability gate policy as-is (defense in depth).
-4. Confirm `GRANT SELECT ON public.return_form_data TO authenticated` is present; add if missing.
+### 2. Render events as normal data, not JSON
+Each event row will show:
+- **Action label** (e.g. "Return Submitted", "Resubmission Requested", "Approved by Legal Compliance") — resolved via existing `labelForReturnActivity` / `auditLabels`.
+- **Actor** (name + role) instead of a UUID.
+- **When** (localized date/time).
+- **Status change** as `Draft → Submitted` chips, not JSON.
+- **Comments / reason** as plain paragraph text.
+- **Field changes** (when present in `old_value` / `new_value`): rendered as a simple two-column list —
+  `Field name : old value → new value` — with keys title-cased through a small formatter (reusing the pattern in `src/lib/evidenceLabel.ts`), numbers formatted with thousands separators, dates localized, booleans as Yes/No. No `<pre>` / JSON blocks.
+- Deeply nested objects (rare) collapse behind a "Show details" toggle rather than dumping JSON inline.
 
-### Frontend
+### 3. Scope
+- Changes are limited to the returns module. Other entities keep the current `ChangeHistoryDrawer` untouched.
+- No schema or RLS changes — data already flows through `get_return_revisions` / existing audit tables.
 
-No changes required — `useReturnFormData` will start returning the 6 rows once RLS allows it, and the existing `ReturnDataTable` will render values automatically.
+## Files touched
 
-### Verification
+```text
+src/pages/returns-mgmt/ReturnDetail.tsx          swap HistoryButton for a
+                                                  return-specific drawer trigger
+src/components/audit/ReturnHistoryDrawer.tsx     NEW – merges return_audit_log
+                                                  + approval_actions, human-readable
+src/components/audit/FriendlyDiff.tsx            NEW – key/value pretty renderer
+                                                  (title-case keys, formatted values,
+                                                  no JSON)
+src/lib/auditLabels.ts                           add any missing return action labels
+```
 
-- Re-open `/admin/returns/queue/87a20403-86c0-49a1-aa07-2247b588e720` as the workflow-assigned reviewer: each form tab should render its rows with `Label` / `Value`.
-- Regression check: licensee (owner) view of their own return still shows data.
-- `security--linter` / scan after migration to confirm no new warnings.
+## Verification
 
-## Out of scope
-
-- Any UI/table styling changes.
-- Changes to write policies (INSERT/UPDATE) — only SELECT visibility is broken.
-- Changes to the revisions flow (already fixed).
+- Open the return currently on screen (`/admin/returns/queue/53f814f3-…`); click **History** — drawer lists submission, resubmission-request, resubmit, workflow approvals, edits.
+- Confirm no `{ }` / JSON blocks appear; field-level edits show as "Total Assets: 4,999.99 → 5,120.00".
+- Sidebar "Activity & History" card continues to work unchanged.
+- Other entity History buttons (application, license, licensee) are unaffected.
