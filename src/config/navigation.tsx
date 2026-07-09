@@ -197,6 +197,12 @@ export const mainNavSections: NavSection[] = [
     label: 'Prudential Supervision',
     items: [
       { label: 'Prudential Dashboard', href: '/prudential/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Prudential Thresholds', href: '/admin/returns/prudential/thresholds', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
+      { label: 'Prudential Ratios', href: '/admin/returns/prudential/ratios', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
+      { label: 'Prudential Analytics', href: '/admin/returns/prudential/analytics', icon: <FileBarChart className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
+      { label: 'Validations', href: '/admin/returns/validations', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
+      { label: 'Notif Templates', href: '/admin/returns/notifications/templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
+      { label: 'Notif Log', href: '/admin/returns/notifications/log', icon: <FileBarChart className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
       { label: 'Supervised Entities', href: '/prudential/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Assessments', href: '/prudential/assessments', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Actions Ledger', href: '/prudential/actions', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
