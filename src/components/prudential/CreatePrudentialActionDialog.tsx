@@ -103,8 +103,10 @@ export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onC
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!form.entity_id || !form.title} onClick={submit}>Create</Button>
+          <Button variant="ghost" disabled={create.isPending} onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button disabled={!form.entity_id || !form.title || create.isPending} onClick={submit}>
+            {create.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</>) : 'Create'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
