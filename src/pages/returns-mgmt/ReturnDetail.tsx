@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
-import { HistoryButton } from '@/components/audit/HistoryButton';
+import { ReturnHistoryDrawer } from '@/components/audit/ReturnHistoryDrawer';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
 import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
@@ -237,6 +237,7 @@ export default function ReturnDetail() {
   const { data: revisions = [], isLoading: revisionsLoading, error: revisionsError } = useReturnRevisions(id);
   const editBaselineRev = pickEditBaseline(revisions);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
 
 
@@ -596,7 +597,9 @@ export default function ReturnDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
           <div className="flex items-center gap-2">
-            <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="h-4 w-4 mr-1" /> History
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -892,6 +895,12 @@ export default function ReturnDetail() {
         revisions={revisions}
         currentValues={valuesByForm}
         returnLabel={returnData.unique_id}
+      />
+      <ReturnHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        returnId={returnData.id}
+        title={`Return history — ${returnData.unique_id}`}
       />
     </DashboardLayout>
   );
