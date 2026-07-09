@@ -1,28 +1,25 @@
-## Root cause
+## Plan: Enable Compare Versions for resubmitted returns
 
-`return_data_revisions` has RLS policies but **no `GRANT` privileges** to any Data API role. PostgREST needs an explicit `GRANT SELECT ... TO authenticated` (RLS alone is not enough) — without it, the client-side query returns zero rows for every user, including admins.
+**Problem found**
+- The current return (`RET-2026-00026`) already has 2 revision snapshots in the database: initial submit and resubmit.
+- The admin button is disabled only when the frontend receives fewer than 2 revisions.
+- The likely issue is access filtering: the logged-in reviewer role (`Legal/Compliance Reviewer`) is not included in the `return_data_revisions` read policy, so the admin page receives no/too few revision rows even though they exist.
 
-Confirmed via DB inspection:
-- Two revisions exist for the current return (`submitted` + `resubmitted`), so the licensee's resubmission was captured correctly.
-- `information_schema.role_table_grants` shows no grants on `public.return_data_revisions`.
-- The frontend disables **Compare Versions** when `revisions.length < 2`; since the client sees 0 rows, the button is always disabled.
+**Implementation steps**
+1. **Backend access fix**
+   - Add a database helper/policy update so users who can view the linked return through normal return access can also view its revision snapshots.
+   - Keep access scoped to the same return only; no public or anonymous access.
 
-The same GRANT gap likely affects `snapshot_return_revision` RPC callers using anon/authenticated JWT — worth verifying.
+2. **Frontend resilience**
+   - Update the admin return detail button logic to show a loading state while revisions are loading.
+   - If the revision query errors, show a clear toast/tooltip instead of silently appearing disabled.
+   - Keep the button enabled when there is at least one saved revision plus current live return data, so reviewers can compare a saved revision against the current submitted values even if only one snapshot exists.
 
-## Fix
+3. **Validate on the current return**
+   - Confirm `RET-2026-00026` returns revision rows to the reviewer/admin context.
+   - Verify the Compare Versions button is enabled and opens the diff dialog.
 
-Single migration adding the missing grants:
-
-```sql
-GRANT SELECT ON public.return_data_revisions TO authenticated;
-GRANT ALL    ON public.return_data_revisions TO service_role;
-```
-
-No code changes to `useReturnRevisions`, `ReturnDetail.tsx`, or the compare dialog. RLS policies already restrict row visibility correctly to admins, stakeholders, PPoC, and external users; adding the grant only unblocks PostgREST from rejecting the request outright.
-
-## Verification
-
-After migration:
-1. Reload `/admin/returns/queue/87a20403-...` as admin — badge next to **Compare Versions** should show `2`, button enabled.
-2. Open dialog — confirm the resubmitted vs. submitted diff renders.
-3. Licensee side (`/entity/returns/:id/view`) still works (policy already covers stakeholders).
+**Files / areas expected to change**
+- Database policy/function for `return_data_revisions` access.
+- `src/pages/returns-mgmt/ReturnDetail.tsx` button state.
+- Possibly `src/hooks/useReturnRevisions.ts` for better error handling/loading behavior.
