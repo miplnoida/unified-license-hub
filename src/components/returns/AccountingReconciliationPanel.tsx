@@ -80,7 +80,7 @@ export function AccountingReconciliationPanel({ allData, forms, summaryOnly = fa
           </table>
         </div>
 
-        {!result.passed && (
+        {!summaryOnly && !result.passed && (
           <p className="text-xs text-destructive">
             Resolve the failing check(s) above — the return cannot be submitted until Total Assets equal Total Liabilities + Equity, and Total Income − Total Expenses equals Pre-tax Profit.
           </p>
