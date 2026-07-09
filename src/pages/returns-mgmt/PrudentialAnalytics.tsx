@@ -22,25 +22,38 @@ function useRatioKeys() {
   });
 }
 
+async function fetchReturnIdsForRatio(ratioKey: string): Promise<string[]> {
+  const { data, error } = await (supabase as any)
+    .from('return_calculated_ratios')
+    .select('return_id')
+    .eq('ratio_key', ratioKey)
+    .limit(5000);
+  if (error) throw error;
+  return Array.from(new Set((data ?? []).map((r: any) => r.return_id).filter(Boolean)));
+}
+
 function useLicenseesForRatio(ratioKey: string | undefined) {
   return useQuery({
     queryKey: ['prudential_licensees_for_ratio', ratioKey],
     enabled: !!ratioKey,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('return_calculated_ratios')
-        .select('returns_filed!inner(licensee_id,licensees!inner(id,legal_name))')
-        .eq('ratio_key', ratioKey)
-        .limit(2000);
-      if (error) throw error;
-      const seen = new Map<string, string>();
-      (data ?? []).forEach((r: any) => {
-        const lic = r.returns_filed?.licensees;
-        if (lic?.id) seen.set(lic.id, lic.legal_name || lic.id);
-      });
-      return Array.from(seen.entries())
-        .map(([id, name]) => ({ id, name }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+      const returnIds = await fetchReturnIdsForRatio(ratioKey as string);
+      if (returnIds.length === 0) return [];
+      const { data: rf, error: rfErr } = await (supabase as any)
+        .from('returns_filed')
+        .select('entity_id')
+        .in('id', returnIds);
+      if (rfErr) throw rfErr;
+      const entityIds = Array.from(new Set((rf ?? []).map((r: any) => r.entity_id).filter(Boolean)));
+      if (entityIds.length === 0) return [];
+      const { data: lics, error: licErr } = await (supabase as any)
+        .from('licensees')
+        .select('id, legal_name')
+        .in('id', entityIds);
+      if (licErr) throw licErr;
+      return (lics ?? [])
+        .map((l: any) => ({ id: l.id, name: l.legal_name || l.id }))
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
     },
   });
 }
@@ -50,14 +63,15 @@ function usePeriodEndsForRatio(ratioKey: string | undefined) {
     queryKey: ['prudential_periods_for_ratio', ratioKey],
     enabled: !!ratioKey,
     queryFn: async () => {
+      const returnIds = await fetchReturnIdsForRatio(ratioKey as string);
+      if (returnIds.length === 0) return [];
       const { data, error } = await (supabase as any)
-        .from('return_calculated_ratios')
-        .select('returns_filed!inner(period_end)')
-        .eq('ratio_key', ratioKey)
-        .limit(2000);
+        .from('returns_filed')
+        .select('period_end_date')
+        .in('id', returnIds);
       if (error) throw error;
       const seen = new Set<string>();
-      (data ?? []).forEach((r: any) => { if (r.returns_filed?.period_end) seen.add(r.returns_filed.period_end); });
+      (data ?? []).forEach((r: any) => { if (r.period_end_date) seen.add(r.period_end_date); });
       return Array.from(seen).sort((a, b) => b.localeCompare(a));
     },
   });
@@ -68,20 +82,33 @@ function useRatioTrend(ratioKey: string | undefined, licenseeId: string | undefi
     queryKey: ['ratio_trend', ratioKey, licenseeId],
     enabled: !!ratioKey && !!licenseeId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data: rcr, error: rcrErr } = await (supabase as any)
         .from('return_calculated_ratios')
-        .select('value,computed_at,returns_filed!inner(licensee_id,period_end)')
+        .select('return_id, value, computed_at')
         .eq('ratio_key', ratioKey)
-        .eq('returns_filed.licensee_id', licenseeId)
-        .order('computed_at', { ascending: true });
-      if (error) throw error;
-      return (data ?? []).map((r: any) => ({
-        period: r.returns_filed?.period_end || r.computed_at,
-        value: Number(r.value ?? 0),
-      }));
+        .limit(5000);
+      if (rcrErr) throw rcrErr;
+      const returnIds = Array.from(new Set((rcr ?? []).map((r: any) => r.return_id).filter(Boolean)));
+      if (returnIds.length === 0) return [];
+      const { data: rf, error: rfErr } = await (supabase as any)
+        .from('returns_filed')
+        .select('id, entity_id, period_end_date')
+        .in('id', returnIds)
+        .eq('entity_id', licenseeId);
+      if (rfErr) throw rfErr;
+      const byId = new Map<string, { period_end_date: string | null }>();
+      (rf ?? []).forEach((r: any) => byId.set(r.id, { period_end_date: r.period_end_date }));
+      return (rcr ?? [])
+        .filter((r: any) => byId.has(r.return_id))
+        .map((r: any) => ({
+          period: byId.get(r.return_id)?.period_end_date || r.computed_at,
+          value: Number(r.value ?? 0),
+        }))
+        .sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
     },
   });
 }
+
 
 export default function PrudentialAnalytics() {
   const [ratioKey, setRatioKey] = useState<string>();
