@@ -31,6 +31,8 @@ const SEVERITY = ['low','medium','high','critical'];
 export default function NewInternalComplaint() {
   const navigate = useNavigate();
   const create = useCreateInternalComplaint();
+  const { user } = useAuth();
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
