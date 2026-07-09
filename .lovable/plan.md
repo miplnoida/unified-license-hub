@@ -1,20 +1,17 @@
-## Plan: Restore Prudential Analytics data
+## Move admin menu items into "Prudential Supervision"
 
-1. **Fix licensee lookup column**
-   - Update `PrudentialAnalytics.tsx` to select `licensees.id, name` instead of non-existent `legal_name`.
-   - Display `name` in the Licensee dropdown.
+Edit `src/config/navigation.tsx` only.
 
-2. **Make analytics queries more resilient**
-   - Keep the current two-step lookup from `return_calculated_ratios` → `returns_filed` → `licensees`.
-   - Add safe fallback labels if a licensee name is missing.
-   - Clear stale selected licensee/period values when a newly selected ratio has a different dataset.
+**Remove** from `Returns Management → Returns Admin` children (lines 100–105):
+- Validations
+- Prudential Thresholds
+- Prudential Ratios
+- Prudential Analytics
+- Notif Templates
+- Notif Log
 
-3. **Verify against actual data**
-   - Confirm all active ratios return linked return IDs, entity IDs, and period-end dates.
-   - Load `/admin/returns/prudential/analytics` and verify:
-     - Ratio dropdown has 13 ratios.
-     - Licensee dropdown lists the linked entities.
-     - Period dropdown lists available period ends.
-     - Trend and peer comparison charts render for a selected ratio.
+**Add** to `Prudential Supervision` group items (around line 212), appended after existing entries, preserving current labels, routes, icons, and `ADMIN_ROLES` gating. Since these are admin-only configuration screens, they'll be marked `adminOnly: true` where appropriate (matching the "Risk Taxonomy" pattern already in that group) and keep `module: 'returns_management'` so existing permission checks still pass — no route or permission changes.
 
-Technical note: backend rows exist for all 13 ratios, but the UI is reading the wrong licensee column (`legal_name`), causing the client request to fail before dropdown options are built.
+Returns Admin submenu keeps: Return Types, Configurations, Cutoff Config, Due Dates, Late Fees, Schedule Calendar.
+
+No route, page, or permission-registry changes. No other files touched.
