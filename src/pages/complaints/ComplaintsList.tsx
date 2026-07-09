@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
+import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
+import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
