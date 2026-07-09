@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -46,27 +47,30 @@ export default function AssessmentDetail() {
   const canEdit = ['draft','submitted'].includes(form.status);
 
   const save = async () => {
+    if (upsert.isPending) return;
     if (isOverride && !form.override_reason && !overrideReason) {
       alert('Override rating requires a justification');
       return;
     }
-    await upsert.mutateAsync({
-      id,
-      entity_id: form.entity_id,
-      return_id: form.return_id || null,
-      period_start: form.period_start || null,
-      period_end: form.period_end || null,
-      overall_rating: form.overall_rating || null,
-      ratings: form.ratings || {},
-      rationale: form.rationale || null,
-      evidence_refs: form.evidence_refs || [],
-      conclusion: form.conclusion || null,
-      recommended_response: form.recommended_response || null,
-      status: form.status,
-      override_reason: form.override_reason || overrideReason || null,
-      auto_suggested_rating: autoRating,
-      signal_snapshot: form.signal_snapshot || null,
-    });
+    try {
+      await upsert.mutateAsync({
+        id,
+        entity_id: form.entity_id,
+        return_id: form.return_id || null,
+        period_start: form.period_start || null,
+        period_end: form.period_end || null,
+        overall_rating: form.overall_rating || null,
+        ratings: form.ratings || {},
+        rationale: form.rationale || null,
+        evidence_refs: form.evidence_refs || [],
+        conclusion: form.conclusion || null,
+        recommended_response: form.recommended_response || null,
+        status: form.status,
+        override_reason: form.override_reason || overrideReason || null,
+        auto_suggested_rating: autoRating,
+        signal_snapshot: form.signal_snapshot || null,
+      });
+    } catch { /* toast from hook */ }
   };
 
   return (
