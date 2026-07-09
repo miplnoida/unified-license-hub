@@ -38,6 +38,9 @@ import {
   logEditRequestedLegacy,
   labelForReturnActivity,
 } from '@/lib/returnActivityLogger';
+import { useReturnRevisions, snapshotReturnRevision, pickEditBaseline } from '@/hooks/useReturnRevisions';
+import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevisionCompareDialog';
+import { GitCompareArrows } from 'lucide-react';
 
 function formatCellValue(value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -73,13 +76,33 @@ function formatCellValue(value: any): React.ReactNode {
   return s;
 }
 
-function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+function ReturnDataTable({
+  formId,
+  name,
+  data,
+  baseline,
+  pinnedVersionId,
+}: {
+  formId: string;
+  name: string;
+  data: Record<string, any>;
+  baseline?: Record<string, any> | null;
+  pinnedVersionId?: string | null;
+}) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
 
   const SKIP: Record<string, true> = { heading: true, paragraph: true };
+
+  const isChanged = (fieldName: string): boolean => {
+    if (!baseline) return false;
+    const a = data?.[fieldName];
+    const b = baseline?.[fieldName];
+    const norm = (v: any) => (v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+    return norm(a) !== norm(b);
+  };
 
   return (
     <Card>
@@ -123,17 +146,30 @@ function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: stri
                           </TableCell>
                         </TableRow>
                       ) : (
-                        fields.map((f: any) => (
-                          <TableRow key={f.id}>
-                            <TableCell className="font-mono text-xs text-muted-foreground align-top py-1 px-2">
-                              {f.lineCode || ''}
-                            </TableCell>
-                            <TableCell className="text-sm align-top py-1 px-2">{f.label}</TableCell>
-                            <TableCell className="text-sm align-top py-1 px-2 text-right">
-                              {formatCellValue(data?.[f.fieldName])}
-                            </TableCell>
-                          </TableRow>
-                        ))
+                        fields.map((f: any) => {
+                          const changed = isChanged(f.fieldName);
+                          return (
+                            <TableRow key={f.id} className={changed ? 'bg-yellow-50 dark:bg-yellow-950/30' : undefined}>
+                              <TableCell className="font-mono text-xs text-muted-foreground align-top py-1 px-2">
+                                {f.lineCode || ''}
+                              </TableCell>
+                              <TableCell className="text-sm align-top py-1 px-2">
+                                {f.label}
+                                {changed && (
+                                  <Badge variant="outline" className="ml-2 text-[9px] bg-yellow-100 text-yellow-800 border-yellow-300">edited</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm align-top py-1 px-2 text-right">
+                                {formatCellValue(data?.[f.fieldName])}
+                                {changed && baseline && (
+                                  <div className="text-[10px] text-muted-foreground mt-0.5 line-through">
+                                    was {formatCellValue(baseline?.[f.fieldName])}
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </React.Fragment>
                   );
@@ -197,6 +233,11 @@ export default function ReturnDetail() {
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
   const { data: auditLog = [] } = useReturnAuditLog(id);
+  const { data: revisions = [] } = useReturnRevisions(id);
+  const editBaselineRev = pickEditBaseline(revisions);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+
 
   const submittedFormIds = useMemo(
     () => [...new Set(formData.map((row: any) => row.form_id).filter(Boolean))],
@@ -378,6 +419,7 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
       if (comments_.trim()) {
         supabase.functions.invoke('dispatch-notification-event', {
@@ -443,6 +485,13 @@ export default function ReturnDetail() {
     if (!confirm.isConfirmed) return;
     setSubmitting('request_edit');
     try {
+      // Snapshot the current state as the pre-edit baseline before flipping status.
+      await snapshotReturnRevision({
+        returnId: id,
+        reason: 'edit_requested',
+        previousStatus: status || null,
+        newStatus: 'TBR',
+      });
       const { error: rErr } = await (supabase as any).from('return_requests').insert({
         return_id: id,
         reasons: comments_.trim(),
@@ -474,6 +523,7 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
@@ -532,6 +582,16 @@ export default function ReturnDetail() {
           </Button>
           <div className="flex items-center gap-2">
             <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCompareOpen(true)}
+              disabled={revisions.length < 2}
+              title={revisions.length < 2 ? 'At least two revisions are required to compare' : 'Compare submission revisions'}
+            >
+              <GitCompareArrows className="h-4 w-4 mr-1" /> Compare Versions
+              {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
               View Analysis
             </Button>
@@ -583,6 +643,14 @@ export default function ReturnDetail() {
             </AlertDescription>
           </Alert>
         )}
+        {editBaselineRev && !isResubmissionRequested && (
+          <Alert className="border-yellow-400 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-700" />
+            <AlertDescription className="text-yellow-900">
+              This return was edited by the licensee after an edit request. Changed fields are highlighted in yellow below (baseline: revision v{editBaselineRev.revision_number}, {new Date(editBaselineRev.created_at).toLocaleString()}).
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Forms */}
@@ -604,6 +672,7 @@ export default function ReturnDetail() {
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
+                        baseline={editBaselineRev ? (editBaselineRev.snapshot?.[cf.form_id] || null) : null}
                         pinnedVersionId={versionByForm[cf.form_id] || null}
                       />
                       {formComments.length > 0 && (
@@ -632,6 +701,7 @@ export default function ReturnDetail() {
                   qc.invalidateQueries({ queryKey: ['returns_filed', id] });
                   qc.invalidateQueries({ queryKey: ['return_requests', id] });
                   qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
                   qc.invalidateQueries({ queryKey: ['approval_actions', 'return', id] });
                 }}
               />
@@ -791,6 +861,13 @@ export default function ReturnDetail() {
           </div>
         </div>
       </div>
+      <ReturnRevisionCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        revisions={revisions}
+        currentValues={valuesByForm}
+        returnLabel={returnData.unique_id}
+      />
     </DashboardLayout>
   );
 }

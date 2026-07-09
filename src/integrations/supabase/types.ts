@@ -11014,6 +11014,53 @@ export type Database = {
           },
         ]
       }
+      return_data_revisions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          form_version_ids: Json
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          return_id: string
+          revision_number: number
+          snapshot: Json
+          snapshot_reason: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          form_version_ids?: Json
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          return_id: string
+          revision_number: number
+          snapshot?: Json
+          snapshot_reason: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          form_version_ids?: Json
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          return_id?: string
+          revision_number?: number
+          snapshot?: Json
+          snapshot_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_data_revisions_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_documents: {
         Row: {
           created_at: string
@@ -15044,6 +15091,16 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      snapshot_return_revision: {
+        Args: {
+          _actor_id?: string
+          _new_status?: string
+          _previous_status?: string
+          _reason: string
+          _return_id: string
+        }
+        Returns: string
       }
       start_registration_workflow: {
         Args: { _registration_id: string }
