@@ -14679,6 +14679,7 @@ export type Database = {
         Returns: boolean
       }
       is_fp_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
       is_legal_compliance_user: { Args: { _user_id: string }; Returns: boolean }
       is_primary_user_of: {
