@@ -95,6 +95,8 @@ export default function ComplaintsList() {
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
+  const [newSeverity, setNewSeverity] = useState('medium');
+  const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
   const [resolution, setResolution] = useState('');
   const [updating, setUpdating] = useState(false);
