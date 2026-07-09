@@ -76,7 +76,6 @@ export function CreatePrudentialEscalationDialog({ open, onOpenChange, defaults,
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button variant="ghost" disabled={create.isPending} onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button disabled={!form.entity_id || !form.reason || form.reason.trim().length < 5 || create.isPending} onClick={submit}>
             {create.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</>) : 'Create'}
