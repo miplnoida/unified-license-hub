@@ -248,43 +248,116 @@ export default function PrudentialEntityProfile() {
         </TabsContent>
 
         <TabsContent value="ratios">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ratio trend</CardTitle>
-              <CardDescription>
-                Displays prudential ratios computed from submitted returns over time. Use the trend chart and ratio table to monitor capital, liquidity, asset quality, and other configured indicators for this entity.
-              </CardDescription>
-            </CardHeader>
-            <CardContent style={{ height: 300 }}>
-              {ratioTrend.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={ratioTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {Object.keys(ratioTrend[0] as any).filter(k => k !== 'period').slice(0, 6).map((k, i) => (
-                      <Line key={k} dataKey={k} name={ratioLabels[k]?.label || k} stroke={['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899'][i]} strokeWidth={2} dot={false} />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : <div className="text-sm text-muted-foreground">No ratios computed.</div>}
-            </CardContent>
-          </Card>
-          <Card className="mt-3"><CardContent className="pt-4">
-            <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {data.ratios.slice(0, 100).map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.label || r.ratio_key}</TableCell>
-                    <TableCell className="tabular-nums">{formatRatio(r.value, r.display_format)}</TableCell>
-                    <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
-                  </TableRow>
-                ))}
-                {!data.ratios.length && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No ratios yet.</TableCell></TableRow>}
-              </TableBody></Table>
-          </CardContent></Card>
+          {(() => {
+            const allKeys = ratioTrend.length
+              ? (Object.keys(ratioTrend[0] as any).filter((k) => k !== 'period') as string[])
+              : [];
+            const colorFor = (i: number, total: number) => {
+              const palette = ['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899','#0ea5e9','#16a34a','#f97316','#a855f7','#14b8a6','#e11d48','#64748b'];
+              if (i < palette.length) return palette[i];
+              return `hsl(${Math.round((360 * i) / Math.max(total, 1))}, 65%, 45%)`;
+            };
+            const toggleKey = (k: string) => setHiddenRatios((prev) => {
+              const next = new Set(prev);
+              next.has(k) ? next.delete(k) : next.add(k);
+              return next;
+            });
+            const visibleKeys = allKeys.filter((k) => !hiddenRatios.has(k));
+            const handleDotClick = (k: string) => (payload: any) => {
+              if (!payload || payload.value == null) return;
+              setRatioPoint({ period: payload.payload?.period, ratioKey: k, value: Number(payload.value) });
+            };
+            return (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ratio trend</CardTitle>
+                    <CardDescription>
+                      Displays prudential ratios computed from submitted returns over time. Click a chart point or a table row to view thresholds, breach status, and the source return.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {allKeys.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHiddenRatios(new Set())}>All</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHiddenRatios(new Set(allKeys))}>None</Button>
+                        {allKeys.map((k, i) => {
+                          const active = !hiddenRatios.has(k);
+                          const color = colorFor(i, allKeys.length);
+                          return (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => toggleKey(k)}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs transition ${active ? 'bg-background' : 'bg-muted text-muted-foreground opacity-60'}`}
+                              style={active ? { borderColor: color } : undefined}
+                            >
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+                              {ratioLabels[k]?.label || k}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div style={{ height: 340 }}>
+                      {ratioTrend.length && visibleKeys.length ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={ratioTrend}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            {visibleKeys.map((k) => {
+                              const i = allKeys.indexOf(k);
+                              const color = colorFor(i, allKeys.length);
+                              return (
+                                <Line
+                                  key={k}
+                                  dataKey={k}
+                                  name={ratioLabels[k]?.label || k}
+                                  stroke={color}
+                                  strokeWidth={2}
+                                  dot={{ r: 3, cursor: 'pointer' }}
+                                  activeDot={{ r: 6, cursor: 'pointer', onClick: (_: any, p: any) => handleDotClick(k)(p) }}
+                                />
+                              );
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="text-sm text-muted-foreground py-8 text-center">
+                          {ratioTrend.length ? 'No ratios selected.' : 'No ratios computed.'}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="mt-3"><CardContent className="pt-4">
+                  <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Period</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {data.ratios.slice(0, 200).map((r: any) => {
+                        const rf = (data.returns || []).find((x: any) => x.id === r.return_id);
+                        const period = rf?.period_end_date || (r.computed_at ? String(r.computed_at).slice(0, 10) : '—');
+                        return (
+                          <TableRow
+                            key={r.id}
+                            className="cursor-pointer hover:bg-muted/40"
+                            onClick={() => setRatioPoint({ period, ratioKey: r.ratio_key, value: Number(r.value) })}
+                          >
+                            <TableCell>{r.label || r.ratio_key}</TableCell>
+                            <TableCell>{period}</TableCell>
+                            <TableCell className="tabular-nums">{formatRatio(r.value, r.display_format)}</TableCell>
+                            <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!data.ratios.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No ratios yet.</TableCell></TableRow>}
+                    </TableBody></Table>
+                </CardContent></Card>
+              </>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="breaches">
