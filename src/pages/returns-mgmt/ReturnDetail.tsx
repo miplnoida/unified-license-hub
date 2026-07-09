@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useReturnById,
@@ -20,7 +21,7 @@ import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTe
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from '@/pages/entity/returns/EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, FileText, Shield, ArrowLeft, MessageSquare, History } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,11 +39,45 @@ import {
   labelForReturnActivity,
 } from '@/lib/returnActivityLogger';
 
-function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+function formatCellValue(value: any): React.ReactNode {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-muted-foreground/60">—</span>;
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') return <span className="tabular-nums">{value.toLocaleString()}</span>;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
+    return value
+      .map((v) => (typeof v === 'object' && v !== null ? (v.name || v.label || v.fileName || JSON.stringify(v)) : String(v)))
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    // File-ish object
+    const anyV = value as any;
+    if (anyV.url || anyV.publicUrl || anyV.file_url) {
+      const href = anyV.url || anyV.publicUrl || anyV.file_url;
+      const name = anyV.name || anyV.fileName || anyV.file_name || 'View file';
+      return <a href={href} target="_blank" rel="noreferrer" className="text-primary underline">{name}</a>;
+    }
+    if (anyV.name || anyV.fileName) return String(anyV.name || anyV.fileName);
+    return <code className="text-xs">{JSON.stringify(value)}</code>;
+  }
+  // Numeric-looking string
+  const s = String(value);
+  if (/^-?\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString()}</span>;
+  }
+  return s;
+}
+
+function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
+
+  const SKIP: Record<string, true> = { heading: true, paragraph: true };
 
   return (
     <Card>
@@ -58,20 +93,59 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
         ) : sections.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-2">No fields defined for this form.</p>
         ) : (
-          <FormRenderer
-            formName=""
-            sections={sections}
-            initialData={data}
-            onSaveDraft={() => {}}
-            onSubmit={() => {}}
-            readOnly
-            showFullTabTitles
-          />
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">#</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead className="w-[35%]">Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sections.map((section: any) => {
+                  const fields = (section.fields || []).filter((f: any) => !SKIP[f.type]);
+                  return (
+                    <React.Fragment key={`sec-frag-${section.id}`}>
+                      {section.title && (
+                        <TableRow key={`sec-${section.id}`} className="bg-muted/40">
+                          <TableCell colSpan={3} className="font-semibold text-sm">
+                            {section.title}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {fields.length === 0 ? (
+                        <TableRow key={`sec-${section.id}-empty`}>
+                          <TableCell colSpan={3} className="text-xs text-muted-foreground italic">
+                            No data fields in this section.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        fields.map((f: any) => (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-mono text-xs text-muted-foreground align-top">
+                              {f.lineCode || ''}
+                            </TableCell>
+                            <TableCell className="text-sm align-top">{f.label}</TableCell>
+                            <TableCell className="text-sm align-top">
+                              {formatCellValue(data?.[f.fieldName])}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
+
 
 export default function ReturnDetail() {
   const { id } = useParams<{ id: string }>();
@@ -461,14 +535,36 @@ export default function ReturnDetail() {
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
-          <div>
-            <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
-            <p className="text-sm text-muted-foreground">
-              {returnData.return_configs?.name} — {returnData.return_period} {returnData.return_year}
-            </p>
+        <div className="bg-card border rounded-lg p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
+              <p className="text-sm text-muted-foreground">{returnData.return_configs?.name}</p>
+            </div>
+            <StatusBadge status={returnData.workflow_status} />
           </div>
-          <StatusBadge status={returnData.workflow_status} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Entity</div>
+              <div className="font-medium">
+                {returnData.licensees?.name || returnData.on_behalf_of_licensees?.name || '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Year</div>
+              <div className="font-medium">{returnData.return_year || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Period</div>
+              <div className="font-medium">{returnData.return_period || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Type</div>
+              <div className="font-medium">
+                {returnData.return_configs?.return_types?.name || returnData.return_configs?.return_types?.code || '—'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {isApproved && (
@@ -502,7 +598,7 @@ export default function ReturnDetail() {
                   const formComments = comments.filter((c: any) => c.form_id === cf.form_id);
                   return (
                     <TabsContent key={cf.form_id} value={cf.form_id} className="space-y-4">
-                      <ReadOnlyFormBlock
+                      <ReturnDataTable
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
@@ -623,6 +719,7 @@ export default function ReturnDetail() {
               returnId={returnData.id}
               returnConfigId={returnData.return_configuration_id}
               formData={valuesByForm}
+              hideValidation
             />
 
 

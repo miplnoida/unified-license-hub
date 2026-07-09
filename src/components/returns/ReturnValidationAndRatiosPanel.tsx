@@ -10,6 +10,7 @@ interface Props {
   returnConfigId?: string | null;
   formData: ReturnFormData;
   onNavigateField?: (formId: string | undefined, fieldKey: string) => void;
+  hideValidation?: boolean;
 }
 
 /**
@@ -17,7 +18,7 @@ interface Props {
  * Runs the same rules/ratios evaluator the server uses at submit time,
  * plus overlays persisted breaches recorded on prior server-side runs.
  */
-export function ReturnValidationAndRatiosPanel({ returnId, returnConfigId, formData, onNavigateField }: Props) {
+export function ReturnValidationAndRatiosPanel({ returnId, returnConfigId, formData, onNavigateField, hideValidation = false }: Props) {
   const { data: rules = [] } = useValidationRules(returnConfigId ?? undefined);
   const { data: ratios = [] } = useRatios(returnConfigId ?? undefined);
   const { data: thresholds = [] } = useThresholds(returnConfigId ?? undefined);
@@ -42,7 +43,7 @@ export function ReturnValidationAndRatiosPanel({ returnId, returnConfigId, formD
 
   return (
     <div className="space-y-3">
-      <ValidationResultPanel summary={summary} onNavigateField={onNavigateField} />
+      {!hideValidation && <ValidationResultPanel summary={summary} onNavigateField={onNavigateField} />}
       <RatioSummaryCard ratios={ratiosToShow} breaches={breachesToShow} />
     </div>
   );
