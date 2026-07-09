@@ -14239,6 +14239,10 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      count_visible_return_revisions_as: {
+        Args: { _return_id: string; _user_id: string }
+        Returns: number
+      }
       create_approval_workflow_with_steps: {
         Args: { _steps: Json; _workflow: Json }
         Returns: Json
