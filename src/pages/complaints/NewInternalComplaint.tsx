@@ -68,6 +68,14 @@ export default function NewInternalComplaint() {
       product_id: form.product_id || null,
       channel_id: form.channel_id || null,
     });
+    if (attachments.length && user?.id && created?.id) {
+      const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
+      if (r.failed.length) {
+        toast.warning(`Complaint recorded. ${r.failed.length} attachment(s) failed to upload.`);
+      } else if (r.uploaded) {
+        toast.success(`${r.uploaded} attachment(s) uploaded`);
+      }
+    }
     navigate(`/complaints/${created.id}`);
   };
 
