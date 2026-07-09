@@ -258,7 +258,7 @@ export function useAssessment(id?: string | null) {
     queryKey: ['prudential_assessment', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('prudential_assessments').select('*, licensees(name)').eq('id', id).maybeSingle();
+      const { data, error } = await sb.from('prudential_assessments').select('*, licensees:entity_id(name)').eq('id', id).maybeSingle();
       if (error) throw error;
       return data as PrudentialAssessment & { licensees?: { name: string } };
     },
