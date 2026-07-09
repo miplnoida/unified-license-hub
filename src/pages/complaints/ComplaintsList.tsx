@@ -180,6 +180,7 @@ export default function ComplaintsList() {
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
+          severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
     const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
