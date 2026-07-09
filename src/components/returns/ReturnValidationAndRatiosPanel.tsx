@@ -10,6 +10,7 @@ interface Props {
   returnConfigId?: string | null;
   formData: ReturnFormData;
   onNavigateField?: (formId: string | undefined, fieldKey: string) => void;
+  hideValidation?: boolean;
 }
 
 /**
