@@ -1,38 +1,27 @@
-## Fix 1 — Ratios & Trends: Year/Quarter filter
 
-File: `src/pages/prudential/PrudentialEntityProfile.tsx` (Ratios tab only)
+## Problem
 
-- Derive `{ year, quarter }` for each point in `ratioTrend` from `period_end_date` (Q = `floor((month-1)/3)+1`). Keep `period` label as-is.
-- Add two `Select` dropdowns above the ratio chip bar: **Year** and **Quarter**, each with "All" plus values discovered from the data. Default: latest year, "All" quarters (mirrors the Breaches tab pattern).
-- Filter both:
-  - the chart data (`ratioTrend` → `filteredTrend`), and
-  - the ratio table below the chart (already lists all rows) — apply the same year/quarter filter so the two views stay in sync.
-- Empty-state text updates when the filter yields no rows: "No ratios for selected period."
-- No changes to the drill-down drawer, chip selector, colours, or table columns.
+`/admin/returns/prudential/analytics` (`src/pages/returns-mgmt/PrudentialAnalytics.tsx`) appears blank because it requires the user to:
+- pick a ratio from a dropdown (no default),
+- **manually type a licensee UUID** into a plain text input,
+- **manually type a period-end date**.
 
-## Fix 2 — Stress Indicators duplicated
+Until all three are filled, both the Trend chart and Peer Comparison chart show only "Select a ratio and licensee…" placeholder text — so on first load the page looks empty and there is no realistic way for a user to know a licensee's UUID.
 
-DB check confirmed: `prudential_stress_indicators` has 13 label/metric_key pairs each present twice (seed re-ran). The admin list simply shows the table, so the fix is data-level.
+## Fix (frontend-only)
 
-- Add a migration under `supabase/migrations/` that:
-  1. Deletes duplicate rows keeping the earliest by `created_at` (fallback `id`) per `(metric_key, direction, threshold_value)`:
-     ```sql
-     DELETE FROM public.prudential_stress_indicators a
-     USING public.prudential_stress_indicators b
-     WHERE a.ctid <> b.ctid
-       AND a.metric_key = b.metric_key
-       AND a.direction = b.direction
-       AND a.threshold_value IS NOT DISTINCT FROM b.threshold_value
-       AND (a.created_at, a.id) > (b.created_at, b.id);
-     ```
-  2. Adds a unique index to prevent recurrence:
-     ```sql
-     CREATE UNIQUE INDEX IF NOT EXISTS prudential_stress_indicators_unique_rule
-       ON public.prudential_stress_indicators (metric_key, direction, threshold_value);
-     ```
-- No frontend changes needed for this — after dedupe the admin list will render once per indicator, and any stress-event FK rows continue to reference whichever row survives (no FK changes required; if a FK exists to a removed row we'll widen the migration to reassign first — will verify during build).
+Rework the filter bar in `PrudentialAnalytics.tsx` so the page is useful immediately:
 
-## Out of scope
+1. **Ratio dropdown** — auto-select the first ratio from `useRatioKeys()` when none is chosen.
+2. **Licensee picker** — replace the UUID text input with a searchable Select populated from `licensees` (id + legal_name, ordered by name). Auto-select the first licensee that has computed ratios so the trend chart renders on load.
+3. **Period-end picker** — replace the free date input with a Select of distinct `period_end` values that actually exist in `return_calculated_ratios` for the chosen ratio (most recent first). Default to the latest period.
+4. **Empty/loading states** — show a small "Loading…" / "No data yet" message inside each chart card instead of the current static placeholder when queries are pending or return zero rows.
+5. Keep existing queries (`useRatioTrend`, `usePeerSnapshot`) and chart rendering unchanged; only wiring and defaults change.
 
-- No changes to Overview, Breaches, Peer Comparison, Assessments tabs.
-- No changes to sweep logic, thresholds, or ratios config.
+No backend, RLS, or business-logic changes. Other prudential pages are untouched.
+
+## Technical notes
+
+- Add two small hooks inside the page (or co-located): `useLicenseesForRatio(ratioKey)` selecting distinct `licensee_id, licensees.legal_name` from `return_calculated_ratios` joined to `licensees`; `usePeriodEndsForRatio(ratioKey)` selecting distinct `returns_filed.period_end`. Both gated on `ratioKey`.
+- Use existing shadcn `Select` (Command/Combobox if list is large) — remember the project convention that Select values must be non-empty strings.
+- Preserve current `DashboardLayout` + `PageHeader` structure and both chart cards.
