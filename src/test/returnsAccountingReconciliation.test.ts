@@ -55,4 +55,16 @@ describe('evaluateAccountingReconciliation', () => {
     const r = evaluateAccountingReconciliation({ bs: { line_1_col_1: '1000' } }, [forms[0]]);
     expect(r.checks.find((c) => c.key === 'pnl_reconcile')?.skipped).toBe(true);
   });
+
+  it('blocks when form is present but total fields are empty', () => {
+    const data = { bs: { line_1_col_1: '1000' }, pl: {} };
+    const r = evaluateAccountingReconciliation(data, forms);
+    expect(r.passed).toBe(false);
+    const bs = r.checks.find((c) => c.key === 'bs_balance')!;
+    expect(bs.skipped).toBe(false);
+    expect(bs.ok).toBe(false);
+    const pl = r.checks.find((c) => c.key === 'pnl_reconcile')!;
+    expect(pl.skipped).toBe(false);
+    expect(pl.ok).toBe(false);
+  });
 });

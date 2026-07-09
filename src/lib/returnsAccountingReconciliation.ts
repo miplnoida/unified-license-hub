@@ -103,66 +103,83 @@ export function evaluateAccountingReconciliation(
 
   // Check A — Balance Sheet balances
   {
-    const lhs = round2(totalAssets);
+    const skipped = !hasBalanceSheet;
+    const missing = hasBalanceSheet && (totalAssets === null || totalLiabilities === null || totalEquity === null);
+    const lhs = round2(totalAssets ?? 0);
     const rhs = round2((totalLiabilities ?? 0) + (totalEquity ?? 0));
-    const missing = totalAssets === null || (totalLiabilities === null && totalEquity === null);
     const diff = lhs !== null && rhs !== null ? round2(lhs - rhs) : null;
+    const missingParts: string[] = [];
+    if (hasBalanceSheet) {
+      if (totalAssets === null) missingParts.push('Total Assets');
+      if (totalLiabilities === null) missingParts.push('Total Liabilities');
+      if (totalEquity === null) missingParts.push('Total Equity');
+    }
     checks.push({
       key: 'bs_balance',
       label: 'Balance Sheet balances',
       lhsLabel: 'Total Assets',
       rhsLabel: 'Total Liabilities + Total Equity',
       lhs, rhs, diff,
-      ok: !missing && diff === 0,
-      skipped: !hasBalanceSheet || missing,
-      reason: !hasBalanceSheet
+      ok: !skipped && !missing && diff === 0,
+      skipped,
+      reason: skipped
         ? 'No Balance Sheet form on this return.'
-        : missing ? 'Missing Total Assets / Liabilities / Equity values.' : undefined,
+        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
   // Check B — P&L reconciles
   {
-    const lhs = totalIncome !== null && totalExpenses !== null
-      ? round2(totalIncome - totalExpenses) : null;
-    const rhs = round2(preTaxProfit);
-    const missing = totalIncome === null || totalExpenses === null || preTaxProfit === null;
+    const skipped = !hasProfitLoss;
+    const missing = hasProfitLoss && (totalIncome === null || totalExpenses === null || preTaxProfit === null);
+    const lhs = round2((totalIncome ?? 0) - (totalExpenses ?? 0));
+    const rhs = round2(preTaxProfit ?? 0);
     const diff = lhs !== null && rhs !== null ? round2(lhs - rhs) : null;
+    const missingParts: string[] = [];
+    if (hasProfitLoss) {
+      if (totalIncome === null) missingParts.push('Total Income');
+      if (totalExpenses === null) missingParts.push('Total Expenses');
+      if (preTaxProfit === null) missingParts.push('Pre-tax Profit');
+    }
     checks.push({
       key: 'pnl_reconcile',
       label: 'P&L reconciles',
       lhsLabel: 'Total Income − Total Expenses',
       rhsLabel: 'Pre-tax Profits',
       lhs, rhs, diff,
-      ok: !missing && diff === 0,
-      skipped: !hasProfitLoss || missing,
-      reason: !hasProfitLoss
+      ok: !skipped && !missing && diff === 0,
+      skipped,
+      reason: skipped
         ? 'No P&L form on this return.'
-        : missing ? 'Missing P&L Total Income / Expenses / Pre-tax Profit values.' : undefined,
+        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
-  // Check C — BS ↔ P&L link (identity today; kept for guardrail)
+  // Check C — BS ↔ P&L link
   {
-    // Derived BS Total Income = P&L Total Income; Derived BS Pre-tax = P&L Pre-tax.
-    // If the licensee ever hardcodes a separate BS Total Income line these
-    // would diverge — we compare the two P&L reads directly for now.
-    const lhs = totalIncome !== null && preTaxProfit !== null ? 0 : null;
+    const skipped = !hasBalanceSheet || !hasProfitLoss;
+    const missing = !skipped && (totalIncome === null || preTaxProfit === null);
+    const lhs = totalIncome !== null && preTaxProfit !== null ? 0 : 0;
     const rhs = 0;
-    const missing = totalIncome === null || preTaxProfit === null;
+    const missingParts: string[] = [];
+    if (!skipped) {
+      if (totalIncome === null) missingParts.push('P&L Total Income');
+      if (preTaxProfit === null) missingParts.push('P&L Pre-tax Profit');
+    }
     checks.push({
       key: 'bs_pnl_link',
       label: 'Balance Sheet ↔ P&L link',
       lhsLabel: 'BS-derived Total Income & Pre-tax',
       rhsLabel: 'P&L Total Income & Pre-tax',
-      lhs, rhs, diff: lhs !== null ? 0 : null,
-      ok: !missing && hasBalanceSheet && hasProfitLoss,
-      skipped: missing || !hasBalanceSheet || !hasProfitLoss,
-      reason: (!hasBalanceSheet || !hasProfitLoss)
+      lhs, rhs, diff: 0,
+      ok: !skipped && !missing,
+      skipped,
+      reason: skipped
         ? 'Requires both Balance Sheet and P&L forms.'
-        : missing ? 'Missing P&L Total Income or Pre-tax Profit.' : undefined,
+        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
+
 
   // ----- Summary rows for the preview panel (screenshot 2 layout) -----
   const interestMargin = interestIncome !== null && interestExpense !== null
