@@ -77,6 +77,15 @@ export default function PrudentialEntityProfile() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [hiddenRatios, setHiddenRatios] = useState<Set<string>>(new Set());
   const [ratioPoint, setRatioPoint] = useState<{ period: string; ratioKey: string; value: number } | null>(null);
+  const [ratioYear, setRatioYear] = useState<string>('');
+  const [ratioQuarter, setRatioQuarter] = useState<string>('all');
+
+  const periodMeta = (p: string): { year: string; quarter: string } => {
+    if (!p) return { year: 'unassigned', quarter: 'unassigned' };
+    const d = new Date(p);
+    if (isNaN(d.getTime())) return { year: 'unassigned', quarter: 'unassigned' };
+    return { year: String(d.getUTCFullYear()), quarter: `Q${Math.floor(d.getUTCMonth() / 3) + 1}` };
+  };
 
   const ratioLabels = useMemo(() => {
     const m: Record<string, { label: string; fmt?: string }> = {};
