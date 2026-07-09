@@ -21,7 +21,7 @@ import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTe
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from '@/pages/entity/returns/EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, FileText, Shield, ArrowLeft, MessageSquare, History } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
