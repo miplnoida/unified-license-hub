@@ -29,8 +29,14 @@ export function ApplicantDashboard() {
   const portalCtx = useEffectivePortalContext();
   const scope: 'pre' | 'all' = portalCtx.isPreLicensee ? 'pre' : 'all';
   const appsListPath = portalCtx.isPreLicensee ? '/applications?type=pre' : '/applications';
-  const draftsPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=draft' : '/applications?status=draft';
-  const rejectedPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=rejected' : '/applications?status=rejected';
+  const withStatus = (s: string) => `${appsListPath}${appsListPath.includes('?') ? '&' : '?'}status=${s}`;
+  const draftsPath = withStatus('draft');
+  const rejectedPath = withStatus('rejected');
+  const submittedPath = withStatus('submitted');
+  const underReviewPath = withStatus('under_review');
+  const approvedPath = withStatus('approved');
+  const actionRequiredPath = withStatus('action_required');
+  const paymentsPath = portalCtx.isPreLicensee ? '/billing/pre-licensee' : '/payments?status=pending';
   const newApplicationPath = portalCtx.isPreLicensee ? '/pre-license/new' : '/applications/new';
   const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
