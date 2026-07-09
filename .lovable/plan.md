@@ -1,27 +1,41 @@
-## Fix: Return "Notif Templates" and "Notif Log" pages
+## Problem
+On the Prudential "Create Action" dialog (and other Prudential module dialogs), the Submit/Create button stays enabled while the mutation is in flight. Users can click multiple times and create duplicate records.
 
-### Root cause
-There are two parallel notification systems:
+## Fix
+Wire every Prudential form/dialog submit button to the mutation's `isPending` state so it:
+1. Disables while saving (prevents double-click).
+2. Shows a spinner + "Saving…" / "Creating…" label for clear progress feedback.
 
-- **Active** — `notification_event_configs` (19 `return.*` event rows) → `notification_dispatch_log` (74 return dispatches) → `notifications` (in-app). This is what actually fires when a return is submitted, resubmitted, approved, etc.
-- **Dead-wired** — `return_notification_templates` + `return_notifications_log`. Templates exist but no code, trigger, or edge function ever reads templates or writes to the log. That is why the Notif Templates page shows configured entries but no notifications flow through them, and Notif Log stays at 0 records.
+Also add a guard in the submit handler (early-return if already pending) to defend against rapid clicks before React state updates.
 
-The Return Admin UI is pointed at the dead pair. Rewire it to the active system, filtered to `event_key LIKE 'return.%'`.
+## Files to update
 
-### Changes (frontend only, no DB schema changes)
+**Dialogs / forms in Prudential module**
+- `src/components/prudential/CreatePrudentialActionDialog.tsx` — Create button uses `create.isPending`.
+- `src/components/prudential/CreatePrudentialEscalationDialog.tsx` — same treatment for its submit.
+- `src/pages/prudential/ActionsList.tsx` — the Complete / Waive / Cancel confirm dialog "Confirm" button (uses `update` mutation) + "Sweep overdue" button (uses `overdue` mutation).
+- `src/pages/prudential/AssessmentsList.tsx` — any create/submit action buttons.
+- `src/pages/prudential/AssessmentDetail.tsx` — save / status-change buttons.
+- `src/pages/prudential/EscalationsList.tsx` — action buttons that trigger mutations.
+- `src/pages/prudential/StressIndicatorsAdmin.tsx` — create/save/delete confirm buttons.
+- `src/pages/prudential/PrudentialTaxonomyAdmin.tsx` — create/save/delete confirm buttons.
+- `src/pages/prudential/PrudentialEntityProfile.tsx` — any inline mutation-triggering buttons (e.g. escalate, run monitoring).
 
-1. **`src/pages/admin/returns/NotifTemplatesPage.tsx`** — replace data source with `notification_event_configs` where `event_key LIKE 'return.%'`. Columns: Event Key, Description, Channels (in_app/email badges), Type, Active toggle, Actions. Editor dialog exposes: title template, in-app message template, email subject template, email body template, channels checkboxes, notification type, dedupe window, active. Token palette updated to the actual variables (`{{return_unique_id}}`, `{{entity_name}}`, `{{return_name}}`, `{{return_period}}`, `{{return_year}}`, `{{actor_name}}`, `{{reviewer_name}}`, `{{action_comments}}`, `{{new_status}}`, `{{previous_status}}`, `{{edit_reason}}`, `{{workflow_step_name}}`, `{{next_workflow_step_name}}`). Editing is limited to existing return events; the "Add" button is removed since event keys are code-driven.
+## Pattern applied to each button
+```tsx
+<Button
+  disabled={saving || mutation.isPending || !isValid}
+  onClick={handleSubmit}
+>
+  {mutation.isPending ? (
+    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+  ) : 'Create'}
+</Button>
+```
+Plus in the handler:
+```ts
+if (mutation.isPending) return;
+```
 
-2. **`src/pages/admin/returns/NotifLogPage.tsx`** — replace data source with `notification_dispatch_log` where `event_key LIKE 'return.%'`, joined/formatted for display. Columns: Sent At, Event Key, Channel, Recipient (email or user), Subject, Status, Error. Filters: Status (sent/failed/pending), Channel (in_app/email), Event Key dropdown populated from distinct return events.
-
-3. **`src/hooks/useReturnsManagement.ts`** — add/replace hooks:
-   - `useReturnEventConfigs()` — SELECT from `notification_event_configs` filtered by `event_key.like.return.%`, ordered by `event_key`.
-   - `useMutateReturnEventConfig()` — UPDATE only (title/message/subject/body/channels/type/dedupe/is_active).
-   - `useReturnDispatchLog({ status?, channel?, eventKey? })` — SELECT from `notification_dispatch_log` filtered by `event_key.like.return.%`, ordered by `created_at desc`, limit 500.
-   - Keep the legacy `useReturnNotificationTemplates` / `useReturnNotificationsLog` hooks in place if referenced elsewhere, but the two pages stop using them.
-
-No backend/edge-function changes. No changes to what fires notifications — that path already works (visible in `notifications` and `notification_dispatch_log`). This just points the admin surfaces at the real data so templates are editable and the log shows the 74+ existing return dispatches.
-
-### Out of scope
-- Migrating/removing `return_notification_templates` and `return_notifications_log` tables. They stay untouched.
-- Adding new event types or channels.
+## Out of scope
+No business-logic, schema, or hook changes. No visual redesign — only disabled state, spinner, and label swap on existing buttons. Non-Prudential modules untouched.

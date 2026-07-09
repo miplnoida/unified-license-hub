@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -46,27 +47,30 @@ export default function AssessmentDetail() {
   const canEdit = ['draft','submitted'].includes(form.status);
 
   const save = async () => {
+    if (upsert.isPending) return;
     if (isOverride && !form.override_reason && !overrideReason) {
       alert('Override rating requires a justification');
       return;
     }
-    await upsert.mutateAsync({
-      id,
-      entity_id: form.entity_id,
-      return_id: form.return_id || null,
-      period_start: form.period_start || null,
-      period_end: form.period_end || null,
-      overall_rating: form.overall_rating || null,
-      ratings: form.ratings || {},
-      rationale: form.rationale || null,
-      evidence_refs: form.evidence_refs || [],
-      conclusion: form.conclusion || null,
-      recommended_response: form.recommended_response || null,
-      status: form.status,
-      override_reason: form.override_reason || overrideReason || null,
-      auto_suggested_rating: autoRating,
-      signal_snapshot: form.signal_snapshot || null,
-    });
+    try {
+      await upsert.mutateAsync({
+        id,
+        entity_id: form.entity_id,
+        return_id: form.return_id || null,
+        period_start: form.period_start || null,
+        period_end: form.period_end || null,
+        overall_rating: form.overall_rating || null,
+        ratings: form.ratings || {},
+        rationale: form.rationale || null,
+        evidence_refs: form.evidence_refs || [],
+        conclusion: form.conclusion || null,
+        recommended_response: form.recommended_response || null,
+        status: form.status,
+        override_reason: form.override_reason || overrideReason || null,
+        auto_suggested_rating: autoRating,
+        signal_snapshot: form.signal_snapshot || null,
+      });
+    } catch { /* toast from hook */ }
   };
 
   return (
@@ -116,18 +120,33 @@ export default function AssessmentDetail() {
             <div><Label>Recommended response</Label><Textarea disabled={!canEdit} value={form.recommended_response || ''} onChange={(e) => setForm({ ...form, recommended_response: e.target.value })} /></div>
             <div><Label>Linked return id (optional)</Label><Input disabled={!canEdit} value={form.return_id || ''} onChange={(e) => setForm({ ...form, return_id: e.target.value || null })} /></div>
             <div className="flex flex-wrap gap-2">
-              {canEdit && <Button onClick={save}>Save</Button>}
+              {canEdit && (
+                <Button disabled={upsert.isPending} onClick={save}>
+                  {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Save'}
+                </Button>
+              )}
               {form.status === 'draft' && (
-                <Button variant="secondary" disabled={!form.rationale} onClick={async () => { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); }}>Submit for review</Button>
+                <Button variant="secondary" disabled={!form.rationale || upsert.isPending || transition.isPending} onClick={async () => {
+                  if (upsert.isPending || transition.isPending) return;
+                  try { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); } catch { /* toast */ }
+                }}>
+                  {(upsert.isPending || transition.isPending) ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</>) : 'Submit for review'}
+                </Button>
               )}
               {form.status === 'submitted' && (
-                <Button variant="secondary" disabled={!reviewNotes.trim()} onClick={() => transition.mutate({ id: id!, to: 'reviewed', reason: reviewNotes })}>Mark reviewed</Button>
+                <Button variant="secondary" disabled={!reviewNotes.trim() || transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'reviewed', reason: reviewNotes })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Mark reviewed'}
+                </Button>
               )}
               {form.status === 'reviewed' && (
-                <Button onClick={() => transition.mutate({ id: id!, to: 'approved' })}>Approve</Button>
+                <Button disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'approved' })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Approving…</>) : 'Approve'}
+                </Button>
               )}
               {form.status === 'approved' && (
-                <Button variant="outline" onClick={() => transition.mutate({ id: id!, to: 'closed' })}>Close</Button>
+                <Button variant="outline" disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'closed' })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Closing…</>) : 'Close'}
+                </Button>
               )}
               {form.status === 'submitted' && (
                 <div className="w-full">

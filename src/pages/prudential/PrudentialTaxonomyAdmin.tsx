@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const emptyForm = { is_active: true, sort_order: 100 } as any;
@@ -34,9 +34,12 @@ export default function PrudentialTaxonomyAdmin() {
   };
 
   const handleSave = async () => {
-    await upsert.mutateAsync(form);
-    setOpen(false);
-    setForm(emptyForm);
+    if (upsert.isPending) return;
+    try {
+      await upsert.mutateAsync(form);
+      setOpen(false);
+      setForm(emptyForm);
+    } catch { /* toast from hook */ }
   };
 
   return (
@@ -64,8 +67,10 @@ export default function PrudentialTaxonomyAdmin() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button disabled={!form.code || !form.label} onClick={handleSave}>Save</Button>
+              <Button variant="outline" disabled={upsert.isPending} onClick={() => setOpen(false)}>Cancel</Button>
+              <Button disabled={!form.code || !form.label || upsert.isPending} onClick={handleSave}>
+                {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Save'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

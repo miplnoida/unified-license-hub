@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function AssessmentsList() {
@@ -49,11 +49,16 @@ export default function AssessmentsList() {
                 <Input value={returnId} onChange={(e) => setReturnId(e.target.value)} placeholder="Prefills signals from this return" /></div>
             </div>
             <DialogFooter>
-              <Button disabled={!entityId} onClick={async () => {
-                const r = await upsert.mutateAsync({ entity_id: entityId, return_id: returnId || null, period_start: periodStart || null, period_end: periodEnd || null, status: 'draft' } as any);
-                setOpen(false);
-                if (r?.id) window.location.href = `/prudential/assessments/${r.id}`;
-              }}>Create</Button>
+              <Button disabled={!entityId || upsert.isPending} onClick={async () => {
+                if (upsert.isPending) return;
+                try {
+                  const r = await upsert.mutateAsync({ entity_id: entityId, return_id: returnId || null, period_start: periodStart || null, period_end: periodEnd || null, status: 'draft' } as any);
+                  setOpen(false);
+                  if (r?.id) window.location.href = `/prudential/assessments/${r.id}`;
+                } catch { /* toast from hook */ }
+              }}>
+                {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</>) : 'Create'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const EMPTY_FORM: any = { direction: 'gt', severity: 'medium', is_active: true, escalate: false };
@@ -86,7 +86,12 @@ export default function StressIndicatorsAdmin() {
               </div>
             </div>
             <DialogFooter>
-              <Button disabled={!form.label || !form.metric_key || form.threshold_value == null} onClick={async () => { await upsert.mutateAsync(form); setOpen(false); setForm(EMPTY_FORM); }}>Save</Button>
+              <Button disabled={!form.label || !form.metric_key || form.threshold_value == null || upsert.isPending} onClick={async () => {
+                if (upsert.isPending) return;
+                try { await upsert.mutateAsync(form); setOpen(false); setForm(EMPTY_FORM); } catch { /* toast from hook */ }
+              }}>
+                {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Save'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
