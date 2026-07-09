@@ -1,57 +1,46 @@
-## Verification Result
+## Context
 
-DB has 299 rows in `return_calculated_ratios` covering all 13 active ratios × 23 rows each — data IS there. The page renders "No data" because `PrudentialAnalytics.tsx` queries use invalid column and relationship references.
+`return_calculated_ratios` has no `entity_id` column — it links to a licensee only through `returns_filed.entity_id`. Today all 299 ratio rows (13 keys × 23 quarters) belong to a single entity: **New FinCorp Commercial Bank Limited**. That's why the Prudential Analytics Licensee dropdown only ever shows one option per ratio.
 
-### Bugs found in `src/pages/returns-mgmt/PrudentialAnalytics.tsx`
+To "link licensees to all ratios" for verification, we need additional entities that have submitted returns with computed ratios across a comparable time series.
 
-1. `returns_filed!inner(licensee_id, licensees!inner(...))` — fails because:
-   - `return_calculated_ratios.return_id` has NO foreign key to `returns_filed`, so PostgREST cannot embed it.
-   - `returns_filed` has no `licensee_id` column — it is `entity_id` (FK → `licensees.id`).
-2. `returns_filed.period_end` — the actual column is `period_end_date`.
+## Plan
 
-Both licensee and period dropdowns therefore return `[]`, and the trend chart never gets data.
+Seed demo prudential data for **2 additional Commercial Bank licensees** so the trend chart, licensee dropdown, and peer comparison can be exercised end-to-end.
 
-## Fix Plan
+### 1. Pick target licensees (data-only, no schema change)
 
-### A. Edit `src/pages/returns-mgmt/PrudentialAnalytics.tsx`
+- `Anisha Commercial Bank` (already Commercial Bank sector, 1 return)
+- `David Pierce Jones` (Commercial Bank sector, 0 returns)
 
-Replace the three hooks with two-step queries that don't rely on the missing FK:
+Both share FinCorp's sector, so the same 13 ratio keys apply.
 
-- **`useLicenseesForRatio`**: 
-  1. `select('return_id').eq('ratio_key', ratioKey)` from `return_calculated_ratios`.
-  2. `select('entity_id').in('id', returnIds)` from `returns_filed`.
-  3. `select('id, legal_name').in('id', entityIds)` from `licensees`.
-- **`usePeriodEndsForRatio`**: same first step, then `select('period_end_date').in('id', returnIds)`; dedupe + sort desc.
-- **`useRatioTrend`**: fetch matching `return_calculated_ratios` rows for `ratioKey`, then fetch `returns_filed(id, entity_id, period_end_date)` for those return_ids filtered to the selected licensee (`entity_id = licenseeId`); map to `{ period: period_end_date, value }`.
+### 2. Create `returns_filed` shells per licensee × quarter
 
-No other files change. Peer snapshot RPC (`peer_ratio_snapshot`) already works and stays as-is.
+For each target licensee, insert one `returns_filed` row per period that FinCorp has (2022 Q1 → 2025 Q3 = 15 quarters, skipping the last 8 where FinCorp is unsubmitted, to keep it realistic). Fields:
 
-### B. Optional hardening (same file only)
+- `entity_id` = target licensee
+- `form_id`, `return_config_id` = same Balance Sheet / P&L config used by FinCorp
+- `period_start_date`, `period_end_date`, `financial_year`, `quarter` = matching FinCorp period
+- `workflow_status = 'VAL'`, `submitted_at`, `validated_at` = backdated
+- `created_by` = system user
 
-Add graceful empty states already present; no schema/RLS change required.
+### 3. Copy + perturb `return_calculated_ratios`
 
-## Manual Verification Steps (after fix)
+For each new `returns_filed` row, insert 13 ratio rows mirroring FinCorp's ratio_key/label/formula_snapshot for the matching quarter, with `value` scaled by a deterministic per-licensee factor (e.g. ×0.92 for Anisha, ×1.07 for Pierce Jones) so the trend chart shows visibly different lines and peer comparison ranks all three entities.
 
-1. Go to `/admin/returns/prudential/analytics`.
-2. **Ratio dropdown** should list 13 ratios (Primary Ratio, ROA, ROE, NPL Ratio, Liquid Assets Ratio, etc.). Auto-selects the first (Asset Turnover).
-3. **Licensee dropdown** should populate with entities that have computed ratios — "FinCorp Commercial Bank Limited" should appear. Auto-selects one.
-4. **Period end dropdown** should list all `period_end_date` values (2022 Q1 … 2025 Q4) sorted newest first.
-5. **Trend card**: line chart renders across quarters for the selected licensee/ratio.
-6. Switch ratio → Licensee/Period lists refresh; Trend re-plots.
-7. Change Period → Peer Comparison card shows `Min / Median / P90 / Max` with a non-zero `count` in the title.
-8. Pick a ratio with fewer submissions (e.g., filter by a licensee with only 2022 data) → chart shows only those points, peer card shows correct peer count.
-9. Cross-check one point manually: open `/admin/returns/queue`, find the same licensee's return for that period, confirm the ratio value on the return matches the point plotted.
+### 4. Verify
 
-### DB spot-check queries (optional, for reviewer)
+- `SELECT ratio_key, COUNT(DISTINCT rf.entity_id) FROM return_calculated_ratios r JOIN returns_filed rf ON rf.id=r.return_id GROUP BY 1;` → expect 3 for every key.
+- In `/admin/returns/prudential/analytics`: pick any ratio → Licensee dropdown lists all 3 → selecting each renders a distinct trend line → peer comparison table shows 3 rows.
 
-```sql
--- Row counts per ratio
-SELECT ratio_key, count(*) FROM return_calculated_ratios GROUP BY ratio_key;
--- Trend rows for FinCorp / ROE
-SELECT rf.period_end_date, rcr.value
-FROM return_calculated_ratios rcr
-JOIN returns_filed rf ON rf.id = rcr.return_id
-JOIN licensees l ON l.id = rf.entity_id
-WHERE rcr.ratio_key='roe' AND l.legal_name ILIKE 'FinCorp%'
-ORDER BY rf.period_end_date;
-```
+## Not in scope
+
+- No changes to schema, RLS, edge functions, or UI.
+- No changes to FinCorp's existing ratios or returns.
+- No breach / action generation for the new entities (can be added on request if you also want to verify escalation flows for peers).
+
+## Technical notes
+
+- All writes are data-only via a single migration (INSERT into `returns_filed` then `return_calculated_ratios`). The `tg_rcr_no_update` trigger only blocks UPDATE/DELETE on ratios — INSERT is permitted.
+- Deterministic scaling keeps values reproducible; no randomness.
