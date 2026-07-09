@@ -39,11 +39,45 @@ import {
   labelForReturnActivity,
 } from '@/lib/returnActivityLogger';
 
-function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+function formatCellValue(value: any): React.ReactNode {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-muted-foreground/60">—</span>;
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') return <span className="tabular-nums">{value.toLocaleString()}</span>;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
+    return value
+      .map((v) => (typeof v === 'object' && v !== null ? (v.name || v.label || v.fileName || JSON.stringify(v)) : String(v)))
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    // File-ish object
+    const anyV = value as any;
+    if (anyV.url || anyV.publicUrl || anyV.file_url) {
+      const href = anyV.url || anyV.publicUrl || anyV.file_url;
+      const name = anyV.name || anyV.fileName || anyV.file_name || 'View file';
+      return <a href={href} target="_blank" rel="noreferrer" className="text-primary underline">{name}</a>;
+    }
+    if (anyV.name || anyV.fileName) return String(anyV.name || anyV.fileName);
+    return <code className="text-xs">{JSON.stringify(value)}</code>;
+  }
+  // Numeric-looking string
+  const s = String(value);
+  if (/^-?\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString()}</span>;
+  }
+  return s;
+}
+
+function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
+
+  const SKIP: Record<string, true> = { heading: true, paragraph: true };
 
   return (
     <Card>
@@ -59,20 +93,59 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
         ) : sections.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-2">No fields defined for this form.</p>
         ) : (
-          <FormRenderer
-            formName=""
-            sections={sections}
-            initialData={data}
-            onSaveDraft={() => {}}
-            onSubmit={() => {}}
-            readOnly
-            showFullTabTitles
-          />
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">#</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead className="w-[35%]">Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sections.map((section: any) => {
+                  const fields = (section.fields || []).filter((f: any) => !SKIP[f.type]);
+                  return (
+                    <>
+                      {section.title && (
+                        <TableRow key={`sec-${section.id}`} className="bg-muted/40">
+                          <TableCell colSpan={3} className="font-semibold text-sm">
+                            {section.title}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {fields.length === 0 ? (
+                        <TableRow key={`sec-${section.id}-empty`}>
+                          <TableCell colSpan={3} className="text-xs text-muted-foreground italic">
+                            No data fields in this section.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        fields.map((f: any) => (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-mono text-xs text-muted-foreground align-top">
+                              {f.lineCode || ''}
+                            </TableCell>
+                            <TableCell className="text-sm align-top">{f.label}</TableCell>
+                            <TableCell className="text-sm align-top">
+                              {formatCellValue(data?.[f.fieldName])}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
+
 
 export default function ReturnDetail() {
   const { id } = useParams<{ id: string }>();
