@@ -114,17 +114,19 @@ export function evaluateAccountingReconciliation(
       if (totalLiabilities === null) missingParts.push('Total Liabilities');
       if (totalEquity === null) missingParts.push('Total Equity');
     }
+    const allZero = lhs === 0 && rhs === 0 && diff === 0;
+    const ok = !skipped && diff === 0 && (!missing || allZero);
     checks.push({
       key: 'bs_balance',
       label: 'Balance Sheet balances',
       lhsLabel: 'Total Assets',
       rhsLabel: 'Total Liabilities + Total Equity',
       lhs, rhs, diff,
-      ok: !skipped && !missing && diff === 0,
+      ok,
       skipped,
       reason: skipped
         ? 'No Balance Sheet form on this return.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+        : (missing && !ok) ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
     });
   }
 
