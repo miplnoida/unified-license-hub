@@ -217,7 +217,12 @@ export default function PrudentialEntityProfile() {
 
         <TabsContent value="ratios">
           <Card>
-            <CardHeader><CardTitle>Ratio trend</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Ratio trend</CardTitle>
+              <CardDescription>
+                Displays prudential ratios computed from submitted returns over time. Use the trend chart and ratio table to monitor capital, liquidity, asset quality, and other configured indicators for this entity.
+              </CardDescription>
+            </CardHeader>
             <CardContent style={{ height: 300 }}>
               {ratioTrend.length ? (
                 <ResponsiveContainer width="100%" height="100%">
