@@ -1,12 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { History, Download } from 'lucide-react';
+import { History, Download, ChevronLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
@@ -143,6 +143,11 @@ export default function PrudentialEntityProfile() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+      <div>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/prudential/entities"><ChevronLeft className="h-4 w-4 mr-1" />Back to Entities</Link>
+        </Button>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
@@ -212,7 +217,12 @@ export default function PrudentialEntityProfile() {
 
         <TabsContent value="ratios">
           <Card>
-            <CardHeader><CardTitle>Ratio trend</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Ratio trend</CardTitle>
+              <CardDescription>
+                Displays prudential ratios computed from submitted returns over time. Use the trend chart and ratio table to monitor capital, liquidity, asset quality, and other configured indicators for this entity.
+              </CardDescription>
+            </CardHeader>
             <CardContent style={{ height: 300 }}>
               {ratioTrend.length ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -246,7 +256,14 @@ export default function PrudentialEntityProfile() {
         </TabsContent>
 
         <TabsContent value="breaches">
-          <Card><CardContent className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Breaches</CardTitle>
+              <CardDescription>
+                Lists threshold breaches detected from prudential returns. Each row shows the metric, severity, observed value, configured threshold, and detection date. Use the Create action / Escalate buttons to initiate supervisory follow-up.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.breaches.map((b: any) => {
