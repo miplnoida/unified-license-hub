@@ -36,6 +36,7 @@ export function AccountingReconciliationPanel({ allData, forms, summaryOnly = fa
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Check pills */}
+        {!summaryOnly && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {result.checks.map((c) => {
             const Icon = c.skipped ? MinusCircle : c.ok ? CheckCircle2 : XCircle;
@@ -63,6 +64,7 @@ export function AccountingReconciliationPanel({ allData, forms, summaryOnly = fa
             );
           })}
         </div>
+        )}
 
         {/* Totals summary (screenshot 2) */}
         <div className="border rounded-md overflow-hidden">
