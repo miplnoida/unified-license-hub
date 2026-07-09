@@ -32,7 +32,7 @@ export default function NewInternalComplaint() {
   const [form, setForm] = useState<any>({
     subject: '', description: '',
     licensee_id: '', complaint_type_id: '', conduct_risk_category_id: '',
-    product_id: '', channel_id: '', severity: 'medium', priority: 'normal',
+    product_id: '', channel_id: '', severity: 'medium', priority: 'p3',
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
@@ -127,7 +127,17 @@ export default function NewInternalComplaint() {
               </div>
               <div>
                 <Label>Customer type</Label>
-                <Input value={form.customer_type} onChange={e => setForm({ ...form, customer_type: e.target.value })} placeholder="Retail / SME / …" />
+                <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="Select customer type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="retail">Retail</SelectItem>
+                    <SelectItem value="sme">SME</SelectItem>
+                    <SelectItem value="corporate">Corporate</SelectItem>
+                    <SelectItem value="vulnerable">Vulnerable</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 flex items-center justify-between border rounded-md px-3 py-2">
                 <Label>Vulnerable customer</Label>
