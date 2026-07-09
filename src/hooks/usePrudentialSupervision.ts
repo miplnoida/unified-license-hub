@@ -77,6 +77,36 @@ type PrudentialAssessmentWithLicensee = PrudentialAssessment & {
   licensee?: { name: string | null } | null;
   licensees?: { name: string | null } | null;
 };
+
+const ASSESSMENT_WRITE_COLUMNS = new Set([
+  'id',
+  'entity_id',
+  'return_id',
+  'period_start',
+  'period_end',
+  'overall_rating',
+  'ratings',
+  'rationale',
+  'evidence_refs',
+  'conclusion',
+  'recommended_response',
+  'status',
+  'override_reason',
+  'auto_suggested_rating',
+  'created_by',
+  'reviewed_by',
+  'approved_by',
+  'submitted_at',
+  'reviewed_at',
+  'approved_at',
+  'closed_at',
+  'review_notes',
+  'signal_snapshot',
+]);
+
+function sanitizeAssessmentWritePayload(row: Record<string, any>) {
+  return Object.fromEntries(Object.entries(row).filter(([key]) => ASSESSMENT_WRITE_COLUMNS.has(key)));
+}
 export interface PrudentialAction {
   id: string; entity_id: string; source_type: string; source_id: string | null;
   action_type: string; title: string; description: string | null;
@@ -309,9 +339,10 @@ export function useUpsertAssessment() {
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
       const user = (await sb.auth.getUser()).data.user;
-      const payload: any = { ...row };
+      const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
       const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        delete payload.id;
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
         const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
