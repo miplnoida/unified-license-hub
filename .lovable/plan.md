@@ -1,25 +1,43 @@
-## Plan: Enable Compare Versions for resubmitted returns
+## Problem
 
-**Problem found**
-- The current return (`RET-2026-00026`) already has 2 revision snapshots in the database: initial submit and resubmit.
-- The admin button is disabled only when the frontend receives fewer than 2 revisions.
-- The likely issue is access filtering: the logged-in reviewer role (`Legal/Compliance Reviewer`) is not included in the `return_data_revisions` read policy, so the admin page receives no/too few revision rows even though they exist.
+On `/admin/returns/queue/87a20403-...`, the tabular submitted-data view is empty even though 6 rows exist across 2 forms in `return_form_data`. Version comparison works because we already routed revision reads through the `can_view_return_filed` visibility helper in the previous fix.
 
-**Implementation steps**
-1. **Backend access fix**
-   - Add a database helper/policy update so users who can view the linked return through normal return access can also view its revision snapshots.
-   - Keep access scoped to the same return only; no public or anonymous access.
+The current `SELECT` policy on `return_form_data` only allows:
+- `created_by = auth.uid()`, or
+- static admin/regulator roles (`super_admin`, `admin`, `supervisor`, `analyst`, `licensing_officer`), or
+- licensee/PPOC mappings.
 
-2. **Frontend resilience**
-   - Update the admin return detail button logic to show a loading state while revisions are loading.
-   - If the revision query errors, show a clear toast/tooltip instead of silently appearing disabled.
-   - Keep the button enabled when there is at least one saved revision plus current live return data, so reviewers can compare a saved revision against the current submitted values even if only one snapshot exists.
+Reviewers routed to this return through the workflow (e.g. `legal_compliance` and other non-listed roles) don't match any branch, so `useReturnFormData` returns `[]` and `<ReturnDataTable>` renders with no values. The revisions RPC bypasses this because it uses the workflow-aware helper; the main table read does not.
 
-3. **Validate on the current return**
-   - Confirm `RET-2026-00026` returns revision rows to the reviewer/admin context.
-   - Verify the Compare Versions button is enabled and opens the diff dialog.
+## Fix
 
-**Files / areas expected to change**
-- Database policy/function for `return_data_revisions` access.
-- `src/pages/returns-mgmt/ReturnDetail.tsx` button state.
-- Possibly `src/hooks/useReturnRevisions.ts` for better error handling/loading behavior.
+Extend the SELECT visibility on `return_form_data` to reuse the same `public.can_view_return_filed(auth.uid(), return_id)` helper we introduced for revisions, so anyone the workflow assigns to the return can read its submitted values on the admin queue view.
+
+### Backend (single migration)
+
+1. Drop existing SELECT policy `Licensee viewers read return_form_data` on `public.return_form_data`.
+2. Recreate it as:
+   ```sql
+   CREATE POLICY "Return viewers read return_form_data"
+     ON public.return_form_data FOR SELECT
+     USING (public.can_view_return_filed(auth.uid(), return_id));
+   ```
+   The helper already covers: creator, static admin/supervisor/analyst roles, licensee/PPOC mapping, external capability gate, and workflow-assigned reviewers — matching (and superseding) the current branches.
+3. Keep the external capability gate policy as-is (defense in depth).
+4. Confirm `GRANT SELECT ON public.return_form_data TO authenticated` is present; add if missing.
+
+### Frontend
+
+No changes required — `useReturnFormData` will start returning the 6 rows once RLS allows it, and the existing `ReturnDataTable` will render values automatically.
+
+### Verification
+
+- Re-open `/admin/returns/queue/87a20403-86c0-49a1-aa07-2247b588e720` as the workflow-assigned reviewer: each form tab should render its rows with `Label` / `Value`.
+- Regression check: licensee (owner) view of their own return still shows data.
+- `security--linter` / scan after migration to confirm no new warnings.
+
+## Out of scope
+
+- Any UI/table styling changes.
+- Changes to write policies (INSERT/UPDATE) — only SELECT visibility is broken.
+- Changes to the revisions flow (already fixed).
