@@ -33,7 +33,11 @@ export interface ApplicantMetrics {
 // NewPostLicenseApplication); pre-license never do.
 function scopeApps(q: any, scope: ApplicantMetricsScope) {
   if (scope === 'pre') {
-    return q.is('data->>service_id', null).neq('data->>type', 'post_license');
+    // Pre-license apps: no service_id AND (type is NULL OR type != 'post_license').
+    // `.neq` in PostgREST excludes NULL, so use `.or` to include rows with no type key.
+    return q
+      .is('data->>service_id', null)
+      .or('data->>type.is.null,data->>type.neq.post_license');
   }
   if (scope === 'post') {
     return q.not('data->>service_id', 'is', null);
