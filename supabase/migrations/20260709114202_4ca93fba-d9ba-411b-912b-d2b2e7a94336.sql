@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.count_visible_return_revisions_as(uuid, uuid);

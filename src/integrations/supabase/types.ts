@@ -14181,6 +14181,10 @@ export type Database = {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_return_filed: {
+        Args: { _return_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
@@ -14613,6 +14617,27 @@ export type Database = {
       get_registration_reviewer_remarks: {
         Args: { _registration_id: string }
         Returns: string
+      }
+      get_return_revisions: {
+        Args: { _return_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          form_version_ids: Json
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          return_id: string
+          revision_number: number
+          snapshot: Json
+          snapshot_reason: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "return_data_revisions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_user_role: {
         Args: { _user_id: string }

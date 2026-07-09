@@ -19,11 +19,9 @@ export function useReturnRevisions(returnId?: string) {
     queryKey: ['return_data_revisions', returnId],
     enabled: !!returnId,
     queryFn: async (): Promise<ReturnRevision[]> => {
-      const { data, error } = await (supabase as any)
-        .from('return_data_revisions')
-        .select('*')
-        .eq('return_id', returnId!)
-        .order('revision_number', { ascending: true });
+      const { data, error } = await (supabase as any).rpc('get_return_revisions', {
+        _return_id: returnId!,
+      });
       if (error) throw error;
       return (data || []) as ReturnRevision[];
     },
