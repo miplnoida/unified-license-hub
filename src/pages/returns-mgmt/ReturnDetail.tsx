@@ -797,7 +797,10 @@ export default function ReturnDetail() {
 
             <AccountingReconciliationPanel
               allData={valuesByForm}
-              forms={orderedForms as any}
+              forms={orderedForms.map((cf: any) => ({
+                formId: cf.form_id,
+                templateName: cf.form_templates?.name,
+              }))}
               summaryOnly
             />
 
