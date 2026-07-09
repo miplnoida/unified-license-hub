@@ -375,6 +375,18 @@ export default function ComplaintsList() {
                       )}
                       <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                       <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
+                      <div>
+                        <Label>Severity</Label>
+                        <Select value={newSeverity} onValueChange={setNewSeverity}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['low','medium','high','critical'].map(s => (
+                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <ComplaintAttachmentsField files={newAttachments} onChange={setNewAttachments} disabled={creating} />
                       <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
                     </div>
                   </DialogContent>
