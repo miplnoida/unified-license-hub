@@ -896,6 +896,12 @@ export default function ReturnDetail() {
         currentValues={valuesByForm}
         returnLabel={returnData.unique_id}
       />
+      <ReturnHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        returnId={returnData.id}
+        title={`Return history — ${returnData.unique_id}`}
+      />
     </DashboardLayout>
   );
 }
