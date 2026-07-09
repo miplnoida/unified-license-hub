@@ -1,18 +1,16 @@
-## Fix "Could not find the 'licensees' column of 'prudential_assessments'"
+Plan to fix the remaining schema-cache error:
 
-### Root cause
-`src/hooks/usePrudentialSupervision.ts` selects `*, licensees(name)` from `prudential_assessments`. The FK to `licensees` is on the column `entity_id`, not `licensees`, so PostgREST can't resolve the embed by that alias and reports it as a missing column.
+1. Replace the current prudential assessment embedded relationship query with the explicit backend FK relationship syntax:
+   - Use `licensee:licensees!prudential_assessments_entity_id_fkey(name)` instead of the current alias form.
+   - Apply this in both the assessment list and single assessment detail queries.
 
-### Change
-In `src/hooks/usePrudentialSupervision.ts` (lines 247 and 261), change the embed to explicitly reference the foreign key column:
+2. Update any UI/data typing that expects `licensees.name` so it also reads the corrected `licensee.name` shape without breaking existing display code.
 
-```ts
-.select('*, licensees:entity_id(name)')
-```
+3. Add a safe fallback if the embedded relationship still fails due to backend schema cache lag:
+   - Fetch `prudential_assessments` normally.
+   - Fetch matching `licensees` by `entity_id`.
+   - Merge the licensee name client-side.
 
-This keeps the returned shape (`row.licensees.name`) identical, so no consumer code changes are needed.
+4. Verify the failing prudential page/query no longer requests a non-existent `licensees` column and that the page renders assessment rows/details correctly.
 
-### Scope
-- One file, two lines.
-- No DB migration (schema is correct; the FK already exists).
-- No impact on other prudential features.
+No approval workflow, return submission, or prudential calculation logic will be changed.
