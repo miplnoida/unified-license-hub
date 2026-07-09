@@ -823,6 +823,13 @@ export default function FillReturnPage() {
                     </AlertDescription>
                   </Alert>
                 )}
+                <AccountingReconciliationPanel
+                  allData={allData}
+                  forms={orderedForms.map((cf: any) => ({
+                    formId: cf.form_id,
+                    templateName: cf.form_templates?.name,
+                  }))}
+                />
                 <ReturnReviewPanel
                   loading={submitting}
                   disabled={!allComplete}
