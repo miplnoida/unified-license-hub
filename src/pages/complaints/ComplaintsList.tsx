@@ -205,9 +205,18 @@ export default function ComplaintsList() {
       }
     }
 
+    if (inserted?.id && newAttachments.length > 0) {
+      const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
+      if (r.failed.length) {
+        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
+      } else if (r.uploaded) {
+        toast.success(`${r.uploaded} attachment(s) uploaded`);
+      }
+    }
+
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
-    setNewSubject(''); setNewDesc(''); setNewTypeId('');
+    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
       setAckDialog({
