@@ -120,18 +120,33 @@ export default function AssessmentDetail() {
             <div><Label>Recommended response</Label><Textarea disabled={!canEdit} value={form.recommended_response || ''} onChange={(e) => setForm({ ...form, recommended_response: e.target.value })} /></div>
             <div><Label>Linked return id (optional)</Label><Input disabled={!canEdit} value={form.return_id || ''} onChange={(e) => setForm({ ...form, return_id: e.target.value || null })} /></div>
             <div className="flex flex-wrap gap-2">
-              {canEdit && <Button onClick={save}>Save</Button>}
+              {canEdit && (
+                <Button disabled={upsert.isPending} onClick={save}>
+                  {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Save'}
+                </Button>
+              )}
               {form.status === 'draft' && (
-                <Button variant="secondary" disabled={!form.rationale} onClick={async () => { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); }}>Submit for review</Button>
+                <Button variant="secondary" disabled={!form.rationale || upsert.isPending || transition.isPending} onClick={async () => {
+                  if (upsert.isPending || transition.isPending) return;
+                  try { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); } catch { /* toast */ }
+                }}>
+                  {(upsert.isPending || transition.isPending) ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</>) : 'Submit for review'}
+                </Button>
               )}
               {form.status === 'submitted' && (
-                <Button variant="secondary" disabled={!reviewNotes.trim()} onClick={() => transition.mutate({ id: id!, to: 'reviewed', reason: reviewNotes })}>Mark reviewed</Button>
+                <Button variant="secondary" disabled={!reviewNotes.trim() || transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'reviewed', reason: reviewNotes })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Mark reviewed'}
+                </Button>
               )}
               {form.status === 'reviewed' && (
-                <Button onClick={() => transition.mutate({ id: id!, to: 'approved' })}>Approve</Button>
+                <Button disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'approved' })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Approving…</>) : 'Approve'}
+                </Button>
               )}
               {form.status === 'approved' && (
-                <Button variant="outline" onClick={() => transition.mutate({ id: id!, to: 'closed' })}>Close</Button>
+                <Button variant="outline" disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'closed' })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Closing…</>) : 'Close'}
+                </Button>
               )}
               {form.status === 'submitted' && (
                 <div className="w-full">
