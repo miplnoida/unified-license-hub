@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
@@ -22,14 +22,16 @@ export default function ActionsList() {
   const [note, setNote] = useState('');
 
   const submitClose = async () => {
-    if (!closeFor) return;
+    if (!closeFor || update.isPending) return;
     const patch = { status: closeFor.kind } as any;
     const payload: any = { id: closeFor.id, patch };
     if (closeFor.kind === 'completed') payload.completion_notes = note;
     if (closeFor.kind === 'waived') payload.waiver_reason = note;
     if (closeFor.kind === 'cancelled') payload.cancellation_reason = note;
-    await update.mutateAsync(payload);
-    setCloseFor(null); setNote('');
+    try {
+      await update.mutateAsync(payload);
+      setCloseFor(null); setNote('');
+    } catch { /* toast handled in hook */ }
   };
 
   return (
@@ -38,7 +40,10 @@ export default function ActionsList() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Prudential Actions</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => overdue.mutate()}><RefreshCw className="h-4 w-4 mr-2" />Sweep overdue</Button>
+          <Button variant="outline" size="sm" disabled={overdue.isPending} onClick={() => overdue.mutate()}>
+            {overdue.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            {overdue.isPending ? 'Sweeping…' : 'Sweep overdue'}
+          </Button>
           <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New action</Button>
         </div>
       </div>
