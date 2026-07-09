@@ -1,12 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { History, Download } from 'lucide-react';
+import { History, Download, ChevronLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
