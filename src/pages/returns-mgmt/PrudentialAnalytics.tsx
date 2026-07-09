@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
@@ -19,6 +18,47 @@ function useRatioKeys() {
       const seen = new Map<string, string>();
       (data ?? []).forEach((r: any) => seen.set(r.ratio_key, r.label));
       return Array.from(seen.entries()).map(([ratio_key, label]) => ({ ratio_key, label }));
+    },
+  });
+}
+
+function useLicenseesForRatio(ratioKey: string | undefined) {
+  return useQuery({
+    queryKey: ['prudential_licensees_for_ratio', ratioKey],
+    enabled: !!ratioKey,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_calculated_ratios')
+        .select('returns_filed!inner(licensee_id,licensees!inner(id,legal_name))')
+        .eq('ratio_key', ratioKey)
+        .limit(2000);
+      if (error) throw error;
+      const seen = new Map<string, string>();
+      (data ?? []).forEach((r: any) => {
+        const lic = r.returns_filed?.licensees;
+        if (lic?.id) seen.set(lic.id, lic.legal_name || lic.id);
+      });
+      return Array.from(seen.entries())
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+  });
+}
+
+function usePeriodEndsForRatio(ratioKey: string | undefined) {
+  return useQuery({
+    queryKey: ['prudential_periods_for_ratio', ratioKey],
+    enabled: !!ratioKey,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_calculated_ratios')
+        .select('returns_filed!inner(period_end)')
+        .eq('ratio_key', ratioKey)
+        .limit(2000);
+      if (error) throw error;
+      const seen = new Set<string>();
+      (data ?? []).forEach((r: any) => { if (r.returns_filed?.period_end) seen.add(r.returns_filed.period_end); });
+      return Array.from(seen).sort((a, b) => b.localeCompare(a));
     },
   });
 }
@@ -48,8 +88,25 @@ export default function PrudentialAnalytics() {
   const [licenseeId, setLicenseeId] = useState<string>('');
   const [periodEnd, setPeriodEnd] = useState<string>('');
   const { data: keys = [] } = useRatioKeys();
+  const { data: licensees = [] } = useLicenseesForRatio(ratioKey);
+  const { data: periods = [] } = usePeriodEndsForRatio(ratioKey);
   const trend = useRatioTrend(ratioKey, licenseeId);
   const peer = usePeerSnapshot(ratioKey, periodEnd || null);
+
+  // Auto-select defaults
+  useEffect(() => {
+    if (!ratioKey && keys.length > 0) setRatioKey(keys[0].ratio_key);
+  }, [keys, ratioKey]);
+  useEffect(() => {
+    if (licensees.length > 0 && !licensees.find((l) => l.id === licenseeId)) {
+      setLicenseeId(licensees[0].id);
+    }
+  }, [licensees, licenseeId]);
+  useEffect(() => {
+    if (periods.length > 0 && !periods.includes(periodEnd)) {
+      setPeriodEnd(periods[0]);
+    }
+  }, [periods, periodEnd]);
 
   const peerData = useMemo(() => {
     if (!peer.data || (peer.data as any).count === 0) return [];
@@ -76,19 +133,31 @@ export default function PrudentialAnalytics() {
             </Select>
           </div>
           <div>
-            <Label>Licensee ID (for trend)</Label>
-            <Input value={licenseeId} onChange={(e) => setLicenseeId(e.target.value)} placeholder="uuid" />
+            <Label>Licensee (for trend)</Label>
+            <Select value={licenseeId || undefined} onValueChange={setLicenseeId} disabled={!ratioKey || licensees.length === 0}>
+              <SelectTrigger><SelectValue placeholder={ratioKey ? (licensees.length ? 'Select licensee' : 'No data') : 'Select ratio first'} /></SelectTrigger>
+              <SelectContent>
+                {licensees.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Period end (for peer comparison)</Label>
-            <Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+            <Select value={periodEnd || undefined} onValueChange={setPeriodEnd} disabled={!ratioKey || periods.length === 0}>
+              <SelectTrigger><SelectValue placeholder={ratioKey ? (periods.length ? 'Select period' : 'No data') : 'Select ratio first'} /></SelectTrigger>
+              <SelectContent>
+                {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <Card>
           <CardHeader><CardTitle className="text-base">Trend</CardTitle></CardHeader>
           <CardContent style={{ height: 320 }}>
-            {trend.data && trend.data.length > 0 ? (
+            {trend.isLoading ? (
+              <p className="text-sm text-muted-foreground italic">Loading trend…</p>
+            ) : trend.data && trend.data.length > 0 ? (
               <ResponsiveContainer>
                 <LineChart data={trend.data}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -98,7 +167,7 @@ export default function PrudentialAnalytics() {
                   <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" />
                 </LineChart>
               </ResponsiveContainer>
-            ) : <p className="text-sm text-muted-foreground italic">Select a ratio and licensee to view trend.</p>}
+            ) : <p className="text-sm text-muted-foreground italic">No trend data for the selected ratio and licensee.</p>}
           </CardContent>
         </Card>
 
@@ -107,7 +176,9 @@ export default function PrudentialAnalytics() {
             <CardTitle className="text-base">Peer Comparison ({(peer.data as any)?.count ?? 0} peers)</CardTitle>
           </CardHeader>
           <CardContent style={{ height: 320 }}>
-            {peerData.length > 0 ? (
+            {peer.isLoading ? (
+              <p className="text-sm text-muted-foreground italic">Loading peer distribution…</p>
+            ) : peerData.length > 0 ? (
               <ResponsiveContainer>
                 <BarChart data={peerData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -118,7 +189,7 @@ export default function PrudentialAnalytics() {
                   <Bar dataKey="value" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p className="text-sm text-muted-foreground italic">Select a ratio and period end to view peer distribution.</p>}
+            ) : <p className="text-sm text-muted-foreground italic">No peer data for the selected ratio and period.</p>}
           </CardContent>
         </Card>
       </div>
