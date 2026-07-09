@@ -77,6 +77,15 @@ export default function PrudentialEntityProfile() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [hiddenRatios, setHiddenRatios] = useState<Set<string>>(new Set());
   const [ratioPoint, setRatioPoint] = useState<{ period: string; ratioKey: string; value: number } | null>(null);
+  const [ratioYear, setRatioYear] = useState<string>('');
+  const [ratioQuarter, setRatioQuarter] = useState<string>('all');
+
+  const periodMeta = (p: string): { year: string; quarter: string } => {
+    if (!p) return { year: 'unassigned', quarter: 'unassigned' };
+    const d = new Date(p);
+    if (isNaN(d.getTime())) return { year: 'unassigned', quarter: 'unassigned' };
+    return { year: String(d.getUTCFullYear()), quarter: `Q${Math.floor(d.getUTCMonth() / 3) + 1}` };
+  };
 
   const ratioLabels = useMemo(() => {
     const m: Record<string, { label: string; fmt?: string }> = {};
@@ -267,16 +276,73 @@ export default function PrudentialEntityProfile() {
               if (!payload || payload.value == null) return;
               setRatioPoint({ period: payload.payload?.period, ratioKey: k, value: Number(payload.value) });
             };
+
+            const yearsSet = new Set<string>();
+            ratioTrend.forEach((row: any) => yearsSet.add(periodMeta(row.period).year));
+            const years = Array.from(yearsSet).sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+            const defaultRatioYear = years[0] || '';
+            const activeRatioYear = ratioYear || defaultRatioYear;
+
+            const filteredTrend = ratioTrend.filter((row: any) => {
+              const { year, quarter } = periodMeta(row.period);
+              if (activeRatioYear && year !== activeRatioYear) return false;
+              if (ratioQuarter !== 'all' && quarter !== ratioQuarter) return false;
+              return true;
+            });
+
+            const returnsByIdLocal: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
+            const filteredRatioRows = (data.ratios || []).filter((r: any) => {
+              const rf = returnsByIdLocal[r.return_id];
+              const period = rf?.period_end_date || (r.computed_at ? String(r.computed_at).slice(0, 10) : '');
+              const { year, quarter } = periodMeta(period);
+              if (activeRatioYear && year !== activeRatioYear) return false;
+              if (ratioQuarter !== 'all' && quarter !== ratioQuarter) return false;
+              return true;
+            });
+
             return (
               <>
                 <Card>
                   <CardHeader>
                     <CardTitle>Ratio trend</CardTitle>
                     <CardDescription>
-                      Displays prudential ratios computed from submitted returns over time. Click a chart point or a table row to view thresholds, breach status, and the source return.
+                      Displays prudential ratios computed from submitted returns over time. Filter by year/quarter, then click a chart point or a table row to view thresholds, breach status, and the source return.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <div className="flex flex-wrap items-end gap-3 mb-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Year</Label>
+                        <Select value={activeRatioYear || 'none'} onValueChange={(v) => setRatioYear(v === 'none' ? '' : v)}>
+                          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                          <SelectContent>
+                            {years.length === 0 && <SelectItem value="none">—</SelectItem>}
+                            {years.map((y) => (
+                              <SelectItem key={y} value={y}>{y === 'unassigned' ? 'Unassigned' : y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Quarter</Label>
+                        <Select value={ratioQuarter} onValueChange={setRatioQuarter}>
+                          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All quarters</SelectItem>
+                            <SelectItem value="Q1">Q1</SelectItem>
+                            <SelectItem value="Q2">Q2</SelectItem>
+                            <SelectItem value="Q3">Q3</SelectItem>
+                            <SelectItem value="Q4">Q4</SelectItem>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="text-xs text-muted-foreground ml-auto">
+                        Showing {filteredTrend.length} of {ratioTrend.length} periods
+                        {activeRatioYear ? ` · ${activeRatioYear === 'unassigned' ? 'Unassigned' : activeRatioYear}` : ''}
+                        {ratioQuarter !== 'all' ? ` · ${ratioQuarter === 'unassigned' ? 'Unassigned' : ratioQuarter}` : ''}
+                      </div>
+                    </div>
                     {allKeys.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHiddenRatios(new Set())}>All</Button>
@@ -300,9 +366,9 @@ export default function PrudentialEntityProfile() {
                       </div>
                     )}
                     <div style={{ height: 340 }}>
-                      {ratioTrend.length && visibleKeys.length ? (
+                      {filteredTrend.length && visibleKeys.length ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={ratioTrend}>
+                          <LineChart data={filteredTrend}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                             <YAxis tick={{ fontSize: 11 }} />
@@ -327,7 +393,7 @@ export default function PrudentialEntityProfile() {
                         </ResponsiveContainer>
                       ) : (
                         <div className="text-sm text-muted-foreground py-8 text-center">
-                          {ratioTrend.length ? 'No ratios selected.' : 'No ratios computed.'}
+                          {!ratioTrend.length ? 'No ratios computed.' : !visibleKeys.length ? 'No ratios selected.' : 'No ratios for selected period.'}
                         </div>
                       )}
                     </div>
@@ -336,7 +402,7 @@ export default function PrudentialEntityProfile() {
                 <Card className="mt-3"><CardContent className="pt-4">
                   <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Period</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {data.ratios.slice(0, 200).map((r: any) => {
+                      {filteredRatioRows.slice(0, 200).map((r: any) => {
                         const rf = (data.returns || []).find((x: any) => x.id === r.return_id);
                         const period = rf?.period_end_date || (r.computed_at ? String(r.computed_at).slice(0, 10) : '—');
                         return (
@@ -352,13 +418,14 @@ export default function PrudentialEntityProfile() {
                           </TableRow>
                         );
                       })}
-                      {!data.ratios.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No ratios yet.</TableCell></TableRow>}
+                      {!filteredRatioRows.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">{data.ratios?.length ? 'No ratios for selected period.' : 'No ratios yet.'}</TableCell></TableRow>}
                     </TableBody></Table>
                 </CardContent></Card>
               </>
             );
           })()}
         </TabsContent>
+
 
         <TabsContent value="breaches">
           <Card>
