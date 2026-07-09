@@ -107,7 +107,7 @@ export default function PrudentialEntityProfile() {
       const quarter = ped ? `Q${Math.floor(ped.getUTCMonth() / 3) + 1}` : 'unassigned';
       return { breach: b, year, quarter };
     });
-    const years = Array.from(new Set(withPeriod.map((x) => x.year))).sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+    const years = Array.from(new Set(withPeriod.map((x) => x.year))).sort((a: string, b: string) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
     return { withPeriod, years };
   }, [data?.breaches, data?.returns]);
 
