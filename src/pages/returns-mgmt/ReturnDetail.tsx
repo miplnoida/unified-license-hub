@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
-import { HistoryButton } from '@/components/audit/HistoryButton';
+import { ReturnHistoryDrawer } from '@/components/audit/ReturnHistoryDrawer';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
 import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
