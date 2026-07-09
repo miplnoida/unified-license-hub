@@ -1,56 +1,67 @@
-## Goal
-Fix the admin Return Queue → View page so submitted return data renders as a compact 3-column read-only table (like the supervised-entities historical return view), show entity/year/quarter clearly in the header, and hide the validation-rules section from the right sidebar.
+## Prudentially Supervised Entities — Column Reference & Badge Colors
 
-Scope is limited to `src/pages/returns-mgmt/ReturnDetail.tsx` and one small prop addition on the shared right-side panel. No changes to workflow, submission, notifications, ratios, or audit logic.
+### Column meanings (as shown in `/prudential/entities`)
 
-## Changes
+| # | Column | What it shows | Source |
+|---|--------|---------------|--------|
+| 1 | **Entity** | Licensee (supervised institution) name. Clickable via the "Open" action. | `licensees.name` |
+| 2 | **License** | Current license status of the entity (Active / Suspended / Revoked / Expired). | `licenses.status` |
+| 3 | **Systemic** | Systemic-importance classification of the entity (e.g. D-SIB / Non-SIB). Indicates supervisory priority. | `licensees.systemic_importance` |
+| 4 | **Latest rating** | Most recent supervisory risk rating from the last prudential assessment (e.g. Low / Moderate / High / Critical). | `prudential_assessments.overall_rating` |
+| 5 | **Worst breach** | Highest severity among currently open threshold breaches on prudential ratios (critical / high / medium / low). | `return_threshold_breaches.severity` (max) |
+| 6 | **Breaches** | Count of open (unresolved) threshold breaches across all monitored ratios. | `return_threshold_breaches` where status = open |
+| 7 | **Open actions** | Count of supervisory actions currently open against the entity (directives, requirements, follow-ups). | `prudential_actions` where status ∈ open |
+| 8 | **Overdue** | Subset of open actions whose due date has passed. Highlighted red when > 0. | `prudential_actions` where due_date < today |
+| 9 | **Escalations** | Open escalations raised for the entity (auto or manual) awaiting resolution. | `prudential_escalations` where status = open |
+| 10 | **Stress** | Open stress-test / early-warning indicator events flagged for the entity. | `prudential_stress_events` where status = open |
+| 11 | **Last return** | Date of the most recently submitted regulatory return. Blank if none filed. | `returns_filed.submitted_at` (max) |
+| 12 | **Open** | Link into the entity's full prudential profile. | Route: `/prudential/entities/:id` |
 
-### 1. Header block — clearer entity / year / quarter
-In `src/pages/returns-mgmt/ReturnDetail.tsx`, replace the single-line title with an explicit summary using data already loaded by `useReturnById`:
+### Badge color updates (visual only, semantic tokens)
 
-- Entity: `returnData.licensees?.name` (fallback `on_behalf_of_licensees?.name`)
-- Return: `returnData.return_configs?.name`
-- Year: `returnData.return_year`
-- Quarter / Period: `returnData.return_period`
-- Keep `unique_id` and `StatusBadge` as-is.
+Currently plain/outlined badges are used for License, Systemic, Latest rating, and Last return status. Apply consistent severity coloring:
 
-Rendered as a small labelled grid so entity / year / quarter are each visually distinct instead of being concatenated in one muted line.
+- **License status** (col 2)
+  - `active` → emerald (success tone)
+  - `suspended` → amber (warning)
+  - `revoked` → destructive (red)
+  - `expired` → muted / neutral
 
-### 2. Submitted return renders as 3-column table (not textboxes)
-Replace `ReadOnlyFormBlock` (which uses `FormRenderer` and shows disabled inputs) with a new `ReturnDataTable` component in the same file:
+- **Systemic importance** (col 3)
+  - `d-sib` / `systemic` / `high` → destructive tone (draws attention to systemic risk)
+  - `medium` → amber
+  - `low` / `non-sib` → neutral outline
 
-- Load the same version + sections via `useLatestPublishedVersion` + `useVersionSections` (unchanged pinning behaviour via `pinnedVersionId`).
-- Flatten sections → fields, skipping non-data field types (`heading`, `paragraph`).
-- For each remaining field, emit one row with columns:
-  1. `lineCode` (e.g. `1.1`, `1.2.1`) — falls back to empty string.
-  2. `label`.
-  3. Entered value from `valuesByForm[form_id][fieldName]`, formatted as read-only text:
-     - numbers → `toLocaleString()`;
-     - arrays / objects → JSON summary or comma list (multi_select, checkbox);
-     - files → filename link if URL is present, otherwise "—";
-     - booleans → Yes/No;
-     - empty → em-dash.
-- Group rows visually by section title (section header row spanning all 3 columns).
-- Preserve existing per-form `Reviewer Comments` block underneath the table.
-- Tabs, tab labels, active-tab logic, and fallback/submitted-forms merging stay exactly the same.
+- **Latest rating** (col 4) — currently plain text, wrap in Badge with same palette as risk levels
+  - `critical` → destructive
+  - `high` → amber-strong
+  - `medium` / `moderate` → amber-soft
+  - `low` → emerald
 
-### 3. Hide "Validation rules" from right sidebar
-`ReturnValidationAndRatiosPanel` currently always renders `ValidationResultPanel` + `RatioSummaryCard`.
+- **Worst breach** (col 5) — keep existing `RISK_TONE` mapping but strengthen contrast for `high` (distinct amber-700 bg vs medium) and add `border` for accessibility.
 
-- Add an optional `hideValidation?: boolean` prop to `src/components/returns/ReturnValidationAndRatiosPanel.tsx`. When true, do not render `ValidationResultPanel`; ratios continue to render.
-- Pass `hideValidation` from `ReturnDetail.tsx`.
-- Fill/View pages that consume the same panel are untouched (prop defaults to false).
+- **Latest return status** filter chip → not on the row today; add a small status Badge next to the Last-return date:
+  - `approved` → emerald
+  - `submitted` / `under_review` → blue/info
+  - `rejected` → destructive
+  - none → muted "—"
 
-### 4. Untouched
-- Approval workflow panel, legacy approve / request-edit actions, activity & history, edit-requests card, comments, notifications, RPCs.
-- Licensee-side `ViewReturnPage`, `FillReturnPage`, and `ReturnReviewPanel`.
-- Data hooks, DB schema, edge functions.
+### Implementation
 
-## Technical notes
-- `FormField.lineCode` already exists on the form-builder schema and is populated for prudential return templates (Excel column A import).
-- `valuesByForm` is already built from `return_form_data` with JSON reparsing, so no new fetch is required.
-- Section flattening reuses the `FormSection`/`FormField` types from `@/types/formBuilder`.
+1. Add a header tooltip (info icon) on each column heading with the one-line definition from the table above so users see the meaning inline. Uses existing `Tooltip` component.
+2. Introduce local tone maps in `PrudentialEntitiesList.tsx`:
+   - `LICENSE_TONE`, `SYSTEMIC_TONE`, `RATING_TONE`, `RETURN_STATUS_TONE` — all using semantic Tailwind tokens (`bg-emerald-500/10 text-emerald-700 border-emerald-200`, `bg-amber-500/10 text-amber-700 border-amber-200`, `bg-destructive/10 text-destructive border-destructive/30`, `bg-blue-500/10 text-blue-700 border-blue-200`, `bg-muted text-muted-foreground`).
+   - Apply via `<Badge variant="outline" className={TONE[value]}>`.
+3. Wrap "Latest rating" value in a Badge (not plain text).
+4. Add a small colored Badge for `last_return_status` next to the date.
+5. No data, hook, or route changes — presentation only.
 
-## Files touched
-- `src/pages/returns-mgmt/ReturnDetail.tsx` — header rewrite, new `ReturnDataTable`, wire `hideValidation`.
-- `src/components/returns/ReturnValidationAndRatiosPanel.tsx` — add optional `hideValidation` prop.
+### Files touched
+
+- `src/pages/prudential/PrudentialEntitiesList.tsx` (only file).
+
+### Out of scope
+
+- No changes to `usePrudentialEntities`, RLS, or DB.
+- No new columns; existing columns retained.
+- No changes to filters other than color-consistency with row badges.

@@ -7,13 +7,82 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
+
+const NEUTRAL = 'bg-muted text-muted-foreground border-border';
+const EMERALD = 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
+const AMBER = 'bg-amber-500/10 text-amber-700 border-amber-200';
+const AMBER_STRONG = 'bg-amber-500/20 text-amber-800 border-amber-300';
+const RED = 'bg-destructive/10 text-destructive border-destructive/30';
+const BLUE = 'bg-blue-500/10 text-blue-700 border-blue-200';
 
 const RISK_TONE: Record<string, string> = {
-  critical: 'bg-destructive/10 text-destructive border-destructive/30',
-  high: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  low: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
+  critical: RED,
+  high: AMBER_STRONG,
+  medium: AMBER,
+  low: EMERALD,
 };
+
+const LICENSE_TONE: Record<string, string> = {
+  active: EMERALD,
+  suspended: AMBER,
+  revoked: RED,
+  expired: NEUTRAL,
+};
+
+const SYSTEMIC_TONE = (v: string) => {
+  const s = v.toLowerCase();
+  if (/(d-sib|systemic|high)/.test(s)) return RED;
+  if (/medium|moderate/.test(s)) return AMBER;
+  return NEUTRAL;
+};
+
+const RATING_TONE = (v: string) => {
+  const s = v.toLowerCase();
+  if (s.includes('critical')) return RED;
+  if (s.includes('high')) return AMBER_STRONG;
+  if (s.includes('medium') || s.includes('moderate')) return AMBER;
+  if (s.includes('low')) return EMERALD;
+  return NEUTRAL;
+};
+
+const RETURN_STATUS_TONE: Record<string, string> = {
+  approved: EMERALD,
+  submitted: BLUE,
+  under_review: BLUE,
+  rejected: RED,
+};
+
+const COLUMN_HELP: Record<string, string> = {
+  Entity: 'Supervised institution name. Click "Open" to view its full prudential profile.',
+  License: 'Current license status (Active / Suspended / Revoked / Expired).',
+  Systemic: 'Systemic-importance classification (e.g. D-SIB / Non-SIB) driving supervisory priority.',
+  'Latest rating': 'Most recent supervisory risk rating from the latest prudential assessment.',
+  'Worst breach': 'Highest severity among currently open threshold breaches on prudential ratios.',
+  Breaches: 'Count of open (unresolved) threshold breaches across all monitored ratios.',
+  'Open actions': 'Supervisory actions currently open (directives, requirements, follow-ups).',
+  Overdue: 'Open actions whose due date has passed. Highlighted red when greater than zero.',
+  Escalations: 'Escalations raised for the entity (auto or manual) awaiting resolution.',
+  Stress: 'Open stress-test / early-warning indicator events flagged for the entity.',
+  'Last return': 'Date and status of the most recently submitted regulatory return.',
+};
+
+function HeaderLabel({ label }: { label: string }) {
+  const help = COLUMN_HELP[label];
+  if (!help) return <>{label}</>;
+  return (
+    <span className="inline-flex items-center gap-1">
+      {label}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Info className="h-3 w-3 text-muted-foreground/70 cursor-help" />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">{help}</TooltipContent>
+      </Tooltip>
+    </span>
+  );
+}
 
 export default function PrudentialEntitiesList() {
   const [params, setParams] = useSearchParams();
@@ -46,10 +115,11 @@ export default function PrudentialEntitiesList() {
 
   return (
     <DashboardLayout>
+      <TooltipProvider delayDuration={150}>
       <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Prudentially Supervised Entities</h1>
-        <p className="text-sm text-muted-foreground">Universe of supervised entities with current prudential status</p>
+        <p className="text-sm text-muted-foreground">Universe of supervised entities with current prudential status. Hover any column header for its definition.</p>
       </div>
 
       <Card>
@@ -111,33 +181,60 @@ export default function PrudentialEntitiesList() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>License</TableHead>
-                  <TableHead>Systemic</TableHead>
-                  <TableHead>Latest rating</TableHead>
-                  <TableHead>Worst breach</TableHead>
-                  <TableHead className="text-right">Breaches</TableHead>
-                  <TableHead className="text-right">Open actions</TableHead>
-                  <TableHead className="text-right">Overdue</TableHead>
-                  <TableHead className="text-right">Escalations</TableHead>
-                  <TableHead className="text-right">Stress</TableHead>
-                  <TableHead>Last return</TableHead>
+                  <TableHead><HeaderLabel label="Entity" /></TableHead>
+                  <TableHead><HeaderLabel label="License" /></TableHead>
+                  <TableHead><HeaderLabel label="Systemic" /></TableHead>
+                  <TableHead><HeaderLabel label="Latest rating" /></TableHead>
+                  <TableHead><HeaderLabel label="Worst breach" /></TableHead>
+                  <TableHead className="text-right"><HeaderLabel label="Breaches" /></TableHead>
+                  <TableHead className="text-right"><HeaderLabel label="Open actions" /></TableHead>
+                  <TableHead className="text-right"><HeaderLabel label="Overdue" /></TableHead>
+                  <TableHead className="text-right"><HeaderLabel label="Escalations" /></TableHead>
+                  <TableHead className="text-right"><HeaderLabel label="Stress" /></TableHead>
+                  <TableHead><HeaderLabel label="Last return" /></TableHead>
                   <TableHead></TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {rows.map((e: any) => (
                     <TableRow key={e.id}>
                       <TableCell className="font-medium">{e.name}</TableCell>
-                      <TableCell><Badge variant="outline">{e.status || '—'}</Badge></TableCell>
-                      <TableCell>{e.systemic_importance ? <Badge>{e.systemic_importance}</Badge> : '—'}</TableCell>
-                      <TableCell>{e.latest_rating || '—'}</TableCell>
-                      <TableCell>{e.worst_breach ? <Badge className={RISK_TONE[e.worst_breach] || ''}>{e.worst_breach}</Badge> : '—'}</TableCell>
+                      <TableCell>
+                        {e.status
+                          ? <Badge variant="outline" className={`capitalize ${LICENSE_TONE[String(e.status).toLowerCase()] || NEUTRAL}`}>{e.status}</Badge>
+                          : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {e.systemic_importance
+                          ? <Badge variant="outline" className={`capitalize ${SYSTEMIC_TONE(String(e.systemic_importance))}`}>{e.systemic_importance}</Badge>
+                          : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {e.latest_rating
+                          ? <Badge variant="outline" className={`capitalize ${RATING_TONE(String(e.latest_rating))}`}>{e.latest_rating}</Badge>
+                          : '—'}
+                      </TableCell>
+                      <TableCell>
+                        {e.worst_breach
+                          ? <Badge variant="outline" className={`capitalize ${RISK_TONE[e.worst_breach] || NEUTRAL}`}>{e.worst_breach}</Badge>
+                          : '—'}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{e.breach_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{e.open_actions}</TableCell>
                       <TableCell className={`text-right tabular-nums ${e.overdue_actions ? 'text-destructive font-semibold' : ''}`}>{e.overdue_actions}</TableCell>
                       <TableCell className="text-right tabular-nums">{e.open_escalations}</TableCell>
                       <TableCell className="text-right tabular-nums">{e.stress_open}</TableCell>
-                      <TableCell>{e.last_return ? new Date(e.last_return).toLocaleDateString() : '—'}</TableCell>
+                      <TableCell>
+                        {e.last_return ? (
+                          <div className="flex items-center gap-2">
+                            <span>{new Date(e.last_return).toLocaleDateString()}</span>
+                            {e.last_return_status && (
+                              <Badge variant="outline" className={`capitalize ${RETURN_STATUS_TONE[e.last_return_status] || NEUTRAL}`}>
+                                {String(e.last_return_status).replace(/_/g, ' ')}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell className="text-right"><Link className="text-primary underline" to={`/prudential/entities/${e.id}`}>Open</Link></TableCell>
                     </TableRow>
                   ))}
@@ -149,6 +246,7 @@ export default function PrudentialEntitiesList() {
         </CardContent>
       </Card>
       </div>
+      </TooltipProvider>
     </DashboardLayout>
   );
 }
