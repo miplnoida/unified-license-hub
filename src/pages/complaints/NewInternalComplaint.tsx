@@ -165,6 +165,8 @@ export default function NewInternalComplaint() {
               </div>
             </div>
 
+            <ComplaintAttachmentsField files={attachments} onChange={setAttachments} disabled={create.isPending} />
+
             <div className="flex justify-end">
               <Button onClick={submit} disabled={create.isPending}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
             </div>
