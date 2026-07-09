@@ -31,6 +31,7 @@ import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
+import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import {
   logReturnActivity,
