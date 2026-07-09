@@ -48,11 +48,11 @@ function useLicenseesForRatio(ratioKey: string | undefined) {
       if (entityIds.length === 0) return [];
       const { data: lics, error: licErr } = await (supabase as any)
         .from('licensees')
-        .select('id, legal_name')
+        .select('id, name')
         .in('id', entityIds);
       if (licErr) throw licErr;
       return (lics ?? [])
-        .map((l: any) => ({ id: l.id, name: l.legal_name || l.id }))
+        .map((l: any) => ({ id: l.id, name: l.name || `Licensee ${String(l.id).slice(0, 8)}` }))
         .sort((a: any, b: any) => a.name.localeCompare(b.name));
     },
   });
@@ -115,8 +115,10 @@ export default function PrudentialAnalytics() {
   const [licenseeId, setLicenseeId] = useState<string>('');
   const [periodEnd, setPeriodEnd] = useState<string>('');
   const { data: keys = [] } = useRatioKeys();
-  const { data: licensees = [] } = useLicenseesForRatio(ratioKey);
-  const { data: periods = [] } = usePeriodEndsForRatio(ratioKey);
+  const licenseesQuery = useLicenseesForRatio(ratioKey);
+  const periodsQuery = usePeriodEndsForRatio(ratioKey);
+  const licensees = licenseesQuery.data ?? [];
+  const periods = periodsQuery.data ?? [];
   const trend = useRatioTrend(ratioKey, licenseeId);
   const peer = usePeerSnapshot(ratioKey, periodEnd || null);
 
@@ -125,15 +127,33 @@ export default function PrudentialAnalytics() {
     if (!ratioKey && keys.length > 0) setRatioKey(keys[0].ratio_key);
   }, [keys, ratioKey]);
   useEffect(() => {
-    if (licensees.length > 0 && !licensees.find((l) => l.id === licenseeId)) {
+    if (!ratioKey) {
+      if (licenseeId) setLicenseeId('');
+      return;
+    }
+    if (!licenseesQuery.isFetched) return;
+    if (licensees.length === 0) {
+      if (licenseeId) setLicenseeId('');
+      return;
+    }
+    if (!licensees.find((l) => l.id === licenseeId)) {
       setLicenseeId(licensees[0].id);
     }
-  }, [licensees, licenseeId]);
+  }, [ratioKey, licensees, licenseeId, licenseesQuery.isFetched]);
   useEffect(() => {
-    if (periods.length > 0 && !periods.includes(periodEnd)) {
+    if (!ratioKey) {
+      if (periodEnd) setPeriodEnd('');
+      return;
+    }
+    if (!periodsQuery.isFetched) return;
+    if (periods.length === 0) {
+      if (periodEnd) setPeriodEnd('');
+      return;
+    }
+    if (!periods.includes(periodEnd)) {
       setPeriodEnd(periods[0]);
     }
-  }, [periods, periodEnd]);
+  }, [ratioKey, periods, periodEnd, periodsQuery.isFetched]);
 
   const peerData = useMemo(() => {
     if (!peer.data || (peer.data as any).count === 0) return [];
