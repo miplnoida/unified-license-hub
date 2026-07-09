@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +38,7 @@ export function CreatePrudentialEscalationDialog({ open, onOpenChange, defaults,
   }, [open, defaults]);
 
   const submit = async () => {
+    if (create.isPending) return;
     try {
       const res: any = await create.mutateAsync(form);
       onOpenChange(false);
@@ -75,7 +77,10 @@ export function CreatePrudentialEscalationDialog({ open, onOpenChange, defaults,
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!form.entity_id || !form.reason || form.reason.trim().length < 5} onClick={submit}>Create</Button>
+          <Button variant="ghost" disabled={create.isPending} onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button disabled={!form.entity_id || !form.reason || form.reason.trim().length < 5 || create.isPending} onClick={submit}>
+            {create.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</>) : 'Create'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
