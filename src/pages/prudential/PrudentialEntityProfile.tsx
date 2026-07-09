@@ -95,6 +95,32 @@ export default function PrudentialEntityProfile() {
     return Object.values(byPeriod).sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
   }, [data]);
 
+  const [breachYear, setBreachYear] = useState<string>('');
+  const [breachQuarter, setBreachQuarter] = useState<string>('all');
+
+  const breachPeriodInfo = useMemo(() => {
+    const returnsById: Record<string, any> = Object.fromEntries((data?.returns || []).map((r: any) => [r.id, r]));
+    const withPeriod = (data?.breaches || []).map((b: any) => {
+      const rf = returnsById[b.return_id];
+      const ped = rf?.period_end_date ? new Date(rf.period_end_date) : null;
+      const year = ped ? String(ped.getUTCFullYear()) : 'unassigned';
+      const quarter = ped ? `Q${Math.floor(ped.getUTCMonth() / 3) + 1}` : 'unassigned';
+      return { breach: b, year, quarter };
+    });
+    const years = Array.from(new Set(withPeriod.map((x) => x.year))).sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+    return { withPeriod, years };
+  }, [data?.breaches, data?.returns]);
+
+  const defaultYear = breachPeriodInfo.years[0] || '';
+  const activeYear = breachYear || defaultYear;
+
+  const visibleBreaches = useMemo(() => {
+    return breachPeriodInfo.withPeriod
+      .filter((x) => (activeYear ? x.year === activeYear : true))
+      .filter((x) => (breachQuarter === 'all' ? true : x.quarter === breachQuarter))
+      .map((x) => x.breach);
+  }, [breachPeriodInfo, activeYear, breachQuarter]);
+
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
   const latestAssess = data.assessments?.[0];
