@@ -719,6 +719,7 @@ export default function ReturnDetail() {
               returnId={returnData.id}
               returnConfigId={returnData.return_configuration_id}
               formData={valuesByForm}
+              hideValidation
             />
 
 
