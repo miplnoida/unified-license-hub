@@ -597,7 +597,9 @@ export default function ReturnDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
           <div className="flex items-center gap-2">
-            <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="h-4 w-4 mr-1" /> History
+            </Button>
             <Button
               variant="outline"
               size="sm"
