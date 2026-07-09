@@ -206,7 +206,7 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
       const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
       const [breachesRes, actionsRes, escRes, assessRes, stressRes] = await Promise.all([
         returnIds.length
-          ? sb.from('return_threshold_breaches').select('id, return_id, severity').in('return_id', returnIds)
+          ? sb.from('return_threshold_breaches').select('id, return_id, risk_level, level').in('return_id', returnIds)
           : Promise.resolve({ data: [] }),
         sb.from('prudential_actions').select('id, entity_id, status').in('entity_id', ids),
         sb.from('prudential_escalations').select('id, entity_id, status').in('entity_id', ids),
@@ -227,9 +227,10 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
       const sevOrder = ['critical','high','medium','low'];
       (breachesRes.data ?? []).forEach((b: any) => {
         const ent = returnToEntity[b.return_id]; if (!ent) return;
+        const severity = b.risk_level || b.level;
         const cur = breachCounts[ent] || { total: 0, worst: null };
         cur.total += 1;
-        if (!cur.worst || sevOrder.indexOf(b.severity) < sevOrder.indexOf(cur.worst)) cur.worst = b.severity;
+        if (severity && (!cur.worst || sevOrder.indexOf(severity) < sevOrder.indexOf(cur.worst))) cur.worst = severity;
         breachCounts[ent] = cur;
       });
 
