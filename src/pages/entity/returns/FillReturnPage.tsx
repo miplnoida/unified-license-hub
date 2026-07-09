@@ -29,6 +29,8 @@ import { format, differenceInDays } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
+import { evaluateAccountingReconciliation, formatReconciliationValue } from '@/lib/returnsAccountingReconciliation';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
