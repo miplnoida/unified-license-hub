@@ -535,14 +535,36 @@ export default function ReturnDetail() {
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
-          <div>
-            <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
-            <p className="text-sm text-muted-foreground">
-              {returnData.return_configs?.name} — {returnData.return_period} {returnData.return_year}
-            </p>
+        <div className="bg-card border rounded-lg p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
+              <p className="text-sm text-muted-foreground">{returnData.return_configs?.name}</p>
+            </div>
+            <StatusBadge status={returnData.workflow_status} />
           </div>
-          <StatusBadge status={returnData.workflow_status} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Entity</div>
+              <div className="font-medium">
+                {returnData.licensees?.name || returnData.on_behalf_of_licensees?.name || '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Year</div>
+              <div className="font-medium">{returnData.return_year || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Period</div>
+              <div className="font-medium">{returnData.return_period || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Type</div>
+              <div className="font-medium">
+                {returnData.return_configs?.return_types?.name || returnData.return_configs?.return_types?.code || '—'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {isApproved && (
