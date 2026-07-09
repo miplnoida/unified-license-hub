@@ -372,9 +372,19 @@ export default function FpaScreening() {
         />
 
         <Tabs defaultValue="runs" className="space-y-5">
-          <TabsList>
-            <TabsTrigger value="runs">Screening Runs</TabsTrigger>
-            <TabsTrigger value="automation">Automatic Screening Execution</TabsTrigger>
+          <TabsList className="h-auto w-full justify-start gap-6 rounded-none border-b border-border bg-transparent p-0">
+            <TabsTrigger
+              value="runs"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              Screening Runs
+            </TabsTrigger>
+            <TabsTrigger
+              value="automation"
+              className="rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              Automatic Screening Execution
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="runs" className="space-y-5 mt-0">

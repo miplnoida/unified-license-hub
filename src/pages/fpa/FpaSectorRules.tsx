@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,11 @@ const KNOWN_CHECK_TYPES = [
   'sanctions', 'pep', 'adverse_media', 'criminal_history', 'regulator_watchlist', 'credit_history',
 ] as const;
 
+const CHECK_TYPE_OPTIONS: MultiSelectOption[] = KNOWN_CHECK_TYPES.map((t) => ({
+  value: t,
+  label: t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+}));
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface SectorRow { id: string; name: string; }
@@ -86,9 +92,9 @@ interface RuleRow {
 interface CriteriaForm {
   description: string;
   min_score: string;
-  mandatory_checks: string;
-  disqualifiers: string;
-  warnings: string;
+  mandatory_checks: string[];
+  disqualifiers: string[];
+  warnings: string[];
 }
 
 interface RuleFormState {
@@ -104,9 +110,9 @@ interface RuleFormState {
 const EMPTY_CRITERIA: CriteriaForm = {
   description: '',
   min_score: '',
-  mandatory_checks: '',
-  disqualifiers: '',
-  warnings: '',
+  mandatory_checks: [],
+  disqualifiers: [],
+  warnings: [],
 };
 
 const EMPTY_FORM: RuleFormState = {
@@ -126,21 +132,17 @@ const EMPTY_FORM: RuleFormState = {
 // this page's payload aligned with that evaluator is what makes a rule
 // configured here actually affect a decision.
 
-function csv(v: string): string[] {
-  return v.split(',').map((s) => s.trim()).filter(Boolean);
-}
-
 function parseCriteriaToForm(criteria: any): CriteriaForm {
   if (!criteria || typeof criteria !== 'object') {
     return { ...EMPTY_CRITERIA, description: typeof criteria === 'string' ? criteria : '' };
   }
-  const joinArr = (v: any) => (Array.isArray(v) ? v.join(', ') : '');
+  const toArr = (v: any): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
   return {
     description: criteria.description ?? '',
     min_score: criteria.min_score != null ? String(criteria.min_score) : '',
-    mandatory_checks: joinArr(criteria.mandatory_checks),
-    disqualifiers: joinArr(criteria.disqualifiers),
-    warnings: joinArr(criteria.warnings),
+    mandatory_checks: toArr(criteria.mandatory_checks),
+    disqualifiers: toArr(criteria.disqualifiers),
+    warnings: toArr(criteria.warnings),
   };
 }
 
@@ -149,12 +151,9 @@ function buildCriteriaPayload(form: CriteriaForm): object {
   if (form.description.trim()) payload.description = form.description.trim();
   const score = parseFloat(form.min_score);
   if (!isNaN(score)) payload.min_score = score;
-  const mandatoryChecks = csv(form.mandatory_checks);
-  if (mandatoryChecks.length) payload.mandatory_checks = mandatoryChecks;
-  const disqualifiers = csv(form.disqualifiers);
-  if (disqualifiers.length) payload.disqualifiers = disqualifiers;
-  const warnings = csv(form.warnings);
-  if (warnings.length) payload.warnings = warnings;
+  if (form.mandatory_checks.length) payload.mandatory_checks = form.mandatory_checks;
+  if (form.disqualifiers.length) payload.disqualifiers = form.disqualifiers;
+  if (form.warnings.length) payload.warnings = form.warnings;
   return payload;
 }
 
@@ -382,36 +381,41 @@ function RuleDialog({
             </div>
 
             <div className="mb-3">
-              <Label>Mandatory Checks <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
-              <Input
-                placeholder="e.g. criminal_history, sanctions"
-                value={form.criteria.mandatory_checks}
-                onChange={(e) => setCriteria('mandatory_checks', e.target.value)}
+              <Label>Mandatory Checks</Label>
+              <MultiSelect
+                options={CHECK_TYPE_OPTIONS}
+                selected={form.criteria.mandatory_checks}
+                onChange={(v) => setCriteria('mandatory_checks', v)}
+                placeholder="Select required check types…"
+                withinDialog
               />
               <p className="text-xs text-muted-foreground mt-1">
-                A finding of each check type below must exist and be active. Known types:{' '}
-                {KNOWN_CHECK_TYPES.join(', ')}.
+                A finding of each selected check type must exist and be active.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <Label>Disqualifiers <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
-                <Input
-                  placeholder="e.g. sanctions"
-                  value={form.criteria.disqualifiers}
-                  onChange={(e) => setCriteria('disqualifiers', e.target.value)}
+                <Label>Disqualifiers</Label>
+                <MultiSelect
+                  options={CHECK_TYPE_OPTIONS}
+                  selected={form.criteria.disqualifiers}
+                  onChange={(v) => setCriteria('disqualifiers', v)}
+                  placeholder="Select disqualifying checks…"
+                  withinDialog
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Presence of any of these check types fails the rule outright.
                 </p>
               </div>
               <div>
-                <Label>Warnings <span className="text-xs font-normal text-muted-foreground">(comma-separated)</span></Label>
-                <Input
-                  placeholder="e.g. pep"
-                  value={form.criteria.warnings}
-                  onChange={(e) => setCriteria('warnings', e.target.value)}
+                <Label>Warnings</Label>
+                <MultiSelect
+                  options={CHECK_TYPE_OPTIONS}
+                  selected={form.criteria.warnings}
+                  onChange={(v) => setCriteria('warnings', v)}
+                  placeholder="Select warning checks…"
+                  withinDialog
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Missing checks here are flagged but don't fail the rule.

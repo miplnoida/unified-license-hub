@@ -361,7 +361,7 @@ export default function ManualTaskDetail() {
                     <span className="text-muted-foreground">Confidence:</span>{' '}
                     <span className="font-medium">
                       {finding.confidence_score != null
-                        ? `${Math.round(Number(finding.confidence_score) * 100)}%`
+                        ? `${Math.round(Number(finding.confidence_score))}%`
                         : '—'}
                     </span>
                   </div>

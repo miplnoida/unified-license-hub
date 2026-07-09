@@ -270,7 +270,7 @@ export default function ManualScreeningQueue() {
                           {/* Confidence */}
                           <TableCell className="text-sm">
                             {finding.confidence_score != null
-                              ? `${Math.round(Number(finding.confidence_score) * 100)}%`
+                              ? `${Math.round(Number(finding.confidence_score))}%`
                               : '—'}
                           </TableCell>
 
