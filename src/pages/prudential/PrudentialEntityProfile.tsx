@@ -4,6 +4,8 @@ import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { History, Download, ChevronLeft } from 'lucide-react';
@@ -92,6 +94,33 @@ export default function PrudentialEntityProfile() {
     });
     return Object.values(byPeriod).sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
   }, [data]);
+
+  const [breachYear, setBreachYear] = useState<string>('');
+  const [breachQuarter, setBreachQuarter] = useState<string>('all');
+
+  const breachPeriodInfo = useMemo(() => {
+    const returnsById: Record<string, any> = Object.fromEntries((data?.returns || []).map((r: any) => [r.id, r]));
+    const withPeriod = (data?.breaches || []).map((b: any) => {
+      const rf = returnsById[b.return_id];
+      const ped = rf?.period_end_date ? new Date(rf.period_end_date) : null;
+      const year = ped ? String(ped.getUTCFullYear()) : 'unassigned';
+      const quarter = ped ? `Q${Math.floor(ped.getUTCMonth() / 3) + 1}` : 'unassigned';
+      return { breach: b, year, quarter };
+    });
+    const years = Array.from(new Set(withPeriod.map((x) => x.year))) as string[];
+    years.sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+    return { withPeriod, years };
+  }, [data?.breaches, data?.returns]);
+
+  const defaultYear = breachPeriodInfo.years[0] || '';
+  const activeYear = breachYear || defaultYear;
+
+  const visibleBreaches = useMemo(() => {
+    return breachPeriodInfo.withPeriod
+      .filter((x) => (activeYear ? x.year === activeYear : true))
+      .filter((x) => (breachQuarter === 'all' ? true : x.quarter === breachQuarter))
+      .map((x) => x.breach);
+  }, [breachPeriodInfo, activeYear, breachQuarter]);
 
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
@@ -263,10 +292,43 @@ export default function PrudentialEntityProfile() {
                 Lists threshold breaches detected from prudential returns. Each row shows the metric, severity, observed value, configured threshold, and detection date. Use the Create action / Escalate buttons to initiate supervisory follow-up.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Year</Label>
+                  <Select value={activeYear || 'none'} onValueChange={(v) => setBreachYear(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="w-[140px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                    <SelectContent>
+                      {breachPeriodInfo.years.length === 0 && <SelectItem value="none">—</SelectItem>}
+                      {breachPeriodInfo.years.map((y) => (
+                        <SelectItem key={y} value={y}>{y === 'unassigned' ? 'Unassigned' : y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Quarter</Label>
+                  <Select value={breachQuarter} onValueChange={setBreachQuarter}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All quarters</SelectItem>
+                      <SelectItem value="Q1">Q1</SelectItem>
+                      <SelectItem value="Q2">Q2</SelectItem>
+                      <SelectItem value="Q3">Q3</SelectItem>
+                      <SelectItem value="Q4">Q4</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-xs text-muted-foreground ml-auto">
+                  Showing {visibleBreaches.length} of {data.breaches.length} breaches
+                  {activeYear ? ` · ${activeYear === 'unassigned' ? 'Unassigned' : activeYear}` : ''}
+                  {breachQuarter !== 'all' ? ` · ${breachQuarter === 'unassigned' ? 'Unassigned' : breachQuarter}` : ''}
+                </div>
+              </div>
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.breaches.map((b: any) => {
+                {visibleBreaches.map((b: any) => {
                   const sev = b.risk_level || b.severity || b.level;
                   const val = b.value ?? b.observed_value;
                   const metric = b.metric_key || b.ratio_key || '—';
@@ -294,7 +356,7 @@ export default function PrudentialEntityProfile() {
                     </TableRow>
                   );
                 })}
-                {!data.breaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
+                {!visibleBreaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{data.breaches.length ? 'No breaches for the selected period.' : 'No breaches.'}</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>

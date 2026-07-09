@@ -1,27 +1,37 @@
-## Problem
+# Breaches tab — Year / Quarter filtering
 
-On the admin Return Detail view, the "Accounting Totals" summary card (screenshot 2) never renders even though it was wired in. On the licensee "Review & Submit" view the same card shows correctly.
+## Goal
+On the Supervised Entities → Entity Profile → **Breaches** tab, replace the current single flat list with a filtered view driven by **Year** and **Quarter** dropdowns, so admins review breaches one period at a time instead of all at once.
 
-Root cause: `AccountingReconciliationPanel` expects each form as `{ formId, templateName }`, and returns `null` when neither a Balance Sheet nor a P&L form is detected. The licensee page (`FillReturnPage.tsx`) maps its list into that shape, but the admin page (`ReturnDetail.tsx`) passes the raw `orderedForms` objects (`form_id`, `form_templates.name`), so `detectFormRoles` sees empty names, finds no BS/P&L, and the panel bails out.
+## Scope
+- File: `src/pages/prudential/PrudentialEntityProfile.tsx` (Breaches tab only).
+- No backend/data changes. No changes to other tabs, CSV export logic, or breach summary counters at the top of the page.
 
-## Fix (admin-only, presentation change)
+## How period is derived
+Each breach has a `return_id`. The profile already loads `data.returns` with `period_end_date`. Build a `returnId → period_end_date` map, then derive:
+- **Year** = `period_end_date` year.
+- **Quarter** = `Math.floor(month / 3) + 1` from `period_end_date`.
 
-In `src/pages/returns-mgmt/ReturnDetail.tsx`, at the `<AccountingReconciliationPanel ... />` usage (~line 798), map `orderedForms` to the shape the panel expects — same mapping the licensee page already uses:
+Breaches whose return has no `period_end_date` (edge case) go into an "Unassigned" bucket.
 
-```tsx
-<AccountingReconciliationPanel
-  allData={valuesByForm}
-  forms={orderedForms.map((cf: any) => ({
-    formId: cf.form_id,
-    templateName: cf.form_templates?.name,
-  }))}
-  summaryOnly
-/>
-```
+## UI changes (Breaches tab)
+1. Above the table, add two `Select` dropdowns:
+   - **Year** — options built from the distinct years across this entity's breaches, sorted desc. Default = most recent year present.
+   - **Quarter** — `All / Q1 / Q2 / Q3 / Q4`. Default = `All`.
+2. Filter `data.breaches` by the selected Year + Quarter before rendering rows.
+3. Show a small count line: `Showing X of Y breaches for {Year} {Quarter}`.
+4. Empty state text updates to "No breaches for the selected period." when filters yield zero.
 
-No changes to reconciliation logic, licensee flow, validation gating, or any other admin functionality. `summaryOnly` stays on so the admin sidebar shows only the 18-row totals table without the pass/fail badges or check pills.
+CSV export and top-of-page summary stats stay unchanged (still reflect all breaches).
 
-## Verification
+## Technical details
+- Add `useState` for `filterYear` and `filterQuarter` inside the component.
+- Derive `returnPeriodById` with `useMemo` from `data.returns`.
+- Derive `availableYears` with `useMemo` from breaches + map.
+- Derive `visibleBreaches` with `useMemo` applying the filters.
+- Existing `data.breaches.map(...)` becomes `visibleBreaches.map(...)`.
 
-- Open an admin Return Detail for a return that has Balance Sheet and P&L forms filled (e.g., FinCorp Commercial Bank quarterly return). The "Accounting Totals" card should appear in the right sidebar below the ratios panel, listing Total Assets, Total Liabilities, Total Equity, Total Income, Total Expenses, Pre-tax Profits, and the other summary rows.
-- Confirm the licensee "Review & Submit" panel still renders the full reconciliation view (with pass/fail badges) unchanged.
+## Out of scope
+- Filtering the "Worst breach" / top summary cards.
+- Filtering by quarter in the CSV export.
+- Any DB/schema changes.
