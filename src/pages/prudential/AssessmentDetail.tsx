@@ -50,7 +50,23 @@ export default function AssessmentDetail() {
       alert('Override rating requires a justification');
       return;
     }
-    await upsert.mutateAsync({ ...form, id, override_reason: form.override_reason || overrideReason || null, auto_suggested_rating: autoRating });
+    await upsert.mutateAsync({
+      id,
+      entity_id: form.entity_id,
+      return_id: form.return_id || null,
+      period_start: form.period_start || null,
+      period_end: form.period_end || null,
+      overall_rating: form.overall_rating || null,
+      ratings: form.ratings || {},
+      rationale: form.rationale || null,
+      evidence_refs: form.evidence_refs || [],
+      conclusion: form.conclusion || null,
+      recommended_response: form.recommended_response || null,
+      status: form.status,
+      override_reason: form.override_reason || overrideReason || null,
+      auto_suggested_rating: autoRating,
+      signal_snapshot: form.signal_snapshot || null,
+    });
   };
 
   return (
