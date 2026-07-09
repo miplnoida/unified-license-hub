@@ -576,7 +576,7 @@ export default function ReturnDetail() {
                   const formComments = comments.filter((c: any) => c.form_id === cf.form_id);
                   return (
                     <TabsContent key={cf.form_id} value={cf.form_id} className="space-y-4">
-                      <ReadOnlyFormBlock
+                      <ReturnDataTable
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
