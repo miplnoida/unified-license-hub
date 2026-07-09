@@ -48,7 +48,7 @@ function formatCellValue(value: any): React.ReactNode {
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'number') {
-    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
+    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
@@ -68,10 +68,10 @@ function formatCellValue(value: any): React.ReactNode {
     return <code className="text-xs">{JSON.stringify(value)}</code>;
   }
   // Numeric-looking string
-  const s = String(value);
+  const s = String(value).trim();
   if (/^-?\d+(\.\d+)?$/.test(s)) {
     const n = Number(s);
-    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
   }
   return s;
 }
@@ -134,14 +134,14 @@ function ReturnDataTable({
                     <React.Fragment key={`sec-frag-${section.id}`}>
                       {section.title && (
                         <TableRow key={`sec-${section.id}`} className="bg-muted/40">
-                          <TableCell colSpan={3} className="font-semibold text-sm py-2 px-2">
+                          <TableCell colSpan={3} className="font-semibold text-xs py-2 px-2">
                             {section.title}
                           </TableCell>
                         </TableRow>
                       )}
                       {fields.length === 0 ? (
                         <TableRow key={`sec-${section.id}-empty`}>
-                          <TableCell colSpan={3} className="text-xs text-muted-foreground italic py-2 px-2">
+                          <TableCell colSpan={3} className="text-[11px] text-muted-foreground italic py-2 px-2">
                             No data fields in this section.
                           </TableCell>
                         </TableRow>
@@ -150,16 +150,16 @@ function ReturnDataTable({
                           const changed = isChanged(f.fieldName);
                           return (
                             <TableRow key={f.id} className={changed ? 'bg-yellow-50 dark:bg-yellow-950/30' : undefined}>
-                              <TableCell className="font-mono text-xs text-muted-foreground align-top py-1 px-2">
+                              <TableCell className="font-mono text-[11px] text-muted-foreground align-top py-1 px-2">
                                 {f.lineCode || ''}
                               </TableCell>
-                              <TableCell className="text-sm align-top py-1 px-2">
+                              <TableCell className="text-xs align-top py-1 px-2">
                                 {f.label}
                                 {changed && (
                                   <Badge variant="outline" className="ml-2 text-[9px] bg-yellow-100 text-yellow-800 border-yellow-300">edited</Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="text-sm align-top py-1 px-2 text-right">
+                              <TableCell className="text-xs align-top py-1 px-2 text-right">
                                 {formatCellValue(data?.[f.fieldName])}
                                 {changed && baseline && (
                                   <div className="text-[10px] text-muted-foreground mt-0.5 line-through">
