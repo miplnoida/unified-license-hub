@@ -259,7 +259,7 @@ export default function FpaFindingDetail() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-0.5">Confidence Score</p>
                 <p>
                   {finding.confidence_score != null
-                    ? `${Math.round(finding.confidence_score * 100)}%`
+                    ? `${Math.round(finding.confidence_score)}%`
                     : '—'}
                 </p>
               </div>

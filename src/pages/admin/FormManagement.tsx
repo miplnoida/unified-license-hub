@@ -42,6 +42,7 @@ const FORM_TYPES = [
   { value: 'returns', label: 'Returns' },
   { value: 'registration', label: 'Registration' },
   { value: 'internal_license_action', label: 'Internal — License Action' },
+  { value: 'fit_and_proper', label: 'Fit & Proper' },
 ] as const;
 
 export default function FormManagement() {

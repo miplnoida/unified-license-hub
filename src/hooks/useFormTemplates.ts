@@ -440,7 +440,11 @@ export function useFormTemplates(formType?: string, regulatorId?: string | null)
       } else if (formType) {
         query = query.eq('form_type', formType);
       }
-      if (regulatorId) query = query.eq('regulator_id', regulatorId);
+      // A template with no regulator_id is global (applies across every
+      // regulator, e.g. the Fit & Proper declaration form) — it must stay
+      // visible regardless of which regulator is currently active, not just
+      // when no regulator filter is applied at all.
+      if (regulatorId) query = query.or(`regulator_id.eq.${regulatorId},regulator_id.is.null`);
 
       const { data, error } = await query;
       if (error) throw error;

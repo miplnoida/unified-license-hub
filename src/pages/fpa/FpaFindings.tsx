@@ -633,7 +633,7 @@ export default function FpaFindings() {
                                     {/* Confidence */}
                                     <TableCell className="py-3 text-xs tabular-nums text-right">
                                       {finding.confidence_score != null
-                                        ? `${Math.round(finding.confidence_score * 100)}%`
+                                        ? `${Math.round(finding.confidence_score)}%`
                                         : '—'}
                                     </TableCell>
 

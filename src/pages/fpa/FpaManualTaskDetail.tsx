@@ -34,6 +34,7 @@ import {
   ClipboardList,
   ShieldAlert,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 
 // ── Severity helpers ──────────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ export default function FpaManualTaskDetail() {
   // Evidence upload state
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [removingPaths, setRemovingPaths] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Finding query ─────────────────────────────────────────────────────────
@@ -224,6 +226,56 @@ export default function FpaManualTaskDetail() {
     }
 
     setUploadingEvidence(false);
+  };
+
+  const handleEvidenceRemove = async (path: string) => {
+    if (!findingId) return;
+    if (!confirm('Remove this evidence file? This cannot be undone.')) return;
+
+    setRemovingPaths((prev) => new Set(prev).add(path));
+
+    const currentPaths: string[] = Array.isArray(finding?.evidence_urls) ? finding.evidence_urls : [];
+    const updated = currentPaths.filter((p) => p !== path);
+
+    const { error: dbError } = await supabase
+      .from('fp_findings')
+      .update({ evidence_urls: updated } as any)
+      .eq('id', findingId);
+
+    if (dbError) {
+      toast.error(`Failed to remove file: ${dbError.message}`);
+      setRemovingPaths((prev) => {
+        const next = new Set(prev);
+        next.delete(path);
+        return next;
+      });
+      return;
+    }
+
+    // Best-effort — the reference is already gone from the finding either way.
+    const { error: storageError } = await supabase.storage.from('fp-evidence').remove([path]);
+    if (storageError) console.warn('[FpaManualTaskDetail] failed to delete storage object', storageError);
+
+    toast.success('Evidence file removed');
+    qc.invalidateQueries({ queryKey: ['fpa_finding_detail', findingId] });
+    setRemovingPaths((prev) => {
+      const next = new Set(prev);
+      next.delete(path);
+      return next;
+    });
+  };
+
+  const handleLegacyEvidenceRemove = async () => {
+    if (!findingId) return;
+    if (!confirm('Remove this evidence file? This cannot be undone.')) return;
+
+    const { error } = await supabase.from('fp_findings').update({ evidence_url: null } as any).eq('id', findingId);
+    if (error) {
+      toast.error(`Failed to remove file: ${error.message}`);
+      return;
+    }
+    toast.success('Evidence file removed');
+    qc.invalidateQueries({ queryKey: ['fpa_finding_detail', findingId] });
   };
 
   // Evidence paths are opaque storage keys, not public URLs — mint a
@@ -388,7 +440,7 @@ export default function FpaManualTaskDetail() {
 
   const confidencePct =
     finding.confidence_score != null
-      ? `${Math.round(Number(finding.confidence_score) * 100)}%`
+      ? `${Math.round(Number(finding.confidence_score))}%`
       : null;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -514,7 +566,7 @@ export default function FpaManualTaskDetail() {
                     </p>
                     <ul className="space-y-1.5">
                       {evidenceUrls.map((path: string, i: number) => (
-                        <li key={i}>
+                        <li key={i} className="flex items-center justify-between gap-2">
                           <button
                             type="button"
                             onClick={() => openEvidenceFile(path)}
@@ -523,6 +575,20 @@ export default function FpaManualTaskDetail() {
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             {evidenceFileName(path)}
                           </button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                            disabled={removingPaths.has(path)}
+                            onClick={() => handleEvidenceRemove(path)}
+                          >
+                            {removingPaths.has(path) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -609,7 +675,7 @@ export default function FpaManualTaskDetail() {
                     </p>
                     <ul className="space-y-1.5">
                       {evidenceUrls.map((path: string, i: number) => (
-                        <li key={i}>
+                        <li key={i} className="flex items-center justify-between gap-2">
                           <button
                             type="button"
                             onClick={() => openEvidenceFile(path)}
@@ -618,6 +684,20 @@ export default function FpaManualTaskDetail() {
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             {evidenceFileName(path)}
                           </button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                            disabled={removingPaths.has(path)}
+                            onClick={() => handleEvidenceRemove(path)}
+                          >
+                            {removingPaths.has(path) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -630,15 +710,26 @@ export default function FpaManualTaskDetail() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                       Attached Evidence
                     </p>
-                    <a
-                      href={finding.evidence_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                      {finding.evidence_url}
-                    </a>
+                    <div className="flex items-center justify-between gap-2">
+                      <a
+                        href={finding.evidence_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        {finding.evidence_url}
+                      </a>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={handleLegacyEvidenceRemove}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

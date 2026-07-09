@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle2, AlertTriangle, Lock, XCircle } from 'lucide-react';
-import DeclarationQuestionnaire, { type DeclarationFormPayload } from '@/pages/public/declaration/DeclarationQuestionnaire';
+import DeclarationQuestionnaire from '@/pages/public/declaration/DeclarationQuestionnaire';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ export default function DeclarationLanding() {
 
   // ── Submit declaration ───────────────────────────────────────────────────
 
-  async function handleSubmit(payload: DeclarationFormPayload) {
+  async function handleSubmit(payload: Record<string, unknown>) {
     if (!token || !invitationId || !assessmentId) return;
 
     setSubmitting(true);
@@ -287,7 +287,7 @@ export default function DeclarationLanding() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center p-4 py-8">
-      <div className={`w-full space-y-6 ${isDeclarationStep ? 'max-w-3xl' : 'max-w-md'}`}>
+      <div className={`w-full space-y-6 ${isDeclarationStep ? 'max-w-5xl' : 'max-w-md'}`}>
         <div className="text-center">
           <img src="/placeholder.svg" alt="Logo" className="h-10 w-auto mx-auto mb-4" />
           <h1 className="text-xl font-semibold">Personal Questionnaire Declaration</h1>
