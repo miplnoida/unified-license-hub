@@ -75,6 +75,8 @@ export default function PrudentialEntityProfile() {
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [hiddenRatios, setHiddenRatios] = useState<Set<string>>(new Set());
+  const [ratioPoint, setRatioPoint] = useState<{ period: string; ratioKey: string; value: number } | null>(null);
 
   const ratioLabels = useMemo(() => {
     const m: Record<string, { label: string; fmt?: string }> = {};
