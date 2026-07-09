@@ -256,7 +256,14 @@ export default function PrudentialEntityProfile() {
         </TabsContent>
 
         <TabsContent value="breaches">
-          <Card><CardContent className="pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Breaches</CardTitle>
+              <CardDescription>
+                Lists threshold breaches detected from prudential returns. Each row shows the metric, severity, observed value, configured threshold, and detection date. Use the Create action / Escalate buttons to initiate supervisory follow-up.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
                 {data.breaches.map((b: any) => {
