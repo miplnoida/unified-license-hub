@@ -69,6 +69,7 @@ export interface PrudentialAssessment {
   overall_rating: string | null; ratings: Record<string, string>; rationale: string | null; evidence_refs: any[];
   conclusion: string | null; recommended_response: string | null; status: 'draft'|'submitted'|'reviewed'|'approved'|'closed';
   override_reason: string | null; auto_suggested_rating: string | null;
+  review_notes?: string | null; signal_snapshot?: any | null;
   created_by: string | null; reviewed_by: string | null; approved_by: string | null;
   submitted_at: string | null; reviewed_at: string | null; approved_at: string | null; closed_at: string | null;
   created_at: string; updated_at: string;
