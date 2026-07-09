@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
+import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
+import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -93,6 +95,8 @@ export default function ComplaintsList() {
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
+  const [newSeverity, setNewSeverity] = useState('medium');
+  const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
   const [resolution, setResolution] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -176,6 +180,7 @@ export default function ComplaintsList() {
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
+          severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
     const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
@@ -200,9 +205,18 @@ export default function ComplaintsList() {
       }
     }
 
+    if (inserted?.id && newAttachments.length > 0) {
+      const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
+      if (r.failed.length) {
+        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
+      } else if (r.uploaded) {
+        toast.success(`${r.uploaded} attachment(s) uploaded`);
+      }
+    }
+
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
-    setNewSubject(''); setNewDesc(''); setNewTypeId('');
+    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
       setAckDialog({
@@ -361,6 +375,18 @@ export default function ComplaintsList() {
                       )}
                       <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                       <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
+                      <div>
+                        <Label>Severity</Label>
+                        <Select value={newSeverity} onValueChange={setNewSeverity}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {['low','medium','high','critical'].map(s => (
+                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <ComplaintAttachmentsField files={newAttachments} onChange={setNewAttachments} disabled={creating} />
                       <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
                     </div>
                   </DialogContent>

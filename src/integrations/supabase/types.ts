@@ -13816,6 +13816,8 @@ export type Database = {
           regulator_id: string | null
           regulator_name: string | null
           resolution_days: number | null
+          sla_days: number | null
+          sla_due_at: string | null
           status: string | null
           subject: string | null
           updated_at: string | null
