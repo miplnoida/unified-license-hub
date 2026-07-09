@@ -70,10 +70,10 @@ export default function CreateReturnPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('licensees')
-        .select('sector_id, sub_sector_id')
+        .select('sector_id, sub_sector_id, sectors:sector_id(name), sub_sectors:sub_sector_id(name)')
         .eq('id', effectiveLicenseeId!)
         .maybeSingle();
-      return data;
+      return data as any;
     },
   });
 
