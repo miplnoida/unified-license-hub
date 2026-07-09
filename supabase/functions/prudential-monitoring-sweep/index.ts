@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         .from("returns_filed")
         .select("id, workflow_status, status, submit_date, period_end_date")
         .eq("entity_id", l.id)
-        .in("workflow_status", ["VAL", "SUBMITTED", "APPROVED", "REVIEWED"])
+        .in("workflow_status", ["VAL", "SUB", "TBR"])
         .order("submit_date", { ascending: false, nullsFirst: false })
         .order("period_end_date", { ascending: false })
         .limit(1)

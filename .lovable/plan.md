@@ -1,53 +1,39 @@
-## Problem
+# Monitoring sweep — how it works, and why it returns 0
 
-On the admin Return Detail page, the top-right **History** button opens a drawer that:
+## How the "Run monitoring sweep now" button works
 
-1. **Shows nothing** — it queries `audit_logs` with `entity_type = "return_filed"`, but return audit rows are stored under `entity_type = "return"` (and richer data lives in `return_audit_log` + `approval_actions`).
-2. **Renders raw JSON** via `DiffViewer` (before/after JSON blobs), which is unreadable for non-technical reviewers.
+1. **Trigger** — Dashboard button calls edge function `prudential-monitoring-sweep` (also invoked daily by pg_cron).
+2. **Feed log opened** — inserts a `prudential_data_feed_logs` row with `feed_type = 'scheduled_sweep'`, `status = 'started'`, records `triggered_by = auth.uid()` when a UI token is present.
+3. **Entity list** — reads all `licensees` (up to 2000). Optional `entity_id` in the body restricts to a single tenant.
+4. **Per entity → latest return** — for each licensee, picks the newest `returns_filed` row whose `workflow_status` is a "submitted/reviewed" state, ordered by `submit_date` then `period_end_date`.
+5. **Delegate evaluation** — invokes `evaluate-return-prudential` for that return with `context: 'scheduled_sweep'` and `dispatch_notifications: true`. That single-return evaluator is the same one that runs at submission time and handles: server-side validation rules → ratio recompute (`record_return_ratio`) → threshold breach detection (`record_return_breach`) → stress indicator evaluation → notifications → auto-escalation. All writes are idempotent — reruns dedupe on natural keys.
+6. **Risk score recompute** — after all entities are processed, invokes `risk-score-recompute` once per touched entity.
+7. **Feed log closed** — updates the log row to `status = 'success'`, `row_count = returns_evaluated`, and stores `{entities_scanned, returns_evaluated, failed, errors[]}` in `metadata`. Per-entity failures never abort the batch — they're counted; only a top-level crash sets `status = 'failed'`.
 
-The inline "Activity & History" card in the sidebar already renders friendly rows from `return_audit_log`; the drawer should match that experience.
+## Why it currently returns `0 return(s) re-evaluated`
+
+The latest-return query filters `workflow_status IN ('VAL','SUBMITTED','APPROVED','REVIEWED')`, but the `return_workflow_status` enum only has these values: `TEMP, WIP, SUB, VAL, TBR, REJ`. The literals `SUBMITTED`, `APPROVED`, `REVIEWED` don't exist in the enum, so PostgREST fails the `.in()` check for every entity and the client returns empty — silently, so `summary.failed` stays 0 while `returns_evaluated` stays 0. The most recent three feed log rows confirm: `entities_scanned: 16, returns_evaluated: 0, failed: 0, errors: []`.
+
+Meanwhile the database currently holds 19 returns in `VAL`, 3 in `SUB` — plenty to sweep.
 
 ## Fix
 
-### 1. Wire the History drawer to the correct return data source
-Replace the empty `audit_logs` fetch with the same unified source already used by the sidebar:
-- `return_audit_log` (labels, status transitions, comments, event keys)
-- `approval_actions` (workflow decisions, actor, remarks)
-- Merge chronologically, newest first.
+Update the enum list in `supabase/functions/prudential-monitoring-sweep/index.ts` (line 91) to match the real enum:
 
-Sidebar and drawer will show the same events, but the drawer gives a full-height, filterable view.
+```ts
+.in("workflow_status", ["VAL", "SUB", "TBR"])
+```
 
-### 2. Render events as normal data, not JSON
-Each event row will show:
-- **Action label** (e.g. "Return Submitted", "Resubmission Requested", "Approved by Legal Compliance") — resolved via existing `labelForReturnActivity` / `auditLabels`.
-- **Actor** (name + role) instead of a UUID.
-- **When** (localized date/time).
-- **Status change** as `Draft → Submitted` chips, not JSON.
-- **Comments / reason** as plain paragraph text.
-- **Field changes** (when present in `old_value` / `new_value`): rendered as a simple two-column list —
-  `Field name : old value → new value` — with keys title-cased through a small formatter (reusing the pattern in `src/lib/evidenceLabel.ts`), numbers formatted with thousands separators, dates localized, booleans as Yes/No. No `<pre>` / JSON blocks.
-- Deeply nested objects (rare) collapse behind a "Show details" toggle rather than dumping JSON inline.
+Rationale:
+- `VAL` — validated / approved terminal state on the licensee side (already the main "submitted-and-passed" state seeded in the DB).
+- `SUB` — submitted, awaiting review — should also be swept so evaluation happens even before approval.
+- `TBR` — to-be-reviewed / resubmission — same reasoning as SUB.
+- Exclude `TEMP`, `WIP` (drafts) and `REJ` (rejected).
 
-### 3. Scope
-- Changes are limited to the returns module. Other entities keep the current `ChangeHistoryDrawer` untouched.
-- No schema or RLS changes — data already flows through `get_return_revisions` / existing audit tables.
+Then redeploy the function. Click **Run sweep now** again — the feed log should show `entities_scanned: 16, returns_evaluated ≈ 16, failed: 0` (one per entity that has at least one non-draft return), and new ratio / breach / stress-event rows will appear on the FinCorp profile as expected.
 
 ## Files touched
 
-```text
-src/pages/returns-mgmt/ReturnDetail.tsx          swap HistoryButton for a
-                                                  return-specific drawer trigger
-src/components/audit/ReturnHistoryDrawer.tsx     NEW – merges return_audit_log
-                                                  + approval_actions, human-readable
-src/components/audit/FriendlyDiff.tsx            NEW – key/value pretty renderer
-                                                  (title-case keys, formatted values,
-                                                  no JSON)
-src/lib/auditLabels.ts                           add any missing return action labels
-```
+- `supabase/functions/prudential-monitoring-sweep/index.ts` — one-line change to the workflow-status filter.
 
-## Verification
-
-- Open the return currently on screen (`/admin/returns/queue/53f814f3-…`); click **History** — drawer lists submission, resubmission-request, resubmit, workflow approvals, edits.
-- Confirm no `{ }` / JSON blocks appear; field-level edits show as "Total Assets: 4,999.99 → 5,120.00".
-- Sidebar "Activity & History" card continues to work unchanged.
-- Other entity History buttons (application, license, licensee) are unaffected.
+No schema changes, no frontend changes, no migrations.
