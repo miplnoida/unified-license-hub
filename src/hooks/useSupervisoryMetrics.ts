@@ -19,9 +19,12 @@ import {
  * data from being shipped to the client beyond what RLS allows.
  */
 
-const head = async (q: any): Promise<number> => {
+const head = async (q: any, label?: string): Promise<number> => {
   const { count, error } = await q;
-  if (error) return 0;
+  if (error) {
+    if (import.meta.env.DEV) console.warn('[useSupervisoryMetrics] count failed', label, error);
+    return 0;
+  }
   return count ?? 0;
 };
 
