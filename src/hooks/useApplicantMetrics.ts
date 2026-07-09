@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-const head = async (q: any): Promise<number> => {
+const head = async (q: any, label?: string): Promise<number> => {
   const { count, error } = await q;
-  if (error) return 0;
+  if (error) {
+    if (import.meta.env.DEV) console.warn('[useApplicantMetrics] count failed', label, error);
+    return 0;
+  }
   return count ?? 0;
 };
 
