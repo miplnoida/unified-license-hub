@@ -304,18 +304,12 @@ export function useAssessments(filters?: { entity_id?: string; status?: string }
   return useQuery({
     queryKey: ['prudential_assessments', filters ?? {}],
     queryFn: async () => {
-      let q = sb.from('prudential_assessments').select('*, licensee:licensees!prudential_assessments_entity_id_fkey(name)').order('created_at', { ascending: false });
+      let q = sb.from('prudential_assessments').select('*').order('created_at', { ascending: false });
       if (filters?.entity_id) q = q.eq('entity_id', filters.entity_id);
       if (filters?.status) q = q.eq('status', filters.status);
       const { data, error } = await q;
-      if (!error) return attachAssessmentLicensees(data ?? []);
-
-      let fallback = sb.from('prudential_assessments').select('*').order('created_at', { ascending: false });
-      if (filters?.entity_id) fallback = fallback.eq('entity_id', filters.entity_id);
-      if (filters?.status) fallback = fallback.eq('status', filters.status);
-      const { data: fallbackData, error: fallbackError } = await fallback;
-      if (fallbackError) throw fallbackError;
-      return attachAssessmentLicensees(fallbackData ?? []);
+      if (error) throw error;
+      return attachAssessmentLicensees(data ?? []);
     },
   });
 }
@@ -324,13 +318,10 @@ export function useAssessment(id?: string | null) {
     queryKey: ['prudential_assessment', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('prudential_assessments').select('*, licensee:licensees!prudential_assessments_entity_id_fkey(name)').eq('id', id).maybeSingle();
-      if (!error) return data ? normalizeAssessmentLicensee(data) as PrudentialAssessmentWithLicensee : null;
-
-      const { data: fallbackData, error: fallbackError } = await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle();
-      if (fallbackError) throw fallbackError;
-      if (!fallbackData) return null;
-      const [row] = await attachAssessmentLicensees([fallbackData]);
+      const { data, error } = await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const [row] = await attachAssessmentLicensees([data]);
       return row as PrudentialAssessmentWithLicensee;
     },
   });
