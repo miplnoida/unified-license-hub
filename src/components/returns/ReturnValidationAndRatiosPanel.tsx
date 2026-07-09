@@ -43,7 +43,7 @@ export function ReturnValidationAndRatiosPanel({ returnId, returnConfigId, formD
 
   return (
     <div className="space-y-3">
-      <ValidationResultPanel summary={summary} onNavigateField={onNavigateField} />
+      {!hideValidation && <ValidationResultPanel summary={summary} onNavigateField={onNavigateField} />}
       <RatioSummaryCard ratios={ratiosToShow} breaches={breachesToShow} />
     </div>
   );
