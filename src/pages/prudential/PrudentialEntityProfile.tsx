@@ -291,10 +291,43 @@ export default function PrudentialEntityProfile() {
                 Lists threshold breaches detected from prudential returns. Each row shows the metric, severity, observed value, configured threshold, and detection date. Use the Create action / Escalate buttons to initiate supervisory follow-up.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Year</Label>
+                  <Select value={activeYear || 'none'} onValueChange={(v) => setBreachYear(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="w-[140px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                    <SelectContent>
+                      {breachPeriodInfo.years.length === 0 && <SelectItem value="none">—</SelectItem>}
+                      {breachPeriodInfo.years.map((y) => (
+                        <SelectItem key={y} value={y}>{y === 'unassigned' ? 'Unassigned' : y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Quarter</Label>
+                  <Select value={breachQuarter} onValueChange={setBreachQuarter}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All quarters</SelectItem>
+                      <SelectItem value="Q1">Q1</SelectItem>
+                      <SelectItem value="Q2">Q2</SelectItem>
+                      <SelectItem value="Q3">Q3</SelectItem>
+                      <SelectItem value="Q4">Q4</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-xs text-muted-foreground ml-auto">
+                  Showing {visibleBreaches.length} of {data.breaches.length} breaches
+                  {activeYear ? ` · ${activeYear === 'unassigned' ? 'Unassigned' : activeYear}` : ''}
+                  {breachQuarter !== 'all' ? ` · ${breachQuarter === 'unassigned' ? 'Unassigned' : breachQuarter}` : ''}
+                </div>
+              </div>
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.breaches.map((b: any) => {
+                {visibleBreaches.map((b: any) => {
                   const sev = b.risk_level || b.severity || b.level;
                   const val = b.value ?? b.observed_value;
                   const metric = b.metric_key || b.ratio_key || '—';
@@ -322,7 +355,7 @@ export default function PrudentialEntityProfile() {
                     </TableRow>
                   );
                 })}
-                {!data.breaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
+                {!visibleBreaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{data.breaches.length ? 'No breaches for the selected period.' : 'No breaches.'}</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>
