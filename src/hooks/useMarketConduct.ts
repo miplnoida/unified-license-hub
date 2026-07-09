@@ -10,6 +10,10 @@ import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 const sb = supabase as any;
 
+function emptyToNull(value: unknown) {
+  return typeof value === 'string' && value.trim() === '' ? null : value;
+}
+
 async function audit(
   action_type: Parameters<typeof logComplianceAudit>[0]['action_type'],
   object_type: string,
@@ -258,9 +262,9 @@ export function useCreateInternalComplaint() {
         product_id: payload.product_id ?? null,
         channel_id: payload.channel_id ?? null,
         severity: payload.severity ?? 'medium',
-        priority: payload.priority ?? 'normal',
-        email: payload.email ?? null,
-        customer_type: payload.customer_type ?? null,
+        priority: ['p1', 'p2', 'p3', 'p4'].includes(payload.priority) ? payload.priority : 'p3',
+        email: emptyToNull(payload.email),
+        customer_type: emptyToNull(payload.customer_type),
         vulnerability_indicator: !!payload.vulnerability_indicator,
         vulnerability_notes: payload.vulnerability_notes ?? null,
         status: 'open',
