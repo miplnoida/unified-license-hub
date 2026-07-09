@@ -150,12 +150,12 @@ export function SupervisoryDashboard() {
             title="Licences by status"
             loading={isLoading}
             items={[
-              { label: 'Active', value: data?.licenses.active ?? 0, tone: 'success' },
-              { label: 'Expiring ≤30d', value: data?.licenses.expiring_30d ?? 0, tone: 'warning' },
-              { label: 'Expiring ≤90d', value: data?.licenses.expiring_90d ?? 0, tone: 'primary' },
-              { label: 'Expired', value: data?.licenses.expired ?? 0, tone: 'destructive' },
-              { label: 'Suspended', value: data?.licenses.suspended ?? 0, tone: 'warning' },
-              { label: 'Revoked', value: data?.licenses.revoked ?? 0, tone: 'destructive' },
+              { label: 'Active', value: data?.licenses.active ?? 0, tone: 'success', to: '/licenses?status=active' },
+              { label: 'Expiring ≤30d', value: data?.licenses.expiring_30d ?? 0, tone: 'warning', to: '/licenses?filter=expiring' },
+              { label: 'Expiring ≤90d', value: data?.licenses.expiring_90d ?? 0, tone: 'primary', to: '/licenses?filter=expiring' },
+              { label: 'Expired', value: data?.licenses.expired ?? 0, tone: 'destructive', to: '/licenses?status=expired' },
+              { label: 'Suspended', value: data?.licenses.suspended ?? 0, tone: 'warning', to: '/licenses?status=suspended' },
+              { label: 'Revoked', value: data?.licenses.revoked ?? 0, tone: 'destructive', to: '/licenses?status=revoked' },
             ]}
           />
         )}
@@ -164,7 +164,7 @@ export function SupervisoryDashboard() {
             title="Returns"
             loading={isLoading}
             items={[
-              { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning' },
+              { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning', to: '/admin/returns?filter=due_soon' },
               { label: RETURN_DRILLDOWNS.overdue.label, value: data?.returns.overdue ?? 0, tone: 'destructive', to: returnDrilldownTo('overdue') },
               { label: RETURN_DRILLDOWNS.pendingReview.label, value: data?.returns.pending_review ?? 0, tone: 'primary', to: returnDrilldownTo('pendingReview') },
               { label: RETURN_DRILLDOWNS.submitted.label, value: data?.returns.submitted ?? 0, tone: 'success', to: returnDrilldownTo('submitted') },
@@ -176,9 +176,9 @@ export function SupervisoryDashboard() {
             title="Payments"
             loading={isLoading}
             items={[
-              { label: 'Pending', value: data?.payments.pending ?? 0, tone: 'warning' },
-              { label: 'Paid', value: data?.payments.paid ?? 0, tone: 'success' },
-              { label: 'Failed', value: data?.payments.failed ?? 0, tone: 'destructive' },
+              { label: 'Pending', value: data?.payments.pending ?? 0, tone: 'warning', to: '/payments?status=pending' },
+              { label: 'Paid', value: data?.payments.paid ?? 0, tone: 'success', to: '/payments?status=paid' },
+              { label: 'Failed', value: data?.payments.failed ?? 0, tone: 'destructive', to: '/payments?status=failed' },
             ]}
           />
         )}
@@ -187,9 +187,9 @@ export function SupervisoryDashboard() {
             title="Inspections"
             loading={isLoading}
             items={[
-              { label: 'Scheduled', value: data?.inspections.scheduled ?? 0, tone: 'primary' },
-              { label: 'Completed', value: data?.inspections.completed ?? 0, tone: 'success' },
-              { label: 'Overdue', value: data?.inspections.overdue ?? 0, tone: 'destructive' },
+              { label: 'Scheduled', value: data?.inspections.scheduled ?? 0, tone: 'primary', to: '/inspections?status=scheduled' },
+              { label: 'Completed', value: data?.inspections.completed ?? 0, tone: 'success', to: '/inspections?status=completed' },
+              { label: 'Overdue', value: data?.inspections.overdue ?? 0, tone: 'destructive', to: '/inspections?filter=overdue' },
             ]}
           />
         )}
@@ -198,10 +198,10 @@ export function SupervisoryDashboard() {
             title="Enforcement"
             loading={isLoading}
             items={[
-              { label: 'Open', value: data?.enforcement.open ?? 0, tone: 'destructive' },
-              { label: 'New this month', value: data?.enforcement.new_this_month ?? 0, tone: 'warning' },
-              { label: 'Pending action', value: data?.enforcement.pending_action ?? 0, tone: 'warning' },
-              { label: 'Closed', value: data?.enforcement.closed ?? 0, tone: 'success' },
+              { label: 'Open', value: data?.enforcement.open ?? 0, tone: 'destructive', to: '/enforcement/actions?status=open' },
+              { label: 'New this month', value: data?.enforcement.new_this_month ?? 0, tone: 'warning', to: '/enforcement/actions?filter=new_this_month' },
+              { label: 'Pending action', value: data?.enforcement.pending_action ?? 0, tone: 'warning', to: '/enforcement/actions?status=pending' },
+              { label: 'Closed', value: data?.enforcement.closed ?? 0, tone: 'success', to: '/enforcement/actions?status=closed' },
             ]}
           />
         )}
@@ -210,9 +210,9 @@ export function SupervisoryDashboard() {
             title="Complaints"
             loading={isLoading}
             items={[
-              { label: 'Open', value: data?.complaints.open ?? 0, tone: 'destructive' },
-              { label: 'Under investigation', value: data?.complaints.under_investigation ?? 0, tone: 'warning' },
-              { label: 'Closed', value: data?.complaints.closed ?? 0, tone: 'success' },
+              { label: 'Open', value: data?.complaints.open ?? 0, tone: 'destructive', to: '/complaints?status=open' },
+              { label: 'Under investigation', value: data?.complaints.under_investigation ?? 0, tone: 'warning', to: '/complaints?status=under_investigation' },
+              { label: 'Closed', value: data?.complaints.closed ?? 0, tone: 'success', to: '/complaints?status=closed' },
             ]}
           />
         )}
@@ -221,9 +221,9 @@ export function SupervisoryDashboard() {
             title="Risk distribution"
             loading={isLoading}
             items={[
-              { label: 'High', value: data?.risk.high ?? 0, tone: 'destructive' },
-              { label: 'Medium', value: data?.risk.medium ?? 0, tone: 'warning' },
-              { label: 'Low', value: data?.risk.low ?? 0, tone: 'success' },
+              { label: 'High', value: data?.risk.high ?? 0, tone: 'destructive', to: '/admin/entities?risk=high' },
+              { label: 'Medium', value: data?.risk.medium ?? 0, tone: 'warning', to: '/admin/entities?risk=medium' },
+              { label: 'Low', value: data?.risk.low ?? 0, tone: 'success', to: '/admin/entities?risk=low' },
             ]}
           />
         )}
