@@ -106,7 +106,7 @@ function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: stri
                 {sections.map((section: any) => {
                   const fields = (section.fields || []).filter((f: any) => !SKIP[f.type]);
                   return (
-                    <>
+                    <React.Fragment key={`sec-frag-${section.id}`}>
                       {section.title && (
                         <TableRow key={`sec-${section.id}`} className="bg-muted/40">
                           <TableCell colSpan={3} className="font-semibold text-sm">
@@ -133,7 +133,7 @@ function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: stri
                           </TableRow>
                         ))
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </TableBody>
