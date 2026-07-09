@@ -795,6 +795,13 @@ export default function ReturnDetail() {
               hideValidation
             />
 
+            <AccountingReconciliationPanel
+              allData={valuesByForm}
+              forms={orderedForms as any}
+              summaryOnly
+            />
+
+
 
             {/* Edit-request history */}
             {requests.length > 0 && (
