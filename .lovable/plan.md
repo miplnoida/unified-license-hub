@@ -1,31 +1,29 @@
-## Problem
+## Root cause
 
-Internal complaint intake (`useCreateInternalComplaint` → `/complaints/new-internal`) fails RLS with `new row violates row-level security policy for table "complaints"`.
+The earlier policy only permits `super_admin`, `admin`, and `supervisor`. The internal complaint form is also used by other internal roles in this project (`licensing_officer`, `analyst`, `legal_compliance`, `developer`). Those users are still rejected by RLS when `complainant_id` is blank.
 
-**Root cause:** The only PERMISSIVE INSERT policy on `public.complaints` is `"Insert complaints"` with `WITH CHECK (auth.uid() = complainant_id)`. Internal staff record complaints on behalf of others (or anonymously) and never set `complainant_id`, so the check fails. The restrictive external-gate policy already allows internal staff (non-external roles) through — but with no permissive policy passing, the insert is rejected.
+There is a second issue for users who have both internal and external roles: the restrictive external gate treats any external role as external and can still block an internal staff insert.
 
-## Fix
+## Plan
 
-Add a permissive INSERT policy that lets internal roles (`super_admin`, `admin`, `supervisor`) insert complaints regardless of `complainant_id`. Keep the existing self-insert policy for regular authenticated users, and keep the restrictive external-gate policy unchanged.
+1. **Update complaint INSERT policy**
+   - Replace the narrow staff INSERT policy with one that permits all internal roles:
+     - `super_admin`
+     - `admin`
+     - `supervisor`
+     - `licensing_officer`
+     - `analyst`
+     - `legal_compliance`
+     - `developer`
 
-### Migration
+2. **Fix mixed-role users**
+   - Update the restrictive external complaint insert gate so users with any internal role are treated as internal for complaint intake, even if they also have an external role.
+   - Keep external-only users governed by the existing complaint capability checks.
 
-```sql
-CREATE POLICY "Staff can insert internal complaints"
-  ON public.complaints
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    public.has_role(auth.uid(), 'super_admin'::app_role)
-    OR public.has_role(auth.uid(), 'admin'::app_role)
-    OR public.has_role(auth.uid(), 'supervisor'::app_role)
-  );
-```
+3. **Keep existing external behavior**
+   - Do not weaken external complaint permissions.
+   - Existing self-complaint policy remains unchanged for regular authenticated/external users.
 
-No frontend or hook changes required. External-user gating remains enforced by the existing RESTRICTIVE policy.
-
-## Verification
-
-1. Sign in as an admin/supervisor, submit `/complaints/new-internal` — record saves and redirects to the detail page.
-2. Sign in as a regular authenticated user — self-submission via existing flow still works (uses original `"Insert complaints"` policy).
-3. Sign in as an external portal user without `can_submit_complaints` — insert still blocked by the restrictive gate.
+4. **Verify**
+   - Inspect final complaint policies after migration.
+   - Run a read-only DB check confirming internal-role users can satisfy the new policy logic and external-only users remain gated.
