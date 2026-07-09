@@ -10,9 +10,10 @@ import {
 interface Props {
   allData: Record<string, Record<string, any>>;
   forms: ReconciliationForm[];
+  summaryOnly?: boolean;
 }
 
-export function AccountingReconciliationPanel({ allData, forms }: Props) {
+export function AccountingReconciliationPanel({ allData, forms, summaryOnly = false }: Props) {
   const result = evaluateAccountingReconciliation(allData, forms);
 
   if (!result.hasBalanceSheet && !result.hasProfitLoss) return null;
@@ -21,8 +22,8 @@ export function AccountingReconciliationPanel({ allData, forms }: Props) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center justify-between">
-          <span>Accounting Reconciliation</span>
-          {result.passed ? (
+          <span>{summaryOnly ? 'Accounting Totals' : 'Accounting Reconciliation'}</span>
+          {!summaryOnly && (result.passed ? (
             <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-200" variant="outline">
               <CheckCircle2 className="h-3 w-3 mr-1" /> All checks pass
             </Badge>
@@ -30,11 +31,12 @@ export function AccountingReconciliationPanel({ allData, forms }: Props) {
             <Badge className="bg-destructive/10 text-destructive border-destructive/30" variant="outline">
               <XCircle className="h-3 w-3 mr-1" /> Blocks submit
             </Badge>
-          )}
+          ))}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Check pills */}
+        {!summaryOnly && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {result.checks.map((c) => {
             const Icon = c.skipped ? MinusCircle : c.ok ? CheckCircle2 : XCircle;
@@ -62,6 +64,7 @@ export function AccountingReconciliationPanel({ allData, forms }: Props) {
             );
           })}
         </div>
+        )}
 
         {/* Totals summary (screenshot 2) */}
         <div className="border rounded-md overflow-hidden">
@@ -77,7 +80,7 @@ export function AccountingReconciliationPanel({ allData, forms }: Props) {
           </table>
         </div>
 
-        {!result.passed && (
+        {!summaryOnly && !result.passed && (
           <p className="text-xs text-destructive">
             Resolve the failing check(s) above — the return cannot be submitted until Total Assets equal Total Liabilities + Equity, and Total Income − Total Expenses equals Pre-tax Profit.
           </p>
