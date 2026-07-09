@@ -48,7 +48,7 @@ function formatCellValue(value: any): React.ReactNode {
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'number') {
-    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
+    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
@@ -68,10 +68,10 @@ function formatCellValue(value: any): React.ReactNode {
     return <code className="text-xs">{JSON.stringify(value)}</code>;
   }
   // Numeric-looking string
-  const s = String(value);
+  const s = String(value).trim();
   if (/^-?\d+(\.\d+)?$/.test(s)) {
     const n = Number(s);
-    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
   }
   return s;
 }
