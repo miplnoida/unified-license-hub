@@ -31,7 +31,7 @@ export function AccountingReconciliationPanel({ allData, forms, summaryOnly = fa
             <Badge className="bg-destructive/10 text-destructive border-destructive/30" variant="outline">
               <XCircle className="h-3 w-3 mr-1" /> Blocks submit
             </Badge>
-          )}
+          ))}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
