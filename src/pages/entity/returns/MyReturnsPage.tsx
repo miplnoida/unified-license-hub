@@ -86,7 +86,13 @@ export default function MyReturnsPage() {
                             <TableCell><StatusBadge status={r.workflow_status} /></TableCell>
                             <TableCell>{r.due_date || '—'}</TableCell>
                             <TableCell>{r.submit_date ? format(new Date(r.submit_date), 'MMM dd, yyyy') : '—'}</TableCell>
-                            <TableCell>{r.ontime_status ? <StatusBadge status={r.ontime_status === 'ON_TIME' ? 'VAL' : 'TBR'} /> : '—'}</TableCell>
+                            <TableCell>{r.ontime_status ? (
+                              <Badge variant="outline" className={r.ontime_status === 'ON_TIME'
+                                ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                                : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                                {r.ontime_status === 'ON_TIME' ? 'On Time' : 'Late'}
+                              </Badge>
+                            ) : '—'}</TableCell>
                             <TableCell className="text-right space-x-1">
                               <Button variant="ghost" size="icon" onClick={() => navigate(`/entity/returns/${r.id}/view`)}><Eye className="h-4 w-4" /></Button>
                               {['TEMP', 'WIP', 'TBR'].includes(r.workflow_status) && (

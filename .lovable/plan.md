@@ -1,37 +1,19 @@
-# Breaches tab — Year / Quarter filtering
+## Problem
 
-## Goal
-On the Supervised Entities → Entity Profile → **Breaches** tab, replace the current single flat list with a filtered view driven by **Year** and **Quarter** dropdowns, so admins review breaches one period at a time instead of all at once.
+In `src/pages/entity/returns/MyReturnsPage.tsx`, the **On-Time** column renders:
 
-## Scope
-- File: `src/pages/prudential/PrudentialEntityProfile.tsx` (Breaches tab only).
-- No backend/data changes. No changes to other tabs, CSV export logic, or breach summary counters at the top of the page.
+```tsx
+{r.ontime_status ? <StatusBadge status={r.ontime_status === 'ON_TIME' ? 'VAL' : 'TBR'} /> : '—'}
+```
 
-## How period is derived
-Each breach has a `return_id`. The profile already loads `data.returns` with `period_end_date`. Build a `returnId → period_end_date` map, then derive:
-- **Year** = `period_end_date` year.
-- **Quarter** = `Math.floor(month / 3) + 1` from `period_end_date`.
+It reuses the workflow `StatusBadge`, where `TBR` is defined as **"Resubmission Requested"** (destructive) and `VAL` as **"Validated"**. So a late submission (`ontime_status = 'LATE'`) incorrectly displays as "Resubmission Requested" in the On-Time column — a label mismatch, not a data bug.
 
-Breaches whose return has no `period_end_date` (edge case) go into an "Unassigned" bucket.
+## Fix
 
-## UI changes (Breaches tab)
-1. Above the table, add two `Select` dropdowns:
-   - **Year** — options built from the distinct years across this entity's breaches, sorted desc. Default = most recent year present.
-   - **Quarter** — `All / Q1 / Q2 / Q3 / Q4`. Default = `All`.
-2. Filter `data.breaches` by the selected Year + Quarter before rendering rows.
-3. Show a small count line: `Showing X of Y breaches for {Year} {Quarter}`.
-4. Empty state text updates to "No breaches for the selected period." when filters yield zero.
+Replace the misused `StatusBadge` in the On-Time column of `MyReturnsPage.tsx` with a plain semantic `Badge` that shows the actual on-time state:
 
-CSV export and top-of-page summary stats stay unchanged (still reflect all breaches).
+- `ON_TIME` → green "On Time" badge
+- `LATE` → destructive "Late" badge
+- null/undefined → `—`
 
-## Technical details
-- Add `useState` for `filterYear` and `filterQuarter` inside the component.
-- Derive `returnPeriodById` with `useMemo` from `data.returns`.
-- Derive `availableYears` with `useMemo` from breaches + map.
-- Derive `visibleBreaches` with `useMemo` applying the filters.
-- Existing `data.breaches.map(...)` becomes `visibleBreaches.map(...)`.
-
-## Out of scope
-- Filtering the "Worst breach" / top summary cards.
-- Filtering by quarter in the CSV export.
-- Any DB/schema changes.
+Scope: presentation only, one cell in `MyReturnsPage.tsx`. No changes to data model, hooks, or the shared `StatusBadge` (still used correctly for `workflow_status`).
