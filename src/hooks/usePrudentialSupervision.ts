@@ -244,7 +244,7 @@ export function useAssessments(filters?: { entity_id?: string; status?: string }
   return useQuery({
     queryKey: ['prudential_assessments', filters ?? {}],
     queryFn: async () => {
-      let q = sb.from('prudential_assessments').select('*, licensees(name)').order('created_at', { ascending: false });
+      let q = sb.from('prudential_assessments').select('*, licensees:entity_id(name)').order('created_at', { ascending: false });
       if (filters?.entity_id) q = q.eq('entity_id', filters.entity_id);
       if (filters?.status) q = q.eq('status', filters.status);
       const { data, error } = await q;
@@ -258,7 +258,7 @@ export function useAssessment(id?: string | null) {
     queryKey: ['prudential_assessment', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('prudential_assessments').select('*, licensees(name)').eq('id', id).maybeSingle();
+      const { data, error } = await sb.from('prudential_assessments').select('*, licensees:entity_id(name)').eq('id', id).maybeSingle();
       if (error) throw error;
       return data as PrudentialAssessment & { licensees?: { name: string } };
     },
