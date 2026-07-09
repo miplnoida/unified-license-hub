@@ -545,6 +545,94 @@ export default function PrudentialEntityProfile() {
       <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
       <CreatePrudentialEscalationDialog open={!!createEscalation} onOpenChange={(o) => !o && setCreateEscalation(null)} defaults={createEscalation} />
       <PrudentialEntityHistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} entityId={e.id} entityName={e.name} />
+      <Sheet open={!!ratioPoint} onOpenChange={(o) => !o && setRatioPoint(null)}>
+        <SheetContent className="w-[420px] sm:max-w-md overflow-y-auto">
+          {ratioPoint && (() => {
+            const meta = ratioLabels[ratioPoint.ratioKey];
+            const fmt = meta?.fmt;
+            const rf = (data.returns || []).find((r: any) => (r.period_end_date || '') === ratioPoint.period);
+            const relatedBreaches = (data.breaches || []).filter((b: any) => {
+              if ((b.metric_key || b.ratio_key) !== ratioPoint.ratioKey) return false;
+              if (!rf) return false;
+              return b.return_id === rf.id;
+            });
+            const stressEvents = (data.stress_events || []).filter((s: any) => {
+              const mk = s.metric_key || s.prudential_stress_indicators?.metric_key;
+              return mk === ratioPoint.ratioKey && (!rf || s.return_id === rf.id);
+            });
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle>{meta?.label || ratioPoint.ratioKey}</SheetTitle>
+                  <SheetDescription>Ratio detail for {ratioPoint.period}</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-4 text-sm">
+                  <div className="rounded-md border p-3 space-y-1">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Metric key</span><span className="font-mono text-xs">{ratioPoint.ratioKey}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Period</span><span>{ratioPoint.period}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="tabular-nums font-medium">{formatRatio(ratioPoint.value, fmt)}</span></div>
+                    {fmt && <div className="flex justify-between"><span className="text-muted-foreground">Format</span><span>{fmt}</span></div>}
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-1">Thresholds & breach status</div>
+                    {relatedBreaches.length ? (
+                      <div className="space-y-2">
+                        {relatedBreaches.map((b: any) => (
+                          <div key={b.id} className="rounded-md border p-2 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Badge className={RISK_TONE[b.risk_level || b.level] || ''} variant="outline">
+                                {b.risk_level || b.level || 'breach'}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}
+                              </span>
+                            </div>
+                            <div className="text-xs">
+                              Rule: <span className="tabular-nums">{formatRatio(b.value, fmt)}</span> {b.comparator} <span className="tabular-nums">{formatRatio(b.threshold_value, fmt)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">No breaches recorded for this ratio in this period.</div>
+                    )}
+                  </div>
+
+                  {stressEvents.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Stress events</div>
+                      <div className="space-y-1">
+                        {stressEvents.map((s: any) => (
+                          <div key={s.id} className="rounded-md border p-2 text-xs flex items-center justify-between">
+                            <span>{s.prudential_stress_indicators?.label || s.metric_key}</span>
+                            <Badge variant="outline" className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>
+                              {s.prudential_stress_indicators?.severity || 'triggered'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {rf && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Source return</div>
+                      <div className="rounded-md border p-2 text-xs space-y-1">
+                        <div className="flex justify-between"><span>ID</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
+                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{rf.workflow_status}</Badge></div>
+                        <Button asChild size="sm" variant="outline" className="w-full mt-2">
+                          <Link to={`/admin/returns/queue/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
       </div>
     </DashboardLayout>
   );
