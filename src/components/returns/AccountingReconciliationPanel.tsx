@@ -10,9 +10,10 @@ import {
 interface Props {
   allData: Record<string, Record<string, any>>;
   forms: ReconciliationForm[];
+  summaryOnly?: boolean;
 }
 
-export function AccountingReconciliationPanel({ allData, forms }: Props) {
+export function AccountingReconciliationPanel({ allData, forms, summaryOnly = false }: Props) {
   const result = evaluateAccountingReconciliation(allData, forms);
 
   if (!result.hasBalanceSheet && !result.hasProfitLoss) return null;
@@ -21,8 +22,8 @@ export function AccountingReconciliationPanel({ allData, forms }: Props) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center justify-between">
-          <span>Accounting Reconciliation</span>
-          {result.passed ? (
+          <span>{summaryOnly ? 'Accounting Totals' : 'Accounting Reconciliation'}</span>
+          {!summaryOnly && (result.passed ? (
             <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-200" variant="outline">
               <CheckCircle2 className="h-3 w-3 mr-1" /> All checks pass
             </Badge>
