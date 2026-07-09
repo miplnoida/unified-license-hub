@@ -1,35 +1,27 @@
-## Change
-In `src/lib/returnsAccountingReconciliation.ts`, treat a check as passing when LHS, RHS, and Diff are all 0 — even if the underlying required fields are empty.
+## Problem
 
-### Checks A and B
-Change the `ok` condition from:
-```
-ok: !skipped && !missing && diff === 0
-```
-to:
-```
-ok: !skipped && diff === 0 && (!missing || (lhs === 0 && rhs === 0))
-```
-Because missing values are coerced to 0 for LHS/RHS display, when all inputs are blank both sides are 0 and diff is 0 → the check now passes. Any non-zero value on one side (partial fill) still fails as before.
+On the admin Return Detail view, the "Accounting Totals" summary card (screenshot 2) never renders even though it was wired in. On the licensee "Review & Submit" view the same card shows correctly.
 
-### Check C (BS ↔ P&L link)
-`lhs`, `rhs`, `diff` are already all 0 whenever it isn't skipped. Change:
-```
-ok: !skipped && !missing
-```
-to:
-```
-ok: !skipped
-```
-so an all-empty state (both forms present, no values) passes.
+Root cause: `AccountingReconciliationPanel` expects each form as `{ formId, templateName }`, and returns `null` when neither a Balance Sheet nor a P&L form is detected. The licensee page (`FillReturnPage.tsx`) maps its list into that shape, but the admin page (`ReturnDetail.tsx`) passes the raw `orderedForms` objects (`form_id`, `form_templates.name`), so `detectFormRoles` sees empty names, finds no BS/P&L, and the panel bails out.
 
-### Reason text
-When the check is `ok` via the all-zero path, clear `reason` so no "Empty required value(s)" message is shown.
+## Fix (admin-only, presentation change)
 
-## Not changed
-- `passed = checks.every(c => c.skipped || c.ok)` line stays.
-- No UI, no test, no other files.
-- Partial fills (e.g. Total Assets = 4,999.99 while Liab/Equity empty → RHS 0) still fail.
+In `src/pages/returns-mgmt/ReturnDetail.tsx`, at the `<AccountingReconciliationPanel ... />` usage (~line 798), map `orderedForms` to the shape the panel expects — same mapping the licensee page already uses:
 
-## Test update
-Update the "form present but total fields empty" case in `src/test/returnsAccountingReconciliation.test.ts` to assert `passed: true` / `ok: true` for the all-empty scenario, matching the new rule. Keep the partial-fill failure case.
+```tsx
+<AccountingReconciliationPanel
+  allData={valuesByForm}
+  forms={orderedForms.map((cf: any) => ({
+    formId: cf.form_id,
+    templateName: cf.form_templates?.name,
+  }))}
+  summaryOnly
+/>
+```
+
+No changes to reconciliation logic, licensee flow, validation gating, or any other admin functionality. `summaryOnly` stays on so the admin sidebar shows only the 18-row totals table without the pass/fail badges or check pills.
+
+## Verification
+
+- Open an admin Return Detail for a return that has Balance Sheet and P&L forms filled (e.g., FinCorp Commercial Bank quarterly return). The "Accounting Totals" card should appear in the right sidebar below the ratios panel, listing Total Assets, Total Liabilities, Total Equity, Total Income, Total Expenses, Pre-tax Profits, and the other summary rows.
+- Confirm the licensee "Review & Submit" panel still renders the full reconciliation view (with pass/fail badges) unchanged.
