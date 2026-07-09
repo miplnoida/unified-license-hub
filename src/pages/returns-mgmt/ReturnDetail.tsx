@@ -44,7 +44,9 @@ function formatCellValue(value: any): React.ReactNode {
     return <span className="text-muted-foreground/60">—</span>;
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'number') return <span className="tabular-nums">{value.toLocaleString()}</span>;
+  if (typeof value === 'number') {
+    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
+  }
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
     return value
@@ -66,7 +68,7 @@ function formatCellValue(value: any): React.ReactNode {
   const s = String(value);
   if (/^-?\d+(\.\d+)?$/.test(s)) {
     const n = Number(s);
-    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString()}</span>;
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>;
   }
   return s;
 }
@@ -97,9 +99,9 @@ function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: stri
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">#</TableHead>
-                  <TableHead>Label</TableHead>
-                  <TableHead className="w-[35%]">Value</TableHead>
+                  <TableHead className="w-[100px] py-2 px-2">#</TableHead>
+                  <TableHead className="py-2 px-2">Label</TableHead>
+                  <TableHead className="w-[35%] py-2 px-2 text-right">Value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -109,25 +111,25 @@ function ReturnDataTable({ formId, name, data, pinnedVersionId }: { formId: stri
                     <React.Fragment key={`sec-frag-${section.id}`}>
                       {section.title && (
                         <TableRow key={`sec-${section.id}`} className="bg-muted/40">
-                          <TableCell colSpan={3} className="font-semibold text-sm">
+                          <TableCell colSpan={3} className="font-semibold text-sm py-2 px-2">
                             {section.title}
                           </TableCell>
                         </TableRow>
                       )}
                       {fields.length === 0 ? (
                         <TableRow key={`sec-${section.id}-empty`}>
-                          <TableCell colSpan={3} className="text-xs text-muted-foreground italic">
+                          <TableCell colSpan={3} className="text-xs text-muted-foreground italic py-2 px-2">
                             No data fields in this section.
                           </TableCell>
                         </TableRow>
                       ) : (
                         fields.map((f: any) => (
                           <TableRow key={f.id}>
-                            <TableCell className="font-mono text-xs text-muted-foreground align-top">
+                            <TableCell className="font-mono text-xs text-muted-foreground align-top py-1 px-2">
                               {f.lineCode || ''}
                             </TableCell>
-                            <TableCell className="text-sm align-top">{f.label}</TableCell>
-                            <TableCell className="text-sm align-top">
+                            <TableCell className="text-sm align-top py-1 px-2">{f.label}</TableCell>
+                            <TableCell className="text-sm align-top py-1 px-2 text-right">
                               {formatCellValue(data?.[f.fieldName])}
                             </TableCell>
                           </TableRow>
