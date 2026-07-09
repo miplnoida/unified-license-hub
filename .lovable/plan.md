@@ -1,92 +1,30 @@
-# Admin Complaints List — SCRIPT 4 TAB B Enhancement Plan
+## Fixes to complaint intake forms
 
-## Scope
-Enhance only `src/pages/complaints/ComplaintsList.tsx` (plus small, isolated helpers) to make the admin view demo-ready for Complaint Intake, Classification, Triage, Routing, and SLA. External complainant view stays minimal and personal-scope only.
+### 1. Complaint type dropdown blank (Internal complaint form)
+Root cause: `NewInternalComplaint.tsx` filters `complaint_types` by column `active`, but the actual column is `is_active`. `ComplaintsList.tsx` correctly uses `is_active` — that's why applicant view works and internal view doesn't.
 
-## Data loading changes (internal users only)
+Fix: change the query in `src/pages/complaints/NewInternalComplaint.tsx` to `.eq('is_active', true)` so it matches the applicant form's data source.
 
-Update the load function in `ComplaintsList.tsx` to fetch, in parallel:
+### 2. Allow attachments on both complaint forms
+Reuse the existing secure upload stack (`file_uploads` table + `secure-documents` bucket) and link uploads to the complaint via the existing `complaint_evidence` table (columns: `complaint_id`, `file_upload_id`, `label`, `uploaded_by`).
 
-1. `complaints` — all existing fields plus: `intake_source, channel_id, customer_type, vulnerability_indicator, licensee_id, conduct_risk_category_id, product_id, severity, priority, assigned_team, investigator_id, sla_due_at, sla_days, resolved_at, triage_source, triage_evaluated_at, triage_rule_id, triage_override_reason, email, complainant_id`.
-2. Reference lookups (one call each, cached in state maps):
-   - `complaint_types` (already loaded)
-   - `conduct_risk_categories`
-   - `conduct_products`
-   - `conduct_channels`
-   - `licensees` (id, name) — only for ids referenced
-   - `profiles` — batch by unique `investigator_id` + `complainant_id`
-3. External users: unchanged personal-scoped query, no reference joins beyond `complaint_types`.
+Approach:
+- Stage files in-memory in the form (same pattern as `DocumentUpload.tsx`) — no upload until the complaint is submitted (we need the `complaint_id` first).
+- After the complaint row is inserted, upload each staged file via `uploadFormFile()` from `src/lib/formFileUpload.ts` (uses `secure-documents` + `file_uploads`), then insert a `complaint_evidence` row per file.
+- Apply to both:
+  - `src/pages/complaints/NewInternalComplaint.tsx` — add an "Attachments" section above the submit button.
+  - `src/pages/complaints/ComplaintsList.tsx` — add attachments field inside the applicant "File Complaint" dialog and wire it into `handleCreate`.
+- Validation: reuse `validateFile` / size + type rules already defined in `secureFileUpload.ts`. Max 20MB per file, cap at say 5 files per submission.
+- On upload failure after complaint insert: keep the complaint, toast which attachments failed (non-blocking) — same tolerance pattern used by auto-triage today.
 
-Batch lookups use `.in('id', [...uniqueIds])` to avoid N+1.
+### 3. Severity field on applicant complaint form
+`complaints.severity` already exists and is used by the internal form. Add a Severity `Select` (low / medium / high / critical, default `medium`) to the applicant "File Complaint" dialog in `ComplaintsList.tsx` and include it in the `insertData` for the non-internal branch of `handleCreate`.
 
-## UI changes
+### Scope guardrails
+- No changes to RLS, edge functions, ComplaintDetail, ConductClassificationCard, triage, workflow, prudential, or unrelated modules.
+- No schema migrations — `complaint_evidence` and `file_uploads` already exist and are wired for secure storage.
 
-### Filter bar (internal only)
-Extend existing filter row with additional selects (collapsed into a "More filters" popover to avoid clutter):
-- Status (existing)
-- Severity, Priority
-- Product, Channel, Conduct risk category
-- Intake source (portal / internal / staff_intake / referral)
-- SLA status (on_track / at_risk / breached) — computed client-side from `sla_due_at`
-- Assigned team, Triage source, Vulnerable customer (yes/no)
-
-Search input extended to also match: entity/licensee name, complainant email, assigned team, complaint type name.
-
-### Table columns (internal)
-Replace current 6-column table with a denser layout:
-1. Complaint # + intake source badge (portal/internal/staff)
-2. Entity / Complainant (licensee name if linked, else email; vulnerable flag icon)
-3. Classification (type · category · product · channel — compact)
-4. Severity / Priority badges
-5. Assigned (team · investigator name)
-6. SLA (due date + on_track/at_risk/breached pill)
-7. Status
-8. Actions (menu)
-
-External user table keeps existing simple columns.
-
-### Expandable "Demo evidence" row (internal)
-Add a chevron per row that expands an inline panel showing evidence checklist:
-- Complaint record ✓ (always)
-- Acknowledgement available ✓ (link → open `ComplaintAcknowledgement` reprint)
-- Classification complete/incomplete (checks category/product/channel/severity/priority all set)
-- Priority assigned ✓/✗
-- Routing assigned ✓/✗ (team or investigator)
-- SLA status
-- Triage timestamp + source + matched rule (if any) + override indicator
-- Link "Open full detail & history" → `/complaints/:id`
-
-A header toggle "Demo evidence view" auto-expands all rows.
-
-### Row actions menu (internal only)
-Dropdown per row:
-- Open detail (navigate to `/complaints/:id`)
-- Reprint acknowledgement (open existing `ComplaintAcknowledgement` dialog with reconstructed input)
-- Run/retry auto-triage (invoke existing `evaluate-complaint-triage` edge fn, toast result, refresh)
-- Take investigation / Assign to me (only when `status='submitted'`; existing `handleUpdateStatus`)
-- Quick view classification (small popover using reference maps — no new fetches)
-
-All actions use existing `logAudit` helper. External users: no action menu (only View, as today).
-
-## Small helpers (new, minimal)
-- `src/lib/complaintsSla.ts` — `computeSlaStatus(created_at, sla_due_at, sla_days, resolved_at) → 'on_track' | 'at_risk' | 'breached' | 'resolved'`. Pure function, unit-testable.
-- `src/components/complaints/ComplaintEvidenceRow.tsx` — presentational expandable row content (keeps `ComplaintsList.tsx` readable).
-
-No changes to: `ComplaintDetail.tsx`, `ConductClassificationCard`, `TriageHistoryCard`, `ComplaintAcknowledgement`, `ComplaintInvestigationTab`, complaint creation flows, edge functions, DB schema, RLS, notifications.
-
-## Guards
-- All internal-only UI gated by existing `isInternal` check.
-- Reference lookups skipped for external users.
-- Missing/nullable fields render as `—`.
-- No schema migrations. If a referenced column isn't in generated types, cast row-level via `as any` at the query boundary only.
-
-## Verification
-- `tsgo` typecheck
-- Manual: external user sees unchanged list; internal user sees new columns, filters, actions
-- Existing complaint creation (both dialog + `/complaints/new`) unchanged
-- Detail page navigation still works
-- Retry triage action calls `evaluate-complaint-triage` and refreshes list
-- Acknowledgement reprint opens existing dialog
-
-## Out of scope
-DB schema changes, new edge functions, changes to detail page, notification/audit infra changes, conduct/prudential/returns modules.
+### Files touched
+- `src/pages/complaints/NewInternalComplaint.tsx` — fix `is_active` filter; add attachments section; upload + link evidence after insert.
+- `src/pages/complaints/ComplaintsList.tsx` — add Severity select and attachments to applicant dialog; upload + link evidence after insert in `handleCreate`.
+- (Optional) small shared helper `src/lib/complaintAttachments.ts` if both screens end up with the same upload-and-link loop, to keep the two call sites tidy.
