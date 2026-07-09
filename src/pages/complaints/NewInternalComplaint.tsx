@@ -42,7 +42,7 @@ export default function NewInternalComplaint() {
     queryFn: async () => {
       const [{ data: l }, { data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
         sb.from('licensees').select('id, name').order('name').limit(500),
-        sb.from('complaint_types').select('id, name').eq('active', true).order('name'),
+        sb.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
         sb.from('conduct_risk_categories').select('id, name').eq('active', true).order('sort_order,name'),
         sb.from('conduct_products').select('id, name').eq('active', true).order('name'),
         sb.from('conduct_channels').select('id, name').eq('active', true).order('name'),
