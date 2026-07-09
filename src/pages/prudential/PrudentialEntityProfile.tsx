@@ -143,6 +143,11 @@ export default function PrudentialEntityProfile() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+      <div>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/prudential/entities"><ChevronLeft className="h-4 w-4 mr-1" />Back to Entities</Link>
+        </Button>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
