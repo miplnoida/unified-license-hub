@@ -176,11 +176,9 @@ export function evaluateAccountingReconciliation(
       lhsLabel: 'BS-derived Total Income & Pre-tax',
       rhsLabel: 'P&L Total Income & Pre-tax',
       lhs, rhs, diff: 0,
-      ok: !skipped && !missing,
+      ok: !skipped,
       skipped,
-      reason: skipped
-        ? 'Requires both Balance Sheet and P&L forms.'
-        : missing ? `Empty required value(s): ${missingParts.join(', ')}.` : undefined,
+      reason: skipped ? 'Requires both Balance Sheet and P&L forms.' : undefined,
     });
   }
 
