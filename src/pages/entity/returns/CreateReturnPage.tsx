@@ -70,10 +70,10 @@ export default function CreateReturnPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('licensees')
-        .select('sector_id, sub_sector_id')
+        .select('sector_id, sub_sector_id, sectors:sector_id(name), sub_sectors:sub_sector_id(name)')
         .eq('id', effectiveLicenseeId!)
         .maybeSingle();
-      return data;
+      return data as any;
     },
   });
 
@@ -294,8 +294,8 @@ export default function CreateReturnPage() {
                     {selectedConfig && (
                       <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1">
                         <p><strong>Return Type:</strong> {selectedConfig.return_types?.name || '—'}</p>
-                        <p><strong>Sector:</strong> {selectedConfig.sectors?.name || 'All'}</p>
-                        <p><strong>Sub-Sector:</strong> {(selectedConfig as any).sub_sectors?.name || 'All'}</p>
+                        <p><strong>Sector:</strong> {(licenseeScope as any)?.sectors?.name || selectedConfig.sectors?.name || '—'}</p>
+                        <p><strong>Sub-Sector:</strong> {(licenseeScope as any)?.sub_sectors?.name || (selectedConfig as any).sub_sectors?.name || '—'}</p>
                       </div>
                     )}
                   </>

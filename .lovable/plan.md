@@ -1,21 +1,27 @@
-## Fix pre/post application review UI — balance label/value columns
+## Problem
 
-**File:** `src/components/applications/ReviewAcknowledgement.tsx` (field-row layout inside the Accordion, ~lines 207–257)
+On the admin Return Detail view, the "Accounting Totals" summary card (screenshot 2) never renders even though it was wired in. On the licensee "Review & Submit" view the same card shows correctly.
 
-### Problem
-Each review row uses `flex justify-between` with a narrow `min-w-[140px]` label and a value column capped at `max-w-[300px]`, right-aligned. On wide screens the label area stays visually empty while long answers (like Corporate Structure Details) get squeezed into a thin right-hand column that scrolls forever.
+Root cause: `AccountingReconciliationPanel` expects each form as `{ formId, templateName }`, and returns `null` when neither a Balance Sheet nor a P&L form is detected. The licensee page (`FillReturnPage.tsx`) maps its list into that shape, but the admin page (`ReturnDetail.tsx`) passes the raw `orderedForms` objects (`form_id`, `form_templates.name`), so `detectFormRoles` sees empty names, finds no BS/P&L, and the panel bails out.
 
-### Change
-Convert the row to a responsive 1/3 label + 2/3 value grid, left-aligned:
+## Fix (admin-only, presentation change)
 
-- Replace the `flex items-start justify-between gap-4` row wrapper with `grid grid-cols-1 md:grid-cols-3 gap-4`.
-- Label span: keep muted style, drop `min-w-[140px] shrink-0`; occupy `md:col-span-1`. Keep the "Changed" badge behavior.
-- Value container: `md:col-span-2`, switch `items-end` → `items-start`, remove `text-right` and `max-w-[300px]` caps on the text spans so long answers wrap across the full 2/3 column.
-- Attachment blocks: keep existing `AttachmentDisplay` but drop the `max-w-[360px]` cap and right-alignment so they align with the value column edge.
-- "Was: …" original-value hint stays under the value, left-aligned.
-- Preserve the yellow "changed" highlight, hover state, and all existing conditional branches (attachment / boolean / null / string).
+In `src/pages/returns-mgmt/ReturnDetail.tsx`, at the `<AccountingReconciliationPanel ... />` usage (~line 798), map `orderedForms` to the shape the panel expects — same mapping the licensee page already uses:
 
-No changes to logic, data flow, section headers, table-diff renderer, or display-only field renderer. No other files touched.
+```tsx
+<AccountingReconciliationPanel
+  allData={valuesByForm}
+  forms={orderedForms.map((cf: any) => ({
+    formId: cf.form_id,
+    templateName: cf.form_templates?.name,
+  }))}
+  summaryOnly
+/>
+```
 
-### Result
-Long text answers fill the available width and read top-to-bottom instead of squeezing into a narrow right column, while short answers still sit cleanly next to their label.
+No changes to reconciliation logic, licensee flow, validation gating, or any other admin functionality. `summaryOnly` stays on so the admin sidebar shows only the 18-row totals table without the pass/fail badges or check pills.
+
+## Verification
+
+- Open an admin Return Detail for a return that has Balance Sheet and P&L forms filled (e.g., FinCorp Commercial Bank quarterly return). The "Accounting Totals" card should appear in the right sidebar below the ratios panel, listing Total Assets, Total Liabilities, Total Equity, Total Income, Total Expenses, Pre-tax Profits, and the other summary rows.
+- Confirm the licensee "Review & Submit" panel still renders the full reconciliation view (with pass/fail badges) unchanged.

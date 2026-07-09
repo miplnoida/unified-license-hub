@@ -5625,6 +5625,7 @@ export type Database = {
       fp_findings: {
         Row: {
           assessment_id: string
+          assigned_to: string | null
           check_type: string
           citations: Json
           confidence_score: number | null
@@ -5652,6 +5653,7 @@ export type Database = {
         }
         Insert: {
           assessment_id: string
+          assigned_to?: string | null
           check_type: string
           citations?: Json
           confidence_score?: number | null
@@ -5679,6 +5681,7 @@ export type Database = {
         }
         Update: {
           assessment_id?: string
+          assigned_to?: string | null
           check_type?: string
           citations?: Json
           confidence_score?: number | null
@@ -8428,6 +8431,7 @@ export type Database = {
           id: string
           licensee_id: string | null
           phone: string | null
+          regulator_id: string | null
           role: string
           role_id: string | null
           search_vector: unknown
@@ -8449,6 +8453,7 @@ export type Database = {
           id: string
           licensee_id?: string | null
           phone?: string | null
+          regulator_id?: string | null
           role?: string
           role_id?: string | null
           search_vector?: unknown
@@ -8470,6 +8475,7 @@ export type Database = {
           id?: string
           licensee_id?: string | null
           phone?: string | null
+          regulator_id?: string | null
           role?: string
           role_id?: string | null
           search_vector?: unknown
@@ -8492,6 +8498,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "profiles_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "profiles_role_id_fkey"
@@ -10997,6 +11010,53 @@ export type Database = {
             columns: ["sector_id"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_data_revisions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          form_version_ids: Json
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          return_id: string
+          revision_number: number
+          snapshot: Json
+          snapshot_reason: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          form_version_ids?: Json
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          return_id: string
+          revision_number: number
+          snapshot?: Json
+          snapshot_reason: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          form_version_ids?: Json
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          return_id?: string
+          revision_number?: number
+          snapshot?: Json
+          snapshot_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_data_revisions_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
             referencedColumns: ["id"]
           },
         ]
@@ -14345,6 +14405,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
@@ -14477,6 +14538,25 @@ export type Database = {
           in_progress_count: number
           submitted_response_count: number
           version_id: string
+        }[]
+      }
+      get_fp_declaration_form_public: {
+        Args: never
+        Returns: {
+          schema_snapshot: Json
+          template_id: string
+          version_id: string
+        }[]
+      }
+      get_fp_determination_audit_log: {
+        Args: { _determination_id: string }
+        Returns: {
+          action: string
+          actor_name: string
+          created_at: string
+          id: string
+          metadata: Json
+          user_id: string
         }[]
       }
       get_in_flight_renewals: {
@@ -14860,6 +14940,7 @@ export type Database = {
           _level: string
           _metric_key: string
           _return_id: string
+          _risk_level?: string
           _threshold_value: number
           _value: number
         }
@@ -15010,6 +15091,16 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      snapshot_return_revision: {
+        Args: {
+          _actor_id?: string
+          _new_status?: string
+          _previous_status?: string
+          _reason: string
+          _return_id: string
+        }
+        Returns: string
       }
       start_registration_workflow: {
         Args: { _registration_id: string }

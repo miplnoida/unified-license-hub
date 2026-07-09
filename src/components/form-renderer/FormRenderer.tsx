@@ -406,9 +406,37 @@ export function FormRenderer({
     setErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
   }, []);
 
+  const withCalculatedValues = useCallback((baseData: Record<string, any>): Record<string, any> => {
+    const calculatedFields = allFields.filter(
+      field => field.type === 'calculated' && field.calculatedExpression && isFieldVisible(field, baseData, allFields)
+    );
+
+    if (calculatedFields.length === 0) return baseData;
+
+    const next = { ...baseData };
+
+    // Run multiple passes so calculated fields can safely depend on other
+    // calculated fields without requiring a specific field order in the schema.
+    for (let pass = 0; pass < Math.max(1, calculatedFields.length); pass += 1) {
+      let changed = false;
+
+      for (const field of calculatedFields) {
+        const result = evaluateFormula(field.calculatedExpression || '', next);
+        if (next[field.fieldName] !== result) {
+          next[field.fieldName] = result;
+          changed = true;
+        }
+      }
+
+      if (!changed) break;
+    }
+
+    return next;
+  }, [allFields]);
+
   // Merge repeatable data into the main payload for save/submit
   const getMergedData = useCallback((): Record<string, any> => {
-    const merged = { ...formData };
+    const merged = withCalculatedValues(formData);
     // Store repeatable data under a special key
     if (Object.keys(repeatableData).length > 0) {
       merged.__repeatable = repeatableData;
@@ -420,7 +448,7 @@ export function FormRenderer({
       }
     }
     return merged;
-  }, [formData, repeatableData]);
+  }, [formData, repeatableData, withCalculatedValues]);
 
   // Bubble live changes up to parent (used by Returns to keep allData in sync for Save/Next)
   const onChangeRef = useRef(onChange);

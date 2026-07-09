@@ -29,6 +29,8 @@ import { format, differenceInDays } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
+import { evaluateAccountingReconciliation, formatReconciliationValue } from '@/lib/returnsAccountingReconciliation';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
@@ -383,6 +385,44 @@ export default function FillReturnPage() {
       const saved = await handleSave(true);
       if (!saved) {
         toast.error('Submission stopped because the latest draft could not be saved.');
+        return;
+      }
+
+      // ------------------------------------------------------------------
+      // BLOCKING accounting reconciliation.
+      // Total Assets must equal Total Liabilities + Total Equity, and
+      // P&L Total Income − Total Expenses must equal Pre-tax Profit.
+      // ------------------------------------------------------------------
+      const reconciliation = evaluateAccountingReconciliation(
+        allData,
+        orderedForms.map((f: any) => ({ formId: f.form_id, templateName: f.form_templates?.name })),
+      );
+      if (!reconciliation.passed) {
+        const failed = reconciliation.checks.filter((c) => !c.skipped && !c.ok);
+        const rows = failed.map((c) => `
+          <tr>
+            <td style="padding:4px 8px; text-align:left;">${c.label}</td>
+            <td style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">${formatReconciliationValue(c.lhs)}</td>
+            <td style="padding:4px 8px; text-align:right; font-variant-numeric:tabular-nums;">${formatReconciliationValue(c.rhs)}</td>
+            <td style="padding:4px 8px; text-align:right; color:#dc2626; font-variant-numeric:tabular-nums;">${formatReconciliationValue(c.diff)}</td>
+          </tr>`).join('');
+        await Swal.fire({
+          title: 'Submission Blocked — Accounting Mismatch',
+          html: `
+            <p style="text-align:left; font-size:13px;">The Balance Sheet and P&amp;L totals do not reconcile. Please correct the following before submitting:</p>
+            <table style="width:100%; font-size:12px; border-collapse:collapse; margin-top:8px;">
+              <thead><tr style="background:#f3f4f6;">
+                <th style="padding:4px 8px; text-align:left;">Check</th>
+                <th style="padding:4px 8px; text-align:right;">LHS</th>
+                <th style="padding:4px 8px; text-align:right;">RHS</th>
+                <th style="padding:4px 8px; text-align:right;">Diff</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p style="text-align:left; font-size:11px; margin-top:8px; color:#6b7280;">Open the Review tab to see the full totals breakdown.</p>`,
+          icon: 'error',
+          confirmButtonText: 'Fix and Resubmit',
+        });
         return;
       }
 
@@ -783,6 +823,13 @@ export default function FillReturnPage() {
                     </AlertDescription>
                   </Alert>
                 )}
+                <AccountingReconciliationPanel
+                  allData={allData}
+                  forms={orderedForms.map((cf: any) => ({
+                    formId: cf.form_id,
+                    templateName: cf.form_templates?.name,
+                  }))}
+                />
                 <ReturnReviewPanel
                   loading={submitting}
                   disabled={!allComplete}

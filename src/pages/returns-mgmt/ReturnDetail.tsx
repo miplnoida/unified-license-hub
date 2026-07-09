@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useReturnById,
@@ -20,7 +21,7 @@ import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTe
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from '@/pages/entity/returns/EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, FileText, Shield, ArrowLeft, MessageSquare, History } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
+import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import {
   logReturnActivity,
@@ -37,12 +39,71 @@ import {
   logEditRequestedLegacy,
   labelForReturnActivity,
 } from '@/lib/returnActivityLogger';
+import { useReturnRevisions, snapshotReturnRevision, pickEditBaseline } from '@/hooks/useReturnRevisions';
+import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevisionCompareDialog';
+import { GitCompareArrows } from 'lucide-react';
 
-function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+function formatCellValue(value: any): React.ReactNode {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-muted-foreground/60">—</span>;
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') {
+    return <span className="tabular-nums">{value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
+    return value
+      .map((v) => (typeof v === 'object' && v !== null ? (v.name || v.label || v.fileName || JSON.stringify(v)) : String(v)))
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    // File-ish object
+    const anyV = value as any;
+    if (anyV.url || anyV.publicUrl || anyV.file_url) {
+      const href = anyV.url || anyV.publicUrl || anyV.file_url;
+      const name = anyV.name || anyV.fileName || anyV.file_name || 'View file';
+      return <a href={href} target="_blank" rel="noreferrer" className="text-primary underline">{name}</a>;
+    }
+    if (anyV.name || anyV.fileName) return String(anyV.name || anyV.fileName);
+    return <code className="text-xs">{JSON.stringify(value)}</code>;
+  }
+  // Numeric-looking string
+  const s = String(value).trim();
+  if (/^-?\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (Number.isFinite(n)) return <span className="tabular-nums">{n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+  }
+  return s;
+}
+
+function ReturnDataTable({
+  formId,
+  name,
+  data,
+  baseline,
+  pinnedVersionId,
+}: {
+  formId: string;
+  name: string;
+  data: Record<string, any>;
+  baseline?: Record<string, any> | null;
+  pinnedVersionId?: string | null;
+}) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
+
+  const SKIP: Record<string, true> = { heading: true, paragraph: true };
+
+  const isChanged = (fieldName: string): boolean => {
+    if (!baseline) return false;
+    const a = data?.[fieldName];
+    const b = baseline?.[fieldName];
+    const norm = (v: any) => (v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+    return norm(a) !== norm(b);
+  };
 
   return (
     <Card>
@@ -58,20 +119,72 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
         ) : sections.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-2">No fields defined for this form.</p>
         ) : (
-          <FormRenderer
-            formName=""
-            sections={sections}
-            initialData={data}
-            onSaveDraft={() => {}}
-            onSubmit={() => {}}
-            readOnly
-            showFullTabTitles
-          />
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px] py-2 px-2">#</TableHead>
+                  <TableHead className="py-2 px-2">Label</TableHead>
+                  <TableHead className="w-[35%] py-2 px-2 text-right">Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sections.map((section: any) => {
+                  const fields = (section.fields || []).filter((f: any) => !SKIP[f.type]);
+                  return (
+                    <React.Fragment key={`sec-frag-${section.id}`}>
+                      {section.title && (
+                        <TableRow key={`sec-${section.id}`} className="bg-muted/40">
+                          <TableCell colSpan={3} className="font-semibold text-xs py-2 px-2">
+                            {section.title}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {fields.length === 0 ? (
+                        <TableRow key={`sec-${section.id}-empty`}>
+                          <TableCell colSpan={3} className="text-[11px] text-muted-foreground italic py-2 px-2">
+                            No data fields in this section.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        fields.map((f: any) => {
+                          const changed = isChanged(f.fieldName);
+                          return (
+                            <TableRow key={f.id} className={changed ? 'bg-yellow-50 dark:bg-yellow-950/30' : undefined}>
+                              <TableCell className="font-mono text-[11px] text-muted-foreground align-top py-1 px-2">
+                                {f.lineCode || ''}
+                              </TableCell>
+                              <TableCell className="text-xs align-top py-1 px-2">
+                                {f.label}
+                                {changed && (
+                                  <Badge variant="outline" className="ml-2 text-[9px] bg-yellow-100 text-yellow-800 border-yellow-300">edited</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs align-top py-1 px-2 text-right">
+                                {formatCellValue(data?.[f.fieldName])}
+                                {changed && baseline && (
+                                  <div className="text-[10px] text-muted-foreground mt-0.5 line-through">
+                                    was {formatCellValue(baseline?.[f.fieldName])}
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
+
 
 export default function ReturnDetail() {
   const { id } = useParams<{ id: string }>();
@@ -121,6 +234,11 @@ export default function ReturnDetail() {
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
   const { data: auditLog = [] } = useReturnAuditLog(id);
+  const { data: revisions = [] } = useReturnRevisions(id);
+  const editBaselineRev = pickEditBaseline(revisions);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+
 
   const submittedFormIds = useMemo(
     () => [...new Set(formData.map((row: any) => row.form_id).filter(Boolean))],
@@ -302,6 +420,7 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
       if (comments_.trim()) {
         supabase.functions.invoke('dispatch-notification-event', {
@@ -367,6 +486,13 @@ export default function ReturnDetail() {
     if (!confirm.isConfirmed) return;
     setSubmitting('request_edit');
     try {
+      // Snapshot the current state as the pre-edit baseline before flipping status.
+      await snapshotReturnRevision({
+        returnId: id,
+        reason: 'edit_requested',
+        previousStatus: status || null,
+        newStatus: 'TBR',
+      });
       const { error: rErr } = await (supabase as any).from('return_requests').insert({
         return_id: id,
         reasons: comments_.trim(),
@@ -398,6 +524,7 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
@@ -456,19 +583,51 @@ export default function ReturnDetail() {
           </Button>
           <div className="flex items-center gap-2">
             <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCompareOpen(true)}
+              disabled={revisions.length < 2}
+              title={revisions.length < 2 ? 'At least two revisions are required to compare' : 'Compare submission revisions'}
+            >
+              <GitCompareArrows className="h-4 w-4 mr-1" /> Compare Versions
+              {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
               View Analysis
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
-          <div>
-            <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
-            <p className="text-sm text-muted-foreground">
-              {returnData.return_configs?.name} — {returnData.return_period} {returnData.return_year}
-            </p>
+        <div className="bg-card border rounded-lg p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-bold">{returnData.unique_id}</h1>
+              <p className="text-sm text-muted-foreground">{returnData.return_configs?.name}</p>
+            </div>
+            <StatusBadge status={returnData.workflow_status} />
           </div>
-          <StatusBadge status={returnData.workflow_status} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Entity</div>
+              <div className="font-medium">
+                {returnData.licensees?.name || returnData.on_behalf_of_licensees?.name || '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Year</div>
+              <div className="font-medium">{returnData.return_year || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Period</div>
+              <div className="font-medium">{returnData.return_period || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Return Type</div>
+              <div className="font-medium">
+                {returnData.return_configs?.return_types?.name || returnData.return_configs?.return_types?.code || '—'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {isApproved && (
@@ -482,6 +641,14 @@ export default function ReturnDetail() {
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               <strong>Edit requested:</strong> {activeRequest.reasons}
+            </AlertDescription>
+          </Alert>
+        )}
+        {editBaselineRev && !isResubmissionRequested && (
+          <Alert className="border-yellow-400 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-700" />
+            <AlertDescription className="text-yellow-900">
+              This return was edited by the licensee after an edit request. Changed fields are highlighted in yellow below (baseline: revision v{editBaselineRev.revision_number}, {new Date(editBaselineRev.created_at).toLocaleString()}).
             </AlertDescription>
           </Alert>
         )}
@@ -502,10 +669,11 @@ export default function ReturnDetail() {
                   const formComments = comments.filter((c: any) => c.form_id === cf.form_id);
                   return (
                     <TabsContent key={cf.form_id} value={cf.form_id} className="space-y-4">
-                      <ReadOnlyFormBlock
+                      <ReturnDataTable
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
+                        baseline={editBaselineRev ? (editBaselineRev.snapshot?.[cf.form_id] || null) : null}
                         pinnedVersionId={versionByForm[cf.form_id] || null}
                       />
                       {formComments.length > 0 && (
@@ -534,6 +702,7 @@ export default function ReturnDetail() {
                   qc.invalidateQueries({ queryKey: ['returns_filed', id] });
                   qc.invalidateQueries({ queryKey: ['return_requests', id] });
                   qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_data_revisions', id] });
                   qc.invalidateQueries({ queryKey: ['approval_actions', 'return', id] });
                 }}
               />
@@ -623,7 +792,18 @@ export default function ReturnDetail() {
               returnId={returnData.id}
               returnConfigId={returnData.return_configuration_id}
               formData={valuesByForm}
+              hideValidation
             />
+
+            <AccountingReconciliationPanel
+              allData={valuesByForm}
+              forms={orderedForms.map((cf: any) => ({
+                formId: cf.form_id,
+                templateName: cf.form_templates?.name,
+              }))}
+              summaryOnly
+            />
+
 
 
             {/* Edit-request history */}
@@ -692,6 +872,13 @@ export default function ReturnDetail() {
           </div>
         </div>
       </div>
+      <ReturnRevisionCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        revisions={revisions}
+        currentValues={valuesByForm}
+        returnLabel={returnData.unique_id}
+      />
     </DashboardLayout>
   );
 }

@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-const head = async (q: any): Promise<number> => {
+const head = async (q: any, label?: string): Promise<number> => {
   const { count, error } = await q;
-  if (error) return 0;
+  if (error) {
+    if (import.meta.env.DEV) console.warn('[useApplicantMetrics] count failed', label, error);
+    return 0;
+  }
   return count ?? 0;
 };
 
@@ -33,7 +36,11 @@ export interface ApplicantMetrics {
 // NewPostLicenseApplication); pre-license never do.
 function scopeApps(q: any, scope: ApplicantMetricsScope) {
   if (scope === 'pre') {
-    return q.is('data->>service_id', null).neq('data->>type', 'post_license');
+    // Pre-license apps: no service_id AND (type is NULL OR type != 'post_license').
+    // `.neq` in PostgREST excludes NULL, so use `.or` to include rows with no type key.
+    return q
+      .is('data->>service_id', null)
+      .or('data->>type.is.null,data->>type.neq.post_license');
   }
   if (scope === 'post') {
     return q.not('data->>service_id', 'is', null);

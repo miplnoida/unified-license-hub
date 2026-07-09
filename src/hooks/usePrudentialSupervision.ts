@@ -37,6 +37,31 @@ async function notify(event_key: string, entity_type: string, entity_id: string 
   }
 }
 
+async function fetchAssessmentLicenseeNames(entityIds: string[]) {
+  const uniqueIds = Array.from(new Set(entityIds.filter(Boolean)));
+  if (!uniqueIds.length) return new Map<string, { name: string | null }>();
+
+  const { data, error } = await sb.from('licensees').select('id, name').in('id', uniqueIds);
+  if (error) throw error;
+
+  return new Map<string, { name: string | null }>((data ?? []).map((licensee: any) => [licensee.id, { name: licensee.name ?? null }]));
+}
+
+function normalizeAssessmentLicensee<T extends { entity_id?: string; licensee?: any; licensees?: any }>(row: T, licenseeMap?: Map<string, { name: string | null }>) {
+  const licensee = row.licensee ?? row.licensees ?? (row.entity_id ? licenseeMap?.get(row.entity_id) : null) ?? null;
+  return {
+    ...row,
+    licensee,
+    licensees: licensee,
+  };
+}
+
+async function attachAssessmentLicensees<T extends { entity_id?: string; licensee?: any; licensees?: any }>(rows: T[]) {
+  const missingIds = rows.filter(row => !row.licensee && !row.licensees && row.entity_id).map(row => row.entity_id as string);
+  const licenseeMap = await fetchAssessmentLicenseeNames(missingIds);
+  return rows.map(row => normalizeAssessmentLicensee(row, licenseeMap));
+}
+
 // ---------- Types ----------
 export interface RiskTaxonomy { id: string; code: string; label: string; description: string | null; parent_id: string | null; sort_order: number; is_active: boolean; }
 export interface PrudentialAssessment {
@@ -44,9 +69,44 @@ export interface PrudentialAssessment {
   overall_rating: string | null; ratings: Record<string, string>; rationale: string | null; evidence_refs: any[];
   conclusion: string | null; recommended_response: string | null; status: 'draft'|'submitted'|'reviewed'|'approved'|'closed';
   override_reason: string | null; auto_suggested_rating: string | null;
+  review_notes?: string | null; signal_snapshot?: any | null;
   created_by: string | null; reviewed_by: string | null; approved_by: string | null;
   submitted_at: string | null; reviewed_at: string | null; approved_at: string | null; closed_at: string | null;
   created_at: string; updated_at: string;
+}
+type PrudentialAssessmentWithLicensee = PrudentialAssessment & {
+  licensee?: { name: string | null } | null;
+  licensees?: { name: string | null } | null;
+};
+
+const ASSESSMENT_WRITE_COLUMNS = new Set([
+  'id',
+  'entity_id',
+  'return_id',
+  'period_start',
+  'period_end',
+  'overall_rating',
+  'ratings',
+  'rationale',
+  'evidence_refs',
+  'conclusion',
+  'recommended_response',
+  'status',
+  'override_reason',
+  'auto_suggested_rating',
+  'created_by',
+  'reviewed_by',
+  'approved_by',
+  'submitted_at',
+  'reviewed_at',
+  'approved_at',
+  'closed_at',
+  'review_notes',
+  'signal_snapshot',
+]);
+
+function sanitizeAssessmentWritePayload(row: Record<string, any>) {
+  return Object.fromEntries(Object.entries(row).filter(([key]) => ASSESSMENT_WRITE_COLUMNS.has(key)));
 }
 export interface PrudentialAction {
   id: string; entity_id: string; source_type: string; source_id: string | null;
@@ -146,7 +206,7 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
       const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
       const [breachesRes, actionsRes, escRes, assessRes, stressRes] = await Promise.all([
         returnIds.length
-          ? sb.from('return_threshold_breaches').select('id, return_id, severity').in('return_id', returnIds)
+          ? sb.from('return_threshold_breaches').select('id, return_id, risk_level, level').in('return_id', returnIds)
           : Promise.resolve({ data: [] }),
         sb.from('prudential_actions').select('id, entity_id, status').in('entity_id', ids),
         sb.from('prudential_escalations').select('id, entity_id, status').in('entity_id', ids),
@@ -167,9 +227,10 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
       const sevOrder = ['critical','high','medium','low'];
       (breachesRes.data ?? []).forEach((b: any) => {
         const ent = returnToEntity[b.return_id]; if (!ent) return;
+        const severity = b.risk_level || b.level;
         const cur = breachCounts[ent] || { total: 0, worst: null };
         cur.total += 1;
-        if (!cur.worst || sevOrder.indexOf(b.severity) < sevOrder.indexOf(cur.worst)) cur.worst = b.severity;
+        if (severity && (!cur.worst || sevOrder.indexOf(severity) < sevOrder.indexOf(cur.worst))) cur.worst = severity;
         breachCounts[ent] = cur;
       });
 
@@ -244,12 +305,12 @@ export function useAssessments(filters?: { entity_id?: string; status?: string }
   return useQuery({
     queryKey: ['prudential_assessments', filters ?? {}],
     queryFn: async () => {
-      let q = sb.from('prudential_assessments').select('*, licensees(name)').order('created_at', { ascending: false });
+      let q = sb.from('prudential_assessments').select('*').order('created_at', { ascending: false });
       if (filters?.entity_id) q = q.eq('entity_id', filters.entity_id);
       if (filters?.status) q = q.eq('status', filters.status);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return attachAssessmentLicensees(data ?? []);
     },
   });
 }
@@ -258,9 +319,11 @@ export function useAssessment(id?: string | null) {
     queryKey: ['prudential_assessment', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('prudential_assessments').select('*, licensees(name)').eq('id', id).maybeSingle();
+      const { data, error } = await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle();
       if (error) throw error;
-      return data as PrudentialAssessment & { licensees?: { name: string } };
+      if (!data) return null;
+      const [row] = await attachAssessmentLicensees([data]);
+      return row as PrudentialAssessmentWithLicensee;
     },
   });
 }
@@ -269,9 +332,10 @@ export function useUpsertAssessment() {
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
       const user = (await sb.auth.getUser()).data.user;
-      const payload: any = { ...row };
+      const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
       const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        delete payload.id;
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
         const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
@@ -385,6 +449,17 @@ export function useUpdateAction() {
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+      // Enforce mandatory notes at hook layer for terminal transitions,
+      // so a direct hook caller cannot bypass the UI's 5-char guard.
+      if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
+        throw new Error('Completion notes are required (min 5 characters) to complete an action');
+      }
+      if (patch.status === 'waived' && (!waiver_reason || waiver_reason.trim().length < 5)) {
+        throw new Error('Waiver reason is required (min 5 characters) to waive an action');
+      }
+      if (patch.status === 'cancelled' && (!cancellation_reason || cancellation_reason.trim().length < 5)) {
+        throw new Error('Cancellation reason is required (min 5 characters) to cancel an action');
+      }
       const body: any = { ...patch };
       if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
         body.closed_at = new Date().toISOString();
@@ -398,6 +473,13 @@ export function useUpdateAction() {
       await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
       if (patch.status === 'completed') {
         await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
+      }
+      // Re-notify the new assignee if assignment changed.
+      if (patch.assigned_to && before?.assigned_to !== patch.assigned_to) {
+        await notify('prudential_action_assigned', 'prudential_action', id, {
+          action_title: before?.title, entity_name: before?.licensees?.name,
+          entity_id: before?.entity_id, assigned_to: patch.assigned_to, reassigned: true,
+        });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
@@ -473,6 +555,8 @@ export function useUpdateEscalation() {
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
       if (patch.status === 'resolved') {
         await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
+      } else if (patch.status === 'withdrawn') {
+        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision, outcome: 'withdrawn' });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },

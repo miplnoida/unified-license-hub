@@ -192,7 +192,7 @@ export default function FitAndProperIndividualDetail() {
         await logFpAction('fp.role.added.no_user_account', 'fp_individual_role', data.id, {
           context: {
             individualId: id,
-            note: 'Individual has no linked user account — staff must send declaration invitation manually via Invitation Tracker',
+            extra: { note: 'Individual has no linked user account — staff must send declaration invitation manually via Invitation Tracker' },
           },
         });
       }

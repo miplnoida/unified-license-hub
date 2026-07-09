@@ -29,8 +29,14 @@ export function ApplicantDashboard() {
   const portalCtx = useEffectivePortalContext();
   const scope: 'pre' | 'all' = portalCtx.isPreLicensee ? 'pre' : 'all';
   const appsListPath = portalCtx.isPreLicensee ? '/applications?type=pre' : '/applications';
-  const draftsPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=draft' : '/applications?status=draft';
-  const rejectedPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=rejected' : '/applications?status=rejected';
+  const withParam = (key: string, val: string) => `${appsListPath}${appsListPath.includes('?') ? '&' : '?'}${key}=${val}`;
+  const draftsPath = withParam('status', 'draft');
+  const rejectedPath = withParam('statusGroup', 'rejected');
+  const submittedPath = withParam('status', 'submitted');
+  const underReviewPath = withParam('statusGroup', 'pending');
+  const approvedPath = withParam('statusGroup', 'approved');
+  const actionRequiredPath = withParam('statusGroup', 'returned');
+  const paymentsPath = portalCtx.isPreLicensee ? '/billing/pre-licensee' : '/payments?status=pending';
   const newApplicationPath = portalCtx.isPreLicensee ? '/pre-license/new' : '/applications/new';
   const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
@@ -126,11 +132,11 @@ export function ApplicantDashboard() {
       {/* Phase 1 — Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
         {canUseLicensing && <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to={draftsPath} />}
-        {canUseLicensing && <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to={appsListPath} />}
-        {canUseLicensing && <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={Clock} tone="warning" loading={isLoading} to={appsListPath} />}
-        {canUseLicensing && <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={CheckCircle2} tone="success" loading={isLoading} to={appsListPath} />}
+        {canUseLicensing && <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to={submittedPath} />}
+        {canUseLicensing && <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={Clock} tone="warning" loading={isLoading} to={underReviewPath} />}
+        {canUseLicensing && <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={CheckCircle2} tone="success" loading={isLoading} to={approvedPath} />}
         {canUseLicensing && <MetricCard title="Rejected" value={data?.applications.rejected ?? 0} icon={XCircle} tone="destructive" loading={isLoading} to={rejectedPath} />}
-        {canUseLicensing && <MetricCard title="Action required" value={actionRequiredRows.length} icon={AlertCircle} tone={actionRequiredRows.length > 0 ? 'destructive' : 'muted'} loading={isLoading} to={appsListPath} hint="Info, resubmission, correction" />}
+        {canUseLicensing && <MetricCard title="Action required" value={actionRequiredRows.length} icon={AlertCircle} tone={actionRequiredRows.length > 0 ? 'destructive' : 'muted'} loading={isLoading} to={actionRequiredPath} hint="Info, resubmission, correction" />}
         <MetricCard
           title="Pending payments"
           value={data?.payments.outstanding_amount ?? 0}
@@ -138,7 +144,7 @@ export function ApplicantDashboard() {
           icon={DollarSign}
           tone={(data?.payments.pending ?? 0) > 0 ? 'warning' : 'muted'}
           loading={isLoading}
-          to="/billing/pre-licensee"
+          to={paymentsPath}
         />
       </div>
 

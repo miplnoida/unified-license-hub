@@ -19,9 +19,12 @@ import {
  * data from being shipped to the client beyond what RLS allows.
  */
 
-const head = async (q: any): Promise<number> => {
+const head = async (q: any, label?: string): Promise<number> => {
   const { count, error } = await q;
-  if (error) return 0;
+  if (error) {
+    if (import.meta.env.DEV) console.warn('[useSupervisoryMetrics] count failed', label, error);
+    return 0;
+  }
   return count ?? 0;
 };
 
@@ -163,8 +166,11 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
     enabled: !!user && enabled,
     staleTime: 60_000,
     queryFn: async () => {
-      const sectorEq = (q: any) => filters?.sectorId ? q.eq('sector_id', filters.sectorId) : q;
-      const regulatorEq = (q: any) => filters?.regulatorId ? q.eq('regulator_id', filters.regulatorId) : q;
+      // Coerce empty strings to null so we never send `.eq('col', '')` which returns 0 rows.
+      const sectorId = filters?.sectorId && filters.sectorId.trim() ? filters.sectorId : null;
+      const regulatorId = filters?.regulatorId && filters.regulatorId.trim() ? filters.regulatorId : null;
+      const sectorEq = (q: any) => sectorId ? q.eq('sector_id', sectorId) : q;
+      const regulatorEq = (q: any) => regulatorId ? q.eq('regulator_id', regulatorId) : q;
 
       /**
        * Count helper — runs get_application_list_page with the canonical

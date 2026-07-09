@@ -309,7 +309,7 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
         resolution_reason: (finding as any).resolution_reason ?? null,
       };
 
-      const { error, count } = await supabase
+      const { data: updatedRows, error } = await supabase
         .from('fp_findings')
         .update({
           resolution_status: form.decision,
@@ -321,12 +321,12 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
           raw_payload: updatedPayload,
         })
         .eq('id', finding.id)
-        .select('id', { count: 'exact', head: true });
+        .select('id');
 
       if (error) throw error;
 
       // If no rows were updated, the finding was not found (deleted or mismatched id)
-      if (count !== null && count === 0) {
+      if (!updatedRows || updatedRows.length === 0) {
         throw new Error('Finding not found or already deleted.');
       }
 
