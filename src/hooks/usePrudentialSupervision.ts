@@ -44,7 +44,7 @@ async function fetchAssessmentLicenseeNames(entityIds: string[]) {
   const { data, error } = await sb.from('licensees').select('id, name').in('id', uniqueIds);
   if (error) throw error;
 
-  return new Map((data ?? []).map((licensee: any) => [licensee.id, { name: licensee.name ?? null }]));
+  return new Map<string, { name: string | null }>((data ?? []).map((licensee: any) => [licensee.id, { name: licensee.name ?? null }]));
 }
 
 function normalizeAssessmentLicensee<T extends { entity_id?: string; licensee?: any; licensees?: any }>(row: T, licenseeMap?: Map<string, { name: string | null }>) {
