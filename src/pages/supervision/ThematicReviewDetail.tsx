@@ -62,6 +62,13 @@ export default function ThematicReviewDetail() {
     setActions((act.data as any[]) || []);
     setHistory((hist.data as any[]) || []);
     setMonResults((mr.data as any[]) || []);
+    const leadId = (rv.data as any)?.lead_officer_id;
+    if (leadId) {
+      const { data: lo } = await supabase.from('profiles').select('full_name,email').eq('id', leadId).maybeSingle();
+      setLeadOfficer((lo as any) || null);
+    } else {
+      setLeadOfficer(null);
+    }
     setLoading(false);
   };
 
