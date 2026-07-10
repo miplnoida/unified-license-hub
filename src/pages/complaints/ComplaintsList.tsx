@@ -106,6 +106,8 @@ export default function ComplaintsList() {
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
+  const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
+
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
