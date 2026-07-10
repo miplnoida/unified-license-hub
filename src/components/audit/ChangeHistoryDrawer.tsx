@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchOverridesForEntity, type RuleOverrideRow } from '@/lib/ruleOverrides';
-import { DiffViewer } from './DiffViewer';
-import { History, Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
+import { humanizeAction, computeChanges, summarizeSingle, type Change } from './humanizeAudit';
+import { History, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -59,13 +59,77 @@ const ACTION_BADGE: Record<string, string> = {
   WORKFLOW_TRANSITION: 'bg-info/15 text-info border-info/30',
 };
 
+function badgeClass(action: string): string {
+  if (ACTION_BADGE[action]) return ACTION_BADGE[action];
+  const a = action.toLowerCase();
+  if (a.includes('approve') || a.includes('submit') || a.includes('create')) return ACTION_BADGE.CREATE;
+  if (a.includes('reject') || a.includes('delete') || a.includes('withdraw')) return ACTION_BADGE.REJECT;
+  if (a.includes('override')) return ACTION_BADGE.RULE_OVERRIDE;
+  if (a.includes('status') || a.includes('workflow') || a.includes('assign')) return ACTION_BADGE.WORKFLOW_TRANSITION;
+  return 'bg-muted text-muted-foreground border-border';
+}
+
+/** Compact key/value diff or single-value summary. */
+function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const changes: Change[] = useMemo(() => computeChanges(before, after), [before, after]);
+  const singleAfter = changes.length === 0 ? summarizeSingle(after) : null;
+  const singleBefore = changes.length === 0 && !singleAfter ? summarizeSingle(before) : null;
+  const hasRaw = before !== null && before !== undefined || after !== null && after !== undefined;
+
+  if (changes.length === 0 && !singleAfter && !singleBefore) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {changes.length > 0 && (
+        <div className="rounded bg-muted/40 p-2 text-sm space-y-1">
+          {changes.map((c) => (
+            <div key={c.key} className="flex items-baseline gap-2 text-xs">
+              <span className="font-medium text-foreground/80 min-w-[110px]">{c.label}:</span>
+              <span className="text-muted-foreground line-through">{c.before}</span>
+              <span className="text-muted-foreground">→</span>
+              <span className="text-foreground font-medium">{c.after}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {singleAfter && (
+        <div className="rounded bg-muted/40 p-2 text-sm text-foreground whitespace-pre-wrap">
+          {singleAfter}
+        </div>
+      )}
+      {singleBefore && !singleAfter && (
+        <div className="rounded bg-muted/40 p-2 text-sm text-muted-foreground whitespace-pre-wrap">
+          {singleBefore}
+        </div>
+      )}
+      {hasRaw && (
+        <button
+          type="button"
+          onClick={() => setShowRaw((s) => !s)}
+          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+        >
+          {showRaw ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          Technical details
+        </button>
+      )}
+      {showRaw && (
+        <pre className="rounded bg-muted/60 p-2 text-[10px] leading-tight overflow-auto max-h-48">
+{JSON.stringify({ before, after }, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 /**
- * Reusable right-side drawer showing the full change timeline for a single
- * domain entity: audit_logs + compliance_audit_logs + rule_overrides entries,
- * merged and sorted chronologically. compliance_audit_logs is where
- * prudential actions/escalations and conduct investigations log exclusively
- * — without it, this drawer would always show "no history" for those
- * entities even though real history exists.
+ * Right-side drawer showing the change timeline for a single domain entity,
+ * merging audit_logs + compliance_audit_logs + rule_overrides. Rows render
+ * as plain English (action label, actor name, key/value change list) instead
+ * of raw JSON — the raw payload is still available under a "Technical
+ * details" toggle for power users.
  */
 export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, title }: Props) {
   const [loading, setLoading] = useState(false);
@@ -73,6 +137,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
   const [compliance, setCompliance] = useState<ComplianceRow[]>([]);
   const [overrides, setOverrides] = useState<RuleOverrideRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [nameById, setNameById] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -86,10 +151,6 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
           .eq('entity_id', entityId)
           .order('created_at', { ascending: false })
           .limit(200),
-        // compliance_audit_logs — where prudential actions/escalations and
-        // conduct investigations log exclusively; matched on object_id alone
-        // since object_type strings aren't consistently produced across
-        // writers (see caseAuditGraph.ts for the same rationale).
         (supabase.from('compliance_audit_logs') as any)
           .select('entry_id, timestamp, action_type, user_id, user_role, before_value, after_value, metadata')
           .eq('object_id', entityId)
@@ -98,9 +159,31 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
         fetchOverridesForEntity(entityType, entityId).catch(() => [] as RuleOverrideRow[]),
       ]);
       if (aRes.error) throw aRes.error;
-      setAudits((aRes.data ?? []) as AuditRow[]);
-      setCompliance((cRes.data ?? []) as ComplianceRow[]);
+      const auditRows = (aRes.data ?? []) as AuditRow[];
+      const complianceRows = (cRes.data ?? []) as ComplianceRow[];
+      setAudits(auditRows);
+      setCompliance(complianceRows);
       setOverrides(oRes);
+
+      // Resolve user names in one batch
+      const ids = new Set<string>();
+      auditRows.forEach((r) => r.user_id && ids.add(r.user_id));
+      complianceRows.forEach((r) => r.user_id && ids.add(r.user_id));
+      oRes.forEach((r) => r.user_id && ids.add(r.user_id));
+      if (ids.size > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', Array.from(ids));
+        const map: Record<string, string> = {};
+        (profs ?? []).forEach((p: any) => {
+          const name = [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || p.email || '';
+          if (name) map[p.id] = name;
+        });
+        setNameById(map);
+      } else {
+        setNameById({});
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load history.');
     } finally {
@@ -115,9 +198,6 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
 
   const timeline = useMemo<TimelineEntry[]>(() => {
     const overrideIds = new Set(overrides.map((o) => o.id));
-    // De-dupe: the RPC mirrors overrides into audit_logs with action=RULE_OVERRIDE and
-    // metadata.override_id. Drop the mirrored audit row so the override renders once,
-    // richer, with rule_key + reason.
     const filteredAudits = audits.filter((a) => {
       const mid = (a.metadata as any)?.override_id;
       return !(a.action === 'RULE_OVERRIDE' && typeof mid === 'string' && overrideIds.has(mid));
@@ -131,6 +211,11 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
     return merged;
   }, [audits, compliance, overrides]);
 
+  function actorLabel(userId: string | null, userRole: string | null): string {
+    if (!userId) return 'System';
+    return nameById[userId] || userRole || 'User';
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
@@ -139,9 +224,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
             <History className="h-5 w-5" />
             {title ?? 'Change history'}
           </SheetTitle>
-          <SheetDescription>
-            {entityType} · <span className="font-mono text-xs">{entityId}</span>
-          </SheetDescription>
+          <SheetDescription>Timeline of all changes and reviewer actions.</SheetDescription>
         </SheetHeader>
 
         <div className="mt-3 flex items-center justify-between">
@@ -173,9 +256,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <ShieldAlert className="h-4 w-4 text-warning" />
-                      <Badge variant="outline" className={ACTION_BADGE.RULE_OVERRIDE}>
-                        Override
-                      </Badge>
+                      <Badge variant="outline" className={badgeClass('RULE_OVERRIDE')}>Rule override</Badge>
                       <span className="text-xs font-mono">{o.rule_key}</span>
                       <Badge variant="outline" className="text-[10px]">{o.module}</Badge>
                     </div>
@@ -184,15 +265,13 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {o.user_role ?? 'user'} · <span className="font-mono">{o.user_id?.slice(0, 8) ?? '—'}</span>
+                    By {actorLabel(o.user_id, o.user_role)}
                   </div>
                   <div className="mt-2 rounded bg-background/70 p-2 text-sm">
                     <div className="text-[10px] uppercase text-muted-foreground">Reason</div>
                     <div className="whitespace-pre-wrap">{o.reason}</div>
                   </div>
-                  <div className="mt-2">
-                    <DiffViewer before={o.original_value} after={o.overridden_value} compact />
-                  </div>
+                  <ChangeSummary before={o.original_value} after={o.overridden_value} />
                 </div>
               );
             }
@@ -202,25 +281,18 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
                 <div key={`c-${c.entry_id}`} className="rounded-md border border-border p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={ACTION_BADGE[c.action_type] ?? 'bg-muted text-muted-foreground'}
-                      >
-                        {c.action_type}
+                      <Badge variant="outline" className={badgeClass(c.action_type)}>
+                        {humanizeAction(c.action_type)}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px]">compliance</Badge>
-                      {c.user_role && <Badge variant="outline" className="text-[10px]">{c.user_role}</Badge>}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {new Date(c.timestamp).toLocaleString()}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground font-mono">
-                    {c.user_id ? c.user_id.slice(0, 8) : 'system'}
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    By {actorLabel(c.user_id, c.user_role)}
                   </div>
-                  <div className="mt-2">
-                    <DiffViewer before={c.before_value} after={c.after_value} compact />
-                  </div>
+                  <ChangeSummary before={c.before_value} after={c.after_value} />
                 </div>
               );
             }
@@ -229,24 +301,18 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
               <div key={`a-${a.id}`} className="rounded-md border border-border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={ACTION_BADGE[a.action] ?? 'bg-muted text-muted-foreground'}
-                    >
-                      {a.action}
+                    <Badge variant="outline" className={badgeClass(a.action)}>
+                      {humanizeAction(a.action)}
                     </Badge>
-                    {a.user_role && <Badge variant="outline" className="text-[10px]">{a.user_role}</Badge>}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {new Date(a.created_at).toLocaleString()}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground font-mono">
-                  {a.user_id ? a.user_id.slice(0, 8) : 'system'}
+                <div className="mt-1 text-xs text-muted-foreground">
+                  By {actorLabel(a.user_id, a.user_role)}
                 </div>
-                <div className="mt-2">
-                  <DiffViewer before={a.old_value} after={a.new_value} compact />
-                </div>
+                <ChangeSummary before={a.old_value} after={a.new_value} />
               </div>
             );
           })}
