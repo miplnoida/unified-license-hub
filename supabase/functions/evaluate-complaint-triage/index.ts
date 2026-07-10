@@ -218,7 +218,15 @@ Deno.serve(async (req) => {
       const o = matched.outputs || {};
       if (o.severity) { update.severity = o.severity; appliedOutputs.severity = o.severity; }
       if (o.priority) { update.priority = o.priority; appliedOutputs.priority = o.priority; }
-      if (o.assigned_team) { update.assigned_team = o.assigned_team; appliedOutputs.assigned_team = o.assigned_team; }
+      if (o.assigned_team) {
+        // On retry/manual re-run the workflow engine owns routing — do NOT overwrite the assignee.
+        if (triggered_by === 'intake' || !complaint.assigned_team) {
+          update.assigned_team = o.assigned_team;
+          appliedOutputs.assigned_team = o.assigned_team;
+        } else {
+          appliedOutputs.assigned_team_skipped = { reason: 'workflow_owned', triggered_by, current: complaint.assigned_team };
+        }
+      }
       if (o.sla_days) {
         update.sla_days = o.sla_days;
         const base = new Date(complaint.created_at || Date.now());

@@ -14530,6 +14530,16 @@ export type Database = {
         Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
       }
+      get_complaint_current_assignees: {
+        Args: { _complaint_ids: string[] }
+        Returns: {
+          complaint_id: string
+          email: string
+          full_name: string
+          step_role: string
+          user_id: string
+        }[]
+      }
       get_declaration_invitation_public: {
         Args: { p_token: string }
         Returns: {
