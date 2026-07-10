@@ -18,7 +18,7 @@ import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
  *  - emit approval / rejection timestamps
  */
 
-const INTERNAL_ROLES = ["super_admin", "admin", "supervisor", "licensing_officer", "analyst", "developer"] as const;
+const INTERNAL_ROLES = ["super_admin", "admin", "supervisor", "licensing_officer", "analyst", "legal_compliance", "developer"] as const;
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
