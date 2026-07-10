@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 
 export default function NewThematicReview() {
   const nav = useNavigate();
@@ -34,17 +35,15 @@ export default function NewThematicReview() {
   const [productOpts, setProductOpts] = useState<any[]>([]);
   const [selProducts, setSelProducts] = useState<Set<string>>(new Set());
   const [riskCats, setRiskCats] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const { data: employees = [] } = useEmployeeApprovers();
 
   useEffect(() => {
     (async () => {
-      const [rc, u, p] = await Promise.all([
+      const [rc, p] = await Promise.all([
         supabase.from('conduct_risk_categories' as any).select('id,name').eq('active', true).order('name'),
-        supabase.from('profiles').select('id,full_name,role').in('role', ['super_admin', 'admin', 'supervisor', 'reviewer']).limit(200),
         supabase.from('conduct_products' as any).select('id,name,active').eq('active', true).order('name'),
       ]);
       setRiskCats((rc.data as any[]) || []);
-      setUsers((u.data as any[]) || []);
       setProductOpts((p.data as any[]) || []);
     })();
   }, []);
@@ -182,7 +181,7 @@ export default function NewThematicReview() {
               <Field label="Lead officer">
                 <select className="w-full h-10 rounded-md border bg-background px-3" value={form.lead_officer_id} onChange={e => setForm({ ...form, lead_officer_id: e.target.value })}>
                   <option value="">— Assign later —</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>)}
+                  {employees.map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}{u.email ? ` (${u.email})` : ''}</option>)}
                 </select>
               </Field>
             </>

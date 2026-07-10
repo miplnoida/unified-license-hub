@@ -1,44 +1,28 @@
-## Goal
-Clean up the applicant complaint acknowledgement modal: show only essential fields, align labels/values consistently, and allow previewing attached files.
+## Problem
+When applicants select **Jamaica** as their country in the registration form (mailing/physical address), the State/Parish dropdown does not appear. The `states` table has zero rows for Jamaica, so `AddressSection` falls back to a plain text input — which is inconsistent with other countries that show a dropdown.
 
-## Changes — `src/components/complaints/ComplaintAcknowledgement.tsx` (applicant variant only; internal unchanged)
+## Fix
+Seed Jamaica's 14 official parishes into the `states` table via a migration. The existing `AddressSection` component already renders a dropdown automatically once states exist for the selected country — no frontend changes needed.
 
-### 1. Content — keep only
-- Header title: "Complaint Acknowledgement"
-- Acknowledgement no.
-- Submitted on
-- Title (subject)
-- Description
-- Attachments
-- Footer buttons: Close, Print / Save as PDF
+## Migration
+Insert the 14 parishes of Jamaica (country_id = `ae098618-34d5-4372-9a34-480957b8f150`) with `status = 'active'`:
 
-Remove: subtitle line, "Acknowledged" badge, "What happens next" section, generated/quote-reference footer note.
+- Kingston
+- St. Andrew
+- St. Catherine
+- Clarendon
+- Manchester
+- St. Elizabeth
+- Westmoreland
+- Hanover
+- St. James
+- Trelawny
+- St. Ann
+- St. Mary
+- Portland
+- St. Thomas
 
-### 2. Alignment
-Use a consistent two-column definition layout so every row starts at the same horizontal position with equal gap between label and value:
-- On-screen: CSS grid `grid-cols-[180px_1fr]` with `gap-x-6 gap-y-3`, labels `text-sm font-medium text-muted-foreground`, values `text-sm text-foreground whitespace-pre-wrap break-words`.
-- Description spans the value column and wraps.
-- Attachments render as a vertical list inside the value column.
-- Print stylesheet: mirror the same 180px / 1fr grid so the printed PDF matches the on-screen alignment.
+Guarded with `ON CONFLICT DO NOTHING` (or a `NOT EXISTS` check) so re-runs are safe.
 
-### 3. Attachment preview
-Extend the `attachments` prop shape to optionally include a preview handle:
-```ts
-attachments?: Array<{ name: string; size?: number; path?: string; fileUploadId?: string }>
-```
-For each attachment on the applicant view, render the filename as a button that opens the file:
-- Resolve a short-lived signed URL via the existing `secureFileUpload` helpers (same pattern used elsewhere for `complaint_evidence`) using `path` when available, otherwise fetch `storage_path` by `fileUploadId` from `file_uploads`.
-- Open in a new tab (`window.open(url, '_blank', 'noopener')`) — images/PDFs preview natively; other types download.
-- Show a small `Eye` icon next to the name and size.
-- Print view keeps names + sizes only (no clickable link).
-
-### 4. Callers
-- `src/pages/complaints/ComplaintsList.tsx` (applicant submit + reprint): pass attachments with `path` / `fileUploadId` when available. For the immediate post-submit case where files were just uploaded, pass the `fileUploadId` values returned by `attachStagedFilesToComplaint` (add these to its return type — small, additive change) so previews work without a refetch.
-- `src/lib/complaintAttachments.ts`: extend `AttachStagedFilesResult.uploaded` from a count to an array of `{ name, size, fileUploadId }` (keep `.length` semantics at call sites where only the count is used).
-- `src/pages/complaints/ComplaintDetail.tsx` (applicant reprint): already fetches `complaint_evidence` — include `file_upload_id` and pass through.
-
-No schema, RLS, or backend changes.
-
-## Out of scope
-- Internal/admin acknowledgement layout.
-- In-modal inline preview pane (opens in a new tab instead — matches existing document viewing pattern).
+## Verification
+After the migration runs, reload the registration form → select Jamaica → the Parish dropdown appears with all 14 entries for both mailing and physical addresses.

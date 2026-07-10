@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Search, Download } from 'lucide-react';
+import { Loader2, Search, Download, Plus } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { IssueActionDialog } from '@/components/conduct/IssueActionDialog';
 
 const SOURCE_MODULES = ['complaint', 'thematic_review', 'monitoring', 'enforcement', 'entity', 'product', 'other'];
 const STATUSES = ['open', 'in_progress', 'completed', 'overdue', 'waived', 'cancelled'];
@@ -22,6 +23,7 @@ export default function ConductActions() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [source, setSource] = useState('all');
+  const [issueOpen, setIssueOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -77,8 +79,12 @@ export default function ConductActions() {
       <div className="space-y-6">
         <PageHeader title="Conduct Action Ledger"
           description="Unified ledger of remediation, restitution and follow-up actions across complaints, thematic reviews, monitoring and enforcement."
-          actions={<Button variant="outline" onClick={exportCsv}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>}
+          actions={<div className="flex gap-2">
+            <Button onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
+            <Button variant="outline" onClick={exportCsv}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+          </div>}
         />
+        <IssueActionDialog open={issueOpen} onOpenChange={setIssueOpen} defaultSourceModule="other" onCreated={load} />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Kpi label="Open" value={kpis.open} />

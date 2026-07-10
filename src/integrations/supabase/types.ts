@@ -2633,7 +2633,22 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conduct_investigations_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_investigations_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
       }
       conduct_monitoring_results: {
         Row: {
@@ -14414,6 +14429,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      fp_regulator_visible: {
+        Args: { _row_regulator_id: string }
+        Returns: boolean
+      }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
@@ -14529,6 +14548,16 @@ export type Database = {
       get_application_list_stats: {
         Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
+      }
+      get_complaint_current_assignees: {
+        Args: { _complaint_ids: string[] }
+        Returns: {
+          complaint_id: string
+          email: string
+          full_name: string
+          step_role: string
+          user_id: string
+        }[]
       }
       get_declaration_invitation_public: {
         Args: { p_token: string }

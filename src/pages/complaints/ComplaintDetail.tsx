@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer } from 'lucide-react';
+import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink } from 'lucide-react';
+import { getSignedUrl } from '@/lib/secureFileUpload';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
@@ -85,6 +86,34 @@ export default function ComplaintDetail() {
       return data as any;
     },
   });
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ['complaint_attachments', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('complaint_evidence' as any)
+        .select('id, label, created_at, file_upload_id, file_uploads(file_name, file_path, file_size, mime_type)')
+        .eq('complaint_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  async function openAttachment(filePath?: string) {
+    if (!filePath) return;
+    const { url, error } = await getSignedUrl(filePath, 300);
+    if (error || !url) { toast.error(error || 'Unable to open file'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function formatSize(n?: number | null) {
+    if (!n) return '';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['complaint', id] });
 
@@ -279,6 +308,35 @@ export default function ComplaintDetail() {
                 <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || '—'}</p></div>
                 <div><p className="text-muted-foreground">Email</p><p>{complaint.email || complainant?.email || '—'}</p></div>
                 <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Paperclip className="h-4 w-4" />Attachments {attachments.length > 0 && <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>}</CardTitle></CardHeader>
+              <CardContent className="text-sm">
+                {attachments.length === 0 ? (
+                  <p className="text-muted-foreground">No attachments uploaded with this complaint.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {attachments.map((a: any) => {
+                      const f = a.file_uploads || {};
+                      const name = f.file_name || a.label || 'Attachment';
+                      return (
+                        <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatSize(f.file_size)}{f.file_size ? ' • ' : ''}
+                              {new Date(a.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => openAttachment(f.file_path)} disabled={!f.file_path}>
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />View
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </CardContent>
             </Card>
             <ConductClassificationCard complaint={complaint} />

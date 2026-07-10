@@ -35,6 +35,7 @@ export default function ThematicReviewDetail() {
   const [actions, setActions] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [monResults, setMonResults] = useState<any[]>([]);
+  const [leadOfficer, setLeadOfficer] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [transition, setTransition] = useState<{ to: string; needsOverride: boolean } | null>(null);
@@ -61,6 +62,13 @@ export default function ThematicReviewDetail() {
     setActions((act.data as any[]) || []);
     setHistory((hist.data as any[]) || []);
     setMonResults((mr.data as any[]) || []);
+    const leadId = (rv.data as any)?.lead_officer_id;
+    if (leadId) {
+      const { data: lo } = await supabase.from('profiles').select('full_name,email').eq('id', leadId).maybeSingle();
+      setLeadOfficer((lo as any) || null);
+    } else {
+      setLeadOfficer(null);
+    }
     setLoading(false);
   };
 
@@ -152,7 +160,7 @@ export default function ThematicReviewDetail() {
               <Info label="Scope" value={`${review.scope_start || '—'} → ${review.scope_end || '—'}`} />
               <Info label="Opened" value={review.opened_at ? new Date(review.opened_at).toLocaleString() : '—'} />
               <Info label="Closed" value={review.closed_at ? new Date(review.closed_at).toLocaleString() : '—'} />
-              <Info label="Lead officer" value={review.lead_officer_id || '—'} />
+              <Info label="Lead officer" value={leadOfficer?.full_name || leadOfficer?.email || '—'} />
               <div className="md:col-span-2"><Info label="Hypothesis" value={review.hypothesis || '—'} /></div>
               <div className="md:col-span-2"><Info label="Description" value={review.description || '—'} /></div>
               {review.closure_summary && <div className="md:col-span-2"><Info label="Closure summary" value={review.closure_summary} /></div>}

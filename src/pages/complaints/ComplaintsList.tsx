@@ -27,6 +27,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { getSignedUrl } from '@/lib/secureFileUpload';
+import { Paperclip, ExternalLink } from 'lucide-react';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -74,6 +76,7 @@ export default function ComplaintsList() {
   const [channels, setChannels] = useState<RefLookup[]>([]);
   const [licenseeMap, setLicenseeMap] = useState<Map<string, string>>(new Map());
   const [profileMap, setProfileMap] = useState<Map<string, { full_name: string | null; email: string | null }>>(new Map());
+  const [assigneesByComplaint, setAssigneesByComplaint] = useState<Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -88,6 +91,12 @@ export default function ComplaintsList() {
     if (status && status !== 'open' && status in STATUS_LABELS) {
       setStatusFilter(status);
     }
+    const sev = searchParams.get('severity');
+    if (sev && ['critical', 'high', 'medium', 'low'].includes(sev)) setSeverityFilter(sev);
+    const pri = searchParams.get('priority');
+    if (pri && ['p1', 'p2', 'p3', 'p4'].includes(pri)) setPriorityFilter(pri);
+    const sla = searchParams.get('sla');
+    if (sla && ['on_track', 'at_risk', 'breached', 'resolved'].includes(sla)) setSlaFilter(sla);
   }, [searchParams]);
 
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -104,6 +113,46 @@ export default function ComplaintsList() {
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
+  const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
+
+  useEffect(() => {
+    if (!detailDialog?.id) { setDetailAttachments([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: ev } = await supabase
+        .from('complaint_evidence' as any)
+        .select('label, file_upload_id')
+        .eq('complaint_id', detailDialog.id);
+      const rows = (ev as any[]) || [];
+      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
+      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
+      const { data: files } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size')
+        .in('id', ids);
+      const fmap = new Map(((files as any[]) || []).map(f => [f.id, f]));
+      const atts = rows.map(r => {
+        const f = fmap.get(r.file_upload_id);
+        return {
+          id: r.file_upload_id,
+          name: r.label || f?.file_name || 'Attachment',
+          size: f?.file_size,
+          filePath: f?.file_path,
+        };
+      });
+      if (!cancelled) setDetailAttachments(atts);
+    })();
+    return () => { cancelled = true; };
+  }, [detailDialog?.id]);
+
+  const openDetailAttachment = async (filePath?: string) => {
+    if (!filePath) return;
+    const { url, error } = await getSignedUrl(filePath, 300);
+    if (error || !url) { toast.error(error || 'Unable to open file'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
@@ -154,12 +203,31 @@ export default function ComplaintsList() {
 
       // Batch resolve licensees + profiles
       const licIds = Array.from(new Set(rows.map(r => r.licensee_id).filter(Boolean)));
-      const profIds = Array.from(new Set(
-        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean)
-      ));
+      const profIds = new Set<string>(
+        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean) as string[]
+      );
+
+      // Resolve workflow assignees for each complaint via RPC (bypasses RLS/N+1 issues)
+      const complaintIds = rows.map(r => r.id);
+      const asgMap = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+      if (complaintIds.length) {
+        const { data: asg, error: asgErr } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: complaintIds });
+        if (asgErr) {
+          console.error('get_complaint_current_assignees failed', asgErr);
+        }
+        ((asg as any[]) || []).forEach((row: any) => {
+          const existing = asgMap.get(row.complaint_id) || { role: row.step_role || null, users: [] };
+          if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
+            existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
+          }
+          existing.role = existing.role || row.step_role || null;
+          asgMap.set(row.complaint_id, existing);
+        });
+      }
+
       const [licRes, profRes] = await Promise.all([
         licIds.length ? supabase.from('licensees').select('id, legal_name, name').in('id', licIds) : Promise.resolve({ data: [] }),
-        profIds.length ? supabase.from('profiles').select('id, full_name, email').in('id', profIds) : Promise.resolve({ data: [] }),
+        profIds.size ? supabase.from('profiles').select('id, full_name, email').in('id', Array.from(profIds)) : Promise.resolve({ data: [] }),
       ] as any);
       const lm = new Map<string, string>();
       ((licRes as any).data || []).forEach((l: any) => lm.set(l.id, l.legal_name || l.name || '—'));
@@ -167,6 +235,8 @@ export default function ComplaintsList() {
       const pm = new Map<string, { full_name: string | null; email: string | null }>();
       ((profRes as any).data || []).forEach((p: any) => pm.set(p.id, { full_name: p.full_name, email: p.email }));
       setProfileMap(pm);
+
+      setAssigneesByComplaint(asgMap);
     }
     setLoading(false);
   };
@@ -198,7 +268,7 @@ export default function ComplaintsList() {
           severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
     if (error) {
       toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
       setCreating(false);
@@ -220,12 +290,29 @@ export default function ComplaintsList() {
       }
     }
 
+    if (inserted?.id) {
+      // Fire-and-forget email dispatch (in-app rows are inserted by the DB trigger)
+      void import('@/lib/notificationEvents').then(({ dispatchNotificationEvent }) =>
+        dispatchNotificationEvent({
+          event_key: 'complaint.filed',
+          entity_type: 'complaint',
+          entity_id: inserted.id,
+          payload: {
+            complaint_number: (inserted as any).complaint_number,
+            subject: (inserted as any).subject,
+            sla_due_at: (inserted as any).sla_due_at,
+            complainant_email: (inserted as any).email ?? user.email,
+          },
+        }),
+      );
+    }
+
     let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
       uploadedAttachments = r.attachments;
       if (r.failed.length) {
-        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
+        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed: ${r.failed[0].error}`);
       } else if (r.uploaded) {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
@@ -244,7 +331,7 @@ export default function ComplaintsList() {
         complainant_name: user.fullName ?? user.email ?? null,
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
-        sla_days: 20,
+        sla_days: (inserted as any).sla_days ?? 20,
         description: (inserted as any).description ?? null,
         attachments: uploadedAttachments.map(a => ({
           name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
@@ -590,14 +677,17 @@ export default function ComplaintsList() {
                     <TableHead>Type</TableHead>
                     <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>SLA</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
-                  ) : filtered.map(c => (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
+                  ) : filtered.map(c => {
+                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    return (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
                       <TableCell className="text-sm">{refs.types.get(c.complaint_type_id) || '—'}</TableCell>
@@ -607,6 +697,10 @@ export default function ComplaintsList() {
                           {STATUS_LABELS[c.status] || c.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
+                        {c.sla_due_at && <div className="text-[10px] text-muted-foreground mt-1">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
@@ -614,7 +708,8 @@ export default function ComplaintsList() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (
@@ -667,10 +762,14 @@ export default function ComplaintsList() {
                           </TableCell>
                           <TableCell className="text-xs space-y-0.5">
                             <div>{refs.types.get(c.complaint_type_id) || '—'}</div>
-                            <div className="text-muted-foreground">{refs.categories.get(c.conduct_risk_category_id) || '—'}</div>
-                            <div className="text-muted-foreground">
-                              {refs.products.get(c.product_id) || '—'} · {refs.channels.get(c.channel_id) || '—'}
-                            </div>
+                            {c.conduct_risk_category_id && (
+                              <div className="text-muted-foreground">{refs.categories.get(c.conduct_risk_category_id)}</div>
+                            )}
+                            {(c.product_id || c.channel_id) && (
+                              <div className="text-muted-foreground">
+                                {refs.products.get(c.product_id) || '—'} · {refs.channels.get(c.channel_id) || '—'}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
@@ -679,8 +778,22 @@ export default function ComplaintsList() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">
-                            <div>{c.assigned_team || '—'}</div>
-                            <div className="text-muted-foreground">{inv?.full_name || inv?.email || 'Unassigned'}</div>
+                            {(() => {
+                              const asg = assigneesByComplaint.get(c.id);
+                              const roleLabel = asg?.role || c.assigned_team || '—';
+                              const users = asg?.users || [];
+                              const names = users.map(u => u.full_name || u.email || 'User');
+                              return (
+                                <>
+                                  <div className="capitalize">{roleLabel.replace(/_/g, ' ')}</div>
+                                  <div className="text-muted-foreground">
+                                    {names.length === 0
+                                      ? (inv?.full_name || inv?.email || 'Unassigned')
+                                      : names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
@@ -706,14 +819,6 @@ export default function ComplaintsList() {
                                 <DropdownMenuItem onClick={() => retryTriage(c)}>
                                   <RefreshCw className="h-4 w-4 mr-2" />Run / retry triage
                                 </DropdownMenuItem>
-                                {(c.status === 'submitted' || c.status === 'open') && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleUpdateStatus(c, 'under_investigation')}>
-                                      <UserCheck className="h-4 w-4 mr-2" />Take investigation
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -741,7 +846,7 @@ export default function ComplaintsList() {
       </div>
 
       {/* Detail Dialog (external users only) */}
-      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) setDetailDialog(null); }}>
+      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) { setDetailDialog(null); setDetailAttachments([]); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Complaint {detailDialog?.complaint_number}</DialogTitle></DialogHeader>
           {detailDialog && (
@@ -763,6 +868,28 @@ export default function ComplaintsList() {
                   <p className="text-sm text-muted-foreground">Filed</p>
                   <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
                 </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                  <Paperclip className="h-3.5 w-3.5" />Attachments {detailAttachments.length > 0 && <span>({detailAttachments.length})</span>}
+                </p>
+                {detailAttachments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No attachments</p>
+                ) : (
+                  <ul className="divide-y border rounded-md">
+                    {detailAttachments.map(a => (
+                      <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{a.name}</p>
+                          {a.size ? <p className="text-xs text-muted-foreground">{a.size < 1024 ? `${a.size} B` : a.size < 1024 * 1024 ? `${(a.size / 1024).toFixed(1)} KB` : `${(a.size / (1024 * 1024)).toFixed(1)} MB`}</p> : null}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => openDetailAttachment(a.filePath)} disabled={!a.filePath}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />View
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               {detailDialog.resolution && (
                 <div><p className="text-sm text-muted-foreground">Resolution</p><p className="text-sm">{detailDialog.resolution}</p></div>
