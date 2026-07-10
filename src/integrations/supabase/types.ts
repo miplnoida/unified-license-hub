@@ -14429,6 +14429,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      fp_regulator_visible: {
+        Args: { _row_regulator_id: string }
+        Returns: boolean
+      }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
