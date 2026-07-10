@@ -214,6 +214,7 @@ export default function ComplaintsList() {
       }
     }
 
+    const stagedAttachments = newAttachments.map(f => ({ name: f.name, size: f.size }));
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
     setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
@@ -229,7 +230,7 @@ export default function ComplaintsList() {
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
         description: (inserted as any).description ?? null,
-        attachments: newAttachments.map(f => ({ name: f.name, size: f.size })),
+        attachments: stagedAttachments,
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
