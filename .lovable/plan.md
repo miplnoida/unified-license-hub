@@ -1,32 +1,44 @@
 ## Goal
+Clean up the applicant complaint acknowledgement modal: show only essential fields, align labels/values consistently, and allow previewing attached files.
 
-Streamline the complaint acknowledgement modal shown to applicants so it displays only the essential, user-facing information: title/subject, description, submitted date, attachments, and the complaint/acknowledgement reference number. Internal/admin acknowledgement view remains unchanged.
+## Changes — `src/components/complaints/ComplaintAcknowledgement.tsx` (applicant variant only; internal unchanged)
 
-## Changes
+### 1. Content — keep only
+- Header title: "Complaint Acknowledgement"
+- Acknowledgement no.
+- Submitted on
+- Title (subject)
+- Description
+- Attachments
+- Footer buttons: Close, Print / Save as PDF
 
-### 1. `src/components/complaints/ComplaintAcknowledgement.tsx`
-- Extend `ComplaintAckInput` with optional `description` and `attachments` (array of `{ name, path?, url? }`).
-- Add a `variant?: 'applicant' | 'internal'` prop (default `'internal'` to preserve current admin behavior).
-- When `variant === 'applicant'`, render a slimmed layout that shows only:
-  - Header: "Complaint Acknowledgement" + acknowledged badge
-  - Reference number (complaint number)
-  - Subject (as title)
-  - Submitted date
-  - Description (full text, wrapped)
-  - Attachments list (filename chips; no view/download buttons in the print view, just names + sizes for the printable copy)
-  - Short "What happens next" note (kept, since it's the point of an acknowledgement)
-- Hide from applicant variant: complainant name/email, channel, regulator label, SLA business-days line, internal metadata.
-- Print stylesheet updated to match the simplified layout.
-- Audit/export logging behavior preserved.
+Remove: subtitle line, "Acknowledged" badge, "What happens next" section, generated/quote-reference footer note.
 
-### 2. `src/pages/complaints/ComplaintsList.tsx` (applicant filing dialog)
-- After a successful applicant submission, pass `variant="applicant"` plus `description` and the staged `attachments` (names only) into `ComplaintAcknowledgement`.
+### 2. Alignment
+Use a consistent two-column definition layout so every row starts at the same horizontal position with equal gap between label and value:
+- On-screen: CSS grid `grid-cols-[180px_1fr]` with `gap-x-6 gap-y-3`, labels `text-sm font-medium text-muted-foreground`, values `text-sm text-foreground whitespace-pre-wrap break-words`.
+- Description spans the value column and wraps.
+- Attachments render as a vertical list inside the value column.
+- Print stylesheet: mirror the same 180px / 1fr grid so the printed PDF matches the on-screen alignment.
 
-### 3. `src/pages/complaints/ComplaintDetail.tsx`
-- Detect applicant viewer (existing role check already present on this page) and pass `variant="applicant"` with `description` and attachments fetched from `complaint_evidence` (filename only). Internal/admin viewers keep the current full acknowledgement.
+### 3. Attachment preview
+Extend the `attachments` prop shape to optionally include a preview handle:
+```ts
+attachments?: Array<{ name: string; size?: number; path?: string; fileUploadId?: string }>
+```
+For each attachment on the applicant view, render the filename as a button that opens the file:
+- Resolve a short-lived signed URL via the existing `secureFileUpload` helpers (same pattern used elsewhere for `complaint_evidence`) using `path` when available, otherwise fetch `storage_path` by `fileUploadId` from `file_uploads`.
+- Open in a new tab (`window.open(url, '_blank', 'noopener')`) — images/PDFs preview natively; other types download.
+- Show a small `Eye` icon next to the name and size.
+- Print view keeps names + sizes only (no clickable link).
 
-No schema, RLS, or backend changes. Purely presentational.
+### 4. Callers
+- `src/pages/complaints/ComplaintsList.tsx` (applicant submit + reprint): pass attachments with `path` / `fileUploadId` when available. For the immediate post-submit case where files were just uploaded, pass the `fileUploadId` values returned by `attachStagedFilesToComplaint` (add these to its return type — small, additive change) so previews work without a refetch.
+- `src/lib/complaintAttachments.ts`: extend `AttachStagedFilesResult.uploaded` from a count to an array of `{ name, size, fileUploadId }` (keep `.length` semantics at call sites where only the count is used).
+- `src/pages/complaints/ComplaintDetail.tsx` (applicant reprint): already fetches `complaint_evidence` — include `file_upload_id` and pass through.
+
+No schema, RLS, or backend changes.
 
 ## Out of scope
-- Admin/internal acknowledgement layout (unchanged).
-- Attachment download/preview from the printed acknowledgement (names only for the applicant copy).
+- Internal/admin acknowledgement layout.
+- In-modal inline preview pane (opens in a new tab instead — matches existing document viewing pattern).

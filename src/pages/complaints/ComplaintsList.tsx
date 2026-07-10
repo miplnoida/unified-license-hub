@@ -206,8 +206,10 @@ export default function ComplaintsList() {
       }
     }
 
+    let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
+      uploadedAttachments = r.attachments;
       if (r.failed.length) {
         toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
       } else if (r.uploaded) {
@@ -215,7 +217,6 @@ export default function ComplaintsList() {
       }
     }
 
-    const stagedAttachments = newAttachments.map(f => ({ name: f.name, size: f.size }));
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
     setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
@@ -231,7 +232,9 @@ export default function ComplaintsList() {
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
         description: (inserted as any).description ?? null,
-        attachments: stagedAttachments,
+        attachments: uploadedAttachments.map(a => ({
+          name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
+        })),
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
@@ -260,8 +263,34 @@ export default function ComplaintsList() {
     loadComplaints();
   };
 
-  const reprintAck = (c: any) => {
+  const reprintAck = async (c: any) => {
     const prof = c.complainant_id ? profileMap.get(c.complainant_id) : null;
+
+    // Fetch linked evidence + file paths for preview
+    let atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] = [];
+    const { data: evidence } = await supabase
+      .from('complaint_evidence' as any)
+      .select('label, file_upload_id')
+      .eq('complaint_id', c.id);
+    const rows = (evidence as any[]) || [];
+    if (rows.length) {
+      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
+      const { data: files } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size')
+        .in('id', ids);
+      const fmap = new Map((files as any[] || []).map(f => [f.id, f]));
+      atts = rows.map(r => {
+        const f = fmap.get(r.file_upload_id);
+        return {
+          name: r.label || f?.file_name || 'Attachment',
+          size: f?.file_size,
+          filePath: f?.file_path,
+          fileUploadId: r.file_upload_id,
+        };
+      });
+    }
+
     setAckDialog({
       id: c.id,
       complaint_number: c.complaint_number,
@@ -272,6 +301,7 @@ export default function ComplaintsList() {
       channel: c.intake_source || null,
       sla_days: c.sla_days ?? 20,
       description: c.description ?? null,
+      attachments: atts,
     });
     setAckVariant(isInternal ? 'internal' : 'applicant');
   };
