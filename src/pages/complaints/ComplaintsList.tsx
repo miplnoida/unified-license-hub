@@ -206,8 +206,10 @@ export default function ComplaintsList() {
       }
     }
 
+    let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
+      uploadedAttachments = r.attachments;
       if (r.failed.length) {
         toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
       } else if (r.uploaded) {
@@ -215,7 +217,6 @@ export default function ComplaintsList() {
       }
     }
 
-    const stagedAttachments = newAttachments.map(f => ({ name: f.name, size: f.size }));
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
     setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
@@ -231,7 +232,9 @@ export default function ComplaintsList() {
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
         description: (inserted as any).description ?? null,
-        attachments: stagedAttachments,
+        attachments: uploadedAttachments.map(a => ({
+          name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
+        })),
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
