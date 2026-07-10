@@ -16,9 +16,26 @@ function scan(text: string, keywords: string[]): string[] {
   return hits;
 }
 
-async function callAdverseMediaAI(fullName: string, nationality: string | null): Promise<{ summary: string; risk: 'low' | 'medium' | 'high' } | null> {
+type AdverseMediaCategory = 'criminal_history' | 'adverse_media';
+
+type AdverseMediaResult =
+  | { ok: true; summary: string; risk: 'low' | 'medium' | 'high'; category: AdverseMediaCategory }
+  | { ok: false; reason: string };
+
+// Previously returned `null` on ANY failure (missing key, HTTP error, bad
+// JSON) — indistinguishable from a genuine "low risk, nothing found" result,
+// so a silently-broken check and a clean subject looked identical downstream.
+// Now the caller always gets a definite outcome to act on.
+//
+// The AI was already asked to search for "criminal investigations" alongside
+// fraud/corruption/sanctions, but every hit landed under the generic
+// adverse_media check_type regardless of what it actually was — a criminal
+// conviction found via media search couldn't feed criminal-history-specific
+// sector rules or routing. Now the model also classifies what it found, and
+// a criminal-history hit is filed under that check_type instead.
+async function callAdverseMediaAI(fullName: string, nationality: string | null): Promise<AdverseMediaResult> {
   const apiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!apiKey) return null;
+  if (!apiKey) return { ok: false, reason: 'AI gateway not configured (Lovable AI key missing)' };
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -26,18 +43,23 @@ async function callAdverseMediaAI(fullName: string, nationality: string | null):
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: 'You are an adverse media analyst. Given a person, respond in strict JSON: {"summary": string (max 300 chars), "risk": "low"|"medium"|"high"}. If you have no reliable info, return low risk with summary "No adverse media detected in training data.".' },
+          { role: 'system', content: 'You are an adverse media analyst. Given a person, respond in strict JSON: {"summary": string (max 300 chars), "risk": "low"|"medium"|"high", "category": "criminal_history"|"adverse_media"}. Use "criminal_history" when the adverse finding is a criminal charge, conviction, arrest, or ongoing criminal investigation; use "adverse_media" for anything else (fraud, corruption, sanctions, regulatory action, reputational issues) that isn\'t itself a criminal matter. If you have no reliable info, return low risk, category "adverse_media", with summary "No adverse media detected in training data.".' },
           { role: 'user', content: `Name: ${fullName}${nationality ? `\nNationality: ${nationality}` : ''}\n\nSearch for adverse media (fraud, corruption, sanctions, criminal investigations).` },
         ],
         response_format: { type: 'json_object' },
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, reason: `AI gateway returned ${res.status}` };
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    return { summary: String(parsed.summary || '').slice(0, 500), risk: (parsed.risk === 'high' || parsed.risk === 'medium') ? parsed.risk : 'low' };
-  } catch {
-    return null;
+    return {
+      ok: true,
+      summary: String(parsed.summary || '').slice(0, 500),
+      risk: (parsed.risk === 'high' || parsed.risk === 'medium') ? parsed.risk : 'low',
+      category: parsed.category === 'criminal_history' ? 'criminal_history' : 'adverse_media',
+    };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -210,43 +232,68 @@ Deno.serve(async (req) => {
         // Keyword scan across full declaration text + name
         const hits = scan(declStr + ' ' + person.full_name, SANCTIONS_KEYWORDS);
         if (hits.length) {
-          findings.push({ ...base, title: `Sanctions keyword match: ${hits.join(', ')}`, severity: cfg.severity_default || 'high', summary: 'Declaration text mentions sanctions-related terms — verify manually.', raw_payload: { keywords: hits }, confidence_score: 85 });
+          findings.push({ ...base, title: `Sanctions keyword match: ${hits.join(', ')}`, severity: cfg.severity_default || 'high', summary: 'Declaration text mentions sanctions-related terms — verify manually.', raw_payload: { keywords: hits }, confidence_score: 85,
+            severity_basis: { source: 'keyword_scan', reason: `Declaration text/name matched sanctions-related keyword(s): ${hits.join(', ')}. Not a real sanctions-list check — flagged for manual verification.`, matched_keywords: hits } });
         }
 
       } else if (cfg.check_type === 'pep') {
         // Keyword scan + declared director/officer role in another regulated entity
         const hits = scan(declStr, PEP_KEYWORDS);
         if (hits.length) {
-          findings.push({ ...base, title: `Potential PEP indicator: ${hits.join(', ')}`, severity: cfg.severity_default || 'medium', summary: 'Employment history mentions politically-exposed roles.', raw_payload: { keywords: hits }, confidence_score: 55 });
+          findings.push({ ...base, title: `Potential PEP indicator: ${hits.join(', ')}`, severity: cfg.severity_default || 'medium', summary: 'Employment history mentions politically-exposed roles.', raw_payload: { keywords: hits }, confidence_score: 55,
+            severity_basis: { source: 'keyword_scan', reason: `Declaration text matched PEP-related keyword(s): ${hits.join(', ')}. Indicative only — verify manually.`, matched_keywords: hits } });
         }
         for (const trig of TRIGGERS_BY_CHECK_TYPE.pep) {
           const exp = evaluateTrigger(trig);
-          if (exp) findings.push({ ...base, title: trig.title, severity: cfg.severity_default || trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence });
+          if (exp) findings.push({ ...base, title: trig.title, severity: cfg.severity_default || trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence,
+            severity_basis: { source: 'self_declaration', reason: `Declarant answered "Yes" to the declaration question behind "${trig.title}" (base severity: ${trig.severity}).`, question_key: trig.key, base_severity: trig.severity } });
         }
 
       } else if (cfg.check_type === 'criminal_history') {
         for (const trig of TRIGGERS_BY_CHECK_TYPE.criminal_history) {
           const exp = evaluateTrigger(trig);
-          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence });
+          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence,
+            severity_basis: { source: 'self_declaration', reason: `Declarant answered "Yes" to the declaration question behind "${trig.title}" (base severity: ${trig.severity}).`, question_key: trig.key, base_severity: trig.severity } });
         }
 
       } else if (cfg.check_type === 'credit_history') {
         for (const trig of TRIGGERS_BY_CHECK_TYPE.credit_history) {
           const exp = evaluateTrigger(trig);
-          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence });
+          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence,
+            severity_basis: { source: 'self_declaration', reason: `Declarant answered "Yes" to the declaration question behind "${trig.title}" (base severity: ${trig.severity}).`, question_key: trig.key, base_severity: trig.severity } });
         }
 
       } else if (cfg.check_type === 'regulator_watchlist') {
         for (const trig of TRIGGERS_BY_CHECK_TYPE.regulator_watchlist) {
           const exp = evaluateTrigger(trig);
-          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence });
+          if (exp) findings.push({ ...base, title: trig.title, severity: trig.severity, summary: exp.slice(0, 300), raw_payload: {}, confidence_score: trig.confidence,
+            severity_basis: { source: 'self_declaration', reason: `Declarant answered "Yes" to the declaration question behind "${trig.title}" (base severity: ${trig.severity}).`, question_key: trig.key, base_severity: trig.severity } });
         }
 
       } else if (cfg.check_type === 'adverse_media') {
         const ai = await callAdverseMediaAI(person.full_name, person.nationality);
-        if (ai && ai.risk !== 'low') {
-          const conf = ai.risk === 'high' ? 75 : 50;
-          findings.push({ ...base, title: `Adverse media (${ai.risk})`, severity: ai.risk === 'high' ? 'high' : 'medium', summary: ai.summary, raw_payload: { ai_model: 'google/gemini-2.5-flash' }, confidence_score: conf });
+        // Always leave a record — previously a clean ("low risk") result and a
+        // silently-failed AI call both produced zero findings, so there was no
+        // way to tell "nothing adverse found" from "this check didn't run."
+        if (!ai.ok) {
+          // source: 'ai' (overriding base.source, which is whatever free-text
+          // "provider" the admin typed for this config) so the AI Analysis
+          // screen's source.ilike.%ai% filter reliably picks this up even
+          // though check_type stays 'adverse_media' either way here.
+          findings.push({ ...base, source: 'ai', title: 'Adverse media check could not be completed', severity: cfg.severity_default || 'medium',
+            summary: `The AI adverse-media check failed to run (${ai.reason}). No conclusion was reached — re-run screening or verify manually.`,
+            raw_payload: { ai_model: 'google/gemini-2.5-flash', error: ai.reason }, confidence_score: 0,
+            severity_basis: { source: 'ai_adverse_media', reason: `AI check failed to execute: ${ai.reason}. No adverse-media conclusion is available for this individual.`, model: 'google/gemini-2.5-flash', ai_error: ai.reason } });
+        } else {
+          const conf = ai.risk === 'high' ? 75 : ai.risk === 'medium' ? 50 : 20;
+          const isCriminal = ai.category === 'criminal_history';
+          // source: 'ai' (see note above) — matters more here since a
+          // criminal_history classification falls outside the AI Analysis
+          // screen's check_type allowlist, so it must be reachable by source.
+          findings.push({ ...base, check_type: ai.category, source: 'ai',
+            title: ai.risk === 'low' ? 'Adverse media check: no indicators found' : (isCriminal ? `Criminal history (media search, ${ai.risk})` : `Adverse media (${ai.risk})`),
+            severity: ai.risk, summary: ai.summary, raw_payload: { ai_model: 'google/gemini-2.5-flash' }, confidence_score: conf,
+            severity_basis: { source: 'ai_adverse_media', reason: `LLM-assessed ${isCriminal ? 'criminal history' : 'adverse media'} risk: ${ai.risk}. A single AI text completion, not a live third-party media/database search — treat as a lead, not a confirmed hit.`, model: 'google/gemini-2.5-flash', ai_risk: ai.risk, category: ai.category } });
         }
       }
     }
@@ -284,7 +331,7 @@ Deno.serve(async (req) => {
             event_key: 'fp_high_severity_finding',
             entity_type: 'fp_assessment',
             entity_id: assessmentId,
-            payload: { individual_id: person.id, high_count: highSev.length, run_id: runRow.id },
+            payload: { individual_id: person.id, individual_name: person.full_name, high_count: highSev.length, run_id: runRow.id },
           }),
         });
       } catch (e) { console.warn('[fp-screening-run] escalation failed', e); }

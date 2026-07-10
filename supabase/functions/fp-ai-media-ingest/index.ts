@@ -43,38 +43,12 @@ Deno.serve(async (req) => {
     }
     if (!assessmentId) throw new Error('No assessment context — open an assessment first.');
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ ok: false, error: 'AI media scan is not configured (Lovable AI key missing). Ask an admin to enable the AI gateway.', total_hits: 0 }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
-      });
-    }
-
-    const prompt = `You are an adverse-media analyst producing regulator-grade evidence.
-Person: ${person.full_name}${person.nationality ? `, nationality ${person.nationality}` : ''}${person.date_of_birth ? `, DOB ${person.date_of_birth}` : ''}.
-Search reputable public sources for adverse media (fraud, corruption, sanctions, criminal charges, regulatory action). Respond in strict JSON:
-{"findings":[{"title":string,"summary":string(<=400 chars),"confidence":number(0-100),"severity":"low"|"medium"|"high","citations":[{"source_url":string,"excerpt":string(<=300 chars),"published_at":string|null}]}]}
-Only return findings you can cite. If none, return {"findings":[]}.`;
-
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'Return strict JSON only. Never invent sources.' },
-          { role: 'user', content: prompt },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!aiRes.ok) throw new Error(`AI gateway ${aiRes.status}`);
-    const aiData = await aiRes.json();
-    const raw = aiData.choices?.[0]?.message?.content || '{}';
-    const parsed = JSON.parse(raw);
-    const rawFindings: Any[] = Array.isArray(parsed.findings) ? parsed.findings : [];
-
-    // Create a screening run wrapper so it shows in the runs list
+    // Create the run row up front (before the AI call) so every outcome —
+    // including "no API key configured" or a failed AI call — leaves a
+    // durable trace in the Screening Run Log. Previously those failure paths
+    // returned before any row was ever inserted, so a genuinely broken check
+    // and a clean "no adverse media found" result looked identical: nothing
+    // on screen either way.
     const { data: runRow, error: rErr } = await supa.from('fp_screening_runs').insert({
       assessment_id: assessmentId,
       individual_id: individualId,
@@ -87,9 +61,61 @@ Only return findings you can cite. If none, return {"findings":[]}.`;
     }).select('id').single();
     if (rErr || !runRow) throw new Error(rErr?.message || 'Failed to create run');
 
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!apiKey) {
+      const msg = 'AI media scan is not configured (Lovable AI key missing). Ask an admin to enable the AI gateway.';
+      await supa.from('fp_screening_runs').update({
+        status: 'failed', completed_at: new Date().toISOString(), error: msg,
+      }).eq('id', runRow.id);
+      return new Response(JSON.stringify({ ok: false, error: msg, run_id: runRow.id, total_hits: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
+      });
+    }
+
+    const prompt = `You are an adverse-media analyst producing regulator-grade evidence.
+Person: ${person.full_name}${person.nationality ? `, nationality ${person.nationality}` : ''}${person.date_of_birth ? `, DOB ${person.date_of_birth}` : ''}.
+Search reputable public sources for adverse media (fraud, corruption, sanctions, criminal charges, regulatory action). Respond in strict JSON:
+{"findings":[{"title":string,"summary":string(<=400 chars),"confidence":number(0-100),"severity":"low"|"medium"|"high","category":"criminal_history"|"adverse_media","citations":[{"source_url":string,"excerpt":string(<=300 chars),"published_at":string|null}]}]}
+Set category to "criminal_history" for a criminal charge, conviction, arrest, or ongoing criminal investigation; use "adverse_media" for anything else (fraud, corruption, sanctions, regulatory action, reputational issues) that isn't itself a criminal matter.
+Only return findings you can cite. If none, return {"findings":[]}.`;
+
+    let rawFindings: Any[] = [];
+    try {
+      const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Return strict JSON only. Never invent sources.' },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (!aiRes.ok) throw new Error(`AI gateway ${aiRes.status}`);
+      const aiData = await aiRes.json();
+      const raw = aiData.choices?.[0]?.message?.content || '{}';
+      const parsed = JSON.parse(raw);
+      rawFindings = Array.isArray(parsed.findings) ? parsed.findings : [];
+    } catch (aiErr) {
+      const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+      await supa.from('fp_screening_runs').update({
+        status: 'failed', completed_at: new Date().toISOString(), error: msg,
+      }).eq('id', runRow.id);
+      return new Response(JSON.stringify({ ok: false, error: `AI media scan failed: ${msg}`, run_id: runRow.id, total_hits: 0 }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
+      });
+    }
+
     const inserts = rawFindings.map((f) => {
       const confidence = Number.isFinite(f.confidence) ? Math.max(0, Math.min(100, Number(f.confidence))) : 50;
       const severity = ['low', 'medium', 'high'].includes(f.severity) ? f.severity : (confidence >= 80 ? 'high' : confidence >= 50 ? 'medium' : 'low');
+      // Every hit was previously filed under the generic adverse_media
+      // check_type regardless of what it actually was — a criminal
+      // conviction found via media search couldn't feed criminal-history-
+      // specific sector rules or routing. The model now classifies each hit.
+      const checkType = f.category === 'criminal_history' ? 'criminal_history' : 'adverse_media';
       const citations = Array.isArray(f.citations) ? f.citations.slice(0, 10).map((c: Any) => ({
         source_url: String(c.source_url || '').slice(0, 500),
         excerpt: String(c.excerpt || '').slice(0, 400),
@@ -99,20 +125,25 @@ Only return findings you can cite. If none, return {"findings":[]}.`;
         assessment_id: assessmentId,
         individual_id: individualId,
         run_id: runRow.id,
-        check_type: 'adverse_media',
+        check_type: checkType,
         source: 'ai',
-        title: String(f.title || 'Adverse media hit').slice(0, 240),
+        title: String(f.title || (checkType === 'criminal_history' ? 'Criminal history hit' : 'Adverse media hit')).slice(0, 240),
         summary: String(f.summary || '').slice(0, 500),
         severity,
         confidence_score: confidence,
         citations,
-        raw_payload: { ai_model: 'google/gemini-2.5-flash' },
+        raw_payload: { ai_model: 'google/gemini-2.5-flash', category: checkType },
       };
     });
 
     if (inserts.length) {
       const { error: fErr } = await supa.from('fp_findings').insert(inserts);
-      if (fErr) throw new Error(fErr.message);
+      if (fErr) {
+        await supa.from('fp_screening_runs').update({
+          status: 'failed', completed_at: new Date().toISOString(), error: fErr.message,
+        }).eq('id', runRow.id);
+        throw new Error(fErr.message);
+      }
     }
 
     await supa.from('fp_screening_runs').update({

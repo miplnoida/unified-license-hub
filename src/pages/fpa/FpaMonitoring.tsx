@@ -189,6 +189,7 @@ function eventTypeBadgeClass(eventType: string | null): string {
   if (t === 'role_change') return 'bg-blue-50 text-blue-700 border border-blue-200';
   if (t === 'assessment_due') return 'bg-sky-50 text-sky-700 border border-sky-200';
   if (t === 'self_report') return 'bg-teal-50 text-teal-700 border border-teal-200';
+  if (t === 'manual_flag') return 'bg-red-50 text-red-700 border border-red-200';
   return 'bg-slate-50 text-slate-600 border border-slate-200';
 }
 
@@ -633,6 +634,7 @@ export default function FpaMonitoring() {
                         <SelectItem value="assessment_due">Assessment Due</SelectItem>
                         <SelectItem value="regulatory_notice">Regulatory Notice</SelectItem>
                         <SelectItem value="self_report">Self Report</SelectItem>
+                        <SelectItem value="manual_flag">Manual Flag</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

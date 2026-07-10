@@ -74,6 +74,30 @@ const SOURCE_BADGE: Record<string, string> = {
   legacy: 'bg-muted text-muted-foreground border-border',
 };
 
+// "pq_declaration" was never an object_type any code actually wrote — F&P
+// declaration submissions are logged with entity_type/object_type
+// 'fp_assessment' (see submit_declaration_form's audit_logs insert), the
+// same object_type used by every other assessment lifecycle event. Rather
+// than a raw text Object ID (a UUID nobody has memorized), this option gets
+// a proper picker of initiations to trace.
+const CASE_OBJECT_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'application', label: 'application' },
+  { value: 'registration', label: 'registration' },
+  { value: 'return', label: 'return' },
+  { value: 'complaint', label: 'complaint' },
+  { value: 'license', label: 'license' },
+  { value: 'payment', label: 'payment' },
+  { value: 'workflow', label: 'workflow' },
+  { value: 'fp_assessment', label: 'Declaration' },
+];
+
+interface InitiationOption {
+  id: string;
+  individual_name: string;
+  assessment_type: string | null;
+  created_at: string;
+}
+
 function normalizeTimelineRow(row: any): AuditRow {
   return {
     source: row.source ?? 'compliance',
@@ -134,6 +158,8 @@ export default function ComplianceAuditLogs() {
   const [caseObjectId, setCaseObjectId] = useState('');
   const [caseRows, setCaseRows] = useState<AuditRow[]>([]);
   const [caseLoading, setCaseLoading] = useState(false);
+  const [initiations, setInitiations] = useState<InitiationOption[]>([]);
+  const [initiationsLoading, setInitiationsLoading] = useState(false);
 
   // ---- Security Events ----
   const [secRows, setSecRows] = useState<SecurityRow[]>([]);
@@ -159,17 +185,53 @@ export default function ComplianceAuditLogs() {
     setLoading(false);
   }
 
-  async function loadCase() {
-    if (!caseObjectId.trim()) { setCaseRows([]); return; }
+  async function loadCase(overrideType?: string, overrideId?: string) {
+    // Accept explicit overrides so callers (like the initiation picker below)
+    // can trace immediately on selection instead of racing React's
+    // state-update batching if they relied on caseObjectId/caseObjectType
+    // right after calling their own setState.
+    const type = overrideType ?? caseObjectType;
+    const id = (overrideId ?? caseObjectId).trim();
+    if (!id) { setCaseRows([]); return; }
     setCaseLoading(true);
     const { data } = await supabase
       .from('audit_timeline')
       .select('*')
-      .eq('object_type', caseObjectType)
-      .eq('object_id', caseObjectId.trim())
+      .eq('object_type', type)
+      .eq('object_id', id)
       .order('occurred_at', { ascending: true });
     setCaseRows(((data as any[]) ?? []).map(normalizeTimelineRow));
     setCaseLoading(false);
+  }
+
+  async function loadInitiations() {
+    setInitiationsLoading(true);
+    const { data } = await supabase
+      .from('fp_assessments')
+      .select('id, assessment_type, created_at, fp_individuals(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    setInitiations(((data as any[]) ?? []).map((r: any) => ({
+      id: r.id,
+      individual_name: r.fp_individuals?.full_name ?? 'Unknown individual',
+      assessment_type: r.assessment_type,
+      created_at: r.created_at,
+    })));
+    setInitiationsLoading(false);
+  }
+
+  // "Declaration" traces are keyed by the initiating fp_assessment, not a
+  // freehand UUID — load the picker's options as soon as that object type
+  // is selected.
+  useEffect(() => {
+    if (caseObjectType === 'fp_assessment' && initiations.length === 0 && !initiationsLoading) {
+      loadInitiations();
+    }
+  }, [caseObjectType]);
+
+  function selectInitiation(id: string) {
+    setCaseObjectId(id);
+    loadCase('fp_assessment', id);
   }
 
   async function loadSec() {
@@ -312,19 +374,44 @@ export default function ComplianceAuditLogs() {
               <CardContent className="flex flex-wrap items-end gap-3">
                 <div>
                   <Label>Object Type</Label>
-                  <Select value={caseObjectType} onValueChange={setCaseObjectType}>
+                  <Select
+                    value={caseObjectType}
+                    onValueChange={(v) => { setCaseObjectType(v); setCaseObjectId(''); setCaseRows([]); }}
+                  >
                     <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {['application','registration','return','complaint','license','payment','workflow','pq_declaration'].map(t =>
-                        <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {CASE_OBJECT_TYPES.map(t =>
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex-1 min-w-[260px]">
-                  <Label>Object ID</Label>
-                  <Input value={caseObjectId} onChange={e => setCaseObjectId(e.target.value)} placeholder="Enter case / entity ID" />
-                </div>
-                <Button onClick={loadCase} disabled={caseLoading || !caseObjectId.trim()}>
+                {caseObjectType === 'fp_assessment' ? (
+                  <div className="flex-1 min-w-[260px]">
+                    <Label>Initiation</Label>
+                    <Select
+                      value={caseObjectId}
+                      onValueChange={selectInitiation}
+                      disabled={initiationsLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={initiationsLoading ? 'Loading initiations…' : 'Select an initiation…'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {initiations.map((i) => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.individual_name} — {(i.assessment_type ?? 'unknown').replace(/_/g, ' ')} ({fmt(i.created_at).slice(0, 10)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="flex-1 min-w-[260px]">
+                    <Label>Object ID</Label>
+                    <Input value={caseObjectId} onChange={e => setCaseObjectId(e.target.value)} placeholder="Enter case / entity ID" />
+                  </div>
+                )}
+                <Button onClick={() => loadCase()} disabled={caseLoading || !caseObjectId.trim()}>
                   {caseLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Trace
                 </Button>
                 <Button variant="outline" onClick={() => exportCsv('case')} disabled={caseRows.length === 0}>

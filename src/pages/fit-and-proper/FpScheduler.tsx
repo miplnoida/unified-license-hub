@@ -351,7 +351,7 @@ export default function FpScheduler() {
                             <TableCell className="font-medium">
                               {role.fp_individuals ? (
                                 <Link
-                                  to={`/fit-and-proper/individuals/${role.fp_individuals.id}`}
+                                  to={`/fpa/individuals/${role.fp_individuals.id}`}
                                   className="text-primary underline-offset-4 hover:underline"
                                 >
                                   {role.fp_individuals.full_name}

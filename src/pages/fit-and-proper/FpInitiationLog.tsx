@@ -321,7 +321,7 @@ export default function FpInitiationLog() {
                             <TableCell className="font-medium">
                               {row.fp_individuals ? (
                                 <Link
-                                  to={`/fit-and-proper/individuals/${row.fp_individuals.id}`}
+                                  to={`/fpa/individuals/${row.fp_individuals.id}`}
                                   className="text-primary underline-offset-4 hover:underline"
                                 >
                                   {row.fp_individuals.full_name}

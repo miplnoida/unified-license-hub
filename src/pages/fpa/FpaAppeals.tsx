@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -59,6 +58,7 @@ interface Appeal {
   // joined
   individual_name?: string | null;
   determination_outcome?: string | null;
+  determination_assessment_id?: string | null;
 }
 
 interface Individual {
@@ -96,7 +96,7 @@ function truncate(str: string | null, len: number): string {
 
 function statusBadge(status: string | null): { label: string; cls: string } {
   switch ((status ?? '').toLowerCase()) {
-    case 'filed':
+    case 'submitted':
       return { label: 'Filed', cls: 'bg-blue-100 text-blue-800 border border-blue-300' };
     case 'under_review':
       return { label: 'Under Review', cls: 'bg-amber-100 text-amber-800 border border-amber-300' };
@@ -116,8 +116,14 @@ function decisionBadge(decision: string | null): { label: string; cls: string } 
       return { label: 'Upheld', cls: 'bg-emerald-100 text-emerald-800 border border-emerald-300' };
     case 'dismissed':
       return { label: 'Dismissed', cls: 'bg-slate-100 text-slate-700 border border-slate-300' };
-    case 'overturned':
-      return { label: 'Overturned', cls: 'bg-red-100 text-red-800 border border-red-300' };
+    case 'partially_upheld':
+      return { label: 'Partially Upheld', cls: 'bg-amber-100 text-amber-800 border border-amber-300' };
+    case 'remitted':
+      return { label: 'Remitted', cls: 'bg-blue-100 text-blue-800 border border-blue-300' };
+    case 'overturned_to_approved':
+      return { label: 'Overturned → Approved', cls: 'bg-red-100 text-red-800 border border-red-300' };
+    case 'overturned_to_conditional':
+      return { label: 'Overturned → Conditional', cls: 'bg-red-100 text-red-800 border border-red-300' };
     default:
       return { label: decision, cls: 'bg-slate-100 text-slate-700 border border-slate-200' };
   }
@@ -358,18 +364,23 @@ export default function FpaAppeals() {
 
       // Fetch determinations
       let detMap: Record<string, string> = {};
+      let detAssessmentMap: Record<string, string | null> = {};
       if (determinationIds.length > 0) {
         const { data: dets } = await (supabase as any)
           .from('fp_determinations')
-          .select('id, outcome')
+          .select('id, outcome, assessment_id')
           .in('id', determinationIds);
-        (dets ?? []).forEach((d: any) => { detMap[d.id] = d.outcome ?? '—'; });
+        (dets ?? []).forEach((d: any) => {
+          detMap[d.id] = d.outcome ?? '—';
+          detAssessmentMap[d.id] = d.assessment_id ?? null;
+        });
       }
 
       return rows.map((r: any) => ({
         ...r,
         individual_name: r.individual_id ? (nameMap[r.individual_id] ?? '—') : '—',
         determination_outcome: r.determination_id ? (detMap[r.determination_id] ?? null) : null,
+        determination_assessment_id: r.determination_id ? (detAssessmentMap[r.determination_id] ?? null) : null,
       }));
     },
   });
@@ -409,6 +420,29 @@ export default function FpaAppeals() {
     },
   });
 
+  const { data: eligibleLicenses } = useQuery({
+    queryKey: ['fp_appeal_eligible_licenses', fileIndividualId],
+    enabled: !!fileIndividualId,
+    queryFn: async () => {
+      const { data: roles } = await supabase.from('fp_individual_roles')
+        .select('license_id').eq('individual_id', fileIndividualId).eq('is_current', true);
+      const licIds = Array.from(new Set((roles ?? []).map((r: any) => r.license_id).filter(Boolean)));
+      if (licIds.length === 0) return [];
+      const { data } = await supabase.from('licenses').select('id, license_number, license_type').in('id', licIds);
+      return data ?? [];
+    },
+  });
+
+  const { data: eligibleCommittees } = useQuery({
+    queryKey: ['fp_appeal_eligible_committees'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_committees')
+        .select('id, name').eq('is_active', true).order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // ---------------------------------------------------------------------------
   // Stats
   // ---------------------------------------------------------------------------
@@ -417,11 +451,13 @@ export default function FpaAppeals() {
     return {
       total: all.length,
       pending: all.filter((a) =>
-        ['filed', 'under_review'].includes((a.status ?? '').toLowerCase())
+        ['submitted', 'under_review'].includes((a.status ?? '').toLowerCase())
       ).length,
       upheld: all.filter((a) => (a.decision ?? '').toLowerCase() === 'upheld').length,
       dismissed: all.filter((a) => (a.decision ?? '').toLowerCase() === 'dismissed').length,
-      overturned: all.filter((a) => (a.decision ?? '').toLowerCase() === 'overturned').length,
+      overturned: all.filter((a) =>
+        ['overturned_to_approved', 'overturned_to_conditional'].includes((a.decision ?? '').toLowerCase())
+      ).length,
     };
   }, [appeals]);
 
@@ -440,7 +476,7 @@ export default function FpaAppeals() {
         grounds: fileGrounds.trim(),
         license_id: fileLicenseId.trim() || null,
         appeal_committee_id: fileCommitteeId.trim() || null,
-        status: 'filed',
+        status: 'submitted',
         filed_at: new Date().toISOString(),
         filed_by: user.id,
       }).select('id').single();
@@ -449,7 +485,7 @@ export default function FpaAppeals() {
         individualId: fileIndividualId,
         determinationId: fileDeterminationId,
         committeeId: fileCommitteeId.trim() || null,
-        after: { status: 'filed', license_id: fileLicenseId.trim() || null },
+        after: { status: 'submitted', license_id: fileLicenseId.trim() || null },
       });
     },
     onSuccess: () => {
@@ -489,6 +525,40 @@ export default function FpaAppeals() {
     mutationFn: async () => {
       if (!decisionTarget) return;
       if (!decisionValue) throw new Error('Decision is required');
+      if (decisionRationale.trim().length < 10) throw new Error('Decision rationale required (min 10 chars)');
+
+      const isOverturn = decisionValue === 'overturned_to_approved' || decisionValue === 'overturned_to_conditional';
+      let newDetId: string | null = null;
+      if (isOverturn) {
+        const outcome = decisionValue === 'overturned_to_approved' ? 'approved' : 'conditional';
+        await (supabase as any).from('fp_determinations').update({ is_current: false }).eq('id', decisionTarget.determination_id);
+        const { data: inserted, error: insErr } = await (supabase as any).from('fp_determinations').insert({
+          assessment_id: decisionTarget.determination_assessment_id,
+          individual_id: decisionTarget.individual_id,
+          outcome,
+          rationale: `Appeal outcome: ${decisionRationale.trim()}`,
+          determined_by: user?.id ?? null,
+          supersedes_id: decisionTarget.determination_id,
+          is_current: true,
+          effective_from: new Date().toISOString().slice(0, 10),
+        }).select('id').single();
+        if (insErr) throw insErr;
+        newDetId = inserted.id;
+
+        // License impact — record an auditable license action if a license was linked to this appeal.
+        if (decisionTarget.license_id) {
+          try {
+            await (supabase as any).from('license_actions').insert({
+              license_id: decisionTarget.license_id,
+              action_type: 'fp_appeal_overturn',
+              actor_id: user?.id ?? null,
+              reason: `FP appeal ${decisionValue === 'overturned_to_approved' ? 'overturned to approved' : 'overturned to conditional'}: ${decisionRationale.trim()}`,
+              metadata: { appeal_id: decisionTarget.id, individual_id: decisionTarget.individual_id, new_determination_id: newDetId, new_outcome: outcome },
+            });
+          } catch (e) { console.warn('license_actions insert failed', e); }
+        }
+      }
+
       const { error } = await (supabase as any)
         .from('fp_appeals')
         .update({
@@ -497,19 +567,32 @@ export default function FpaAppeals() {
           decision_rationale: decisionRationale.trim() || null,
           decided_at: new Date().toISOString(),
           decided_by: user?.id ?? null,
+          new_determination_id: newDetId,
         })
         .eq('id', decisionTarget.id);
       if (error) throw error;
       await logFpAppealAction('fp.appeal.decided', decisionTarget.id, {
         individualId: decisionTarget.individual_id,
-        determinationId: decisionTarget.determination_id,
-        after: { decision: decisionValue, license_id: decisionTarget.license_id ?? null },
-        justification: decisionRationale.trim() || undefined,
+        determinationId: newDetId ?? decisionTarget.determination_id,
+        after: { decision: decisionValue, new_determination_id: newDetId, license_id: decisionTarget.license_id ?? null },
+        justification: decisionRationale.trim(),
       });
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: decisionTarget.id, payload: { decision: decisionValue, individual_id: decisionTarget.individual_id, filed_by: decisionTarget.filed_by ?? null } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Decision recorded');
       qc.invalidateQueries({ queryKey: ['fp_appeals_page'] });
+      // An overturn inserts a new fp_determinations row — refresh the
+      // "Linked Determination" picker (File Appeal dialog, and Conditions &
+      // SLA's Add Condition dialog) for this individual so it isn't served
+      // stale/empty cached results.
+      if (decisionTarget) {
+        qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual', decisionTarget.individual_id] });
+      }
       setDecisionTarget(null);
       setDecisionValue('');
       setDecisionRationale('');
@@ -703,7 +786,7 @@ export default function FpaAppeals() {
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="flex items-center justify-end gap-1.5">
-                                    {st === 'filed' && (
+                                    {st === 'submitted' && (
                                       <Button
                                         size="sm"
                                         variant="outline"
@@ -800,6 +883,7 @@ export default function FpaAppeals() {
                 onValueChange={(v) => {
                   setFileIndividualId(v);
                   setFileDeterminationId('');
+                  setFileLicenseId('');
                 }}
               >
                 <SelectTrigger id="file-individual">
@@ -848,6 +932,11 @@ export default function FpaAppeals() {
                   Failed to load determinations. Please try again.
                 </p>
               )}
+              {fileIndividualId && (determinations ?? []).length === 0 && !determinationsError && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  No determinations recorded for this individual yet — record one on the Determinations screen first.
+                </p>
+              )}
             </div>
 
             {/* Grounds */}
@@ -866,18 +955,29 @@ export default function FpaAppeals() {
 
             <Separator />
 
-            {/* License ID */}
+            {/* License */}
             <div className="space-y-1.5">
               <Label htmlFor="file-license">
-                License ID{' '}
+                Linked License{' '}
                 <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
-              <Input
-                id="file-license"
-                placeholder="e.g. LIC-00142"
-                value={fileLicenseId}
-                onChange={(e) => setFileLicenseId(e.target.value)}
-              />
+              <Select
+                value={fileLicenseId || 'none'}
+                onValueChange={(v) => setFileLicenseId(v === 'none' ? '' : v)}
+                disabled={!fileIndividualId}
+              >
+                <SelectTrigger id="file-license">
+                  <SelectValue placeholder={fileIndividualId ? 'No license link' : 'Select individual first'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No license link</SelectItem>
+                  {(eligibleLicenses ?? []).map((l: any) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.license_number || l.id.slice(0, 8)} · {l.license_type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fileLicenseId.trim() && (
                 <p className="text-xs text-red-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
@@ -886,18 +986,26 @@ export default function FpaAppeals() {
               )}
             </div>
 
-            {/* Appeal Committee ID */}
+            {/* Appeal Committee */}
             <div className="space-y-1.5">
               <Label htmlFor="file-committee">
-                Appeal Committee ID{' '}
+                Appeal Committee{' '}
                 <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
-              <Input
-                id="file-committee"
-                placeholder="Committee UUID or reference"
-                value={fileCommitteeId}
-                onChange={(e) => setFileCommitteeId(e.target.value)}
-              />
+              <Select
+                value={fileCommitteeId || 'none'}
+                onValueChange={(v) => setFileCommitteeId(v === 'none' ? '' : v)}
+              >
+                <SelectTrigger id="file-committee">
+                  <SelectValue placeholder="No committee assigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No committee assigned</SelectItem>
+                  {(eligibleCommittees ?? []).map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -972,14 +1080,20 @@ export default function FpaAppeals() {
                   <SelectContent>
                     <SelectItem value="upheld">Upheld</SelectItem>
                     <SelectItem value="dismissed">Dismissed</SelectItem>
-                    <SelectItem value="overturned">Overturned</SelectItem>
+                    <SelectItem value="partially_upheld">Partially upheld</SelectItem>
+                    <SelectItem value="remitted">Remit for reconsideration</SelectItem>
+                    <SelectItem value="overturned_to_approved">Overturned → Approved</SelectItem>
+                    <SelectItem value="overturned_to_conditional">Overturned → Conditional</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Rationale */}
               <div className="space-y-1.5">
-                <Label htmlFor="decision-rationale">Decision Rationale</Label>
+                <Label htmlFor="decision-rationale">
+                  Decision Rationale <span className="text-red-500">*</span>{' '}
+                  <span className="text-muted-foreground text-xs">(min 10 characters)</span>
+                </Label>
                 <Textarea
                   id="decision-rationale"
                   rows={4}
@@ -1003,7 +1117,7 @@ export default function FpaAppeals() {
               Cancel
             </Button>
             <Button
-              disabled={!decisionValue || recordDecisionMutation.isPending}
+              disabled={!decisionValue || decisionRationale.trim().length < 10 || recordDecisionMutation.isPending}
               onClick={() => recordDecisionMutation.mutate()}
             >
               {recordDecisionMutation.isPending && (

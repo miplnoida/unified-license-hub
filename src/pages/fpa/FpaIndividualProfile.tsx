@@ -37,7 +37,16 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { logAudit } from '@/hooks/useAuditLog';
+import { logComplianceAudit } from '@/lib/complianceAudit';
+import { logFpAction } from '@/lib/fpAudit';
+import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
+import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
+import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
+import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
+import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { migrateSectionsToRows } from '@/lib/formRows';
+import type { FormSection } from '@/types/formBuilder';
 import {
   Loader2,
   Pencil,
@@ -46,6 +55,8 @@ import {
   ExternalLink,
   AlertTriangle,
   ClipboardList,
+  PlayCircle,
+  Save,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -344,6 +355,49 @@ function RolesTab({ id }: { id: string }) {
   const [roleType, setRoleType] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
   const [isCurrent, setIsCurrent] = useState(true);
+  const [reassessmentCycleMonths, setReassessmentCycleMonths] = useState('');
+  const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
+  const [runningCycle, setRunningCycle] = useState(false);
+
+  async function runCycleNow() {
+    setRunningCycle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fp-cycle-scheduler', { body: {} });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || 'Scheduler failed');
+      toast.success(`Cycle scheduler ran — opened ${data.opened}, evaluated ${data.evaluated}, due ${data.due}`);
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to run cycle scheduler');
+    } finally {
+      setRunningCycle(false);
+    }
+  }
+
+  async function saveCycle(roleId: string) {
+    const raw = cycleEdits[roleId];
+    const months = raw === '' || raw == null ? null : Number(raw);
+    if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+      toast.error('Cycle must be 1-120 months');
+      return;
+    }
+    const patch: Record<string, unknown> = { reassessment_cycle_months: months };
+    if (months != null) {
+      const next = new Date();
+      next.setMonth(next.getMonth() + months);
+      patch.next_reassessment_due = next.toISOString().slice(0, 10);
+    } else {
+      patch.next_reassessment_due = null;
+    }
+    const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Reassessment cycle updated');
+    setCycleEdits((s) => { const c = { ...s }; delete c[roleId]; return c; });
+    qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+  }
 
   const { data: licensees = [], isLoading: licenseesLoading } = useQuery({
     queryKey: ['licensees-for-role-select'],
@@ -373,13 +427,27 @@ function RolesTab({ id }: { id: string }) {
   const addRole = useMutation({
     mutationFn: async () => {
       if (!roleType.trim()) throw new Error('Role type is required');
-      const { error } = await supabase.from('fp_individual_roles').insert({
+      const months = reassessmentCycleMonths ? Number(reassessmentCycleMonths) : null;
+      if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+        throw new Error('Reassessment cycle must be 1-120 months');
+      }
+      const nextDue = months
+        ? (() => { const d = new Date(); d.setMonth(d.getMonth() + months); return d.toISOString().slice(0, 10); })()
+        : null;
+      const payload = {
         individual_id: id,
         role_type: roleType.trim(),
         licensee_id: licenseeId || null,
         is_current: isCurrent,
-      });
+        reassessment_cycle_months: months,
+        next_reassessment_due: nextDue,
+      };
+      const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.role.added', 'fp_individual_role', data.id, {
+        after: payload,
+        context: { individualId: id },
+      });
     },
     onSuccess: () => {
       toast.success('Role added');
@@ -387,6 +455,7 @@ function RolesTab({ id }: { id: string }) {
       setOpen(false);
       setRoleType('');
       setLicenseeId('');
+      setReassessmentCycleMonths('');
       setIsCurrent(true);
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to add role'),
@@ -396,6 +465,11 @@ function RolesTab({ id }: { id: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">Roles &amp; Positions</CardTitle>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
+            {runningCycle ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5 mr-1.5" />}
+            Run Cycle Scheduler
+          </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -453,6 +527,17 @@ function RolesTab({ id }: { id: string }) {
                 />
                 <Label htmlFor="is-current">Currently held</Label>
               </div>
+              <div>
+                <Label>Reassessment cycle (months)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={reassessmentCycleMonths}
+                  onChange={(e) => setReassessmentCycleMonths(e.target.value)}
+                  placeholder="e.g. 24 — leave blank for no automatic cycle"
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -465,6 +550,7 @@ function RolesTab({ id }: { id: string }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -484,30 +570,60 @@ function RolesTab({ id }: { id: string }) {
                   <TableHead>Role Type</TableHead>
                   <TableHead>Entity Name</TableHead>
                   <TableHead>Current</TableHead>
+                  <TableHead>Reassessment Cycle</TableHead>
                   <TableHead>Recorded</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(roles ?? []).map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{capitalize(r.role_type)}</TableCell>
-                    <TableCell>{r.licensees?.name || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>
-                      {r.is_current ? (
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 text-xs">
-                          Yes
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-xs">
-                          No
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground tabular-nums">
-                      {fmtDate(r.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(roles ?? []).map((r: any) => {
+                  const editVal = cycleEdits[r.id];
+                  const shown = editVal !== undefined ? editVal : (r.reassessment_cycle_months ?? '');
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{capitalize(r.role_type)}</TableCell>
+                      <TableCell>{r.licensees?.name || <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell>
+                        {r.is_current ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 text-xs">
+                            Yes
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-xs">
+                            No
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.is_current ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={120}
+                              placeholder="months"
+                              value={shown}
+                              onChange={(e) => setCycleEdits((s) => ({ ...s, [r.id]: e.target.value }))}
+                              className="h-8 w-20"
+                            />
+                            <Button size="sm" variant="outline" className="h-8" onClick={() => saveCycle(r.id)} disabled={editVal === undefined}>
+                              <Save className="h-3.5 w-3.5" />
+                            </Button>
+                            {r.next_reassessment_due && (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                due {fmtDate(r.next_reassessment_due)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground tabular-nums">
+                        {fmtDate(r.created_at)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -544,9 +660,32 @@ function AssessmentDetailDialog({
     },
   });
 
+  // The submitted declaration lives as flat answers in declaration_data —
+  // the public portal (DeclarationQuestionnaire.tsx) doesn't pin a specific
+  // form_version_id per assessment, it always renders whatever the current
+  // live "fit_and_proper"/"declaration" form is. Reuse that exact same RPC
+  // (already granted to `authenticated`, not just `anon`) so staff see the
+  // submitted answers labeled and sectioned the same way the declarant saw
+  // them, instead of a raw key/value dump.
+  const hasDeclaration = !!detail?.declaration_data && Object.keys(detail.declaration_data).length > 0;
+  const { data: formVersion, isLoading: loadingForm } = useQuery({
+    queryKey: ['fp_declaration_form_public'],
+    enabled: open && hasDeclaration,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_fp_declaration_form_public' as any);
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as { template_id: string; version_id: string; schema_snapshot: unknown } | null;
+    },
+  });
+  const declarationSections = (() => {
+    if (!formVersion?.schema_snapshot) return [] as FormSection[];
+    return migrateSectionsToRows(formVersion.schema_snapshot as FormSection[]);
+  })();
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assessment Detail</DialogTitle>
         </DialogHeader>
@@ -582,6 +721,34 @@ function AssessmentDetailDialog({
                 <p className="text-sm text-foreground whitespace-pre-line">{detail.notes}</p>
               </div>
             )}
+
+            <Separator />
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Declaration</p>
+              {!hasDeclaration ? (
+                <p className="text-sm text-muted-foreground italic">No declaration submitted yet for this assessment.</p>
+              ) : loadingForm ? (
+                <div className="py-4 text-center text-muted-foreground">
+                  <Loader2 className="h-4 w-4 inline animate-spin mr-2" />
+                  Loading declaration form…
+                </div>
+              ) : declarationSections.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  Declaration was submitted, but the form used to render it could not be loaded.
+                </p>
+              ) : (
+                <FormRenderer
+                  formName=""
+                  sections={declarationSections}
+                  initialData={detail.declaration_data}
+                  readOnly
+                  saving={false}
+                  onSaveDraft={() => {}}
+                  onSubmit={() => {}}
+                />
+              )}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground py-4">Assessment details unavailable.</p>
@@ -788,11 +955,11 @@ function AccessControlTab({ id }: { id: string }) {
     }
     setSubmitting(true);
     try {
-      await logAudit({
-        action: 'fp_individual.access.denied',
-        entityType: 'fp_individual',
-        entityId: id,
-        metadata: { reason: reason.trim() },
+      await logComplianceAudit({
+        action_type: 'ACCESS_DENIED',
+        object_type: 'fp_individual',
+        object_id: id,
+        justification: reason.trim(),
       });
       toast.success('Access denial logged to audit trail');
       setDenialOpen(false);
@@ -953,6 +1120,28 @@ export default function FpaIndividualProfile() {
     },
   });
 
+  // Committee assignment/finalize, screening runs, conditions, appeals, and
+  // monitoring events for this individual were only reachable via the
+  // legacy /fit-and-proper/individuals/:id screen (not in the nav) — ported
+  // in as tabs below so this, the current individual profile, is the single
+  // place staff need to work a case end-to-end.
+  const { data: latestAssessment } = useQuery({
+    queryKey: ['fp_latest_assessment', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_assessments')
+        .select('id')
+        .eq('individual_id', id!)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const latestAssessmentId = latestAssessment?.id ?? null;
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -1009,6 +1198,22 @@ export default function FpaIndividualProfile() {
           description="Full subject profile — FPA-003"
           backHref="/fpa/individuals"
           backLabel="Individuals"
+          actions={
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/fpa/findings?individual_id=${id}`}>
+                  <ClipboardList className="h-4 w-4 mr-1.5" />
+                  View Findings
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/admin/case-audit/fp_individual/${id}`}>
+                  <ExternalLink className="h-4 w-4 mr-1.5" />
+                  Case Audit Trail
+                </Link>
+              </Button>
+            </>
+          }
         />
 
         <Tabs defaultValue="profile">
@@ -1016,6 +1221,11 @@ export default function FpaIndividualProfile() {
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="assessments">Assessments</TabsTrigger>
+            <TabsTrigger value="screening">Screening</TabsTrigger>
+            <TabsTrigger value="determinations">Determinations</TabsTrigger>
+            <TabsTrigger value="conditions">Conditions</TabsTrigger>
+            <TabsTrigger value="appeals">Appeals</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
             <TabsTrigger value="access-control">Access Control</TabsTrigger>
           </TabsList>
 
@@ -1029,6 +1239,26 @@ export default function FpaIndividualProfile() {
 
           <TabsContent value="assessments">
             <AssessmentsTab id={id!} />
+          </TabsContent>
+
+          <TabsContent value="screening">
+            <FpScreeningPanel individualId={id!} assessmentId={latestAssessmentId} />
+          </TabsContent>
+
+          <TabsContent value="determinations">
+            <FpDeterminationsPanel individualId={id!} assessmentId={latestAssessmentId} />
+          </TabsContent>
+
+          <TabsContent value="conditions">
+            <FpConditionsPanel individualId={id!} />
+          </TabsContent>
+
+          <TabsContent value="appeals">
+            <FpAppealsPanel individualId={id!} />
+          </TabsContent>
+
+          <TabsContent value="monitoring">
+            <FpMonitoringPanel individualId={id!} />
           </TabsContent>
 
           <TabsContent value="access-control">

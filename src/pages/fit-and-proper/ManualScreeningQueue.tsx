@@ -233,7 +233,7 @@ export default function ManualScreeningQueue() {
                           <TableCell className="font-medium">
                             {individual.id ? (
                               <Link
-                                to={`/fit-and-proper/individuals/${individual.id}`}
+                                to={`/fpa/individuals/${individual.id}`}
                                 className="text-blue-600 hover:underline text-sm"
                               >
                                 {individual.full_name ?? individual.id.slice(0, 8)}

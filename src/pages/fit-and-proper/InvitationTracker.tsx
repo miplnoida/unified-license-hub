@@ -439,7 +439,7 @@ export default function InvitationTracker() {
                           {/* Individual */}
                           <TableCell className="font-medium whitespace-nowrap">
                             <Link
-                              to={`/fit-and-proper/individuals/${r.individual_id}`}
+                              to={`/fpa/individuals/${r.individual_id}`}
                               className="hover:underline text-primary"
                             >
                               {r.fp_individuals?.full_name ?? r.individual_id}

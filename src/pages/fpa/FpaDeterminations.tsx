@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -92,6 +93,7 @@ interface AssessmentDetail {
   role_id: string | null;
   licensee_id: string | null;
   regulator_id: string | null;
+  committee_id: string | null;
 }
 
 interface RegulatorRow {
@@ -154,6 +156,29 @@ function OutcomeBadge({ outcome }: { outcome: string | null }) {
         <Badge className="bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100 gap-1">
           <Clock className="h-3 w-3" />
           Deferred
+        </Badge>
+      );
+    // Committee-voting panel (FpDeterminationsPanel.tsx) uses a different
+    // outcome vocabulary for the same fp_determinations table.
+    case 'approved':
+      return (
+        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Approved
+        </Badge>
+      );
+    case 'rejected':
+      return (
+        <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-50 gap-1">
+          <XCircle className="h-3 w-3" />
+          Rejected
+        </Badge>
+      );
+    case 'withdrawn':
+      return (
+        <Badge className="bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100 gap-1">
+          <Clock className="h-3 w-3" />
+          Withdrawn
         </Badge>
       );
     default:
@@ -233,6 +258,7 @@ function DeterminationDetailDialog({
   trigger: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: accessLog, isLoading: loadingLog } = useQuery({
     queryKey: ['fp_determination_audit_log', determination.id],
@@ -301,6 +327,20 @@ function DeterminationDetailDialog({
               </p>
               <p>{assessment.assessment_type?.replace(/_/g, ' ') ?? '—'} · <Badge variant="outline">{assessment.status ?? '—'}</Badge></p>
             </div>
+          )}
+
+          {determination.outcome === 'conditional' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/fpa/conditions?open=1&individual_id=${determination.individual_id}&determination_id=${determination.id}`);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Condition
+            </Button>
           )}
 
           <Separator />
@@ -429,7 +469,11 @@ function ComparisonCard({
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
-type OutcomeFilter = 'all' | 'fit' | 'not_fit' | 'conditional' | 'deferred';
+// Two determination-creation paths use different outcome vocabularies (this
+// screen: fit/not_fit/conditional/deferred; the committee-voting panel,
+// FpDeterminationsPanel.tsx: approved/conditional/rejected/withdrawn) — both
+// are filterable here so committee-recorded determinations aren't invisible.
+type OutcomeFilter = 'all' | 'fit' | 'not_fit' | 'conditional' | 'deferred' | 'approved' | 'rejected' | 'withdrawn';
 type CurrentFilter = 'all' | 'current' | 'superseded';
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -437,6 +481,7 @@ type CurrentFilter = 'all' | 'current' | 'superseded';
 export default function FpaDeterminations() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [view, setView] = useState<'list' | 'comparison'>('list');
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
@@ -444,6 +489,11 @@ export default function FpaDeterminations() {
   const [regulatorFilter, setRegulatorFilter] = useState<string>('all');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  // A conditional outcome should have at least one condition attached — this
+  // was previously a toast with an action button, easy to miss/dismiss
+  // since toasts auto-hide. A centered dialog makes the follow-up decision
+  // unmissable instead.
+  const [conditionPrompt, setConditionPrompt] = useState<{ individualId: string; determinationId: string } | null>(null);
 
   // ── Queries ────────────────────────────────────────────────────────────────
 
@@ -482,7 +532,7 @@ export default function FpaDeterminations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_assessments')
-        .select('id, individual_id, assessment_type, status, role_id, licensee_id, regulator_id')
+        .select('id, individual_id, assessment_type, status, role_id, licensee_id, regulator_id, committee_id')
         .order('created_at', { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -575,6 +625,19 @@ export default function FpaDeterminations() {
   // so a determination can never end up attributed to a different regulator
   // than the assessment it's based on.
   const assessmentRegulatorId = selectedAssessmentObj?.regulator_id ?? null;
+
+  // A DB trigger (fp_check_determination_finalize) rejects any fresh, current
+  // determination unless the assessment already has a committee assigned OR
+  // the caller holds the admin role — this screen has no committee-assignment
+  // step of its own (that lives on the individual profile's Determinations
+  // tab, /fpa/individuals/:id), so warn before submit instead of letting the
+  // raw Postgres exception be the first sign of the problem.
+  // user.role is the primary static role and doesn't capture admin access
+  // granted only through a dynamic role, so this is a best-effort hint, not
+  // the authoritative check — the trigger itself remains the real gate.
+  const isLikelyAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const assessmentHasCommittee = !!selectedAssessmentObj?.committee_id;
+  const showsNoCommitteeWarning = !!form.assessment_id && !assessmentHasCommittee && !isLikelyAdmin;
 
   // ── Sector-specific decision logic (mirrors FpDeterminationsPanel) ─────────
 
@@ -689,6 +752,14 @@ export default function FpaDeterminations() {
         .single();
       if (error) throw error;
 
+      // Keep the assessment's own lifecycle stage in sync with the determination —
+      // the committee-voting panel (FpDeterminationsPanel.tsx) already does this;
+      // this screen previously left fp_assessments.status untouched entirely.
+      await supabase.from('fp_assessments').update({
+        status: 'determined',
+        determined_at: new Date().toISOString(),
+      } as any).eq('id', form.assessment_id);
+
       await logFpAction(`fp.determination.${form.outcome}`, 'fp_determination', inserted.id, {
         after: {
           outcome: form.outcome,
@@ -705,15 +776,40 @@ export default function FpaDeterminations() {
         },
         justification: form.rationale.trim(),
       });
+
+      return {
+        outcome: form.outcome,
+        individualId: form.individual_id,
+        determinationId: inserted.id,
+      };
     },
-    onSuccess: () => {
-      toast.success('Determination recorded.');
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['fp_determinations'] });
+      // Conditions & SLA and Appeals key their "Linked Determination" picker
+      // off ['fp_determinations_for_individual', individualId] — a different
+      // top-level key from ['fp_determinations'], so invalidating the list
+      // above never refreshed it. A determination created here (or via the
+      // committee finalize panel) would stay invisible to those pickers
+      // until the cache aged out or the page was reloaded.
+      qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual'] });
       setOpen(false);
       setForm(EMPTY_FORM);
+
+      toast.success('Determination recorded.');
+      if (result.outcome === 'conditional') {
+        setConditionPrompt({ individualId: result.individualId, determinationId: result.determinationId });
+      }
     },
     onError: (e: any) => {
-      toast.error(e?.message || 'Failed to record determination.');
+      const raw = e?.message || 'Failed to record determination.';
+      const friendly = raw.includes('Cannot finalize determination without an assigned committee')
+        ? 'This assessment has no committee assigned. Assign one from the individual\'s Determinations tab (/fpa/individuals/:id), or ask an admin to record this determination.'
+        : raw.includes('Quorum not met')
+        ? `Committee quorum not met yet: ${raw.replace(/^.*?Quorum not met: /, '')}. Cast more votes on /fpa/committee before finalizing.`
+        : raw.includes('Approval threshold not met')
+        ? `Committee approval threshold not met: ${raw.replace(/^.*?Approval threshold not met: /, '')}.`
+        : raw;
+      toast.error(friendly);
     },
   });
 
@@ -793,27 +889,6 @@ export default function FpaDeterminations() {
                     </Select>
                   </div>
 
-                  {/* Outcome */}
-                  <div>
-                    <Label>
-                      Outcome <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={form.outcome}
-                      onValueChange={(v) => setForm((f) => ({ ...f, outcome: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select outcome…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fit">Fit</SelectItem>
-                        <SelectItem value="not_fit">Not Fit</SelectItem>
-                        <SelectItem value="conditional">Conditionally Fit</SelectItem>
-                        <SelectItem value="deferred">Deferred</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   {/* Regulator — inherent to the assessment when it has one */}
                   <div>
                     <Label>Regulator</Label>
@@ -840,6 +915,28 @@ export default function FpaDeterminations() {
                       </Select>
                     )}
                   </div>
+
+                  {/* No-committee warning — this screen has no way to assign a
+                      committee itself; surface the blocker before submit. */}
+                  {showsNoCommitteeWarning && (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                      <div className="font-medium flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        No committee assigned to this assessment
+                      </div>
+                      <p className="text-xs mt-1">
+                        Recording a determination here will be rejected unless a committee is first
+                        assigned to this assessment, or you hold admin access. Assign a committee from{' '}
+                        {form.individual_id ? (
+                          <Link to={`/fpa/individuals/${form.individual_id}`} className="underline font-medium" target="_blank" rel="noreferrer">
+                            this individual's Determinations tab
+                          </Link>
+                        ) : (
+                          "the individual's Determinations tab"
+                        )}, or ask an admin to record this one.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Sector-specific decision logic */}
                   {sectorRule && (
@@ -1062,6 +1159,9 @@ export default function FpaDeterminations() {
                       <SelectItem value="not_fit">Not Fit</SelectItem>
                       <SelectItem value="conditional">Conditional</SelectItem>
                       <SelectItem value="deferred">Deferred</SelectItem>
+                      <SelectItem value="approved">Approved (committee)</SelectItem>
+                      <SelectItem value="rejected">Rejected (committee)</SelectItem>
+                      <SelectItem value="withdrawn">Withdrawn (committee)</SelectItem>
                     </SelectContent>
                   </Select>
                   {/* Current filter */}
@@ -1227,6 +1327,34 @@ export default function FpaDeterminations() {
           </div>
         )}
       </div>
+
+      {/* Conditional-outcome follow-up — a centered dialog so the decision to
+          attach a condition isn't easy to miss/dismiss the way a toast is. */}
+      <Dialog open={!!conditionPrompt} onOpenChange={(v) => { if (!v) setConditionPrompt(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a condition?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This determination was recorded as conditional. Conditional outcomes should have at
+            least one tracked condition (with a due date) attached — would you like to add one now?
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConditionPrompt(null)}>
+              Not now
+            </Button>
+            <Button
+              onClick={() => {
+                if (!conditionPrompt) return;
+                navigate(`/fpa/conditions?open=1&individual_id=${conditionPrompt.individualId}&determination_id=${conditionPrompt.determinationId}`);
+                setConditionPrompt(null);
+              }}
+            >
+              Add Condition
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

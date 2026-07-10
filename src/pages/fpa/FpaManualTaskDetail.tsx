@@ -36,6 +36,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
+import { normalizeFpEvidence, fpEvidenceDisplayName, openFpEvidenceFile } from '@/lib/fpEvidence';
 
 // ── Severity helpers ──────────────────────────────────────────────────────────
 
@@ -234,8 +235,13 @@ export default function FpaManualTaskDetail() {
 
     setRemovingPaths((prev) => new Set(prev).add(path));
 
-    const currentPaths: string[] = Array.isArray(finding?.evidence_urls) ? finding.evidence_urls : [];
-    const updated = currentPaths.filter((p) => p !== path);
+    // Filter the raw array (not the normalized copy) so unrelated entries —
+    // whichever of the two historical shapes they're in — are left untouched.
+    const rawList: unknown[] = Array.isArray(finding?.evidence_urls) ? finding.evidence_urls : [];
+    const updated = rawList.filter((entry) => {
+      const p = typeof entry === 'string' ? entry : (entry && typeof entry === 'object' ? (entry as Record<string, unknown>).path : undefined);
+      return p !== path;
+    });
 
     const { error: dbError } = await supabase
       .from('fp_findings')
@@ -280,20 +286,7 @@ export default function FpaManualTaskDetail() {
 
   // Evidence paths are opaque storage keys, not public URLs — mint a
   // short-lived signed URL each time a file is opened.
-  const openEvidenceFile = async (path: string) => {
-    const { data, error } = await supabase.storage.from('fp-evidence').createSignedUrl(path, 300);
-    if (error || !data?.signedUrl) {
-      toast.error(`Failed to open file: ${error?.message ?? 'Unknown error'}`);
-      return;
-    }
-    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  function evidenceFileName(path: string) {
-    const name = path.split('/').pop() ?? path;
-    // Strip the "<timestamp>-<index>-" prefix added at upload time, if present.
-    return name.replace(/^\d+-\d+-/, '');
-  }
+  const openEvidenceFile = openFpEvidenceFile;
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -329,6 +322,11 @@ export default function FpaManualTaskDetail() {
         } as any)
         .eq('id', findingId);
       if (error) throw error;
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_finding_assigned', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: userId } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Task assigned.');
@@ -374,6 +372,11 @@ export default function FpaManualTaskDetail() {
         } as any)
         .eq('id', findingId);
       if (error) throw error;
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_finding_resolved', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: finding?.assigned_to ?? null, outcome: 'cleared' } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Finding cleared');
@@ -399,6 +402,11 @@ export default function FpaManualTaskDetail() {
         } as any)
         .eq('id', findingId);
       if (error) throw error;
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_finding_resolved', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: finding?.assigned_to ?? null, outcome: 'confirmed adverse' } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Adverse finding confirmed');
@@ -431,7 +439,7 @@ export default function FpaManualTaskDetail() {
   // ── Derived data ──────────────────────────────────────────────────────────
 
   const citations: string[] = Array.isArray(finding.citations) ? finding.citations : [];
-  const evidenceUrls: string[] = Array.isArray(finding.evidence_urls) ? finding.evidence_urls : [];
+  const evidenceItems = normalizeFpEvidence(finding.evidence_urls);
   const isResolved =
     finding.resolution_status === 'false_positive' ||
     finding.resolution_status === 'confirmed';
@@ -559,31 +567,31 @@ export default function FpaManualTaskDetail() {
                 )}
 
                 {/* Evidence URLs */}
-                {evidenceUrls.length > 0 && (
+                {evidenceItems.length > 0 && (
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                       Evidence URLs
                     </p>
                     <ul className="space-y-1.5">
-                      {evidenceUrls.map((path: string, i: number) => (
+                      {evidenceItems.map((item, i) => (
                         <li key={i} className="flex items-center justify-between gap-2">
                           <button
                             type="button"
-                            onClick={() => openEvidenceFile(path)}
+                            onClick={() => openEvidenceFile(item.path)}
                             className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1 text-left"
                           >
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                            {evidenceFileName(path)}
+                            {fpEvidenceDisplayName(item)}
                           </button>
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                            disabled={removingPaths.has(path)}
-                            onClick={() => handleEvidenceRemove(path)}
+                            disabled={removingPaths.has(item.path)}
+                            onClick={() => handleEvidenceRemove(item.path)}
                           >
-                            {removingPaths.has(path) ? (
+                            {removingPaths.has(item.path) ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <Trash2 className="h-3.5 w-3.5" />
@@ -596,7 +604,7 @@ export default function FpaManualTaskDetail() {
                 )}
 
                 {/* Legacy single evidence_url */}
-                {finding.evidence_url && !evidenceUrls.includes(finding.evidence_url) && (
+                {finding.evidence_url && !evidenceItems.some((it) => it.path === finding.evidence_url) && (
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                       Evidence Link
@@ -668,31 +676,31 @@ export default function FpaManualTaskDetail() {
                 </div>
 
                 {/* Already-attached evidence */}
-                {evidenceUrls.length > 0 && (
+                {evidenceItems.length > 0 && (
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                       Attached Evidence
                     </p>
                     <ul className="space-y-1.5">
-                      {evidenceUrls.map((path: string, i: number) => (
+                      {evidenceItems.map((item, i) => (
                         <li key={i} className="flex items-center justify-between gap-2">
                           <button
                             type="button"
-                            onClick={() => openEvidenceFile(path)}
+                            onClick={() => openEvidenceFile(item.path)}
                             className="text-sm text-blue-600 hover:underline break-all inline-flex items-center gap-1 text-left"
                           >
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                            {evidenceFileName(path)}
+                            {fpEvidenceDisplayName(item)}
                           </button>
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                            disabled={removingPaths.has(path)}
-                            onClick={() => handleEvidenceRemove(path)}
+                            disabled={removingPaths.has(item.path)}
+                            onClick={() => handleEvidenceRemove(item.path)}
                           >
-                            {removingPaths.has(path) ? (
+                            {removingPaths.has(item.path) ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <Trash2 className="h-3.5 w-3.5" />
@@ -705,7 +713,7 @@ export default function FpaManualTaskDetail() {
                 )}
 
                 {/* Legacy single evidence_url (if not already in array) */}
-                {finding.evidence_url && !evidenceUrls.includes(finding.evidence_url) && (
+                {finding.evidence_url && !evidenceItems.some((it) => it.path === finding.evidence_url) && (
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                       Attached Evidence

@@ -1,6 +1,17 @@
 import { Route } from 'react-router-dom';
 import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
+import { ModuleRoute } from '@/components/auth/RouteGuards';
+import type { PermissionModule } from '@/lib/permissionModules';
+
+// Every /fpa/* screen requires the fit_and_proper module permission — previously
+// these routes only checked session auth (P), so any authenticated user could
+// open any F&P screen directly by URL; only silent RLS (no logged denial)
+// stopped them. M mirrors the same helper used for /fit-and-proper/* routes.
+function M({ children }: { children: React.ReactNode }) {
+  const module: PermissionModule = 'fit_and_proper';
+  return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
+}
 
 const FpaDashboard = lazy(() => import('@/pages/fpa/FpaDashboard'));
 const FpaIndividuals = lazy(() => import('@/pages/fpa/FpaIndividuals'));
@@ -20,26 +31,28 @@ const FpaCommittee = lazy(() => import('@/pages/fpa/FpaCommittee'));
 const FpaConditions = lazy(() => import('@/pages/fpa/FpaConditions'));
 const FpaAppeals = lazy(() => import('@/pages/fpa/FpaAppeals'));
 const FpaMonitoring = lazy(() => import('@/pages/fpa/FpaMonitoring'));
+const FpaNotificationLog = lazy(() => import('@/pages/fpa/FpaNotificationLog'));
 
 export const fpaRoutes = (
   <>
-    <Route path="/fpa" element={<P><FpaDashboard /></P>} />
-    <Route path="/fpa/individuals" element={<P><FpaIndividuals /></P>} />
-    <Route path="/fpa/individuals/:id" element={<P><FpaIndividualProfile /></P>} />
-    <Route path="/fpa/initiation" element={<P><FpaInitiation /></P>} />
-    <Route path="/fpa/declarations" element={<P><FpaDeclarations /></P>} />
-    <Route path="/fpa/screening" element={<P><FpaScreening /></P>} />
-    <Route path="/fpa/manual-tasks" element={<P><FpaManualTasks /></P>} />
-    <Route path="/fpa/manual-tasks/:id" element={<P><FpaManualTaskDetail /></P>} />
-    <Route path="/fpa/findings" element={<P><FpaFindings /></P>} />
-    <Route path="/fpa/findings/:id" element={<P><FpaFindingDetail /></P>} />
-    <Route path="/fpa/trends" element={<P><FpaTrends /></P>} />
-    <Route path="/fpa/ai-analysis" element={<P><FpaAiAnalysis /></P>} />
-    <Route path="/fpa/sector-rules" element={<P><FpaSectorRules /></P>} />
-    <Route path="/fpa/determinations" element={<P><FpaDeterminations /></P>} />
-    <Route path="/fpa/committee" element={<P><FpaCommittee /></P>} />
-    <Route path="/fpa/conditions" element={<P><FpaConditions /></P>} />
-    <Route path="/fpa/appeals" element={<P><FpaAppeals /></P>} />
-    <Route path="/fpa/monitoring" element={<P><FpaMonitoring /></P>} />
+    <Route path="/fpa" element={<M><FpaDashboard /></M>} />
+    <Route path="/fpa/individuals" element={<M><FpaIndividuals /></M>} />
+    <Route path="/fpa/individuals/:id" element={<M><FpaIndividualProfile /></M>} />
+    <Route path="/fpa/initiation" element={<M><FpaInitiation /></M>} />
+    <Route path="/fpa/declarations" element={<M><FpaDeclarations /></M>} />
+    <Route path="/fpa/screening" element={<M><FpaScreening /></M>} />
+    <Route path="/fpa/manual-tasks" element={<M><FpaManualTasks /></M>} />
+    <Route path="/fpa/manual-tasks/:id" element={<M><FpaManualTaskDetail /></M>} />
+    <Route path="/fpa/findings" element={<M><FpaFindings /></M>} />
+    <Route path="/fpa/findings/:id" element={<M><FpaFindingDetail /></M>} />
+    <Route path="/fpa/trends" element={<M><FpaTrends /></M>} />
+    <Route path="/fpa/ai-analysis" element={<M><FpaAiAnalysis /></M>} />
+    <Route path="/fpa/sector-rules" element={<M><FpaSectorRules /></M>} />
+    <Route path="/fpa/determinations" element={<M><FpaDeterminations /></M>} />
+    <Route path="/fpa/committee" element={<M><FpaCommittee /></M>} />
+    <Route path="/fpa/conditions" element={<M><FpaConditions /></M>} />
+    <Route path="/fpa/appeals" element={<M><FpaAppeals /></M>} />
+    <Route path="/fpa/monitoring" element={<M><FpaMonitoring /></M>} />
+    <Route path="/fpa/notifications" element={<M><FpaNotificationLog /></M>} />
   </>
 );

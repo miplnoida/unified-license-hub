@@ -14,6 +14,9 @@ import { toast } from 'sonner';
 import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
+
+const NONE_SENTINEL = '__none__';
 
 const CATEGORIES = [
   { value: 'training', label: 'Training / certification' },
@@ -43,6 +46,19 @@ export function FpConditionsPanel({ individualId }: Props) {
   const [form, setForm] = useState(EMPTY);
   const [satisfyFor, setSatisfyFor] = useState<string | null>(null);
   const [satNote, setSatNote] = useState('');
+  const [reopenFor, setReopenFor] = useState<string | null>(null);
+  const [reopenNote, setReopenNote] = useState('');
+
+  // fp_conditions.monitoring_owner is a UUID column (a real staff member),
+  // not free text — a plain text Input here previously wrote arbitrary
+  // strings into it, which the database rejects the moment anyone types an
+  // actual name ("invalid input syntax for type uuid").
+  const { data: monitoringOwners } = useEmployeeApprovers();
+  const monitoringOwnerName = (id: string | null | undefined) => {
+    if (!id) return null;
+    const owner = (monitoringOwners ?? []).find((e) => e.id === id);
+    return owner ? (owner.full_name || owner.email || id) : id;
+  };
   const [pending, setPending] = useState<null | {
     ruleKey: string;
     title: string;
@@ -139,7 +155,10 @@ export function FpConditionsPanel({ individualId }: Props) {
   });
 
   const reopen = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      if (!reason || reason.trim().length < 5) {
+        throw new Error('Reopen reason required (min 5 chars)');
+      }
       const { error } = await supabase.from('fp_conditions').update({
         status: 'open', satisfied_at: null, satisfied_by: null, satisfaction_note: null,
       }).eq('id', id);
@@ -147,12 +166,15 @@ export function FpConditionsPanel({ individualId }: Props) {
       await logFpAction('fp.condition.reopened', 'fp_condition', id, {
         after: { status: 'open' },
         context: { individualId, conditionId: id },
+        justification: reason.trim(),
       });
     },
     onSuccess: () => {
       toast.success('Reopened');
+      setReopenFor(null); setReopenNote('');
       qc.invalidateQueries({ queryKey: ['fp_conditions', individualId] });
     },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
   return (
@@ -185,7 +207,21 @@ export function FpConditionsPanel({ individualId }: Props) {
                     </Select>
                   </div>
                 </div>
-                <div><Label>Monitoring owner</Label><Input value={form.monitoring_owner} onChange={(e) => setForm({ ...form, monitoring_owner: e.target.value })} placeholder="Team / person responsible" /></div>
+                <div>
+                  <Label>Monitoring owner</Label>
+                  <Select
+                    value={form.monitoring_owner || NONE_SENTINEL}
+                    onValueChange={(v) => setForm({ ...form, monitoring_owner: v === NONE_SENTINEL ? '' : v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select the person/team responsible…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_SENTINEL}>Not assigned</SelectItem>
+                      {(monitoringOwners ?? []).map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.full_name || e.email || e.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
@@ -219,15 +255,30 @@ export function FpConditionsPanel({ individualId }: Props) {
                     <div className="text-sm mt-1">{c.description}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {c.due_date ? `Due ${new Date(c.due_date).toLocaleDateString()}` : 'No deadline'}
-                      {c.monitoring_owner ? ` · Owner: ${c.monitoring_owner}` : ''}
+                      {c.monitoring_owner ? ` · Owner: ${monitoringOwnerName(c.monitoring_owner)}` : ''}
                     </div>
                     {c.satisfaction_note && <div className="text-xs italic mt-1">Note: {c.satisfaction_note}</div>}
                   </div>
                   <div className="flex gap-1">
                     {isOpen && <Button size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
-                    {!isOpen && <Button size="sm" variant="ghost" onClick={() => reopen.mutate(c.id)}>Reopen</Button>}
+                    {!isOpen && <Button size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
                   </div>
                 </div>
+                {reopenFor === c.id && (
+                  <div className="mt-2 space-y-2">
+                    <Textarea rows={2} placeholder="Reason for reopening (required)" value={reopenNote} onChange={(e) => setReopenNote(e.target.value)} />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setReopenFor(null)}>Cancel</Button>
+                      <Button
+                        size="sm"
+                        onClick={() => reopen.mutate({ id: c.id, reason: reopenNote })}
+                        disabled={reopen.isPending || reopenNote.trim().length < 5}
+                      >
+                        {reopen.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirm reopen
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {satisfyFor === c.id && (
                   <div className="mt-2 space-y-2">
                     <Textarea rows={2} placeholder="Evidence / note" value={satNote} onChange={(e) => setSatNote(e.target.value)} />

@@ -155,7 +155,8 @@ export function FpAppealsPanel({ individualId }: Props) {
       if (note.trim().length < 10) throw new Error('Decision rationale required (min 10 chars)');
 
       let newDetId: string | null = null;
-      if (decision !== 'upheld_original') {
+      const isOverturn = decision === 'overturned_to_approved' || decision === 'overturned_to_conditional';
+      if (isOverturn) {
         const outcome = decision === 'overturned_to_approved' ? 'approved' : 'conditional';
         await supabase.from('fp_determinations').update({ is_current: false }).eq('id', appeal.determination_id);
         const { data: inserted, error: insErr } = await supabase.from('fp_determinations').insert({
@@ -203,7 +204,7 @@ export function FpAppealsPanel({ individualId }: Props) {
       // Fire a notification (no-op if no template configured).
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
-          body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: appeal.id, payload: { decision, individual_id: individualId } },
+          body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: appeal.id, payload: { decision, individual_id: individualId, filed_by: appeal.filed_by ?? null } },
         });
       } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
@@ -212,6 +213,10 @@ export function FpAppealsPanel({ individualId }: Props) {
       qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_current_determination', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_determinations', individualId] });
+      // Conditions & SLA / Appeals key their "Linked Determination" picker off
+      // ['fp_determinations_for_individual', individualId] — refresh it too
+      // so an overturn's new determination isn't served stale/empty results.
+      qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual', individualId] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
