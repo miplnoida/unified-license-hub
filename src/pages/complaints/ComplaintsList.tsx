@@ -240,7 +240,7 @@ export default function ComplaintsList() {
           severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
     if (error) {
       toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
       setCreating(false);
