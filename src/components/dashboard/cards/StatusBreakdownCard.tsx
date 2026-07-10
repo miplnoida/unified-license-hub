@@ -28,6 +28,7 @@ export function StatusBreakdownCard({
 }) {
   const max = Math.max(1, ...(items.map(i => i.value)));
   const sum = total ?? items.reduce((a, i) => a + i.value, 0);
+  const pct = (v: number) => (sum > 0 ? Math.round((v / sum) * 100) : 0);
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
@@ -42,33 +43,50 @@ export function StatusBreakdownCard({
         ) : items.length === 0 ? (
           <p className="text-xs text-muted-foreground py-2">No data.</p>
         ) : (
-          items.map((it) => {
-            const body = (
-              <>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground capitalize">{it.label}</span>
-                  <span className="tabular-nums font-medium">{it.value.toLocaleString()}</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <>
+            {sum > 0 && (
+              <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted mb-3" title={`${sum.toLocaleString()} total`}>
+                {items.filter((it) => it.value > 0).map((it) => (
                   <div
+                    key={it.label}
                     className={toneBar[it.tone ?? 'primary']}
-                    style={{ width: `${(it.value / max) * 100}%`, height: '100%' }}
+                    style={{ width: `${pct(it.value)}%`, height: '100%' }}
+                    title={`${it.label}: ${it.value.toLocaleString()} (${pct(it.value)}%)`}
                   />
-                </div>
-              </>
-            );
-            return it.to ? (
-              <Link
-                key={it.label}
-                to={it.to}
-                className="block space-y-1 rounded-sm -mx-1 px-1 py-0.5 hover:bg-muted/60 focus:bg-muted/60 focus:outline-none"
-              >
-                {body}
-              </Link>
-            ) : (
-              <div key={it.label} className="space-y-1">{body}</div>
-            );
-          })
+                ))}
+              </div>
+            )}
+            {items.map((it) => {
+              const body = (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground capitalize">{it.label}</span>
+                    <span className="tabular-nums font-medium">
+                      {it.value.toLocaleString()}
+                      <span className="text-muted-foreground font-normal ml-1">({pct(it.value)}%)</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={toneBar[it.tone ?? 'primary']}
+                      style={{ width: `${(it.value / max) * 100}%`, height: '100%' }}
+                    />
+                  </div>
+                </>
+              );
+              return it.to ? (
+                <Link
+                  key={it.label}
+                  to={it.to}
+                  className="block space-y-1 rounded-sm -mx-1 px-1 py-0.5 hover:bg-muted/60 focus:bg-muted/60 focus:outline-none"
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div key={it.label} className="space-y-1">{body}</div>
+              );
+            })}
+          </>
         )}
       </CardContent>
     </Card>

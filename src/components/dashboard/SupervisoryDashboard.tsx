@@ -13,6 +13,7 @@ import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import { WorkflowSlaOverviewWidget } from './widgets/WorkflowSlaOverviewWidget';
+import { SupervisoryTrendsWidget } from './widgets/SupervisoryTrendsWidget';
 import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
@@ -94,7 +95,7 @@ export function SupervisoryDashboard() {
   return (
     <div className="space-y-6">
       {/* Summary strip — each tile is permission-gated */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {can.applications && (
           <>
             <MetricCard title={APPLICATION_DRILLDOWNS.pending.label} value={data?.applications.pending ?? 0} icon={FileText} tone="primary" loading={isLoading} to={drilldownTo('pending')} />
@@ -129,6 +130,16 @@ export function SupervisoryDashboard() {
 
       {/* Workflow SLA Overview — same calculation as Applications list + WorkflowPanel */}
       {(can.applications || can.workflows) && <WorkflowSlaOverviewWidget />}
+
+      {/* Volume trends — six-month view across the modules already surfaced above */}
+      <SupervisoryTrendsWidget
+        enabled={{
+          applications: can.applications,
+          complaints: can.complaints,
+          enforcement: can.enforcement,
+          returns: can.returns,
+        }}
+      />
 
       {/* Insights */}
       <Card>
@@ -321,7 +332,7 @@ export function SupervisoryDashboard() {
               id: a.id,
               primary: a.application_number || a.id.slice(0, 8),
               secondary: `Created ${new Date(a.created_at).toLocaleDateString()}`,
-              badge: { label: a.status, tone: 'warning' },
+              ageDays: Math.floor((Date.now() - new Date(a.created_at).getTime()) / 86400000),
               to: `/applications/${a.id}`,
             }))}
           />
@@ -348,7 +359,8 @@ export function SupervisoryDashboard() {
               id: r.id,
               primary: r.id.slice(0, 8),
               secondary: r.due_date ? `Due ${new Date(r.due_date).toLocaleDateString()}` : undefined,
-              badge: { label: r.status, tone: 'destructive' },
+              ageDays: r.due_date ? Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000) : undefined,
+              badge: r.due_date ? undefined : { label: r.status, tone: 'destructive' },
             }))}
           />
         )}
@@ -361,6 +373,7 @@ export function SupervisoryDashboard() {
               primary: r.entity_id.slice(0, 8),
               secondary: `Rating: ${r.overall_rating}`,
               badge: { label: 'high', tone: 'destructive' },
+              to: `/admin/licensees/${r.entity_id}`,
             }))}
           />
         )}
@@ -372,6 +385,7 @@ export function SupervisoryDashboard() {
               id: c.id,
               primary: c.case_number || c.id.slice(0, 8),
               badge: { label: c.status, tone: 'destructive' },
+              to: `/enforcement/${c.id}`,
             }))}
           />
         )}
