@@ -76,6 +76,7 @@ export default function ComplaintsList() {
   const [channels, setChannels] = useState<RefLookup[]>([]);
   const [licenseeMap, setLicenseeMap] = useState<Map<string, string>>(new Map());
   const [profileMap, setProfileMap] = useState<Map<string, { full_name: string | null; email: string | null }>>(new Map());
+  const [assigneesByComplaint, setAssigneesByComplaint] = useState<Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -196,12 +197,72 @@ export default function ComplaintsList() {
 
       // Batch resolve licensees + profiles
       const licIds = Array.from(new Set(rows.map(r => r.licensee_id).filter(Boolean)));
-      const profIds = Array.from(new Set(
-        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean)
-      ));
+      const profIds = new Set<string>(
+        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean) as string[]
+      );
+
+      // Resolve workflow assignees (current step) for each complaint
+      const complaintIds = rows.map(r => r.id);
+      const asgMap = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+      if (complaintIds.length) {
+        const { data: instances } = await supabase
+          .from('workflow_instances')
+          .select('entity_id, current_step_id')
+          .eq('entity_type', 'complaint')
+          .in('entity_id', complaintIds)
+          .in('status', ['active', 'paused']);
+        const stepIds = Array.from(new Set((instances || []).map((i: any) => i.current_step_id).filter(Boolean)));
+        const stepsById = new Map<string, any>();
+        if (stepIds.length) {
+          const { data: steps } = await supabase
+            .from('approval_steps')
+            .select('id, approver_role, approver_role_id, approver_type, approver_config')
+            .in('id', stepIds);
+          (steps || []).forEach((s: any) => stepsById.set(s.id, s));
+        }
+        // Collect role names for role-based steps
+        const rolesNeeded = new Set<string>();
+        stepsById.forEach((s) => {
+          if (s.approver_type === 'role_based_user' && s.approver_role) {
+            rolesNeeded.add(s.approver_role);
+          }
+        });
+        const roleUserIds = new Map<string, string[]>();
+        if (rolesNeeded.size) {
+          const { data: urs } = await (supabase as any)
+            .from('user_roles')
+            .select('user_id, role')
+            .in('role', Array.from(rolesNeeded));
+          ((urs as any[]) || []).forEach((r: any) => {
+            const arr = roleUserIds.get(r.role) || [];
+            arr.push(r.user_id);
+            roleUserIds.set(r.role, arr);
+          });
+        }
+        // Build per-complaint assignee id list; collect for profile fetch
+        const perComplaint = new Map<string, { role: string | null; userIds: string[] }>();
+        (instances || []).forEach((inst: any) => {
+          const step = inst.current_step_id ? stepsById.get(inst.current_step_id) : null;
+          if (!step) return;
+          let uids: string[] = [];
+          if (step.approver_type === 'specific_users') {
+            uids = ((step.approver_config?.user_ids as string[]) || []).filter(Boolean);
+          } else {
+            const byRole = step.approver_role ? (roleUserIds.get(step.approver_role) || []) : [];
+            uids = Array.from(new Set(byRole));
+          }
+          uids.forEach(id => profIds.add(id));
+          perComplaint.set(inst.entity_id, { role: step.approver_role || null, userIds: uids });
+        });
+
+        // Placeholder — we fill users after profiles load below
+        (perComplaint as any)._pending = true;
+        (asgMap as any)._pending = perComplaint;
+      }
+
       const [licRes, profRes] = await Promise.all([
         licIds.length ? supabase.from('licensees').select('id, legal_name, name').in('id', licIds) : Promise.resolve({ data: [] }),
-        profIds.length ? supabase.from('profiles').select('id, full_name, email').in('id', profIds) : Promise.resolve({ data: [] }),
+        profIds.size ? supabase.from('profiles').select('id, full_name, email').in('id', Array.from(profIds)) : Promise.resolve({ data: [] }),
       ] as any);
       const lm = new Map<string, string>();
       ((licRes as any).data || []).forEach((l: any) => lm.set(l.id, l.legal_name || l.name || '—'));
@@ -209,6 +270,17 @@ export default function ComplaintsList() {
       const pm = new Map<string, { full_name: string | null; email: string | null }>();
       ((profRes as any).data || []).forEach((p: any) => pm.set(p.id, { full_name: p.full_name, email: p.email }));
       setProfileMap(pm);
+
+      // Finalize assignees with resolved profile info
+      const pending = (asgMap as any)._pending as Map<string, { role: string | null; userIds: string[] }> | undefined;
+      if (pending) {
+        pending.forEach((v, cid) => {
+          const users = v.userIds.map(id => ({ id, full_name: pm.get(id)?.full_name ?? null, email: pm.get(id)?.email ?? null }));
+          asgMap.set(cid, { role: v.role, users });
+        });
+        delete (asgMap as any)._pending;
+      }
+      setAssigneesByComplaint(asgMap);
     }
     setLoading(false);
   };
@@ -738,8 +810,22 @@ export default function ComplaintsList() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">
-                            <div>{c.assigned_team || '—'}</div>
-                            <div className="text-muted-foreground">{inv?.full_name || inv?.email || 'Unassigned'}</div>
+                            {(() => {
+                              const asg = assigneesByComplaint.get(c.id);
+                              const roleLabel = asg?.role || c.assigned_team || '—';
+                              const users = asg?.users || [];
+                              const names = users.map(u => u.full_name || u.email || 'User');
+                              return (
+                                <>
+                                  <div className="capitalize">{roleLabel.replace(/_/g, ' ')}</div>
+                                  <div className="text-muted-foreground">
+                                    {names.length === 0
+                                      ? (inv?.full_name || inv?.email || 'Unassigned')
+                                      : names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
