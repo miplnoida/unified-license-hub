@@ -76,6 +76,7 @@ export default function ComplaintsList() {
   const [channels, setChannels] = useState<RefLookup[]>([]);
   const [licenseeMap, setLicenseeMap] = useState<Map<string, string>>(new Map());
   const [profileMap, setProfileMap] = useState<Map<string, { full_name: string | null; email: string | null }>>(new Map());
+  const [assigneesByComplaint, setAssigneesByComplaint] = useState<Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
