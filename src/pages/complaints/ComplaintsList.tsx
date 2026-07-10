@@ -91,6 +91,7 @@ export default function ComplaintsList() {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
+  const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -183,7 +184,7 @@ export default function ComplaintsList() {
           severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email').single();
     if (error) {
       toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
       setCreating(false);
@@ -214,6 +215,7 @@ export default function ComplaintsList() {
       }
     }
 
+    const stagedAttachments = newAttachments.map(f => ({ name: f.name, size: f.size }));
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
     setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
@@ -228,7 +230,10 @@ export default function ComplaintsList() {
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
+        description: (inserted as any).description ?? null,
+        attachments: stagedAttachments,
       });
+      setAckVariant(isInternal ? 'internal' : 'applicant');
     }
     loadComplaints();
   };
@@ -266,7 +271,9 @@ export default function ComplaintsList() {
       complainant_email: c.email ?? prof?.email ?? null,
       channel: c.intake_source || null,
       sla_days: c.sla_days ?? 20,
+      description: c.description ?? null,
     });
+    setAckVariant(isInternal ? 'internal' : 'applicant');
   };
 
   const retryTriage = async (c: any) => {
@@ -725,6 +732,7 @@ export default function ComplaintsList() {
           open={!!ackDialog}
           onOpenChange={(o) => !o && setAckDialog(null)}
           complaint={ackDialog}
+          variant={ackVariant}
         />
       )}
     </DashboardLayout>
