@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -20,6 +21,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logFpAction } from '@/lib/fpAudit';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -78,6 +81,17 @@ interface Determination {
 
 // Sentinel value used in lieu of empty string for Radix UI SelectItem
 const NONE_SENTINEL = '__none__';
+
+// Matches FpConditionsPanel.tsx's list so both condition-creation UIs write
+// the same fixed vocabulary instead of arbitrary free text.
+const CONDITION_CATEGORIES = [
+  { value: 'training', label: 'Training / certification' },
+  { value: 'reporting', label: 'Periodic reporting' },
+  { value: 'restriction', label: 'Role restriction' },
+  { value: 'monitoring', label: 'Enhanced monitoring' },
+  { value: 'disclosure', label: 'Ongoing disclosure' },
+  { value: 'other', label: 'Other' },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -186,6 +200,27 @@ export default function FpaConditions() {
   const [addDueDate, setAddDueDate] = useState('');
   const [addMonitoringOwner, setAddMonitoringOwner] = useState('');
 
+  // Deep-link prefill: a freshly-recorded "conditional" determination can send
+  // the user straight here (e.g. from FpaDeterminations.tsx) with the
+  // individual/determination already known, so the Add Condition dialog opens
+  // pre-populated instead of asking them to look both back up.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const individualId = searchParams.get('individual_id');
+    const determinationId = searchParams.get('determination_id');
+    if (searchParams.get('open') === '1' && individualId) {
+      setAddIndividualId(individualId);
+      if (determinationId) setAddDeterminationId(determinationId);
+      setAddOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('open');
+      next.delete('individual_id');
+      next.delete('determination_id');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Mark Satisfied dialog
   const [satisfyTarget, setSatisfyTarget] = useState<RawCondition | null>(null);
   const [satisfyNote, setSatisfyNote] = useState('');
@@ -269,6 +304,17 @@ export default function FpaConditions() {
     },
   });
 
+  // Monitoring owner options — fp_conditions.monitoring_owner is a UUID
+  // column (a real staff member), not free text; previously a plain text
+  // Input wrote arbitrary strings into it, which fails at the database with
+  // "invalid input syntax for type uuid" the moment anyone typed a real name.
+  const { data: monitoringOwners } = useEmployeeApprovers();
+  const monitoringOwnerMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const e of monitoringOwners ?? []) m[e.id] = e.full_name || e.email || e.id;
+    return m;
+  }, [monitoringOwners]);
+
   // Data: determinations for selected individual in Add dialog
   const {
     data: determinationsForIndividual,
@@ -326,7 +372,7 @@ export default function FpaConditions() {
   // Mutations
   // ---------------------------------------------------------------------------
   const satisfyMutation = useMutation({
-    mutationFn: async ({ id, note }: { id: string; note: string }) => {
+    mutationFn: async ({ id, note, condition }: { id: string; note: string; condition: RawCondition }) => {
       const { error } = await (supabase as any)
         .from('fp_conditions')
         .update({
@@ -336,6 +382,10 @@ export default function FpaConditions() {
         })
         .eq('id', id);
       if (error) throw error;
+      await logFpAction('fp.condition.satisfied', 'fp_condition', id, {
+        after: { status: 'satisfied', satisfaction_note: note.trim() || null },
+        context: { individualId: condition.individual_id, determinationId: condition.determination_id, conditionId: id },
+      });
     },
     onSuccess: () => {
       toast.success('Condition marked as satisfied');
@@ -347,12 +397,17 @@ export default function FpaConditions() {
   });
 
   const waiveMutation = useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+    mutationFn: async ({ id, reason, condition }: { id: string; reason: string; condition: RawCondition }) => {
       const { error } = await (supabase as any)
         .from('fp_conditions')
         .update({ status: 'waived', waiver_reason: reason.trim() || null })
         .eq('id', id);
       if (error) throw error;
+      await logFpAction('fp.condition.waived', 'fp_condition', id, {
+        after: { status: 'waived', waiver_reason: reason.trim() || null },
+        context: { individualId: condition.individual_id, determinationId: condition.determination_id, conditionId: id },
+        justification: reason.trim() || undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Condition waived');
@@ -388,7 +443,14 @@ export default function FpaConditions() {
           event_key: 'fp_condition_reminder',
           entity_type: 'fp_condition',
           entity_id: cond.id,
-          payload: { individual_id: cond.individual_id, due_date: cond.due_date },
+          // fp_condition_reminder's recipient_rules resolve monitoring_owner
+          // from THIS payload field first, falling back to the supervisor
+          // role only if it's absent — this manual "Remind" button omitted
+          // it (unlike fp-monitoring-sweep's automated version of the same
+          // reminder), so the condition's actual assigned owner never got
+          // notified; it silently fell through to "supervisor," and if
+          // nobody currently holds that role, nobody was notified at all.
+          payload: { individual_id: cond.individual_id, due_date: cond.due_date, monitoring_owner: cond.monitoring_owner ?? null },
         },
       }).catch(() => { /* notification dispatch failure shouldn't block the reminder record */ });
     },
@@ -733,7 +795,7 @@ export default function FpaConditions() {
 
                               {/* Monitoring Owner */}
                               <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                                {cond.monitoring_owner ?? '—'}
+                                {cond.monitoring_owner ? (monitoringOwnerMap[cond.monitoring_owner] ?? cond.monitoring_owner.slice(0, 8) + '…') : '—'}
                               </TableCell>
 
                               {/* Satisfied By (audit trail) */}
@@ -877,7 +939,7 @@ export default function FpaConditions() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={satisfyMutation.isPending}
               onClick={() => {
-                if (satisfyTarget) satisfyMutation.mutate({ id: satisfyTarget.id, note: satisfyNote });
+                if (satisfyTarget) satisfyMutation.mutate({ id: satisfyTarget.id, note: satisfyNote, condition: satisfyTarget });
               }}
             >
               {satisfyMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -941,7 +1003,7 @@ export default function FpaConditions() {
               variant="secondary"
               disabled={!waiveReason.trim() || waiveMutation.isPending}
               onClick={() => {
-                if (waiveTarget) waiveMutation.mutate({ id: waiveTarget.id, reason: waiveReason });
+                if (waiveTarget) waiveMutation.mutate({ id: waiveTarget.id, reason: waiveReason, condition: waiveTarget });
               }}
             >
               {waiveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -1095,6 +1157,11 @@ export default function FpaConditions() {
                   </SelectContent>
                 </Select>
               )}
+              {addIndividualId && (determinationsForIndividual ?? []).length === 0 && !determinationsError && (
+                <p className="text-xs text-muted-foreground">
+                  No determinations recorded for this individual yet — record one on the Determinations screen first.
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -1117,12 +1184,16 @@ export default function FpaConditions() {
                 <Label htmlFor="add-category" className="text-sm">
                   Category <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="add-category"
-                  placeholder="e.g. Training, Reporting"
-                  value={addCategory}
-                  onChange={(e) => setAddCategory(e.target.value)}
-                />
+                <Select value={addCategory} onValueChange={setAddCategory}>
+                  <SelectTrigger id="add-category">
+                    <SelectValue placeholder="Select category…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONDITION_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Due Date */}
@@ -1143,12 +1214,20 @@ export default function FpaConditions() {
             {/* Monitoring Owner */}
             <div className="space-y-1.5">
               <Label htmlFor="add-owner" className="text-sm">Monitoring Owner</Label>
-              <Input
-                id="add-owner"
-                placeholder="Name or team responsible for monitoring"
-                value={addMonitoringOwner}
-                onChange={(e) => setAddMonitoringOwner(e.target.value)}
-              />
+              <Select
+                value={addMonitoringOwner || NONE_SENTINEL}
+                onValueChange={(v) => setAddMonitoringOwner(v === NONE_SENTINEL ? '' : v)}
+              >
+                <SelectTrigger id="add-owner">
+                  <SelectValue placeholder="Select the person/team responsible…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_SENTINEL}>Not assigned</SelectItem>
+                  {(monitoringOwners ?? []).map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.full_name || e.email || e.id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

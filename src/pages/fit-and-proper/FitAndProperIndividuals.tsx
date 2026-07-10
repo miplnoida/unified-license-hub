@@ -166,7 +166,7 @@ export default function FitAndProperIndividuals() {
                         </Badge>
                       </TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_META[r.status] || ''}>{r.status}</Badge></TableCell>
-                      <TableCell><Link to={`/fit-and-proper/individuals/${r.id}`}><Button size="sm" variant="ghost">Open</Button></Link></TableCell>
+                      <TableCell><Link to={`/fpa/individuals/${r.id}`}><Button size="sm" variant="ghost">Open</Button></Link></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

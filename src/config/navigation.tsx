@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit, Database, ClipboardCheck, Microscope,
+  ClipboardEdit, Database, ClipboardCheck, Microscope, History,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -170,6 +170,7 @@ export const mainNavSections: NavSection[] = [
         children: [
           { label: 'Appeals', href: '/fpa/appeals', icon: <ScrollText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Monitoring & Audit', href: '/fpa/monitoring', icon: <Bell className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Notification Log', href: '/fpa/notifications', icon: <History className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },
     ],

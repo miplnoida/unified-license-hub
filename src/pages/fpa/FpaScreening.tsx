@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -148,6 +149,7 @@ function StatCard({
 export default function FpaScreening() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   // add-config dialog state
   const [addConfigOpen, setAddConfigOpen] = useState(false);
@@ -252,12 +254,21 @@ export default function FpaScreening() {
       if (data && data.ok === false) throw new Error(data.error ?? 'Screening run failed');
       return data as { ok: boolean; run_id: string; total_checks: number; total_hits: number };
     },
-    onSuccess: async (data) => {
+    onSuccess: async (data, variables) => {
       const hits = data?.total_hits ?? 0;
       toast.success(
         hits > 0
           ? `Screening complete — ${hits} finding${hits !== 1 ? 's' : ''} flagged`
           : 'Screening complete — no findings',
+        {
+          // The AI Analysis screen otherwise defaults to whichever assessment
+          // across the whole system was created most recently — deep-link
+          // straight to the one that was actually just screened.
+          action: {
+            label: 'View in AI Analysis',
+            onClick: () => navigate(`/fpa/ai-analysis?assessment_id=${variables.assessmentId}`),
+          },
+        },
       );
       setRunDialogOpen(false);
       setSelectedIndividualId('');

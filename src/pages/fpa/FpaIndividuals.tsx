@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logFpAction } from '@/lib/fpAudit';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -320,8 +321,12 @@ export default function FpaIndividuals() {
       if (form.address.trim()) payload.address = form.address.trim();
       if (form.notes.trim()) payload.notes = form.notes.trim();
 
-      const { error } = await supabase.from('fp_individuals').insert(payload as any);
+      const { data, error } = await supabase.from('fp_individuals').insert(payload as any).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.individual.created', 'fp_individual', data.id, {
+        after: { full_name: payload.full_name, national_id: payload.national_id ?? null },
+        context: { individualId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Individual registered successfully.');

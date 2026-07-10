@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -193,11 +193,17 @@ export default function FpaFindingDetail() {
   return (
     <DashboardLayout>
       <div className="space-y-5 max-w-4xl">
-        {/* Back nav */}
-        <Button variant="ghost" size="sm" onClick={() => navigate('/fpa/findings')}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Findings Console
-        </Button>
+        {/* Back nav + action */}
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/fpa/findings')}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Findings Console
+          </Button>
+          <Button size="sm" onClick={() => navigate(`/fpa/manual-tasks/${id}`)}>
+            <ClipboardList className="h-4 w-4 mr-1.5" />
+            Manage in Review Queue
+          </Button>
+        </div>
 
         {/* Page header */}
         <PageHeader
@@ -225,6 +231,11 @@ export default function FpaFindingDetail() {
               False Positive
             </Badge>
           )}
+          {finding.severity_basis?.escalated && (
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+              Escalated
+            </Badge>
+          )}
           {finding.check_type && (
             <Badge variant="outline" className="text-xs">
               {finding.check_type.replace(/_/g, ' ')}
@@ -245,6 +256,13 @@ export default function FpaFindingDetail() {
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Summary</p>
                 <p className="text-sm leading-relaxed">{finding.summary}</p>
+              </div>
+            )}
+
+            {finding.severity_basis?.reason && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Why this severity?</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{finding.severity_basis.reason}</p>
               </div>
             )}
 
@@ -328,7 +346,13 @@ export default function FpaFindingDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-0.5">Individual</p>
-                <p>{finding.individualName}</p>
+                {finding.individual_id ? (
+                  <Link to={`/fpa/individuals/${finding.individual_id}`} className="text-primary hover:underline">
+                    {finding.individualName}
+                  </Link>
+                ) : (
+                  <p>{finding.individualName}</p>
+                )}
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-0.5">Assessment ID</p>

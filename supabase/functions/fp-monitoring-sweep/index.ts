@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     // Sweep overdue conditions → condition_overdue events (dedupe by finding existing unacknowledged event per condition)
     const today = new Date().toISOString().slice(0, 10);
     const { data: overdueConds } = await supa.from('fp_conditions')
-      .select('id, individual_id, determination_id, category, description, due_date, overdue_at, status')
+      .select('id, individual_id, determination_id, category, description, due_date, overdue_at, status, monitoring_owner')
       .eq('status', 'open')
       .lt('due_date', today);
 
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
         if (!mErr) {
           summary.alerts++;
           await dispatchNotification('fp_condition_overdue', 'fp_condition', c.id, {
-            individual_id: c.individual_id, days_overdue: daysOverdue, severity,
+            individual_id: c.individual_id, days_overdue: daysOverdue, severity, monitoring_owner: c.monitoring_owner ?? null,
           });
         }
       } catch (inner) {
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     // Reminder sweep for conditions due within N days that haven't been reminded yet.
     const lookahead = new Date(Date.now() + REMINDER_LOOKAHEAD_DAYS * 86400 * 1000).toISOString().slice(0, 10);
     const { data: soonConds } = await supa.from('fp_conditions')
-      .select('id, individual_id, determination_id, description, due_date, reminder_sent_at, status')
+      .select('id, individual_id, determination_id, description, due_date, reminder_sent_at, status, monitoring_owner')
       .eq('status', 'open')
       .gte('due_date', today)
       .lte('due_date', lookahead)
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
         });
         await supa.from('fp_conditions').update({ reminder_sent_at: new Date().toISOString() }).eq('id', c.id);
         await dispatchNotification('fp_condition_reminder', 'fp_condition', c.id, {
-          individual_id: c.individual_id, due_date: c.due_date,
+          individual_id: c.individual_id, due_date: c.due_date, monitoring_owner: c.monitoring_owner ?? null,
         });
         summary.reminders++;
       } catch (inner) {

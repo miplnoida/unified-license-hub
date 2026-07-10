@@ -75,7 +75,7 @@ async function computeVerificationHash(dob: string, last4: string): Promise<stri
 // Types
 // ---------------------------------------------------------------------------
 
-type PathwayType = 'initial' | 'periodic' | 'triggered' | 'cycle';
+type PathwayType = 'initial' | 'ongoing_monitoring' | 'triggered' | 'cycle';
 
 interface Pathway {
   type: PathwayType;
@@ -96,6 +96,7 @@ interface Individual {
   id: string;
   full_name: string;
   national_id: string | null;
+  passport_number: string | null;
 }
 
 interface AssessmentRow {
@@ -128,7 +129,7 @@ const PATHWAYS: Pathway[] = [
     },
   },
   {
-    type: 'periodic',
+    type: 'ongoing_monitoring',
     label: 'Ongoing Monitoring',
     description: 'Periodic reassessment of existing regulated persons.',
     icon: RefreshCw,
@@ -174,7 +175,7 @@ const PATHWAYS: Pathway[] = [
 
 const TYPE_BADGE: Record<string, string> = {
   initial: 'bg-blue-100 text-blue-800',
-  periodic: 'bg-emerald-100 text-emerald-800',
+  ongoing_monitoring: 'bg-emerald-100 text-emerald-800',
   triggered: 'bg-orange-100 text-orange-800',
   cycle: 'bg-purple-100 text-purple-800',
 };
@@ -271,10 +272,17 @@ export default function FpaInitiation() {
     queryKey: ['fp_individuals_search', individualSearch],
     enabled: individualSearch.trim().length >= 2,
     queryFn: async () => {
+      // Match on national_id/passport_number as well as name — the dedup
+      // this search exists to support (don't create a second fp_individuals
+      // row for someone already on file) can miss an existing record whose
+      // name is spelled differently but whose identity document matches.
+      // Strip commas: PostgREST's .or() uses them as the condition delimiter,
+      // so a literal comma in the search text would otherwise break parsing.
+      const term = individualSearch.trim().replace(/,/g, '');
       const { data, error } = await supabase
         .from('fp_individuals')
-        .select('id, full_name, national_id')
-        .ilike('full_name', `%${individualSearch.trim()}%`)
+        .select('id, full_name, national_id, passport_number')
+        .or(`full_name.ilike.%${term}%,national_id.ilike.%${term}%,passport_number.ilike.%${term}%`)
         .limit(20);
       if (error) throw error;
       return (data ?? []) as unknown as Individual[];
@@ -296,6 +304,28 @@ export default function FpaInitiation() {
         .limit(20);
       if (error) throw error;
       return (data ?? []) as unknown as AssessmentRow[];
+    },
+  });
+
+  // ── Selected individual's current role (to attach role_id to the new
+  // assessment — previously the insert never set it, leaving "which
+  // appointment triggered this assessment" modeled in the schema but never
+  // populated). Only auto-attaches when the individual has exactly one
+  // current role on file; with more than one it's ambiguous which role the
+  // assessment concerns, so it's left unset rather than guessed.
+  const { data: selectedIndividualRoles = [] } = useQuery<
+    Array<{ id: string; licensee_id: string | null; role_type: string | null }>
+  >({
+    queryKey: ['fp_individual_current_roles', selectedIndividualId],
+    enabled: !!selectedIndividualId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_individual_roles')
+        .select('id, licensee_id, role_type')
+        .eq('individual_id', selectedIndividualId)
+        .eq('is_current', true);
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ id: string; licensee_id: string | null; role_type: string | null }>;
     },
   });
 
@@ -388,12 +418,16 @@ export default function FpaInitiation() {
         declarationData.linked_application_id = appIdValue;
       }
 
+      const singleRole = selectedIndividualRoles.length === 1 ? selectedIndividualRoles[0] : null;
+
       const { data, error } = await supabase.from('fp_assessments').insert({
         individual_id: selectedIndividualId,
         assessment_type: selectedPathway.type,
         status: 'draft',
         declaration_data: declarationData,
         created_by: user?.id ?? null,
+        role_id: singleRole?.id ?? null,
+        licensee_id: singleRole?.licensee_id ?? null,
       }).select('id').single();
       if (error) throw error;
       await logFpAction('fp.assessment.created', 'fp_assessment', data.id, {
@@ -679,8 +713,10 @@ export default function FpaInitiation() {
                         onClick={() => handleIndividualSelect(ind.id)}
                       >
                         <span className="font-medium">{ind.full_name}</span>
-                        {ind.national_id && (
-                          <span className="text-xs text-muted-foreground font-mono">{ind.national_id}</span>
+                        {(ind.national_id || ind.passport_number) && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {ind.national_id || ind.passport_number}
+                          </span>
                         )}
                       </button>
                     ))}

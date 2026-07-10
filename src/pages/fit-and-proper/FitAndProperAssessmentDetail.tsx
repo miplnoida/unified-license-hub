@@ -101,7 +101,7 @@ export default function FitAndProperAssessmentDetail() {
         <PageHeader
           title={`FP Personal Questionnaire — ${person?.full_name || '…'}`}
           description={`Assessment ${assessment.assessment_type} · created ${new Date(assessment.created_at).toLocaleDateString()}`}
-          backHref={person ? `/fit-and-proper/individuals/${person.id}` : '/fit-and-proper'}
+          backHref={person ? `/fpa/individuals/${person.id}` : '/fit-and-proper'}
           backLabel={person ? 'Individual' : 'Register'}
           actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="fp_assessment" entityId={assessment.id} title="Assessment history" /></div>}
         />
@@ -133,7 +133,7 @@ export default function FitAndProperAssessmentDetail() {
               <a.icon className="h-4 w-4 mr-2" /> {a.label}
             </Button>
           ))}
-          {person && <Link to={`/fit-and-proper/individuals/${person.id}`}><Button variant="ghost">Back to individual</Button></Link>}
+          {person && <Link to={`/fpa/individuals/${person.id}`}><Button variant="ghost">Back to individual</Button></Link>}
         </div>
       </div>
     </DashboardLayout>

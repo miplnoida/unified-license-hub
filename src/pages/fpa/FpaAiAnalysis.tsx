@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -228,6 +228,7 @@ function checkTypeBadge(checkType: string | null) {
     adverse_media: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100',
     sanctions: 'bg-red-100 text-red-700 border-red-200 hover:bg-red-100',
     pep: 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100',
+    criminal_history: 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-100',
   };
   const cls = colors[(checkType ?? '').toLowerCase()] ?? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100';
   return <Badge className={`text-xs ${cls}`}>{label}</Badge>;
@@ -630,7 +631,14 @@ function FindingCard({ finding, inconsistency, onOverride, onViewIndividual }: F
 
 export default function FpaAiAnalysis() {
   const navigate = useNavigate();
-  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  // A caller can deep-link straight to the assessment it just screened (e.g.
+  // from the Screening Hub or an individual's Screening tab) via
+  // ?assessment_id=... — without this, the picker below always defaulted to
+  // whichever assessment across the WHOLE system was created most recently,
+  // which is very often a different individual than the one just screened.
+  const deepLinkedAssessmentId = searchParams.get('assessment_id');
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(deepLinkedAssessmentId);
   const [overrideFinding, setOverrideFinding] = useState<AiFinding | null>(null);
 
   // ── Assessments list ────────────────────────────────────────────────────────
@@ -658,12 +666,37 @@ export default function FpaAiAnalysis() {
     },
   });
 
-  // Auto-select first assessment when data loads (useEffect replaces removed onSuccess)
+  // Without a deep-linked assessment_id, default to whichever assessment was
+  // MOST RECENTLY SCREENED, not just most recently created — the previous
+  // "pick assessments[0]" default meant landing on an unrelated case (created
+  // by anyone, for any reason) whenever it happened to be newer than the one
+  // you actually just ran screening on, which made a real result look like
+  // "nothing here."
+  const { data: mostRecentlyScreenedAssessmentId } = useQuery({
+    queryKey: ['fp_most_recent_screening_run'],
+    enabled: !deepLinkedAssessmentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_screening_runs')
+        .select('assessment_id')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.assessment_id ?? null;
+    },
+  });
+
+  // Auto-select once we know what to default to (useEffect replaces removed onSuccess)
   useEffect(() => {
-    if (assessments && assessments.length > 0 && !selectedAssessmentId) {
+    if (selectedAssessmentId) return;
+    if (mostRecentlyScreenedAssessmentId === undefined) return; // still loading
+    if (mostRecentlyScreenedAssessmentId) {
+      setSelectedAssessmentId(mostRecentlyScreenedAssessmentId);
+    } else if (assessments && assessments.length > 0) {
       setSelectedAssessmentId(assessments[0].id);
     }
-  }, [assessments, selectedAssessmentId]);
+  }, [assessments, mostRecentlyScreenedAssessmentId, selectedAssessmentId]);
 
   // ── AI Findings ─────────────────────────────────────────────────────────────
 
@@ -676,7 +709,14 @@ export default function FpaAiAnalysis() {
         .select('*')
         .eq('assessment_id', selectedAssessmentId!)
         .or(
-          'source.ilike.%ai%,check_type.in.(adverse_media,sanctions,pep)'
+          // criminal_history sits alongside sanctions/pep here on purpose —
+          // none of the three are actually AI-model output (sanctions/pep are
+          // keyword scans, criminal_history is usually a self-declaration
+          // trigger), but this screen's real scope has always been "automated
+          // findings that need a human review/override," not "AI-generated
+          // only." A criminal_history hit produced by the adverse-media AI
+          // check itself is also covered by source.ilike.%ai% below.
+          'source.ilike.%ai%,check_type.in.(adverse_media,sanctions,pep,criminal_history)'
         )
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -862,8 +902,26 @@ export default function FpaAiAnalysis() {
                 <p className="text-sm text-muted-foreground max-w-sm">
                   {!selectedAssessmentId
                     ? 'Select an assessment to review its AI-screened findings.'
-                    : 'This assessment has no findings from AI check types (adverse media, sanctions, PEP, or AI-tagged sources).'}
+                    : 'This assessment has no findings from AI check types (adverse media, sanctions, PEP, criminal history, or AI-tagged sources).'}
                 </p>
+                {/* The Screening Run Log's "Hits" count reflects every check
+                    type that ran (credit history, regulator watchlist, etc.)
+                    — this screen only reviews the checks above, so a hit can
+                    be real and correctly excluded here at the same time.
+                    Point at where it actually lives. */}
+                {selectedAssessmentId && latestRun && (latestRun.total_hits ?? 0) > 0 && (
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    This run recorded {latestRun.total_hits} hit{latestRun.total_hits === 1 ? '' : 's'} in total — it's
+                    from a check type this screen doesn't cover (e.g. credit history or regulator
+                    watchlist). See it on the{' '}
+                    <Link
+                      to={selectedAssessment?.individual_id ? `/fpa/findings?individual_id=${selectedAssessment.individual_id}` : '/fpa/findings'}
+                      className="text-primary underline"
+                    >
+                      Findings Console
+                    </Link>.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -873,107 +931,24 @@ export default function FpaAiAnalysis() {
             <span className="text-sm">Loading AI findings…</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* LEFT — AI Findings */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">AI Findings</h2>
-                <Badge variant="secondary" className="text-xs tabular-nums">
-                  {totalFindings}
-                </Badge>
-              </div>
-
-              {(findings ?? []).map((finding) => (
-                <FindingCard
-                  key={finding.id}
-                  finding={finding}
-                  inconsistency={findInconsistency(finding, declarationQuestionnaire ?? {})}
-                  onOverride={(f) => setOverrideFinding(f)}
-                  onViewIndividual={handleViewIndividual}
-                />
-              ))}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">AI Findings</h2>
+              <Badge variant="secondary" className="text-xs tabular-nums">
+                {totalFindings}
+              </Badge>
             </div>
 
-            {/* RIGHT — Summary panel */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold text-foreground">Decision Summary</h2>
-              </div>
-
-              {/* Per-finding decision overview */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Finding Decisions</CardTitle>
-                </CardHeader>
-                <Separator />
-                <CardContent className="pt-4 space-y-3">
-                  {(findings ?? []).map((finding) => {
-                    const humanOverride =
-                      finding.raw_payload &&
-                      typeof finding.raw_payload === 'object' &&
-                      finding.raw_payload.human_override
-                        ? finding.raw_payload.human_override
-                        : null;
-                    const inconsistent = findInconsistency(finding, declarationQuestionnaire ?? {});
-
-                    return (
-                      <div key={finding.id} className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate leading-snug">
-                            {finding.title ?? 'Untitled'}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            {checkTypeBadge(finding.check_type)}
-                            {humanOverride && (
-                              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-50 text-xs gap-1">
-                                <UserCheck className="h-3 w-3" />
-                                Override
-                              </Badge>
-                            )}
-                            {inconsistent && (
-                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 text-xs gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                Inconsistent
-                              </Badge>
-                            )}
-                          </div>
-                          {humanOverride && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">
-                              {humanOverride.reason}
-                            </p>
-                          )}
-                          {finding.individual_id && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-5 px-1 text-xs gap-1 text-muted-foreground hover:text-foreground mt-1"
-                              onClick={() => handleViewIndividual(finding.individual_id!)}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              View Individual
-                            </Button>
-                          )}
-                        </div>
-                        <div className="shrink-0 flex flex-col items-end gap-1.5">
-                          {resolutionBadge(finding.resolution_status)}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs gap-1"
-                            onClick={() => setOverrideFinding(finding)}
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Override
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            </div>
+            {(findings ?? []).map((finding) => (
+              <FindingCard
+                key={finding.id}
+                finding={finding}
+                inconsistency={findInconsistency(finding, declarationQuestionnaire ?? {})}
+                onOverride={(f) => setOverrideFinding(f)}
+                onViewIndividual={handleViewIndividual}
+              />
+            ))}
           </div>
         )}
 

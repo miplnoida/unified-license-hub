@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,7 @@ import {
   Eye,
   Filter,
   TrendingUp,
+  ClipboardList,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -53,6 +54,16 @@ interface RawFinding {
   is_false_positive: boolean | null;
   created_at: string | null;
   reviewed_at: string | null;
+  assigned_to: string | null;
+  severity_basis: {
+    escalated?: boolean;
+    escalated_at?: string;
+    escalated_by?: string;
+    note?: string;
+    source?: string;
+    reason?: string;
+    [key: string]: unknown;
+  } | null;
   // joined
   individual_name?: string | null;
 }
@@ -183,6 +194,8 @@ export default function FpaFindings() {
     }
   }, [searchParams]);
 
+  const individualIdFilter = searchParams.get('individual_id');
+
   // Escalate dialog
   const [escalateTarget, setEscalateTarget] = useState<RawFinding | null>(null);
   const [escalateNote, setEscalateNote] = useState('');
@@ -210,7 +223,9 @@ export default function FpaFindings() {
           review_note,
           is_false_positive,
           created_at,
-          reviewed_at
+          reviewed_at,
+          assigned_to,
+          severity_basis
         `)
         .order('created_at', { ascending: false })
         .limit(200);
@@ -261,6 +276,7 @@ export default function FpaFindings() {
           (r.assessment_id ? assessmentIndividualMap[r.assessment_id] : null);
         return {
           ...r,
+          individual_id: resolvedId ?? r.individual_id,
           individual_name: resolvedId ? (nameMap[resolvedId] ?? '—') : '—',
         };
       });
@@ -294,6 +310,11 @@ export default function FpaFindings() {
   const filtered = useMemo(() => {
     let rows = findings ?? [];
 
+    // Individual filter (deep-linked from an individual's profile)
+    if (individualIdFilter) {
+      rows = rows.filter((f) => f.individual_id === individualIdFilter);
+    }
+
     // Quick tab filter
     if (quickTab === 'action') {
       rows = rows.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status)));
@@ -301,6 +322,8 @@ export default function FpaFindings() {
       rows = rows.filter((f) => normSeverity(f.severity) === 'HIGH');
     } else if (quickTab === 'confirmed') {
       rows = rows.filter((f) => normStatus(f.resolution_status) === 'true_positive_draft');
+    } else if (quickTab === 'escalated') {
+      rows = rows.filter((f) => f.severity_basis?.escalated === true);
     }
 
     // Severity filter
@@ -319,7 +342,7 @@ export default function FpaFindings() {
     }
 
     return rows;
-  }, [findings, quickTab, severityFilter, statusFilter, checkTypeFilter]);
+  }, [findings, individualIdFilter, quickTab, severityFilter, statusFilter, checkTypeFilter]);
 
   // ---------------------------------------------------------------------------
   // Stats (always from full dataset, not filtered)
@@ -333,6 +356,7 @@ export default function FpaFindings() {
       low: all.filter((f) => normSeverity(f.severity) === 'LOW').length,
       open: all.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status))).length,
       confirmed: all.filter((f) => normStatus(f.resolution_status) === 'true_positive_draft').length,
+      escalated: all.filter((f) => f.severity_basis?.escalated === true).length,
     };
   }, [findings]);
 
@@ -342,12 +366,32 @@ export default function FpaFindings() {
   const escalateMutation = useMutation({
     mutationFn: async ({ finding, note }: { finding: RawFinding; note: string }) => {
       const reviewNote = `ESCALATED: ${note.trim()}`;
+      const nowIso = new Date().toISOString();
+      // Escalating previously only appended prose to review_note — nothing
+      // changed the finding's actionable state, so the "SUPERVISOR QUEUE"
+      // badge was cosmetic. Now it also flips resolution_status so the
+      // finding is guaranteed to appear in the Manual Review Queue's
+      // actionable list, and records a structured, filterable escalation
+      // marker in severity_basis (previously a defined-but-never-written
+      // column) instead of only free-text prose.
       const { error } = await (supabase as any)
         .from('fp_findings')
         .update({
           review_note: reviewNote,
-          reviewed_at: new Date().toISOString(),
+          reviewed_at: nowIso,
           reviewed_by: user?.id ?? null,
+          resolution_status: 'needs_review',
+          // Merge onto whatever severity_basis the screening run already
+          // recorded (source/reason for the original severity) instead of
+          // clobbering it — escalation is additional context, not a
+          // replacement for why the finding was scored the way it was.
+          severity_basis: {
+            ...(finding.severity_basis ?? {}),
+            escalated: true,
+            escalated_at: nowIso,
+            escalated_by: user?.id ?? null,
+            note: note.trim(),
+          },
         })
         .eq('id', finding.id);
       if (error) throw error;
@@ -364,6 +408,12 @@ export default function FpaFindings() {
       } catch {
         // non-fatal
       }
+
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_high_severity_finding', entity_type: 'fp_finding', entity_id: finding.id, payload: { individual_id: finding.individual_id, high_count: 1 } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Finding escalated to supervisor queue');
@@ -385,6 +435,21 @@ export default function FpaFindings() {
           title="Findings Console"
           description="All adverse findings with severity routing and escalation — FPA-007"
         />
+
+        {individualIdFilter && (
+          <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+            <span>
+              Showing findings for{' '}
+              <span className="font-medium">
+                {filtered[0]?.individual_name ?? (findings ?? []).find((f) => f.individual_id === individualIdFilter)?.individual_name ?? 'this individual'}
+              </span>{' '}
+              only.
+            </span>
+            <Link to="/fpa/findings" className="text-primary hover:underline">
+              Clear filter
+            </Link>
+          </div>
+        )}
 
         {/* Stats row */}
         {isLoading ? (
@@ -541,10 +606,14 @@ export default function FpaFindings() {
                   Confirmed Adverse
                   <span className="ml-1.5 tabular-nums text-muted-foreground">({stats.confirmed})</span>
                 </TabsTrigger>
+                <TabsTrigger value="escalated" className="text-xs">
+                  Escalated
+                  <span className="ml-1.5 tabular-nums text-muted-foreground">({stats.escalated})</span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Single shared content area for all tabs (filtered client-side) */}
-              {(['all', 'action', 'high', 'confirmed'] as const).map((tab) => (
+              {(['all', 'action', 'high', 'confirmed', 'escalated'] as const).map((tab) => (
                 <TabsContent key={tab} value={tab} className="mt-3">
                   <Card>
                     <CardContent className="p-0">
@@ -575,7 +644,7 @@ export default function FpaFindings() {
                                 const sev = normSeverity(finding.severity);
                                 const status = normStatus(finding.resolution_status);
                                 const routing = routingBadge(sev);
-                                const canEscalate = sev === 'HIGH' && !['false_positive_draft', 'resolved'].includes(status);
+                                const canEscalate = sev === 'HIGH' && !['false_positive_draft', 'resolved'].includes(status) && finding.severity_basis?.escalated !== true;
 
                                 // Left severity stripe color
                                 const stripeColor =
@@ -618,8 +687,18 @@ export default function FpaFindings() {
                                     </TableCell>
 
                                     {/* Individual */}
-                                    <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
-                                      {finding.individual_name ?? '—'}
+                                    <TableCell className="py-3 text-sm whitespace-nowrap">
+                                      {finding.individual_id ? (
+                                        <Link
+                                          to={`/fpa/individuals/${finding.individual_id}`}
+                                          className="text-primary hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {finding.individual_name ?? '—'}
+                                        </Link>
+                                      ) : (
+                                        <span className="text-muted-foreground">{finding.individual_name ?? '—'}</span>
+                                      )}
                                     </TableCell>
 
                                     {/* Check type */}
@@ -671,7 +750,16 @@ export default function FpaFindings() {
                                           <Eye className="h-3.5 w-3.5 mr-1" />
                                           Review
                                         </Button>
-                                        {canEscalate && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => navigate(`/fpa/manual-tasks/${finding.id}`)}
+                                        >
+                                          <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                                          Manage
+                                        </Button>
+                                        {canEscalate ? (
                                           <Button
                                             size="sm"
                                             variant="destructive"
@@ -684,7 +772,12 @@ export default function FpaFindings() {
                                             <ArrowUpCircle className="h-3.5 w-3.5 mr-1" />
                                             Escalate
                                           </Button>
-                                        )}
+                                        ) : finding.severity_basis?.escalated === true ? (
+                                          <span className="inline-flex items-center h-7 px-2 text-xs text-red-700 gap-1">
+                                            <ArrowUpCircle className="h-3.5 w-3.5" />
+                                            Escalated
+                                          </span>
+                                        ) : null}
                                       </div>
                                     </TableCell>
                                   </TableRow>

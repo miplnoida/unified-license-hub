@@ -374,6 +374,11 @@ export default function FpaManualTasks() {
         } as any)
         .eq('id', findingId);
       if (error) throw error;
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: { event_key: 'fp_finding_assigned', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: userId } },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Task assigned.');

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert, Plus } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
 import { resolveFpSectorRule, evaluateFpCriteria } from '@/lib/fpSectorRules';
 
@@ -32,10 +34,15 @@ interface Props { individualId: string; assessmentId?: string | null }
 export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [assignCommitteeId, setAssignCommitteeId] = useState<string>('');
   const [voteChoice, setVoteChoice] = useState<string>('approve');
   const [voteNote, setVoteNote] = useState('');
   const [rationale, setRationale] = useState('');
+  // A conditional outcome should have at least one condition attached — a
+  // centered dialog (rather than a dismissable toast action) so the
+  // follow-up decision isn't easy to miss.
+  const [conditionPromptDeterminationId, setConditionPromptDeterminationId] = useState<string | null>(null);
 
   const { data: assessment } = useQuery({
     queryKey: ['fp_assessment_for_det', assessmentId],
@@ -300,13 +307,24 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
         context: { individualId, assessmentId, determinationId: inserted.id, regulatorId },
         justification: rationale.trim(),
       });
+
+      return { outcome, determinationId: inserted.id };
     },
-    onSuccess: () => {
-      toast.success('Determination recorded');
+    onSuccess: (result) => {
       setRationale('');
       qc.invalidateQueries({ queryKey: ['fp_determinations', individualId] });
+      // Conditions & SLA / Appeals key their "Linked Determination" picker off
+      // ['fp_determinations_for_individual', individualId] — a different key
+      // from the one above, so a determination finalized here never showed up
+      // there until the cache aged out or the page was reloaded.
+      qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_assessment_for_det', assessmentId] });
       qc.invalidateQueries({ queryKey: ['fp_assessment', assessmentId] });
+
+      toast.success('Determination recorded');
+      if (result.outcome === 'conditional') {
+        setConditionPromptDeterminationId(result.determinationId);
+      }
     },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
@@ -458,11 +476,50 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                 </div>
                 <div className="mt-1 text-xs">{d.rationale}</div>
                 {d.supersedes_id && <div className="text-xs text-muted-foreground mt-1">Supersedes {String(d.supersedes_id).slice(0, 8)}…</div>}
+                {d.outcome === 'conditional' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => navigate(`/fpa/conditions?open=1&individual_id=${individualId}&determination_id=${d.id}`)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add Condition
+                  </Button>
+                )}
               </div>
             );
           })}
         </CardContent>
       </Card>
+
+      {/* Conditional-outcome follow-up — a centered dialog so the decision to
+          attach a condition isn't easy to miss/dismiss the way a toast is. */}
+      <Dialog open={!!conditionPromptDeterminationId} onOpenChange={(v) => { if (!v) setConditionPromptDeterminationId(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a condition?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This determination was recorded as conditional. Conditional outcomes should have at
+            least one tracked condition (with a due date) attached — would you like to add one now?
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConditionPromptDeterminationId(null)}>
+              Not now
+            </Button>
+            <Button
+              onClick={() => {
+                if (!conditionPromptDeterminationId) return;
+                navigate(`/fpa/conditions?open=1&individual_id=${individualId}&determination_id=${conditionPromptDeterminationId}`);
+                setConditionPromptDeterminationId(null);
+              }}
+            >
+              Add Condition
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

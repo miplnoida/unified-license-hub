@@ -848,7 +848,10 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  When set, this employee only sees Fit &amp; Proper determinations for their own regulator (segregation of duties).
+                  When set, this employee only sees Fit &amp; Proper individuals, assessments, committees, votes,
+                  conditions, and determinations for their own regulator (segregation of duties). Left
+                  &quot;Not assigned&quot; (the default for every existing employee), they see every regulator&apos;s
+                  Fit &amp; Proper data.
                 </p>
               </div>
             </div>

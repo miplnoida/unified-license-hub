@@ -35,6 +35,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -120,9 +121,7 @@ interface NewCommitteeForm {
 }
 
 interface CastVoteForm {
-  member_id: string;
   vote: string;
-  weight: string;
   justification: string;
   rationale_required: boolean;
 }
@@ -157,9 +156,7 @@ const EMPTY_COMMITTEE_FORM: NewCommitteeForm = {
 };
 
 const EMPTY_VOTE_FORM: CastVoteForm = {
-  member_id: '',
   vote: '',
-  weight: '',
   justification: '',
   rationale_required: false,
 };
@@ -318,6 +315,7 @@ function VoteDistributionChart({ tally }: { tally: VoteTally }) {
 
 export default function FpaCommittee() {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const [selectedCommitteeId, setSelectedCommitteeId] = useState<string | null>(null);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | ''>('');
@@ -397,6 +395,18 @@ export default function FpaCommittee() {
       profile_name: profile?.full_name ?? profile?.email ?? null,
     };
   });
+
+  // RLS only allows a member to cast their OWN vote (fp_committee_votes "Member
+  // casts own vote" policy requires member.user_id = auth.uid()) — the member
+  // picker below must be restricted to this, not a free choice of any member,
+  // otherwise the form silently fails for every member except the current user.
+  // Derived directly from `members` on every render (not mirrored into
+  // voteForm state) — voteForm gets reset to EMPTY_VOTE_FORM in several
+  // places (switching assessment, switching committee, after a successful
+  // vote) without the membership itself changing, so a useEffect keyed off
+  // myMembership?.id would go stale after those resets and never refill the
+  // weight/member fields, permanently disabling the Record Vote button.
+  const myMembership = members?.find((m) => m.user_id === user?.id);
 
   const {
     data: assessments,
@@ -551,11 +561,13 @@ export default function FpaCommittee() {
   const castVote = useMutation({
     mutationFn: async () => {
       if (!selectedAssessmentId) throw new Error('Select an assessment first.');
-      if (!voteForm.member_id) throw new Error('Select a member.');
+      if (!myMembership) throw new Error('You are not a member of this committee.');
       if (!voteForm.vote) throw new Error('Select a vote option.');
 
-      const weight = parseFloat(voteForm.weight);
-      if (isNaN(weight) || weight <= 0) throw new Error('Weight must be a positive number.');
+      const weight = myMembership.vote_weight;
+      if (weight == null || isNaN(weight) || weight <= 0) {
+        throw new Error('This member has no valid vote weight configured.');
+      }
 
       if (voteForm.rationale_required && !voteForm.justification.trim()) {
         throw new Error('Justification is required when rationale is required.');
@@ -564,7 +576,7 @@ export default function FpaCommittee() {
       const { error } = await (supabase as any).from('fp_committee_votes').insert({
         assessment_id: selectedAssessmentId,
         committee_id: selectedCommitteeId,
-        member_id: voteForm.member_id,
+        member_id: myMembership.id,
         vote: voteForm.vote,
         weight,
         justification: voteForm.justification.trim() || null,
@@ -582,17 +594,6 @@ export default function FpaCommittee() {
       toast.error(e?.message || 'Failed to cast vote.');
     },
   });
-
-  // ── Member weight auto-fill ───────────────────────────────────────────────
-
-  const handleMemberSelect = (memberId: string) => {
-    const member = members?.find((m) => m.id === memberId);
-    setVoteForm((f) => ({
-      ...f,
-      member_id: memberId,
-      weight: member?.vote_weight != null ? String(member.vote_weight) : '1',
-    }));
-  };
 
   // ── Open edit dialog ──────────────────────────────────────────────────────
 
@@ -1108,12 +1109,19 @@ export default function FpaCommittee() {
                                 <p className="text-2xl font-bold tabular-nums text-foreground">{tally.totalWeight}</p>
                               </div>
                               <div className="rounded-md bg-muted/50 px-3 py-2.5 text-center">
-                                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Approval %</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Approval % (of votes cast)</p>
                                 <p className="text-2xl font-bold tabular-nums text-foreground">
                                   {fmtPct(tally.approvalPct)}
                                 </p>
                               </div>
                             </div>
+                            {!tally.quorumMet && (
+                              <p className="text-xs text-amber-700 -mt-2">
+                                This is only the split among the {tally.totalVotes} vote{tally.totalVotes === 1 ? '' : 's'} cast so far — a
+                                member's vote weight counts toward this percentage, not toward quorum. Quorum needs {selectedCommittee.quorum} distinct
+                                members to vote, however heavily any one of them is weighted, before an outcome can be finalized.
+                              </p>
+                            )}
 
                             {/* Vote breakdown */}
                             <div className="grid grid-cols-3 gap-2">
@@ -1168,7 +1176,7 @@ export default function FpaCommittee() {
                               </div>
                               <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
                                 <div
-                                  className="h-3 rounded-full bg-emerald-500 transition-all duration-500"
+                                  className={`h-3 rounded-full transition-all duration-500 ${tally.quorumMet ? 'bg-emerald-500' : 'bg-amber-400'}`}
                                   style={{ width: `${Math.min(tally.approvalPct, 100)}%` }}
                                 />
                                 {/* Threshold marker */}
@@ -1179,6 +1187,7 @@ export default function FpaCommittee() {
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Threshold line at {selectedCommittee.approval_threshold_pct}%
+                                {!tally.quorumMet && ' — shown in amber until quorum is met; not yet a decision.'}
                               </p>
                             </div>
 
@@ -1308,27 +1317,23 @@ export default function FpaCommittee() {
                     ) : (
                       <div className="space-y-4 max-w-lg">
                         <div className="grid grid-cols-2 gap-4">
-                          {/* Member */}
+                          {/* Member — restricted to the current user's own membership; RLS only
+                              allows a member to cast their own vote, so this can't be a free pick. */}
                           <div>
                             <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">
-                              Member <span className="text-red-500">*</span>
+                              Voting as
                             </Label>
                             {!members || members.length === 0 ? (
                               <p className="text-xs text-muted-foreground italic">No members in this committee.</p>
+                            ) : !myMembership ? (
+                              <p className="text-xs text-muted-foreground italic">
+                                You are not a member of this committee, so you cannot cast a vote here.
+                              </p>
                             ) : (
-                              <Select value={voteForm.member_id} onValueChange={handleMemberSelect}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select member…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {members.map((m) => (
-                                    <SelectItem key={m.id} value={m.id}>
-                                      <span>{memberDisplayName(m)}</span>
-                                      {m.member_role ? ` · ${m.member_role}` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                                {memberDisplayName(myMembership)}
+                                {myMembership.member_role ? ` · ${myMembership.member_role}` : ''}
+                              </div>
                             )}
                           </div>
 
@@ -1365,7 +1370,7 @@ export default function FpaCommittee() {
                           </div>
                         </div>
 
-                        {/* Weight */}
+                        {/* Weight — pinned to the member's configured vote_weight, not user-editable */}
                         <div className="w-40">
                           <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5 block">
                             Vote Weight
@@ -1374,8 +1379,9 @@ export default function FpaCommittee() {
                             type="number"
                             min={0.1}
                             step={0.1}
-                            value={voteForm.weight}
-                            onChange={(e) => setVoteForm((f) => ({ ...f, weight: e.target.value }))}
+                            value={myMembership?.vote_weight != null ? String(myMembership.vote_weight) : ''}
+                            disabled
+                            readOnly
                             placeholder="e.g. 1"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
@@ -1421,9 +1427,8 @@ export default function FpaCommittee() {
                           onClick={() => castVote.mutate()}
                           disabled={
                             castVote.isPending ||
-                            !voteForm.member_id ||
+                            !myMembership ||
                             !voteForm.vote ||
-                            !voteForm.weight ||
                             (voteForm.rationale_required && !voteForm.justification.trim())
                           }
                         >
