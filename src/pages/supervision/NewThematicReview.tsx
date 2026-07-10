@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 
 export default function NewThematicReview() {
   const nav = useNavigate();
