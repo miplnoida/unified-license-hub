@@ -27,6 +27,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { getSignedUrl } from '@/lib/secureFileUpload';
+import { Paperclip, ExternalLink } from 'lucide-react';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
