@@ -47,21 +47,58 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
   const upload = useUploadEvidence();
   const toggle = useToggleEvidenceRestriction();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const emptyForm = {
     title: '', evidence_type: 'document', description: '',
-    source: '', file_url: '', restricted: false, confidentiality_level: 'internal',
-  });
+    source: '', restricted: false, confidentiality_level: 'internal',
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const v = validateFile(f);
+    if (!v.valid) { toast.error(v.error || 'Invalid file'); return; }
+    setFile(f);
+    if (!form.title.trim()) setForm(prev => ({ ...prev, title: f.name.replace(/\.[^.]+$/, '') }));
+    if (fileRef.current) fileRef.current.value = '';
+  };
 
   const submit = async () => {
     if (!form.title.trim()) { toast.error('Title required'); return; }
-    await upload.mutateAsync({ ...form, ...filter });
-    setForm({ title: '', evidence_type: 'document', description: '', source: '', file_url: '', restricted: false, confidentiality_level: 'internal' });
-    setOpen(false);
-    refetch();
+    if (!file) { toast.error('Please select a file to upload'); return; }
+    setUploading(true);
+    try {
+      const scope = entityId ? `entity/${entityId}` :
+                    complaintId ? `complaint/${complaintId}` :
+                    investigationId ? `investigation/${investigationId}` :
+                    thematicReviewId ? `thematic/${thematicReviewId}` : 'misc';
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const path = `conduct-evidence/${scope}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await (supabase as any).storage.from('fp-evidence').upload(path, file, {
+        contentType: file.type || 'application/octet-stream', upsert: false,
+      });
+      if (upErr) throw new Error(upErr.message);
+      await upload.mutateAsync({
+        ...form, ...filter,
+        file_url: path,
+        metadata: { storage_bucket: 'fp-evidence', storage_path: path, original_name: file.name, size: file.size, mime: file.type } as any,
+      });
+      setForm(emptyForm);
+      setFile(null);
+      setOpen(false);
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const view = async (row: ConductEvidence) => {
-    if (!row.file_url) { toast.error('No file URL on this evidence item'); return; }
+    if (!row.file_url) { toast.error('No file attached to this evidence item'); return; }
     // Re-check readability under RLS — if row is restricted and user cannot
     // fetch it via a fresh select, treat as denied access.
     const { data: verify, error } = await (supabase as any)
@@ -72,8 +109,17 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
       return;
     }
     await logEvidenceAccess(row.id, 'view', row.restricted ? 'restricted-view' : null);
-    window.open(row.file_url, '_blank', 'noopener');
+    // If it looks like a full URL, open directly; otherwise treat as a storage path.
+    if (/^https?:\/\//i.test(row.file_url)) {
+      window.open(row.file_url, '_blank', 'noopener');
+      return;
+    }
+    const { data: signed, error: signErr } = await (supabase as any).storage
+      .from('fp-evidence').createSignedUrl(row.file_url, 300);
+    if (signErr || !signed?.signedUrl) { toast.error('Could not generate download link'); return; }
+    window.open(signed.signedUrl, '_blank', 'noopener');
   };
+
 
   const toggleRestriction = async (row: ConductEvidence) => {
     const res = await Swal.fire({
