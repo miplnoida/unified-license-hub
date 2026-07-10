@@ -207,63 +207,22 @@ export default function ComplaintsList() {
         rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean) as string[]
       );
 
-      // Resolve workflow assignees (current step) for each complaint
+      // Resolve workflow assignees for each complaint via RPC (bypasses RLS/N+1 issues)
       const complaintIds = rows.map(r => r.id);
       const asgMap = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
       if (complaintIds.length) {
-        const { data: instances } = await supabase
-          .from('workflow_instances')
-          .select('entity_id, current_step_id')
-          .eq('entity_type', 'complaint')
-          .in('entity_id', complaintIds)
-          .in('status', ['active', 'paused']);
-        const stepIds = Array.from(new Set((instances || []).map((i: any) => i.current_step_id).filter(Boolean)));
-        const stepsById = new Map<string, any>();
-        if (stepIds.length) {
-          const { data: steps } = await supabase
-            .from('approval_steps')
-            .select('id, approver_role, approver_role_id, approver_type, approver_config')
-            .in('id', stepIds);
-          (steps || []).forEach((s: any) => stepsById.set(s.id, s));
+        const { data: asg, error: asgErr } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: complaintIds });
+        if (asgErr) {
+          console.error('get_complaint_current_assignees failed', asgErr);
         }
-        // Collect role names for role-based steps
-        const rolesNeeded = new Set<string>();
-        stepsById.forEach((s) => {
-          if (s.approver_type === 'role_based_user' && s.approver_role) {
-            rolesNeeded.add(s.approver_role);
+        ((asg as any[]) || []).forEach((row: any) => {
+          const existing = asgMap.get(row.complaint_id) || { role: row.step_role || null, users: [] };
+          if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
+            existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
           }
+          existing.role = existing.role || row.step_role || null;
+          asgMap.set(row.complaint_id, existing);
         });
-        const roleUserIds = new Map<string, string[]>();
-        if (rolesNeeded.size) {
-          const { data: urs } = await (supabase as any)
-            .from('user_roles')
-            .select('user_id, role')
-            .in('role', Array.from(rolesNeeded));
-          ((urs as any[]) || []).forEach((r: any) => {
-            const arr = roleUserIds.get(r.role) || [];
-            arr.push(r.user_id);
-            roleUserIds.set(r.role, arr);
-          });
-        }
-        // Build per-complaint assignee id list; collect for profile fetch
-        const perComplaint = new Map<string, { role: string | null; userIds: string[] }>();
-        (instances || []).forEach((inst: any) => {
-          const step = inst.current_step_id ? stepsById.get(inst.current_step_id) : null;
-          if (!step) return;
-          let uids: string[] = [];
-          if (step.approver_type === 'specific_users') {
-            uids = ((step.approver_config?.user_ids as string[]) || []).filter(Boolean);
-          } else {
-            const byRole = step.approver_role ? (roleUserIds.get(step.approver_role) || []) : [];
-            uids = Array.from(new Set(byRole));
-          }
-          uids.forEach(id => profIds.add(id));
-          perComplaint.set(inst.entity_id, { role: step.approver_role || null, userIds: uids });
-        });
-
-        // Placeholder — we fill users after profiles load below
-        (perComplaint as any)._pending = true;
-        (asgMap as any)._pending = perComplaint;
       }
 
       const [licRes, profRes] = await Promise.all([
@@ -277,15 +236,6 @@ export default function ComplaintsList() {
       ((profRes as any).data || []).forEach((p: any) => pm.set(p.id, { full_name: p.full_name, email: p.email }));
       setProfileMap(pm);
 
-      // Finalize assignees with resolved profile info
-      const pending = (asgMap as any)._pending as Map<string, { role: string | null; userIds: string[] }> | undefined;
-      if (pending) {
-        pending.forEach((v, cid) => {
-          const users = v.userIds.map(id => ({ id, full_name: pm.get(id)?.full_name ?? null, email: pm.get(id)?.email ?? null }));
-          asgMap.set(cid, { role: v.role, users });
-        });
-        delete (asgMap as any)._pending;
-      }
       setAssigneesByComplaint(asgMap);
     }
     setLoading(false);
