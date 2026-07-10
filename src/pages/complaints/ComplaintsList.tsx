@@ -108,6 +108,44 @@ export default function ComplaintsList() {
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
 
+  useEffect(() => {
+    if (!detailDialog?.id) { setDetailAttachments([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: ev } = await supabase
+        .from('complaint_evidence' as any)
+        .select('label, file_upload_id')
+        .eq('complaint_id', detailDialog.id);
+      const rows = (ev as any[]) || [];
+      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
+      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
+      const { data: files } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size')
+        .in('id', ids);
+      const fmap = new Map(((files as any[]) || []).map(f => [f.id, f]));
+      const atts = rows.map(r => {
+        const f = fmap.get(r.file_upload_id);
+        return {
+          id: r.file_upload_id,
+          name: r.label || f?.file_name || 'Attachment',
+          size: f?.file_size,
+          filePath: f?.file_path,
+        };
+      });
+      if (!cancelled) setDetailAttachments(atts);
+    })();
+    return () => { cancelled = true; };
+  }, [detailDialog?.id]);
+
+  const openDetailAttachment = async (filePath?: string) => {
+    if (!filePath) return;
+    const { url, error } = await getSignedUrl(filePath, 300);
+    if (error || !url) { toast.error(error || 'Unable to open file'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
