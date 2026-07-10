@@ -193,7 +193,33 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
                 <SelectContent>{TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>File URL</Label><Input placeholder="https://…" value={form.file_url} onChange={e => setForm({ ...form, file_url: e.target.value })} /></div>
+            <div>
+              <Label>File *</Label>
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept={ACCEPT_STRING}
+                onChange={pickFile}
+              />
+              {file ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setFile(null)} type="button">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" type="button" onClick={() => fileRef.current?.click()}>
+                  <Plus className="h-4 w-4 mr-1" />Select file
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Max {MAX_FILE_SIZE / (1024 * 1024)}MB · stored privately</p>
+            </div>
             <div><Label>Description</Label><Textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
             <div><Label>Source</Label><Input value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} placeholder="e.g. licensee submission" /></div>
             <div>
