@@ -33,8 +33,9 @@ interface Props {
  * Uses `window.print()` with a print-only stylesheet so the browser's built-in
  * "Save as PDF" produces a clean single-page acknowledgement.
  */
-export function ComplaintAcknowledgement({ open, onOpenChange, complaint }: Props) {
+export function ComplaintAcknowledgement({ open, onOpenChange, complaint, variant = 'internal' }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
+  const isApplicant = variant === 'applicant';
 
   const handlePrint = async () => {
     const contents = printRef.current?.innerHTML ?? '';
@@ -48,9 +49,11 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint }: Prop
         .header { border-bottom: 2px solid #1E3A8A; padding-bottom: 16px; margin-bottom: 24px; }
         .meta { display: grid; grid-template-columns: 200px 1fr; gap: 8px 16px; font-size: 14px; }
         .meta dt { font-weight: 600; color: #475569; }
+        .meta dd { margin: 0; white-space: pre-wrap; }
         .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #16A34A; color: white; font-size: 12px; letter-spacing: 0.5px; }
         .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
         .ref { font-family: 'JetBrains Mono', monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+        ul.att { margin: 0; padding-left: 18px; font-size: 13px; }
       </style></head><body>${contents}</body></html>`);
     win.document.close();
     win.focus();
@@ -73,6 +76,7 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint }: Prop
   };
 
   const submittedFmt = new Date(complaint.submitted_at).toLocaleString();
+  const attachments = complaint.attachments ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +87,11 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint }: Prop
 
         <div ref={printRef} className="border rounded-md p-6 bg-white">
           <div className="header">
-            <h1>{complaint.regulator_name ?? 'Regulator'} — Complaint Acknowledgement</h1>
+            <h1>
+              {isApplicant
+                ? 'Complaint Acknowledgement'
+                : `${complaint.regulator_name ?? 'Regulator'} — Complaint Acknowledgement`}
+            </h1>
             <div style={{ fontSize: 12, color: '#64748b' }}>
               This document confirms receipt of your complaint. Retain this reference for your records.
             </div>
@@ -94,19 +102,42 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint }: Prop
           </div>
 
           <dl className="meta">
-            <dt>Reference number</dt>
+            <dt>Acknowledgement no.</dt>
             <dd><span className="ref">{complaint.complaint_number}</span></dd>
 
-            <dt>Received at</dt>
+            <dt>Submitted on</dt>
             <dd>{submittedFmt}</dd>
 
-            <dt>Subject</dt>
+            <dt>Title</dt>
             <dd>{complaint.subject}</dd>
 
-            {complaint.complainant_name && (<><dt>Complainant</dt><dd>{complaint.complainant_name}</dd></>)}
-            {complaint.complainant_email && (<><dt>Contact email</dt><dd>{complaint.complainant_email}</dd></>)}
-            {complaint.channel && (<><dt>Channel</dt><dd>{complaint.channel}</dd></>)}
-            {complaint.sla_days && (
+            {complaint.description && (
+              <>
+                <dt>Description</dt>
+                <dd>{complaint.description}</dd>
+              </>
+            )}
+
+            {attachments.length > 0 && (
+              <>
+                <dt>Attachments</dt>
+                <dd>
+                  <ul className="att">
+                    {attachments.map((a, i) => (
+                      <li key={i}>
+                        {a.name}
+                        {a.size ? ` (${a.size < 1024 * 1024 ? `${(a.size / 1024).toFixed(1)} KB` : `${(a.size / (1024 * 1024)).toFixed(1)} MB`})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </>
+            )}
+
+            {!isApplicant && complaint.complainant_name && (<><dt>Complainant</dt><dd>{complaint.complainant_name}</dd></>)}
+            {!isApplicant && complaint.complainant_email && (<><dt>Contact email</dt><dd>{complaint.complainant_email}</dd></>)}
+            {!isApplicant && complaint.channel && (<><dt>Channel</dt><dd>{complaint.channel}</dd></>)}
+            {!isApplicant && complaint.sla_days && (
               <>
                 <dt>Target response</dt>
                 <dd>Within {complaint.sla_days} business days of the receipt date above.</dd>
