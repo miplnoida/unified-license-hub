@@ -249,9 +249,7 @@ export default function ComplaintsList() {
             uids = ((step.approver_config?.user_ids as string[]) || []).filter(Boolean);
           } else {
             const byRole = step.approver_role ? (roleUserIds.get(step.approver_role) || []) : [];
-            const cfgRoleIds: string[] = (step.approver_config?.role_ids as string[]) || [];
-            const byRoleId = cfgRoleIds.flatMap(rid => roleIdUserIds.get(rid) || []);
-            uids = Array.from(new Set([...byRole, ...byRoleId]));
+            uids = Array.from(new Set(byRole));
           }
           uids.forEach(id => profIds.add(id));
           perComplaint.set(inst.entity_id, { role: step.approver_role || null, userIds: uids });
