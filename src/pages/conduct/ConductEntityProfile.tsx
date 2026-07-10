@@ -181,6 +181,24 @@ export default function ConductEntityProfile() {
   );
 }
 
+const DATETIME_COLS = new Set(['created_at', 'updated_at', 'evaluated_at', 'closed_at', 'acknowledged_at', 'window_start', 'window_end']);
+const DATE_ONLY_COLS = new Set(['due_date']);
+
+function formatCell(col: string, val: any) {
+  if (val === null || val === undefined || val === '') return '—';
+  if (typeof val === 'boolean') return String(val);
+  if (DATETIME_COLS.has(col)) {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? String(val) : d.toLocaleString();
+  }
+  if (DATE_ONLY_COLS.has(col)) {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString();
+  }
+  const s = String(val);
+  return s.length > 60 ? s.slice(0, 60) + '…' : s;
+}
+
 function ListCard({ rows, loading, columns, linkFn }: { rows: any[] | undefined; loading: boolean; columns: string[]; linkFn: (r: any) => string }) {
   if (loading) return <Card><CardContent className="p-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></CardContent></Card>;
   const r = rows ?? [];
@@ -193,9 +211,7 @@ function ListCard({ rows, loading, columns, linkFn }: { rows: any[] | undefined;
           {r.map((row: any) => (
             <TableRow key={row.id}>
               {columns.map(c => (
-                <TableCell key={c} className="text-sm">
-                  {typeof row[c] === 'boolean' ? String(row[c]) : (row[c] && String(row[c]).length > 60 ? String(row[c]).slice(0, 60) + '…' : row[c] ?? '—')}
-                </TableCell>
+                <TableCell key={c} className="text-sm">{formatCell(c, row[c])}</TableCell>
               ))}
               <TableCell className="text-right"><Button size="sm" variant="ghost" asChild><Link to={linkFn(row)}>Open</Link></Button></TableCell>
             </TableRow>
