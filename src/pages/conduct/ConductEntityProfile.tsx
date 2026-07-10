@@ -41,10 +41,48 @@ export default function ConductEntityProfile() {
   const { data: summary } = useConductEntitySummary(id);
   const { data: audit } = useConductEntityAuditHistory(id);
   const complaints = useEntityList('complaints', 'licensee_id', id, 'id, complaint_number, subject, status, severity, priority, created_at');
-  const alerts = useEntityList('conduct_alerts', 'licensee_id', id, 'id, title, kind, severity, status, created_at');
+  const complaintIds = (complaints.data ?? []).map((c: any) => c.id);
+
+  const alerts = useQuery({
+    enabled: !!id,
+    queryKey: ['entity-alerts', id, complaintIds.join(',')],
+    queryFn: async () => {
+      // Alerts are linked to an entity either directly via licensee_id
+      // or indirectly via the complaint_id → complaints.licensee_id chain.
+      const or = [`licensee_id.eq.${id}`];
+      if (complaintIds.length) or.push(`complaint_id.in.(${complaintIds.join(',')})`);
+      const { data, error } = await sb.from('conduct_alerts')
+        .select('id, title, kind, severity, status, created_at, complaint_id, licensee_id')
+        .or(or.join(','))
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
+  const monitoring = useQuery({
+    enabled: !!id,
+    queryKey: ['entity-monitoring', id, (alerts.data ?? []).map((a: any) => a.id).join(',')],
+    queryFn: async () => {
+      // Monitoring hits can attach directly via entity_id, or indirectly
+      // through the alert_id linkage back to an alert on this entity.
+      const alertIds = (alerts.data ?? []).map((a: any) => a.id);
+      const or = [`entity_id.eq.${id}`];
+      if (alertIds.length) or.push(`alert_id.in.(${alertIds.join(',')})`);
+      const { data, error } = await sb.from('conduct_monitoring_results')
+        .select('id, rule_id, matched, evaluated_at, metrics, entity_id, alert_id')
+        .or(or.join(','))
+        .order('evaluated_at', { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
   const actions = useEntityList('conduct_actions', 'entity_id', id, 'id, title, action_type, status, due_date, created_at');
   const investigations = useEntityList('conduct_investigations', 'licensee_id', id, 'id, allegation, status, priority, severity, created_at');
-  const monitoring = useEntityList('conduct_monitoring_results', 'entity_id', id, 'id, rule_id, matched, evaluated_at, metrics');
+
 
   if (!entity) {
     return <DashboardLayout><div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div></DashboardLayout>;
