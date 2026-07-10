@@ -233,7 +233,7 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
               <Label>Restricted (internal admin only)</Label>
               <Switch checked={form.restricted} onCheckedChange={v => setForm({ ...form, restricted: v })} />
             </div>
-            <Button onClick={submit} disabled={upload.isPending} className="w-full">{upload.isPending ? 'Uploading…' : 'Upload'}</Button>
+            <Button onClick={submit} disabled={upload.isPending || uploading} className="w-full">{(upload.isPending || uploading) ? 'Uploading…' : 'Upload'}</Button>
           </div>
         </DialogContent>
       </Dialog>
