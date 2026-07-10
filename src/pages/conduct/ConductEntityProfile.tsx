@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useConductEntitySummary, useConductEntityAuditHistory } from '@/hooks/useMarketConduct';
 import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { IssueActionDialog } from '@/components/conduct/IssueActionDialog';
+import { Loader2, ArrowLeft, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 const sb = supabase as any;
 
@@ -28,6 +30,7 @@ function useEntityList<T = any>(table: string, filterCol: string, id: string | u
 
 export default function ConductEntityProfile() {
   const { id } = useParams<{ id: string }>();
+  const [issueOpen, setIssueOpen] = useState(false);
   const { data: entity } = useQuery({
     enabled: !!id,
     queryKey: ['entity', id],
@@ -147,6 +150,17 @@ export default function ConductEntityProfile() {
             <EvidenceRepositoryPanel entityId={id} title="All evidence for this entity" />
           </TabsContent>
           <TabsContent value="actions">
+            <div className="flex justify-end mb-2">
+              <Button size="sm" onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
+            </div>
+            <IssueActionDialog
+              open={issueOpen}
+              onOpenChange={setIssueOpen}
+              defaultEntityId={id}
+              defaultSourceModule="entity"
+              defaultSourceId={id}
+              onCreated={() => actions.refetch()}
+            />
             <ListCard rows={actions.data} loading={actions.isLoading} columns={['title','action_type','status','due_date','created_at']} linkFn={() => '/conduct/actions'} />
           </TabsContent>
           <TabsContent value="monitoring">
