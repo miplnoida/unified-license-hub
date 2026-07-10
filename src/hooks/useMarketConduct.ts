@@ -284,6 +284,19 @@ export function useCreateInternalComplaint() {
       await notify('conduct_complaint_created', 'complaint', data.id, {
         complaint_number: data.complaint_number, subject: data.subject, licensee_id: data.licensee_id,
       });
+      // Email dispatch (in-app rows come from the DB trigger)
+      void import('@/lib/notificationEvents').then(({ dispatchNotificationEvent }) =>
+        dispatchNotificationEvent({
+          event_key: 'complaint.filed',
+          entity_type: 'complaint',
+          entity_id: data.id,
+          payload: {
+            complaint_number: data.complaint_number,
+            subject: data.subject,
+            sla_due_at: data.sla_due_at,
+          },
+        }),
+      );
 
       // Best-effort auto-triage using existing edge function
       try {
