@@ -160,7 +160,7 @@ export default function ThematicReviewDetail() {
               <Info label="Scope" value={`${review.scope_start || '—'} → ${review.scope_end || '—'}`} />
               <Info label="Opened" value={review.opened_at ? new Date(review.opened_at).toLocaleString() : '—'} />
               <Info label="Closed" value={review.closed_at ? new Date(review.closed_at).toLocaleString() : '—'} />
-              <Info label="Lead officer" value={review.lead_officer_id || '—'} />
+              <Info label="Lead officer" value={leadOfficer?.full_name || leadOfficer?.email || '—'} />
               <div className="md:col-span-2"><Info label="Hypothesis" value={review.hypothesis || '—'} /></div>
               <div className="md:col-span-2"><Info label="Description" value={review.description || '—'} /></div>
               {review.closure_summary && <div className="md:col-span-2"><Info label="Closure summary" value={review.closure_summary} /></div>}
