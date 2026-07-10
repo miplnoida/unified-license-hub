@@ -181,7 +181,7 @@ export default function NewThematicReview() {
               <Field label="Lead officer">
                 <select className="w-full h-10 rounded-md border bg-background px-3" value={form.lead_officer_id} onChange={e => setForm({ ...form, lead_officer_id: e.target.value })}>
                   <option value="">— Assign later —</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>)}
+                  {employees.map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}{u.email ? ` (${u.email})` : ''}</option>)}
                 </select>
               </Field>
             </>
