@@ -35,6 +35,7 @@ export default function ThematicReviewDetail() {
   const [actions, setActions] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [monResults, setMonResults] = useState<any[]>([]);
+  const [leadOfficer, setLeadOfficer] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [transition, setTransition] = useState<{ to: string; needsOverride: boolean } | null>(null);
