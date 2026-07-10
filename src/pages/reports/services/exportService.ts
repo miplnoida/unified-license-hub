@@ -1,4 +1,6 @@
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { SENSITIVE_COLUMNS } from '../reportDefinitions';
 
 export function sanitizeCsvValue(value: unknown): string {
@@ -74,6 +76,42 @@ export function exportToXlsx(data: Record<string, unknown>[], filename: string, 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Report');
   XLSX.writeFile(wb, `${filename}.xlsx`);
+}
+
+export function exportToPdf(data: Record<string, unknown>[], filename: string, title: string, labels?: Record<string, string>) {
+  const rows = relabel(safeRows(data), labels);
+  const doc = new jsPDF({ orientation: rows.length && Object.keys(rows[0]).length > 6 ? 'landscape' : 'portrait' });
+
+  doc.setFontSize(14);
+  doc.text(title, 14, 15);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(`Generated ${new Date().toLocaleString()} — ${rows.length} record${rows.length === 1 ? '' : 's'}`, 14, 21);
+
+  if (rows.length === 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.text('No records.', 14, 32);
+  } else {
+    const headers = Array.from(rows.reduce((set, r) => {
+      Object.keys(r).forEach((k) => set.add(k));
+      return set;
+    }, new Set<string>()));
+    autoTable(doc, {
+      startY: 26,
+      head: [headers],
+      body: rows.map((r) => headers.map((h) => {
+        const v = r[h];
+        if (v === null || v === undefined) return '';
+        return typeof v === 'object' ? JSON.stringify(v) : String(v);
+      })),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [30, 58, 138] },
+      margin: { top: 26 },
+    });
+  }
+
+  doc.save(`${filename}.pdf`);
 }
 
 export function exportToJson(data: Record<string, unknown>[], filename: string) {

@@ -137,14 +137,6 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Fit & Proper',
     items: [
-      { label: 'Individual Register', href: '/fit-and-proper', icon: <UserCircle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' },
-      { label: 'Screening Configs', href: '/admin/fp-screening-configs', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper_screening', adminOnly: true },
-      { label: 'Committees', href: '/admin/fp-committees', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'fit_and_proper_committee', adminOnly: true },
-    ],
-  },
-  {
-    label: 'FP Assessment',
-    items: [
       { label: 'Assessment Hub', href: '/fpa', icon: <LayoutGrid className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
       {
         label: 'Initiation', icon: <FileText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,

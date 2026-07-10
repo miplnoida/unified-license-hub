@@ -14,7 +14,11 @@ export const ADMIN_RETURN_STATUS_FILTERS = [
   'rejected',
   'resubmission_requested',
   'overdue',
+  'due_soon',
 ] as const;
+
+/** How many days out counts as "due soon" for a not-yet-submitted return. */
+export const DUE_SOON_WINDOW_DAYS = 30;
 
 export type AdminReturnStoredStatus = typeof ADMIN_RETURN_VISIBLE_STORED_STATUSES[number];
 export type AdminReturnStatusFilter = typeof ADMIN_RETURN_STATUS_FILTERS[number];
@@ -56,6 +60,14 @@ export const ADMIN_RETURN_DRILLDOWNS = {
     filter: 'overdue',
     description: 'Submitted returns that are past due and still awaiting review.',
   },
+  dueSoon: {
+    id: 'returns.dueSoon',
+    label: 'Due Soon',
+    targetPath: RETURNS_MANAGEMENT_PATH,
+    query: { status: 'due_soon' },
+    filter: 'due_soon',
+    description: 'Not-yet-submitted returns whose due date falls within the next 30 days.',
+  },
   pendingReview: {
     id: 'returns.pendingReview',
     label: 'Pending Review',
@@ -91,6 +103,38 @@ export type AdminReturnDrilldownKey = keyof typeof ADMIN_RETURN_DRILLDOWNS;
 
 export function todayDateIso(now = new Date()): string {
   return now.toISOString().slice(0, 10);
+}
+
+/**
+ * Maps a raw `returns_filed.workflow_status` code to the admin-vocabulary
+ * `status` string every other helper in this file operates on. Shared by
+ * `ViewReturns.tsx` and `useSupervisoryMetrics.ts` so the mapping only lives
+ * in one place.
+ *
+ * TEMP/WIP (not yet submitted) map to `'due_soon'` when `due_date` falls
+ * within `DUE_SOON_WINDOW_DAYS`, otherwise to `''` (hidden) — there is no
+ * admin-review-queue status for a draft that isn't due soon.
+ */
+export function mapReturnWorkflowStatus(
+  row: { workflow_status?: string | null; due_date?: string | null },
+  today: string = todayDateIso(),
+): string {
+  switch (row.workflow_status) {
+    case 'SUB': return 'submitted';
+    case 'VAL': return 'accepted';
+    case 'TBR': return 'resubmission_requested';
+    case 'REJ': return 'rejected';
+    case 'TEMP':
+    case 'WIP': {
+      if (!row.due_date) return '';
+      const cutoff = new Date(today);
+      cutoff.setDate(cutoff.getDate() + DUE_SOON_WINDOW_DAYS);
+      const cutoffIso = todayDateIso(cutoff);
+      return row.due_date >= today && row.due_date <= cutoffIso ? 'due_soon' : '';
+    }
+    default:
+      return row.workflow_status || '';
+  }
 }
 
 export function normalizeAdminReturnStatusFilter(value: string | null | undefined): AdminReturnStatusFilter {

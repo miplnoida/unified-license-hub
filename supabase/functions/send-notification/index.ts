@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logIntegration } from "../_shared/integration-log.ts";
 
 interface SmtpConfig {
   host: string;
@@ -101,6 +102,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const smtpStarted = Date.now();
       try {
         await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "", body.html);
         if (logId) {
@@ -109,6 +111,15 @@ serve(async (req) => {
             .update({ status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString(), error: null })
             .eq("id", logId);
         }
+        await logIntegration(supabase, {
+          direction: "outbound",
+          integrationKey: "smtp.send-notification",
+          status: "success",
+          entityType: entity_type ?? null,
+          entityId: entity_id ?? null,
+          requestSummary: `Email to ${body.to}: ${body.subject}`,
+          durationMs: Date.now() - smtpStarted,
+        });
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -132,6 +143,15 @@ serve(async (req) => {
             })
             .eq("id", logId);
         }
+        await logIntegration(supabase, {
+          direction: "outbound",
+          integrationKey: "smtp.send-notification",
+          status: "failure",
+          entityType: entity_type ?? null,
+          entityId: entity_id ?? null,
+          error: errMsg,
+          durationMs: Date.now() - smtpStarted,
+        });
         return new Response(JSON.stringify({ success: false, error: errMsg }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,19 +256,39 @@ serve(async (req) => {
               .eq("id", notif.id);
             continue;
           }
+          const queueSmtpStarted = Date.now();
           try {
             await sendSmtpEmail(smtpConfig, profile.email, notif.title, notif.message);
             await supabase
               .from("notifications")
               .update({ delivery_status: "delivered" } as any)
               .eq("id", notif.id);
+            await logIntegration(supabase, {
+              direction: "outbound",
+              integrationKey: "smtp.send-notification",
+              status: "success",
+              entityType: notif.entity_type ?? null,
+              entityId: notif.entity_id ?? null,
+              requestSummary: `Queued email to ${profile.email}: ${notif.title}`,
+              durationMs: Date.now() - queueSmtpStarted,
+            });
             processed++;
           } catch (e: any) {
-            console.error("SMTP delivery failed:", e?.message || String(e));
+            const errMsg = e?.message || String(e);
+            console.error("SMTP delivery failed:", errMsg);
             await supabase
               .from("notifications")
               .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
+            await logIntegration(supabase, {
+              direction: "outbound",
+              integrationKey: "smtp.send-notification",
+              status: "failure",
+              entityType: notif.entity_type ?? null,
+              entityId: notif.entity_id ?? null,
+              error: errMsg,
+              durationMs: Date.now() - queueSmtpStarted,
+            });
           }
         } else if (notif.channel === "sms") {
           // SMS provider not yet implemented; keep queued with note

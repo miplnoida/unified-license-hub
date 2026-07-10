@@ -75,7 +75,7 @@ export default function AdminHub() {
     { label: 'Inspection Calendar', desc: 'Monthly view of scheduled inspections', icon: <CalendarCheck className="h-5 w-5" />, href: '/inspections/schedule', module: 'settings' },
     { label: 'Supervisory Plans Dashboard', desc: 'Cross-entity plan action workload', icon: <Target className="h-5 w-5" />, href: '/supervision/plans', module: 'settings' },
     { label: 'Risk Heatmap', desc: 'Composite risk score across regulated entities', icon: <Shield className="h-5 w-5" />, href: '/supervision/risk', module: 'settings' },
-    { label: 'Executive Dashboard', desc: 'Cross-module KPIs & supervisory intelligence', icon: <TrendingUp className="h-5 w-5" />, href: '/executive', module: 'settings' },
+    { label: 'Executive Dashboard', desc: 'Cross-module KPIs & supervisory intelligence', icon: <TrendingUp className="h-5 w-5" />, href: '/executive', module: 'report_management' },
     { label: 'Alert Center', desc: 'Unified alerts across breaches, enforcement, complaints, risk', icon: <Bell className="h-5 w-5" />, href: '/alerts', module: 'settings' },
     { label: 'Correspondence Templates', desc: 'Letter, email & SMS templates for outbound notices', icon: <Mail className="h-5 w-5" />, href: '/admin/correspondence-templates', module: 'settings' },
     { label: 'Document Intelligence', desc: 'AI extraction from PDFs, IDs, financials, certificates', icon: <Brain className="h-5 w-5" />, href: '/admin/document-intelligence', module: 'settings' },

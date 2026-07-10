@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FileSpreadsheet, FileText, FileJson, FileDown, ExternalLink, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ReportRun, ReportSource } from '../types';
-import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
+import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 import { useReportSources, useReportOptions, useReportSourceColumns } from '../hooks/useReportMetadata';
@@ -66,16 +66,24 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const summary = run.summary || {};
   const groupSummary = (summary as any).groups as Record<string, number> | undefined;
 
-  const handleExport = (fmt: 'csv' | 'xlsx' | 'json') => {
+  const handleExport = async (fmt: 'csv' | 'xlsx' | 'json' | 'pdf') => {
     if (fmt === 'csv') exportToCsv(run.rows, fname, labels);
     else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels);
+    else if (fmt === 'pdf') exportToPdf(run.rows, fname, run.name, labels);
     else exportToJson(run.rows, fname);
-    logExport(run.id, fmt, run.rowCount);
-    toast({ title: 'Export ready', description: `${run.name}.${fmt} downloaded.` });
+    const logged = await logExport(run.id, fmt, run.rowCount);
+    if (!logged) {
+      toast({ title: 'Export completed', description: 'The file downloaded, but the audit log entry failed to record.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Export ready', description: `${run.name}.${fmt} downloaded.` });
+    }
   };
 
-  const handlePrint = () => {
-    logExport(run.id, 'pdf', run.rowCount);
+  const handlePrint = async () => {
+    const logged = await logExport(run.id, 'pdf', run.rowCount);
+    if (!logged) {
+      toast({ title: 'Print started', description: 'The audit log entry for this export failed to record.', variant: 'destructive' });
+    }
     window.print();
   };
 
@@ -141,7 +149,11 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
           <div className="flex flex-wrap gap-2 print:hidden">
             {exportFormats.map((f) => {
               if (f.value === 'pdf') {
-                return <Button key={f.value} size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print / PDF</Button>;
+                return (
+                  <Button key={f.value} size="sm" variant="outline" onClick={() => handleExport('pdf')}>
+                    <FileText className="h-3 w-3 mr-1" />PDF
+                  </Button>
+                );
               }
               const Icon = f.value === 'csv' ? FileSpreadsheet : f.value === 'json' ? FileJson : FileDown;
               return (
@@ -150,6 +162,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
                 </Button>
               );
             })}
+            <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print</Button>
           </div>
 
           <div className="border rounded-md max-h-[50vh] overflow-auto print:max-h-none print:overflow-visible">

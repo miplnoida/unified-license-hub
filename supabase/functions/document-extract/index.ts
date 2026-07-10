@@ -11,6 +11,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { logIntegration } from "../_shared/integration-log.ts";
 
 const PRESET_PROMPTS: Record<string, string> = {
   generic:
@@ -145,6 +146,7 @@ Deno.serve(async (req) => {
       contentParts.push({ type: "text", text: "Document contents:\n\n" + txt.slice(0, 40_000) });
     }
 
+    const gwStarted = Date.now();
     let gwResp: Response;
     try {
       gwResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -163,6 +165,16 @@ Deno.serve(async (req) => {
       });
     } catch (e: any) {
       await admin.from("document_extractions").update({ status: "failed", error: String(e?.message || e) }).eq("id", extractionId);
+      await logIntegration(admin, {
+        direction: "outbound",
+        integrationKey: "ai-gateway.document-extract",
+        status: "failure",
+        actorId: userId,
+        entityType: "document_extraction",
+        entityId: extractionId,
+        error: String(e?.message || e),
+        durationMs: Date.now() - gwStarted,
+      });
       return new Response(JSON.stringify({ ok: false, error: e?.message || "gateway error" }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
@@ -174,6 +186,17 @@ Deno.serve(async (req) => {
           ? "AI credits exhausted"
           : `gateway ${gwResp.status}: ${txt.slice(0, 300)}`;
       await admin.from("document_extractions").update({ status: "failed", error: msg, model }).eq("id", extractionId);
+      await logIntegration(admin, {
+        direction: "outbound",
+        integrationKey: "ai-gateway.document-extract",
+        status: "failure",
+        httpStatus: gwResp.status,
+        actorId: userId,
+        entityType: "document_extraction",
+        entityId: extractionId,
+        error: msg,
+        durationMs: Date.now() - gwStarted,
+      });
       return new Response(JSON.stringify({ ok: false, error: msg }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
@@ -191,6 +214,17 @@ Deno.serve(async (req) => {
       output_tokens: usage.completion_tokens || null,
       error: parsed ? null : "Model did not return valid JSON",
     }).eq("id", extractionId);
+
+    await logIntegration(admin, {
+      direction: "outbound",
+      integrationKey: "ai-gateway.document-extract",
+      status: parsed ? "success" : "failure",
+      actorId: userId,
+      entityType: "document_extraction",
+      entityId: extractionId,
+      error: parsed ? null : "Model did not return valid JSON",
+      durationMs: Date.now() - gwStarted,
+    });
 
     return new Response(JSON.stringify({ ok: true, extraction_id: extractionId, extracted: parsed }), {
       status: 200,

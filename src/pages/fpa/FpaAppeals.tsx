@@ -20,6 +20,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logFpAppealAction } from '@/lib/fpAudit';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -433,7 +434,7 @@ export default function FpaAppeals() {
       if (!fileIndividualId) throw new Error('Individual is required');
       if (!fileDeterminationId) throw new Error('Determination is required');
       if (!fileGrounds.trim()) throw new Error('Grounds are required');
-      const { error } = await (supabase as any).from('fp_appeals').insert({
+      const { data, error } = await (supabase as any).from('fp_appeals').insert({
         individual_id: fileIndividualId,
         determination_id: fileDeterminationId,
         grounds: fileGrounds.trim(),
@@ -442,8 +443,14 @@ export default function FpaAppeals() {
         status: 'filed',
         filed_at: new Date().toISOString(),
         filed_by: user.id,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logFpAppealAction('fp.appeal.filed', data.id, {
+        individualId: fileIndividualId,
+        determinationId: fileDeterminationId,
+        committeeId: fileCommitteeId.trim() || null,
+        after: { status: 'filed', license_id: fileLicenseId.trim() || null },
+      });
     },
     onSuccess: () => {
       toast.success('Appeal filed successfully');
@@ -459,12 +466,17 @@ export default function FpaAppeals() {
   });
 
   const startReviewMutation = useMutation({
-    mutationFn: async (appealId: string) => {
+    mutationFn: async (appeal: Appeal) => {
       const { error } = await (supabase as any)
         .from('fp_appeals')
         .update({ status: 'under_review' })
-        .eq('id', appealId);
+        .eq('id', appeal.id);
       if (error) throw error;
+      await logFpAppealAction('fp.appeal.review_started', appeal.id, {
+        individualId: appeal.individual_id,
+        determinationId: appeal.determination_id,
+        after: { status: 'under_review' },
+      });
     },
     onSuccess: () => {
       toast.success('Appeal moved to Under Review');
@@ -488,6 +500,12 @@ export default function FpaAppeals() {
         })
         .eq('id', decisionTarget.id);
       if (error) throw error;
+      await logFpAppealAction('fp.appeal.decided', decisionTarget.id, {
+        individualId: decisionTarget.individual_id,
+        determinationId: decisionTarget.determination_id,
+        after: { decision: decisionValue, license_id: decisionTarget.license_id ?? null },
+        justification: decisionRationale.trim() || undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Decision recorded');
@@ -691,7 +709,7 @@ export default function FpaAppeals() {
                                         variant="outline"
                                         className="h-7 px-2 text-xs"
                                         disabled={startReviewMutation.isPending}
-                                        onClick={() => startReviewMutation.mutate(appeal.id)}
+                                        onClick={() => startReviewMutation.mutate(appeal)}
                                       >
                                         {startReviewMutation.isPending && (
                                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />

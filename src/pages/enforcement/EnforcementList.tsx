@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -25,10 +25,21 @@ export const ENFORCEMENT_STATUS_META: Record<string, { label: string; className:
 const ALL_STATUSES = ['open', 'notice_issued', 'response_received', 'decided', 'appealed', 'closed', 'withdrawn'];
 
 export default function EnforcementList() {
+  const [searchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'opened_desc' | 'opened_asc' | 'penalty_desc' | 'penalty_asc'>('opened_desc');
+  const dashboardFilter = searchParams.get('filter'); // 'pending_action' | 'new_this_month'
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status && ALL_STATUSES.includes(status)) {
+      setStatusFilter(status);
+    } else if (searchParams.get('filter') === 'pending_action') {
+      setStatusFilter('all');
+    }
+  }, [searchParams]);
 
   const { data: cases, isLoading } = useQuery({
     queryKey: ['enforcement_cases_list'],
@@ -57,6 +68,13 @@ export default function EnforcementList() {
     let list = cases ?? [];
     if (statusFilter === 'active') list = list.filter((c: any) => !['closed', 'withdrawn'].includes(c.status));
     else if (statusFilter !== 'all') list = list.filter((c: any) => c.status === statusFilter);
+    if (dashboardFilter === 'pending_action') {
+      list = list.filter((c: any) => ['notice_issued', 'response_received', 'appealed'].includes(c.status));
+    } else if (dashboardFilter === 'new_this_month') {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      list = list.filter((c: any) => c.date_opened && new Date(c.date_opened) >= monthStart);
+    }
     if (typeFilter !== 'all') list = list.filter((c: any) => c.enforcement_type === typeFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -72,7 +90,7 @@ export default function EnforcementList() {
     else if (sort === 'penalty_desc') sorted.sort((a: any, b: any) => Number(b.penalty_amount || 0) - Number(a.penalty_amount || 0));
     else if (sort === 'penalty_asc') sorted.sort((a: any, b: any) => Number(a.penalty_amount || 0) - Number(b.penalty_amount || 0));
     return sorted;
-  }, [cases, statusFilter, typeFilter, search, sort, licensees]);
+  }, [cases, statusFilter, typeFilter, search, sort, licensees, dashboardFilter]);
 
   const stats = useMemo(() => {
     const total = (cases ?? []).length;

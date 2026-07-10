@@ -23,16 +23,19 @@ describe('dashboard application drill-down registry', () => {
   });
 
   it('encodes URL params exactly as ApplicationsList parses them', () => {
-    expect(drilldownTo('pending')).toBe('/applications/queue?sla=pending');
-    expect(drilldownTo('slaBreached')).toBe('/applications/queue?sla=breached');
-    expect(drilldownTo('slaDueSoon')).toBe('/applications/queue?sla=due_soon');
-    expect(drilldownTo('submitted')).toBe('/applications/queue?status=submitted');
-    expect(drilldownTo('inProgress')).toBe('/applications/queue?status=in_progress');
-    expect(drilldownTo('draft')).toBe('/applications/queue?status=draft');
-    expect(drilldownTo('approved')).toBe('/applications/queue?statusGroup=approved');
-    expect(drilldownTo('rejected')).toBe('/applications/queue?statusGroup=rejected');
-    expect(drilldownTo('returned')).toBe('/applications/queue?statusGroup=returned');
-    expect(drilldownTo('all')).toBe('/applications/queue');
+    // Must target /applications (ApplicationsList.tsx) — the page that actually
+    // reads these params — NOT /applications/queue (a separate Triage Queue
+    // feature with no URL-param awareness at all).
+    expect(drilldownTo('pending')).toBe('/applications?sla=pending');
+    expect(drilldownTo('slaBreached')).toBe('/applications?sla=breached');
+    expect(drilldownTo('slaDueSoon')).toBe('/applications?sla=due_soon');
+    expect(drilldownTo('submitted')).toBe('/applications?status=submitted');
+    expect(drilldownTo('inProgress')).toBe('/applications?status=in_progress');
+    expect(drilldownTo('draft')).toBe('/applications?status=draft');
+    expect(drilldownTo('approved')).toBe('/applications?statusGroup=approved');
+    expect(drilldownTo('rejected')).toBe('/applications?statusGroup=rejected');
+    expect(drilldownTo('returned')).toBe('/applications?statusGroup=returned');
+    expect(drilldownTo('all')).toBe('/applications');
   });
 
   it('returns RPC params that match the URL params for each metric', () => {
@@ -55,11 +58,13 @@ describe('dashboard return drill-down registry', () => {
     expect(returnDrilldownTo('overdue')).toBe('/returns-management?status=overdue');
     expect(returnDrilldownTo('pendingReview')).toBe('/returns-management?status=submitted');
     expect(returnDrilldownTo('submitted')).toBe('/returns-management');
+    expect(returnDrilldownTo('dueSoon')).toBe('/returns-management?status=due_soon');
   });
 
   it('reuses the canonical admin return drill-down contract', () => {
     expect(RETURN_DRILLDOWNS.overdue.filter).toBe(ADMIN_RETURN_DRILLDOWNS.overdue.filter);
     expect(RETURN_DRILLDOWNS.pendingReview.filter).toBe(ADMIN_RETURN_DRILLDOWNS.pendingReview.filter);
     expect(RETURN_DRILLDOWNS.submitted.filter).toBe(ADMIN_RETURN_DRILLDOWNS.all.filter);
+    expect(RETURN_DRILLDOWNS.dueSoon.filter).toBe(ADMIN_RETURN_DRILLDOWNS.dueSoon.filter);
   });
 });

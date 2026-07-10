@@ -439,7 +439,13 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
     mutationFn: async () => {
       const { error } = await supabase.from('fp_assessments').update({ declaration_data: decl as any }).eq('id', assessment.id);
       if (error) throw error;
-      await logAudit({ action: 'fp_assessment.pq.draft_saved', entityType: 'fp_assessment', entityId: assessment.id, newValue: { legacy: true } });
+      await logAudit({
+        action: 'fp_assessment.pq.draft_saved',
+        entityType: 'fp_assessment',
+        entityId: assessment.id,
+        oldValue: { declaration_data: assessment.declaration_data ?? null },
+        newValue: { declaration_data: decl },
+      });
     },
     onSuccess: () => { toast.success('Draft saved'); onSaved(); },
     onError: (e: any) => toast.error(e?.message || 'Save failed'),
@@ -455,7 +461,13 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
         submitted_by: user?.id,
       }).eq('id', assessment.id);
       if (error) throw error;
-      await logAudit({ action: 'fp_assessment.pq.submitted', entityType: 'fp_assessment', entityId: assessment.id, newValue: { legacy: true, status: 'submitted' } });
+      await logAudit({
+        action: 'fp_assessment.pq.submitted',
+        entityType: 'fp_assessment',
+        entityId: assessment.id,
+        oldValue: { declaration_data: assessment.declaration_data ?? null, status: assessment.status },
+        newValue: { declaration_data: decl, status: 'submitted' },
+      });
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_assessment_submitted', entity_type: 'fp_assessment', entity_id: assessment.id, payload: { individual_id: assessment.individual_id, legacy: true } },

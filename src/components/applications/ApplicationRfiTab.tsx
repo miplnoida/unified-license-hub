@@ -14,6 +14,7 @@ import { useApplicationRfis, type Rfi, type RfiItem } from '@/hooks/useApplicati
 import { RaiseRfiDialog } from './RaiseRfiDialog';
 import { validateFile, ACCEPT_STRING, getSignedUrl, secureDownload } from '@/lib/secureFileUpload';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { logAction } from '@/hooks/useAuditLog';
 
 
 interface ApplicationRfiTabProps {
@@ -128,12 +129,8 @@ export function ApplicationRfiTab({
         // non-fatal
       }
 
-      await supabase.from('audit_logs' as any).insert({
-        user_id: currentUserId,
-        action: 'application.rfi_closed',
-        table_name: 'applications',
-        record_id: applicationId,
-        new_values: {
+      await logAction('application.rfi_closed', 'application', applicationId, {
+        after: {
           rfi_id: rfi.id,
           closure_notes: closeNotesById[rfi.id] || null,
           status_reverted: statusReverted,
@@ -428,12 +425,8 @@ function RfiItemRow({
         }
       }
 
-      await supabase.from('audit_logs' as any).insert({
-        user_id: currentUserId,
-        action: 'application.rfi_responded',
-        table_name: 'applications',
-        record_id: applicationId,
-        new_values: { rfi_id: rfiId, rfi_item_id: item.id, all_items_done: !!allDone },
+      await logAction('application.rfi_responded', 'application', applicationId, {
+        after: { rfi_id: rfiId, rfi_item_id: item.id, all_items_done: !!allDone },
       });
 
       toast.success('Response submitted');

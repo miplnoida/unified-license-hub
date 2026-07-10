@@ -11,6 +11,7 @@
 //   - Never mutates application state or workflow state.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logIntegration } from "../_shared/integration-log.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -535,6 +536,7 @@ Rules for decision_report.recommended_action:
 APPLICATION_CONTEXT:
 ${JSON.stringify(applicationContext, null, 2)}`;
 
+    const aiCallStarted = Date.now();
     try {
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -561,6 +563,17 @@ ${JSON.stringify(applicationContext, null, 2)}`;
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
+        await logIntegration(adminClient, {
+          direction: "outbound",
+          integrationKey: "ai-gateway.application-assessment",
+          status: "failure",
+          httpStatus: aiResp.status,
+          actorId: callerUserId,
+          entityType: "application",
+          entityId: application_id,
+          error: `AI gateway error ${aiResp.status}: ${errText.slice(0, 500)}`,
+          durationMs: Date.now() - aiCallStarted,
+        });
         return jsonResponse({ error: "AI gateway failed", status: aiResp.status }, 502);
       }
 
@@ -578,6 +591,16 @@ ${JSON.stringify(applicationContext, null, 2)}`;
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
+        await logIntegration(adminClient, {
+          direction: "outbound",
+          integrationKey: "ai-gateway.application-assessment",
+          status: "failure",
+          actorId: callerUserId,
+          entityType: "application",
+          entityId: application_id,
+          error: "AI response was not valid JSON",
+          durationMs: Date.now() - aiCallStarted,
+        });
         return jsonResponse({ error: "AI response unparseable" }, 502);
       }
 
@@ -615,19 +638,41 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         })
         .eq("id", assessmentId);
 
+      await logIntegration(adminClient, {
+        direction: "outbound",
+        integrationKey: "ai-gateway.application-assessment",
+        status: "success",
+        actorId: callerUserId,
+        entityType: "application",
+        entityId: application_id,
+        requestSummary: `Assessment for application ${application_id}`,
+        responseSummary: `${findings.length} findings, ${risks.length} risks`,
+        durationMs: Date.now() - aiCallStarted,
+      });
+
       console.log("[ai-assessment] completed id=", assessmentId);
       return jsonResponse({ success: true, assessment_id: assessmentId });
     } catch (aiErr) {
+      const aiErrMsg = aiErr instanceof Error ? aiErr.message : "Unknown AI generation error";
       await adminClient
         .from("application_ai_assessments")
         .update({
           status: "failed",
-          error_message:
-            aiErr instanceof Error ? aiErr.message : "Unknown AI generation error",
+          error_message: aiErrMsg,
           source_payload_hash: sourcePayloadHash,
         })
         .eq("id", assessmentId);
-      console.error("[ai-assessment] failed id=", assessmentId, aiErr instanceof Error ? aiErr.message : aiErr);
+      await logIntegration(adminClient, {
+        direction: "outbound",
+        integrationKey: "ai-gateway.application-assessment",
+        status: "failure",
+        actorId: callerUserId,
+        entityType: "application",
+        entityId: application_id,
+        error: aiErrMsg,
+        durationMs: Date.now() - aiCallStarted,
+      });
+      console.error("[ai-assessment] failed id=", assessmentId, aiErrMsg);
       return jsonResponse({ error: "AI generation failed" }, 500);
     }
   } catch (err) {

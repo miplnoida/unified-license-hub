@@ -37,6 +37,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
+import { logFpAction } from '@/lib/fpAudit';
 import {
   FileText,
   RefreshCw,
@@ -395,6 +396,14 @@ export default function FpaInitiation() {
         created_by: user?.id ?? null,
       }).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.assessment.created', 'fp_assessment', data.id, {
+        after: {
+          assessment_type: selectedPathway.type,
+          individual_id: selectedIndividualId,
+          ...(appIdValue ? { linked_application_id: appIdValue } : {}),
+        },
+        context: { individualId: selectedIndividualId, assessmentId: data.id },
+      });
       return { assessmentId: data.id };
     },
     onSuccess: ({ assessmentId }) => {

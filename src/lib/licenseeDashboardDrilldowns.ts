@@ -177,7 +177,11 @@ export function describeReturnsFilter(params: URLSearchParams): string | null {
 export function describeLicensesFilter(params: URLSearchParams): string | null {
   const filter = params.get('filter');
   const status = params.get('status');
-  if (filter === 'expiring') return 'Expiring within 30 days';
+  if (filter === 'expiring') {
+    const daysParam = Number(params.get('days'));
+    const days = Number.isFinite(daysParam) && daysParam > 0 ? daysParam : 30;
+    return `Expiring within ${days} days`;
+  }
   if (filter === 'expired') return 'Expired';
   if (status && status !== 'all') return `Status: ${status}`;
   return null;

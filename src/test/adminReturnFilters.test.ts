@@ -4,6 +4,7 @@ import {
   applyAdminReturnServerFilter,
   getAdminReturnDisplayStatus,
   isAdminReturnOverdue,
+  mapReturnWorkflowStatus,
   matchesAdminReturnFilter,
 } from '@/lib/adminReturnFilters';
 
@@ -52,5 +53,26 @@ describe('admin return visibility filters', () => {
       ['lt', 'due_date', today],
       ['is', 'reviewed_at', null],
     ]);
+  });
+
+  it('maps returns_filed workflow_status codes to the admin vocabulary', () => {
+    expect(mapReturnWorkflowStatus({ workflow_status: 'SUB' }, today)).toBe('submitted');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'VAL' }, today)).toBe('accepted');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'TBR' }, today)).toBe('resubmission_requested');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'REJ' }, today)).toBe('rejected');
+  });
+
+  it('maps not-yet-submitted returns to due_soon only within the window', () => {
+    expect(mapReturnWorkflowStatus({ workflow_status: 'WIP', due_date: '2026-06-20' }, today)).toBe('due_soon');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'TEMP', due_date: '2026-06-20' }, today)).toBe('due_soon');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'WIP', due_date: '2026-09-01' }, today)).toBe('');
+    expect(mapReturnWorkflowStatus({ workflow_status: 'WIP', due_date: null }, today)).toBe('');
+  });
+
+  it('treats due_soon as its own visible, filterable status', () => {
+    const dueSoon = { status: 'due_soon', due_date: '2026-06-20', reviewed_at: null };
+    expect(getAdminReturnDisplayStatus(dueSoon, today)).toBe('due_soon');
+    expect(matchesAdminReturnFilter(dueSoon, 'due_soon', today)).toBe(true);
+    expect(matchesAdminReturnFilter(dueSoon, 'overdue', today)).toBe(false);
   });
 });

@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRfiAutoSuggestions } from '@/hooks/useRfiAutoSuggestions';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { logAction } from '@/hooks/useAuditLog';
 
 interface DraftItem {
   key: string;
@@ -211,21 +212,22 @@ export function RaiseRfiDialog({
       }
 
       // Audit log for unified timeline
-      await supabase.from('audit_logs' as any).insert({
-        user_id: raisedBy,
-        action: sufficiencyEvaluationId ? 'application.rfi_raised_from_sufficiency' : 'application.rfi_raised',
-        table_name: 'applications',
-        record_id: applicationId,
-        new_values: {
-          rfi_id: rfiId,
-          item_count: items.length,
-          due_at: dueAtIso,
-          sla_paused: pauseSla && !!approvalStepActionId,
-          auto_rules_used: Array.from(loadedRuleIds),
-          sufficiency_evaluation_id: sufficiencyEvaluationId ?? null,
-          sufficiency_result_ids: sufficiencyResultIds ?? [],
+      await logAction(
+        sufficiencyEvaluationId ? 'application.rfi_raised_from_sufficiency' : 'application.rfi_raised',
+        'application',
+        applicationId,
+        {
+          after: {
+            rfi_id: rfiId,
+            item_count: items.length,
+            due_at: dueAtIso,
+            sla_paused: pauseSla && !!approvalStepActionId,
+            auto_rules_used: Array.from(loadedRuleIds),
+            sufficiency_evaluation_id: sufficiencyEvaluationId ?? null,
+            sufficiency_result_ids: sufficiencyResultIds ?? [],
+          },
         },
-      });
+      );
 
       // Notify the applicant (fire-and-forget — never block reviewer flow)
       try {

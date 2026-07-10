@@ -2,7 +2,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { useDashboardTier } from '@/hooks/useDashboardTier';
 import { SupervisoryDashboard } from '@/components/dashboard/SupervisoryDashboard';
+import { ExecutiveSupervisoryDashboard } from '@/components/dashboard/ExecutiveSupervisoryDashboard';
 import { LicenseeDashboard } from '@/components/dashboard/LicenseeDashboard';
 import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
 
@@ -10,7 +12,9 @@ import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
  * Audience-aware dashboard router.
  *
  * Mounts one of three audience dashboards based on `EffectivePortalContext`:
- *   - internal  → SupervisoryDashboard (gated per-module via dynamic permissions)
+ *   - internal  → SupervisoryDashboard (operational tier, gated per-module via
+ *     dynamic permissions) or ExecutiveSupervisoryDashboard (executive tier —
+ *     see useDashboardTier/RoleManagement.tsx's Dashboard Tier field)
  *   - licensee  → LicenseeDashboard (scoped by activeLicenseeId; refreshes on PPOC switch)
  *   - applicant/pre-licensee → ApplicantDashboard
  *
@@ -20,6 +24,7 @@ import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
 export default function Dashboard() {
   const { user } = useAuth();
   const ctx = useEffectivePortalContext();
+  const { tier } = useDashboardTier();
 
   if (ctx.loading) return <AuthLoadingScreen />;
   if (!user) return null;
@@ -39,6 +44,13 @@ export default function Dashboard() {
 
   const { title, subtitle, content } = (() => {
     if (ctx.isInternal) {
+      if (tier === 'executive') {
+        return {
+          title: 'Executive Dashboard',
+          subtitle: `Welcome back, ${user.fullName}. Cross-module supervisory intelligence.`,
+          content: <ExecutiveSupervisoryDashboard />,
+        };
+      }
       return {
         title: 'Supervisory Dashboard',
         subtitle: `Welcome back, ${user.fullName}. Platform-wide regulatory intelligence.`,

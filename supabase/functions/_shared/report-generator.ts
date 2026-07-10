@@ -11,6 +11,7 @@ export const corsHeaders = {
 export const ALLOWED_SOURCES = new Set([
   'applications', 'licenses', 'payments', 'compliance_returns',
   'complaints', 'profiles', 'users', 'audit_logs', 'report_logs',
+  'return_threshold_breaches',
 ]);
 
 export const SENSITIVE = new Set([
@@ -41,9 +42,14 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   // Complaints
   'cmp-volume': 'complaints', 'cmp-resolution': 'complaints',
   'cmp-pending': 'complaints', 'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
+  'cmp-sla': 'complaints',
   // Audit
   'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs',
   'aud-export': 'report_logs', 'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
+  // Prudential
+  'prud-breach': 'return_threshold_breaches',
+  // Returns (added after the initial Returns block above)
+  'ret-sla': 'compliance_returns',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): string | null {
@@ -65,6 +71,7 @@ export const FILTER_COLUMN_MAP: Record<string, Record<string, string>> = {
   users: {},
   audit_logs: {},
   report_logs: { action: 'action' },
+  return_threshold_breaches: { riskLevel: 'risk_level', level: 'level' },
 };
 
 // Required computed columns that must always appear for a given report slug,
@@ -80,6 +87,8 @@ export const REQUIRED_COMPUTED_COLUMNS: Record<string, string[]> = {
   'ret-repeat': ['overdue_count'],
   'ret-scorecard': ['submitted_count', 'overdue_count', 'pending_count', 'compliance_rate'],
   'cmp-resolution': ['resolution_days'],
+  'cmp-sla': ['sla_status'],
+  'ret-sla': ['sla_status'],
   'fee-trend': ['period_month', 'period_quarter'],
 };
 
@@ -241,6 +250,31 @@ export function decorate(slug: string | undefined, rows: any[]): any[] {
   if (slug === 'aud-export') {
     return rows.filter((r) => String(r.action || '').toLowerCase().startsWith('export_'));
   }
+  if (slug === 'cmp-sla') {
+    // sla_days/sla_due_at are real columns on `complaints` (report_view_complaints
+    // carries them through) — this only classifies them, mirroring app-sla's shape.
+    return rows.map((r) => {
+      if (!r.sla_due_at) return { ...r, sla_status: 'no_sla' };
+      const due = new Date(r.sla_due_at).getTime();
+      const resolved = ['resolved', 'closed', 'dismissed'].includes(String(r.status || '').toLowerCase());
+      const breached = !resolved && due < now;
+      const atRisk = !resolved && !breached && due - now < 2 * 86_400_000;
+      return { ...r, sla_status: breached ? 'breached' : atRisk ? 'at_risk' : resolved ? 'met' : 'on_track' };
+    });
+  }
+  if (slug === 'ret-sla') {
+    // Same due/submitted logic as ret-overdue, reframed as an explicit SLA
+    // status rather than a hard filter.
+    return rows.map((r) => {
+      const due = r.due_date ? new Date(r.due_date).getTime() : null;
+      const submitted = r.submitted_at || ['submitted', 'validated', 'approved', 'sub'].includes(String(r.status || '').toLowerCase());
+      if (!due) return { ...r, sla_status: 'no_due_date' };
+      if (submitted) return { ...r, sla_status: 'met' };
+      const breached = due < now;
+      const atRisk = !breached && due - now < 7 * 86_400_000;
+      return { ...r, sla_status: breached ? 'breached' : atRisk ? 'at_risk' : 'on_track' };
+    });
+  }
   return rows;
 }
 
@@ -314,6 +348,16 @@ export function buildReportSummary(slug: string | undefined, rows: any[], groupB
       case 'aud-export':
         summary.export_count_by_format = countBy(rows, 'export_format');
         summary.export_count_by_user = countBy(rows, 'executed_by');
+        break;
+      case 'cmp-sla':
+      case 'ret-sla':
+        summary.breached_count = rows.filter((r) => r.sla_status === 'breached').length;
+        summary.at_risk_count = rows.filter((r) => r.sla_status === 'at_risk').length;
+        summary.on_track_count = rows.filter((r) => r.sla_status === 'on_track' || r.sla_status === 'met').length;
+        break;
+      case 'prud-breach':
+        summary.risk_level_counts = countBy(rows, 'risk_level');
+        summary.level_counts = countBy(rows, 'level');
         break;
     }
   } catch (e: any) {

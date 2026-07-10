@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,6 +66,7 @@ interface RefLookup { id: string; name: string }
 export default function ComplaintsList() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const [complaints, setComplaints] = useState<any[]>([]);
   const [complaintTypes, setComplaintTypes] = useState<RefLookup[]>([]);
   const [categories, setCategories] = useState<RefLookup[]>([]);
@@ -76,6 +77,19 @@ export default function ComplaintsList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // "open" isn't a real complaint status (submitted/under_investigation/resolved/closed
+  // are) — the dashboard's "Open" tile means "not yet resolved or closed", so it's
+  // handled as a broader bucket rather than an exact statusFilter match.
+  const dashboardOpenBucket = searchParams.get('status') === 'open';
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status && status !== 'open' && status in STATUS_LABELS) {
+      setStatusFilter(status);
+    }
+  }, [searchParams]);
+
   const [severityFilter, setSeverityFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [productFilter, setProductFilter] = useState('all');
@@ -350,6 +364,7 @@ export default function ComplaintsList() {
       ].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(s)) return false;
     }
+    if (dashboardOpenBucket && ['resolved', 'closed'].includes(c.status)) return false;
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
     if (severityFilter !== 'all' && c.severity !== severityFilter) return false;
     if (priorityFilter !== 'all' && c.priority !== priorityFilter) return false;

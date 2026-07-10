@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import {
   useRoles, usePermissions, useAllRolePermissions, useRoleUserCounts,
   useCreateRole, useUpdateRole, useDeleteRole, useResetSystemRole,
-  DynamicRole, Permission, RoleType,
+  DynamicRole, Permission, RoleType, DashboardTier,
 } from '@/hooks/useRoles';
 import {
   useCatalogModules, useCatalogActions,
@@ -60,6 +60,16 @@ const ROLE_TYPE_LABELS: Record<RoleType, string> = {
 const ROLE_TYPE_HELP: Record<RoleType, string> = {
   internal: 'Staff working inside the regulator office',
   external: 'Applicants, licensees and entity portal users',
+};
+
+/** Business-friendly dashboard tier labels — internal roles only. */
+const DASHBOARD_TIER_LABELS: Record<DashboardTier, string> = {
+  operational: 'Operational',
+  executive: 'Executive',
+};
+const DASHBOARD_TIER_HELP: Record<DashboardTier, string> = {
+  operational: 'Sees the standard supervisory dashboard with per-module queues.',
+  executive: 'Sees the cross-module KPI dashboard with AI-generated insights.',
 };
 
 /** Modules considered "external/portal" — only shown for External role type. */
@@ -125,6 +135,7 @@ export default function RoleManagement() {
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formRoleType, setFormRoleType] = useState<RoleType>('internal');
+  const [formDashboardTier, setFormDashboardTier] = useState<DashboardTier>('operational');
   const [formPerms, setFormPerms] = useState<string[]>([]);
   const [permSearch, setPermSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
@@ -289,6 +300,7 @@ export default function RoleManagement() {
     setEditingRole(null);
     setFormName(''); setFormDesc(''); setFormPerms([]);
     setFormRoleType('internal');
+    setFormDashboardTier('operational');
     setPermSearch('');
     setDialogOpen(true);
   };
@@ -299,6 +311,7 @@ export default function RoleManagement() {
     setFormName(role.name);
     setFormDesc(role.description || '');
     setFormRoleType((role.role_type || 'internal') as RoleType);
+    setFormDashboardTier((role.dashboard_tier || 'operational') as DashboardTier);
     setFormPerms(getPermIdsForRole(role.id));
     setPermSearch('');
     setDialogOpen(true);
@@ -325,6 +338,7 @@ export default function RoleManagement() {
       }
     }
     setFormRoleType(tpl.roleType);
+    setFormDashboardTier('operational');
     setFormPerms([...new Set(ids)]);
     toast.success(`Template applied: ${tpl.label}`);
   };
@@ -340,7 +354,9 @@ export default function RoleManagement() {
     }
     const payload = {
       name, description: formDesc, system_role: 'analyst',
-      role_type: formRoleType, permissionIds: [...new Set(formPerms)],
+      role_type: formRoleType,
+      dashboard_tier: formRoleType === 'internal' ? formDashboardTier : 'operational' as DashboardTier,
+      permissionIds: [...new Set(formPerms)],
     };
     if (editingRole) {
       await updateRole.mutateAsync({ id: editingRole.id, ...payload });
@@ -548,6 +564,11 @@ export default function RoleManagement() {
                               <Badge variant={(selectedRole.role_type || 'internal') === 'external' ? 'outline' : 'secondary'}>
                                 {ROLE_TYPE_LABELS[(selectedRole.role_type || 'internal') as RoleType]}
                               </Badge>
+                              {(selectedRole.role_type || 'internal') === 'internal' && (
+                                <Badge variant={selectedRole.dashboard_tier === 'executive' ? 'default' : 'outline'}>
+                                  {DASHBOARD_TIER_LABELS[(selectedRole.dashboard_tier || 'operational') as DashboardTier]} dashboard
+                                </Badge>
+                              )}
                               {selectedRole.is_system && <Badge variant="secondary">System Role</Badge>}
                             </div>
                             <div className="flex items-center gap-2">
@@ -635,8 +656,8 @@ export default function RoleManagement() {
 
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-6">
 
-              {/* Top section: name / description / role type */}
-              <div className="grid sm:grid-cols-3 gap-4">
+              {/* Top section: name / description / role type / dashboard tier */}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Role Name <span className="text-destructive">*</span></Label>
                   <Input placeholder="e.g. Licensing Officer" value={formName}
@@ -666,6 +687,22 @@ export default function RoleManagement() {
                   </Select>
                   <p className="text-[11px] text-muted-foreground">{ROLE_TYPE_HELP[formRoleType]}</p>
                 </div>
+                {formRoleType === 'internal' && (
+                  <div className="space-y-2">
+                    <Label>Dashboard Tier</Label>
+                    <Select
+                      value={formDashboardTier}
+                      onValueChange={(v) => setFormDashboardTier(v as DashboardTier)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="operational">Operational</SelectItem>
+                        <SelectItem value="executive">Executive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">{DASHBOARD_TIER_HELP[formDashboardTier]}</p>
+                  </div>
+                )}
               </div>
               {formDesc.length > 80 && (
                 <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} />

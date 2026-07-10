@@ -9,10 +9,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Eye, Trash2, FileBarChart, RefreshCw, Search, FileSpreadsheet, FileJson, FileDown } from 'lucide-react';
+import { Eye, Trash2, FileBarChart, RefreshCw, Search, FileSpreadsheet, FileJson, FileDown, FileText } from 'lucide-react';
 import { useReports } from '../hooks/useReports';
 import type { ReportRun } from '../types';
-import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename } from '../services/exportService';
+import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename } from '../services/exportService';
 import { fetchRunRows, generateReport, logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 import { useReportOptions } from '../hooks/useReportMetadata';
@@ -32,9 +32,8 @@ export function ReportHistory({ onPreview }: Props) {
 
   const categories = useMemo(() => Array.from(new Set((data || []).map((r) => r.category))), [data]);
 
-  // History data exports (UI): CSV/XLSX/JSON only; PDF goes via print dialog.
   const downloadableFormats = useMemo(
-    () => exportOpts.filter((o) => ['csv', 'xlsx', 'json'].includes(o.value)),
+    () => exportOpts.filter((o) => ['csv', 'xlsx', 'json', 'pdf'].includes(o.value)),
     [exportOpts],
   );
 
@@ -81,13 +80,17 @@ export function ReportHistory({ onPreview }: Props) {
     } finally { setRerunId(null); }
   };
 
-  const handleExport = async (run: ReportRun, fmt: 'csv' | 'xlsx' | 'json') => {
+  const handleExport = async (run: ReportRun, fmt: 'csv' | 'xlsx' | 'json' | 'pdf') => {
     const full = await loadFullRun(run);
     const fname = sanitizeFilename(run.name);
     if (fmt === 'csv') exportToCsv(full.rows, fname);
     else if (fmt === 'xlsx') exportToXlsx(full.rows, fname);
+    else if (fmt === 'pdf') exportToPdf(full.rows, fname, run.name);
     else exportToJson(full.rows, fname);
-    logExport(run.id, fmt, run.rowCount);
+    const logged = await logExport(run.id, fmt, run.rowCount);
+    if (!logged) {
+      toast({ title: 'Export completed', description: 'The file downloaded, but the audit log entry failed to record.', variant: 'destructive' });
+    }
   };
 
   if (isLoading) {
@@ -149,6 +152,7 @@ export function ReportHistory({ onPreview }: Props) {
                         {f.value === 'csv' && <FileSpreadsheet className="h-3 w-3 mr-1" />}
                         {f.value === 'xlsx' && <FileDown className="h-3 w-3 mr-1" />}
                         {f.value === 'json' && <FileJson className="h-3 w-3 mr-1" />}
+                        {f.value === 'pdf' && <FileText className="h-3 w-3 mr-1" />}
                         {f.value.toUpperCase()}
                       </Button>
                     ))}

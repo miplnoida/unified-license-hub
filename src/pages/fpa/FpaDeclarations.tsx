@@ -26,6 +26,7 @@ import {
   FileText, Clock, AlertCircle, RefreshCw, Eye,
 } from 'lucide-react';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
+import { HistoryButton } from '@/components/audit/HistoryButton';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -888,6 +889,13 @@ export default function FpaDeclarations() {
                                   <span className="ml-1">Remind</span>
                                 </Button>
                                 <AssessmentDetailDialog row={row} />
+                                <HistoryButton
+                                  entityType="fp_assessment"
+                                  entityId={row.id}
+                                  title="Declaration history"
+                                  size="sm"
+                                  variant="ghost"
+                                />
                               </div>
                             </TableCell>
                           </TableRow>

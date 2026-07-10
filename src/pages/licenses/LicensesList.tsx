@@ -182,14 +182,16 @@ export default function LicensesList() {
 
   const filtered = useMemo(() => {
     if (urlFilter !== 'expiring') return licenses;
-    const cutoff = Date.now() + 30 * 86400000;
+    const daysParam = Number(searchParams.get('days'));
+    const days = Number.isFinite(daysParam) && daysParam > 0 ? daysParam : 30;
+    const cutoff = Date.now() + days * 86400000;
     return licenses.filter(l => {
       if (l.status !== 'active') return false;
       if (!l.valid_until) return false;
       const t = new Date(l.valid_until).getTime();
       return t >= Date.now() && t <= cutoff;
     });
-  }, [licenses, urlFilter]);
+  }, [licenses, urlFilter, searchParams]);
 
   return (
     <DashboardLayout>

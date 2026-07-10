@@ -59,13 +59,17 @@ export type ReturnDashboardDrilldown = {
   description?: string;
 };
 
-const APPLICATIONS_QUEUE = '/applications/queue';
+// NOTE: this must point at ApplicationsList.tsx (/applications), the page that
+// actually implements the sla/status/statusGroup param contract below. It does
+// NOT point at /applications/queue (ApplicationQueue.tsx) — that's a separate
+// Triage Queue feature (priority/assignment) with no URL-param awareness at all.
+const APPLICATIONS_LIST_PATH = '/applications';
 
 export const APPLICATION_DRILLDOWNS = {
   pending: {
     id: 'applications.pending',
     label: 'Pending Applications',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { sla: 'pending' },
     rpcParams: { _sla: 'pending' },
     statuses: APPLICATION_QUEUE_PENDING_STATUSES,
@@ -74,7 +78,7 @@ export const APPLICATION_DRILLDOWNS = {
   slaBreached: {
     id: 'applications.slaBreached',
     label: 'SLA Breaches',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { sla: 'breached' },
     rpcParams: { _sla: 'breached' },
     statuses: APPLICATION_QUEUE_PENDING_STATUSES,
@@ -83,7 +87,7 @@ export const APPLICATION_DRILLDOWNS = {
   slaDueSoon: {
     id: 'applications.slaDueSoon',
     label: 'SLA Due Soon',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { sla: 'due_soon' },
     rpcParams: { _sla: 'due_soon' },
     statuses: APPLICATION_QUEUE_PENDING_STATUSES,
@@ -92,7 +96,7 @@ export const APPLICATION_DRILLDOWNS = {
   draft: {
     id: 'applications.draft',
     label: 'Draft',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { status: 'draft' },
     rpcParams: { _status: 'draft' },
     statuses: ['draft'],
@@ -100,7 +104,7 @@ export const APPLICATION_DRILLDOWNS = {
   submitted: {
     id: 'applications.submitted',
     label: 'Submitted',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { status: 'submitted' },
     rpcParams: { _status: 'submitted' },
     statuses: ['submitted'],
@@ -108,7 +112,7 @@ export const APPLICATION_DRILLDOWNS = {
   inProgress: {
     id: 'applications.inProgress',
     label: 'In Progress',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { status: 'in_progress' },
     rpcParams: { _status: 'in_progress' },
     statuses: ['in_progress'],
@@ -116,7 +120,7 @@ export const APPLICATION_DRILLDOWNS = {
   approved: {
     id: 'applications.approved',
     label: 'Approved',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { statusGroup: 'approved' },
     rpcParams: { _status_group: 'approved' },
     statuses: ['approved'],
@@ -124,7 +128,7 @@ export const APPLICATION_DRILLDOWNS = {
   rejected: {
     id: 'applications.rejected',
     label: 'Rejected',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { statusGroup: 'rejected' },
     rpcParams: { _status_group: 'rejected' },
     statuses: ['rejected'],
@@ -132,7 +136,7 @@ export const APPLICATION_DRILLDOWNS = {
   returned: {
     id: 'applications.returned',
     label: 'Returned',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: { statusGroup: 'returned' },
     rpcParams: { _status_group: 'returned' },
     statuses: APPLICATION_QUEUE_RETURNED_STATUSES,
@@ -141,7 +145,7 @@ export const APPLICATION_DRILLDOWNS = {
   all: {
     id: 'applications.all',
     label: 'All Applications',
-    targetPath: APPLICATIONS_QUEUE,
+    targetPath: APPLICATIONS_LIST_PATH,
     query: {},
     rpcParams: {},
   },
@@ -152,6 +156,7 @@ export const RETURN_DRILLDOWNS = {
   overdue: { ...ADMIN_RETURN_DRILLDOWNS.overdue, statuses: ['submitted'] },
   pendingReview: { ...ADMIN_RETURN_DRILLDOWNS.pendingReview, statuses: ['submitted'] },
   submitted: { ...ADMIN_RETURN_DRILLDOWNS.all },
+  dueSoon: { ...ADMIN_RETURN_DRILLDOWNS.dueSoon },
 } as const satisfies Record<string, ReturnDashboardDrilldown>;
 
 export type ApplicationDrilldownKey = keyof typeof APPLICATION_DRILLDOWNS;

@@ -26,12 +26,25 @@ interface AuditRow {
   metadata: Record<string, unknown> | null;
 }
 
+interface ComplianceRow {
+  entry_id: string;
+  timestamp: string;
+  action_type: string;
+  user_id: string | null;
+  user_role: string | null;
+  before_value: unknown;
+  after_value: unknown;
+  metadata: Record<string, unknown> | null;
+}
+
 type TimelineEntry =
   | { kind: 'audit'; row: AuditRow }
+  | { kind: 'compliance'; row: ComplianceRow }
   | { kind: 'override'; row: RuleOverrideRow };
 
 function ts(e: TimelineEntry): string {
-  return e.kind === 'audit' ? e.row.created_at : e.row.created_at;
+  if (e.kind === 'compliance') return e.row.timestamp;
+  return e.row.created_at;
 }
 
 const ACTION_BADGE: Record<string, string> = {
@@ -48,13 +61,16 @@ const ACTION_BADGE: Record<string, string> = {
 
 /**
  * Reusable right-side drawer showing the full change timeline for a single
- * domain entity: audit_logs entries + rule_overrides entries, merged and
- * sorted chronologically. Uses the existing `audit_logs.old_value` /
- * `new_value` JSON blobs — no schema changes to the audit table.
+ * domain entity: audit_logs + compliance_audit_logs + rule_overrides entries,
+ * merged and sorted chronologically. compliance_audit_logs is where
+ * prudential actions/escalations and conduct investigations log exclusively
+ * — without it, this drawer would always show "no history" for those
+ * entities even though real history exists.
  */
 export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, title }: Props) {
   const [loading, setLoading] = useState(false);
   const [audits, setAudits] = useState<AuditRow[]>([]);
+  const [compliance, setCompliance] = useState<ComplianceRow[]>([]);
   const [overrides, setOverrides] = useState<RuleOverrideRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +78,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
     setLoading(true);
     setError(null);
     try {
-      const [aRes, oRes] = await Promise.all([
+      const [aRes, cRes, oRes] = await Promise.all([
         supabase
           .from('audit_logs')
           .select('id, created_at, action, user_id, user_role, old_value, new_value, metadata')
@@ -70,10 +86,20 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
           .eq('entity_id', entityId)
           .order('created_at', { ascending: false })
           .limit(200),
+        // compliance_audit_logs — where prudential actions/escalations and
+        // conduct investigations log exclusively; matched on object_id alone
+        // since object_type strings aren't consistently produced across
+        // writers (see caseAuditGraph.ts for the same rationale).
+        (supabase.from('compliance_audit_logs') as any)
+          .select('entry_id, timestamp, action_type, user_id, user_role, before_value, after_value, metadata')
+          .eq('object_id', entityId)
+          .order('timestamp', { ascending: false })
+          .limit(200),
         fetchOverridesForEntity(entityType, entityId).catch(() => [] as RuleOverrideRow[]),
       ]);
       if (aRes.error) throw aRes.error;
       setAudits((aRes.data ?? []) as AuditRow[]);
+      setCompliance((cRes.data ?? []) as ComplianceRow[]);
       setOverrides(oRes);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load history.');
@@ -98,11 +124,12 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
     });
     const merged: TimelineEntry[] = [
       ...filteredAudits.map((row) => ({ kind: 'audit' as const, row })),
+      ...compliance.map((row) => ({ kind: 'compliance' as const, row })),
       ...overrides.map((row) => ({ kind: 'override' as const, row })),
     ];
     merged.sort((a, b) => ts(b).localeCompare(ts(a)));
     return merged;
-  }, [audits, overrides]);
+  }, [audits, compliance, overrides]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -165,6 +192,34 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
                   </div>
                   <div className="mt-2">
                     <DiffViewer before={o.original_value} after={o.overridden_value} compact />
+                  </div>
+                </div>
+              );
+            }
+            if (e.kind === 'compliance') {
+              const c = e.row;
+              return (
+                <div key={`c-${c.entry_id}`} className="rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={ACTION_BADGE[c.action_type] ?? 'bg-muted text-muted-foreground'}
+                      >
+                        {c.action_type}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">compliance</Badge>
+                      {c.user_role && <Badge variant="outline" className="text-[10px]">{c.user_role}</Badge>}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(c.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground font-mono">
+                    {c.user_id ? c.user_id.slice(0, 8) : 'system'}
+                  </div>
+                  <div className="mt-2">
+                    <DiffViewer before={c.before_value} after={c.after_value} compact />
                   </div>
                 </div>
               );

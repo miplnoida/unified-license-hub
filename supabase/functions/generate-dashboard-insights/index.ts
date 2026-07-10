@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { logIntegration } from '../_shared/integration-log.ts';
 
 // Produces 3-5 narrative bullet insights + top 3 recommended actions for the
 // Executive Dashboard. Reads current cross-module metrics, feeds them to the
@@ -45,7 +46,8 @@ Deno.serve(async (req) => {
     const thirtyAgo = new Date(Date.now() - 30 * 864e5).toISOString();
     const [openApps, submittedApps, activeLicenses, openBreaches, openEnforcement,
       openComplaints, criticalRisk, highRisk, upcomingInspections, recentReturns,
-      unresolvedFpFindings, twinPeaksBlocked] = await Promise.all([
+      unresolvedFpFindings, twinPeaksBlocked,
+      prudentialOpenActions, prudentialOpenEscalations, conductOpenAlerts, conductCriticalComplaints] = await Promise.all([
       safeCount(supa, 'applications', (q) => q.in('status', ['submitted', 'under_review', 'rfi_raised', 'assigned'])),
       safeCount(supa, 'applications', (q) => q.gte('created_at', thirtyAgo)),
       safeCount(supa, 'licenses', (q) => q.eq('status', 'active')),
@@ -58,6 +60,10 @@ Deno.serve(async (req) => {
       safeCount(supa, 'returns_filed', (q) => q.gte('created_at', thirtyAgo)),
       safeCount(supa, 'fp_findings', (q) => q.eq('resolution_status', 'needs_review')),
       safeCount(supa, 'twinpeaks_clearances', (q) => q.eq('status', 'blocked')),
+      safeCount(supa, 'prudential_actions', (q) => q.in('status', ['open', 'overdue'])),
+      safeCount(supa, 'prudential_escalations', (q) => q.in('status', ['open', 'under_review'])),
+      safeCount(supa, 'conduct_alerts', (q) => q.eq('status', 'open')),
+      safeCount(supa, 'complaints', (q) => q.eq('severity', 'critical')),
     ]);
 
     const metrics = {
@@ -73,6 +79,10 @@ Deno.serve(async (req) => {
       returns_filed_last_30d: recentReturns,
       fp_findings_awaiting_review: unresolvedFpFindings,
       twin_peaks_blocked_apps: twinPeaksBlocked,
+      prudential_open_actions: prudentialOpenActions,
+      prudential_open_escalations: prudentialOpenEscalations,
+      conduct_open_alerts: conductOpenAlerts,
+      conduct_critical_complaints: conductCriticalComplaints,
     };
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -84,8 +94,9 @@ Deno.serve(async (req) => {
       const prompt = `You are a chief regulatory analyst. Given these cross-module metrics, produce 3-5 concise insights (each <=180 chars) and 3 recommended actions with a target route.
 Return strict JSON: {"insights":[{"text":string,"severity":"info"|"warning"|"critical","module":string?}],"actions":[{"text":string,"href":string,"module":string?}]}
 Metrics: ${JSON.stringify(metrics)}
-Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /complaints, /supervision/risk, /inspections, /fit-and-proper, /supervision/plans, /conduct, /returns-management.`;
+Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /complaints, /supervision/risk, /inspections, /fit-and-proper, /supervision/plans, /conduct, /returns-management, /prudential/actions, /prudential/escalations, /conduct/alerts.`;
 
+      const aiStarted = Date.now();
       try {
         const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -110,8 +121,25 @@ Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /
           generated_at: new Date().toISOString(),
           source: 'ai',
         };
+        await logIntegration(supa, {
+          direction: 'outbound',
+          integrationKey: 'ai-gateway.dashboard-insights',
+          status: 'success',
+          entityType: 'regulator',
+          entityId: regulatorKey === 'global' ? null : regulatorKey,
+          durationMs: Date.now() - aiStarted,
+        });
       } catch (_e) {
         payload = fallback(metrics);
+        await logIntegration(supa, {
+          direction: 'outbound',
+          integrationKey: 'ai-gateway.dashboard-insights',
+          status: 'failure',
+          entityType: 'regulator',
+          entityId: regulatorKey === 'global' ? null : regulatorKey,
+          error: (_e as Error)?.message ?? String(_e),
+          durationMs: Date.now() - aiStarted,
+        });
       }
     }
 
@@ -138,6 +166,14 @@ function fallback(m: Record<string, number>): Payload {
     ins.push({ text: `${m.twin_peaks_blocked_apps} applications are blocked by twin-peaks clearance disputes.`, severity: 'warning', module: 'licensing' });
   if (m.fp_findings_awaiting_review > 0)
     ins.push({ text: `${m.fp_findings_awaiting_review} F&P findings awaiting analyst triage.`, severity: 'info', module: 'fit_and_proper' });
+  if (m.prudential_open_actions > 0)
+    ins.push({ text: `${m.prudential_open_actions} prudential actions are open or overdue.`, severity: 'warning', module: 'prudential' });
+  if (m.prudential_open_escalations > 0)
+    ins.push({ text: `${m.prudential_open_escalations} prudential escalations are open or under review.`, severity: 'critical', module: 'prudential' });
+  if (m.conduct_open_alerts > 0)
+    ins.push({ text: `${m.conduct_open_alerts} market conduct alerts are open.`, severity: 'warning', module: 'conduct' });
+  if (m.conduct_critical_complaints > 0)
+    ins.push({ text: `${m.conduct_critical_complaints} complaints are flagged critical severity.`, severity: 'critical', module: 'conduct' });
   if (ins.length === 0)
     ins.push({ text: 'All core supervisory queues are clear. Monitor upcoming filings.', severity: 'info' });
 

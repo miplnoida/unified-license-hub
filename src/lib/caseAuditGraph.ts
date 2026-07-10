@@ -26,6 +26,25 @@ async function fetchOne(table: string, id: string, columns: string): Promise<Row
   return (data as Row) ?? null;
 }
 
+/**
+ * Pulls an individual's fp_appeals/fp_determinations ids into the graph as
+ * extra timeline-query targets, tagged with the existing `fp_assessment`
+ * kind rather than new EntityKind values — KIND_TO_ENTITY_TYPE.fp_assessment
+ * already includes 'fp_determination', and neither appeals nor
+ * determinations are ever used as a standalone trace root, only reached from
+ * an individual/assessment. This is what makes appeal/determination-authored
+ * audit_logs/compliance_audit_logs rows (whose entity_id is the appeal's or
+ * determination's own id) show up in the merged case timeline at all.
+ */
+async function addFpAppealsAndDeterminations(individualId: string, add: (e: RelatedEntity) => void): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: appeals } = await (supabase.from('fp_appeals') as any).select('id').eq('individual_id', individualId).limit(200);
+  (appeals ?? []).forEach((a: Row) => add({ kind: 'fp_assessment', id: a.id }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: dets } = await (supabase.from('fp_determinations') as any).select('id').eq('individual_id', individualId).limit(200);
+  (dets ?? []).forEach((d: Row) => add({ kind: 'fp_assessment', id: d.id }));
+}
+
 export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEntity[]> {
   const seen = new Set<string>();
   const out: RelatedEntity[] = [];
@@ -60,6 +79,10 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rets } = await (supabase.from('returns_filed') as any).select('id').eq('entity_id', root.id).limit(200);
       (rets ?? []).forEach((r: Row) => add({ kind: 'return', id: r.id }));
+      // Fit & Proper linkage: a licensee's assessments were never surfaced here.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: fpa } = await (supabase.from('fp_assessments') as any).select('id').eq('licensee_id', root.id).limit(200);
+      (fpa ?? []).forEach((f: Row) => add({ kind: 'fp_assessment', id: f.id }));
     }
     if (root.kind === 'fp_individual') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +91,13 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
         add({ kind: 'fp_assessment', id: a.id });
         if (a.licensee_id) add({ kind: 'licensee', id: a.licensee_id });
       });
+      await addFpAppealsAndDeterminations(root.id, add);
+    }
+    if (root.kind === 'fp_assessment') {
+      const a = await fetchOne('fp_assessments', root.id, 'id, individual_id, licensee_id');
+      if (a?.individual_id) add({ kind: 'fp_individual', id: a.individual_id });
+      if (a?.licensee_id) add({ kind: 'licensee', id: a.licensee_id });
+      if (a?.individual_id) await addFpAppealsAndDeterminations(a.individual_id, add);
     }
     if (root.kind === 'complaint') {
       const c = await fetchOne('complaints', root.id, 'id, licensee_id');
@@ -147,18 +177,29 @@ export async function fetchCaseTimeline(entities: RelatedEntity[]): Promise<Time
     });
   });
 
-  // compliance_audit_logs (returns / compliance)
+  // compliance_audit_logs (generic auto-audit trigger on applications/licenses/
+  // enforcement_actions/etc., plus prudential actions/escalations and conduct
+  // investigations, which log EXCLUSIVELY here — never to audit_logs). Real
+  // columns are entry_id/timestamp/user_id/user_role/object_id/before_value/
+  // after_value/metadata (confirmed against the generated Supabase types) —
+  // this previously queried a schema (event_time/actor_id/target_id/detail...)
+  // that never existed, so it silently returned nothing for every case, ever.
+  // Matched on object_id alone (not object_type): object_id is a UUID with no
+  // realistic cross-table collision, whereas object_type strings vary by
+  // writer (raw table names from the trigger vs. ad hoc strings like
+  // 'conduct_investigation'/'fp_appeal' from manual instrumentation).
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: cal } = await (supabase.from('compliance_audit_logs') as any)
-      .select('id, event_time, actor_id, actor_role, action_type, target_type, target_id, detail')
-      .in('target_id', ids).order('event_time', { ascending: false }).limit(300);
+      .select('entry_id, timestamp, user_id, user_role, action_type, object_id, before_value, after_value, metadata')
+      .in('object_id', ids).order('timestamp', { ascending: false }).limit(300);
     (cal ?? []).forEach((r: Row) => {
-      const kind = (entities.find((e) => e.id === r.target_id)?.kind ?? 'system') as EntityKind | 'system';
+      const kind = (entities.find((e) => e.id === r.object_id)?.kind ?? 'system') as EntityKind | 'system';
       events.push({
-        at: r.event_time, actor: r.actor_role ?? r.actor_id ?? null,
-        action: r.action_type, entityKind: kind, entityId: r.target_id,
-        module: 'compliance', detail: r.detail, source: 'compliance_audit_logs',
+        at: r.timestamp, actor: r.user_role ?? r.user_id ?? null,
+        action: r.action_type, entityKind: kind, entityId: r.object_id,
+        module: 'compliance', before: r.before_value, after: r.after_value, detail: r.metadata,
+        source: 'compliance_audit_logs',
       });
     });
   } catch (_err) { /* table may differ across environments */ }

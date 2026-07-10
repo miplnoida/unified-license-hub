@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
+import { useFpaDashboardMetrics } from '@/hooks/useFpaDashboardMetrics';
 import {
   Loader2, Users, ClipboardList, AlertTriangle, ShieldCheck,
   ArrowRight, Zap, Eye, Search, FileText, CheckSquare,
@@ -308,77 +307,22 @@ const THEME = {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function FpaDashboard() {
-  // Stat: total individuals
-  const { data: individualsCount, isLoading: loadingIndividuals, isError: isErrorIndividuals } = useQuery({
-    queryKey: ['fpa_stat_individuals'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('fp_individuals')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  // Stat: active assessments (not closed or determined)
-  const { data: activeAssessments, isLoading: loadingAssessments, isError: isErrorAssessments } = useQuery({
-    queryKey: ['fpa_stat_active_assessments'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('fp_assessments')
-        .select('*', { count: 'exact', head: true })
-        .not('status', 'in', '("closed","determined")');
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  // Stat: open findings
-  const { data: openFindings, isLoading: loadingFindings, isError: isErrorFindings } = useQuery({
-    queryKey: ['fpa_stat_open_findings'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('fp_findings')
-        .select('*', { count: 'exact', head: true })
-        .eq('resolution_status', 'open');
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  // Stat: active conditions
-  const { data: activeConditions, isLoading: loadingConditions, isError: isErrorConditions } = useQuery({
-    queryKey: ['fpa_stat_active_conditions'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('fp_conditions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-
-  // Assessment type breakdown
-  const { data: assessmentTypeData, isLoading: loadingTypeData, isError: isErrorTypeData } = useQuery({
-    queryKey: ['fpa_stat_assessment_types'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fp_assessments')
-        .select('assessment_type');
-      if (error) throw error;
-      const rows = (data ?? []) as Array<{ assessment_type: string | null }>;
-      const counts: Record<string, number> = {};
-      for (const row of rows) {
-        const t = row.assessment_type ?? 'unknown';
-        counts[t] = (counts[t] ?? 0) + 1;
-      }
-      const total = rows.length;
-      return Object.entries(counts)
-        .map(([type, count]) => ({ type, count, total }))
-        .sort((a, b) => b.count - a.count);
-    },
-  });
+  const { data: fpaMetrics, isLoading: loadingFpaMetrics, isError: isErrorFpaMetrics } = useFpaDashboardMetrics();
+  const individualsCount = fpaMetrics?.individuals;
+  const activeAssessments = fpaMetrics?.activeAssessments;
+  const openFindings = fpaMetrics?.openFindings;
+  const activeConditions = fpaMetrics?.activeConditions;
+  const assessmentTypeData = fpaMetrics?.assessmentTypeData;
+  const loadingIndividuals = loadingFpaMetrics;
+  const loadingAssessments = loadingFpaMetrics;
+  const loadingFindings = loadingFpaMetrics;
+  const loadingConditions = loadingFpaMetrics;
+  const loadingTypeData = loadingFpaMetrics;
+  const isErrorIndividuals = isErrorFpaMetrics;
+  const isErrorAssessments = isErrorFpaMetrics;
+  const isErrorFindings = isErrorFpaMetrics;
+  const isErrorConditions = isErrorFpaMetrics;
+  const isErrorTypeData = isErrorFpaMetrics;
 
   return (
     <DashboardLayout>

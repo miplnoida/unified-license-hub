@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -168,12 +168,20 @@ export default function FpaFindings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   // Filters
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [checkTypeFilter, setCheckTypeFilter] = useState<string>('ALL');
   const [quickTab, setQuickTab] = useState<string>('all');
+
+  useEffect(() => {
+    const tab = searchParams.get('quickTab');
+    if (tab === 'action' || tab === 'high' || tab === 'confirmed') {
+      setQuickTab(tab);
+    }
+  }, [searchParams]);
 
   // Escalate dialog
   const [escalateTarget, setEscalateTarget] = useState<RawFinding | null>(null);

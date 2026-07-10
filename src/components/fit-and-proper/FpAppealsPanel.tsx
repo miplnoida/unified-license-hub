@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Scale } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
-import { logFpAction } from '@/lib/fpAudit';
+import { logFpAppealAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   submitted: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
@@ -115,9 +115,10 @@ export function FpAppealsPanel({ individualId }: Props) {
         license_id: licenseId && licenseId !== 'none' ? licenseId : null,
       } as any).select('id').single();
       if (error) throw error;
-      await logFpAction('fp.appeal.filed', 'fp_appeal', data.id, {
+      await logFpAppealAction('fp.appeal.filed', data.id, {
+        individualId,
+        determinationId: currentDet.id,
         after: { determination_id: currentDet.id, status: 'submitted', license_id: licenseId !== 'none' ? licenseId : null },
-        context: { individualId, appealId: data.id, determinationId: currentDet.id },
       });
     },
     onSuccess: () => {
@@ -135,9 +136,10 @@ export function FpAppealsPanel({ individualId }: Props) {
         .update({ appeal_committee_id: committeeId, status: 'under_review' })
         .eq('id', appealId);
       if (error) throw error;
-      await logFpAction('fp.appeal.committee_assigned', 'fp_appeal', appealId, {
+      await logFpAppealAction('fp.appeal.committee_assigned', appealId, {
+        individualId,
+        committeeId,
         after: { appeal_committee_id: committeeId, status: 'under_review' },
-        context: { individualId, appealId, committeeId },
       });
     },
     onSuccess: () => {
@@ -192,9 +194,10 @@ export function FpAppealsPanel({ individualId }: Props) {
         new_determination_id: newDetId,
       }).eq('id', appeal.id);
       if (error) throw error;
-      await logFpAction('fp.appeal.decided', 'fp_appeal', appeal.id, {
+      await logFpAppealAction('fp.appeal.decided', appeal.id, {
+        individualId,
+        determinationId: newDetId ?? appeal.determination_id,
         after: { decision, new_determination_id: newDetId, license_id: appeal.license_id ?? null },
-        context: { individualId, appealId: appeal.id, determinationId: newDetId ?? appeal.determination_id },
         justification: note.trim(),
       });
       // Fire a notification (no-op if no template configured).
@@ -217,9 +220,9 @@ export function FpAppealsPanel({ individualId }: Props) {
     mutationFn: async (appealId: string) => {
       const { error } = await supabase.from('fp_appeals').update({ status: 'withdrawn' }).eq('id', appealId);
       if (error) throw error;
-      await logFpAction('fp.appeal.withdrawn', 'fp_appeal', appealId, {
+      await logFpAppealAction('fp.appeal.withdrawn', appealId, {
+        individualId,
         after: { status: 'withdrawn' },
-        context: { individualId, appealId },
       });
     },
     onSuccess: () => {
