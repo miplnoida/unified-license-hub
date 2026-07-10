@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,9 @@ import {
   useEvidence, useUploadEvidence, useToggleEvidenceRestriction,
   logEvidenceAccess, logEvidenceAccessDenied, type ConductEvidence,
 } from '@/hooks/useMarketConduct';
+import { validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
 import { toast } from 'sonner';
-import { Lock, LockOpen, Upload, Eye, Loader2, FileText } from 'lucide-react';
+import { Lock, LockOpen, Upload, Eye, Loader2, FileText, X, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   thematicReviewId?: string;
   title?: string;
 }
+
 
 const TYPES = ['document', 'email', 'call_transcript', 'system_log', 'screenshot', 'contract', 'other'];
 const CONF = ['public', 'internal', 'restricted', 'confidential'];
@@ -45,21 +47,58 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
   const upload = useUploadEvidence();
   const toggle = useToggleEvidenceRestriction();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const emptyForm = {
     title: '', evidence_type: 'document', description: '',
-    source: '', file_url: '', restricted: false, confidentiality_level: 'internal',
-  });
+    source: '', restricted: false, confidentiality_level: 'internal',
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const v = validateFile(f);
+    if (!v.valid) { toast.error(v.error || 'Invalid file'); return; }
+    setFile(f);
+    if (!form.title.trim()) setForm(prev => ({ ...prev, title: f.name.replace(/\.[^.]+$/, '') }));
+    if (fileRef.current) fileRef.current.value = '';
+  };
 
   const submit = async () => {
     if (!form.title.trim()) { toast.error('Title required'); return; }
-    await upload.mutateAsync({ ...form, ...filter });
-    setForm({ title: '', evidence_type: 'document', description: '', source: '', file_url: '', restricted: false, confidentiality_level: 'internal' });
-    setOpen(false);
-    refetch();
+    if (!file) { toast.error('Please select a file to upload'); return; }
+    setUploading(true);
+    try {
+      const scope = entityId ? `entity/${entityId}` :
+                    complaintId ? `complaint/${complaintId}` :
+                    investigationId ? `investigation/${investigationId}` :
+                    thematicReviewId ? `thematic/${thematicReviewId}` : 'misc';
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const path = `conduct-evidence/${scope}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await (supabase as any).storage.from('fp-evidence').upload(path, file, {
+        contentType: file.type || 'application/octet-stream', upsert: false,
+      });
+      if (upErr) throw new Error(upErr.message);
+      await upload.mutateAsync({
+        ...form, ...filter,
+        file_url: path,
+        metadata: { storage_bucket: 'fp-evidence', storage_path: path, original_name: file.name, size: file.size, mime: file.type } as any,
+      });
+      setForm(emptyForm);
+      setFile(null);
+      setOpen(false);
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const view = async (row: ConductEvidence) => {
-    if (!row.file_url) { toast.error('No file URL on this evidence item'); return; }
+    if (!row.file_url) { toast.error('No file attached to this evidence item'); return; }
     // Re-check readability under RLS — if row is restricted and user cannot
     // fetch it via a fresh select, treat as denied access.
     const { data: verify, error } = await (supabase as any)
@@ -70,8 +109,17 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
       return;
     }
     await logEvidenceAccess(row.id, 'view', row.restricted ? 'restricted-view' : null);
-    window.open(row.file_url, '_blank', 'noopener');
+    // If it looks like a full URL, open directly; otherwise treat as a storage path.
+    if (/^https?:\/\//i.test(row.file_url)) {
+      window.open(row.file_url, '_blank', 'noopener');
+      return;
+    }
+    const { data: signed, error: signErr } = await (supabase as any).storage
+      .from('fp-evidence').createSignedUrl(row.file_url, 300);
+    if (signErr || !signed?.signedUrl) { toast.error('Could not generate download link'); return; }
+    window.open(signed.signedUrl, '_blank', 'noopener');
   };
+
 
   const toggleRestriction = async (row: ConductEvidence) => {
     const res = await Swal.fire({
@@ -145,7 +193,33 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
                 <SelectContent>{TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>File URL</Label><Input placeholder="https://…" value={form.file_url} onChange={e => setForm({ ...form, file_url: e.target.value })} /></div>
+            <div>
+              <Label>File *</Label>
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept={ACCEPT_STRING}
+                onChange={pickFile}
+              />
+              {file ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setFile(null)} type="button">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" type="button" onClick={() => fileRef.current?.click()}>
+                  <Plus className="h-4 w-4 mr-1" />Select file
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Max {MAX_FILE_SIZE / (1024 * 1024)}MB · stored privately</p>
+            </div>
             <div><Label>Description</Label><Textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
             <div><Label>Source</Label><Input value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} placeholder="e.g. licensee submission" /></div>
             <div>
@@ -159,7 +233,7 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
               <Label>Restricted (internal admin only)</Label>
               <Switch checked={form.restricted} onCheckedChange={v => setForm({ ...form, restricted: v })} />
             </div>
-            <Button onClick={submit} disabled={upload.isPending} className="w-full">{upload.isPending ? 'Uploading…' : 'Upload'}</Button>
+            <Button onClick={submit} disabled={upload.isPending || uploading} className="w-full">{(upload.isPending || uploading) ? 'Uploading…' : 'Upload'}</Button>
           </div>
         </DialogContent>
       </Dialog>
