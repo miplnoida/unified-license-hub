@@ -194,20 +194,12 @@ export function SupervisoryDashboard() {
             ]}
           />
         )}
-              {/* "Due soon" means not-yet-submitted returns approaching their due date, but
-                  ViewReturns.tsx (the only admin returns list) only ever queries
-                  submitted/accepted/rejected/resubmission_requested returns — it has no
-                  concept of unsubmitted returns at all. Until that page (or a new one) can
-                  show pending returns, this links to the plain returns list rather than a
-                  404 or a mislabeled filter. The metric itself is also not yet computed
-                  (hardcoded to 0 below) for the same reason. */
-                }
         {can.returns && (
           <StatusBreakdownCard
             title="Returns"
             loading={isLoading}
             items={[
-              { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning', to: returnDrilldownTo('all') },
+              { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning', to: returnDrilldownTo('dueSoon') },
               { label: RETURN_DRILLDOWNS.overdue.label, value: data?.returns.overdue ?? 0, tone: 'destructive', to: returnDrilldownTo('overdue') },
               { label: RETURN_DRILLDOWNS.pendingReview.label, value: data?.returns.pending_review ?? 0, tone: 'primary', to: returnDrilldownTo('pendingReview') },
               { label: RETURN_DRILLDOWNS.submitted.label, value: data?.returns.submitted ?? 0, tone: 'success', to: returnDrilldownTo('submitted') },

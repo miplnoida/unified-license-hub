@@ -15,23 +15,14 @@ import { Search, Loader2, ClipboardList, CheckCircle, Clock, AlertTriangle, Chev
 import {
   ADMIN_RETURN_DRILLDOWNS,
   ADMIN_RETURN_STATUS_FILTERS,
+  DUE_SOON_WINDOW_DAYS,
   getAdminReturnDisplayStatus,
+  mapReturnWorkflowStatus,
   matchesAdminReturnFilter,
   todayDateIso,
   type AdminReturnDisplayStatus,
   type AdminReturnStatusFilter,
 } from '@/lib/adminReturnFilters';
-
-/** Map returns_filed.workflow_status (TEMP/WIP/SUB/VAL/TBR) → admin status model. */
-function mapWorkflowStatus(ws: string | null | undefined): string {
-  switch (ws) {
-    case 'SUB': return 'submitted';
-    case 'VAL': return 'accepted';
-    case 'TBR': return 'resubmission_requested';
-    case 'REJ': return 'rejected';
-    default: return ws || ''; // TEMP/WIP fall through and get filtered out
-  }
-}
 
 interface AdminReturnRow {
   id: string;
@@ -51,6 +42,7 @@ interface AdminReturnRow {
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default', accepted: 'default', rejected: 'destructive', overdue: 'destructive', resubmission_requested: 'outline',
+  due_soon: 'outline',
 };
 
 const PAGE_SIZE = 10;
@@ -61,12 +53,14 @@ const statusFilterMeta: Record<AdminReturnDisplayStatus, { label: string; chip: 
   rejected: { label: 'Rejected', chip: 'Rejected Returns' },
   resubmission_requested: { label: 'To Be Resubmitted', chip: 'Returns To Be Resubmitted' },
   overdue: { label: 'Overdue', chip: 'Overdue Returns' },
+  due_soon: { label: 'Due Soon', chip: 'Returns Due Soon' },
 };
 
 export default function ViewReturns() {
   const navigate = useNavigate();
   const adminBasePath = window.location.pathname.startsWith('/admin/returns/') ? '/admin/returns/queue' : '/returns-management';
   const [returns, setReturns] = useState<AdminReturnRow[]>([]);
+  const [dueSoonReturns, setDueSoonReturns] = useState<AdminReturnRow[]>([]);
   const [configs, setConfigs] = useState<Array<{ id: string; name: string }>>([]);
   const [licensees, setLicensees] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +110,7 @@ export default function ViewReturns() {
           period_end: r.period_end_date,
           due_date: r.due_date,
           workflow_status: r.workflow_status,
-          status: mapWorkflowStatus(r.workflow_status),
+          status: mapReturnWorkflowStatus({ workflow_status: r.workflow_status, due_date: r.due_date }),
           submitted_at: r.submit_date,
           reviewed_at: r.workflow_status === 'VAL' ? r.submit_date : null,
           created_at: r.created_at,
@@ -128,6 +122,48 @@ export default function ViewReturns() {
       setLoading(false);
     }
     load();
+    return () => { cancelled = true; };
+  }, [statusFilter]);
+
+  // "Due soon" means not-yet-submitted returns (workflow_status TEMP/WIP)
+  // approaching their due date — a different universe than the SUB/VAL/TBR
+  // rows the main query above fetches, so it's a separate, lazily-loaded
+  // query that only runs when this filter is actually selected.
+  useEffect(() => {
+    if (statusFilter !== 'due_soon') return;
+    let cancelled = false;
+    async function loadDueSoon() {
+      const today = todayDateIso();
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + DUE_SOON_WINDOW_DAYS);
+      const cutoffIso = todayDateIso(cutoff);
+      const { data, error } = await (supabase as any)
+        .from('returns_filed')
+        .select('id, unique_id, return_configuration_id, entity_id, on_behalf_of_licensee_id, period_start_date, period_end_date, due_date, workflow_status, submit_date, created_at')
+        .in('workflow_status', ['TEMP', 'WIP'])
+        .not('due_date', 'is', null)
+        .gte('due_date', today)
+        .lte('due_date', cutoffIso)
+        .order('due_date', { ascending: true });
+      if (cancelled || error) return;
+      const mapped: AdminReturnRow[] = (data || []).map((r: any) => ({
+        id: r.id,
+        unique_id: r.unique_id,
+        return_configuration_id: r.return_configuration_id,
+        entity_id: r.entity_id,
+        on_behalf_of_licensee_id: r.on_behalf_of_licensee_id,
+        period_start: r.period_start_date,
+        period_end: r.period_end_date,
+        due_date: r.due_date,
+        workflow_status: r.workflow_status,
+        status: 'due_soon',
+        submitted_at: r.submit_date,
+        reviewed_at: null,
+        created_at: r.created_at,
+      }));
+      setDueSoonReturns(mapped);
+    }
+    loadDueSoon();
     return () => { cancelled = true; };
   }, [statusFilter]);
 
@@ -145,13 +181,15 @@ export default function ViewReturns() {
     ['rejected', statusFilterMeta.rejected.label],
     ['overdue', statusFilterMeta.overdue.label],
     ['resubmission_requested', statusFilterMeta.resubmission_requested.label],
+    ['due_soon', statusFilterMeta.due_soon.label],
   ];
 
   const activeFilterMeta = statusFilter !== 'all' ? statusFilterMeta[statusFilter as AdminReturnDisplayStatus] : null;
 
   const filtered = useMemo(() => {
     const today = todayDateIso();
-    return processedReturns.filter(r => {
+    const source = statusFilter === 'due_soon' ? dueSoonReturns : processedReturns;
+    return source.filter(r => {
       if (!matchesAdminReturnFilter(r, statusFilter, today)) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -162,7 +200,7 @@ export default function ViewReturns() {
       }
       return true;
     });
-  }, [processedReturns, statusFilter, search, configs, licensees]);
+  }, [processedReturns, dueSoonReturns, statusFilter, search, configs, licensees]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -177,7 +215,11 @@ export default function ViewReturns() {
       <div className="space-y-6">
         <PageHeader
           title={activeFilterMeta?.chip || ADMIN_RETURN_DRILLDOWNS.all.label}
-          description="View admin-visible submitted and finalized compliance returns. Draft and in-progress returns are excluded."
+          description={
+            statusFilter === 'due_soon'
+              ? 'Not-yet-submitted returns whose due date falls within the next 30 days.'
+              : 'View admin-visible submitted and finalized compliance returns. Draft and in-progress returns are excluded.'
+          }
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -289,7 +331,9 @@ export default function ViewReturns() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
-                          {RETURN_STATUS_LABELS[ret.status as ReturnStatus] || ret.status}
+                          {RETURN_STATUS_LABELS[ret.status as ReturnStatus]
+                            || statusFilterMeta[ret.status as AdminReturnDisplayStatus]?.label
+                            || ret.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

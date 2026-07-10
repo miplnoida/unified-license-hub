@@ -58,11 +58,13 @@ describe('dashboard return drill-down registry', () => {
     expect(returnDrilldownTo('overdue')).toBe('/returns-management?status=overdue');
     expect(returnDrilldownTo('pendingReview')).toBe('/returns-management?status=submitted');
     expect(returnDrilldownTo('submitted')).toBe('/returns-management');
+    expect(returnDrilldownTo('dueSoon')).toBe('/returns-management?status=due_soon');
   });
 
   it('reuses the canonical admin return drill-down contract', () => {
     expect(RETURN_DRILLDOWNS.overdue.filter).toBe(ADMIN_RETURN_DRILLDOWNS.overdue.filter);
     expect(RETURN_DRILLDOWNS.pendingReview.filter).toBe(ADMIN_RETURN_DRILLDOWNS.pendingReview.filter);
     expect(RETURN_DRILLDOWNS.submitted.filter).toBe(ADMIN_RETURN_DRILLDOWNS.all.filter);
+    expect(RETURN_DRILLDOWNS.dueSoon.filter).toBe(ADMIN_RETURN_DRILLDOWNS.dueSoon.filter);
   });
 });

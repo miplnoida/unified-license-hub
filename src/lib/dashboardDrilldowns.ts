@@ -156,6 +156,7 @@ export const RETURN_DRILLDOWNS = {
   overdue: { ...ADMIN_RETURN_DRILLDOWNS.overdue, statuses: ['submitted'] },
   pendingReview: { ...ADMIN_RETURN_DRILLDOWNS.pendingReview, statuses: ['submitted'] },
   submitted: { ...ADMIN_RETURN_DRILLDOWNS.all },
+  dueSoon: { ...ADMIN_RETURN_DRILLDOWNS.dueSoon },
 } as const satisfies Record<string, ReturnDashboardDrilldown>;
 
 export type ApplicationDrilldownKey = keyof typeof APPLICATION_DRILLDOWNS;
