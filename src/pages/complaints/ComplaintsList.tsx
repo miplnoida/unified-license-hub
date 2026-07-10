@@ -745,7 +745,7 @@ export default function ComplaintsList() {
       </div>
 
       {/* Detail Dialog (external users only) */}
-      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) setDetailDialog(null); }}>
+      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) { setDetailDialog(null); setDetailAttachments([]); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Complaint {detailDialog?.complaint_number}</DialogTitle></DialogHeader>
           {detailDialog && (
