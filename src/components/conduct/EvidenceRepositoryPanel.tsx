@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,9 @@ import {
   useEvidence, useUploadEvidence, useToggleEvidenceRestriction,
   logEvidenceAccess, logEvidenceAccessDenied, type ConductEvidence,
 } from '@/hooks/useMarketConduct';
+import { validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
 import { toast } from 'sonner';
-import { Lock, LockOpen, Upload, Eye, Loader2, FileText } from 'lucide-react';
+import { Lock, LockOpen, Upload, Eye, Loader2, FileText, X, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   thematicReviewId?: string;
   title?: string;
 }
+
 
 const TYPES = ['document', 'email', 'call_transcript', 'system_log', 'screenshot', 'contract', 'other'];
 const CONF = ['public', 'internal', 'restricted', 'confidential'];
