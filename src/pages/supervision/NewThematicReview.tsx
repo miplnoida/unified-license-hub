@@ -35,17 +35,15 @@ export default function NewThematicReview() {
   const [productOpts, setProductOpts] = useState<any[]>([]);
   const [selProducts, setSelProducts] = useState<Set<string>>(new Set());
   const [riskCats, setRiskCats] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const { data: employees = [] } = useEmployeeApprovers();
 
   useEffect(() => {
     (async () => {
-      const [rc, u, p] = await Promise.all([
+      const [rc, p] = await Promise.all([
         supabase.from('conduct_risk_categories' as any).select('id,name').eq('active', true).order('name'),
-        supabase.from('profiles').select('id,full_name,role').in('role', ['super_admin', 'admin', 'supervisor', 'reviewer']).limit(200),
         supabase.from('conduct_products' as any).select('id,name,active').eq('active', true).order('name'),
       ]);
       setRiskCats((rc.data as any[]) || []);
-      setUsers((u.data as any[]) || []);
       setProductOpts((p.data as any[]) || []);
     })();
   }, []);
