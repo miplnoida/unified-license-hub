@@ -224,9 +224,10 @@ function Filter({ label, value, onChange, options }: { label: string; value: str
     </div>
   );
 }
-function Kpi({ icon, label, value, to }: { icon: React.ReactNode; label: string; value: number; to?: string }) {
+function Kpi({ icon, label, value, to, tone }: { icon: React.ReactNode; label: string; value: number; to?: string; tone?: 'danger' | 'warn' }) {
+  const toneClass = tone === 'danger' ? 'border-destructive/60 bg-destructive/5' : tone === 'warn' ? 'border-amber-500/60 bg-amber-500/5' : '';
   const body = (
-    <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{label}</span><span className="text-muted-foreground">{icon}</span></div><p className="text-2xl font-semibold mt-1">{value}</p></CardContent></Card>
+    <Card className={toneClass}><CardContent className="pt-4"><div className="flex items-center justify-between"><span className="text-xs text-muted-foreground">{label}</span><span className="text-muted-foreground">{icon}</span></div><p className="text-2xl font-semibold mt-1">{value}</p></CardContent></Card>
   );
   return to ? <Link to={to}>{body}</Link> : body;
 }
