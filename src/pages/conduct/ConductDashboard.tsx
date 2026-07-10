@@ -108,15 +108,39 @@ export default function ConductDashboard() {
           </CardContent>
         </Card>
 
+        {(kpis.critical > 0 || kpis.slaBreached > 0 || kpis.openAlerts > 0) && (
+          <Card className="border-destructive/60 bg-destructive/5">
+            <CardContent className="p-4 flex flex-wrap items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <span className="font-semibold text-destructive">Attention required</span>
+              {kpis.critical > 0 && (
+                <Link to="/complaints?severity=critical" className="text-sm underline">
+                  {kpis.critical} critical complaint{kpis.critical > 1 ? 's' : ''}
+                </Link>
+              )}
+              {kpis.slaBreached > 0 && (
+                <Link to="/complaints?sla=breached" className="text-sm underline">
+                  {kpis.slaBreached} SLA breached
+                </Link>
+              )}
+              {kpis.openAlerts > 0 && (
+                <Link to="/conduct/alerts?status=open" className="text-sm underline">
+                  {kpis.openAlerts} open alert{kpis.openAlerts > 1 ? 's' : ''}
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
           <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Complaints" value={kpis.total} />
           <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Open" value={kpis.openComplaints} />
-          <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" />
-          <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} />
-          <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} />
-          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} />
-          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} />
-          <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} />
+          <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" tone={kpis.openAlerts > 0 ? 'warn' : undefined} />
+          <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} tone={kpis.critical > 0 ? 'danger' : undefined} />
+          <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} tone={kpis.vulnerable > 0 ? 'warn' : undefined} />
+          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} tone={kpis.slaBreached > 0 ? 'danger' : undefined} />
+          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} tone={kpis.slaAtRisk > 0 ? 'warn' : undefined} />
+          <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} tone={kpis.repeat > 0 ? 'warn' : undefined} />
         </div>
 
         {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
