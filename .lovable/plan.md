@@ -1,53 +1,49 @@
 
 ## Problem
 
-Complaint intake currently:
-- Sets `assigned_team` **statically** from `conduct_triage_rules` only — it does not run the configured approval workflow (entity_type = `complaint` exists in `useWorkflowEngine` but no runtime hook fires on submit).
-- Fires **no notification** to the complainant, assignee, or admins on filing.
-- Conduct Dashboard tiles show counts but do not visually flag critical / SLA-breached / open-alert conditions.
+1. `Assigned` column shows `assigned_team` (role text) and `investigator_id` profile — not the users configured in the complaint approval workflow's current step.
+2. No `workflow_instances` are being created for complaints. Root cause found in `start_complaint_workflow()`: the workflow lookup uses `w.regulator_id IS NULL OR w.regulator_id = NEW.regulator_id`. All recent complaints have `regulator_id = NULL`, and the seeded complaint workflow has a non-null `regulator_id`, so no workflow matches → no instance, no dynamic assignment, no notification.
+3. Current step for the seeded workflow uses `approver_type = 'specific_users'` with two user ids in `approver_config.user_ids`; the trigger only writes the role text into `assigned_team` and only notifies by role — it ignores `specific_users` config.
 
-## Fix Plan
+## Fix
 
-### 1. Backend — workflow-driven complaint routing
-- New migration:
-  - Add `complaint` to the allowed `entity_type` list in `perform_workflow_transition` + `approval_workflows` CHECK (already allowed in some places, verify).
-  - Trigger `trg_start_complaint_workflow` `AFTER INSERT ON public.complaints`:
-    - Resolve active `approval_workflows` where `entity_type='complaint'` matching sector/sub_sector/category (reuse the same taxonomy resolver used for applications/returns).
-    - Insert `approval_workflow_instances` row (entity_id = complaint.id) at step 1.
-    - Set `complaints.assigned_to` / `assigned_team` from the first step's `assigned_role` / `assigned_team_id` (dynamic, overrides any static triage output).
-    - Skip if no workflow configured (fall back to current triage behaviour so we never block intake).
-- Extend `perform-workflow-action` edge function (or a thin wrapper `perform-complaint-workflow-action`) to accept `entity_type='complaint'`, update `complaints.status` from step `result_status_override`, and log to `case_audit_events`.
+### 1. Migration: repair `start_complaint_workflow()` + backfill
 
-### 2. Backend — notifications on file
-- Seed rows in `notification_templates` (idempotent upsert) for these event keys, if missing:
-  - `complaint.filed` → complainant (email + in-app): "We received your complaint {ack_no}".
-  - `complaint.assigned` → assignee/team (email + in-app): "Complaint {ack_no} assigned to you, SLA due {sla_due_at}".
-  - `complaint.sla_breach_warning` → assignee + supervisor.
-- Add to the same `AFTER INSERT` trigger a call to `dispatch_notification_event('complaint.filed', ...)` (SQL wrapper already used by returns).
-- On workflow step transition, dispatch `complaint.assigned` to the new assignee.
+- Relax workflow selection so a complaint with `regulator_id IS NULL` still picks up the best active `entity_type='complaint'` workflow:
+  ```
+  WHERE w.entity_type='complaint' AND w.is_active
+    AND (NEW.regulator_id IS NULL OR w.regulator_id IS NULL OR w.regulator_id = NEW.regulator_id)
+  ORDER BY (w.regulator_id = NEW.regulator_id)::int DESC, w.updated_at DESC NULLS LAST
+  ```
+- Resolve assignees by `approver_type`:
+  - `specific_users` → `approver_config->'user_ids'`
+  - `role_based_user` → `user_roles` where `role::text = approver_role` (and/or roles listed in `approver_config.role_ids`)
+- Notify all resolved users via `notifications` (in-app), same shape as today.
+- Set `complaints.assigned_team` to the step's `approver_role` text for display continuity.
+- One-time backfill in the same migration: for every existing complaint that has no active `workflow_instances` row, insert one using the same resolver logic and emit the assigned notification.
 
-### 3. Frontend — file-time notification hook
-- In `src/pages/complaints/ComplaintsList.tsx` (applicant path) and `NewInternalComplaint.tsx` (internal path), after successful insert call `dispatchNotificationEvent('complaint.filed', { complaint_id, ack_no, app_url })` as a fire-and-forget backstop (mirrors `slaNotifications.ts` pattern). Trigger remains the source of truth.
+### 2. `src/pages/complaints/ComplaintsList.tsx` — resolve names from the workflow
 
-### 4. Frontend — dynamic assignment display
-- `ComplaintDetail.tsx` and `ComplaintsList.tsx`: replace the current `assigned_team` badge with data from the active `approval_workflow_instance` (step name + assignee) using the existing `useWorkflowInstance` hook. Fall back to `assigned_team` when no workflow is running.
-- Remove the hardcoded assignee override in `evaluate-complaint-triage` when a workflow instance exists (triage still classifies severity/priority/SLA; routing is delegated to workflow).
+- After loading complaints, fetch in parallel (internal view only):
+  - `workflow_instances` where `entity_type='complaint'` and `entity_id IN (complaint ids)` and `status IN ('active','paused')`.
+  - The referenced `approval_steps` (id, approver_role, approver_role_id, approver_type, approver_config).
+  - For any step with `approver_type='role_based_user'`, expand to user ids via `user_roles` filtered by `role::text = approver_role` (or `role_id IN approver_config.role_ids`).
+  - Extend the existing `profiles` batch fetch to include all resolved assignee user ids.
+- Build `assigneesByComplaintId: Map<complaintId, Array<{ id; full_name; email }>>`.
+- Render the `Assigned` cell as:
+  - Line 1: `approver_role` from the current step (falls back to `assigned_team`).
+  - Line 2: comma-separated resolved names (`John Doe, Jane Roe`) with `+N` overflow after 2 names; `Unassigned` when the list is empty.
+- No change to sorting/filters this pass; team filter continues to key off `assigned_team`.
 
-### 5. Frontend — Conduct Dashboard alert highlighting
-- `ConductDashboard.tsx` tile styling driven by thresholds:
-  - `criticalComplaints > 0` → red border + pulse dot.
-  - `slaBreachedComplaints > 0` → red border.
-  - `openAlerts > 0` → amber border.
-- Add a top "Attention required" banner listing the active alert conditions with deep links to the filtered list (`/complaints?severity=critical`, `?sla=breached`, `/conduct/alerts?status=open`).
-- No metric-math changes; purely presentational + query-param wiring already supported by `ComplaintsList` filters.
+### 3. Verification
+
+- Re-run trigger against an existing complaint via UPDATE... no, just insert a test row through the app or SQL and confirm a `workflow_instances` row appears and the Assigned column shows the two configured user names.
 
 ## Out of scope
-- Rewriting the triage rule engine.
-- Changing complaint intake forms.
-- New workflow builder UI (admins already can configure `entity_type='complaint'` workflows in the existing builder).
 
-## Technical notes
-- Reuse `dispatch-notification-event` edge function and `notification_templates` seeding pattern from returns.
-- Reuse `approval_workflow_instances` schema — no new tables.
-- Trigger uses `SECURITY DEFINER` with `set search_path=public` to bypass RLS for the workflow instance insert.
-- All new migrations follow the CREATE TABLE → GRANT → RLS → POLICY order where applicable (no new public tables expected; only trigger + templates).
+- Reassignment UI, changing the workflow config editor, notification email templates (already seeded in prior turn).
+
+## Files touched
+
+- New: `supabase/migrations/<ts>_fix_complaint_workflow_assignment.sql`
+- Edit: `src/pages/complaints/ComplaintsList.tsx`
