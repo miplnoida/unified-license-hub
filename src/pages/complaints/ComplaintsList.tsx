@@ -228,7 +228,10 @@ export default function ComplaintsList() {
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
+        description: (inserted as any).description ?? null,
+        attachments: newAttachments.map(f => ({ name: f.name, size: f.size })),
       });
+      setAckVariant(isInternal ? 'internal' : 'applicant');
     }
     loadComplaints();
   };
