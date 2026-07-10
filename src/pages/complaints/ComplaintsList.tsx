@@ -730,6 +730,7 @@ export default function ComplaintsList() {
           open={!!ackDialog}
           onOpenChange={(o) => !o && setAckDialog(null)}
           complaint={ackDialog}
+          variant={ackVariant}
         />
       )}
     </DashboardLayout>
