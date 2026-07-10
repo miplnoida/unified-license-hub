@@ -1,30 +1,44 @@
-## Fixes to complaint intake forms
+## Goal
+Clean up the applicant complaint acknowledgement modal: show only essential fields, align labels/values consistently, and allow previewing attached files.
 
-### 1. Complaint type dropdown blank (Internal complaint form)
-Root cause: `NewInternalComplaint.tsx` filters `complaint_types` by column `active`, but the actual column is `is_active`. `ComplaintsList.tsx` correctly uses `is_active` — that's why applicant view works and internal view doesn't.
+## Changes — `src/components/complaints/ComplaintAcknowledgement.tsx` (applicant variant only; internal unchanged)
 
-Fix: change the query in `src/pages/complaints/NewInternalComplaint.tsx` to `.eq('is_active', true)` so it matches the applicant form's data source.
+### 1. Content — keep only
+- Header title: "Complaint Acknowledgement"
+- Acknowledgement no.
+- Submitted on
+- Title (subject)
+- Description
+- Attachments
+- Footer buttons: Close, Print / Save as PDF
 
-### 2. Allow attachments on both complaint forms
-Reuse the existing secure upload stack (`file_uploads` table + `secure-documents` bucket) and link uploads to the complaint via the existing `complaint_evidence` table (columns: `complaint_id`, `file_upload_id`, `label`, `uploaded_by`).
+Remove: subtitle line, "Acknowledged" badge, "What happens next" section, generated/quote-reference footer note.
 
-Approach:
-- Stage files in-memory in the form (same pattern as `DocumentUpload.tsx`) — no upload until the complaint is submitted (we need the `complaint_id` first).
-- After the complaint row is inserted, upload each staged file via `uploadFormFile()` from `src/lib/formFileUpload.ts` (uses `secure-documents` + `file_uploads`), then insert a `complaint_evidence` row per file.
-- Apply to both:
-  - `src/pages/complaints/NewInternalComplaint.tsx` — add an "Attachments" section above the submit button.
-  - `src/pages/complaints/ComplaintsList.tsx` — add attachments field inside the applicant "File Complaint" dialog and wire it into `handleCreate`.
-- Validation: reuse `validateFile` / size + type rules already defined in `secureFileUpload.ts`. Max 20MB per file, cap at say 5 files per submission.
-- On upload failure after complaint insert: keep the complaint, toast which attachments failed (non-blocking) — same tolerance pattern used by auto-triage today.
+### 2. Alignment
+Use a consistent two-column definition layout so every row starts at the same horizontal position with equal gap between label and value:
+- On-screen: CSS grid `grid-cols-[180px_1fr]` with `gap-x-6 gap-y-3`, labels `text-sm font-medium text-muted-foreground`, values `text-sm text-foreground whitespace-pre-wrap break-words`.
+- Description spans the value column and wraps.
+- Attachments render as a vertical list inside the value column.
+- Print stylesheet: mirror the same 180px / 1fr grid so the printed PDF matches the on-screen alignment.
 
-### 3. Severity field on applicant complaint form
-`complaints.severity` already exists and is used by the internal form. Add a Severity `Select` (low / medium / high / critical, default `medium`) to the applicant "File Complaint" dialog in `ComplaintsList.tsx` and include it in the `insertData` for the non-internal branch of `handleCreate`.
+### 3. Attachment preview
+Extend the `attachments` prop shape to optionally include a preview handle:
+```ts
+attachments?: Array<{ name: string; size?: number; path?: string; fileUploadId?: string }>
+```
+For each attachment on the applicant view, render the filename as a button that opens the file:
+- Resolve a short-lived signed URL via the existing `secureFileUpload` helpers (same pattern used elsewhere for `complaint_evidence`) using `path` when available, otherwise fetch `storage_path` by `fileUploadId` from `file_uploads`.
+- Open in a new tab (`window.open(url, '_blank', 'noopener')`) — images/PDFs preview natively; other types download.
+- Show a small `Eye` icon next to the name and size.
+- Print view keeps names + sizes only (no clickable link).
 
-### Scope guardrails
-- No changes to RLS, edge functions, ComplaintDetail, ConductClassificationCard, triage, workflow, prudential, or unrelated modules.
-- No schema migrations — `complaint_evidence` and `file_uploads` already exist and are wired for secure storage.
+### 4. Callers
+- `src/pages/complaints/ComplaintsList.tsx` (applicant submit + reprint): pass attachments with `path` / `fileUploadId` when available. For the immediate post-submit case where files were just uploaded, pass the `fileUploadId` values returned by `attachStagedFilesToComplaint` (add these to its return type — small, additive change) so previews work without a refetch.
+- `src/lib/complaintAttachments.ts`: extend `AttachStagedFilesResult.uploaded` from a count to an array of `{ name, size, fileUploadId }` (keep `.length` semantics at call sites where only the count is used).
+- `src/pages/complaints/ComplaintDetail.tsx` (applicant reprint): already fetches `complaint_evidence` — include `file_upload_id` and pass through.
 
-### Files touched
-- `src/pages/complaints/NewInternalComplaint.tsx` — fix `is_active` filter; add attachments section; upload + link evidence after insert.
-- `src/pages/complaints/ComplaintsList.tsx` — add Severity select and attachments to applicant dialog; upload + link evidence after insert in `handleCreate`.
-- (Optional) small shared helper `src/lib/complaintAttachments.ts` if both screens end up with the same upload-and-link loop, to keep the two call sites tidy.
+No schema, RLS, or backend changes.
+
+## Out of scope
+- Internal/admin acknowledgement layout.
+- In-modal inline preview pane (opens in a new tab instead — matches existing document viewing pattern).

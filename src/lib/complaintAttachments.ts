@@ -9,8 +9,16 @@ import { secureUpload, validateFile } from '@/lib/secureFileUpload';
 
 export const MAX_COMPLAINT_ATTACHMENTS = 5;
 
+export interface UploadedAttachment {
+  name: string;
+  size: number;
+  fileUploadId: string;
+  filePath: string;
+}
+
 export interface AttachStagedFilesResult {
   uploaded: number;
+  attachments: UploadedAttachment[];
   failed: { name: string; error: string }[];
 }
 
@@ -19,7 +27,7 @@ export async function attachStagedFilesToComplaint(
   complaintId: string,
   userId: string,
 ): Promise<AttachStagedFilesResult> {
-  const result: AttachStagedFilesResult = { uploaded: 0, failed: [] };
+  const result: AttachStagedFilesResult = { uploaded: 0, attachments: [], failed: [] };
 
   for (const file of files) {
     const validation = validateFile(file);
@@ -49,6 +57,12 @@ export async function attachStagedFilesToComplaint(
     }
 
     result.uploaded++;
+    result.attachments.push({
+      name: file.name,
+      size: file.size,
+      fileUploadId: upload.fileUploadId,
+      filePath: upload.filePath || '',
+    });
   }
 
   return result;

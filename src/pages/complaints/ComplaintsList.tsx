@@ -105,6 +105,7 @@ export default function ComplaintsList() {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
+  const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -197,7 +198,7 @@ export default function ComplaintsList() {
           severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, created_at, email').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email').single();
     if (error) {
       toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
       setCreating(false);
@@ -219,8 +220,10 @@ export default function ComplaintsList() {
       }
     }
 
+    let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
+      uploadedAttachments = r.attachments;
       if (r.failed.length) {
         toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
       } else if (r.uploaded) {
@@ -242,7 +245,12 @@ export default function ComplaintsList() {
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
+        description: (inserted as any).description ?? null,
+        attachments: uploadedAttachments.map(a => ({
+          name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
+        })),
       });
+      setAckVariant(isInternal ? 'internal' : 'applicant');
     }
     loadComplaints();
   };
@@ -269,8 +277,34 @@ export default function ComplaintsList() {
     loadComplaints();
   };
 
-  const reprintAck = (c: any) => {
+  const reprintAck = async (c: any) => {
     const prof = c.complainant_id ? profileMap.get(c.complainant_id) : null;
+
+    // Fetch linked evidence + file paths for preview
+    let atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] = [];
+    const { data: evidence } = await supabase
+      .from('complaint_evidence' as any)
+      .select('label, file_upload_id')
+      .eq('complaint_id', c.id);
+    const rows = (evidence as any[]) || [];
+    if (rows.length) {
+      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
+      const { data: files } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size')
+        .in('id', ids);
+      const fmap = new Map((files as any[] || []).map(f => [f.id, f]));
+      atts = rows.map(r => {
+        const f = fmap.get(r.file_upload_id);
+        return {
+          name: r.label || f?.file_name || 'Attachment',
+          size: f?.file_size,
+          filePath: f?.file_path,
+          fileUploadId: r.file_upload_id,
+        };
+      });
+    }
+
     setAckDialog({
       id: c.id,
       complaint_number: c.complaint_number,
@@ -280,7 +314,10 @@ export default function ComplaintsList() {
       complainant_email: c.email ?? prof?.email ?? null,
       channel: c.intake_source || null,
       sla_days: c.sla_days ?? 20,
+      description: c.description ?? null,
+      attachments: atts,
     });
+    setAckVariant(isInternal ? 'internal' : 'applicant');
   };
 
   const retryTriage = async (c: any) => {
@@ -740,6 +777,7 @@ export default function ComplaintsList() {
           open={!!ackDialog}
           onOpenChange={(o) => !o && setAckDialog(null)}
           complaint={ackDialog}
+          variant={ackVariant}
         />
       )}
     </DashboardLayout>
