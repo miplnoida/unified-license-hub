@@ -225,7 +225,7 @@ export default function ComplaintsList() {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
       uploadedAttachments = r.attachments;
       if (r.failed.length) {
-        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed to upload.`);
+        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed: ${r.failed[0].error}`);
       } else if (r.uploaded) {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
