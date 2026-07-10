@@ -271,7 +271,9 @@ export default function ComplaintsList() {
       complainant_email: c.email ?? prof?.email ?? null,
       channel: c.intake_source || null,
       sla_days: c.sla_days ?? 20,
+      description: c.description ?? null,
     });
+    setAckVariant(isInternal ? 'internal' : 'applicant');
   };
 
   const retryTriage = async (c: any) => {
