@@ -806,6 +806,28 @@ export default function ComplaintsList() {
                   <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
                 </div>
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                  <Paperclip className="h-3.5 w-3.5" />Attachments {detailAttachments.length > 0 && <span>({detailAttachments.length})</span>}
+                </p>
+                {detailAttachments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No attachments</p>
+                ) : (
+                  <ul className="divide-y border rounded-md">
+                    {detailAttachments.map(a => (
+                      <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{a.name}</p>
+                          {a.size ? <p className="text-xs text-muted-foreground">{a.size < 1024 ? `${a.size} B` : a.size < 1024 * 1024 ? `${(a.size / 1024).toFixed(1)} KB` : `${(a.size / (1024 * 1024)).toFixed(1)} MB`}</p> : null}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => openDetailAttachment(a.filePath)} disabled={!a.filePath}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />View
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               {detailDialog.resolution && (
                 <div><p className="text-sm text-muted-foreground">Resolution</p><p className="text-sm">{detailDialog.resolution}</p></div>
               )}
