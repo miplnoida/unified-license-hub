@@ -286,7 +286,7 @@ export default function ComplaintsList() {
         complainant_name: user.fullName ?? user.email ?? null,
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
-        sla_days: 20,
+        sla_days: (inserted as any).sla_days ?? 20,
         description: (inserted as any).description ?? null,
         attachments: uploadedAttachments.map(a => ({
           name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
