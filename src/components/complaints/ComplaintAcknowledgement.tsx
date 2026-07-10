@@ -17,12 +17,15 @@ export interface ComplaintAckInput {
   channel?: string | null;
   regulator_name?: string | null;
   sla_days?: number | null;
+  description?: string | null;
+  attachments?: Array<{ name: string; size?: number }> | null;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   complaint: ComplaintAckInput;
+  variant?: 'applicant' | 'internal';
 }
 
 /**
