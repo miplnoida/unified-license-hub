@@ -1,50 +1,86 @@
 
-## Findings
+## SCRIPT 4 verification — findings
 
-1. **Assigned column shows "admin / Unassigned"** even though the complaint workflow step is `specific_users` with Super Admin + Vidya Rani.
-   - `workflow_instances` rows exist (verified in DB), `approval_steps.approver_config.user_ids` contains both UUIDs, both `profiles` rows exist.
-   - The batched fetch in `ComplaintsList.loadComplaints` builds a temporary `_pending` map on the outer `asgMap` and never surfaces network/parse errors. In practice `asgMap` stays empty and the UI falls back to `assigned_team='admin'` + "Unassigned".
-   - Root fix: replace the ad-hoc client chain with a single security-definer RPC `get_complaint_current_assignees(complaint_ids uuid[])` that joins `workflow_instances → approval_steps → user_roles/profiles` server-side and returns `{complaint_id, step_role, assignees[{id, full_name, email}]}`. Removes RLS ambiguity, N+1 fragility, and the `_pending` hack.
+I walked every demo ID against the codebase and DB. The screens exist for every item, but several are functionally hollow because reference/seed data is missing, and two flows have real bugs.
 
-2. **Classification column shows "—" sub-lines.** The complaint has `complaint_type` but no `conduct_risk_category_id`, `product_id`, or `channel_id` (they're populated by triage rules or later classification, not by the intake form). The current cell renders three lines even when the last two are empty — visually reads as "missing data".
-   - Fix (UI-only): only render category / product · channel lines when at least one value is present; otherwise show the type alone. Keep the existing behaviour when triage fills them.
+Legend: ✅ works · ⚠️ works but seed missing · ❌ broken/missing
 
-3. **Applicant view lacks SLA and prominent status.** `ComplaintsList` external table has columns: `Complaint # | Type | Subject | Status | Created | Actions`. No SLA. Status is present but no due date / on-track badge.
-   - Fix: add an "SLA" column (uses existing `computeSlaStatus` helper), and surface `Due <date>` under the status badge in the external table and in the applicant detail dialog.
+| ID | Item | Status | Notes |
+|---|---|---|---|
+| MCS-001 | Risk taxonomy & framework config | ⚠️ | 10 risk categories seeded; only **1 product**, 6 channels, **2 complaint types**. Framework config screens work but look bare. |
+| MCS-002 | Supervisory universe & history | ⚠️ | Complaints exist but 8/9 have `licensee_id = NULL` → no entity history to open. No historical actions/investigations attached. |
+| MCS-003 | Complaint intake (ext + int) | ✅ | Both channels functional; attachments + ack email verified in prior turns. |
+| MCS-004 | Classification, triage, prioritization | ❌ | `conduct_triage_rules` table is **empty** → `evaluate-complaint-triage` runs but applies nothing. Classification/severity stays at intake defaults. |
+| MCS-005 | Conduct analytics & alerts | ⚠️ | 3 alerts + 2 thresholds seeded; charts render. Fine for demo but sparse. |
+| MCS-006 | Thematic review initiation | ⚠️ | `thematic_reviews = 0`. Full CRUD exists (`NewThematicReview`, detail with findings/actions/evidence tabs) but nothing to open. |
+| MCS-007 | Investigation & evidence mgmt | ❌ | 1 investigation, **0 evidence rows**. Escalation button works but the evidence repo & restricted-access story has no artefacts to show. |
+| MCS-008 | Supervisory actions & outcomes | ❌ | `conduct_actions = 0`. `ConductActions` page renders empty; no notification log rows for the "notifications sent" evidence. |
+| MCS-009 | Ongoing monitoring rules | ❌ | `conduct_monitoring_rules = 0`, no rule runs. Admin CRUD exists and edge function `evaluate-conduct-monitoring` is deployed, but never executed. |
+| MCS-010 | Oversight dashboard & drill-down | ⚠️ | Dashboard renders; needs the above seed so trend → cases → actions drill-through shows anything. |
 
-4. **Run / retry triage overwrites the assignee.** `evaluate-complaint-triage/index.ts` line 221 applies `rule.outputs.assigned_team` on every run, including `triggered_by='retry'`. Since the workflow engine now owns routing, retry should not clobber `complaints.assigned_team`.
-   - Fix: in the edge function, when `triggered_by !== 'intake'`, drop `assigned_team` (and `investigator_id` if any rule sets it) from the update payload but keep classification / severity / priority / SLA updates. Log the skipped field in the triage audit event so it's auditable.
+## Fix plan
 
-5. **Conduct dashboard "Attention required" links show all records.** Banner links `/complaints?severity=critical` and `/complaints?sla=breached`; `ComplaintsList` only initializes `statusFilter` from the URL — `severityFilter`, `priorityFilter`, `slaFilter` are ignored.
-   - Fix: read `severity`, `priority`, `sla` from `useSearchParams` on mount and seed the corresponding filter state. `/conduct/alerts?status=open` already works because that page reads `status` from the URL; verify and, if not, initialize the alert list filter the same way.
+### 1. Seed migration — market conduct framework
 
-## Files touched
+Expand reference data so the framework tab is credible and downstream demos have targets.
 
-- **New migration** — `supabase/migrations/<ts>_get_complaint_current_assignees.sql`
-  - `CREATE FUNCTION public.get_complaint_current_assignees(_complaint_ids uuid[]) RETURNS TABLE(complaint_id uuid, step_role text, user_id uuid, full_name text, email text) SECURITY DEFINER SET search_path=public …` — joins active `workflow_instances` → `approval_steps` → `profiles` (via `approver_config->'user_ids'` for `specific_users`, via `user_roles.role = approver_role` for `role_based_user`). Guards with `has_any_internal_role(auth.uid())`. `GRANT EXECUTE … TO authenticated`.
+- `conduct_products`: seed ~12 products across sectors (Personal Loan, Mortgage, Credit Card, Savings Account, Motor Insurance, Life Insurance, Health Insurance, Investment Fund, Pension, Money Transfer, Digital Wallet, Business Loan) with active=true.
+- `complaint_types`: add ~8 (Mis-selling, Unfair Charges, Poor Service, Disclosure Failure, Fraud/Unauthorised Transaction, Data Privacy Breach, Advertising Misleading, Vulnerable Customer) each linked to a default `conduct_risk_category_id` and default SLA days.
+- `conduct_triage_rules`: seed 6 prioritised rules:
+  1. Vulnerable indicator + monetary_impact > 50k → severity=critical, priority=p1, sla=5d, assigned_team=Enforcement.
+  2. Fraud category → severity=high, priority=p1, sla=7d, team=Investigations.
+  3. Repeat complainant (>=3 in 90d against same entity) → severity=high, priority=p2, team=Investigations.
+  4. Mis-selling + Insurance product → severity=high, priority=p2, team=Conduct Ops.
+  5. Fees/Charges + monetary_impact <10k → severity=medium, priority=p3, team=Conduct Ops.
+  6. Default catch-all → severity=medium, priority=p3, team=Conduct Ops.
 
-- **Edit** `src/pages/complaints/ComplaintsList.tsx`
-  - Replace the workflow-resolution block inside `loadComplaints` (lines ~204-283) with a single `supabase.rpc('get_complaint_current_assignees', { _complaint_ids: complaintIds })` call and simple map assembly.
-  - Add `severity`, `priority`, `sla` initialization from `useSearchParams` next to the existing `status` sync (lines 89-94).
-  - External table (lines 717-750): add SLA column + `Due <date>` sub-text under status badge; render applicant detail dialog with SLA row too.
-  - Classification cell (lines 799-805): render sub-lines only when the relevant id exists; suppress "— · —" fallback.
+### 2. Seed migration — historical complaints + investigations
 
-- **Edit** `supabase/functions/evaluate-complaint-triage/index.ts`
-  - Around line 221 where outputs are folded into `update`: when `triggered_by !== 'intake'` and `update.assigned_team` (or `investigator_id`) would change, omit it and push a note into `appliedOutputs.skipped` for the audit event.
-  - Deploy the function after the edit.
+- Backfill `licensee_id` on the 8 existing NULL complaints (round-robin across 3 licensees).
+- Insert ~15 additional historical complaints spanning 24 months, mixed status/severity/category/product/channel — so entity history views, analytics, and thematic hypothesis have volume.
+- Create 3 investigations linked to escalated complaints, each with 2–3 `conduct_evidence` rows (mix of `restricted=true` + `confidentiality_level='high'` to demo restricted-access evidence).
 
-- **Edit** `src/pages/conduct/ConductDashboard.tsx` (only if needed)
-  - No code change if the ComplaintsList fix above is enough. If `/conduct/alerts` doesn't read `status` from URL, add the same URL-param initialization there.
+### 3. Seed migration — thematic reviews
 
-## Verification
+- 2 thematic reviews (e.g. "Mis-selling of Credit Life Insurance", "Digital Wallet Fee Disclosure Sweep") with:
+  - `thematic_review_entities` (3 licensees each), `thematic_review_products` (2 products each).
+  - 2 findings and 2 `thematic_review_actions` per review (one Draft, one In Progress).
+  - 1 `thematic_review_evidence` per review.
 
-- Reload `/complaints` — CMP-2026-000010 and CMP-2026-000009 show "admin — Super Admin, Vidya Rani" in the Assigned cell.
-- Applicant login on `/complaints` — table has SLA column with "On track / Due <date>".
-- Run "Run / retry triage" on a complaint — DB row keeps its `assigned_team` and `investigator_id`; triage audit event lists them under `skipped`.
-- Click "3 SLA breached" on conduct dashboard — `/complaints` opens filtered to `slaFilter=breached` (3 rows visible).
-- Click "critical complaints" — `/complaints` filtered to `severityFilter=critical`.
+### 4. Seed migration — supervisory actions
+
+- Insert 6 `conduct_actions` across complaints/investigations/thematic reviews covering the action types demanded: Remediation Request, Written Warning, Sanction/Fine, Undertaking, Directions Letter, Public Censure — with rationale in `outcome`/`completion_notes` and 1 `approval_action_notifications`/`notification_dispatch_log` row each for the "notifications sent" evidence.
+
+### 5. Seed migration — ongoing monitoring rules
+
+- Insert 3 `conduct_monitoring_rules`:
+  1. Repeat complaints post-remediation (>=2 new complaints within 60d after last resolved).
+  2. Product concentration (>=5 open complaints on same product in 30d).
+  3. Channel concentration (>=8 complaints on same channel in 90d).
+- Trigger the `evaluate-conduct-monitoring` edge function once during migration (via a `pg_net` call or scheduled cron insert) to produce `conduct_monitoring_rule_runs` + `conduct_monitoring_results` rows so the execution log is non-empty. If direct invocation is not possible in a migration, insert one synthetic run per rule with realistic timestamps and matched complaint IDs.
+
+### 6. Code fixes (small)
+
+- `evaluate-complaint-triage`: with rules seeded (Step 1) verify severity/priority/team are applied on intake. If the intake path skips triage (current code uses `triggered_by='intake'` guard), ensure the DB trigger passes that value. Check `trg_apply_complaint_type_sla` order vs triage so triage doesn't get overwritten.
+- `ConductDashboard`: current alert-band deep links go to `/complaints?...`; add analogous drill links from "monitoring hits" and "thematic findings" tiles to `/conduct/monitoring` and `/supervision/thematic-reviews` filtered by the clicked bucket. Wire trend chart → filtered `/complaints` list.
+- `ConductActions.tsx`: ensure the empty state renders a "Create action" CTA and the list refreshes after seed inserts (verify query key invalidation).
+
+### 7. Verification pass
+
+After migrations run:
+
+- Playwright: login as regulator, walk MCS-001 → MCS-010 clicking through each screen; screenshot each ID's evidence artefact (taxonomy, entity history, ack, triage log, alert, thematic review, evidence file, action + notification, monitoring execution log, dashboard drill).
+- Assert counts non-zero for each table listed above via `psql`.
+- Confirm `evaluate-complaint-triage` mutates severity/priority on a fresh complaint; confirm `evaluate-conduct-monitoring` produces a new run row.
 
 ## Out of scope
 
-- Redesigning the classification taxonomy or auto-populating category/product/channel from the type mapping.
-- Reassignment UI or workflow-step editor changes.
+- Adding brand-new modules — everything needed already exists.
+- Rewriting the workflow engine — assignment already routes via workflow instances (fixed last turn).
+
+## Files touched
+
+- New migration: `supabase/migrations/<ts>_script4_market_conduct_seed.sql` (single large migration, one insert block per section above, idempotent via `ON CONFLICT DO NOTHING` using stable natural keys).
+- Small edits: `supabase/functions/evaluate-complaint-triage/index.ts` (guard order), `src/pages/conduct/ConductDashboard.tsx` (drill links), `src/pages/conduct/ConductActions.tsx` (CTA + refresh).
+
+Approve and I will implement steps 1–6, then run the Playwright verification pass in step 7 and report screenshots per demo ID.
