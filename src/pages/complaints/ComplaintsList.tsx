@@ -220,38 +220,23 @@ export default function ComplaintsList() {
             .in('id', stepIds);
           (steps || []).forEach((s: any) => stepsById.set(s.id, s));
         }
-        // Collect role user ids for role-based steps
+        // Collect role names for role-based steps
         const rolesNeeded = new Set<string>();
-        const roleIdsNeeded = new Set<string>();
         stepsById.forEach((s) => {
-          if (s.approver_type === 'role_based_user') {
-            const cfgRoleIds: string[] = (s.approver_config?.role_ids as string[]) || [];
-            cfgRoleIds.forEach(id => roleIdsNeeded.add(id));
-            if (s.approver_role) rolesNeeded.add(s.approver_role);
+          if (s.approver_type === 'role_based_user' && s.approver_role) {
+            rolesNeeded.add(s.approver_role);
           }
         });
-        const roleUserIds = new Map<string, string[]>(); // role text -> user_ids
-        const roleIdUserIds = new Map<string, string[]>();
+        const roleUserIds = new Map<string, string[]>();
         if (rolesNeeded.size) {
-          const { data: urs } = await supabase
+          const { data: urs } = await (supabase as any)
             .from('user_roles')
             .select('user_id, role')
-            .in('role', Array.from(rolesNeeded) as any);
-          (urs || []).forEach((r: any) => {
+            .in('role', Array.from(rolesNeeded));
+          ((urs as any[]) || []).forEach((r: any) => {
             const arr = roleUserIds.get(r.role) || [];
             arr.push(r.user_id);
             roleUserIds.set(r.role, arr);
-          });
-        }
-        if (roleIdsNeeded.size) {
-          const { data: urs2 } = await supabase
-            .from('user_roles')
-            .select('user_id, role_id')
-            .in('role_id', Array.from(roleIdsNeeded));
-          (urs2 || []).forEach((r: any) => {
-            const arr = roleIdUserIds.get(r.role_id) || [];
-            arr.push(r.user_id);
-            roleIdUserIds.set(r.role_id, arr);
           });
         }
         // Build per-complaint assignee id list; collect for profile fetch
