@@ -748,14 +748,6 @@ export default function ComplaintsList() {
                                 <DropdownMenuItem onClick={() => retryTriage(c)}>
                                   <RefreshCw className="h-4 w-4 mr-2" />Run / retry triage
                                 </DropdownMenuItem>
-                                {(c.status === 'submitted' || c.status === 'open') && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleUpdateStatus(c, 'under_investigation')}>
-                                      <UserCheck className="h-4 w-4 mr-2" />Take investigation
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
