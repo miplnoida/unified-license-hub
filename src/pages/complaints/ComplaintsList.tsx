@@ -762,10 +762,14 @@ export default function ComplaintsList() {
                           </TableCell>
                           <TableCell className="text-xs space-y-0.5">
                             <div>{refs.types.get(c.complaint_type_id) || '—'}</div>
-                            <div className="text-muted-foreground">{refs.categories.get(c.conduct_risk_category_id) || '—'}</div>
-                            <div className="text-muted-foreground">
-                              {refs.products.get(c.product_id) || '—'} · {refs.channels.get(c.channel_id) || '—'}
-                            </div>
+                            {c.conduct_risk_category_id && (
+                              <div className="text-muted-foreground">{refs.categories.get(c.conduct_risk_category_id)}</div>
+                            )}
+                            {(c.product_id || c.channel_id) && (
+                              <div className="text-muted-foreground">
+                                {refs.products.get(c.product_id) || '—'} · {refs.channels.get(c.channel_id) || '—'}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
