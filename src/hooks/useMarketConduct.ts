@@ -365,7 +365,10 @@ export function useCompleteAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('UPDATE', 'conduct_action', id, before, data);
-      await notify('conduct_action_completed', 'conduct_action', id, { title: data.title, outcome });
+      await notify('conduct_action_completed', 'conduct_action', id, {
+        title: data.title, action_type: data.action_type, outcome, completion_notes,
+        assigned_to: data.assigned_to, created_by: data.created_by,
+      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action completed'); },
@@ -384,6 +387,10 @@ export function useWaiveAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('OVERRIDE', 'conduct_action', id, before, data, waiver_reason);
+      await notify('conduct_action_waived', 'conduct_action', id, {
+        title: data.title, action_type: data.action_type, waiver_reason,
+        assigned_to: data.assigned_to, created_by: data.created_by,
+      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action waived'); },
@@ -402,6 +409,10 @@ export function useCancelAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('OVERRIDE', 'conduct_action', id, before, data, cancellation_reason);
+      await notify('conduct_action_cancelled', 'conduct_action', id, {
+        title: data.title, action_type: data.action_type, cancellation_reason,
+        assigned_to: data.assigned_to, created_by: data.created_by,
+      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action cancelled'); },
