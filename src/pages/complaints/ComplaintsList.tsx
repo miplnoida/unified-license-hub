@@ -262,6 +262,23 @@ export default function ComplaintsList() {
       }
     }
 
+    if (inserted?.id) {
+      // Fire-and-forget email dispatch (in-app rows are inserted by the DB trigger)
+      void import('@/lib/notificationEvents').then(({ dispatchNotificationEvent }) =>
+        dispatchNotificationEvent({
+          event_key: 'complaint.filed',
+          entity_type: 'complaint',
+          entity_id: inserted.id,
+          payload: {
+            complaint_number: (inserted as any).complaint_number,
+            subject: (inserted as any).subject,
+            sla_due_at: (inserted as any).sla_due_at,
+            complainant_email: (inserted as any).email ?? user.email,
+          },
+        }),
+      );
+    }
+
     let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
