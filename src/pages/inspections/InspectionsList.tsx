@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -28,8 +28,19 @@ function isOverdue(r: InspectionRow): boolean {
 }
 
 export default function InspectionsList() {
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<'scheduled' | 'in_progress' | 'completed' | 'overdue' | 'all'>('scheduled');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    const filter = searchParams.get('filter');
+    if (status === 'scheduled' || status === 'in_progress' || status === 'completed') {
+      setTab(status);
+    } else if (filter === 'overdue') {
+      setTab('overdue');
+    }
+  }, [searchParams]);
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ['inspections_all'],

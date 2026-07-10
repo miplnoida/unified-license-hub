@@ -36,6 +36,37 @@ function mapComplianceAction(action: string): ComplianceAuditAction {
   return COMPLIANCE_ACTION_MAP[verb] ?? 'UPDATE';
 }
 
+export type FpAppealAction =
+  | 'fp.appeal.filed'
+  | 'fp.appeal.committee_assigned'
+  | 'fp.appeal.review_started'
+  | 'fp.appeal.decided'
+  | 'fp.appeal.withdrawn';
+
+/** Shared helper so appeal-handling screens can't drift on action names/payload shape. */
+export async function logFpAppealAction(
+  action: FpAppealAction,
+  appealId: string,
+  opts: {
+    individualId?: string | null;
+    determinationId?: string | null;
+    committeeId?: string | null;
+    after?: Record<string, unknown> | null;
+    justification?: string;
+  } = {},
+): Promise<void> {
+  return logFpAction(action, 'fp_appeal', appealId, {
+    after: opts.after ?? null,
+    context: {
+      individualId: opts.individualId,
+      appealId,
+      determinationId: opts.determinationId,
+      committeeId: opts.committeeId,
+    },
+    justification: opts.justification,
+  });
+}
+
 export async function logFpAction(
   action: string,
   entityType: string,

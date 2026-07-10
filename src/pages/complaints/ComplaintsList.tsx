@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,11 +62,24 @@ interface ComplainantProfile {
 export default function ComplaintsList() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // "open" isn't a real complaint status (submitted/under_investigation/resolved/closed
+  // are) — the dashboard's "Open" tile means "not yet resolved or closed", so it's
+  // handled as a broader bucket rather than an exact statusFilter match.
+  const dashboardOpenBucket = searchParams.get('status') === 'open';
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status && status !== 'open' && status in STATUS_LABELS) {
+      setStatusFilter(status);
+    }
+  }, [searchParams]);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<Complaint | null>(null);
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
@@ -177,6 +190,7 @@ export default function ComplaintsList() {
   const filtered = complaints.filter(c => {
     if (search && !c.complaint_number.toLowerCase().includes(search.toLowerCase()) &&
         !c.subject.toLowerCase().includes(search.toLowerCase())) return false;
+    if (dashboardOpenBucket && ['resolved', 'closed'].includes(c.status)) return false;
     if (statusFilter !== 'all' && c.status !== statusFilter) return false;
     return true;
   });

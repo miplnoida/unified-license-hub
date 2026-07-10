@@ -30,22 +30,17 @@ type EventRow = {
 
 const EVENT_TYPES = [
   'all',
-  'denied_access',
-  'failed_login',
-  'permission_denied',
-  'suspicious_export',
-  'password_reset',
-  'session_hijack_attempt',
-  'rls_violation',
+  'ACCESS_DENIED',
+  'AUTH_FAILED',
+  'PERMISSION_ESCALATION',
+  'INTEGRATION_FAILURE',
 ];
 
 const SEVERITY_TONE: Record<string, string> = {
-  denied_access: 'destructive',
-  permission_denied: 'destructive',
-  failed_login: 'warning',
-  suspicious_export: 'warning',
-  session_hijack_attempt: 'destructive',
-  rls_violation: 'destructive',
+  ACCESS_DENIED: 'destructive',
+  PERMISSION_ESCALATION: 'destructive',
+  AUTH_FAILED: 'warning',
+  INTEGRATION_FAILURE: 'warning',
 };
 
 export default function SecurityEvents() {

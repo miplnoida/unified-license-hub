@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { logAction } from '@/hooks/useAuditLog';
 
 interface Props {
   entityId: string;
@@ -201,12 +202,8 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
         issued_by: user.id,
       });
       if (error) throw error;
-      await supabase.from('audit_logs' as any).insert({
-        user_id: user.id,
-        action: 'licensee.audit.determination_issued',
-        table_name: 'licensees',
-        record_id: entityId,
-        new_values: { verdict, effective_date: effectiveDate },
+      await logAction('licensee.audit.determination_issued', 'licensee', entityId, {
+        after: { verdict, effective_date: effectiveDate },
       });
       toast.success('Final determination issued');
       setRationale('');
@@ -296,12 +293,8 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
       const { error: actErr } = await supabase.from('supervisory_plan_actions' as any).insert(actions);
       if (actErr) throw actErr;
 
-      await supabase.from('audit_logs' as any).insert({
-        user_id: user.id,
-        action: 'licensee.audit.plan_auto_created',
-        table_name: 'supervisory_plans',
-        record_id: planId,
-        new_values: {
+      await logAction('licensee.audit.plan_auto_created', 'supervisory_plan', planId, {
+        after: {
           determination_id: latestDetermination.id,
           risk_profile_id: latestProfile.id,
           action_count: actions.length,

@@ -9,9 +9,11 @@ export const REPORT_CATEGORIES = [
   'Audit & Governance',
 ] as const;
 
-export const REPORT_DEFINITIONS: ReportDefinition[] = [
+const RAW_REPORT_DEFINITIONS: ReportDefinition[] = [
   // Licensing & Applications
-  { id: 'app-status', name: 'Application Status Report', category: 'Licensing & Applications', module: 'application_management', description: 'Distribution of applications across all statuses.', source: 'applications', filters: ['dateFrom', 'dateTo', 'status', 'sector'], defaultColumns: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at'], defaultGroupBy: 'status', exportFormats: ['csv', 'xlsx', 'json'] },
+  // `sector` removed: applications has no sector_id column, this filter was
+  // always a silent no-op (see the "Reports & Analytics" gap-fix migration).
+  { id: 'app-status', name: 'Application Status Report', category: 'Licensing & Applications', module: 'application_management', description: 'Distribution of applications across all statuses.', source: 'applications', filters: ['dateFrom', 'dateTo', 'status'], defaultColumns: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at'], defaultGroupBy: 'status', exportFormats: ['csv', 'xlsx', 'json'] },
   { id: 'app-aging', name: 'Application Aging Report', category: 'Licensing & Applications', module: 'application_management', description: 'Applications grouped by time-in-status buckets.', source: 'applications', filters: ['dateFrom', 'dateTo', 'status'], defaultColumns: ['application_number', 'status', 'created_at', 'updated_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'app-sla', name: 'Application SLA Breach Report', category: 'Licensing & Applications', module: 'application_management', description: 'Applications exceeding their SLA windows.', source: 'applications', filters: ['dateFrom', 'dateTo'], defaultColumns: ['application_number', 'status', 'created_at', 'submitted_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'lic-issuance', name: 'License Issuance Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses issued within a chosen window.', source: 'licenses', filters: ['dateFrom', 'dateTo', 'sector'], defaultColumns: ['license_number', 'license_type', 'status', 'issued_at'], exportFormats: ['csv', 'xlsx'] },
@@ -27,6 +29,8 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'ret-latefee', name: 'Late Fee Exposure Report', category: 'Returns & Compliance', module: 'returns_management', description: 'Estimated late-fee exposure by licensee.', source: 'compliance_returns', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_id', 'due_date', 'status'], exportFormats: ['csv', 'xlsx'] },
   { id: 'ret-risk', name: 'Sector-wise Compliance Risk Report', category: 'Returns & Compliance', module: 'returns_management', description: 'Compliance risk aggregated by sector.', source: 'compliance_returns', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_id', 'status'], exportFormats: ['csv', 'xlsx'] },
   { id: 'ret-repeat', name: 'Repeated Non-compliance Report', category: 'Returns & Compliance', module: 'returns_management', description: 'Licensees with recurring non-compliance.', source: 'compliance_returns', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_id', 'status'], defaultGroupBy: 'license_id', exportFormats: ['csv', 'xlsx'] },
+  { id: 'ret-sla', name: 'Return Submission SLA Report', category: 'Returns & Compliance', module: 'returns_management', description: 'Returns measured against their due-date SLA window.', source: 'compliance_returns', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_id', 'due_date', 'submitted_at', 'status'], exportFormats: ['csv', 'xlsx', 'json'] },
+  { id: 'prud-breach', name: 'Prudential Return Threshold Breaches', category: 'Returns & Compliance', module: 'prudential_supervision', description: 'Prudential return metrics that have breached configured thresholds.', source: 'return_threshold_breaches', filters: ['dateFrom', 'dateTo', 'riskLevel'], defaultColumns: ['metric_key', 'value', 'threshold_value', 'level', 'risk_level', 'detected_at'], defaultGroupBy: 'risk_level', exportFormats: ['csv', 'xlsx', 'json'] },
 
   // Revenue & Finance
   { id: 'fee-collection', name: 'Fee Collection Report', category: 'Revenue & Finance', module: 'fee_management', description: 'Collected fees over time.', source: 'payments', filters: ['dateFrom', 'dateTo', 'paymentStatus'], defaultColumns: ['amount', 'status', 'created_at'], exportFormats: ['csv', 'xlsx'] },
@@ -50,23 +54,35 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'cmp-pending', name: 'Pending Complaints Report', category: 'Complaints', module: 'complaint_management', description: 'Open and unresolved complaints.', source: 'complaints', filters: ['status'], defaultColumns: ['complaint_number', 'status', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'cmp-category', name: 'Complaint Category Trend Report', category: 'Complaints', module: 'complaint_management', description: 'Trending complaint categories.', source: 'complaints', filters: ['dateFrom', 'dateTo'], defaultColumns: ['complaint_number', 'complaint_type_id'], defaultGroupBy: 'complaint_type_id', exportFormats: ['csv', 'xlsx'] },
   { id: 'cmp-escalated', name: 'Escalated Complaints Report', category: 'Complaints', module: 'complaint_management', description: 'Complaints currently escalated.', source: 'complaints', filters: ['dateFrom', 'dateTo'], defaultColumns: ['complaint_number', 'status'], exportFormats: ['csv', 'xlsx'] },
+  { id: 'cmp-sla', name: 'Complaint SLA Compliance Report', category: 'Complaints', module: 'complaint_management', description: 'Complaints measured against their SLA window.', source: 'complaints', filters: ['dateFrom', 'dateTo'], defaultColumns: ['complaint_number', 'status', 'sla_days', 'created_at', 'sla_due_at'], exportFormats: ['csv', 'xlsx', 'json'] },
 
   // Audit & Governance
   { id: 'aud-trail', name: 'Audit Trail Report', category: 'Audit & Governance', module: 'settings', description: 'Full audit trail of system changes.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'entity_type', 'entity_id', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'aud-permissions', name: 'Permission Change Report', category: 'Audit & Governance', module: 'role_management', description: 'Role / permission change history.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'entity_id', 'created_at'], exportFormats: ['csv', 'xlsx'] },
-  { id: 'aud-export', name: 'Data Export Log', category: 'Audit & Governance', module: 'settings', description: 'Log of all report exports.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'created_at'], exportFormats: ['csv', 'xlsx'] },
+  // source/defaultColumns fixed to match the live report_logs-backed DB seed
+  // (this fallback is only used if the DB metadata table is ever empty).
+  { id: 'aud-export', name: 'Data Export Log', category: 'Audit & Governance', module: 'settings', description: 'Log of all report exports.', source: 'report_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['executed_by', 'action', 'export_format', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'aud-failed-login', name: 'Failed Login / Security Event Report', category: 'Audit & Governance', module: 'settings', description: 'Failed logins and security events.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'aud-admin', name: 'Admin Activity Report', category: 'Audit & Governance', module: 'settings', description: 'Activity performed by administrators.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'entity_type', 'created_at'], exportFormats: ['csv', 'xlsx'] },
 ];
+
+// Every predefined report now supports a real PDF export (see exportService.ts's
+// exportToPdf) alongside whatever formats it already listed — applied here
+// once rather than edited into all 37 entries above.
+export const REPORT_DEFINITIONS: ReportDefinition[] = RAW_REPORT_DEFINITIONS.map((d) => ({
+  ...d,
+  exportFormats: d.exportFormats.includes('pdf') ? d.exportFormats : [...d.exportFormats, 'pdf'],
+}));
 
 export const COLUMN_OPTIONS_BY_SOURCE: Record<string, string[]> = {
   applications: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at', 'approved_at', 'rejected_at', 'updated_at', 'regulator_id'],
   licenses: ['license_number', 'license_type', 'status', 'issued_at', 'valid_from', 'valid_until', 'sector_id', 'sub_sector_id', 'created_at', 'updated_at'],
   payments: ['amount', 'status', 'currency', 'payment_method', 'transaction_ref', 'receipt_number', 'paid_at', 'created_at'],
   compliance_returns: ['license_id', 'period_start', 'period_end', 'due_date', 'status', 'submitted_at', 'reviewed_at'],
-  complaints: ['complaint_number', 'subject', 'status', 'complaint_type_id', 'created_at', 'updated_at'],
+  complaints: ['complaint_number', 'subject', 'status', 'complaint_type_id', 'created_at', 'updated_at', 'sla_days', 'sla_due_at'],
   users: ['email', 'full_name', 'created_at'],
   audit_logs: ['user_id', 'action', 'entity_type', 'entity_id', 'created_at'],
+  return_threshold_breaches: ['metric_key', 'value', 'threshold_value', 'comparator', 'level', 'risk_level', 'detected_at', 'acknowledged_at', 'escalated_at', 'notified'],
 };
 
 /** Columns that should never appear in default exports. */

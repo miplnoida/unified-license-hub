@@ -6,7 +6,8 @@ export type ReportSource =
   | 'complaints'
   | 'users'
   | 'audit_logs'
-  | 'report_logs';
+  | 'report_logs'
+  | 'return_threshold_breaches';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'json' | 'pdf';
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly';

@@ -7,6 +7,7 @@ import { REPORT_DEFINITIONS, SENSITIVE_COLUMNS } from '../reportDefinitions';
 
 export const ALLOWED_SOURCES: ReportSource[] = [
   'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs', 'report_logs',
+  'return_threshold_breaches',
 ];
 
 export function isAllowedSource(s: string): s is ReportSource {
@@ -25,9 +26,10 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'op-workload': 'applications', 'op-productivity': 'applications', 'op-process-time': 'applications',
   'op-ratio': 'applications', 'op-pending': 'applications', 'op-login': 'audit_logs',
   'cmp-volume': 'complaints', 'cmp-resolution': 'complaints', 'cmp-pending': 'complaints',
-  'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
+  'cmp-category': 'complaints', 'cmp-escalated': 'complaints', 'cmp-sla': 'complaints',
   'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'report_logs',
   'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
+  'prud-breach': 'return_threshold_breaches', 'ret-sla': 'compliance_returns',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): ReportSource | null {
@@ -241,9 +243,13 @@ function mapReportRow(row: any, rows: any[] = [], summary?: any): ReportRun {
 
 /**
  * Insert a report log entry. Tolerates schemas that have only `report_id`,
- * only `report_run_id`, or both. Best-effort: never throws.
+ * only `report_run_id`, or both. Never throws — the export itself must always
+ * complete regardless of whether the audit-log write succeeds. Returns
+ * whether the log entry was actually written, so callers can surface a
+ * warning when it wasn't (export audit logging is the point of this feature —
+ * a silent failure here should not look identical to success).
  */
-export async function logExport(reportId: string | null, format: ExportFormat, rowCount: number) {
+export async function logExport(reportId: string | null, format: ExportFormat, rowCount: number): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     const base = {
@@ -255,17 +261,21 @@ export async function logExport(reportId: string | null, format: ExportFormat, r
     // Try with both columns first.
     const full = { ...base, report_id: reportId, report_run_id: reportId };
     let res = await (supabase.from('report_logs') as any).insert(full);
-    if (!res.error) return;
+    if (!res.error) return true;
     const msg = String(res.error?.message || '');
     if (/report_run_id/i.test(msg)) {
       res = await (supabase.from('report_logs') as any).insert({ ...base, report_id: reportId });
-      if (!res.error) return;
+      if (!res.error) return true;
     }
     if (/report_id/i.test(String(res.error?.message || ''))) {
-      await (supabase.from('report_logs') as any).insert({ ...base, report_run_id: reportId });
+      res = await (supabase.from('report_logs') as any).insert({ ...base, report_run_id: reportId });
+      if (!res.error) return true;
     }
+    if (typeof console !== 'undefined') console.warn('[reports] logExport failed', res.error);
+    return false;
   } catch (e) {
     if (typeof console !== 'undefined') console.warn('[reports] logExport failed', e);
+    return false;
   }
 }
 

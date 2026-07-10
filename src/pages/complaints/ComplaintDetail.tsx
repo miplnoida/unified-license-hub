@@ -96,7 +96,10 @@ export default function ComplaintDetail() {
         acknowledged_at: new Date().toISOString(),
       }).eq('id', id!);
       if (error) throw error;
-      await logAction('complaint.investigation_started', 'complaint', id!);
+      await logAction('complaint.investigation_started', 'complaint', id!, {
+        before: { status: complaint?.status ?? null },
+        after: { status: 'under_investigation', investigator_id: user?.id ?? null },
+      });
     },
     onSuccess: () => { toast.success('Investigation started'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -107,17 +110,23 @@ export default function ComplaintDetail() {
       if (!severity) throw new Error('Pick a severity');
       const { error } = await supabase.from('complaints').update({ severity }).eq('id', id!);
       if (error) throw error;
-      await logAction('complaint.severity_set', 'complaint', id!, { meta: { severity } });
+      await logAction('complaint.severity_set', 'complaint', id!, {
+        before: { severity: complaint?.severity ?? null },
+        after: { severity },
+      });
     },
     onSuccess: () => { toast.success('Severity updated'); setSeverity(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
 
   // Applies the severity change ONLY after the override is logged.
-  async function applySeverityChange(next: string) {
+  async function applySeverityChange(next: string, from: string) {
     const { error } = await supabase.from('complaints').update({ severity: next }).eq('id', id!);
     if (error) throw error;
-    await logAction('complaint.severity_set', 'complaint', id!, { meta: { severity: next, via: 'override' } });
+    await logAction('complaint.severity_set', 'complaint', id!, {
+      before: { severity: from },
+      after: { severity: next, via: 'override' },
+    });
     toast.success('Severity overridden');
     setSeverity('');
     invalidate();
@@ -144,7 +153,10 @@ export default function ComplaintDetail() {
         resolved_at: new Date().toISOString(),
       }).eq('id', id!);
       if (error) throw error;
-      await logAction('complaint.resolved', 'complaint', id!);
+      await logAction('complaint.resolved', 'complaint', id!, {
+        before: { status: complaint?.status ?? null },
+        after: { status: 'resolved', resolution },
+      });
     },
     onSuccess: () => { toast.success('Complaint resolved'); setResolution(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -154,7 +166,10 @@ export default function ComplaintDetail() {
     mutationFn: async () => {
       const { error } = await supabase.from('complaints').update({ status: 'closed' }).eq('id', id!);
       if (error) throw error;
-      await logAction('complaint.closed', 'complaint', id!);
+      await logAction('complaint.closed', 'complaint', id!, {
+        before: { status: complaint?.status ?? null },
+        after: { status: 'closed' },
+      });
     },
     onSuccess: () => { toast.success('Complaint closed'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -363,8 +378,9 @@ export default function ComplaintDetail() {
             description={`Changing severity from ${severityOverride.from} to ${severityOverride.to} contradicts the current triage classification. Provide a written justification.`}
             onOverridden={async () => {
               const next = severityOverride.to;
+              const from = severityOverride.from;
               setSeverityOverride(null);
-              await applySeverityChange(next);
+              await applySeverityChange(next, from);
             }}
           />
         )}

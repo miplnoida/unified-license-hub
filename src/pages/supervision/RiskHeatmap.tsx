@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, RefreshCw, AlertTriangle, Shield, TrendingUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
@@ -27,8 +28,16 @@ const BAND_TILE: Record<Band, string> = {
 
 export default function RiskHeatmap() {
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [bandFilter, setBandFilter] = useState<Band | 'all'>('all');
+
+  useEffect(() => {
+    const riskParam = searchParams.get('risk');
+    if (riskParam === 'low' || riskParam === 'medium' || riskParam === 'high' || riskParam === 'critical') {
+      setBandFilter(riskParam);
+    }
+  }, [searchParams]);
 
   const { data: scores = [], isLoading } = useQuery({
     queryKey: ['entity_risk_scores', 'current'],

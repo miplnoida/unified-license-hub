@@ -6,6 +6,7 @@
 // directly from the supervisor UI's "Regenerate analysis" button.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logIntegration } from "../_shared/integration-log.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -230,6 +231,7 @@ Deno.serve(async (req) => {
         capital, liquidity, asset_quality, profitability,
         concentration_risks: concentration, early_warnings, recommendations,
       };
+      const aiStarted = Date.now();
       try {
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -252,6 +254,16 @@ Deno.serve(async (req) => {
           ai_summary = j?.choices?.[0]?.message?.content?.trim() ?? null;
         }
       } catch (e) { ai_error = (e as Error).message; }
+      await logIntegration(admin, {
+        direction: "outbound",
+        integrationKey: "ai-gateway.return-analysis",
+        status: ai_error ? "failure" : "success",
+        actorId: actor.id,
+        entityType: "return",
+        entityId: return_id,
+        error: ai_error,
+        durationMs: Date.now() - aiStarted,
+      });
     } else if (computeAi && !lovableKey) {
       ai_error = "missing_lovable_api_key";
     }
