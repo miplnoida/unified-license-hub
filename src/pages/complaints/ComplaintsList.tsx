@@ -27,6 +27,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { getSignedUrl } from '@/lib/secureFileUpload';
+import { Paperclip, ExternalLink } from 'lucide-react';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -104,6 +106,46 @@ export default function ComplaintsList() {
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
+  const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
+
+  useEffect(() => {
+    if (!detailDialog?.id) { setDetailAttachments([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: ev } = await supabase
+        .from('complaint_evidence' as any)
+        .select('label, file_upload_id')
+        .eq('complaint_id', detailDialog.id);
+      const rows = (ev as any[]) || [];
+      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
+      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
+      const { data: files } = await supabase
+        .from('file_uploads' as any)
+        .select('id, file_name, file_path, file_size')
+        .in('id', ids);
+      const fmap = new Map(((files as any[]) || []).map(f => [f.id, f]));
+      const atts = rows.map(r => {
+        const f = fmap.get(r.file_upload_id);
+        return {
+          id: r.file_upload_id,
+          name: r.label || f?.file_name || 'Attachment',
+          size: f?.file_size,
+          filePath: f?.file_path,
+        };
+      });
+      if (!cancelled) setDetailAttachments(atts);
+    })();
+    return () => { cancelled = true; };
+  }, [detailDialog?.id]);
+
+  const openDetailAttachment = async (filePath?: string) => {
+    if (!filePath) return;
+    const { url, error } = await getSignedUrl(filePath, 300);
+    if (error || !url) { toast.error(error || 'Unable to open file'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
   const [detailProfile, setDetailProfile] = useState<any | null>(null);
@@ -741,7 +783,7 @@ export default function ComplaintsList() {
       </div>
 
       {/* Detail Dialog (external users only) */}
-      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) setDetailDialog(null); }}>
+      <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) { setDetailDialog(null); setDetailAttachments([]); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Complaint {detailDialog?.complaint_number}</DialogTitle></DialogHeader>
           {detailDialog && (
@@ -763,6 +805,28 @@ export default function ComplaintsList() {
                   <p className="text-sm text-muted-foreground">Filed</p>
                   <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
                 </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                  <Paperclip className="h-3.5 w-3.5" />Attachments {detailAttachments.length > 0 && <span>({detailAttachments.length})</span>}
+                </p>
+                {detailAttachments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No attachments</p>
+                ) : (
+                  <ul className="divide-y border rounded-md">
+                    {detailAttachments.map(a => (
+                      <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{a.name}</p>
+                          {a.size ? <p className="text-xs text-muted-foreground">{a.size < 1024 ? `${a.size} B` : a.size < 1024 * 1024 ? `${(a.size / 1024).toFixed(1)} KB` : `${(a.size / (1024 * 1024)).toFixed(1)} MB`}</p> : null}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => openDetailAttachment(a.filePath)} disabled={!a.filePath}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />View
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               {detailDialog.resolution && (
                 <div><p className="text-sm text-muted-foreground">Resolution</p><p className="text-sm">{detailDialog.resolution}</p></div>
