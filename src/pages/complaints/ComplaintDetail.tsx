@@ -87,6 +87,34 @@ export default function ComplaintDetail() {
     },
   });
 
+  const { data: attachments = [] } = useQuery({
+    queryKey: ['complaint_attachments', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('complaint_evidence' as any)
+        .select('id, label, created_at, file_upload_id, file_uploads(file_name, file_path, file_size, mime_type)')
+        .eq('complaint_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  async function openAttachment(filePath?: string) {
+    if (!filePath) return;
+    const { url, error } = await getSignedUrl(filePath, 300);
+    if (error || !url) { toast.error(error || 'Unable to open file'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function formatSize(n?: number | null) {
+    if (!n) return '';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ['complaint', id] });
 
   const takeInvestigation = useMutation({
