@@ -810,8 +810,22 @@ export default function ComplaintsList() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">
-                            <div>{c.assigned_team || '—'}</div>
-                            <div className="text-muted-foreground">{inv?.full_name || inv?.email || 'Unassigned'}</div>
+                            {(() => {
+                              const asg = assigneesByComplaint.get(c.id);
+                              const roleLabel = asg?.role || c.assigned_team || '—';
+                              const users = asg?.users || [];
+                              const names = users.map(u => u.full_name || u.email || 'User');
+                              return (
+                                <>
+                                  <div className="capitalize">{roleLabel.replace(/_/g, ' ')}</div>
+                                  <div className="text-muted-foreground">
+                                    {names.length === 0
+                                      ? (inv?.full_name || inv?.email || 'Unassigned')
+                                      : names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '')}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
