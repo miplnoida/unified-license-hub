@@ -91,6 +91,12 @@ export default function ComplaintsList() {
     if (status && status !== 'open' && status in STATUS_LABELS) {
       setStatusFilter(status);
     }
+    const sev = searchParams.get('severity');
+    if (sev && ['critical', 'high', 'medium', 'low'].includes(sev)) setSeverityFilter(sev);
+    const pri = searchParams.get('priority');
+    if (pri && ['p1', 'p2', 'p3', 'p4'].includes(pri)) setPriorityFilter(pri);
+    const sla = searchParams.get('sla');
+    if (sla && ['on_track', 'at_risk', 'breached', 'resolved'].includes(sla)) setSlaFilter(sla);
   }, [searchParams]);
 
   const [severityFilter, setSeverityFilter] = useState('all');
