@@ -240,7 +240,7 @@ export default function ComplaintsList() {
           severity: newSeverity || 'medium',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email').single();
+    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
     if (error) {
       toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
       setCreating(false);
@@ -286,7 +286,7 @@ export default function ComplaintsList() {
         complainant_name: user.fullName ?? user.email ?? null,
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
-        sla_days: 20,
+        sla_days: (inserted as any).sla_days ?? 20,
         description: (inserted as any).description ?? null,
         attachments: uploadedAttachments.map(a => ({
           name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
@@ -748,14 +748,6 @@ export default function ComplaintsList() {
                                 <DropdownMenuItem onClick={() => retryTriage(c)}>
                                   <RefreshCw className="h-4 w-4 mr-2" />Run / retry triage
                                 </DropdownMenuItem>
-                                {(c.status === 'submitted' || c.status === 'open') && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => handleUpdateStatus(c, 'under_investigation')}>
-                                      <UserCheck className="h-4 w-4 mr-2" />Take investigation
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
