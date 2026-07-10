@@ -677,14 +677,17 @@ export default function ComplaintsList() {
                     <TableHead>Type</TableHead>
                     <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>SLA</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
-                  ) : filtered.map(c => (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
+                  ) : filtered.map(c => {
+                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    return (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
                       <TableCell className="text-sm">{refs.types.get(c.complaint_type_id) || '—'}</TableCell>
@@ -694,6 +697,10 @@ export default function ComplaintsList() {
                           {STATUS_LABELS[c.status] || c.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
+                        {c.sla_due_at && <div className="text-[10px] text-muted-foreground mt-1">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
@@ -701,7 +708,8 @@ export default function ComplaintsList() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (
