@@ -12,6 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
+import { useAuth } from '@/contexts/AuthContext';
+import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
+import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { toast } from 'sonner';
 
 const sb = supabase as any;
@@ -28,11 +31,13 @@ const SEVERITY = ['low','medium','high','critical'];
 export default function NewInternalComplaint() {
   const navigate = useNavigate();
   const create = useCreateInternalComplaint();
+  const { user } = useAuth();
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
     licensee_id: '', complaint_type_id: '', conduct_risk_category_id: '',
-    product_id: '', channel_id: '', severity: 'medium', priority: 'normal',
+    product_id: '', channel_id: '', severity: 'medium', priority: 'p3',
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
@@ -42,7 +47,7 @@ export default function NewInternalComplaint() {
     queryFn: async () => {
       const [{ data: l }, { data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
         sb.from('licensees').select('id, name').order('name').limit(500),
-        sb.from('complaint_types').select('id, name').eq('active', true).order('name'),
+        sb.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
         sb.from('conduct_risk_categories').select('id, name').eq('active', true).order('sort_order,name'),
         sb.from('conduct_products').select('id, name').eq('active', true).order('name'),
         sb.from('conduct_channels').select('id, name').eq('active', true).order('name'),
@@ -63,6 +68,14 @@ export default function NewInternalComplaint() {
       product_id: form.product_id || null,
       channel_id: form.channel_id || null,
     });
+    if (attachments.length && user?.id && created?.id) {
+      const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
+      if (r.failed.length) {
+        toast.warning(`Complaint recorded. ${r.failed.length} attachment(s) failed to upload.`);
+      } else if (r.uploaded) {
+        toast.success(`${r.uploaded} attachment(s) uploaded`);
+      }
+    }
     navigate(`/complaints/${created.id}`);
   };
 
@@ -127,7 +140,17 @@ export default function NewInternalComplaint() {
               </div>
               <div>
                 <Label>Customer type</Label>
-                <Input value={form.customer_type} onChange={e => setForm({ ...form, customer_type: e.target.value })} placeholder="Retail / SME / …" />
+                <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="Select customer type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="retail">Retail</SelectItem>
+                    <SelectItem value="sme">SME</SelectItem>
+                    <SelectItem value="corporate">Corporate</SelectItem>
+                    <SelectItem value="vulnerable">Vulnerable</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 flex items-center justify-between border rounded-md px-3 py-2">
                 <Label>Vulnerable customer</Label>
@@ -141,6 +164,8 @@ export default function NewInternalComplaint() {
                 <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Leave blank for anonymous / internal" />
               </div>
             </div>
+
+            <ComplaintAttachmentsField files={attachments} onChange={setAttachments} disabled={create.isPending} />
 
             <div className="flex justify-end">
               <Button onClick={submit} disabled={create.isPending}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>

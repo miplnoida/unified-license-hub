@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,12 +44,15 @@ export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onC
   }, [open, defaults]);
 
   const submit = async () => {
+    if (create.isPending) return;
     // Coerce sentinel 'unassigned' back to null so DB column stays clean.
     const payload = { ...form };
     if (payload.assigned_to === 'unassigned' || payload.assigned_to === '') payload.assigned_to = null;
-    const res: any = await create.mutateAsync(payload);
-    onOpenChange(false);
-    if (res?.id && onCreated) onCreated(res.id);
+    try {
+      const res: any = await create.mutateAsync(payload);
+      onOpenChange(false);
+      if (res?.id && onCreated) onCreated(res.id);
+    } catch { /* toast handled in hook */ }
   };
 
   return (
@@ -99,8 +103,10 @@ export function CreatePrudentialActionDialog({ open, onOpenChange, defaults, onC
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!form.entity_id || !form.title} onClick={submit}>Create</Button>
+          <Button variant="ghost" disabled={create.isPending} onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button disabled={!form.entity_id || !form.title || create.isPending} onClick={submit}>
+            {create.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</>) : 'Create'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

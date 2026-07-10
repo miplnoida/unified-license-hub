@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
@@ -20,7 +20,7 @@ export default function EscalationsList() {
   const [outcome, setOutcome] = useState('');
 
   const submitResolve = async () => {
-    if (!resolveFor) return;
+    if (!resolveFor || update.isPending) return;
     try {
       await update.mutateAsync({ id: resolveFor, patch: { status: 'resolved', decision, outcome } });
       setResolveFor(null); setDecision(''); setOutcome('');
@@ -49,7 +49,7 @@ export default function EscalationsList() {
                 <TableCell><Badge variant="outline">{es.status}</Badge></TableCell>
                 <TableCell className="max-w-xs truncate">{es.decision || '—'}</TableCell>
                 <TableCell className="space-x-2">
-                  {es.status === 'open' && <Button size="sm" variant="outline" onClick={() => update.mutate({ id: es.id, patch: { status: 'under_review' } })}>Review</Button>}
+                  {es.status === 'open' && <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ id: es.id, patch: { status: 'under_review' } })}>Review</Button>}
                   {['open','under_review'].includes(es.status) && (
                     <Button size="sm" onClick={() => { setResolveFor(es.id); setDecision(''); setOutcome(''); }}>Resolve</Button>
                   )}
@@ -73,8 +73,10 @@ export default function EscalationsList() {
               <Textarea rows={3} value={outcome} onChange={(e) => setOutcome(e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setResolveFor(null)}>Back</Button>
-            <Button disabled={!decision.trim() || !outcome.trim()} onClick={submitResolve}>Confirm resolution</Button>
+            <Button variant="ghost" disabled={update.isPending} onClick={() => setResolveFor(null)}>Back</Button>
+            <Button disabled={!decision.trim() || !outcome.trim() || update.isPending} onClick={submitResolve}>
+              {update.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Confirm resolution'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

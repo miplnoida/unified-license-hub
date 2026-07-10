@@ -4,8 +4,11 @@ import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { History, Download, ChevronLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { useMemo, useState } from 'react';
@@ -72,6 +75,17 @@ export default function PrudentialEntityProfile() {
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [hiddenRatios, setHiddenRatios] = useState<Set<string>>(new Set());
+  const [ratioPoint, setRatioPoint] = useState<{ period: string; ratioKey: string; value: number } | null>(null);
+  const [ratioYear, setRatioYear] = useState<string>('');
+  const [ratioQuarter, setRatioQuarter] = useState<string>('all');
+
+  const periodMeta = (p: string): { year: string; quarter: string } => {
+    if (!p) return { year: 'unassigned', quarter: 'unassigned' };
+    const d = new Date(p);
+    if (isNaN(d.getTime())) return { year: 'unassigned', quarter: 'unassigned' };
+    return { year: String(d.getUTCFullYear()), quarter: `Q${Math.floor(d.getUTCMonth() / 3) + 1}` };
+  };
 
   const ratioLabels = useMemo(() => {
     const m: Record<string, { label: string; fmt?: string }> = {};
@@ -92,6 +106,33 @@ export default function PrudentialEntityProfile() {
     });
     return Object.values(byPeriod).sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
   }, [data]);
+
+  const [breachYear, setBreachYear] = useState<string>('');
+  const [breachQuarter, setBreachQuarter] = useState<string>('all');
+
+  const breachPeriodInfo = useMemo(() => {
+    const returnsById: Record<string, any> = Object.fromEntries((data?.returns || []).map((r: any) => [r.id, r]));
+    const withPeriod = (data?.breaches || []).map((b: any) => {
+      const rf = returnsById[b.return_id];
+      const ped = rf?.period_end_date ? new Date(rf.period_end_date) : null;
+      const year = ped ? String(ped.getUTCFullYear()) : 'unassigned';
+      const quarter = ped ? `Q${Math.floor(ped.getUTCMonth() / 3) + 1}` : 'unassigned';
+      return { breach: b, year, quarter };
+    });
+    const years = Array.from(new Set(withPeriod.map((x) => x.year))) as string[];
+    years.sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+    return { withPeriod, years };
+  }, [data?.breaches, data?.returns]);
+
+  const defaultYear = breachPeriodInfo.years[0] || '';
+  const activeYear = breachYear || defaultYear;
+
+  const visibleBreaches = useMemo(() => {
+    return breachPeriodInfo.withPeriod
+      .filter((x) => (activeYear ? x.year === activeYear : true))
+      .filter((x) => (breachQuarter === 'all' ? true : x.quarter === breachQuarter))
+      .map((x) => x.breach);
+  }, [breachPeriodInfo, activeYear, breachQuarter]);
 
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
@@ -216,44 +257,175 @@ export default function PrudentialEntityProfile() {
         </TabsContent>
 
         <TabsContent value="ratios">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ratio trend</CardTitle>
-              <CardDescription>
-                Displays prudential ratios computed from submitted returns over time. Use the trend chart and ratio table to monitor capital, liquidity, asset quality, and other configured indicators for this entity.
-              </CardDescription>
-            </CardHeader>
-            <CardContent style={{ height: 300 }}>
-              {ratioTrend.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={ratioTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    {Object.keys(ratioTrend[0] as any).filter(k => k !== 'period').slice(0, 6).map((k, i) => (
-                      <Line key={k} dataKey={k} name={ratioLabels[k]?.label || k} stroke={['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899'][i]} strokeWidth={2} dot={false} />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : <div className="text-sm text-muted-foreground">No ratios computed.</div>}
-            </CardContent>
-          </Card>
-          <Card className="mt-3"><CardContent className="pt-4">
-            <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {data.ratios.slice(0, 100).map((r: any) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.label || r.ratio_key}</TableCell>
-                    <TableCell className="tabular-nums">{formatRatio(r.value, r.display_format)}</TableCell>
-                    <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
-                  </TableRow>
-                ))}
-                {!data.ratios.length && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No ratios yet.</TableCell></TableRow>}
-              </TableBody></Table>
-          </CardContent></Card>
+          {(() => {
+            const allKeys = ratioTrend.length
+              ? (Object.keys(ratioTrend[0] as any).filter((k) => k !== 'period') as string[])
+              : [];
+            const colorFor = (i: number, total: number) => {
+              const palette = ['#3b82f6','#dc2626','#10b981','#f59e0b','#8b5cf6','#ec4899','#0ea5e9','#16a34a','#f97316','#a855f7','#14b8a6','#e11d48','#64748b'];
+              if (i < palette.length) return palette[i];
+              return `hsl(${Math.round((360 * i) / Math.max(total, 1))}, 65%, 45%)`;
+            };
+            const toggleKey = (k: string) => setHiddenRatios((prev) => {
+              const next = new Set(prev);
+              next.has(k) ? next.delete(k) : next.add(k);
+              return next;
+            });
+            const visibleKeys = allKeys.filter((k) => !hiddenRatios.has(k));
+            const handleDotClick = (k: string) => (payload: any) => {
+              if (!payload || payload.value == null) return;
+              setRatioPoint({ period: payload.payload?.period, ratioKey: k, value: Number(payload.value) });
+            };
+
+            const yearsSet = new Set<string>();
+            ratioTrend.forEach((row: any) => yearsSet.add(periodMeta(row.period).year));
+            const years = Array.from(yearsSet).sort((a, b) => (a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : b.localeCompare(a)));
+            const defaultRatioYear = years[0] || '';
+            const activeRatioYear = ratioYear || defaultRatioYear;
+
+            const filteredTrend = ratioTrend.filter((row: any) => {
+              const { year, quarter } = periodMeta(row.period);
+              if (activeRatioYear && year !== activeRatioYear) return false;
+              if (ratioQuarter !== 'all' && quarter !== ratioQuarter) return false;
+              return true;
+            });
+
+            const returnsByIdLocal: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
+            const filteredRatioRows = (data.ratios || []).filter((r: any) => {
+              const rf = returnsByIdLocal[r.return_id];
+              const period = rf?.period_end_date || (r.computed_at ? String(r.computed_at).slice(0, 10) : '');
+              const { year, quarter } = periodMeta(period);
+              if (activeRatioYear && year !== activeRatioYear) return false;
+              if (ratioQuarter !== 'all' && quarter !== ratioQuarter) return false;
+              return true;
+            });
+
+            return (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ratio trend</CardTitle>
+                    <CardDescription>
+                      Displays prudential ratios computed from submitted returns over time. Filter by year/quarter, then click a chart point or a table row to view thresholds, breach status, and the source return.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap items-end gap-3 mb-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Year</Label>
+                        <Select value={activeRatioYear || 'none'} onValueChange={(v) => setRatioYear(v === 'none' ? '' : v)}>
+                          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                          <SelectContent>
+                            {years.length === 0 && <SelectItem value="none">—</SelectItem>}
+                            {years.map((y) => (
+                              <SelectItem key={y} value={y}>{y === 'unassigned' ? 'Unassigned' : y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Quarter</Label>
+                        <Select value={ratioQuarter} onValueChange={setRatioQuarter}>
+                          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All quarters</SelectItem>
+                            <SelectItem value="Q1">Q1</SelectItem>
+                            <SelectItem value="Q2">Q2</SelectItem>
+                            <SelectItem value="Q3">Q3</SelectItem>
+                            <SelectItem value="Q4">Q4</SelectItem>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="text-xs text-muted-foreground ml-auto">
+                        Showing {filteredTrend.length} of {ratioTrend.length} periods
+                        {activeRatioYear ? ` · ${activeRatioYear === 'unassigned' ? 'Unassigned' : activeRatioYear}` : ''}
+                        {ratioQuarter !== 'all' ? ` · ${ratioQuarter === 'unassigned' ? 'Unassigned' : ratioQuarter}` : ''}
+                      </div>
+                    </div>
+                    {allKeys.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHiddenRatios(new Set())}>All</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHiddenRatios(new Set(allKeys))}>None</Button>
+                        {allKeys.map((k, i) => {
+                          const active = !hiddenRatios.has(k);
+                          const color = colorFor(i, allKeys.length);
+                          return (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => toggleKey(k)}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs transition ${active ? 'bg-background' : 'bg-muted text-muted-foreground opacity-60'}`}
+                              style={active ? { borderColor: color } : undefined}
+                            >
+                              <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+                              {ratioLabels[k]?.label || k}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div style={{ height: 340 }}>
+                      {filteredTrend.length && visibleKeys.length ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={filteredTrend}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                            <YAxis tick={{ fontSize: 11 }} />
+                            <Tooltip />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            {visibleKeys.map((k) => {
+                              const i = allKeys.indexOf(k);
+                              const color = colorFor(i, allKeys.length);
+                              return (
+                                <Line
+                                  key={k}
+                                  dataKey={k}
+                                  name={ratioLabels[k]?.label || k}
+                                  stroke={color}
+                                  strokeWidth={2}
+                                  dot={{ r: 3, cursor: 'pointer' }}
+                                  activeDot={{ r: 6, cursor: 'pointer', onClick: (_: any, p: any) => handleDotClick(k)(p) }}
+                                />
+                              );
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="text-sm text-muted-foreground py-8 text-center">
+                          {!ratioTrend.length ? 'No ratios computed.' : !visibleKeys.length ? 'No ratios selected.' : 'No ratios for selected period.'}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="mt-3"><CardContent className="pt-4">
+                  <Table><TableHeader><TableRow><TableHead>Ratio</TableHead><TableHead>Period</TableHead><TableHead>Value</TableHead><TableHead>Computed</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {filteredRatioRows.slice(0, 200).map((r: any) => {
+                        const rf = (data.returns || []).find((x: any) => x.id === r.return_id);
+                        const period = rf?.period_end_date || (r.computed_at ? String(r.computed_at).slice(0, 10) : '—');
+                        return (
+                          <TableRow
+                            key={r.id}
+                            className="cursor-pointer hover:bg-muted/40"
+                            onClick={() => setRatioPoint({ period, ratioKey: r.ratio_key, value: Number(r.value) })}
+                          >
+                            <TableCell>{r.label || r.ratio_key}</TableCell>
+                            <TableCell>{period}</TableCell>
+                            <TableCell className="tabular-nums">{formatRatio(r.value, r.display_format)}</TableCell>
+                            <TableCell>{r.computed_at ? new Date(r.computed_at).toLocaleDateString() : '—'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!filteredRatioRows.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">{data.ratios?.length ? 'No ratios for selected period.' : 'No ratios yet.'}</TableCell></TableRow>}
+                    </TableBody></Table>
+                </CardContent></Card>
+              </>
+            );
+          })()}
         </TabsContent>
+
 
         <TabsContent value="breaches">
           <Card>
@@ -263,10 +435,43 @@ export default function PrudentialEntityProfile() {
                 Lists threshold breaches detected from prudential returns. Each row shows the metric, severity, observed value, configured threshold, and detection date. Use the Create action / Escalate buttons to initiate supervisory follow-up.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Year</Label>
+                  <Select value={activeYear || 'none'} onValueChange={(v) => setBreachYear(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="w-[140px]"><SelectValue placeholder="Year" /></SelectTrigger>
+                    <SelectContent>
+                      {breachPeriodInfo.years.length === 0 && <SelectItem value="none">—</SelectItem>}
+                      {breachPeriodInfo.years.map((y) => (
+                        <SelectItem key={y} value={y}>{y === 'unassigned' ? 'Unassigned' : y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Quarter</Label>
+                  <Select value={breachQuarter} onValueChange={setBreachQuarter}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All quarters</SelectItem>
+                      <SelectItem value="Q1">Q1</SelectItem>
+                      <SelectItem value="Q2">Q2</SelectItem>
+                      <SelectItem value="Q3">Q3</SelectItem>
+                      <SelectItem value="Q4">Q4</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-xs text-muted-foreground ml-auto">
+                  Showing {visibleBreaches.length} of {data.breaches.length} breaches
+                  {activeYear ? ` · ${activeYear === 'unassigned' ? 'Unassigned' : activeYear}` : ''}
+                  {breachQuarter !== 'all' ? ` · ${breachQuarter === 'unassigned' ? 'Unassigned' : breachQuarter}` : ''}
+                </div>
+              </div>
             <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead>Severity</TableHead><TableHead>Value</TableHead><TableHead>Threshold</TableHead><TableHead>Detected</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {data.breaches.map((b: any) => {
+                {visibleBreaches.map((b: any) => {
                   const sev = b.risk_level || b.severity || b.level;
                   const val = b.value ?? b.observed_value;
                   const metric = b.metric_key || b.ratio_key || '—';
@@ -294,7 +499,7 @@ export default function PrudentialEntityProfile() {
                     </TableRow>
                   );
                 })}
-                {!data.breaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No breaches.</TableCell></TableRow>}
+                {!visibleBreaches.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{data.breaches.length ? 'No breaches for the selected period.' : 'No breaches.'}</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
         </TabsContent>
@@ -407,6 +612,94 @@ export default function PrudentialEntityProfile() {
       <CreatePrudentialActionDialog open={!!createAction} onOpenChange={(o) => !o && setCreateAction(null)} defaults={createAction} />
       <CreatePrudentialEscalationDialog open={!!createEscalation} onOpenChange={(o) => !o && setCreateEscalation(null)} defaults={createEscalation} />
       <PrudentialEntityHistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} entityId={e.id} entityName={e.name} />
+      <Sheet open={!!ratioPoint} onOpenChange={(o) => !o && setRatioPoint(null)}>
+        <SheetContent className="w-[420px] sm:max-w-md overflow-y-auto">
+          {ratioPoint && (() => {
+            const meta = ratioLabels[ratioPoint.ratioKey];
+            const fmt = meta?.fmt;
+            const rf = (data.returns || []).find((r: any) => (r.period_end_date || '') === ratioPoint.period);
+            const relatedBreaches = (data.breaches || []).filter((b: any) => {
+              if ((b.metric_key || b.ratio_key) !== ratioPoint.ratioKey) return false;
+              if (!rf) return false;
+              return b.return_id === rf.id;
+            });
+            const stressEvents = (data.stress_events || []).filter((s: any) => {
+              const mk = s.metric_key || s.prudential_stress_indicators?.metric_key;
+              return mk === ratioPoint.ratioKey && (!rf || s.return_id === rf.id);
+            });
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle>{meta?.label || ratioPoint.ratioKey}</SheetTitle>
+                  <SheetDescription>Ratio detail for {ratioPoint.period}</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 space-y-4 text-sm">
+                  <div className="rounded-md border p-3 space-y-1">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Metric key</span><span className="font-mono text-xs">{ratioPoint.ratioKey}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Period</span><span>{ratioPoint.period}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="tabular-nums font-medium">{formatRatio(ratioPoint.value, fmt)}</span></div>
+                    {fmt && <div className="flex justify-between"><span className="text-muted-foreground">Format</span><span>{fmt}</span></div>}
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-1">Thresholds & breach status</div>
+                    {relatedBreaches.length ? (
+                      <div className="space-y-2">
+                        {relatedBreaches.map((b: any) => (
+                          <div key={b.id} className="rounded-md border p-2 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Badge className={RISK_TONE[b.risk_level || b.level] || ''} variant="outline">
+                                {b.risk_level || b.level || 'breach'}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}
+                              </span>
+                            </div>
+                            <div className="text-xs">
+                              Rule: <span className="tabular-nums">{formatRatio(b.value, fmt)}</span> {b.comparator} <span className="tabular-nums">{formatRatio(b.threshold_value, fmt)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">No breaches recorded for this ratio in this period.</div>
+                    )}
+                  </div>
+
+                  {stressEvents.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Stress events</div>
+                      <div className="space-y-1">
+                        {stressEvents.map((s: any) => (
+                          <div key={s.id} className="rounded-md border p-2 text-xs flex items-center justify-between">
+                            <span>{s.prudential_stress_indicators?.label || s.metric_key}</span>
+                            <Badge variant="outline" className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>
+                              {s.prudential_stress_indicators?.severity || 'triggered'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {rf && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground mb-1">Source return</div>
+                      <div className="rounded-md border p-2 text-xs space-y-1">
+                        <div className="flex justify-between"><span>ID</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
+                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{rf.workflow_status}</Badge></div>
+                        <Button asChild size="sm" variant="outline" className="w-full mt-2">
+                          <Link to={`/admin/returns/queue/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
       </div>
     </DashboardLayout>
   );

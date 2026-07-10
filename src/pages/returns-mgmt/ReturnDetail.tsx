@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
-import { HistoryButton } from '@/components/audit/HistoryButton';
+import { ReturnHistoryDrawer } from '@/components/audit/ReturnHistoryDrawer';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
 import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
@@ -234,9 +234,10 @@ export default function ReturnDetail() {
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
   const { data: auditLog = [] } = useReturnAuditLog(id);
-  const { data: revisions = [] } = useReturnRevisions(id);
+  const { data: revisions = [], isLoading: revisionsLoading, error: revisionsError } = useReturnRevisions(id);
   const editBaselineRev = pickEditBaseline(revisions);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
 
 
@@ -288,6 +289,20 @@ export default function ReturnDetail() {
     valuesByForm[d.form_id][key] = val;
     if (d.form_version_id) versionByForm[d.form_id] = d.form_version_id;
   });
+  const hasCurrentReturnValues = Object.values(valuesByForm).some((fields) => Object.keys(fields || {}).length > 0);
+  const canCompareVersions = revisions.length >= 2 || (revisions.length >= 1 && hasCurrentReturnValues);
+  const compareVersionsTitle = revisionsError
+    ? 'Unable to load saved return versions. Please refresh and try again.'
+    : revisionsLoading
+      ? 'Loading saved return versions'
+      : canCompareVersions
+        ? 'Compare submission revisions'
+        : 'At least one saved revision and current return data are required to compare';
+
+  useEffect(() => {
+    if (!revisionsError) return;
+    toast.error(`Could not load return versions: ${(revisionsError as any)?.message || 'Access denied or network error'}`);
+  }, [revisionsError]);
 
   const orderedForms = [...effectiveConfigForms].sort(
     (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0),
@@ -582,15 +597,17 @@ export default function ReturnDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
           <div className="flex items-center gap-2">
-            <HistoryButton entityType="return_filed" entityId={returnData.id} title={`Return history — ${returnData.unique_id}`} />
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="h-4 w-4 mr-1" /> History
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCompareOpen(true)}
-              disabled={revisions.length < 2}
-              title={revisions.length < 2 ? 'At least two revisions are required to compare' : 'Compare submission revisions'}
+              disabled={revisionsLoading || !canCompareVersions}
+              title={compareVersionsTitle}
             >
-              <GitCompareArrows className="h-4 w-4 mr-1" /> Compare Versions
+              {revisionsLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <GitCompareArrows className="h-4 w-4 mr-1" />} Compare Versions
               {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
@@ -878,6 +895,12 @@ export default function ReturnDetail() {
         revisions={revisions}
         currentValues={valuesByForm}
         returnLabel={returnData.unique_id}
+      />
+      <ReturnHistoryDrawer
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        returnId={returnData.id}
+        title={`Return history — ${returnData.unique_id}`}
       />
     </DashboardLayout>
   );

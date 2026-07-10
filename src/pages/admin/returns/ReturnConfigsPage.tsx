@@ -67,8 +67,14 @@ export default function ReturnConfigsPage() {
         />
 
         {/* Main Config Dialog */}
-        <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
-          <DialogContent className="max-w-lg">
+        <Dialog open={open} onOpenChange={v => {
+          setOpen(v);
+          if (!v) {
+            reset();
+            requestAnimationFrame(() => { document.body.style.pointerEvents = ''; });
+          }
+        }}>
+          <DialogContent className="max-w-lg" onCloseAutoFocus={e => e.preventDefault()}>
             <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Return Configuration</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2"><Label>Configuration Name *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Insurance Annual Return 2026" /></div>
@@ -134,8 +140,8 @@ export default function ReturnConfigsPage() {
                       <TableCell><Badge variant={c.status === 'active' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
                       <TableCell className="text-right">
                         <RowActionsMenu actions={[
-                          { label: 'Assign forms', icon: Settings2, onClick: () => { setSelectedConfigId(c.id); setFormAssignOpen(true); } },
-                          { label: 'Edit', icon: Pencil, onClick: () => openEdit(c) },
+                          { label: 'Assign forms', icon: Settings2, onClick: () => setTimeout(() => { setSelectedConfigId(c.id); setFormAssignOpen(true); }, 0) },
+                          { label: 'Edit', icon: Pencil, onClick: () => setTimeout(() => openEdit(c), 0) },
                           { label: 'Delete', icon: Trash2, onClick: () => remove.mutate(c.id), destructive: true, separator: true },
                         ]} />
                       </TableCell>
@@ -189,8 +195,14 @@ function FormAssignmentDialog({ configId, open, onOpenChange }: { configId: stri
   const tabs = [...new Set(localForms.map(f => f.tab_name))];
 
   return (
-    <Dialog open={open} onOpenChange={v => { onOpenChange(v); if (!v) setInitialized(false); }}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={v => {
+      onOpenChange(v);
+      if (!v) {
+        setInitialized(false);
+        requestAnimationFrame(() => { document.body.style.pointerEvents = ''; });
+      }
+    }}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" onCloseAutoFocus={e => e.preventDefault()}>
         <DialogHeader><DialogTitle>Assign Forms to Return Configuration</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-6">
           {/* Left: Available Forms */}

@@ -11973,6 +11973,7 @@ export type Database = {
       roles: {
         Row: {
           created_at: string
+          dashboard_tier: string
           description: string | null
           id: string
           is_system: boolean
@@ -11983,6 +11984,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
@@ -11993,6 +11995,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
@@ -13813,6 +13816,8 @@ export type Database = {
           regulator_id: string | null
           regulator_name: string | null
           resolution_days: number | null
+          sla_days: number | null
+          sla_due_at: string | null
           status: string | null
           subject: string | null
           updated_at: string | null
@@ -14179,6 +14184,10 @@ export type Database = {
       }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_return_filed: {
+        Args: { _return_id: string; _user_id: string }
         Returns: boolean
       }
       cancel_application: {
@@ -14614,6 +14623,27 @@ export type Database = {
         Args: { _registration_id: string }
         Returns: string
       }
+      get_return_revisions: {
+        Args: { _return_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          form_version_ids: Json
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          return_id: string
+          revision_number: number
+          snapshot: Json
+          snapshot_reason: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "return_data_revisions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -14651,6 +14681,7 @@ export type Database = {
         Returns: boolean
       }
       is_fp_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
       is_legal_compliance_user: { Args: { _user_id: string }; Returns: boolean }
       is_primary_user_of: {

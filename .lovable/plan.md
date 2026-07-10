@@ -1,27 +1,30 @@
-## Problem
+## Fixes to complaint intake forms
 
-On the admin Return Detail view, the "Accounting Totals" summary card (screenshot 2) never renders even though it was wired in. On the licensee "Review & Submit" view the same card shows correctly.
+### 1. Complaint type dropdown blank (Internal complaint form)
+Root cause: `NewInternalComplaint.tsx` filters `complaint_types` by column `active`, but the actual column is `is_active`. `ComplaintsList.tsx` correctly uses `is_active` — that's why applicant view works and internal view doesn't.
 
-Root cause: `AccountingReconciliationPanel` expects each form as `{ formId, templateName }`, and returns `null` when neither a Balance Sheet nor a P&L form is detected. The licensee page (`FillReturnPage.tsx`) maps its list into that shape, but the admin page (`ReturnDetail.tsx`) passes the raw `orderedForms` objects (`form_id`, `form_templates.name`), so `detectFormRoles` sees empty names, finds no BS/P&L, and the panel bails out.
+Fix: change the query in `src/pages/complaints/NewInternalComplaint.tsx` to `.eq('is_active', true)` so it matches the applicant form's data source.
 
-## Fix (admin-only, presentation change)
+### 2. Allow attachments on both complaint forms
+Reuse the existing secure upload stack (`file_uploads` table + `secure-documents` bucket) and link uploads to the complaint via the existing `complaint_evidence` table (columns: `complaint_id`, `file_upload_id`, `label`, `uploaded_by`).
 
-In `src/pages/returns-mgmt/ReturnDetail.tsx`, at the `<AccountingReconciliationPanel ... />` usage (~line 798), map `orderedForms` to the shape the panel expects — same mapping the licensee page already uses:
+Approach:
+- Stage files in-memory in the form (same pattern as `DocumentUpload.tsx`) — no upload until the complaint is submitted (we need the `complaint_id` first).
+- After the complaint row is inserted, upload each staged file via `uploadFormFile()` from `src/lib/formFileUpload.ts` (uses `secure-documents` + `file_uploads`), then insert a `complaint_evidence` row per file.
+- Apply to both:
+  - `src/pages/complaints/NewInternalComplaint.tsx` — add an "Attachments" section above the submit button.
+  - `src/pages/complaints/ComplaintsList.tsx` — add attachments field inside the applicant "File Complaint" dialog and wire it into `handleCreate`.
+- Validation: reuse `validateFile` / size + type rules already defined in `secureFileUpload.ts`. Max 20MB per file, cap at say 5 files per submission.
+- On upload failure after complaint insert: keep the complaint, toast which attachments failed (non-blocking) — same tolerance pattern used by auto-triage today.
 
-```tsx
-<AccountingReconciliationPanel
-  allData={valuesByForm}
-  forms={orderedForms.map((cf: any) => ({
-    formId: cf.form_id,
-    templateName: cf.form_templates?.name,
-  }))}
-  summaryOnly
-/>
-```
+### 3. Severity field on applicant complaint form
+`complaints.severity` already exists and is used by the internal form. Add a Severity `Select` (low / medium / high / critical, default `medium`) to the applicant "File Complaint" dialog in `ComplaintsList.tsx` and include it in the `insertData` for the non-internal branch of `handleCreate`.
 
-No changes to reconciliation logic, licensee flow, validation gating, or any other admin functionality. `summaryOnly` stays on so the admin sidebar shows only the 18-row totals table without the pass/fail badges or check pills.
+### Scope guardrails
+- No changes to RLS, edge functions, ComplaintDetail, ConductClassificationCard, triage, workflow, prudential, or unrelated modules.
+- No schema migrations — `complaint_evidence` and `file_uploads` already exist and are wired for secure storage.
 
-## Verification
-
-- Open an admin Return Detail for a return that has Balance Sheet and P&L forms filled (e.g., FinCorp Commercial Bank quarterly return). The "Accounting Totals" card should appear in the right sidebar below the ratios panel, listing Total Assets, Total Liabilities, Total Equity, Total Income, Total Expenses, Pre-tax Profits, and the other summary rows.
-- Confirm the licensee "Review & Submit" panel still renders the full reconciliation view (with pass/fail badges) unchanged.
+### Files touched
+- `src/pages/complaints/NewInternalComplaint.tsx` — fix `is_active` filter; add attachments section; upload + link evidence after insert.
+- `src/pages/complaints/ComplaintsList.tsx` — add Severity select and attachments to applicant dialog; upload + link evidence after insert in `handleCreate`.
+- (Optional) small shared helper `src/lib/complaintAttachments.ts` if both screens end up with the same upload-and-link loop, to keep the two call sites tidy.
