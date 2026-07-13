@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
         .update({
           status: "failed", error: message,
           completed_at: new Date().toISOString(),
-          metadata: summary,
+          metadata: { trigger, ...summary },
         })
         .eq("id", logId);
     }
