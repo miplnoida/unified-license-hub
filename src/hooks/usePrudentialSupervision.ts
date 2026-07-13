@@ -697,3 +697,28 @@ export async function logPrudentialFeed(row: Partial<FeedLog>) {
   const user = (await sb.auth.getUser()).data.user;
   await sb.from('prudential_data_feed_logs').insert({ ...row, triggered_by: user?.id });
 }
+
+// ---------- Sweep schedule info ----------
+export function useSweepSchedule() {
+  return useQuery({
+    queryKey: ['prudential_sweep_schedule'],
+    queryFn: async () => {
+      const sources = ['prudential-monitoring-sweep', 'overdue-action-sweep'];
+      const { data, error } = await sb
+        .from('prudential_data_feed_logs')
+        .select('source, completed_at, started_at, status')
+        .in('source', sources)
+        .in('status', ['success', 'failed'])
+        .order('started_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      const pickLatest = (src: string) => (data ?? []).find((r: any) => r.source === src) ?? null;
+      return {
+        last_monitoring_sweep: pickLatest('prudential-monitoring-sweep'),
+        last_overdue_check: pickLatest('overdue-action-sweep'),
+      };
+    },
+    refetchInterval: 60_000,
+  });
+}
+
