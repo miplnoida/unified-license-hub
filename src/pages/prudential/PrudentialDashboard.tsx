@@ -1,14 +1,25 @@
-import { usePrudentialDashboardMetrics, useMarkOverdue, useStressEvents, useActions, useEscalations, useFeedLogs, useAssessments, usePrudentialEntities, useSectorRiskDistribution } from '@/hooks/usePrudentialSupervision';
+import { usePrudentialDashboardMetrics, useMarkOverdue, useStressEvents, useActions, useEscalations, useFeedLogs, useAssessments, usePrudentialEntities, useSectorRiskDistribution, useSweepSchedule } from '@/hooks/usePrudentialSupervision';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Play } from 'lucide-react';
+import { RefreshCw, Play, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 function Stat({ label, value, to, tone }: { label: string; value: number | string; to?: string; tone?: 'default'|'warning'|'danger'|'success' }) {
   const color = tone === 'danger' ? 'text-destructive' : tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : '';
