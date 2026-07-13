@@ -31,6 +31,7 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { evaluateAccountingReconciliation, formatReconciliationValue } from '@/lib/returnsAccountingReconciliation';
+import { ReturnUploadPanel } from '@/components/returns/ReturnUploadPanel';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
