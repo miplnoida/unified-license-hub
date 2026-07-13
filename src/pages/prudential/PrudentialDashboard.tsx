@@ -232,25 +232,136 @@ export default function PrudentialDashboard() {
 
 function RunSweepButton() {
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const run = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke('prudential-monitoring-sweep', { body: {} });
+      const { data, error } = await supabase.functions.invoke('prudential-monitoring-sweep', { body: { trigger: 'manual' } });
       if (error) throw error;
-      const evaluated = (data as any)?.returns_evaluated ?? 0;
-      const failed = (data as any)?.failed ?? 0;
-      toast.success(`Sweep complete: ${evaluated} return(s) re-evaluated${failed ? `, ${failed} failed` : ''}`);
-      qc.invalidateQueries({ queryKey: ['prudential_feed_logs'] });
+      const payload = data as any;
+      if (payload?.skipped) {
+        toast.info('A monitoring sweep is already running. Please wait for it to finish.');
+      } else {
+        const evaluated = payload?.returns_evaluated ?? 0;
+        const failed = payload?.failed ?? 0;
+        toast.success('Monitoring Sweep completed successfully.', {
+          description: `Returns evaluated: ${evaluated}\nFailed: ${failed}`,
+        });
+      }
+      qc.invalidateQueries({ queryKey: ['prudential_data_feed_logs'] });
       qc.invalidateQueries({ queryKey: ['prudential_dashboard_metrics'] });
       qc.invalidateQueries({ queryKey: ['prudential_entities'] });
+      qc.invalidateQueries({ queryKey: ['prudential_sweep_schedule'] });
     } catch (e: any) {
       toast.error(e.message || 'Sweep failed');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
   };
   return (
-    <Button variant="default" size="sm" disabled={busy} onClick={run}>
-      <Play className="h-4 w-4 mr-2" />{busy ? 'Sweeping…' : 'Run monitoring sweep'}
-    </Button>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <Button variant="default" size="sm" disabled={busy} onClick={() => setOpen(true)}>
+        <Play className="h-4 w-4 mr-2" />{busy ? 'Sweeping…' : 'Run monitoring sweep'}
+      </Button>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Run Monitoring Sweep?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <div>This will:</div>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Re-evaluate the latest prudential returns</li>
+                <li>Recalculate ratios</li>
+                <li>Check threshold breaches</li>
+                <li>Evaluate stress indicators</li>
+                <li>Refresh risk scores</li>
+                <li>Update the dashboard</li>
+              </ul>
+              <div className="text-xs text-muted-foreground pt-2 border-t">
+                <strong>Automatic Schedule:</strong> Daily at 12:00 AM
+              </div>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} onClick={(e) => { e.preventDefault(); run(); }}>
+            {busy ? 'Running…' : 'Run Monitoring Sweep'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
+
+function OverdueSweepButton() {
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
+  const run = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('overdue-action-sweep', { body: { trigger: 'manual' } });
+      if (error) throw error;
+      const payload = data as any;
+      if (payload?.skipped) {
+        toast.info('An overdue check is already running. Please wait for it to finish.');
+      } else {
+        const marked = payload?.marked_overdue ?? 0;
+        if (marked === 0) {
+          toast.success('Overdue Action Check completed.', {
+            description: 'No overdue actions were found.',
+          });
+        } else {
+          toast.success('Overdue Action Check completed.', {
+            description: `${marked} action${marked === 1 ? '' : 's'} marked as overdue.`,
+          });
+        }
+      }
+      qc.invalidateQueries({ queryKey: ['prudential_actions'] });
+      qc.invalidateQueries({ queryKey: ['prudential_data_feed_logs'] });
+      qc.invalidateQueries({ queryKey: ['prudential_dashboard_metrics'] });
+      qc.invalidateQueries({ queryKey: ['prudential_sweep_schedule'] });
+    } catch (e: any) {
+      toast.error(e.message || 'Overdue check failed');
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <Button variant="outline" size="sm" disabled={busy} onClick={() => setOpen(true)}>
+        <RefreshCw className="h-4 w-4 mr-2" />{busy ? 'Checking…' : 'Sweep overdue actions'}
+      </Button>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Check Overdue Actions?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <div>This will:</div>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Find Open and In Progress actions whose due date has passed</li>
+                <li>Mark them as Overdue</li>
+                <li>Record the change in Audit Log</li>
+                <li>Send overdue notifications (if configured)</li>
+              </ul>
+              <div className="text-xs text-muted-foreground pt-2 border-t">
+                <strong>Automatic Schedule:</strong> Daily at 12:00 AM
+              </div>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} onClick={(e) => { e.preventDefault(); run(); }}>
+            {busy ? 'Checking…' : 'Check Now'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
