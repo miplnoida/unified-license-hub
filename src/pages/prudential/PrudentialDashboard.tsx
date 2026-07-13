@@ -34,9 +34,24 @@ function Stat({ label, value, to, tone }: { label: string; value: number | strin
 
 const PIE_COLORS = ['#dc2626','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#0ea5e9','#84cc16'];
 
+function formatSweepTime(iso?: string | null) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return iso; }
+}
+
+function nextMidnight() {
+  const d = new Date();
+  d.setHours(24, 0, 0, 0);
+  return d.toISOString();
+}
+
 export default function PrudentialDashboard() {
   const { data: m } = usePrudentialDashboardMetrics();
-  const markOverdue = useMarkOverdue();
   const { data: events = [] } = useStressEvents();
   const { data: overdueActions = [] } = useActions({ status: 'overdue' });
   const { data: escalations = [] } = useEscalations({ status: 'open' });
@@ -44,6 +59,7 @@ export default function PrudentialDashboard() {
   const { data: assessments = [] } = useAssessments();
   const { data: entities = [] } = usePrudentialEntities();
   const { data: sectorRisk = [] } = useSectorRiskDistribution();
+  const { data: schedule } = useSweepSchedule();
 
   // Derived widgets
   const highRisk = entities.filter((e: any) => ['critical','high'].includes(e.worst_breach)).length;
@@ -65,11 +81,36 @@ export default function PrudentialDashboard() {
         </div>
         <div className="flex gap-2">
           <RunSweepButton />
-          <Button variant="outline" size="sm" onClick={() => markOverdue.mutate()}>
-            <RefreshCw className="h-4 w-4 mr-2" />Sweep overdue actions
-          </Button>
+          <OverdueSweepButton />
         </div>
       </div>
+
+      <Card>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 text-sm">
+          <div className="flex items-start gap-2">
+            <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-xs text-muted-foreground">Last Monitoring Sweep</div>
+              <div className="font-medium">{formatSweepTime(schedule?.last_monitoring_sweep?.completed_at || schedule?.last_monitoring_sweep?.started_at)}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-xs text-muted-foreground">Last Overdue Check</div>
+              <div className="font-medium">{formatSweepTime(schedule?.last_overdue_check?.completed_at || schedule?.last_overdue_check?.started_at)}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+            <div>
+              <div className="text-xs text-muted-foreground">Next Automatic Run</div>
+              <div className="font-medium">{formatSweepTime(nextMidnight())}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Supervised entities" value={entities.length || m?.total_entities || 0} to="/prudential/entities" />
