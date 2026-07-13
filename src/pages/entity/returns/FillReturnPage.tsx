@@ -31,6 +31,7 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { AccountingReconciliationPanel } from '@/components/returns/AccountingReconciliationPanel';
 import { evaluateAccountingReconciliation, formatReconciliationValue } from '@/lib/returnsAccountingReconciliation';
+import { ReturnUploadPanel } from '@/components/returns/ReturnUploadPanel';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
@@ -706,6 +707,24 @@ export default function FillReturnPage() {
               {comments.map((c: any) => <p key={c.id} className="text-sm mt-1">• {c.comment_text}</p>)}
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Bulk upload template + import */}
+        {isEditable && orderedForms.length > 0 && (
+          <ReturnUploadPanel
+            returnId={id!}
+            returnUniqueId={returnData.unique_id}
+            licenseeId={(returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null}
+            orderedForms={orderedForms as any}
+            allData={allData}
+            disabled={!isEditable || saving || submitting}
+            onImported={() => {
+              initializedRef.current = false;
+              setAllData({});
+              setVersionByForm({});
+              qc.invalidateQueries({ queryKey: ['return_form_data', id] });
+            }}
+          />
         )}
 
         {/* Multi-form progress strip */}

@@ -11421,6 +11421,50 @@ export type Database = {
           },
         ]
       }
+      return_template_downloads: {
+        Row: {
+          downloaded_at: string
+          downloaded_by: string | null
+          fingerprint: string | null
+          form_version_ids: string[]
+          format: string
+          id: string
+          licensee_id: string | null
+          metadata: Json
+          return_id: string
+        }
+        Insert: {
+          downloaded_at?: string
+          downloaded_by?: string | null
+          fingerprint?: string | null
+          form_version_ids?: string[]
+          format: string
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          return_id: string
+        }
+        Update: {
+          downloaded_at?: string
+          downloaded_by?: string | null
+          fingerprint?: string | null
+          form_version_ids?: string[]
+          format?: string
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          return_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_template_downloads_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_templates: {
         Row: {
           created_at: string
@@ -11565,6 +11609,115 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      return_upload_attempts: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          errors: Json
+          fingerprint: string | null
+          form_version_ids: string[]
+          id: string
+          licensee_id: string | null
+          mime_type: string | null
+          original_filename: string
+          parsed_payload: Json | null
+          return_id: string
+          size_bytes: number
+          status: string
+          storage_path: string | null
+          summary: Json
+          updated_at: string
+          uploaded_by: string | null
+          warnings: Json
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          errors?: Json
+          fingerprint?: string | null
+          form_version_ids?: string[]
+          id?: string
+          licensee_id?: string | null
+          mime_type?: string | null
+          original_filename: string
+          parsed_payload?: Json | null
+          return_id: string
+          size_bytes?: number
+          status?: string
+          storage_path?: string | null
+          summary?: Json
+          updated_at?: string
+          uploaded_by?: string | null
+          warnings?: Json
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          errors?: Json
+          fingerprint?: string | null
+          form_version_ids?: string[]
+          id?: string
+          licensee_id?: string | null
+          mime_type?: string | null
+          original_filename?: string
+          parsed_payload?: Json | null
+          return_id?: string
+          size_bytes?: number
+          status?: string
+          storage_path?: string | null
+          summary?: Json
+          updated_at?: string
+          uploaded_by?: string | null
+          warnings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_upload_attempts_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_upload_imports: {
+        Row: {
+          committed_at: string
+          committed_by: string | null
+          forms_touched: string[]
+          id: string
+          strategy: string
+          upload_id: string
+          values_written: number
+        }
+        Insert: {
+          committed_at?: string
+          committed_by?: string | null
+          forms_touched?: string[]
+          id?: string
+          strategy: string
+          upload_id: string
+          values_written?: number
+        }
+        Update: {
+          committed_at?: string
+          committed_by?: string | null
+          forms_touched?: string[]
+          id?: string
+          strategy?: string
+          upload_id?: string
+          values_written?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_upload_imports_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "return_upload_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       return_validation_rule_versions: {
         Row: {
@@ -14699,6 +14852,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      import_return_form_data: {
+        Args: { _return_id: string; _rows: Json; _strategy: string }
+        Returns: {
+          forms_touched: string[]
+          values_written: number
+        }[]
       }
       is_coordination_participant: {
         Args: { _case_id: string; _user_id: string }
