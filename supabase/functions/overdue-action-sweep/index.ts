@@ -5,46 +5,108 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  const summary = { scanned: 0, marked_overdue: 0, alerts_created: 0 };
+  let body: any = {};
+  try { body = await req.json(); } catch { /* ignore */ }
+  const trigger: 'scheduled' | 'manual' = body?.trigger === 'scheduled' ? 'scheduled' : 'manual';
 
-  // 1. Mark overdue on conduct_actions (the trigger conduct_action_overdue_alert also fires)
-  const { data: overdue, error } = await supa.from('conduct_actions')
-    .select('id, title, due_date, status, source_module, source_id, entity_id')
-    .lt('due_date', new Date().toISOString())
-    .in('status', ['open', 'in_progress']);
-  if (error) return json({ ok: false, error: error.message }, 500);
-
-  summary.scanned = (overdue || []).length;
-  for (const a of overdue || []) {
-    const { error: uErr } = await supa.from('conduct_actions').update({ status: 'overdue' }).eq('id', a.id);
-    if (uErr) continue;
-    summary.marked_overdue++;
-    // Alert idempotent
-    const dedupeKey = `action_overdue:${a.id}`;
-    const { data: existing } = await supa.from('conduct_alerts').select('id').eq('dedupe_key', dedupeKey).maybeSingle();
-    if (!existing) {
-      const { data: al } = await supa.from('conduct_alerts').insert({
-        dedupe_key: dedupeKey,
-        kind: 'action_overdue',
-        source: 'overdue-action-sweep',
-        generated_by: 'system',
-        severity: 'medium',
-        title: `Overdue action: ${a.title}`,
-        detail: { conduct_action_id: a.id, source_module: a.source_module, source_id: a.source_id },
-        status: 'open',
-        licensee_id: a.entity_id ?? null,
-      }).select('id').maybeSingle();
-      if (al?.id) summary.alerts_created++;
-    }
+  // Resolve actor for audit
+  let actorId: string | null = null;
+  const auth = req.headers.get('authorization');
+  if (auth) {
+    try {
+      const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const userClient = createClient(Deno.env.get('SUPABASE_URL')!, anon, { global: { headers: { Authorization: auth } } });
+      const { data } = await userClient.auth.getUser();
+      actorId = data?.user?.id ?? null;
+    } catch { /* ignore */ }
   }
 
-  // 2. Mirror overdue for thematic review actions (they cascade to conduct_actions via trigger)
-  await supa.from('thematic_review_actions')
-    .update({ status: 'overdue' })
-    .lt('due_date', new Date().toISOString())
-    .in('status', ['open', 'in_progress']);
+  // Duplicate-run guard: skip if another run started in the last 15 min and is still marked started
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { data: running } = await supa
+    .from('prudential_data_feed_logs')
+    .select('id, started_at')
+    .eq('source', 'overdue-action-sweep')
+    .eq('status', 'started')
+    .gt('started_at', fifteenMinAgo)
+    .limit(1)
+    .maybeSingle();
+  if (running) {
+    return json({ ok: true, skipped: true, reason: 'already_running' });
+  }
 
-  return json({ ok: true, ...summary });
+  // Start feed log
+  const startedAt = new Date().toISOString();
+  const { data: logRow } = await supa.from('prudential_data_feed_logs').insert({
+    source: 'overdue-action-sweep',
+    feed_type: 'overdue_action_sweep',
+    status: 'started',
+    started_at: startedAt,
+    triggered_by: actorId,
+    metadata: { trigger },
+  }).select().single();
+  const logId: string | null = (logRow as any)?.id ?? null;
+
+  const summary = { scanned: 0, marked_overdue: 0, alerts_created: 0 };
+
+  try {
+    // 1. Mark overdue on conduct_actions
+    const { data: overdue, error } = await supa.from('conduct_actions')
+      .select('id, title, due_date, status, source_module, source_id, entity_id')
+      .lt('due_date', new Date().toISOString())
+      .in('status', ['open', 'in_progress']);
+    if (error) throw error;
+
+    summary.scanned = (overdue || []).length;
+    for (const a of overdue || []) {
+      const { error: uErr } = await supa.from('conduct_actions').update({ status: 'overdue' }).eq('id', a.id);
+      if (uErr) continue;
+      summary.marked_overdue++;
+      const dedupeKey = `action_overdue:${a.id}`;
+      const { data: existing } = await supa.from('conduct_alerts').select('id').eq('dedupe_key', dedupeKey).maybeSingle();
+      if (!existing) {
+        const { data: al } = await supa.from('conduct_alerts').insert({
+          dedupe_key: dedupeKey,
+          kind: 'action_overdue',
+          source: 'overdue-action-sweep',
+          generated_by: 'system',
+          severity: 'medium',
+          title: `Overdue action: ${a.title}`,
+          detail: { conduct_action_id: a.id, source_module: a.source_module, source_id: a.source_id },
+          status: 'open',
+          licensee_id: a.entity_id ?? null,
+        }).select('id').maybeSingle();
+        if (al?.id) summary.alerts_created++;
+      }
+    }
+
+    // 2. Mirror overdue for thematic review actions
+    await supa.from('thematic_review_actions')
+      .update({ status: 'overdue' })
+      .lt('due_date', new Date().toISOString())
+      .in('status', ['open', 'in_progress']);
+
+    if (logId) {
+      await supa.from('prudential_data_feed_logs').update({
+        status: 'success',
+        row_count: summary.marked_overdue,
+        completed_at: new Date().toISOString(),
+        metadata: { trigger, ...summary },
+      }).eq('id', logId);
+    }
+
+    return json({ ok: true, ...summary });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    if (logId) {
+      await supa.from('prudential_data_feed_logs').update({
+        status: 'failed', error: message,
+        completed_at: new Date().toISOString(),
+        metadata: { trigger, ...summary },
+      }).eq('id', logId);
+    }
+    return json({ ok: false, error: message, ...summary });
+  }
 });
 
 function json(body: unknown, status = 200) {

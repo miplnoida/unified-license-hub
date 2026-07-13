@@ -45,6 +45,26 @@ Deno.serve(async (req) => {
     } catch { /* ignore */ }
   }
 
+  // Read trigger up-front so we can log it and short-circuit dupes.
+  const preBody = await req.clone().json().catch(() => ({} as any));
+  const trigger: 'scheduled' | 'manual' = preBody?.trigger === 'scheduled' ? 'scheduled' : 'manual';
+
+  // Duplicate-run guard: skip if another run started in the last 15 min and is still marked started
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { data: running } = await admin
+    .from('prudential_data_feed_logs')
+    .select('id')
+    .eq('source', 'prudential-monitoring-sweep')
+    .eq('status', 'started')
+    .gt('started_at', fifteenMinAgo)
+    .limit(1)
+    .maybeSingle();
+  if (running) {
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already_running' }), {
+      headers: { ...cors, 'Content-Type': 'application/json' }, status: 200,
+    });
+  }
+
   // Insert the "started" feed log row up front, then patch it at end with the outcome.
   const startedAt = new Date().toISOString();
   const { data: logRow } = await admin
@@ -55,10 +75,12 @@ Deno.serve(async (req) => {
       status: "started",
       started_at: startedAt,
       triggered_by: actorId,
+      metadata: { trigger },
     })
     .select()
     .single();
   const logId: string | null = (logRow as any)?.id ?? null;
+
 
   const summary = {
     entities_scanned: 0,
@@ -132,7 +154,7 @@ Deno.serve(async (req) => {
           status: "success",
           row_count: summary.returns_evaluated,
           completed_at: new Date().toISOString(),
-          metadata: summary,
+          metadata: { trigger, ...summary },
         })
         .eq("id", logId);
     }
@@ -148,7 +170,7 @@ Deno.serve(async (req) => {
         .update({
           status: "failed", error: message,
           completed_at: new Date().toISOString(),
-          metadata: summary,
+          metadata: { trigger, ...summary },
         })
         .eq("id", logId);
     }
