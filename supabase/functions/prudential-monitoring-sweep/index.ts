@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
           status: "success",
           row_count: summary.returns_evaluated,
           completed_at: new Date().toISOString(),
-          metadata: summary,
+          metadata: { trigger, ...summary },
         })
         .eq("id", logId);
     }
