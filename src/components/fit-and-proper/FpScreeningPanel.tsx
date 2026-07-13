@@ -76,7 +76,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       const existing = normalizeFpEvidence(current?.evidence_urls);
       const uploaded = await uploadFpEvidence(findingId, file, user?.id ?? null);
       const updated = [...existing, uploaded];
-      const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated }).eq('id', findingId);
+      const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated as any }).eq('id', findingId);
       if (error) throw error;
       await logFpAction('fp.finding.evidence_uploaded', 'fp_finding', findingId, {
         after: { evidence_path: uploaded.path, name: file.name },
