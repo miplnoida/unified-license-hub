@@ -723,6 +723,7 @@ export default function FillReturnPage() {
               initializedRef.current = false;
               setAllData({});
               setVersionByForm({});
+              setImportNonce((n) => n + 1);
               qc.invalidateQueries({ queryKey: ['return_form_data', id] });
             }}
           />
