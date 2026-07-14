@@ -389,6 +389,13 @@ export default function ApplicationQueue() {
     return sorted;
   }, [rows, search, applicants, sortBy]);
 
+  const visibleIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
+  const { byEntityId: totalSlaByApp } = useWorkflowTotalSla({
+    entityType: 'application',
+    entityIds: visibleIds,
+  });
+
+
 
   const toggleRow = (id: string) => {
     setSelected((prev) => {
