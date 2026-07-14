@@ -93,6 +93,7 @@ export interface EffectivePerms {
 export function useCollabReview(entityType: CollabEntityType, entityId: string | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { activeRegulatorId } = useRegulator();
 
   // Resolve workflow instance for this entity
   const wfEntityType =
