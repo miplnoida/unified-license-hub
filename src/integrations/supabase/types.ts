@@ -12015,6 +12015,239 @@ export type Database = {
           },
         ]
       }
+      review_comments: {
+        Row: {
+          author_role_id: string | null
+          author_user_id: string
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          is_blocking: boolean
+          parent_comment_id: string | null
+          regulator_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          selection_end: number | null
+          selection_start: number | null
+          selection_text: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        Insert: {
+          author_role_id?: string | null
+          author_user_id: string
+          body: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id?: string
+          is_blocking?: boolean
+          parent_comment_id?: string | null
+          regulator_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          selection_text?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Update: {
+          author_role_id?: string | null
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_key?: string
+          id?: string
+          is_blocking?: boolean
+          parent_comment_id?: string | null
+          regulator_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          selection_text?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "review_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_role_display_settings: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          regulator_id: string | null
+          role_id: string
+          show_reviewer_name: boolean
+          show_role_name: boolean
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          regulator_id?: string | null
+          role_id: string
+          show_reviewer_name?: boolean
+          show_role_name?: boolean
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          regulator_id?: string | null
+          role_id?: string
+          show_reviewer_name?: boolean
+          show_role_name?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      review_step_permissions: {
+        Row: {
+          block_approval_on_unresolved_blocking: boolean
+          can_accept: boolean
+          can_comment: boolean
+          can_mark_blocking: boolean
+          can_reject: boolean
+          can_reply: boolean
+          can_resolve: boolean
+          can_suggest: boolean
+          can_view: boolean
+          created_at: string
+          enabled: boolean
+          id: string
+          role_id: string
+          step_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          block_approval_on_unresolved_blocking?: boolean
+          can_accept?: boolean
+          can_comment?: boolean
+          can_mark_blocking?: boolean
+          can_reject?: boolean
+          can_reply?: boolean
+          can_resolve?: boolean
+          can_suggest?: boolean
+          can_view?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          role_id: string
+          step_id: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          block_approval_on_unresolved_blocking?: boolean
+          can_accept?: boolean
+          can_comment?: boolean
+          can_mark_blocking?: boolean
+          can_reject?: boolean
+          can_reply?: boolean
+          can_resolve?: boolean
+          can_suggest?: boolean
+          can_view?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          role_id?: string
+          step_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: []
+      }
+      review_suggestions: {
+        Row: {
+          author_role_id: string | null
+          author_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          original_text: string | null
+          regulator_id: string | null
+          selection_end: number | null
+          selection_start: number | null
+          status: string
+          suggested_text: string | null
+          type: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        Insert: {
+          author_role_id?: string | null
+          author_user_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id?: string
+          original_text?: string | null
+          regulator_id?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          status?: string
+          suggested_text?: string | null
+          type: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Update: {
+          author_role_id?: string | null
+          author_user_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          field_key?: string
+          id?: string
+          original_text?: string | null
+          regulator_id?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          status?: string
+          suggested_text?: string | null
+          type?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+          workflow_step_id?: string | null
+        }
+        Relationships: []
+      }
       risk_ratings: {
         Row: {
           assessment_date: string
@@ -14285,6 +14518,36 @@ export type Database = {
         }
         Returns: string
       }
+      accept_review_suggestion: {
+        Args: { _suggestion_id: string }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          original_text: string | null
+          regulator_id: string | null
+          selection_end: number | null
+          selection_start: number | null
+          status: string
+          suggested_text: string | null
+          type: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_suggestions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       activate_form_version_as_current: {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
@@ -14342,6 +14605,10 @@ export type Database = {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
       }
+      can_review_action: {
+        Args: { _action: string; _role_id: string; _step_id: string }
+        Returns: boolean
+      }
       can_user_access_licensee: {
         Args: {
           _target_licensee_id: string
@@ -14365,6 +14632,10 @@ export type Database = {
       check_applicant_name_exists: {
         Args: { p_name: string }
         Returns: boolean
+      }
+      check_approval_blocked: {
+        Args: { _entity_id: string; _entity_type: string; _step_id: string }
+        Returns: Json
       }
       check_coordination_gates: {
         Args: { _subject_id: string; _subject_type: string }
@@ -14860,6 +15131,7 @@ export type Database = {
           values_written: number
         }[]
       }
+      is_collab_admin: { Args: { _user_id: string }; Returns: boolean }
       is_coordination_participant: {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean
@@ -15180,6 +15452,36 @@ export type Database = {
       reject_application_action: {
         Args: { _application_id: string; _comments: string }
         Returns: Json
+      }
+      reject_review_suggestion: {
+        Args: { _suggestion_id: string }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          original_text: string | null
+          regulator_id: string | null
+          selection_end: number | null
+          selection_start: number | null
+          status: string
+          suggested_text: string | null
+          type: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_suggestions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       reorder_approval_steps: {
         Args: { _orders: Json; _workflow_id: string }

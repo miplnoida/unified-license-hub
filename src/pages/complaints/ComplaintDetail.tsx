@@ -25,6 +25,7 @@ import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
+import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -460,6 +461,18 @@ export default function ComplaintDetail() {
               channel: (complaint as any).channel ?? 'staff_intake',
               sla_days: slaDays,
             } as ComplaintAckInput}
+          />
+        )}
+
+        {id && (
+          <CollaborativeReview
+            entityType="complaint"
+            entityId={id}
+            fields={[
+              { key: 'investigation_notes', label: 'Investigation notes', value: (complaint as any)?.investigation_notes ?? '' },
+              { key: 'resolution_notes', label: 'Resolution notes', value: (complaint as any)?.resolution_notes ?? '' },
+              { key: 'findings', label: 'Findings', value: (complaint as any)?.findings ?? '' },
+            ]}
           />
         )}
       </div>
