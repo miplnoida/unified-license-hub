@@ -1,27 +1,46 @@
-## Plan: Fix imported return data still not displaying
+## Goal
+Show a "Total SLA" figure — the sum of `sla_hours` across every step of the active approval workflow — on both list rows and detail pages for:
+- License requests (Applications list + Application detail)
+- Returns queue (admin `ViewReturns` list + `ReturnDetail`)
+- Complaints (`ComplaintsList` + `ComplaintDetail`)
 
-### Findings
-- The import is reaching the backend: the affected return has `353` saved `return_form_data` rows and recent import audit entries show `353` values written.
-- However, every saved `field_value` for that return is blank. This means the UI refresh fix alone cannot show values because the committed rows contain empty strings.
-- The likely root cause is the parser/import flow accepting rows from the template where the visible row exists but the `New Value` cell is blank, especially in `replace` mode. It then overwrites every mapped field with `''`.
+This is a presentation-only addition; step-level SLA badges/panels already in place remain unchanged.
 
-### Changes to implement
-1. **Prevent blank template rows from wiping/appearing as successful data imports**
-   - Update XLSX/XML parsing so blank `New Value` rows are skipped unless the user explicitly chooses a clear/replace behavior that is intended to wipe data.
-   - Add a clear warning when no actual values are found in the uploaded file.
+## Approach
 
-2. **Make import summary honest**
-   - In the upload preview, show both mapped rows and actual non-empty values so users can see whether data will really be imported.
-   - Disable **Import into Return** if the uploaded file has zero non-empty values.
+### 1. New shared hook: `useWorkflowTotalSla`
+File: `src/hooks/useWorkflowTotalSla.ts`
 
-3. **Keep the post-import refresh deterministic**
-   - Keep the current `handleImported` refetch/remount flow, but ensure it hydrates from the committed rows after import and does not overwrite the form with stale/blank state.
+- Input: `{ entityType, entityIds }` (same signature as `useWorkflowSlaInstances`).
+- Query joins `workflow_instances` (active/paused) → `approval_steps` grouped by `workflow_id`, summing `sla_hours` per workflow.
+- Fallback: if no live steps exist for a workflow, sum `sla_hours` from `version_snapshot.steps` on the instance (matches existing resolver's snapshot fallback).
+- Returns `Map<entityId, { totalHours: number; stepCount: number; workflowId: string }>`.
+- Cached via TanStack Query (staleTime 60s).
 
-4. **Optional targeted cleanup for the affected return**
-   - If needed, after the parser fix, the user should re-upload the completed file. The current backend rows for this return are blank because the last imports wrote empty values.
-   - I will not delete or rewrite existing return values unless explicitly asked.
+### 2. New shared UI: `TotalSlaBadge`
+File: `src/components/workflows/TotalSlaBadge.tsx`
 
-### Verification
-- Confirm a completed template preview reports non-empty values before import.
-- Import the file and verify `return_form_data` contains non-empty `field_value` rows.
-- Verify the form tabs display imported values immediately without refreshing the page.
+- Compact chip: `"Total SLA: 5d 4h (4 steps)"` for lists; verbose card variant for detail pages (`"Total workflow SLA · sum across N approval steps"`).
+- Uses same `formatHoursShort` style as `SlaIndicator`.
+
+### 3. Wire into list pages (one column / inline chip)
+- `src/pages/Applications.tsx` (license request queue): add inline `TotalSlaBadge` next to existing per-step SLA badge.
+- `src/pages/returns-mgmt/ViewReturns.tsx`: batch entity ids from visible rows, render badge in row.
+- `src/pages/complaints/ComplaintsList.tsx`: render badge in the SLA cell / evidence row.
+
+### 4. Wire into detail pages
+- `src/components/applications/ApplicationSlaBanner.tsx` — append total-SLA line under the step SLA panel (keep the existing `SlaProgressPanel`).
+- `src/pages/returns-mgmt/ReturnDetail.tsx` — add badge in the header meta block.
+- `src/pages/complaints/ComplaintDetail.tsx` — add badge in the SLA/summary section.
+
+## Technical Details
+
+- No DB migrations. Read-only: `approval_steps.sla_hours` already exists.
+- Steps with `sla_hours = null` are excluded from the sum (badge shows `"—"` and tooltip "Some steps have no SLA configured" when any step is null).
+- Total SLA is per-workflow, so entities pointing at the same workflow share the total; the hook caches by `workflow_id` to avoid duplicate work.
+- No behavior changes to breach/warning logic, notifications, or workflow execution.
+
+## Out of scope
+- Editing SLAs.
+- Recomputing existing per-step SLA colors or escalation dispatches.
+- Non-workflow SLA sources (e.g., complaint `sla_days`) — those stay as-is.
