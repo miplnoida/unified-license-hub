@@ -952,8 +952,14 @@ export default function ApplicationsList() {
           <TableCell>
             {(() => {
               const sla = getSlaForApp(app.id);
+              const total = totalSlaByApp.get(app.id);
               if (!sla || sla.status === 'unknown') {
-                return <span className="text-xs text-muted-foreground">No SLA</span>;
+                return (
+                  <div className="flex flex-col gap-1 min-w-[110px]">
+                    <span className="text-xs text-muted-foreground">No SLA</span>
+                    {total && total.stepCount > 0 && <TotalSlaBadge entry={total} />}
+                  </div>
+                );
               }
               return (
                 <div className="flex flex-col gap-0.5 min-w-[110px]">
@@ -965,6 +971,7 @@ export default function ApplicationsList() {
                         : `${Math.max(0, Math.round(sla.remainingHours))}h left`}
                     </span>
                   )}
+                  {total && total.stepCount > 0 && <TotalSlaBadge entry={total} />}
                 </div>
               );
             })()}
