@@ -329,7 +329,21 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
         )}
       </div>
 
-      {collab.perms.can_comment && (
+      {(collab.availableRoles?.length ?? 0) > 1 && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Post as:</span>
+          <Select value={effectiveRoleId ?? ''} onValueChange={v => setSelectedRoleId(v)}>
+            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent>
+              {collab.availableRoles.map((rid: string) => {
+                const r = roleMap.get(rid);
+                return <SelectItem key={rid} value={rid}>{r?.name ?? rid}</SelectItem>;
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
         <div className="space-y-2 border rounded-md p-3">
           <div className="text-xs font-medium flex items-center gap-1"><MessageSquarePlus className="h-3 w-3" />Add comment</div>
           <Textarea value={draft} onChange={e => setDraft(e.target.value)} rows={2} placeholder="Write a comment. Select text first to anchor it." />
