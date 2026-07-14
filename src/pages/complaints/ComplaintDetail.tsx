@@ -472,3 +472,4 @@ function ComplaintTotalSla({ complaintId }: { complaintId: string }) {
   const entry = byEntityId.get(complaintId);
   if (!entry || entry.stepCount === 0) return null;
   return <TotalSlaBadge entry={entry} />;
+}
