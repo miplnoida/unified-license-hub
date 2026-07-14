@@ -206,6 +206,8 @@ export default function ViewReturns() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const pagedIds = useMemo(() => paged.map(r => r.id), [paged]);
+  const { byEntityId: totalSlaByReturn } = useWorkflowTotalSla({ entityType: 'return', entityIds: pagedIds });
 
   const today = todayDateIso();
   const accepted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'accepted').length;
