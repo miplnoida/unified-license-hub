@@ -144,6 +144,10 @@ export default function RegistrationReview() {
     });
   }, [rows, statusFilter, search]);
 
+  const filteredIds = useMemo(() => filteredRows.map(r => r.id), [filteredRows]);
+  const { byEntityId: totalSlaByReg } = useWorkflowTotalSla({ entityType: 'registration', entityIds: filteredIds });
+
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
