@@ -135,11 +135,12 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
   });
 
   const roleDisplayQ = useQuery({
-    queryKey: ['review-role-display'],
+    queryKey: ['review-role-display', activeRegulatorId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('review_role_display_settings')
-        .select('role_id,color,show_reviewer_name,show_role_name');
+      // Prefer regulator-specific rows and fall back to global via the RPC.
+      const { data, error } = await (supabase as any).rpc('get_review_role_display', {
+        _regulator_id: activeRegulatorId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as ReviewRoleDisplay[];
     },
