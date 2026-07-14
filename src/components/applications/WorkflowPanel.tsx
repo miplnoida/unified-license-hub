@@ -273,9 +273,22 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const moduleKey = entityType === 'registration' ? 'registration_management' : 'application_management';
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
-  const { data: steps = [] } = useWorkflowSteps(workflowId);
   const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
   const { data: actions = [] } = useEntityActions(entityType, applicationId);
+  // Source of truth: the workflow_id pinned on the active/paused workflow_instance,
+  // falling back to the application's workflow_id. This ensures the UI renders
+  // the same steps the runtime engine is actually executing (e.g. a 4-step
+  // workflow), even if applications.workflow_id was left pointing at a stale
+  // 2-step workflow after a version/assignment change.
+  const activeOrPausedForResolution = useMemo(
+    () => (instances || []).find((i: any) => i?.status === 'active' || i?.status === 'paused') ?? null,
+    [instances],
+  );
+  const effectiveWorkflowId = (activeOrPausedForResolution as any)?.workflow_id ?? workflowId;
+  const workflowIdMismatch =
+    !!workflowId && !!(activeOrPausedForResolution as any)?.workflow_id
+      && workflowId !== (activeOrPausedForResolution as any).workflow_id;
+  const { data: steps = [] } = useWorkflowSteps(effectiveWorkflowId);
   const queryClient = useQueryClient();
 
   const isInstancePaused = (i: any) =>
