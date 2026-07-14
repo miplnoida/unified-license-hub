@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useRegistrationConfig } from '@/hooks/useRegistrationConfig';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
