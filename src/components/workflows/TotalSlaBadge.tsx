@@ -5,6 +5,10 @@ import type { WorkflowTotalSlaEntry } from '@/hooks/useWorkflowTotalSla';
 
 function formatHours(h: number): string {
   if (!Number.isFinite(h) || h <= 0) return '0h';
+  if (h < 1) {
+    const mins = Math.max(1, Math.round(h * 60));
+    return `${mins}m`;
+  }
   const days = Math.floor(h / 24);
   const hrs = Math.round(h - days * 24);
   if (days > 0 && hrs > 0) return `${days}d ${hrs}h`;
@@ -19,19 +23,16 @@ interface Props {
 }
 
 /**
- * Displays the sum of `sla_hours` across all workflow steps.
- * - `inline`: compact chip suitable for list rows.
- * - `card`: bordered block suitable for detail-page headers.
+ * Displays "Total SLA" = sum of actual time spent on every workflow step so far.
  */
 export function TotalSlaBadge({ entry, variant = 'inline', className }: Props) {
   const hasData = !!entry && entry.stepCount > 0 && entry.totalHours != null;
-  const label = hasData
-    ? `Total SLA: ${formatHours(entry!.totalHours!)}${entry!.hasMissingSla ? '*' : ''}`
-    : 'Total SLA: —';
-  const suffix = hasData ? ` (${entry!.stepCount} step${entry!.stepCount === 1 ? '' : 's'})` : '';
-  const title = entry?.hasMissingSla
-    ? 'Some workflow steps have no SLA configured; total excludes those steps.'
-    : 'Sum of SLA hours across all workflow steps.';
+  const value = hasData ? formatHours(entry!.totalHours!) : '—';
+  const stepText = hasData
+    ? `${entry!.stepCount} step${entry!.stepCount === 1 ? '' : 's'}`
+    : '';
+  const inProgress = !!entry?.inProgress;
+  const title = 'Sum of actual time spent on each approval step so far.';
 
   if (variant === 'card') {
     return (
@@ -44,9 +45,12 @@ export function TotalSlaBadge({ entry, variant = 'inline', className }: Props) {
       >
         <Timer className="h-3.5 w-3.5 text-muted-foreground" />
         <div className="flex flex-col leading-tight">
-          <span className="font-medium">{label}</span>
+          <span className="font-medium">Total SLA: {value}</span>
           {hasData && (
-            <span className="text-[10px] text-muted-foreground">Across {entry!.stepCount} approval step{entry!.stepCount === 1 ? '' : 's'}</span>
+            <span className="text-[10px] text-muted-foreground">
+              Across {stepText}
+              {inProgress ? ' · still in progress' : ''}
+            </span>
           )}
         </div>
       </div>
@@ -60,8 +64,12 @@ export function TotalSlaBadge({ entry, variant = 'inline', className }: Props) {
       title={title}
     >
       <Timer className="h-3 w-3" />
-      {label}
-      {suffix && <span className="text-muted-foreground">{suffix}</span>}
+      Total SLA: {value}
+      {hasData && (
+        <span className="text-muted-foreground">
+          {` · ${stepText}${inProgress ? ' · in progress' : ''}`}
+        </span>
+      )}
     </Badge>
   );
 }
