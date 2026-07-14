@@ -37,6 +37,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const [suggText, setSuggText] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { user } = useAuth();
@@ -95,6 +96,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
+  const effectiveRoleId = selectedRoleId ?? collab.perms.role_id ?? null;
+
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
     collab.addComment.mutate({
@@ -102,6 +105,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       body: draft.trim(),
       selection,
       is_blocking: blocking,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setDraft(''); setBlocking(false); setSelection(null); } });
   };
 
@@ -115,6 +119,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       original_text: selection?.text ?? null,
       suggested_text: suggType === 'delete' ? null : suggText.trim(),
       selection: selection ? { start: selection.start, end: selection.end } : null,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setSuggText(''); setSelection(null); } });
   };
 
@@ -124,6 +129,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       field_key: activeFieldSpec.key,
       body: replyBody.trim(),
       parent_comment_id: parentId,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setReplyBody(''); setReplyTo(null); } });
   };
 
@@ -322,6 +328,21 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           </p>
         )}
       </div>
+
+      {(collab.availableRoles?.length ?? 0) > 1 && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Post as:</span>
+          <Select value={effectiveRoleId ?? ''} onValueChange={v => setSelectedRoleId(v)}>
+            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent>
+              {collab.availableRoles.map((rid: string) => {
+                const r = roleMap.get(rid);
+                return <SelectItem key={rid} value={rid}>{r?.name ?? rid}</SelectItem>;
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {collab.perms.can_comment && (
         <div className="space-y-2 border rounded-md p-3">

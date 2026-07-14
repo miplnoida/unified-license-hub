@@ -602,6 +602,7 @@ export type Database = {
           applicant_id: string
           application_number: string
           approved_at: string | null
+          assessment_notes: string | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_to: string | null
@@ -609,6 +610,7 @@ export type Database = {
           created_at: string
           current_step_id: string | null
           data: Json | null
+          decision_rationale: string | null
           form_version_id: string | null
           id: string
           last_sufficiency_evaluation_id: string | null
@@ -619,6 +621,7 @@ export type Database = {
           priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
+          review_notes: string | null
           search_vector: unknown
           status: string
           submitted_at: string | null
@@ -633,6 +636,7 @@ export type Database = {
           applicant_id: string
           application_number?: string
           approved_at?: string | null
+          assessment_notes?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_to?: string | null
@@ -640,6 +644,7 @@ export type Database = {
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
+          decision_rationale?: string | null
           form_version_id?: string | null
           id?: string
           last_sufficiency_evaluation_id?: string | null
@@ -650,6 +655,7 @@ export type Database = {
           priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
+          review_notes?: string | null
           search_vector?: unknown
           status?: string
           submitted_at?: string | null
@@ -664,6 +670,7 @@ export type Database = {
           applicant_id?: string
           application_number?: string
           approved_at?: string | null
+          assessment_notes?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_to?: string | null
@@ -671,6 +678,7 @@ export type Database = {
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
+          decision_rationale?: string | null
           form_version_id?: string | null
           id?: string
           last_sufficiency_evaluation_id?: string | null
@@ -681,6 +689,7 @@ export type Database = {
           priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
+          review_notes?: string | null
           search_vector?: unknown
           status?: string
           submitted_at?: string | null
@@ -1755,9 +1764,11 @@ export type Database = {
           description: string
           email: string | null
           enforcement_action_id: string | null
+          findings: string | null
           id: string
           intake_source: string | null
           internal_created_by: string | null
+          investigation_notes: string | null
           investigator_id: string | null
           license_holder_id: string | null
           licensee_id: string | null
@@ -1766,6 +1777,7 @@ export type Database = {
           regulator_id: string | null
           repeat_complaint_count: number
           resolution: string | null
+          resolution_notes: string | null
           resolved_at: string | null
           search_vector: unknown
           severity: string
@@ -1797,9 +1809,11 @@ export type Database = {
           description: string
           email?: string | null
           enforcement_action_id?: string | null
+          findings?: string | null
           id?: string
           intake_source?: string | null
           internal_created_by?: string | null
+          investigation_notes?: string | null
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
@@ -1808,6 +1822,7 @@ export type Database = {
           regulator_id?: string | null
           repeat_complaint_count?: number
           resolution?: string | null
+          resolution_notes?: string | null
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
@@ -1839,9 +1854,11 @@ export type Database = {
           description?: string
           email?: string | null
           enforcement_action_id?: string | null
+          findings?: string | null
           id?: string
           intake_source?: string | null
           internal_created_by?: string | null
+          investigation_notes?: string | null
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
@@ -1850,6 +1867,7 @@ export type Database = {
           regulator_id?: string | null
           repeat_complaint_count?: number
           resolution?: string | null
+          resolution_notes?: string | null
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
@@ -9466,6 +9484,7 @@ export type Database = {
           physical_address: Json
           registration_number: string | null
           registration_reference: string | null
+          review_notes: string | null
           same_as_mailing: boolean
           sector_id: string
           status: string
@@ -9492,6 +9511,7 @@ export type Database = {
           physical_address?: Json
           registration_number?: string | null
           registration_reference?: string | null
+          review_notes?: string | null
           same_as_mailing?: boolean
           sector_id: string
           status?: string
@@ -9518,6 +9538,7 @@ export type Database = {
           physical_address?: Json
           registration_number?: string | null
           registration_reference?: string | null
+          review_notes?: string | null
           same_as_mailing?: boolean
           sector_id?: string
           status?: string
@@ -11871,6 +11892,7 @@ export type Database = {
           current_step_id: string | null
           due_date: string | null
           entity_id: string | null
+          explanations: string | null
           id: string
           latest_validation_batch_id: string | null
           on_behalf_of_licensee_id: string | null
@@ -11882,6 +11904,7 @@ export type Database = {
           return_configuration_id: string
           return_period: string
           return_year: number
+          reviewer_notes: string | null
           sector_id: string | null
           status: string
           submit_date: string | null
@@ -11899,6 +11922,7 @@ export type Database = {
           current_step_id?: string | null
           due_date?: string | null
           entity_id?: string | null
+          explanations?: string | null
           id?: string
           latest_validation_batch_id?: string | null
           on_behalf_of_licensee_id?: string | null
@@ -11910,6 +11934,7 @@ export type Database = {
           return_configuration_id: string
           return_period: string
           return_year: number
+          reviewer_notes?: string | null
           sector_id?: string | null
           status?: string
           submit_date?: string | null
@@ -11927,6 +11952,7 @@ export type Database = {
           current_step_id?: string | null
           due_date?: string | null
           entity_id?: string | null
+          explanations?: string | null
           id?: string
           latest_validation_batch_id?: string | null
           on_behalf_of_licensee_id?: string | null
@@ -11938,6 +11964,7 @@ export type Database = {
           return_configuration_id?: string
           return_period?: string
           return_year?: number
+          reviewer_notes?: string | null
           sector_id?: string | null
           status?: string
           submit_date?: string | null
@@ -12091,6 +12118,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      review_narrative_fields: {
+        Row: {
+          column_name: string
+          created_at: string
+          entity_type: string
+          field_key: string
+          table_name: string
+        }
+        Insert: {
+          column_name: string
+          created_at?: string
+          entity_type: string
+          field_key: string
+          table_name: string
+        }
+        Update: {
+          column_name?: string
+          created_at?: string
+          entity_type?: string
+          field_key?: string
+          table_name?: string
+        }
+        Relationships: []
       }
       review_role_display_settings: {
         Row: {
@@ -14484,6 +14535,17 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_review_action: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_type: string
+          _role_id: string
+          _step_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       _resolve_application_workflow:
         | {
             Args: {
@@ -14552,6 +14614,46 @@ export type Database = {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
       }
+      add_review_comment: {
+        Args: {
+          _body: string
+          _entity_id: string
+          _entity_type: string
+          _field_key: string
+          _is_blocking?: boolean
+          _parent_comment_id?: string
+          _role_id?: string
+          _selection?: Json
+        }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          is_blocking: boolean
+          parent_comment_id: string | null
+          regulator_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          selection_end: number | null
+          selection_start: number | null
+          selection_text: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_override_form_version_assignment: {
         Args: {
           _application_id: string
@@ -14601,6 +14703,10 @@ export type Database = {
         Returns: string
       }
       build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
+      can_access_review_entity: {
+        Args: { _entity_id: string; _entity_type: string; _user_id: string }
+        Returns: boolean
+      }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -14754,6 +14860,54 @@ export type Database = {
       create_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
+      }
+      create_review_suggestion: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _field_key: string
+          _original_text: string
+          _role_id?: string
+          _selection: Json
+          _suggested_text: string
+          _type: string
+        }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          original_text: string | null
+          regulator_id: string | null
+          selection_end: number | null
+          selection_start: number | null
+          status: string
+          suggested_text: string | null
+          type: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_suggestions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      current_workflow_step_for: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: {
+          instance_id: string
+          regulator_id: string
+          step_id: string
+          workflow_id: string
+        }[]
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       evaluate_return_validations: {
@@ -15096,6 +15250,15 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_review_role_display: {
+        Args: { _regulator_id: string }
+        Returns: {
+          color: string
+          role_id: string
+          show_reviewer_name: boolean
+          show_role_name: boolean
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -15571,6 +15734,37 @@ export type Database = {
         Returns: Json
       }
       resolve_return_workflow: { Args: { _return_id: string }; Returns: string }
+      resolve_review_comment: {
+        Args: { _comment_id: string; _resolved: boolean }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          is_blocking: boolean
+          parent_comment_id: string | null
+          regulator_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          selection_end: number | null
+          selection_start: number | null
+          selection_text: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resubmit_return: {
         Args: { _actor_id: string; _comments: string; _return_id: string }
         Returns: Json
@@ -15613,6 +15807,37 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      set_review_comment_blocking: {
+        Args: { _blocking: boolean; _comment_id: string }
+        Returns: {
+          author_role_id: string | null
+          author_user_id: string
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          is_blocking: boolean
+          parent_comment_id: string | null
+          regulator_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          selection_end: number | null
+          selection_start: number | null
+          selection_text: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+          workflow_step_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "review_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       snapshot_return_revision: {
         Args: {

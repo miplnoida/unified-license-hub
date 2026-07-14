@@ -11,6 +11,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { toast } from 'sonner';
 import { useRoles } from '@/hooks/useRoles';
 import { logAction } from '@/hooks/useAuditLog';
+import { useRegulator } from '@/contexts/RegulatorContext';
 
 const PERM_COLS = [
   { key: 'can_view', label: 'View' },
@@ -26,6 +27,7 @@ const PERM_COLS = [
 export default function CollabReviewConfigTab() {
   const qc = useQueryClient();
   const { data: roles = [] } = useRoles();
+  const { activeRegulatorId } = useRegulator();
 
   const workflowsQ = useQuery({
     queryKey: ['collab-cfg-workflows'],
@@ -108,8 +110,8 @@ export default function CollabReviewConfigTab() {
   };
 
   const updateDisplay = (roleId: string, patch: any) => {
-    const existing = displayByRole.get(roleId) ?? { role_id: roleId, regulator_id: null, color: '#6366F1', show_reviewer_name: true, show_role_name: true };
-    upsertDisplay.mutate({ ...existing, ...patch });
+    const existing = displayByRole.get(roleId) ?? { role_id: roleId, regulator_id: activeRegulatorId ?? null, color: '#6366F1', show_reviewer_name: true, show_role_name: true };
+    upsertDisplay.mutate({ ...existing, regulator_id: existing.regulator_id ?? activeRegulatorId ?? null, ...patch });
   };
 
   return (

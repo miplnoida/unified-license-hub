@@ -193,9 +193,43 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
     return base;
   }, [stepPermsQ.data, myRolesQ.data]);
 
-  const invalidate = () => {
+  // Query keys used by each entity's detail view — invalidated after accepted suggestions
+  // so the narrative refetches from the DB.
+  const entityQueryKeys: string[][] = useMemo(() => {
+    if (!entityId) return [];
+    switch (entityType) {
+      case 'application': return [['application', entityId], ['applications']];
+      case 'registration': return [['registration', entityId], ['registration-review']];
+      case 'return': return [['return', entityId], ['returns-filed']];
+      case 'complaint': return [['complaint', entityId], ['complaints']];
+      default: return [];
+    }
+  }, [entityType, entityId]);
+
+  const invalidate = (includeEntity = false) => {
     qc.invalidateQueries({ queryKey: ['review-comments', entityType, entityId] });
     qc.invalidateQueries({ queryKey: ['review-suggestions', entityType, entityId] });
+    if (includeEntity) {
+      entityQueryKeys.forEach(k => qc.invalidateQueries({ queryKey: k }));
+    }
+  };
+
+  const humanError = (e: any): string => {
+    const msg: string = e?.message ?? '';
+    if (msg.includes('REVIEW_SUGGESTION_STALE'))
+      return 'This suggestion is based on an older version of the narrative. Refresh and review it again.';
+    if (msg.startsWith('REVIEW_BLOCKED') || msg.includes('REVIEW_BLOCKED:')) {
+      const m = msg.match(/REVIEW_BLOCKED:(\d+)/);
+      const n = m ? m[1] : '';
+      return `Approval cannot continue because ${n} blocking comments are unresolved.`;
+    }
+    if (msg.includes('REVIEW_FORBIDDEN_ENTITY')) return 'You do not have access to this review.';
+    if (msg.includes('REVIEW_FORBIDDEN_ACTION')) return 'You are not permitted to perform this action.';
+    if (msg.includes('REVIEW_INVALID_ROLE')) return 'Selected role is not assigned to you.';
+    if (msg.includes('REVIEW_UNKNOWN_FIELD')) return 'This narrative field is not configured for suggestions.';
+    if (msg.includes('REVIEW_ALREADY_DECIDED')) return 'This suggestion has already been decided.';
+    if (msg.includes('REVIEW_UNAUTHENTICATED')) return 'You must be signed in.';
+    return msg || 'Request failed.';
   };
 
   const addComment = useMutation({
@@ -203,56 +237,55 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
       field_key: string; body: string;
       selection?: { start: number; end: number; text: string } | null;
       is_blocking?: boolean; parent_comment_id?: string | null;
+      role_id?: string | null;
     }) => {
-      if (!user?.id) throw new Error('Not authenticated');
-      const row = {
-        entity_type: entityType, entity_id: entityId,
-        workflow_instance_id: workflowInstanceId, workflow_step_id: stepId,
-        field_key: input.field_key, body: input.body,
-        selection_start: input.selection?.start ?? null,
-        selection_end: input.selection?.end ?? null,
-        selection_text: input.selection?.text ?? null,
-        author_user_id: user.id, author_role_id: perms.role_id,
-        is_blocking: !!input.is_blocking,
-        parent_comment_id: input.parent_comment_id ?? null,
-      };
-      const { data, error } = await (supabase as any)
-        .from('review_comments').insert(row).select().single();
+      const { data, error } = await (supabase as any).rpc('add_review_comment', {
+        _entity_type: entityType,
+        _entity_id: entityId,
+        _field_key: input.field_key,
+        _body: input.body,
+        _selection: input.selection ? {
+          start: input.selection.start, end: input.selection.end, text: input.selection.text,
+        } : null,
+        _is_blocking: !!input.is_blocking,
+        _role_id: input.role_id ?? perms.role_id ?? null,
+        _parent_comment_id: input.parent_comment_id ?? null,
+      });
       if (error) throw error;
       await logAction(
         input.parent_comment_id ? 'collab_review.reply_added' : 'collab_review.comment_added',
-        entityType, entityId, { meta: { id: data.id, field: input.field_key, blocking: row.is_blocking } },
+        entityType, entityId, { meta: { id: data?.id, field: input.field_key, blocking: !!input.is_blocking } },
       );
       return data;
     },
     onSuccess: () => { invalidate(); toast.success('Comment added'); },
-    onError: (e: any) => toast.error(e.message ?? 'Failed to add comment'),
+    onError: (e: any) => toast.error(humanError(e)),
   });
 
   const resolveComment = useMutation({
     mutationFn: async (input: { id: string; resolved: boolean }) => {
-      const patch = input.resolved
-        ? { status: 'resolved', resolved_by: user!.id, resolved_at: new Date().toISOString() }
-        : { status: 'open', resolved_by: null, resolved_at: null };
-      const { error } = await (supabase as any).from('review_comments').update(patch).eq('id', input.id);
+      const { error } = await (supabase as any).rpc('resolve_review_comment', {
+        _comment_id: input.id, _resolved: input.resolved,
+      });
       if (error) throw error;
       await logAction(input.resolved ? 'collab_review.comment_resolved' : 'collab_review.comment_reopened',
         entityType, entityId, { meta: { id: input.id } });
     },
-    onSuccess: invalidate,
-    onError: (e: any) => toast.error(e.message ?? 'Failed'),
+    onSuccess: () => invalidate(),
+    onError: (e: any) => toast.error(humanError(e)),
   });
 
   const setBlocking = useMutation({
     mutationFn: async (input: { id: string; blocking: boolean }) => {
-      const { error } = await (supabase as any)
-        .from('review_comments').update({ is_blocking: input.blocking }).eq('id', input.id);
+      const { error } = await (supabase as any).rpc('set_review_comment_blocking', {
+        _comment_id: input.id, _blocking: input.blocking,
+      });
       if (error) throw error;
       await logAction('collab_review.blocking_toggled', entityType, entityId,
         { meta: { id: input.id, blocking: input.blocking } });
     },
-    onSuccess: invalidate,
-    onError: (e: any) => toast.error(e.message ?? 'Failed'),
+    onSuccess: () => invalidate(),
+    onError: (e: any) => toast.error(humanError(e)),
   });
 
   const addSuggestion = useMutation({
@@ -260,28 +293,25 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
       field_key: string; type: 'insert' | 'delete' | 'replace';
       original_text?: string | null; suggested_text?: string | null;
       selection?: { start: number; end: number } | null;
+      role_id?: string | null;
     }) => {
-      if (!user?.id) throw new Error('Not authenticated');
-      const row = {
-        entity_type: entityType, entity_id: entityId,
-        workflow_instance_id: workflowInstanceId, workflow_step_id: stepId,
-        field_key: input.field_key,
-        author_user_id: user.id, author_role_id: perms.role_id,
-        type: input.type,
-        original_text: input.original_text ?? null,
-        suggested_text: input.suggested_text ?? null,
-        selection_start: input.selection?.start ?? null,
-        selection_end: input.selection?.end ?? null,
-      };
-      const { data, error } = await (supabase as any)
-        .from('review_suggestions').insert(row).select().single();
+      const { data, error } = await (supabase as any).rpc('create_review_suggestion', {
+        _entity_type: entityType,
+        _entity_id: entityId,
+        _field_key: input.field_key,
+        _type: input.type,
+        _original_text: input.original_text ?? null,
+        _suggested_text: input.suggested_text ?? null,
+        _selection: input.selection ? { start: input.selection.start, end: input.selection.end } : null,
+        _role_id: input.role_id ?? perms.role_id ?? null,
+      });
       if (error) throw error;
       await logAction('collab_review.suggestion_created', entityType, entityId,
-        { meta: { id: data.id, type: input.type, field: input.field_key } });
+        { meta: { id: data?.id, type: input.type, field: input.field_key } });
       return data;
     },
     onSuccess: () => { invalidate(); toast.success('Suggestion added'); },
-    onError: (e: any) => toast.error(e.message ?? 'Failed'),
+    onError: (e: any) => toast.error(humanError(e)),
   });
 
   const decideSuggestion = useMutation({
@@ -294,11 +324,20 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
         entityType, entityId, { meta: { id: input.id } },
       );
     },
-    onSuccess: () => { invalidate(); toast.success('Updated'); },
-    onError: (e: any) => toast.error(e.message ?? 'Failed'),
+    onSuccess: (_d, vars) => {
+      invalidate(vars.accept);
+      toast.success(vars.accept ? 'Suggestion accepted — narrative updated.' : 'Suggestion rejected.');
+    },
+    onError: (e: any) => toast.error(humanError(e)),
   });
 
   const blockingOpen = (commentsQ.data ?? []).filter(c => c.is_blocking && c.status === 'open');
+
+  const availableRoles: string[] = useMemo(() => {
+    const rows = stepPermsQ.data ?? [];
+    const mineSet = new Set(myRolesQ.data ?? []);
+    return rows.filter(r => r.enabled && mineSet.has(r.role_id)).map(r => r.role_id);
+  }, [stepPermsQ.data, myRolesQ.data]);
 
   return {
     isLoading: commentsQ.isLoading || suggestionsQ.isLoading,
@@ -307,10 +346,13 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
     roleDisplay: roleDisplayQ.data ?? [],
     stepPerms: stepPermsQ.data ?? [],
     myRoleIds: myRolesQ.data ?? [],
+    availableRoles,
     perms,
     workflowId, workflowInstanceId, stepId,
     blockingOpenCount: blockingOpen.length,
     addComment, resolveComment, setBlocking,
     addSuggestion, decideSuggestion,
+    humanError,
   };
 }
+
