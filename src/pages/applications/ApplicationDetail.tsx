@@ -1267,6 +1267,20 @@ export default function ApplicationDetail() {
               />
             )}
 
+            {/* Collaborative Review — placed next to the workflow review so
+                reviewers see comments/suggestions alongside the workflow steps. */}
+            {id && (
+              <CollaborativeReview
+                entityType="application"
+                entityId={id}
+                fields={[
+                  { key: 'assessment_notes', label: 'Assessment notes', value: (app as any)?.assessment_notes ?? '' },
+                  { key: 'decision_rationale', label: 'Decision rationale', value: (app as any)?.decision_rationale ?? '' },
+                  { key: 'review_notes', label: 'Review notes', value: (app as any)?.review_notes ?? '' },
+                ]}
+              />
+            )}
+
 
             {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
