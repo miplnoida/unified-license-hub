@@ -2,8 +2,10 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import { logAction } from '@/hooks/useAuditLog';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { toast } from 'sonner';
 
 export type CollabEntityType = 'application' | 'registration' | 'return' | 'complaint';
