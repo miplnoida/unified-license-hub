@@ -366,6 +366,14 @@ export default function RegistrationReviewDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {registrationId && (
+          <CollaborativeReview
+            entityType="registration"
+            entityId={registrationId}
+            fields={[{ key: 'review_notes', label: 'Review notes', value: '' }]}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
