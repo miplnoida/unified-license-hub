@@ -175,7 +175,7 @@ export function buildXmlTemplate(
 export async function parseXlsxUpload(
   file: File,
   forms: ReturnUploadFormSpec[],
-  strategy: 'replace' | 'fill_blanks',
+  _strategy: 'replace' | 'fill_blanks',
 ): Promise<ParseResult> {
   const errors: ParseResult['errors'] = [];
   const warnings: ParseResult['warnings'] = [];
@@ -224,13 +224,19 @@ export async function parseXlsxUpload(
         continue;
       }
       const fieldValue = normalizeUploadedValue(r['New Value']);
-      if (fieldValue !== '') {
+      const editedCurrentValue = normalizeUploadedValue(r['Current Value']);
+      const backendCurrentValue = normalizeUploadedValue(spec.currentValues[fieldId]);
+      const fallbackValue = fieldValue === '' && editedCurrentValue !== '' && editedCurrentValue !== backendCurrentValue
+        ? editedCurrentValue
+        : '';
+      const uploadedValue = fieldValue || fallbackValue;
+      if (uploadedValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: fieldValue,
+          field_value: uploadedValue,
         });
       }
     }
@@ -249,7 +255,7 @@ export async function parseXlsxUpload(
 export async function parseXmlUpload(
   file: File,
   forms: ReturnUploadFormSpec[],
-  strategy: 'replace' | 'fill_blanks',
+  _strategy: 'replace' | 'fill_blanks',
 ): Promise<ParseResult> {
   const errors: ParseResult['errors'] = [];
   const warnings: ParseResult['warnings'] = [];
@@ -291,13 +297,19 @@ export async function parseXmlUpload(
         continue;
       }
       const fieldValue = normalizeUploadedValue(el.getElementsByTagName('NewValue')[0]?.textContent ?? '');
-      if (fieldValue !== '') {
+      const editedCurrentValue = normalizeUploadedValue(el.getElementsByTagName('Current')[0]?.textContent ?? '');
+      const backendCurrentValue = normalizeUploadedValue(spec.currentValues[fieldId]);
+      const fallbackValue = fieldValue === '' && editedCurrentValue !== '' && editedCurrentValue !== backendCurrentValue
+        ? editedCurrentValue
+        : '';
+      const uploadedValue = fieldValue || fallbackValue;
+      if (uploadedValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: fieldValue,
+          field_value: uploadedValue,
         });
       }
     }
