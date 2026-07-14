@@ -23,6 +23,8 @@ import {
   type AdminReturnDisplayStatus,
   type AdminReturnStatusFilter,
 } from '@/lib/adminReturnFilters';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 interface AdminReturnRow {
   id: string;
@@ -204,6 +206,8 @@ export default function ViewReturns() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const pagedIds = useMemo(() => paged.map(r => r.id), [paged]);
+  const { byEntityId: totalSlaByReturn } = useWorkflowTotalSla({ entityType: 'return', entityIds: pagedIds });
 
   const today = todayDateIso();
   const accepted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'accepted').length;
@@ -330,11 +334,14 @@ export default function ViewReturns() {
                         {ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
-                          {RETURN_STATUS_LABELS[ret.status as ReturnStatus]
-                            || statusFilterMeta[ret.status as AdminReturnDisplayStatus]?.label
-                            || ret.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
+                            {RETURN_STATUS_LABELS[ret.status as ReturnStatus]
+                              || statusFilterMeta[ret.status as AdminReturnDisplayStatus]?.label
+                              || ret.status}
+                          </Badge>
+                          <TotalSlaBadge entry={totalSlaByReturn.get(ret.id)} />
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => navigate(`${adminBasePath}/${ret.id}`)}>

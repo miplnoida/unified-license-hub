@@ -23,6 +23,8 @@ import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -275,8 +277,9 @@ export default function ComplaintDetail() {
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusMeta.variant} className="mt-1">{statusMeta.label}</Badge></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Severity</p><Badge variant={sevMeta.variant} className="mt-1">{sevMeta.label}</Badge></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Days Open</p><p className="text-2xl font-semibold">{daysOpen}<span className="text-xs text-muted-foreground ml-1">/ {slaDays}</span></p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">SLA</p>
-            <Badge variant={slaStatus === 'breached' ? 'destructive' : slaStatus === 'at_risk' ? 'secondary' : 'default'} className="mt-1 capitalize">{slaStatus.replace('_', ' ')}</Badge>
+          <Card><CardContent className="pt-6 space-y-2"><p className="text-xs text-muted-foreground">SLA</p>
+            <Badge variant={slaStatus === 'breached' ? 'destructive' : slaStatus === 'at_risk' ? 'secondary' : 'default'} className="capitalize">{slaStatus.replace('_', ' ')}</Badge>
+            <ComplaintTotalSla complaintId={complaint.id} />
           </CardContent></Card>
         </div>
 
@@ -462,4 +465,11 @@ export default function ComplaintDetail() {
       </div>
     </DashboardLayout>
   );
+}
+
+function ComplaintTotalSla({ complaintId }: { complaintId: string }) {
+  const { byEntityId } = useWorkflowTotalSla({ entityType: 'complaint', entityIds: [complaintId] });
+  const entry = byEntityId.get(complaintId);
+  if (!entry || entry.stepCount === 0) return null;
+  return <TotalSlaBadge entry={entry} />;
 }

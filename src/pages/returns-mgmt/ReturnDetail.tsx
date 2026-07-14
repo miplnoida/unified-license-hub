@@ -28,6 +28,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
 import { ReturnHistoryDrawer } from '@/components/audit/ReturnHistoryDrawer';
 import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
@@ -645,6 +647,7 @@ export default function ReturnDetail() {
               </div>
             </div>
           </div>
+          <ReturnTotalSlaRow returnId={returnData.id} />
         </div>
 
         {isApproved && (
@@ -903,5 +906,16 @@ export default function ReturnDetail() {
         title={`Return history — ${returnData.unique_id}`}
       />
     </DashboardLayout>
+  );
+}
+
+function ReturnTotalSlaRow({ returnId }: { returnId: string }) {
+  const { byEntityId } = useWorkflowTotalSla({ entityType: 'return', entityIds: [returnId] });
+  const entry = byEntityId.get(returnId);
+  if (!entry || entry.stepCount === 0) return null;
+  return (
+    <div className="mt-3">
+      <TotalSlaBadge entry={entry} variant="card" />
+    </div>
   );
 }

@@ -30,6 +30,8 @@ import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
 import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
@@ -467,6 +469,12 @@ export default function ComplaintsList() {
     return true;
   });
 
+  const filteredIds = useMemo(() => filtered.map(c => c.id), [filtered]);
+  const { byEntityId: totalSlaByComplaint } = useWorkflowTotalSla({
+    entityType: 'complaint',
+    entityIds: filteredIds,
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -698,8 +706,11 @@ export default function ComplaintsList() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
-                        {c.sla_due_at && <div className="text-[10px] text-muted-foreground mt-1">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
+                          {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                          <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
@@ -796,8 +807,11 @@ export default function ComplaintsList() {
                             })()}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
-                            {c.sla_due_at && <div className="text-[10px] text-muted-foreground mt-1">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
+                              {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                              <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant={statusVariant[c.status] || 'outline'} className="capitalize text-[10px]">
