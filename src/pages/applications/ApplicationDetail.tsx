@@ -31,6 +31,7 @@ import { ApplicationAiAssessmentPanel } from '@/components/applications/Applicat
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
 
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
+import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
