@@ -41,6 +41,7 @@ export interface ReturnUploadRow {
 
 export interface ParseResult {
   rows: ReturnUploadRow[];
+  nonEmptyRows: number;
   errors: Array<{ scope: string; message: string }>;
   warnings: Array<{ scope: string; message: string }>;
   formVersionIds: string[];
@@ -48,6 +49,11 @@ export interface ParseResult {
 
 const META_SHEET = '__meta';
 const HEADER = ['Section', 'Line Code', 'Field ID', 'Label', 'Type', 'Current Value', 'New Value'];
+
+function normalizeUploadedValue(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
 
 function sanitizeSheetName(name: string, taken: Set<string>): string {
   // Excel sheet names: max 31 chars, cannot contain : \ / ? * [ ]
@@ -181,7 +187,7 @@ export async function parseXlsxUpload(
   const metaSheet = wb.Sheets[META_SHEET];
   if (!metaSheet) {
     errors.push({ scope: 'file', message: 'Template metadata sheet (__meta) is missing. Use the downloaded template.' });
-    return { rows, errors, warnings, formVersionIds: [] };
+    return { rows, nonEmptyRows: 0, errors, warnings, formVersionIds: [] };
   }
   const metaRows = XLSX.utils.sheet_to_json<any>(metaSheet, { defval: '' });
   const specByFormId = new Map(forms.map((f) => [f.formId, f]));
@@ -217,21 +223,27 @@ export async function parseXlsxUpload(
         warnings.push({ scope: sheetName, message: `Field ID "${fieldId}" no longer exists on this form — skipped.` });
         continue;
       }
-      const newVal = r['New Value'];
-      const hasNewVal = newVal !== undefined && newVal !== null && String(newVal) !== '';
-      if (strategy === 'replace' || hasNewVal) {
+      const fieldValue = normalizeUploadedValue(r['New Value']);
+      if (fieldValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: hasNewVal ? String(newVal) : '',
+          field_value: fieldValue,
         });
       }
     }
   }
 
-  return { rows, errors, warnings, formVersionIds: Array.from(seenVersions) };
+  if (rows.length === 0 && errors.length === 0) {
+    warnings.push({
+      scope: 'file',
+      message: 'No populated New Value cells were found. Enter values in the New Value column before importing.',
+    });
+  }
+
+  return { rows, nonEmptyRows: rows.length, errors, warnings, formVersionIds: Array.from(seenVersions) };
 }
 
 export async function parseXmlUpload(
@@ -249,7 +261,7 @@ export async function parseXmlUpload(
   const parseError = doc.querySelector('parsererror');
   if (parseError) {
     errors.push({ scope: 'file', message: 'The uploaded XML file is not well-formed.' });
-    return { rows, errors, warnings, formVersionIds: [] };
+    return { rows, nonEmptyRows: 0, errors, warnings, formVersionIds: [] };
   }
 
   const specByFormId = new Map(forms.map((f) => [f.formId, f]));
@@ -278,30 +290,37 @@ export async function parseXmlUpload(
         warnings.push({ scope, message: `Field ID "${fieldId}" no longer exists on this form — skipped.` });
         continue;
       }
-      const newVal = el.getElementsByTagName('NewValue')[0]?.textContent ?? '';
-      const hasNewVal = newVal !== '';
-      if (strategy === 'replace' || hasNewVal) {
+      const fieldValue = normalizeUploadedValue(el.getElementsByTagName('NewValue')[0]?.textContent ?? '');
+      if (fieldValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: hasNewVal ? String(newVal) : '',
+          field_value: fieldValue,
         });
       }
     }
   }
 
-  return { rows, errors, warnings, formVersionIds: Array.from(seenVersions) };
+  if (rows.length === 0 && errors.length === 0) {
+    warnings.push({
+      scope: 'file',
+      message: 'No populated NewValue elements were found. Enter values in NewValue before importing.',
+    });
+  }
+
+  return { rows, nonEmptyRows: rows.length, errors, warnings, formVersionIds: Array.from(seenVersions) };
 }
 
 export function summarizeParse(result: ParseResult): {
   totalRows: number;
+  nonEmptyRows: number;
   perForm: Record<string, number>;
 } {
   const perForm: Record<string, number> = {};
   for (const r of result.rows) {
     perForm[r.form_id] = (perForm[r.form_id] ?? 0) + 1;
   }
-  return { totalRows: result.rows.length, perForm };
+  return { totalRows: result.rows.length, nonEmptyRows: result.nonEmptyRows ?? result.rows.length, perForm };
 }
