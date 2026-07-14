@@ -12,6 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Plus, ArrowRight, Edit, Trash2, GitBranch, CheckCircle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import CollabReviewConfigTab from '@/components/collab-review/CollabReviewConfigTab';
 
 interface WorkflowState {
   id: string;
