@@ -466,3 +466,9 @@ export default function ComplaintDetail() {
     </DashboardLayout>
   );
 }
+
+function ComplaintTotalSla({ complaintId }: { complaintId: string }) {
+  const { byEntityId } = useWorkflowTotalSla({ entityType: 'complaint', entityIds: [complaintId] });
+  const entry = byEntityId.get(complaintId);
+  if (!entry || entry.stepCount === 0) return null;
+  return <TotalSlaBadge entry={entry} />;
