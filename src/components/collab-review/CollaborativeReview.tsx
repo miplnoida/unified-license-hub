@@ -359,7 +359,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                 Blocking comment
               </label>
             ) : <span />}
-            <Button size="sm" onClick={submitComment} disabled={!draft.trim() || collab.addComment.isPending}>Add comment</Button>
+            <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
         </div>
       )}
