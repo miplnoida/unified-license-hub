@@ -41,6 +41,7 @@ export interface ReturnUploadRow {
 
 export interface ParseResult {
   rows: ReturnUploadRow[];
+  nonEmptyRows: number;
   errors: Array<{ scope: string; message: string }>;
   warnings: Array<{ scope: string; message: string }>;
   formVersionIds: string[];
@@ -48,6 +49,11 @@ export interface ParseResult {
 
 const META_SHEET = '__meta';
 const HEADER = ['Section', 'Line Code', 'Field ID', 'Label', 'Type', 'Current Value', 'New Value'];
+
+function normalizeUploadedValue(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
 
 function sanitizeSheetName(name: string, taken: Set<string>): string {
   // Excel sheet names: max 31 chars, cannot contain : \ / ? * [ ]
@@ -79,7 +85,7 @@ export function buildXlsxTemplate(
     ['Instructions:'],
     ['1. Fill values in the "New Value" column of each form sheet.'],
     ['2. Do NOT rename or delete the __meta sheet — it maps sheets to forms.'],
-    ['3. Leave a "New Value" blank to keep the current value (Fill Blanks mode) or to clear it (Replace mode).'],
+    ['3. Leave a "New Value" blank to keep the current value. Only populated values are imported.'],
     ['4. Save the file as .xlsx and upload it back into the return.'],
   ];
   const wsIntro = XLSX.utils.aoa_to_sheet(instructions);
@@ -162,14 +168,14 @@ export function buildXmlTemplate(
 
 /**
  * Parse an uploaded XLSX file against the current form spec.
- * Only rows with a non-empty "New Value" cell contribute to the import set
- * unless `strategy === 'replace'`, in which case every mapped field is
- * emitted (even when blank — that becomes an explicit clear).
+ * Only rows with a non-empty "New Value" cell contribute to the import set.
+ * If a user accidentally edits "Current Value" instead, we accept it only
+ * when it differs from the server-side current value for that field.
  */
 export async function parseXlsxUpload(
   file: File,
   forms: ReturnUploadFormSpec[],
-  strategy: 'replace' | 'fill_blanks',
+  _strategy: 'replace' | 'fill_blanks',
 ): Promise<ParseResult> {
   const errors: ParseResult['errors'] = [];
   const warnings: ParseResult['warnings'] = [];
@@ -181,7 +187,7 @@ export async function parseXlsxUpload(
   const metaSheet = wb.Sheets[META_SHEET];
   if (!metaSheet) {
     errors.push({ scope: 'file', message: 'Template metadata sheet (__meta) is missing. Use the downloaded template.' });
-    return { rows, errors, warnings, formVersionIds: [] };
+    return { rows, nonEmptyRows: 0, errors, warnings, formVersionIds: [] };
   }
   const metaRows = XLSX.utils.sheet_to_json<any>(metaSheet, { defval: '' });
   const specByFormId = new Map(forms.map((f) => [f.formId, f]));
@@ -217,27 +223,39 @@ export async function parseXlsxUpload(
         warnings.push({ scope: sheetName, message: `Field ID "${fieldId}" no longer exists on this form — skipped.` });
         continue;
       }
-      const newVal = r['New Value'];
-      const hasNewVal = newVal !== undefined && newVal !== null && String(newVal) !== '';
-      if (strategy === 'replace' || hasNewVal) {
+      const fieldValue = normalizeUploadedValue(r['New Value']);
+      const editedCurrentValue = normalizeUploadedValue(r['Current Value']);
+      const backendCurrentValue = normalizeUploadedValue(spec.currentValues[fieldId]);
+      const fallbackValue = fieldValue === '' && editedCurrentValue !== '' && editedCurrentValue !== backendCurrentValue
+        ? editedCurrentValue
+        : '';
+      const uploadedValue = fieldValue || fallbackValue;
+      if (uploadedValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: hasNewVal ? String(newVal) : '',
+          field_value: uploadedValue,
         });
       }
     }
   }
 
-  return { rows, errors, warnings, formVersionIds: Array.from(seenVersions) };
+  if (rows.length === 0 && errors.length === 0) {
+    warnings.push({
+      scope: 'file',
+      message: 'No populated New Value cells were found. Enter values in the New Value column before importing.',
+    });
+  }
+
+  return { rows, nonEmptyRows: rows.length, errors, warnings, formVersionIds: Array.from(seenVersions) };
 }
 
 export async function parseXmlUpload(
   file: File,
   forms: ReturnUploadFormSpec[],
-  strategy: 'replace' | 'fill_blanks',
+  _strategy: 'replace' | 'fill_blanks',
 ): Promise<ParseResult> {
   const errors: ParseResult['errors'] = [];
   const warnings: ParseResult['warnings'] = [];
@@ -249,7 +267,7 @@ export async function parseXmlUpload(
   const parseError = doc.querySelector('parsererror');
   if (parseError) {
     errors.push({ scope: 'file', message: 'The uploaded XML file is not well-formed.' });
-    return { rows, errors, warnings, formVersionIds: [] };
+    return { rows, nonEmptyRows: 0, errors, warnings, formVersionIds: [] };
   }
 
   const specByFormId = new Map(forms.map((f) => [f.formId, f]));
@@ -278,30 +296,43 @@ export async function parseXmlUpload(
         warnings.push({ scope, message: `Field ID "${fieldId}" no longer exists on this form — skipped.` });
         continue;
       }
-      const newVal = el.getElementsByTagName('NewValue')[0]?.textContent ?? '';
-      const hasNewVal = newVal !== '';
-      if (strategy === 'replace' || hasNewVal) {
+      const fieldValue = normalizeUploadedValue(el.getElementsByTagName('NewValue')[0]?.textContent ?? '');
+      const editedCurrentValue = normalizeUploadedValue(el.getElementsByTagName('Current')[0]?.textContent ?? '');
+      const backendCurrentValue = normalizeUploadedValue(spec.currentValues[fieldId]);
+      const fallbackValue = fieldValue === '' && editedCurrentValue !== '' && editedCurrentValue !== backendCurrentValue
+        ? editedCurrentValue
+        : '';
+      const uploadedValue = fieldValue || fallbackValue;
+      if (uploadedValue !== '') {
         rows.push({
           form_id: spec.formId,
           form_version_id: spec.formVersionId,
           field_id: fieldId,
           field_name: fieldId,
-          field_value: hasNewVal ? String(newVal) : '',
+          field_value: uploadedValue,
         });
       }
     }
   }
 
-  return { rows, errors, warnings, formVersionIds: Array.from(seenVersions) };
+  if (rows.length === 0 && errors.length === 0) {
+    warnings.push({
+      scope: 'file',
+      message: 'No populated NewValue elements were found. Enter values in NewValue before importing.',
+    });
+  }
+
+  return { rows, nonEmptyRows: rows.length, errors, warnings, formVersionIds: Array.from(seenVersions) };
 }
 
 export function summarizeParse(result: ParseResult): {
   totalRows: number;
+  nonEmptyRows: number;
   perForm: Record<string, number>;
 } {
   const perForm: Record<string, number> = {};
   for (const r of result.rows) {
     perForm[r.form_id] = (perForm[r.form_id] ?? 0) + 1;
   }
-  return { totalRows: result.rows.length, perForm };
+  return { totalRows: result.rows.length, nonEmptyRows: result.nonEmptyRows ?? result.rows.length, perForm };
 }

@@ -1,29 +1,27 @@
-## Goal
-Make uploaded return data appear in the licensee return form immediately after parsing/importing, on the specific fill page and all similar return fill sessions.
+## Plan: Fix imported return data still not displaying
 
-## Proposed Fix
-1. **Refresh saved return data after import deterministically**
-   - Update the `onImported` flow in `FillReturnPage` so it does not only invalidate the query.
-   - Await a fresh `return_form_data` refetch, then rebuild `allData` and `versionByForm` from the refetched rows.
+### Findings
+- The import is reaching the backend: the affected return has `353` saved `return_form_data` rows and recent import audit entries show `353` values written.
+- However, every saved `field_value` for that return is blank. This means the UI refresh fix alone cannot show values because the committed rows contain empty strings.
+- The likely root cause is the parser/import flow accepting rows from the template where the visible row exists but the `New Value` cell is blank, especially in `replace` mode. It then overwrites every mapped field with `''`.
 
-2. **Remount form tabs only after fresh data is loaded**
-   - Keep the existing `importNonce`, but bump it after `allData` has been hydrated from the refreshed data.
-   - This ensures `FormRenderer` receives imported values as `initialData` on remount.
+### Changes to implement
+1. **Prevent blank template rows from wiping/appearing as successful data imports**
+   - Update XLSX/XML parsing so blank `New Value` rows are skipped unless the user explicitly chooses a clear/replace behavior that is intended to wipe data.
+   - Add a clear warning when no actual values are found in the uploaded file.
 
-3. **Prevent stale blank state overwrite**
-   - Avoid the current sequence where `allData` is cleared and the form subtree remounts before the refetch has returned, which can leave the renderer seeded with `{}`.
+2. **Make import summary honest**
+   - In the upload preview, show both mapped rows and actual non-empty values so users can see whether data will really be imported.
+   - Disable **Import into Return** if the uploaded file has zero non-empty values.
 
-4. **Harden field visibility for import preview**
-   - If parsed rows exist, keep showing the parsed summary before commit.
-   - After commit, show a success toast with written count and ensure the active tab displays the updated values.
+3. **Keep the post-import refresh deterministic**
+   - Keep the current `handleImported` refetch/remount flow, but ensure it hydrates from the committed rows after import and does not overwrite the form with stale/blank state.
 
-## Technical Scope
-- Frontend only unless validation shows the RPC did not write rows.
-- Primary file: `src/pages/entity/returns/FillReturnPage.tsx`.
-- No changes to backend permissions, RPC, or template parsing unless the refreshed query returns zero rows after import.
+4. **Optional targeted cleanup for the affected return**
+   - If needed, after the parser fix, the user should re-upload the completed file. The current backend rows for this return are blank because the last imports wrote empty values.
+   - I will not delete or rewrite existing return values unless explicitly asked.
 
-## Verification
-- Use the affected return fill route.
-- Upload a template with values, confirm parsed rows are present, click **Import into Return**.
-- Verify imported values render in the form tabs without page refresh.
-- Verify Save/Submit still uses the imported values.
+### Verification
+- Confirm a completed template preview reports non-empty values before import.
+- Import the file and verify `return_form_data` contains non-empty `field_value` rows.
+- Verify the form tabs display imported values immediately without refreshing the page.
