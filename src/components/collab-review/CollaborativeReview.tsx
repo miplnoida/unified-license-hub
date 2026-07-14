@@ -37,6 +37,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const [suggText, setSuggText] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { user } = useAuth();
