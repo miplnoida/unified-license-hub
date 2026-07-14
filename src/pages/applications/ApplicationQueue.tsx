@@ -639,6 +639,8 @@ export default function ApplicationQueue() {
                         </TableCell>
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
+                        <TableCell><TotalSlaBadge entry={totalSlaByApp.get(r.id)} /></TableCell>
+
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
