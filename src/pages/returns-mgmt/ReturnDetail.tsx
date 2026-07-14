@@ -647,6 +647,7 @@ export default function ReturnDetail() {
               </div>
             </div>
           </div>
+          <ReturnTotalSlaRow returnId={returnData.id} />
         </div>
 
         {isApproved && (
