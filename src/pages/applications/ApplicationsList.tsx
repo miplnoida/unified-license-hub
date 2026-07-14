@@ -1122,6 +1122,7 @@ export default function ApplicationsList() {
                           <TableHead>Application Status</TableHead>
                           <TableHead>Licensee Status</TableHead>
                           <TableHead>SLA</TableHead>
+                          <TableHead>Total SLA</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>History</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
