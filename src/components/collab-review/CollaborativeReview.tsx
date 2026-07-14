@@ -344,6 +344,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
         </div>
       )}
 
+      {collab.perms.can_comment && (
         <div className="space-y-2 border rounded-md p-3">
           <div className="text-xs font-medium flex items-center gap-1"><MessageSquarePlus className="h-3 w-3" />Add comment</div>
           <Textarea value={draft} onChange={e => setDraft(e.target.value)} rows={2} placeholder="Write a comment. Select text first to anchor it." />
