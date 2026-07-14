@@ -469,6 +469,12 @@ export default function ComplaintsList() {
     return true;
   });
 
+  const filteredIds = useMemo(() => filtered.map(c => c.id), [filtered]);
+  const { byEntityId: totalSlaByComplaint } = useWorkflowTotalSla({
+    entityType: 'complaint',
+    entityIds: filteredIds,
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
