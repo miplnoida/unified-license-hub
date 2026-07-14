@@ -957,7 +957,7 @@ export default function ApplicationsList() {
                 return (
                   <div className="flex flex-col gap-1 min-w-[110px]">
                     <span className="text-xs text-muted-foreground">No SLA</span>
-                    {total && total.stepCount > 0 && <TotalSlaBadge entry={total} />}
+                    {total && <TotalSlaBadge entry={total} />}
                   </div>
                 );
               }
@@ -971,7 +971,7 @@ export default function ApplicationsList() {
                         : `${Math.max(0, Math.round(sla.remainingHours))}h left`}
                     </span>
                   )}
-                  {total && total.stepCount > 0 && <TotalSlaBadge entry={total} />}
+                  {total && <TotalSlaBadge entry={total} />}
                 </div>
               );
             })()}

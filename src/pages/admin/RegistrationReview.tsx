@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Eye, Search } from 'lucide-react';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 const formatStatusLabel = (s: string) =>
   s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -142,6 +144,10 @@ export default function RegistrationReview() {
     });
   }, [rows, statusFilter, search]);
 
+  const filteredIds = useMemo(() => filteredRows.map(r => r.id), [filteredRows]);
+  const { byEntityId: totalSlaByReg } = useWorkflowTotalSla({ entityType: 'registration', entityIds: filteredIds });
+
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -202,6 +208,7 @@ export default function RegistrationReview() {
                       <TableHead>Workflow</TableHead>
                       <TableHead>Current Step</TableHead>
                       <TableHead>SLA</TableHead>
+                      <TableHead>Total SLA</TableHead>
                       <TableHead>Deadline</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Action</TableHead>
@@ -236,6 +243,9 @@ export default function RegistrationReview() {
                               escalationAfterHours: r.escalation_after_hours,
                             }}
                           />
+                        </TableCell>
+                        <TableCell>
+                          <TotalSlaBadge entry={totalSlaByReg.get(r.id)} />
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {deadline ? deadline.toLocaleString() : '—'}
