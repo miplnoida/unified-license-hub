@@ -96,7 +96,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
-  const effectiveRoleId = selectedRoleId ?? collab.perms.role_id ?? null;
+  const multiRole = (collab.availableRoles?.length ?? 0) > 1;
+  const effectiveRoleId = multiRole
+    ? selectedRoleId
+    : (selectedRoleId ?? collab.perms.role_id ?? null);
+  const roleGateOk = !multiRole || !!selectedRoleId;
 
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
