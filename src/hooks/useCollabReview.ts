@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
-import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
+// (workflow instance resolved inline below to support legacy entity_type values)
 import { logAction } from '@/hooks/useAuditLog';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { humanizeReviewError } from '@/lib/reviewErrors';
@@ -97,10 +97,29 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
   const { activeRegulatorId } = useRegulator();
 
   // Resolve workflow instance for this entity
-  const wfEntityType =
-    entityType === 'application' ? 'pre_application' : entityType;
-  const { data: instances = [] } = useWorkflowInstances(wfEntityType, entityId);
-  const instance: any = instances?.[0] ?? null;
+  // Legacy-aware workflow instance lookup. For `application`, rows may be
+  // stored under `application` (legacy), `pre_application`, or `post_application`.
+  const wfEntityTypes: string[] =
+    entityType === 'application'
+      ? ['application', 'pre_application', 'post_application']
+      : [entityType];
+  const instanceQ = useQuery({
+    queryKey: ['collab-workflow-instance', entityType, entityId],
+    enabled: !!entityId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('workflow_instances')
+        .select('id, workflow_id, current_step_id, entity_type, status, created_at')
+        .in('entity_type', wfEntityTypes)
+        .eq('entity_id', entityId)
+        .in('status', ['active', 'paused'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data ?? [])[0] ?? null;
+    },
+  });
+  const instance: any = instanceQ.data ?? null;
   const workflowInstanceId: string | null = instance?.id ?? null;
   const workflowId: string | null = instance?.workflow_id ?? null;
   const stepId: string | null = instance?.current_step_id ?? null;

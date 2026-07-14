@@ -273,9 +273,22 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const moduleKey = entityType === 'registration' ? 'registration_management' : 'application_management';
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
-  const { data: steps = [] } = useWorkflowSteps(workflowId);
   const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
   const { data: actions = [] } = useEntityActions(entityType, applicationId);
+  // Source of truth: the workflow_id pinned on the active/paused workflow_instance,
+  // falling back to the application's workflow_id. This ensures the UI renders
+  // the same steps the runtime engine is actually executing (e.g. a 4-step
+  // workflow), even if applications.workflow_id was left pointing at a stale
+  // 2-step workflow after a version/assignment change.
+  const activeOrPausedForResolution = useMemo(
+    () => (instances || []).find((i: any) => i?.status === 'active' || i?.status === 'paused') ?? null,
+    [instances],
+  );
+  const effectiveWorkflowId = (activeOrPausedForResolution as any)?.workflow_id ?? workflowId;
+  const workflowIdMismatch =
+    !!workflowId && !!(activeOrPausedForResolution as any)?.workflow_id
+      && workflowId !== (activeOrPausedForResolution as any).workflow_id;
+  const { data: steps = [] } = useWorkflowSteps(effectiveWorkflowId);
   const queryClient = useQueryClient();
 
   const isInstancePaused = (i: any) =>
@@ -496,7 +509,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   }, [currentStep, configuredStepActions, canActResult, isPaused]);
 
   // ─── Early-return guards (after ALL hooks above) ───
-  if (!workflowId) {
+  if (!effectiveWorkflowId) {
     return (
       <Card><CardContent className="py-6 text-sm text-muted-foreground">
         No workflow is attached to this {entityNoun}.
@@ -1045,6 +1058,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {workflowIdMismatch && isInternal && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
+            This {entityNoun} is linked to a different workflow than its active
+            instance. Showing the instance workflow ({steps.length} step{steps.length === 1 ? '' : 's'}).
+          </div>
+        )}
         {isPaused && (
           <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
             <div className="flex items-center gap-2 font-medium text-warning">
