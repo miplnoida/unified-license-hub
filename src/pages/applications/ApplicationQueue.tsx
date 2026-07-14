@@ -39,6 +39,10 @@ import { toast } from 'sonner';
 import { Eye, Loader2, Users, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApplicationCategory } from '@/lib/applicationCategory';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
+
+
 
 
 /**
@@ -385,6 +389,13 @@ export default function ApplicationQueue() {
     return sorted;
   }, [rows, search, applicants, sortBy]);
 
+  const visibleIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
+  const { byEntityId: totalSlaByApp } = useWorkflowTotalSla({
+    entityType: 'application',
+    entityIds: visibleIds,
+  });
+
+
 
   const toggleRow = (id: string) => {
     setSelected((prev) => {
@@ -562,6 +573,8 @@ export default function ApplicationQueue() {
                   <TableHead className="w-40">Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
+                  <TableHead>Total SLA</TableHead>
+
                   <TableHead className="w-56">
                     <TooltipProvider delayDuration={200}>
                       <span className="inline-flex items-center gap-1">
@@ -585,9 +598,9 @@ export default function ApplicationQueue() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">No pending applications.</TableCell></TableRow>
 
                 ) : (
                   filtered.map((r) => {
@@ -626,6 +639,8 @@ export default function ApplicationQueue() {
                         </TableCell>
                         <TableCell><Badge variant="secondary">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{slaChip(age)}</TableCell>
+                        <TableCell><TotalSlaBadge entry={totalSlaByApp.get(r.id)} /></TableCell>
+
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
