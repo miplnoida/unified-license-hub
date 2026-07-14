@@ -189,6 +189,35 @@ export interface WorkflowAction {
   created_at: string;
 }
 
+const WORKFLOW_INSTANCE_STATUS_RANK: Record<string, number> = {
+  active: 0,
+  paused: 1,
+  completed: 2,
+  cancelled: 3,
+};
+
+export function workflowInstanceEntityTypesForLookup(entityType?: string): string[] | null {
+  if (!entityType) return null;
+  return entityType === 'application'
+    ? ['application', 'pre_application', 'post_application']
+    : [entityType];
+}
+
+export function sortWorkflowSteps<T extends Pick<WorkflowStep, 'id' | 'step_order' | 'created_at'>>(steps: T[]): T[] {
+  return [...steps].sort((a, b) =>
+    a.step_order - b.step_order
+    || new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+    || a.id.localeCompare(b.id),
+  );
+}
+
+export function sortWorkflowInstances<T extends Pick<WorkflowInstance, 'status' | 'created_at'>>(instances: T[]): T[] {
+  return [...instances].sort((a, b) =>
+    (WORKFLOW_INSTANCE_STATUS_RANK[a.status] ?? 4) - (WORKFLOW_INSTANCE_STATUS_RANK[b.status] ?? 4)
+    || new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+  );
+}
+
 export async function fetchWorkflowTypeConfigs(): Promise<WorkflowTypeConfig[]> {
   const { data, error } = await supabase
     .from('approval_workflow_types')
@@ -248,11 +277,7 @@ export function useWorkflowSteps(workflowId: string | null) {
         .eq('workflow_id', workflowId)
         .order('step_order', { ascending: true });
       if (error) throw error;
-      return [...((data || []) as unknown as WorkflowStep[])].sort((a, b) =>
-        a.step_order - b.step_order
-        || new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
-        || a.id.localeCompare(b.id),
-      );
+      return sortWorkflowSteps((data || []) as unknown as WorkflowStep[]);
     },
     enabled: !!workflowId,
   });
@@ -263,19 +288,16 @@ export function useWorkflowInstances(entityType?: string, entityId?: string) {
     queryKey: ['workflow_instances', entityType, entityId],
     queryFn: async () => {
       let query = supabase.from('workflow_instances').select('*').order('created_at', { ascending: false });
-      if (entityType === 'application') {
-        query = query.in('entity_type', ['application', 'pre_application', 'post_application']);
-      } else if (entityType) {
-        query = query.eq('entity_type', entityType);
+      const entityTypes = workflowInstanceEntityTypesForLookup(entityType);
+      if (entityTypes?.length === 1) {
+        query = query.eq('entity_type', entityTypes[0]);
+      } else if (entityTypes) {
+        query = query.in('entity_type', entityTypes);
       }
       if (entityId) query = query.eq('entity_id', entityId);
       const { data, error } = await query;
       if (error) throw error;
-      return [...((data || []) as unknown as WorkflowInstance[])].sort((a, b) => {
-        const statusRank = (status: string) => ({ active: 0, paused: 1, completed: 2, cancelled: 3 }[status] ?? 4);
-        return statusRank(a.status) - statusRank(b.status)
-          || new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
+      return sortWorkflowInstances((data || []) as unknown as WorkflowInstance[]);
     },
   });
 }
