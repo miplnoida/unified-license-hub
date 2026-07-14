@@ -1523,6 +1523,18 @@ export default function ApplicationDetail() {
             </Card>
           </div>
         </div>
+
+        {id && (
+          <CollaborativeReview
+            entityType="application"
+            entityId={id}
+            fields={[
+              { key: 'assessment_notes', label: 'Assessment notes', value: (app as any)?.assessment_notes ?? '' },
+              { key: 'decision_rationale', label: 'Decision rationale', value: (app as any)?.decision_rationale ?? '' },
+              { key: 'review_notes', label: 'Review notes', value: (app as any)?.review_notes ?? '' },
+            ]}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
