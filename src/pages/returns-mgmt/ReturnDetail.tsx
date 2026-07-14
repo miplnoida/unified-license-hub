@@ -906,6 +906,16 @@ export default function ReturnDetail() {
         returnId={returnData.id}
         title={`Return history — ${returnData.unique_id}`}
       />
+      {returnData?.id && (
+        <CollaborativeReview
+          entityType="return"
+          entityId={returnData.id}
+          fields={[
+            { key: 'explanations', label: 'Explanations', value: (returnData as any)?.explanations ?? '' },
+            { key: 'reviewer_notes', label: 'Reviewer notes', value: (returnData as any)?.reviewer_notes ?? '' },
+          ]}
+        />
+      )}
     </DashboardLayout>
   );
 }
