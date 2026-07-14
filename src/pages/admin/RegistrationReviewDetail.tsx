@@ -370,3 +370,10 @@ export default function RegistrationReviewDetail() {
   );
 }
 
+function RegistrationTotalSla({ registrationId }: { registrationId: string }) {
+  const { byEntityId } = useWorkflowTotalSla({ entityType: 'registration', entityIds: [registrationId] });
+  const entry = byEntityId.get(registrationId);
+  if (!entry || entry.stepCount === 0) return null;
+  return <TotalSlaBadge entry={entry} variant="card" />;
+}
+
