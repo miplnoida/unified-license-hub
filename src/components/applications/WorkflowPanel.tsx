@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
-import { useWorkflowSteps, useWorkflowInstances, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { useWorkflow, useWorkflowSteps, useWorkflowInstances, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
@@ -288,6 +288,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const workflowIdMismatch =
     !!workflowId && !!(activeOrPausedForResolution as any)?.workflow_id
       && workflowId !== (activeOrPausedForResolution as any).workflow_id;
+  const { data: workflow } = useWorkflow(effectiveWorkflowId ?? null);
   const { data: steps = [] } = useWorkflowSteps(effectiveWorkflowId);
   const queryClient = useQueryClient();
 
@@ -342,6 +343,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   );
   const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
+  const workflowTitle = workflow?.name
+    ? `${entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — ${workflow.name}`
+    : (entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review');
 
   const actorIds = useMemo(() => actions.map(a => a.actor_id).filter((x): x is string => !!x), [actions]);
   const { data: actorsMap = {} } = useActorsMap(actorIds);
@@ -552,7 +556,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {steps.length} of {steps.length}
+            {workflowTitle} — Level {steps.length} of {steps.length}
             <Badge
               variant="outline"
               className={cn(
@@ -614,8 +618,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         )}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate font-medium">Step {idx + 1}: {s.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                        <p className="text-sm truncate font-medium">{s.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">Step {idx + 1} · {stepRoleLabel(s)}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {s.sla_hours ? (
@@ -1049,7 +1053,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Shield className="h-4 w-4 text-primary" />
-          {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
+          {workflowTitle} — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
           {isPaused && (
             <Badge variant="outline" className="ml-2 border-warning text-warning text-[10px]">
               <PauseCircle className="h-3 w-3 mr-1" /> Paused
@@ -1062,6 +1066,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
             This {entityNoun} is linked to a different workflow than its active
             instance. Showing the instance workflow ({steps.length} step{steps.length === 1 ? '' : 's'}).
+          </div>
+        )}
+        {isInternal && (
+          <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">Workflow diagnostics</div>
+            <div className="mt-1 grid gap-1 sm:grid-cols-2">
+              <span>Workflow: {workflow?.name || 'Unknown'}</span>
+              <span>Steps loaded: {steps.length}</span>
+              <span>Instance: {(liveInstance as any)?.id || 'none'}</span>
+              <span>Entity type: {(liveInstance as any)?.entity_type || entityType}</span>
+              <span>Workflow ID: {effectiveWorkflowId || 'none'}</span>
+              <span>Current step: {currentStep?.name || (liveInstance as any)?.current_step_id || 'none'}</span>
+            </div>
           </div>
         )}
         {isPaused && (
@@ -1129,9 +1146,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                     />
                     <div className="min-w-0 flex-1">
                       <p className={cn('text-sm truncate', isCurrent ? 'font-semibold' : 'font-medium')}>
-                        Step {idx + 1}: {s.name}
+                        {s.name}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                      <p className="text-xs text-muted-foreground truncate">Step {idx + 1} · {stepRoleLabel(s)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {s.sla_hours ? (

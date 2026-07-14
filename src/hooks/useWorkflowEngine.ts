@@ -248,7 +248,11 @@ export function useWorkflowSteps(workflowId: string | null) {
         .eq('workflow_id', workflowId)
         .order('step_order', { ascending: true });
       if (error) throw error;
-      return (data || []) as unknown as WorkflowStep[];
+      return [...((data || []) as unknown as WorkflowStep[])].sort((a, b) =>
+        a.step_order - b.step_order
+        || new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        || a.id.localeCompare(b.id),
+      );
     },
     enabled: !!workflowId,
   });
@@ -259,11 +263,19 @@ export function useWorkflowInstances(entityType?: string, entityId?: string) {
     queryKey: ['workflow_instances', entityType, entityId],
     queryFn: async () => {
       let query = supabase.from('workflow_instances').select('*').order('created_at', { ascending: false });
-      if (entityType) query = query.eq('entity_type', entityType);
+      if (entityType === 'application') {
+        query = query.in('entity_type', ['application', 'pre_application', 'post_application']);
+      } else if (entityType) {
+        query = query.eq('entity_type', entityType);
+      }
       if (entityId) query = query.eq('entity_id', entityId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as WorkflowInstance[];
+      return [...((data || []) as unknown as WorkflowInstance[])].sort((a, b) => {
+        const statusRank = (status: string) => ({ active: 0, paused: 1, completed: 2, cancelled: 3 }[status] ?? 4);
+        return statusRank(a.status) - statusRank(b.status)
+          || new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      });
     },
   });
 }
