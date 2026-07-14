@@ -376,6 +376,20 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
     return rows.filter(r => r.enabled && (mineSet.has(r.role_id) || isPlatformAdmin)).map(r => r.role_id);
   }, [stepPermsQ.data, myRolesQ.data, user?.role]);
 
+  // Diagnostics: which of the user's dynamic roles have a permission row on this step,
+  // and which role_ids the step is configured for. Lets the UI distinguish
+  // "feature off" from "your role isn't listed".
+  const myMatchingRows: ReviewStepPermissions[] = useMemo(() => {
+    const rows = stepPermsQ.data ?? [];
+    const mineSet = new Set(myRolesQ.data ?? []);
+    return rows.filter(r => mineSet.has(r.role_id));
+  }, [stepPermsQ.data, myRolesQ.data]);
+
+  const configuredRoleIds: string[] = useMemo(
+    () => (stepPermsQ.data ?? []).map(r => r.role_id),
+    [stepPermsQ.data],
+  );
+
   return {
     isLoading: commentsQ.isLoading || suggestionsQ.isLoading,
     comments: commentsQ.data ?? [],
@@ -383,6 +397,8 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
     roleDisplay: roleDisplayQ.data ?? [],
     stepPerms: stepPermsQ.data ?? [],
     myRoleIds: myRolesQ.data ?? [],
+    myMatchingRows,
+    configuredRoleIds,
     availableRoles,
     perms,
     workflowId, workflowInstanceId, stepId,

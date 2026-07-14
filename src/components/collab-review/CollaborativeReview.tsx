@@ -368,7 +368,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
         </div>
       )}
 
-      {collab.perms.can_comment && (
+      {collab.perms.can_comment ? (
         <div className="space-y-2 border rounded-md p-3">
           <div className="text-xs font-medium flex items-center gap-1"><MessageSquarePlus className="h-3 w-3" />Add comment</div>
           <Textarea value={draft} onChange={e => setDraft(e.target.value)} rows={2} placeholder="Write a comment. Select text first to anchor it." />
@@ -381,6 +381,15 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             ) : <span />}
             <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
+          {!roleGateOk && (
+            <p className="text-[11px] text-muted-foreground">Choose a role above before posting.</p>
+          )}
+        </div>
+      ) : (
+        <div className="border border-dashed rounded-md p-3 text-xs text-muted-foreground">
+          {collab.myMatchingRows && collab.myMatchingRows.length === 0
+            ? 'Your role is not configured to comment on this workflow step. Ask an administrator to enable commenting for your role in Settings → Collaborative Review.'
+            : 'Your current role can view but not comment on this step. Ask an administrator to enable commenting for your role.'}
         </div>
       )}
 

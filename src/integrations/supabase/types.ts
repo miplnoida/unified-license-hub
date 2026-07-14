@@ -14789,6 +14789,10 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      copy_review_step_permissions: {
+        Args: { _from_step: string; _to_step: string }
+        Returns: number
+      }
       create_approval_workflow_with_steps: {
         Args: { _steps: Json; _workflow: Json }
         Returns: Json
