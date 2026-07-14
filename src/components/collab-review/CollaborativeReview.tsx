@@ -64,8 +64,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const activeFieldSpec = fields.find(f => f.key === activeField) ?? fields[0];
 
-  if (!collab.perms.enabled) {
-    return null; // feature not enabled for this workflow step
+  if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
+    return null; // feature not enabled or user has no view permission on this step
   }
 
   const commentsForField = collab.comments.filter(c => c.field_key === activeField && !c.parent_comment_id);
