@@ -231,6 +231,7 @@ export default function FillReturnPage() {
   const [completedForms, setCompletedForms] = useState<Set<string>>(new Set());
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
+  const [importNonce, setImportNonce] = useState(0);
 
   // Build initial data + pinned versions from saved return_form_data rows
   useEffect(() => {
