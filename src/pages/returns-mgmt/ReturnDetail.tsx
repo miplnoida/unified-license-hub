@@ -484,7 +484,7 @@ export default function ReturnDetail() {
         },
       }).catch(() => {});
     } catch (e: any) {
-      toast.error(e.message || 'Failed to approve');
+      toast.error(humanizeReviewError(e) || 'Failed to approve');
     } finally { setSubmitting(null); }
   }
 
