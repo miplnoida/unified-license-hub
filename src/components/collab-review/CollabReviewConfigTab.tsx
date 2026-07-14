@@ -27,6 +27,7 @@ const PERM_COLS = [
 export default function CollabReviewConfigTab() {
   const qc = useQueryClient();
   const { data: roles = [] } = useRoles();
+  const { activeRegulatorId } = useRegulator();
 
   const workflowsQ = useQuery({
     queryKey: ['collab-cfg-workflows'],
