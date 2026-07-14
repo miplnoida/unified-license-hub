@@ -47,7 +47,7 @@ interface Props {
   orderedForms: OrderedForm[];
   allData: Record<string, Record<string, any>>;
   disabled?: boolean;
-  onImported: () => void;
+  onImported: () => void | Promise<void>;
 }
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -262,8 +262,8 @@ export function ReturnUploadPanel({
 
       toast.success(`Imported ${written} value${written === 1 ? '' : 's'} into ${forms.length} form${forms.length === 1 ? '' : 's'}.`);
       resetSelection();
-      qc.invalidateQueries({ queryKey: ['return_form_data', returnId] });
-      onImported();
+      await qc.invalidateQueries({ queryKey: ['return_form_data', returnId] });
+      await onImported();
     } catch (e: any) {
       toast.error(`Import failed: ${e?.message || 'unknown error'}`);
     } finally {

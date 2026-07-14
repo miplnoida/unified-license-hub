@@ -211,7 +211,7 @@ export default function FillReturnPage() {
         }));
     },
   });
-  const { data: savedFormData = [] } = useReturnFormData(id);
+  const { data: savedFormData = [], refetch: refetchFormData } = useReturnFormData(id);
   const saveFormData = useSaveReturnFormData();
   const { update: updateReturn } = useMutateReturn();
   const insertAudit = useInsertReturnAudit();
@@ -233,21 +233,34 @@ export default function FillReturnPage() {
   const initializedRef = useRef(false);
   const [importNonce, setImportNonce] = useState(0);
 
+  const hydrateFormDataRows = useCallback((rows: any[]) => {
+    const init: Record<string, Record<string, any>> = {};
+    const versions: Record<string, string | null> = {};
+    for (const row of rows || []) {
+      if (!init[row.form_id]) init[row.form_id] = {};
+      init[row.form_id][row.field_name] = row.field_value || '';
+      if ((row as any).form_version_id) versions[row.form_id] = (row as any).form_version_id;
+    }
+    setAllData(init);
+    setVersionByForm(versions);
+    initializedRef.current = true;
+  }, []);
+
   // Build initial data + pinned versions from saved return_form_data rows
   useEffect(() => {
     if (savedFormData.length > 0 && !initializedRef.current) {
-      const init: Record<string, Record<string, any>> = {};
-      const versions: Record<string, string | null> = {};
-      for (const row of savedFormData) {
-        if (!init[row.form_id]) init[row.form_id] = {};
-        init[row.form_id][row.field_name] = row.field_value || '';
-        if ((row as any).form_version_id) versions[row.form_id] = (row as any).form_version_id;
-      }
-      setAllData(init);
-      setVersionByForm(versions);
-      initializedRef.current = true;
+      hydrateFormDataRows(savedFormData);
     }
-  }, [savedFormData]);
+  }, [savedFormData, hydrateFormDataRows]);
+
+  const handleImported = useCallback(async () => {
+    if (!id) return;
+    initializedRef.current = false;
+    await qc.invalidateQueries({ queryKey: ['return_form_data', id] });
+    const { data: refreshedRows = [] } = await refetchFormData();
+    hydrateFormDataRows(refreshedRows as any[]);
+    setImportNonce((n) => n + 1);
+  }, [id, qc, refetchFormData, hydrateFormDataRows]);
 
   // One tab per linked form (ordered by display_order, then name).
   const orderedForms = useMemo(() => {
@@ -719,13 +732,7 @@ export default function FillReturnPage() {
             orderedForms={orderedForms as any}
             allData={allData}
             disabled={!isEditable || saving || submitting}
-            onImported={() => {
-              initializedRef.current = false;
-              setAllData({});
-              setVersionByForm({});
-              setImportNonce((n) => n + 1);
-              qc.invalidateQueries({ queryKey: ['return_form_data', id] });
-            }}
+            onImported={handleImported}
           />
         )}
 

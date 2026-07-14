@@ -1,30 +1,29 @@
+## Goal
+Make uploaded return data appear in the licensee return form immediately after parsing/importing, on the specific fill page and all similar return fill sessions.
 
-## Problem
+## Proposed Fix
+1. **Refresh saved return data after import deterministically**
+   - Update the `onImported` flow in `FillReturnPage` so it does not only invalidate the query.
+   - Await a fresh `return_form_data` refetch, then rebuild `allData` and `versionByForm` from the refetched rows.
 
-On the licensee panel, the bulk-upload import RPC (`import_return_form_data`) writes values into `return_form_data` successfully, but the values do not appear in the form tabs after import.
+2. **Remount form tabs only after fresh data is loaded**
+   - Keep the existing `importNonce`, but bump it after `allData` has been hydrated from the refreshed data.
+   - This ensures `FormRenderer` receives imported values as `initialData` on remount.
 
-Root cause is in `src/pages/entity/returns/FillReturnPage.tsx`:
+3. **Prevent stale blank state overwrite**
+   - Avoid the current sequence where `allData` is cleared and the form subtree remounts before the refetch has returned, which can leave the renderer seeded with `{}`.
 
-- `onImported` clears `allData`, resets `initializedRef`, and invalidates the `return_form_data` query. The parent state (`allData`) does re-hydrate from the refetched rows.
-- Each tab renders `<SingleReturnForm>` → `<FormRenderer initialData={...} />`. `FormRenderer` seeds its **internal** field state from `initialData` only on mount / when its resolved `form_version_id` changes. After an import the version does not change, so `FormRenderer` keeps its stale internal state and the imported values never show — even though `allData` in the parent is correct.
+4. **Harden field visibility for import preview**
+   - If parsed rows exist, keep showing the parsed summary before commit.
+   - After commit, show a success toast with written count and ensure the active tab displays the updated values.
 
-## Fix (frontend only, minimal)
-
-Force the form subtree to remount after a successful import by bumping a nonce and using it in the tab's `key`.
-
-**`src/pages/entity/returns/FillReturnPage.tsx`**
-
-1. Add `const [importNonce, setImportNonce] = useState(0);`
-2. In `onImported` (already resets `initializedRef`, `allData`, `versionByForm`, invalidates query), also call `setImportNonce(n => n + 1);`.
-3. In the tab render loop, key each `<SingleReturnForm>` (or its wrapping `<TabsContent>` inner block) with `` `${cf.form_id}:${importNonce}` `` so the renderer unmounts / remounts and picks up the freshly hydrated `initialData` from `allData`.
-
-That is sufficient: once `savedFormData` refetches, the parent `useEffect` re-populates `allData`; the remounted `FormRenderer` seeds from the new `initialData`, so imported values render in every tab.
-
-No backend, RPC, or RLS changes are needed — the data is already being written correctly.
+## Technical Scope
+- Frontend only unless validation shows the RPC did not write rows.
+- Primary file: `src/pages/entity/returns/FillReturnPage.tsx`.
+- No changes to backend permissions, RPC, or template parsing unless the refreshed query returns zero rows after import.
 
 ## Verification
-
-- Download template, edit a couple of values, upload, click Import.
-- Tabs should immediately show the imported values in their fields (both "Fill blanks only" and "Replace" strategies).
-- Existing typed values that were not touched by the upload remain unchanged.
-- Save / Submit continue to work.
+- Use the affected return fill route.
+- Upload a template with values, confirm parsed rows are present, click **Import into Return**.
+- Verify imported values render in the form tabs without page refresh.
+- Verify Save/Submit still uses the imported values.
