@@ -85,7 +85,7 @@ export function buildXlsxTemplate(
     ['Instructions:'],
     ['1. Fill values in the "New Value" column of each form sheet.'],
     ['2. Do NOT rename or delete the __meta sheet — it maps sheets to forms.'],
-    ['3. Leave a "New Value" blank to keep the current value (Fill Blanks mode) or to clear it (Replace mode).'],
+    ['3. Leave a "New Value" blank to keep the current value. Only populated values are imported.'],
     ['4. Save the file as .xlsx and upload it back into the return.'],
   ];
   const wsIntro = XLSX.utils.aoa_to_sheet(instructions);
@@ -168,9 +168,9 @@ export function buildXmlTemplate(
 
 /**
  * Parse an uploaded XLSX file against the current form spec.
- * Only rows with a non-empty "New Value" cell contribute to the import set
- * unless `strategy === 'replace'`, in which case every mapped field is
- * emitted (even when blank — that becomes an explicit clear).
+ * Only rows with a non-empty "New Value" cell contribute to the import set.
+ * If a user accidentally edits "Current Value" instead, we accept it only
+ * when it differs from the server-side current value for that field.
  */
 export async function parseXlsxUpload(
   file: File,
