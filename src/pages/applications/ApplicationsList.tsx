@@ -952,12 +952,10 @@ export default function ApplicationsList() {
           <TableCell>
             {(() => {
               const sla = getSlaForApp(app.id);
-              const total = totalSlaByApp.get(app.id);
               if (!sla || sla.status === 'unknown') {
                 return (
                   <div className="flex flex-col gap-1 min-w-[110px]">
                     <span className="text-xs text-muted-foreground">No SLA</span>
-                    {total && <TotalSlaBadge entry={total} />}
                   </div>
                 );
               }
@@ -971,10 +969,12 @@ export default function ApplicationsList() {
                         : `${Math.max(0, Math.round(sla.remainingHours))}h left`}
                     </span>
                   )}
-                  {total && <TotalSlaBadge entry={total} />}
                 </div>
               );
             })()}
+          </TableCell>
+          <TableCell>
+            <TotalSlaBadge entry={totalSlaByApp.get(app.id)} />
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
