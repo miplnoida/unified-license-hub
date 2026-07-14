@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Eye, Search } from 'lucide-react';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 const formatStatusLabel = (s: string) =>
   s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
