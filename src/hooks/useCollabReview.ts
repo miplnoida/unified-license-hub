@@ -260,6 +260,21 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
         input.parent_comment_id ? 'collab_review.reply_added' : 'collab_review.comment_added',
         entityType, entityId, { meta: { id: data?.id, field: input.field_key, blocking: !!input.is_blocking } },
       );
+      // Fire-and-forget notifications; safe on failure.
+      if (input.parent_comment_id) {
+        void dispatchNotificationEvent({
+          event_key: 'collab_review.reply',
+          entity_type: entityType, entity_id: entityId,
+          payload: { comment_id: data?.id, parent_comment_id: input.parent_comment_id, field_key: input.field_key },
+        });
+      }
+      if (input.is_blocking && !input.parent_comment_id) {
+        void dispatchNotificationEvent({
+          event_key: 'collab_review.blocking_created',
+          entity_type: entityType, entity_id: entityId,
+          payload: { comment_id: data?.id, field_key: input.field_key },
+        });
+      }
       return data;
     },
     onSuccess: () => { invalidate(); toast.success('Comment added'); },
@@ -287,6 +302,13 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
       if (error) throw error;
       await logAction('collab_review.blocking_toggled', entityType, entityId,
         { meta: { id: input.id, blocking: input.blocking } });
+      if (input.blocking) {
+        void dispatchNotificationEvent({
+          event_key: 'collab_review.blocking_created',
+          entity_type: entityType, entity_id: entityId,
+          payload: { comment_id: input.id },
+        });
+      }
     },
     onSuccess: () => invalidate(),
     onError: (e: any) => toast.error(humanError(e)),
@@ -321,12 +343,17 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
   const decideSuggestion = useMutation({
     mutationFn: async (input: { id: string; accept: boolean }) => {
       const rpc = input.accept ? 'accept_review_suggestion' : 'reject_review_suggestion';
-      const { error } = await (supabase as any).rpc(rpc, { _suggestion_id: input.id });
+      const { data, error } = await (supabase as any).rpc(rpc, { _suggestion_id: input.id });
       if (error) throw error;
       await logAction(
         input.accept ? 'collab_review.suggestion_accepted' : 'collab_review.suggestion_rejected',
         entityType, entityId, { meta: { id: input.id } },
       );
+      void dispatchNotificationEvent({
+        event_key: input.accept ? 'collab_review.suggestion_accepted' : 'collab_review.suggestion_rejected',
+        entity_type: entityType, entity_id: entityId,
+        payload: { suggestion_id: input.id, author_user_id: (data as any)?.author_user_id ?? null },
+      });
     },
     onSuccess: (_d, vars) => {
       invalidate(vars.accept);
