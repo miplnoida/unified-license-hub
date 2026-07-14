@@ -971,7 +971,7 @@ export default function ApplicationsList() {
                         : `${Math.max(0, Math.round(sla.remainingHours))}h left`}
                     </span>
                   )}
-                  {total && total.stepCount > 0 && <TotalSlaBadge entry={total} />}
+                  {total && <TotalSlaBadge entry={total} />}
                 </div>
               );
             })()}
