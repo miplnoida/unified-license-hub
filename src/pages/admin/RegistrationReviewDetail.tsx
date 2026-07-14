@@ -17,6 +17,7 @@ import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/
 import { isDisplayOnlyField } from '@/lib/registrationDisplayTypes';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import type { RegField, RegFormSchema } from '@/types/registrationForm';
+import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 
 const formatStatusLabel = (s: string) =>
   s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
