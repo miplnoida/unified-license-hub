@@ -196,7 +196,8 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
   const perms: EffectivePerms = useMemo(() => {
     const rows = stepPermsQ.data ?? [];
     const myRoleIds = new Set(myRolesQ.data ?? []);
-    const mine = rows.filter(r => myRoleIds.has(r.role_id) && r.enabled);
+    const isPlatformAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+    const mine = rows.filter(r => (myRoleIds.has(r.role_id) || isPlatformAdmin) && r.enabled);
     const base: EffectivePerms = {
       enabled: rows.some(r => r.enabled),
       can_view: false, can_comment: false, can_reply: false, can_suggest: false,
@@ -215,7 +216,7 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
       base.can_mark_blocking = base.can_mark_blocking || r.can_mark_blocking;
     }
     return base;
-  }, [stepPermsQ.data, myRolesQ.data]);
+  }, [stepPermsQ.data, myRolesQ.data, user?.role]);
 
   // Query keys used by each entity's detail view — invalidated after accepted suggestions
   // so the narrative refetches from the DB.
@@ -371,8 +372,9 @@ export function useCollabReview(entityType: CollabEntityType, entityId: string |
   const availableRoles: string[] = useMemo(() => {
     const rows = stepPermsQ.data ?? [];
     const mineSet = new Set(myRolesQ.data ?? []);
-    return rows.filter(r => r.enabled && mineSet.has(r.role_id)).map(r => r.role_id);
-  }, [stepPermsQ.data, myRolesQ.data]);
+    const isPlatformAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+    return rows.filter(r => r.enabled && (mineSet.has(r.role_id) || isPlatformAdmin)).map(r => r.role_id);
+  }, [stepPermsQ.data, myRolesQ.data, user?.role]);
 
   return {
     isLoading: commentsQ.isLoading || suggestionsQ.isLoading,
