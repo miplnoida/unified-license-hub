@@ -30,6 +30,8 @@ import { buildCsv } from '@/lib/applicationsExport';
 import { logExport } from '@/lib/complianceAudit';
 import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
 import { useWorkflowSlaInstances } from '@/hooks/useWorkflowSlaInstances';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
 import { computeWorkflowSLA, type SlaStatus } from '@/hooks/useWorkflowSLA';
 
