@@ -231,6 +231,7 @@ export default function FillReturnPage() {
   const [completedForms, setCompletedForms] = useState<Set<string>>(new Set());
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
+  const [importNonce, setImportNonce] = useState(0);
 
   // Build initial data + pinned versions from saved return_form_data rows
   useEffect(() => {
@@ -722,6 +723,7 @@ export default function FillReturnPage() {
               initializedRef.current = false;
               setAllData({});
               setVersionByForm({});
+              setImportNonce((n) => n + 1);
               qc.invalidateQueries({ queryKey: ['return_form_data', id] });
             }}
           />
@@ -803,6 +805,7 @@ export default function FillReturnPage() {
                   </CardHeader>
                   <CardContent>
                     <SingleReturnForm
+                      key={`${cf.form_id}:${importNonce}`}
                       returnId={id!}
                       formTemplateId={cf.form_id}
                       initialData={allData[cf.form_id] || {}}
