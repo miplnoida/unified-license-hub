@@ -110,8 +110,8 @@ export default function CollabReviewConfigTab() {
   };
 
   const updateDisplay = (roleId: string, patch: any) => {
-    const existing = displayByRole.get(roleId) ?? { role_id: roleId, regulator_id: null, color: '#6366F1', show_reviewer_name: true, show_role_name: true };
-    upsertDisplay.mutate({ ...existing, ...patch });
+    const existing = displayByRole.get(roleId) ?? { role_id: roleId, regulator_id: activeRegulatorId ?? null, color: '#6366F1', show_reviewer_name: true, show_role_name: true };
+    upsertDisplay.mutate({ ...existing, regulator_id: existing.regulator_id ?? activeRegulatorId ?? null, ...patch });
   };
 
   return (
