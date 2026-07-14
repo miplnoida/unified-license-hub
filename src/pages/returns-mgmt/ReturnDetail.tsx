@@ -585,7 +585,7 @@ export default function ReturnDetail() {
         },
       }).catch(() => {});
     } catch (e: any) {
-      toast.error(e.message || 'Failed to request edit');
+      toast.error(humanizeReviewError(e) || 'Failed to request edit');
     } finally { setSubmitting(null); }
   }
 
