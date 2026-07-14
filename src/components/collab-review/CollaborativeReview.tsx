@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoles } from '@/hooks/useRoles';
+import { INTERNAL_ROLES } from '@/types/platform';
 
 interface FieldSpec { key: string; label: string; value: string }
 
@@ -65,6 +66,25 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const activeFieldSpec = fields.find(f => f.key === activeField) ?? fields[0];
 
   if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
+    const isAdmin = !!user && (user.role === 'super_admin' || user.role === 'admin' || INTERNAL_ROLES.includes(user.role as any));
+    if (isAdmin) {
+      return (
+        <Card className="border-warning/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Collaborative Review is not enabled for this step
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground space-y-1">
+            <p>Review step permissions do not currently grant this user view access.</p>
+            <p>Step: {collab.stepId || 'No active workflow step resolved'}</p>
+            <p>Workflow: {collab.workflowId || 'No active workflow resolved'}</p>
+            <p>Configured permission rows: {collab.stepPerms.length}</p>
+          </CardContent>
+        </Card>
+      );
+    }
     return null; // feature not enabled or user has no view permission on this step
   }
 
