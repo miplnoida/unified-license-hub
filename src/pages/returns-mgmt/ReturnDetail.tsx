@@ -908,3 +908,14 @@ export default function ReturnDetail() {
     </DashboardLayout>
   );
 }
+
+function ReturnTotalSlaRow({ returnId }: { returnId: string }) {
+  const { byEntityId } = useWorkflowTotalSla({ entityType: 'return', entityIds: [returnId] });
+  const entry = byEntityId.get(returnId);
+  if (!entry || entry.stepCount === 0) return null;
+  return (
+    <div className="mt-3">
+      <TotalSlaBadge entry={entry} variant="card" />
+    </div>
+  );
+}
