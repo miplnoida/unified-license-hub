@@ -1058,6 +1058,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {workflowIdMismatch && isInternal && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-warning-foreground">
+            This {entityNoun} is linked to a different workflow than its active
+            instance. Showing the instance workflow ({steps.length} step{steps.length === 1 ? '' : 's'}).
+          </div>
+        )}
         {isPaused && (
           <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm space-y-2">
             <div className="flex items-center gap-2 font-medium text-warning">
