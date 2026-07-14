@@ -598,9 +598,18 @@ export default function ApplicationDetail() {
     }
 
     // Other non-final transitions: only insert an action row (no locked-field write).
-    await supabase.from('approval_actions').insert({
+    const { error: actionErr } = await supabase.from('approval_actions').insert({
       application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
     } as any);
+    if (actionErr) {
+      const msg = actionErr.message || '';
+      const m = msg.match(/REVIEW_BLOCKED:(\d+)/);
+      toast.error(m
+        ? `Approval blocked: ${m[1]} unresolved blocking review comment(s). Resolve them before proceeding.`
+        : (msg || 'Action failed'));
+      setProcessing(false);
+      return;
+    }
 
     toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
     setActionComment('');

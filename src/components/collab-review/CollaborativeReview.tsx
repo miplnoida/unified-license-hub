@@ -64,8 +64,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const activeFieldSpec = fields.find(f => f.key === activeField) ?? fields[0];
 
-  if (!collab.perms.enabled) {
-    return null; // feature not enabled for this workflow step
+  if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
+    return null; // feature not enabled or user has no view permission on this step
   }
 
   const commentsForField = collab.comments.filter(c => c.field_key === activeField && !c.parent_comment_id);
@@ -96,7 +96,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
-  const effectiveRoleId = selectedRoleId ?? collab.perms.role_id ?? null;
+  const multiRole = (collab.availableRoles?.length ?? 0) > 1;
+  const effectiveRoleId = multiRole
+    ? selectedRoleId
+    : (selectedRoleId ?? collab.perms.role_id ?? null);
+  const roleGateOk = !multiRole || !!selectedRoleId;
 
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
@@ -355,7 +359,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                 Blocking comment
               </label>
             ) : <span />}
-            <Button size="sm" onClick={submitComment} disabled={!draft.trim() || collab.addComment.isPending}>Add comment</Button>
+            <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
         </div>
       )}
@@ -379,9 +383,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted-foreground">
-              {suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
+              {!roleGateOk
+                ? 'Choose a role before posting.'
+                : suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
             </span>
-            <Button size="sm" onClick={submitSuggestion} disabled={collab.addSuggestion.isPending}>Suggest</Button>
+            <Button size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
           </div>
         </div>
       )}

@@ -25,6 +25,12 @@ export type NotificationEventKey =
   | "payment.required"
   | "payment.received"
   | "payment.failed"
+  | "collab_review.reply"
+  | "collab_review.suggestion_accepted"
+  | "collab_review.suggestion_rejected"
+  | "collab_review.blocking_created"
+  | "collab_review.mention_user"
+  | "collab_review.mention_role"
   | (string & {});
 
 export interface DispatchEventArgs {
