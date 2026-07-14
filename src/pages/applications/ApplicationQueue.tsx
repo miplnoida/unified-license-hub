@@ -39,6 +39,10 @@ import { toast } from 'sonner';
 import { Eye, Loader2, Users, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApplicationCategory } from '@/lib/applicationCategory';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
+
+
 
 
 /**
