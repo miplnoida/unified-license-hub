@@ -664,6 +664,10 @@ export default function ApplicationsList() {
     entityType: 'application',
     entityIds: visibleAppIds,
   });
+  const { byEntityId: totalSlaByApp } = useWorkflowTotalSla({
+    entityType: 'application',
+    entityIds: visibleAppIds,
+  });
 
   const getSlaForApp = (appId: string) => {
     const entry = slaByApp.get(appId);
