@@ -6,6 +6,7 @@ import { useRegulator } from '@/contexts/RegulatorContext';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import { logAction } from '@/hooks/useAuditLog';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { humanizeReviewError } from '@/lib/reviewErrors';
 import { toast } from 'sonner';
 
 export type CollabEntityType = 'application' | 'registration' | 'return' | 'complaint';
