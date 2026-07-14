@@ -1184,6 +1184,7 @@ export default function ApplicationsList() {
                   >
                     SLA {slaSort === 'asc' ? '▲' : slaSort === 'desc' ? '▼' : ''}
                   </TableHead>
+                  <TableHead>Total SLA</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -1192,7 +1193,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={(isInternal ? 13 : 12) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={(isInternal ? 14 : 13) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
