@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
+import { humanizeReviewError } from '@/lib/reviewErrors';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
@@ -483,7 +484,7 @@ export default function ReturnDetail() {
         },
       }).catch(() => {});
     } catch (e: any) {
-      toast.error(e.message || 'Failed to approve');
+      toast.error(humanizeReviewError(e) || 'Failed to approve');
     } finally { setSubmitting(null); }
   }
 
@@ -584,7 +585,7 @@ export default function ReturnDetail() {
         },
       }).catch(() => {});
     } catch (e: any) {
-      toast.error(e.message || 'Failed to request edit');
+      toast.error(humanizeReviewError(e) || 'Failed to request edit');
     } finally { setSubmitting(null); }
   }
 
