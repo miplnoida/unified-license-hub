@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
-import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
+// (workflow instance resolved inline below to support legacy entity_type values)
 import { logAction } from '@/hooks/useAuditLog';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { humanizeReviewError } from '@/lib/reviewErrors';
