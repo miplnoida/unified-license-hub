@@ -573,6 +573,8 @@ export default function ApplicationQueue() {
                   <TableHead className="w-40">Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SLA</TableHead>
+                  <TableHead>Total SLA</TableHead>
+
                   <TableHead className="w-56">
                     <TooltipProvider delayDuration={200}>
                       <span className="inline-flex items-center gap-1">
