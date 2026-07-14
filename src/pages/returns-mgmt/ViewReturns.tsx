@@ -334,11 +334,14 @@ export default function ViewReturns() {
                         {ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
-                          {RETURN_STATUS_LABELS[ret.status as ReturnStatus]
-                            || statusFilterMeta[ret.status as AdminReturnDisplayStatus]?.label
-                            || ret.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
+                            {RETURN_STATUS_LABELS[ret.status as ReturnStatus]
+                              || statusFilterMeta[ret.status as AdminReturnDisplayStatus]?.label
+                              || ret.status}
+                          </Badge>
+                          <TotalSlaBadge entry={totalSlaByReturn.get(ret.id)} />
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => navigate(`${adminBasePath}/${ret.id}`)}>
