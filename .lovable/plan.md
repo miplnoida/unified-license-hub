@@ -1,41 +1,25 @@
-## Goal
-Keep the label **"Total SLA"** everywhere it appears today, but change the number it displays to the **sum of actual time spent on every workflow step so far** (not the sum of configured `sla_hours`).
+## Why it looks like Total SLA only shows on Complaints
 
-## What changes
+- **Complaints list & detail** — `TotalSlaBadge` renders unconditionally, so it's always visible.
+- **Applications list** — badge is gated by `total && total.stepCount > 0`. Rows whose workflow instance has no decisive action yet, or where the total hook is still loading/empty, render nothing → user sees a blank cell.
+- **Returns queue / Return detail** — badge is wired in, but only in the SLA column / right rail; on narrower viewports it can be scrolled off, and if `workflow_instances` for that return isn't `active/completed` yet it stays empty.
+- **Registration Review (list & detail)** — `TotalSlaBadge` / `useWorkflowTotalSla` are **not integrated at all**. That's the main gap.
 
-### 1. Rework `useWorkflowTotalSla` to compute elapsed time
-File: `src/hooks/useWorkflowTotalSla.ts` (replace current logic)
+Data check confirmed `workflow_instances` exist for `application` (64), `return` (6), `registration` (20), and `complaint` (28), so the hook has data to compute against on all four modules.
 
-For each entity's workflow instance:
-- Load `workflow_instances` (active, paused, completed) + related `approval_actions` ordered by `created_at`.
-- Decisive step-advance actions (matches `workflowSlaResolver.ts`): `approve`, `reject`, `send_back`, `escalate`, `request_resubmission`, `return_for_correction`, `request_more_info`.
-- **Step start**:
-  - First step → application `submitted_at` (fallback `created_at`) / instance `started_at` / `created_at`.
-  - Later steps → `created_at` of the previous step's decisive action.
-- **Step end**:
-  - Completed step → its own decisive action's `created_at`.
-  - Current (in-flight) step of an `active` / `paused` instance → `now`, minus pause time (`total_pause_seconds` + open `paused_at` if currently paused).
-- Sum `(end − start)` across every step that has started.
-- Return per entity: `{ totalHours, stepCount, inProgress }`.
+## Changes
 
-Cached via TanStack Query, staleTime 60s. Read-only, no migration.
+1. **Registration Review list** (`src/pages/admin/RegistrationReview.tsx`)
+   - Call `useWorkflowTotalSla({ entityType: 'registration', entityIds: filteredRows.map(r => r.id) })`.
+   - Add a "Total SLA" column (next to the existing "SLA" column) rendering `<TotalSlaBadge entry={byEntityId.get(r.id)} />`.
 
-### 2. Minor `TotalSlaBadge` tweaks
-File: `src/components/workflows/TotalSlaBadge.tsx`
-- Keep the "Total SLA" label.
-- Drop the `*` / "some steps have no SLA configured" note — not meaningful for elapsed time.
-- Update tooltip to: *"Sum of actual time spent on each approval step so far."*
-- Append `· in progress` (inline) / `Still in progress` (card) when the workflow is not yet complete.
-- `stepCount` shown = number of steps that have started (completed + current in-flight).
+2. **Registration Review detail** (`src/pages/admin/RegistrationReviewDetail.tsx`)
+   - Add `<TotalSlaBadge variant="card" entry={...} />` alongside the existing workflow/SLA panel so reviewers see cumulative elapsed time.
 
-### 3. Integration points untouched
-Lists (`ApplicationsList.tsx`, `ViewReturns.tsx`, `ComplaintsList.tsx`) and detail views (`ApplicationSlaBanner.tsx`, `ReturnDetail.tsx`, `ComplaintDetail.tsx`) already consume the hook + badge; only the underlying numbers change.
+3. **Applications list** (`src/pages/applications/ApplicationsList.tsx`)
+   - Remove the `stepCount > 0` gate so the badge renders as soon as a workflow instance exists (in-progress step already increments `stepCount` to 1, but the guard also hides rows during initial hook load). Fall back to a muted `—` when there is genuinely no workflow.
 
-## Technical Details
-- Reuses the same decisive-action set and pause handling as `src/lib/workflowSlaResolver.ts` for consistency with per-step SLA logic.
-- Formatting stays `Xd Yh` / `Xd` / `Yh` via existing `formatHours` helper.
-- No DB schema, RLS, or workflow-execution changes.
+4. **Returns queue** (`src/pages/returns-mgmt/ViewReturns.tsx`) and **Return detail** (`src/pages/returns-mgmt/ReturnDetail.tsx`)
+   - No logic change; verify placement is inside the always-visible SLA column and that the detail card badge stays in the header strip (not the collapsible right rail) so it's visible without scrolling.
 
-## Out of scope
-- Comparing elapsed time to configured SLA (breach math stays in `SlaIndicator` / `useWorkflowSlaInstances`).
-- Editing SLA configuration or workflow behaviour.
+No hook or calculation changes — the elapsed-time logic in `useWorkflowTotalSla` stays as-is. Purely a UI/wiring fix so Total SLA is consistently surfaced across License Requests, Registration Review, and Returns Queue the same way it is in Complaints.
