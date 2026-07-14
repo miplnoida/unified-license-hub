@@ -219,7 +219,7 @@ async function resolveAttachedActiveWorkflow(
   const { data: activeInstance } = await supabase
     .from('workflow_instances')
     .select('id')
-    .eq('entity_type', 'application')
+    .in('entity_type', entityTypesForApplication({ data: appRow?.data }))
     .eq('entity_id', appRow.id)
     .eq('workflow_id', workflow.id)
     .in('status', ['active', 'paused'])
