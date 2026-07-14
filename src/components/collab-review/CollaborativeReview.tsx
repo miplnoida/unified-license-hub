@@ -96,6 +96,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
+  const effectiveRoleId = selectedRoleId ?? collab.perms.role_id ?? null;
+
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
     collab.addComment.mutate({
@@ -103,6 +105,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       body: draft.trim(),
       selection,
       is_blocking: blocking,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setDraft(''); setBlocking(false); setSelection(null); } });
   };
 
@@ -116,6 +119,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       original_text: selection?.text ?? null,
       suggested_text: suggType === 'delete' ? null : suggText.trim(),
       selection: selection ? { start: selection.start, end: selection.end } : null,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setSuggText(''); setSelection(null); } });
   };
 
@@ -125,6 +129,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       field_key: activeFieldSpec.key,
       body: replyBody.trim(),
       parent_comment_id: parentId,
+      role_id: effectiveRoleId,
     }, { onSuccess: () => { setReplyBody(''); setReplyTo(null); } });
   };
 
