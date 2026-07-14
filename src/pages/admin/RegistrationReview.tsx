@@ -208,6 +208,7 @@ export default function RegistrationReview() {
                       <TableHead>Workflow</TableHead>
                       <TableHead>Current Step</TableHead>
                       <TableHead>SLA</TableHead>
+                      <TableHead>Total SLA</TableHead>
                       <TableHead>Deadline</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Action</TableHead>
