@@ -807,8 +807,11 @@ export default function ComplaintsList() {
                             })()}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={slaStatusVariant(sla)} className="text-[10px]">{slaStatusLabel(sla)}</Badge>
-                            {c.sla_due_at && <div className="text-[10px] text-muted-foreground mt-1">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
+                              {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                              <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant={statusVariant[c.status] || 'outline'} className="capitalize text-[10px]">
