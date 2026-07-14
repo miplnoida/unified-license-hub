@@ -226,10 +226,11 @@ export function ReturnUploadPanel({
   };
 
   const commit = async () => {
-    if (!parseResult || parseResult.rows.length === 0 || !attemptId) return;
+    const nonEmptyRows = parseResult?.nonEmptyRows ?? parseResult?.rows.length ?? 0;
+    if (!parseResult || parseResult.rows.length === 0 || nonEmptyRows === 0 || !attemptId) return;
     const confirm = await Swal.fire({
       title: 'Import uploaded values?',
-      html: `<p>This will ${strategy === 'replace' ? '<b>overwrite existing values</b>' : 'only fill blank fields'} for <b>${parseResult.rows.length}</b> field(s).</p>`,
+      html: `<p>This will ${strategy === 'replace' ? '<b>overwrite existing values</b>' : 'only fill blank fields'} for <b>${nonEmptyRows}</b> populated field(s).</p>`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Import',
@@ -275,6 +276,9 @@ export function ReturnUploadPanel({
     () => new Map(specs.map((s) => [s.formId, s])),
     [specs],
   );
+
+  const parseSummary = parseResult ? summarizeParse(parseResult) : null;
+  const parsedNonEmptyRows = parseSummary?.nonEmptyRows ?? 0;
 
   return (
     <Card className="border-dashed">
@@ -350,22 +354,30 @@ export function ReturnUploadPanel({
                   {parseResult.errors.length === 0
                     ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     : <AlertTriangle className="h-4 w-4 text-destructive" />}
-                  {parseResult.rows.length} value{parseResult.rows.length === 1 ? '' : 's'} ready to import
+                  {parsedNonEmptyRows} value{parsedNonEmptyRows === 1 ? '' : 's'} ready to import
                 </div>
                 <Button variant="ghost" size="sm" onClick={resetSelection}>
                   <X className="h-3.5 w-3.5 mr-1" />Discard
                 </Button>
               </div>
-              <Progress value={totalFields === 0 ? 0 : Math.min(100, (parseResult.rows.length / totalFields) * 100)} className="h-1.5" />
+              <Progress value={totalFields === 0 ? 0 : Math.min(100, (parsedNonEmptyRows / totalFields) * 100)} className="h-1.5" />
 
-              {Object.entries(summarizeParse(parseResult).perForm).length > 0 && (
+              {parseSummary && Object.entries(parseSummary.perForm).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(summarizeParse(parseResult).perForm).map(([fid, count]) => (
+                  {Object.entries(parseSummary.perForm).map(([fid, count]) => (
                     <Badge key={fid} variant="secondary">
                       {specsMap.get(fid)?.templateName || 'Form'} · {count}
                     </Badge>
                   ))}
                 </div>
+              )}
+
+              {parsedNonEmptyRows === 0 && parseResult.errors.length === 0 && (
+                <Alert>
+                  <AlertDescription>
+                    No populated values were found in the upload. Enter data in the New Value column, then upload again.
+                  </AlertDescription>
+                </Alert>
               )}
 
               {parseResult.errors.length > 0 && (
@@ -398,7 +410,7 @@ export function ReturnUploadPanel({
                   size="sm"
                   onClick={commit}
                   disabled={
-                    disabled || importing || parseResult.errors.length > 0 || parseResult.rows.length === 0
+                    disabled || importing || parseResult.errors.length > 0 || parseResult.rows.length === 0 || parsedNonEmptyRows === 0
                   }
                 >
                   {importing
