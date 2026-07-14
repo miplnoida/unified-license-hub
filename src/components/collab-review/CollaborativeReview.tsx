@@ -383,9 +383,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted-foreground">
-              {suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
+              {!roleGateOk
+                ? 'Choose a role before posting.'
+                : suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
             </span>
-            <Button size="sm" onClick={submitSuggestion} disabled={collab.addSuggestion.isPending}>Suggest</Button>
+            <Button size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
           </div>
         </div>
       )}
