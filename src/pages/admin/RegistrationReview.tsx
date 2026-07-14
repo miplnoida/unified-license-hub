@@ -244,6 +244,9 @@ export default function RegistrationReview() {
                             }}
                           />
                         </TableCell>
+                        <TableCell>
+                          <TotalSlaBadge entry={totalSlaByReg.get(r.id)} />
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {deadline ? deadline.toLocaleString() : '—'}
                         </TableCell>
