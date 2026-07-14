@@ -333,7 +333,8 @@ export default function RegistrationReviewDetail() {
 
           <Card>
             <CardHeader><CardTitle>Approval Workflow</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              <RegistrationTotalSla registrationId={reg.id} />
               {wf.workflow_id ? (
                 <ErrorBoundary
                   context="RegistrationReviewDetail · WorkflowPanel"
