@@ -44,6 +44,7 @@ import {
 import { useReturnRevisions, snapshotReturnRevision, pickEditBaseline } from '@/hooks/useReturnRevisions';
 import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevisionCompareDialog';
 import { GitCompareArrows } from 'lucide-react';
+import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 
 function formatCellValue(value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
