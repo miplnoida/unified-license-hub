@@ -509,7 +509,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   }, [currentStep, configuredStepActions, canActResult, isPaused]);
 
   // ─── Early-return guards (after ALL hooks above) ───
-  if (!workflowId) {
+  if (!effectiveWorkflowId) {
     return (
       <Card><CardContent className="py-6 text-sm text-muted-foreground">
         No workflow is attached to this {entityNoun}.
