@@ -11,6 +11,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { toast } from 'sonner';
 import { useRoles } from '@/hooks/useRoles';
 import { logAction } from '@/hooks/useAuditLog';
+import { useRegulator } from '@/contexts/RegulatorContext';
 
 const PERM_COLS = [
   { key: 'can_view', label: 'View' },
