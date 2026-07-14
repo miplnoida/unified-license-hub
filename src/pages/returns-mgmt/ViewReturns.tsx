@@ -23,6 +23,8 @@ import {
   type AdminReturnDisplayStatus,
   type AdminReturnStatusFilter,
 } from '@/lib/adminReturnFilters';
+import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
+import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
 interface AdminReturnRow {
   id: string;
