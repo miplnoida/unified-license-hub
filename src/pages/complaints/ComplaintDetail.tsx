@@ -463,6 +463,18 @@ export default function ComplaintDetail() {
             } as ComplaintAckInput}
           />
         )}
+
+        {id && (
+          <CollaborativeReview
+            entityType="complaint"
+            entityId={id}
+            fields={[
+              { key: 'investigation_notes', label: 'Investigation notes', value: (complaint as any)?.investigation_notes ?? '' },
+              { key: 'resolution_notes', label: 'Resolution notes', value: (complaint as any)?.resolution_notes ?? '' },
+              { key: 'findings', label: 'Findings', value: (complaint as any)?.findings ?? '' },
+            ]}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
