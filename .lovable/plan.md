@@ -1,46 +1,41 @@
 ## Goal
-Show a "Total SLA" figure — the sum of `sla_hours` across every step of the active approval workflow — on both list rows and detail pages for:
-- License requests (Applications list + Application detail)
-- Returns queue (admin `ViewReturns` list + `ReturnDetail`)
-- Complaints (`ComplaintsList` + `ComplaintDetail`)
+Keep the label **"Total SLA"** everywhere it appears today, but change the number it displays to the **sum of actual time spent on every workflow step so far** (not the sum of configured `sla_hours`).
 
-This is a presentation-only addition; step-level SLA badges/panels already in place remain unchanged.
+## What changes
 
-## Approach
+### 1. Rework `useWorkflowTotalSla` to compute elapsed time
+File: `src/hooks/useWorkflowTotalSla.ts` (replace current logic)
 
-### 1. New shared hook: `useWorkflowTotalSla`
-File: `src/hooks/useWorkflowTotalSla.ts`
+For each entity's workflow instance:
+- Load `workflow_instances` (active, paused, completed) + related `approval_actions` ordered by `created_at`.
+- Decisive step-advance actions (matches `workflowSlaResolver.ts`): `approve`, `reject`, `send_back`, `escalate`, `request_resubmission`, `return_for_correction`, `request_more_info`.
+- **Step start**:
+  - First step → application `submitted_at` (fallback `created_at`) / instance `started_at` / `created_at`.
+  - Later steps → `created_at` of the previous step's decisive action.
+- **Step end**:
+  - Completed step → its own decisive action's `created_at`.
+  - Current (in-flight) step of an `active` / `paused` instance → `now`, minus pause time (`total_pause_seconds` + open `paused_at` if currently paused).
+- Sum `(end − start)` across every step that has started.
+- Return per entity: `{ totalHours, stepCount, inProgress }`.
 
-- Input: `{ entityType, entityIds }` (same signature as `useWorkflowSlaInstances`).
-- Query joins `workflow_instances` (active/paused) → `approval_steps` grouped by `workflow_id`, summing `sla_hours` per workflow.
-- Fallback: if no live steps exist for a workflow, sum `sla_hours` from `version_snapshot.steps` on the instance (matches existing resolver's snapshot fallback).
-- Returns `Map<entityId, { totalHours: number; stepCount: number; workflowId: string }>`.
-- Cached via TanStack Query (staleTime 60s).
+Cached via TanStack Query, staleTime 60s. Read-only, no migration.
 
-### 2. New shared UI: `TotalSlaBadge`
+### 2. Minor `TotalSlaBadge` tweaks
 File: `src/components/workflows/TotalSlaBadge.tsx`
+- Keep the "Total SLA" label.
+- Drop the `*` / "some steps have no SLA configured" note — not meaningful for elapsed time.
+- Update tooltip to: *"Sum of actual time spent on each approval step so far."*
+- Append `· in progress` (inline) / `Still in progress` (card) when the workflow is not yet complete.
+- `stepCount` shown = number of steps that have started (completed + current in-flight).
 
-- Compact chip: `"Total SLA: 5d 4h (4 steps)"` for lists; verbose card variant for detail pages (`"Total workflow SLA · sum across N approval steps"`).
-- Uses same `formatHoursShort` style as `SlaIndicator`.
-
-### 3. Wire into list pages (one column / inline chip)
-- `src/pages/Applications.tsx` (license request queue): add inline `TotalSlaBadge` next to existing per-step SLA badge.
-- `src/pages/returns-mgmt/ViewReturns.tsx`: batch entity ids from visible rows, render badge in row.
-- `src/pages/complaints/ComplaintsList.tsx`: render badge in the SLA cell / evidence row.
-
-### 4. Wire into detail pages
-- `src/components/applications/ApplicationSlaBanner.tsx` — append total-SLA line under the step SLA panel (keep the existing `SlaProgressPanel`).
-- `src/pages/returns-mgmt/ReturnDetail.tsx` — add badge in the header meta block.
-- `src/pages/complaints/ComplaintDetail.tsx` — add badge in the SLA/summary section.
+### 3. Integration points untouched
+Lists (`ApplicationsList.tsx`, `ViewReturns.tsx`, `ComplaintsList.tsx`) and detail views (`ApplicationSlaBanner.tsx`, `ReturnDetail.tsx`, `ComplaintDetail.tsx`) already consume the hook + badge; only the underlying numbers change.
 
 ## Technical Details
-
-- No DB migrations. Read-only: `approval_steps.sla_hours` already exists.
-- Steps with `sla_hours = null` are excluded from the sum (badge shows `"—"` and tooltip "Some steps have no SLA configured" when any step is null).
-- Total SLA is per-workflow, so entities pointing at the same workflow share the total; the hook caches by `workflow_id` to avoid duplicate work.
-- No behavior changes to breach/warning logic, notifications, or workflow execution.
+- Reuses the same decisive-action set and pause handling as `src/lib/workflowSlaResolver.ts` for consistency with per-step SLA logic.
+- Formatting stays `Xd Yh` / `Xd` / `Yh` via existing `formatHours` helper.
+- No DB schema, RLS, or workflow-execution changes.
 
 ## Out of scope
-- Editing SLAs.
-- Recomputing existing per-step SLA colors or escalation dispatches.
-- Non-workflow SLA sources (e.g., complaint `sla_days`) — those stay as-is.
+- Comparing elapsed time to configured SLA (breach math stays in `SlaIndicator` / `useWorkflowSlaInstances`).
+- Editing SLA configuration or workflow behaviour.
