@@ -805,6 +805,7 @@ export default function FillReturnPage() {
                   </CardHeader>
                   <CardContent>
                     <SingleReturnForm
+                      key={`${cf.form_id}:${importNonce}`}
                       returnId={id!}
                       formTemplateId={cf.form_id}
                       initialData={allData[cf.form_id] || {}}
