@@ -217,6 +217,7 @@ export function ReturnUploadPanel({
       if (recErr) throw new Error(recErr.message);
       setAttemptId((rec as any).id);
       if (parsed.errors.length > 0) toast.error('File uploaded, but validation failed. Fix and try again.');
+      else if ((parsed.nonEmptyRows ?? parsed.rows.length) === 0) toast.warning('File uploaded, but no populated values were found to import.');
       else toast.success('File parsed successfully. Review changes below before importing.');
     } catch (e: any) {
       toast.error(`Upload failed: ${e?.message || 'unknown error'}`);
@@ -318,7 +319,7 @@ export function ReturnUploadPanel({
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="replace" id="strat-rp" />
-                  <Label htmlFor="strat-rp" className="text-sm font-normal">Replace all mapped fields</Label>
+                  <Label htmlFor="strat-rp" className="text-sm font-normal">Replace populated fields</Label>
                 </div>
               </RadioGroup>
             </div>
