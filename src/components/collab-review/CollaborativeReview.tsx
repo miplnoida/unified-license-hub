@@ -494,20 +494,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       </div>
 
 
-      {(collab.availableRoles?.length ?? 0) > 1 && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted-foreground">Post as:</span>
-          <Select value={effectiveRoleId ?? ''} onValueChange={v => setSelectedRoleId(v)}>
-            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Select role" /></SelectTrigger>
-            <SelectContent>
-              {collab.availableRoles.map((rid: string) => {
-                const r = roleMap.get(rid);
-                return <SelectItem key={rid} value={rid}>{r?.name ?? rid}</SelectItem>;
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+
+
 
       {collab.perms.can_comment ? (
         <div className="space-y-2 border rounded-md p-3">
