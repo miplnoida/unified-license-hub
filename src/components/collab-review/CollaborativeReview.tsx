@@ -242,8 +242,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       </Select>
 
       {filteredComments.length === 0 && filteredSuggestions.length === 0 && (
-        <div className="border border-dashed rounded-md p-4 text-sm text-muted-foreground text-center">
-          No comments yet. Select text to add a comment or suggest a change.
+        <div className="border border-dashed rounded-md p-4 text-sm text-muted-foreground text-center space-y-2">
+          <div>No comments yet.</div>
+          <div className="text-xs">Select text in the narrative to anchor a comment or suggest a change. Each reviewer gets a unique color; their edits and comments show inline and here.</div>
         </div>
       )}
 

@@ -210,7 +210,21 @@ export function InlineMarkup(props: Props) {
   return (
     <div className="min-h-[10rem] whitespace-pre-wrap rounded-md border bg-background p-3 font-mono text-sm leading-relaxed">
       {text.length === 0 ? (
-        <span className="text-muted-foreground italic">No narrative content.</span>
+        <div className="space-y-2 text-muted-foreground">
+          <div className="text-sm font-sans font-medium text-foreground">No narrative yet</div>
+          <div className="text-xs font-sans">
+            Once this field has content, reviewer edits appear inline: insertions underlined, deletions struck through, comments highlighted with a numbered pin.
+          </div>
+          <div className="text-xs font-sans pt-1 opacity-70">
+            Example: The applicant meets{' '}
+            <ins className="no-underline" style={{ borderBottom: '2px solid #16A34A', background: '#16A34A14', padding: '0 2px', borderRadius: 2, color: '#16A34A' }}>the capital</ins>{' '}
+            <del style={{ color: '#DC2626', background: '#DC262614', textDecorationColor: '#DC2626', padding: '0 2px', borderRadius: 2 }}>minimum</del>{' '}
+            <span style={{ background: '#6366F122', borderBottom: '1.5px dotted #6366F1', padding: '0 1px', borderRadius: 2 }}>
+              requirements
+              <sup className="ml-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold text-white align-super" style={{ background: '#6366F1' }}>1</sup>
+            </span>.
+          </div>
+        </div>
       ) : (
         nodes
       )}
