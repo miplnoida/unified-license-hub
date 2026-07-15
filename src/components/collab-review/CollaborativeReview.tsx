@@ -396,9 +396,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             )}
 
             <div className="flex flex-wrap gap-1 pt-1">
-              {isDemoId(c.id) ? (
-                <span className="text-[10px] text-muted-foreground italic">Demo item — connect real data to interact</span>
-              ) : (
+              {!isSyntheticId(c.id) && (
                 <>
                   {collab.perms.can_reply && (
                     <Button size="sm" variant="ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>
