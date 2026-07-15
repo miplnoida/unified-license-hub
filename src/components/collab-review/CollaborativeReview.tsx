@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, Check, X, RotateCcw, Reply, AlertTriangle, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoles } from '@/hooks/useRoles';
 import { INTERNAL_ROLES } from '@/types/platform';
+import { ReviewerLegend, type ReviewerLegendEntry } from './markup/ReviewerLegend';
+import { ViewModeToggle, type ViewMode } from './markup/ViewModeToggle';
+import { InlineMarkup } from './markup/InlineMarkup';
 
 interface FieldSpec { key: string; label: string; value: string }
 
@@ -39,7 +42,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('markup');
+  const [reviewerFilter, setReviewerFilter] = useState<string | null>(null);
+  const [showSelectionEditor, setShowSelectionEditor] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
