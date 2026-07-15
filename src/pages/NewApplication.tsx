@@ -28,6 +28,7 @@ import {
   CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { ApplicationUploadPanel } from '@/components/applications/ApplicationUploadPanel';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
