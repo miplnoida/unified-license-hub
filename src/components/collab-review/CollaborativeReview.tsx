@@ -435,11 +435,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const NarrativeArea = (
     <div className="space-y-3">
-      {fields.length > 1 && (
+      {effectiveFields.length > 1 && (
         <Select value={activeField} onValueChange={setActiveField}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {fields.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
+            {effectiveFields.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
       )}
