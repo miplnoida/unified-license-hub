@@ -231,6 +231,15 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Correspondence',
+    items: [
+      { label: 'Dashboard', href: '/correspondence/dashboard', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
+      { label: 'Inbox', href: '/correspondence/inbox', icon: <Mail className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
+      { label: 'Records', href: '/correspondence/records', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
+      { label: 'Routing Rules', href: '/admin/correspondence-routing', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings', adminOnly: true },
+    ],
+  },
+  {
     label: 'Analytics & Reports',
     items: [
       { label: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
