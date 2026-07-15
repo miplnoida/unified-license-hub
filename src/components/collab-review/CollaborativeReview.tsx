@@ -545,8 +545,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       <CardHeader>
         <CardTitle className="text-base flex items-center justify-between">
           <span>Collaborative Review</span>
-          {collab.perms.block_on_unresolved && collab.blockingOpenCount > 0 && (
-            <Badge variant="destructive">Approval blocked: {collab.blockingOpenCount} unresolved</Badge>
+          {(collab.perms.block_on_unresolved || demo.active) && effectiveBlockingOpenCount > 0 && (
+            <Badge variant="destructive">Approval blocked: {effectiveBlockingOpenCount} unresolved</Badge>
           )}
         </CardTitle>
       </CardHeader>
