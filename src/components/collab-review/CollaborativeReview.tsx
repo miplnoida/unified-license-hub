@@ -61,10 +61,10 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const currentUserDescriptor = useMemo(() => {
     const name = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Reviewer');
     const roleName =
-      portalCtx?.effectiveRoleLabel
+      portalCtx?.effectiveRole
       || (user?.role ? String(user.role).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Reviewer');
     return { id: user?.id || 'anonymous', name, roleName };
-  }, [user?.id, user?.fullName, user?.email, user?.role, portalCtx?.effectiveRoleLabel]);
+  }, [user?.id, user?.fullName, user?.email, user?.role, portalCtx?.effectiveRole]);
 
   const seed = useMemo(
     () => buildSeedOverlay(
