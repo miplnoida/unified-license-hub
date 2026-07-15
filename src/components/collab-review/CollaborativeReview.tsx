@@ -52,12 +52,29 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
 
+  // ---- Demo overlay ---------------------------------------------------------
+  // If the record has no real comments/suggestions and every field is empty,
+  // inject realistic dummy content so the panel reads as fully populated for
+  // demos. Real records are unaffected.
+  const demo = useMemo(
+    () => buildDemoOverlay(
+      { entityType, fields },
+      (collab.comments?.length ?? 0) > 0 || (collab.suggestions?.length ?? 0) > 0,
+    ),
+    [entityType, fields, collab.comments, collab.suggestions],
+  );
+
+  const effectiveFields = demo.active ? demo.fields : fields;
+  const effectiveComments = demo.active ? demo.comments : collab.comments;
+  const effectiveSuggestions = demo.active ? demo.suggestions : collab.suggestions;
+
   const authorIds = useMemo(() => {
     const set = new Set<string>();
-    collab.comments.forEach(c => set.add(c.author_user_id));
-    collab.suggestions.forEach(s => set.add(s.author_user_id));
-    return Array.from(set);
-  }, [collab.comments, collab.suggestions]);
+    effectiveComments.forEach(c => set.add(c.author_user_id));
+    effectiveSuggestions.forEach(s => set.add(s.author_user_id));
+    // Skip demo ids — no profile lookup needed for them.
+    return Array.from(set).filter(id => !isDemoId(id));
+  }, [effectiveComments, effectiveSuggestions]);
 
   const { data: authors = [] } = useQuery({
     queryKey: ['collab-authors', authorIds.sort().join(',')],
@@ -71,7 +88,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const roleMap = new Map(allRoles.map((r: any) => [r.id, r]));
   const roleDisplayMap = new Map(collab.roleDisplay.map(r => [r.role_id, r]));
 
-  const activeFieldSpec = fields.find(f => f.key === activeField) ?? fields[0];
+  const activeFieldSpec = effectiveFields.find(f => f.key === activeField) ?? effectiveFields[0];
 
   if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
     const isAdmin = !!user && (user.role === 'super_admin' || user.role === 'admin' || INTERNAL_ROLES.includes(user.role as any));
