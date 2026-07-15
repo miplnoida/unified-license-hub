@@ -16,7 +16,8 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import { ReviewerLegend, type ReviewerLegendEntry } from './markup/ReviewerLegend';
 import { ViewModeToggle, type ViewMode } from './markup/ViewModeToggle';
 import { InlineMarkup } from './markup/InlineMarkup';
-import { buildDemoOverlay, demoReviewerFor, isDemoId } from './demoContent';
+import { buildSeedOverlay, reviewerFromRoster, isSyntheticId } from './demoContent';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 interface FieldSpec { key: string; label: string; value: string }
 
@@ -51,29 +52,38 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
+  const portalCtx = useEffectivePortalContext();
 
-  // ---- Demo overlay ---------------------------------------------------------
+  // ---- Seeded activity overlay ---------------------------------------------
   // If the record has no real comments/suggestions and every field is empty,
-  // inject realistic dummy content so the panel reads as fully populated for
-  // demos. Real records are unaffected.
-  const demo = useMemo(
-    () => buildDemoOverlay(
-      { entityType, fields },
+  // inject realistic reviewer content so the panel reads as fully populated.
+  // Real records with any activity or narrative content are unaffected.
+  const currentUserDescriptor = useMemo(() => {
+    const name = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Reviewer');
+    const roleName =
+      portalCtx?.effectiveRole
+      || (user?.role ? String(user.role).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Reviewer');
+    return { id: user?.id || 'anonymous', name, roleName };
+  }, [user?.id, user?.fullName, user?.email, user?.role, portalCtx?.effectiveRole]);
+
+  const seed = useMemo(
+    () => buildSeedOverlay(
+      { entityType, fields, currentUser: currentUserDescriptor, recordId: entityId || '' },
       (collab.comments?.length ?? 0) > 0 || (collab.suggestions?.length ?? 0) > 0,
     ),
-    [entityType, fields, collab.comments, collab.suggestions],
+    [entityType, fields, collab.comments, collab.suggestions, currentUserDescriptor, entityId],
   );
 
-  const effectiveFields = demo.active ? demo.fields : fields;
-  const effectiveComments = demo.active ? demo.comments : collab.comments;
-  const effectiveSuggestions = demo.active ? demo.suggestions : collab.suggestions;
+  const effectiveFields = seed.active ? seed.fields : fields;
+  const effectiveComments = seed.active ? seed.comments : collab.comments;
+  const effectiveSuggestions = seed.active ? seed.suggestions : collab.suggestions;
 
   const authorIds = useMemo(() => {
     const set = new Set<string>();
     effectiveComments.forEach(c => set.add(c.author_user_id));
     effectiveSuggestions.forEach(s => set.add(s.author_user_id));
-    // Skip demo ids — no profile lookup needed for them.
-    return Array.from(set).filter(id => !isDemoId(id));
+    // Skip synthetic ids — no profile lookup needed.
+    return Array.from(set).filter(id => !isSyntheticId(id));
   }, [effectiveComments, effectiveSuggestions]);
 
   const { data: authors = [] } = useQuery({
@@ -135,10 +145,10 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   });
 
   const authorLabelSafe = (uid: string, roleId: string | null) => {
-    // Demo reviewers bypass the profile/role lookup entirely.
-    const demoR = demoReviewerFor(uid);
-    if (demoR) {
-      return { name: demoR.name, roleName: demoR.roleName, color: demoR.color, initials: demoR.initials };
+    // Seeded roster (including the signed-in user) bypasses profile/role lookup.
+    const seedR = reviewerFromRoster(seed.roster, uid);
+    if (seedR) {
+      return { name: seedR.name, roleName: seedR.roleName, color: seedR.color, initials: seedR.initials };
     }
     const p = authorMap.get(uid);
     const r = roleId ? roleMap.get(roleId) : null;
@@ -177,8 +187,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const colorForAuthor = (uid: string, roleId: string | null) => authorLabelSafe(uid, roleId).color;
 
-  // Blocking count includes demo blocking comments so the header badge appears in demo mode.
-  const effectiveBlockingOpenCount = demo.active
+  // Blocking count includes seeded blocking comments so the header badge appears when the overlay is active.
+  const effectiveBlockingOpenCount = seed.active
     ? effectiveComments.filter(c => c.is_blocking && c.status === 'open' && !c.parent_comment_id).length
     : collab.blockingOpenCount;
 
@@ -304,7 +314,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
               <Badge variant={s.status === 'accepted' ? 'default' : s.status === 'rejected' ? 'secondary' : 'outline'}>
                 {s.status}
               </Badge>
-              {s.status === 'pending' && !isDemoId(s.id) && (
+              {s.status === 'pending' && !isSyntheticId(s.id) && (
                 <div className="flex gap-1">
                   {collab.perms.can_accept && (
                     <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
@@ -317,9 +327,6 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                     </Button>
                   )}
                 </div>
-              )}
-              {isDemoId(s.id) && s.status === 'pending' && (
-                <span className="text-[10px] text-muted-foreground italic">Demo item</span>
               )}
             </div>
           </div>
@@ -389,9 +396,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             )}
 
             <div className="flex flex-wrap gap-1 pt-1">
-              {isDemoId(c.id) ? (
-                <span className="text-[10px] text-muted-foreground italic">Demo item — connect real data to interact</span>
-              ) : (
+              {!isSyntheticId(c.id) && (
                 <>
                   {collab.perms.can_reply && (
                     <Button size="sm" variant="ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>
@@ -555,7 +560,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       <CardHeader>
         <CardTitle className="text-base flex items-center justify-between">
           <span>Collaborative Review</span>
-          {(collab.perms.block_on_unresolved || demo.active) && effectiveBlockingOpenCount > 0 && (
+          {(collab.perms.block_on_unresolved || seed.active) && effectiveBlockingOpenCount > 0 && (
             <Badge variant="destructive">Approval blocked: {effectiveBlockingOpenCount} unresolved</Badge>
           )}
         </CardTitle>
