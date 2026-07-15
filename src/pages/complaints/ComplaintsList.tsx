@@ -543,6 +543,9 @@ export default function ComplaintsList() {
           }
         />
 
+        {isInternal && <DuplicateAlertBanner />}
+
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-3">
