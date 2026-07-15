@@ -52,29 +52,38 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
+  const portalCtx = useEffectivePortalContext();
 
-  // ---- Demo overlay ---------------------------------------------------------
+  // ---- Seeded activity overlay ---------------------------------------------
   // If the record has no real comments/suggestions and every field is empty,
-  // inject realistic dummy content so the panel reads as fully populated for
-  // demos. Real records are unaffected.
-  const demo = useMemo(
-    () => buildDemoOverlay(
-      { entityType, fields },
+  // inject realistic reviewer content so the panel reads as fully populated.
+  // Real records with any activity or narrative content are unaffected.
+  const currentUserDescriptor = useMemo(() => {
+    const name = user?.fullName || (user?.email ? user.email.split('@')[0] : 'Reviewer');
+    const roleName =
+      portalCtx?.effectiveRoleLabel
+      || (user?.role ? String(user.role).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Reviewer');
+    return { id: user?.id || 'anonymous', name, roleName };
+  }, [user?.id, user?.fullName, user?.email, user?.role, portalCtx?.effectiveRoleLabel]);
+
+  const seed = useMemo(
+    () => buildSeedOverlay(
+      { entityType, fields, currentUser: currentUserDescriptor, recordId: entityId || '' },
       (collab.comments?.length ?? 0) > 0 || (collab.suggestions?.length ?? 0) > 0,
     ),
-    [entityType, fields, collab.comments, collab.suggestions],
+    [entityType, fields, collab.comments, collab.suggestions, currentUserDescriptor, entityId],
   );
 
-  const effectiveFields = demo.active ? demo.fields : fields;
-  const effectiveComments = demo.active ? demo.comments : collab.comments;
-  const effectiveSuggestions = demo.active ? demo.suggestions : collab.suggestions;
+  const effectiveFields = seed.active ? seed.fields : fields;
+  const effectiveComments = seed.active ? seed.comments : collab.comments;
+  const effectiveSuggestions = seed.active ? seed.suggestions : collab.suggestions;
 
   const authorIds = useMemo(() => {
     const set = new Set<string>();
     effectiveComments.forEach(c => set.add(c.author_user_id));
     effectiveSuggestions.forEach(s => set.add(s.author_user_id));
-    // Skip demo ids — no profile lookup needed for them.
-    return Array.from(set).filter(id => !isDemoId(id));
+    // Skip synthetic ids — no profile lookup needed.
+    return Array.from(set).filter(id => !isSyntheticId(id));
   }, [effectiveComments, effectiveSuggestions]);
 
   const { data: authors = [] } = useQuery({
