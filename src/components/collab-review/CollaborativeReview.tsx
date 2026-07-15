@@ -250,7 +250,12 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       {filteredSuggestions.map(s => {
         const a = authorLabel(s.author_user_id, s.author_role_id);
         return (
-          <div key={s.id} className="border rounded-md p-3 space-y-2 bg-card">
+          <div
+            key={s.id}
+            ref={el => cardRefs.current.set(s.id, el)}
+            className="border rounded-md p-3 space-y-2 bg-card transition-shadow"
+            style={{ borderLeft: `3px solid ${a.color}` }}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white"
