@@ -251,9 +251,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           <MessageCircle className="h-4 w-4 text-primary" />
           <span className="font-medium">Comments & suggestions</span>
         </div>
-        {collab.blockingOpenCount > 0 && (
+        {effectiveBlockingOpenCount > 0 && (
           <Badge variant="destructive" className="gap-1">
-            <AlertTriangle className="h-3 w-3" />{collab.blockingOpenCount} blocking
+            <AlertTriangle className="h-3 w-3" />{effectiveBlockingOpenCount} blocking
           </Badge>
         )}
       </div>
