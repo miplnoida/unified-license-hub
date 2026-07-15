@@ -78,6 +78,7 @@ export default function AdminHub() {
     { label: 'Executive Dashboard', desc: 'Cross-module KPIs & supervisory intelligence', icon: <TrendingUp className="h-5 w-5" />, href: '/executive', module: 'report_management' },
     { label: 'Alert Center', desc: 'Unified alerts across breaches, enforcement, complaints, risk', icon: <Bell className="h-5 w-5" />, href: '/alerts', module: 'settings' },
     { label: 'Correspondence Templates', desc: 'Letter, email & SMS templates for outbound notices', icon: <Mail className="h-5 w-5" />, href: '/admin/correspondence-templates', module: 'settings' },
+    { label: 'Correspondence Routing Rules', desc: 'Auto-classify & route inbound correspondence, with manual overrides', icon: <Mail className="h-5 w-5" />, href: '/admin/correspondence-routing', module: 'settings' },
     { label: 'Document Intelligence', desc: 'AI extraction from PDFs, IDs, financials, certificates', icon: <Brain className="h-5 w-5" />, href: '/admin/document-intelligence', module: 'settings' },
     { label: 'Developer API Keys', desc: 'Issue read-only keys for external registry consumers', icon: <KeyRound className="h-5 w-5" />, href: '/admin/api-keys', module: 'settings' },
     { label: 'Audit Log Export', desc: 'Package activity logs as CSV for auditors', icon: <FileArchive className="h-5 w-5" />, href: '/admin/audit-export', module: 'settings' },

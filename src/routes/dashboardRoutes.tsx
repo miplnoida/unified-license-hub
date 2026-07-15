@@ -78,6 +78,11 @@ const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
+const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
+const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
+const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
+const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
+const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
@@ -243,5 +248,11 @@ export const dashboardRoutes = (
     <Route path="/fpa/conditions" element={<M module="fit_and_proper"><FpaConditions /></M>} />
     <Route path="/fpa/appeals" element={<M module="fit_and_proper"><FpaAppeals /></M>} />
     <Route path="/fpa/monitoring" element={<M module="fit_and_proper"><FpaMonitoring /></M>} />
+    <Route path="/correspondence" element={<CorrespondenceDashboard />} />
+    <Route path="/correspondence/dashboard" element={<CorrespondenceDashboard />} />
+    <Route path="/correspondence/inbox" element={<CorrespondenceInbox />} />
+    <Route path="/correspondence/records" element={<CorrespondenceRecords />} />
+    <Route path="/correspondence/:id" element={<CorrespondenceDetail />} />
+    <Route path="/admin/correspondence-routing" element={<CorrespondenceRoutingRules />} />
   </>
 );
