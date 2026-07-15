@@ -248,5 +248,11 @@ export const dashboardRoutes = (
     <Route path="/fpa/conditions" element={<M module="fit_and_proper"><FpaConditions /></M>} />
     <Route path="/fpa/appeals" element={<M module="fit_and_proper"><FpaAppeals /></M>} />
     <Route path="/fpa/monitoring" element={<M module="fit_and_proper"><FpaMonitoring /></M>} />
+    <Route path="/correspondence" element={<CorrespondenceDashboard />} />
+    <Route path="/correspondence/dashboard" element={<CorrespondenceDashboard />} />
+    <Route path="/correspondence/inbox" element={<CorrespondenceInbox />} />
+    <Route path="/correspondence/records" element={<CorrespondenceRecords />} />
+    <Route path="/correspondence/:id" element={<CorrespondenceDetail />} />
+    <Route path="/admin/correspondence-routing" element={<CorrespondenceRoutingRules />} />
   </>
 );
