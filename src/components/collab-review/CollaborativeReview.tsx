@@ -427,9 +427,10 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             suggestions={filteredSuggestions}
             comments={filteredComments}
             commentAnchorNumbers={commentAnchorNumbers}
-            colorFor={colorForAuthor}
+            colorForAuthor={colorForAuthor}
             mode={viewMode}
-            onCommentClick={scrollToCard}
+            onAnchorClick={scrollToCard}
+            highlightAuthorId={reviewerFilter}
           />
         )}
         {selection && (
