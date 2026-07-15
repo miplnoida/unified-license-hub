@@ -210,11 +210,20 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
+  // Auto-detect the reviewer role: prefer the role from the user's permission
+  // context, else the first configured role. No user-facing role picker.
   const multiRole = (collab.availableRoles?.length ?? 0) > 1;
-  const effectiveRoleId = multiRole
-    ? selectedRoleId
-    : (selectedRoleId ?? collab.perms.role_id ?? null);
-  const roleGateOk = !multiRole || !!selectedRoleId;
+  const autoRoleId = useMemo(() => {
+    const available = collab.availableRoles ?? [];
+    if (available.length === 0) return collab.perms.role_id ?? null;
+    if (collab.perms.role_id && available.includes(collab.perms.role_id)) return collab.perms.role_id;
+    return available[0] ?? null;
+  }, [collab.availableRoles, collab.perms.role_id]);
+  useEffect(() => {
+    if (!selectedRoleId && autoRoleId) setSelectedRoleId(autoRoleId);
+  }, [autoRoleId, selectedRoleId]);
+  const effectiveRoleId = selectedRoleId ?? autoRoleId;
+  const roleGateOk = !!effectiveRoleId;
 
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
