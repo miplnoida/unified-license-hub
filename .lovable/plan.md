@@ -1,37 +1,24 @@
-# Plan — Security & File Scanning notice on Registration
+## Problem
 
-UI-only change. No backend, scanning, or upload logic is modified.
+`/applications/:id` crashes with "Rendered more hooks than during the previous render." Stack points to `src/components/collab-review/CollaborativeReview.tsx`.
 
-## What to build
+Root cause: hooks-order violation. The component has an early `return null` around line 103 (when `collab.perms.enabled`/`can_view`/`stepId` are not yet resolved). Below that early return, two more hooks execute:
+- `useMemo` for `autoRoleId` (line 216)
+- `useEffect` to seed `selectedRoleId` (line 222)
 
-A new collapsible panel component that renders on the registration page directly above the document/attachments step. It answers the applicant's question about malware handling in plain language, with ClamAV named as the scanning engine and daily signature updates (with offline mirror for restricted-network deployments) mentioned.
+On first render `collab` is still loading → early return triggers → those hooks are skipped. When permissions resolve on the next render, the early return no longer fires, so React now sees extra hooks and throws.
 
-## Files
+## Fix
 
-1. **New:** `src/components/registration/SecurityScanningNotice.tsx`
-   - Collapsible card (shadcn `Collapsible` + `Card`) titled **"Security & file scanning"**, collapsed by default.
-   - Trigger row: shield icon, title, one-line summary ("All uploads are scanned for malware before we accept them."), chevron.
-   - Expanded body — short applicant-friendly bullets:
-     - **Scanned on upload** — every file is checked with ClamAV, an industry-standard antivirus engine.
-     - **Definitions stay current** — virus signatures refresh daily; on-premises and restricted-network deployments use a secure internal mirror so protection stays up to date without external internet access.
-     - **What's allowed** — PDF, Word, Excel, images (JPG/PNG/WebP), CSV, and plain text, up to **20 MB per file**.
-     - **If something is infected** — the file is blocked immediately, moved to a secure quarantine area, and a record is written to the audit log; our security team is notified. You'll see a clear error and can upload a clean copy.
-     - **Your privacy** — files are stored privately and only reachable through short-lived signed links (5 minutes).
-   - Footer line: small muted "Powered by ClamAV · signatures refreshed daily".
-   - No props required beyond optional `className`. Pure presentational — no data fetching, no state beyond open/closed.
+Move the `autoRoleId` `useMemo` and the `selectedRoleId` `useEffect` (plus the derived `multiRole`, `effectiveRoleId`, `roleGateOk` constants that depend on them) **above** the early-return block at line 103. This keeps the hook call order identical on every render regardless of perms/loading state. No behavior change — only the ordering of hook declarations relative to the guard.
 
-2. **Edit:** `src/pages/registration/PreLicenseeRegistration.tsx`
-   - Import `SecurityScanningNotice`.
-   - Render `<SecurityScanningNotice />` immediately above the attachments/documents step (the step that renders file upload fields). Placement is inside the step container so it only shows on that step, not on personal-info or review steps.
+Scope:
+- File: `src/components/collab-review/CollaborativeReview.tsx`
+- Move lines ~215–226 to just before line 101 (before `if (!collab.perms.enabled || ...)`).
+- Verify no other hooks appear after the early return (they don't; the rest is plain code / JSX).
 
-## Out of scope
+## Verification
 
-- No changes to `secureFileUpload.ts`, upload components, RLS, or edge functions.
-- No new copy on other portals (licensee, admin, complaints) — registration only, per request.
-- No backend scanner wiring; copy reflects the intended ClamAV story only.
-
-## Visual notes
-
-- Use existing design tokens (`bg-card`, `border-border`, `text-muted-foreground`, primary accent for the shield icon).
-- Icon: `ShieldCheck` from `lucide-react`.
-- Keep it compact: ~single card, collapsed height ≈ one row; expanded shows 5 short bullets.
+- Reload `/applications/da9028ff-16e3-4c54-bb1e-144eab362a64`; the error boundary should not fire.
+- Check console — the "Rendered more hooks" error is gone.
+- Confirm Collaborative Review still renders normally for admin and reviewer roles.
