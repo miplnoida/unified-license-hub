@@ -33,6 +33,7 @@ import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/compla
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
+import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
@@ -544,6 +545,7 @@ export default function ComplaintsList() {
           }
         />
 
+        {isInternal && <EscalationBanner />}
         {isInternal && <DuplicateAlertBanner />}
 
 
