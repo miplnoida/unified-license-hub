@@ -229,6 +229,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           </Badge>
         )}
       </div>
+      <ReviewerLegend entries={legendEntries} activeId={reviewerFilter} onToggle={setReviewerFilter} />
       <Select value={filter} onValueChange={v => setFilter(v as Filter)}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
