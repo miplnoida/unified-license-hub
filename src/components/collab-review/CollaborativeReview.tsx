@@ -297,14 +297,31 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       {filteredComments.map(c => {
         const a = authorLabel(c.author_user_id, c.author_role_id);
         const replies = repliesFor(c.id);
+        const pin = commentAnchorNumbers.get(c.id);
         return (
-          <div key={c.id} className="border rounded-md p-3 space-y-2 bg-card">
+          <div
+            key={c.id}
+            ref={el => cardRefs.current.set(c.id, el)}
+            className="border rounded-md p-3 space-y-2 bg-card transition-shadow"
+            style={{ borderLeft: `3px solid ${a.color}` }}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white"
                       style={{ background: a.color }}>{a.initials}</span>
                 <div className="text-xs">
-                  <div className="font-medium">{a.name}</div>
+                  <div className="font-medium flex items-center gap-1.5">
+                    {a.name}
+                    {pin && (
+                      <span
+                        className="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold text-white"
+                        style={{ background: a.color }}
+                        title="Anchored in narrative"
+                      >
+                        {pin}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-muted-foreground">{a.roleName} · {new Date(c.created_at).toLocaleString()}</div>
                 </div>
               </div>
