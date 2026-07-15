@@ -16,6 +16,7 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import { ReviewerLegend, type ReviewerLegendEntry } from './markup/ReviewerLegend';
 import { ViewModeToggle, type ViewMode } from './markup/ViewModeToggle';
 import { InlineMarkup } from './markup/InlineMarkup';
+import { buildDemoOverlay, demoReviewerFor, isDemoId } from './demoContent';
 
 interface FieldSpec { key: string; label: string; value: string }
 
@@ -51,12 +52,29 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
 
+  // ---- Demo overlay ---------------------------------------------------------
+  // If the record has no real comments/suggestions and every field is empty,
+  // inject realistic dummy content so the panel reads as fully populated for
+  // demos. Real records are unaffected.
+  const demo = useMemo(
+    () => buildDemoOverlay(
+      { entityType, fields },
+      (collab.comments?.length ?? 0) > 0 || (collab.suggestions?.length ?? 0) > 0,
+    ),
+    [entityType, fields, collab.comments, collab.suggestions],
+  );
+
+  const effectiveFields = demo.active ? demo.fields : fields;
+  const effectiveComments = demo.active ? demo.comments : collab.comments;
+  const effectiveSuggestions = demo.active ? demo.suggestions : collab.suggestions;
+
   const authorIds = useMemo(() => {
     const set = new Set<string>();
-    collab.comments.forEach(c => set.add(c.author_user_id));
-    collab.suggestions.forEach(s => set.add(s.author_user_id));
-    return Array.from(set);
-  }, [collab.comments, collab.suggestions]);
+    effectiveComments.forEach(c => set.add(c.author_user_id));
+    effectiveSuggestions.forEach(s => set.add(s.author_user_id));
+    // Skip demo ids — no profile lookup needed for them.
+    return Array.from(set).filter(id => !isDemoId(id));
+  }, [effectiveComments, effectiveSuggestions]);
 
   const { data: authors = [] } = useQuery({
     queryKey: ['collab-authors', authorIds.sort().join(',')],
@@ -70,7 +88,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const roleMap = new Map(allRoles.map((r: any) => [r.id, r]));
   const roleDisplayMap = new Map(collab.roleDisplay.map(r => [r.role_id, r]));
 
-  const activeFieldSpec = fields.find(f => f.key === activeField) ?? fields[0];
+  const activeFieldSpec = effectiveFields.find(f => f.key === activeField) ?? effectiveFields[0];
 
   if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
     const isAdmin = !!user && (user.role === 'super_admin' || user.role === 'admin' || INTERNAL_ROLES.includes(user.role as any));
@@ -95,9 +113,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     return null; // feature not enabled or user has no view permission on this step
   }
 
-  const commentsForField = collab.comments.filter(c => c.field_key === activeField && !c.parent_comment_id);
-  const repliesFor = (id: string) => collab.comments.filter(c => c.parent_comment_id === id);
-  const suggestionsForField = collab.suggestions.filter(s => s.field_key === activeField);
+  const commentsForField = effectiveComments.filter(c => c.field_key === activeField && !c.parent_comment_id);
+  const repliesFor = (id: string) => effectiveComments.filter(c => c.parent_comment_id === id);
+  const suggestionsForField = effectiveSuggestions.filter(s => s.field_key === activeField);
 
   const filteredComments = commentsForField.filter(c => {
     if (reviewerFilter && c.author_user_id !== reviewerFilter) return false;
@@ -117,6 +135,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   });
 
   const authorLabelSafe = (uid: string, roleId: string | null) => {
+    // Demo reviewers bypass the profile/role lookup entirely.
+    const demoR = demoReviewerFor(uid);
+    if (demoR) {
+      return { name: demoR.name, roleName: demoR.roleName, color: demoR.color, initials: demoR.initials };
+    }
     const p = authorMap.get(uid);
     const r = roleId ? roleMap.get(roleId) : null;
     const disp = roleId ? roleDisplayMap.get(roleId) : null;
@@ -153,6 +176,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   })();
 
   const colorForAuthor = (uid: string, roleId: string | null) => authorLabelSafe(uid, roleId).color;
+
+  // Blocking count includes demo blocking comments so the header badge appears in demo mode.
+  const effectiveBlockingOpenCount = demo.active
+    ? effectiveComments.filter(c => c.is_blocking && c.status === 'open' && !c.parent_comment_id).length
+    : collab.blockingOpenCount;
 
   const scrollToCard = (commentId: string) => {
     const el = cardRefs.current.get(commentId);
@@ -223,9 +251,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           <MessageCircle className="h-4 w-4 text-primary" />
           <span className="font-medium">Comments & suggestions</span>
         </div>
-        {collab.blockingOpenCount > 0 && (
+        {effectiveBlockingOpenCount > 0 && (
           <Badge variant="destructive" className="gap-1">
-            <AlertTriangle className="h-3 w-3" />{collab.blockingOpenCount} blocking
+            <AlertTriangle className="h-3 w-3" />{effectiveBlockingOpenCount} blocking
           </Badge>
         )}
       </div>
@@ -276,7 +304,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
               <Badge variant={s.status === 'accepted' ? 'default' : s.status === 'rejected' ? 'secondary' : 'outline'}>
                 {s.status}
               </Badge>
-              {s.status === 'pending' && (
+              {s.status === 'pending' && !isDemoId(s.id) && (
                 <div className="flex gap-1">
                   {collab.perms.can_accept && (
                     <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
@@ -289,6 +317,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                     </Button>
                   )}
                 </div>
+              )}
+              {isDemoId(s.id) && s.status === 'pending' && (
+                <span className="text-[10px] text-muted-foreground italic">Demo item</span>
               )}
             </div>
           </div>
@@ -358,27 +389,34 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             )}
 
             <div className="flex flex-wrap gap-1 pt-1">
-              {collab.perms.can_reply && (
-                <Button size="sm" variant="ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>
-                  <Reply className="h-3 w-3 mr-1" />Reply
-                </Button>
-              )}
-              {collab.perms.can_resolve && c.status === 'open' && (
-                <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
-                  <Check className="h-3 w-3 mr-1" />Resolve
-                </Button>
-              )}
-              {collab.perms.can_resolve && c.status === 'resolved' && (
-                <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
-                  <RotateCcw className="h-3 w-3 mr-1" />Reopen
-                </Button>
-              )}
-              {collab.perms.can_mark_blocking && (
-                <Button size="sm" variant="ghost" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
-                  <AlertTriangle className="h-3 w-3 mr-1" />{c.is_blocking ? 'Unblock' : 'Blocking'}
-                </Button>
+              {isDemoId(c.id) ? (
+                <span className="text-[10px] text-muted-foreground italic">Demo item — connect real data to interact</span>
+              ) : (
+                <>
+                  {collab.perms.can_reply && (
+                    <Button size="sm" variant="ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>
+                      <Reply className="h-3 w-3 mr-1" />Reply
+                    </Button>
+                  )}
+                  {collab.perms.can_resolve && c.status === 'open' && (
+                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
+                      <Check className="h-3 w-3 mr-1" />Resolve
+                    </Button>
+                  )}
+                  {collab.perms.can_resolve && c.status === 'resolved' && (
+                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
+                      <RotateCcw className="h-3 w-3 mr-1" />Reopen
+                    </Button>
+                  )}
+                  {collab.perms.can_mark_blocking && (
+                    <Button size="sm" variant="ghost" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
+                      <AlertTriangle className="h-3 w-3 mr-1" />{c.is_blocking ? 'Unblock' : 'Blocking'}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
+
 
             {replyTo === c.id && (
               <div className="space-y-2 pt-2">
@@ -397,11 +435,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const NarrativeArea = (
     <div className="space-y-3">
-      {fields.length > 1 && (
+      {effectiveFields.length > 1 && (
         <Select value={activeField} onValueChange={setActiveField}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {fields.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
+            {effectiveFields.map(f => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
       )}
@@ -517,8 +555,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       <CardHeader>
         <CardTitle className="text-base flex items-center justify-between">
           <span>Collaborative Review</span>
-          {collab.perms.block_on_unresolved && collab.blockingOpenCount > 0 && (
-            <Badge variant="destructive">Approval blocked: {collab.blockingOpenCount} unresolved</Badge>
+          {(collab.perms.block_on_unresolved || demo.active) && effectiveBlockingOpenCount > 0 && (
+            <Badge variant="destructive">Approval blocked: {effectiveBlockingOpenCount} unresolved</Badge>
           )}
         </CardTitle>
       </CardHeader>
