@@ -1,55 +1,37 @@
-# Licensee Application — Excel/XML Import (UI Only)
+# Plan — Security & File Scanning notice on Registration
 
-Add a bulk-fill capability to the applicant licensee application form that mirrors the existing Returns import experience. Users can download a sample Excel or XML template that reflects the current form schema, fill it offline, and upload it to populate the application. This plan covers UI only — no parsing logic, no backend writes, no DB changes.
+UI-only change. No backend, scanning, or upload logic is modified.
 
-## Scope
+## What to build
 
-- Applicant-facing licensee application fill page (new + resume/continue).
-- Mirror the visual/behavior pattern used by `src/components/returns/ReturnUploadPanel.tsx` on `FillReturnPage`.
-- Templates regenerate automatically from the live form schema, so any backend form change flows through without code edits.
-
-Out of scope: parsing engine, validation rules, actual data hydration into the form state, backend endpoints, audit logging. Those are Phase 2.
-
-## UX
-
-A new `ApplicationUploadPanel` sits above the form on the applicant application fill page, collapsible, with three actions:
-
-1. **Download sample (Excel)** — generates `.xlsx` on the fly from the current form's sections/fields.
-2. **Download sample (XML)** — generates `.xml` with the same schema.
-3. **Upload filled file** — drag/drop or picker accepting `.xlsx` and `.xml`. Shows filename, size, and a disabled "Import into application" button with a "Coming soon — parser not wired yet" helper tooltip (UI-only phase).
-
-Panel states: idle → file selected (preview list of detected sections) → parsing stub (spinner) → success stub ("Review changes below before importing" — same phrasing as returns) → error stub. All stubs use existing shadcn `Card`, `Button`, `Alert`, `Badge`.
-
-Sample file contents:
-- **Excel**: one sheet per form section; columns = Field label, Field key, Type, Required, Value (blank). Header row styled bold. Read-only helper sheet "Instructions".
-- **XML**: `<application><section name="..."><field key="..." label="..." type="..." required="..."></field></section></application>` shell, empty values.
-
-Both regenerate from the same schema source used by `FormRenderer`, so backend form edits (fields added/removed/renamed) are reflected on next download with no code change.
+A new collapsible panel component that renders on the registration page directly above the document/attachments step. It answers the applicant's question about malware handling in plain language, with ClamAV named as the scanning engine and daily signature updates (with offline mirror for restricted-network deployments) mentioned.
 
 ## Files
 
-New:
-- `src/components/applications/ApplicationUploadPanel.tsx` — the panel (mirrors `ReturnUploadPanel` structure).
-- `src/lib/applicationTemplate.ts` — pure functions `buildApplicationExcelTemplate(schema)` and `buildApplicationXmlTemplate(schema)` returning Blobs. Modeled on `src/lib/returnTemplate.ts`.
+1. **New:** `src/components/registration/SecurityScanningNotice.tsx`
+   - Collapsible card (shadcn `Collapsible` + `Card`) titled **"Security & file scanning"**, collapsed by default.
+   - Trigger row: shield icon, title, one-line summary ("All uploads are scanned for malware before we accept them."), chevron.
+   - Expanded body — short applicant-friendly bullets:
+     - **Scanned on upload** — every file is checked with ClamAV, an industry-standard antivirus engine.
+     - **Definitions stay current** — virus signatures refresh daily; on-premises and restricted-network deployments use a secure internal mirror so protection stays up to date without external internet access.
+     - **What's allowed** — PDF, Word, Excel, images (JPG/PNG/WebP), CSV, and plain text, up to **20 MB per file**.
+     - **If something is infected** — the file is blocked immediately, moved to a secure quarantine area, and a record is written to the audit log; our security team is notified. You'll see a clear error and can upload a clean copy.
+     - **Your privacy** — files are stored privately and only reachable through short-lived signed links (5 minutes).
+   - Footer line: small muted "Powered by ClamAV · signatures refreshed daily".
+   - No props required beyond optional `className`. Pure presentational — no data fetching, no state beyond open/closed.
 
-Modified:
-- Applicant application fill page (the route rendering `FormRenderer` for a licensee application — e.g. `src/pages/NewApplication.tsx` and the continue/resume page). Insert `<ApplicationUploadPanel schema={formSchema} />` above the form. No other logic touched.
+2. **Edit:** `src/pages/registration/PreLicenseeRegistration.tsx`
+   - Import `SecurityScanningNotice`.
+   - Render `<SecurityScanningNotice />` immediately above the attachments/documents step (the step that renders file upload fields). Placement is inside the step container so it only shows on that step, not on personal-info or review steps.
 
-## Technical Notes
+## Out of scope
 
-- Excel generation: reuse `xlsx` (already a dep via returns template).
-- XML generation: plain string builder, no new dep.
-- Schema source: whatever object `FormRenderer` currently receives (sections → fields). Panel is a pure consumer — it re-reads on every render so backend changes propagate automatically.
-- Import button stays disabled with tooltip until Phase 2 wires parsing + form hydration.
-- No changes to routing, auth, RLS, or existing form submit flow.
+- No changes to `secureFileUpload.ts`, upload components, RLS, or edge functions.
+- No new copy on other portals (licensee, admin, complaints) — registration only, per request.
+- No backend scanner wiring; copy reflects the intended ClamAV story only.
 
-## Verification
+## Visual notes
 
-- Panel renders on applicant application fill page.
-- Download buttons produce `.xlsx` and `.xml` reflecting current form fields (verify by editing a field label in admin form builder and re-downloading).
-- Upload accepts files, shows filename; import button disabled with helper text.
-- Existing form fill/submit behavior unchanged.
-
-## Phase 2 (not in this plan)
-
-Parser (`parseApplicationExcel` / `parseApplicationXml`), value coercion, diff preview, hydration into form state via an `importNonce` remount pattern (same as returns), audit logging.
+- Use existing design tokens (`bg-card`, `border-border`, `text-muted-foreground`, primary accent for the shield icon).
+- Icon: `ShieldCheck` from `lucide-react`.
+- Keep it compact: ~single card, collapsed height ≈ one row; expanded shows 5 short bullets.
