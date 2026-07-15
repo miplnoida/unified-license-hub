@@ -1057,13 +1057,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       case 'documents':
         return (
-          <DocumentsStep
-            documents={form.documents}
-            onAddDocument={handleAddDocument}
-            onRemoveDocument={handleRemoveDocument}
-            errors={errors}
-            documentTypes={config?.documentTypes}
-          />
+          <div className="space-y-4">
+            <SecurityScanningNotice />
+            <DocumentsStep
+              documents={form.documents}
+              onAddDocument={handleAddDocument}
+              onRemoveDocument={handleRemoveDocument}
+              errors={errors}
+              documentTypes={config?.documentTypes}
+            />
+          </div>
         );
 
       case 'declarations':
