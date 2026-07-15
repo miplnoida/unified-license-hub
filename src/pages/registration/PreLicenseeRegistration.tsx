@@ -9,6 +9,7 @@ import { EntityDetailsStep } from '@/components/registration/EntityDetailsStep';
 import { SectorSelectionSection } from '@/components/registration/SectorSelectionSection';
 import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
+import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
@@ -1056,13 +1057,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       case 'documents':
         return (
-          <DocumentsStep
-            documents={form.documents}
-            onAddDocument={handleAddDocument}
-            onRemoveDocument={handleRemoveDocument}
-            errors={errors}
-            documentTypes={config?.documentTypes}
-          />
+          <div className="space-y-4">
+            <SecurityScanningNotice />
+            <DocumentsStep
+              documents={form.documents}
+              onAddDocument={handleAddDocument}
+              onRemoveDocument={handleRemoveDocument}
+              errors={errors}
+              documentTypes={config?.documentTypes}
+            />
+          </div>
         );
 
       case 'declarations':
