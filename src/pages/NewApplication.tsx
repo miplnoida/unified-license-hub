@@ -2097,6 +2097,12 @@ export default function NewApplication() {
           return (
             <div className="space-y-3">
               {showRenderer && (
+                <ApplicationUploadPanel
+                  formName={activeTemplate.name}
+                  sections={effectiveSections as any}
+                />
+              )}
+              {showRenderer && (
                 <FormRenderer
                   formName={activeTemplate.name}
                   sections={effectiveSections}
