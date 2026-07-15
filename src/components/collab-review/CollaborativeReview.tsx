@@ -177,6 +177,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const colorForAuthor = (uid: string, roleId: string | null) => authorLabelSafe(uid, roleId).color;
 
+  // Blocking count includes demo blocking comments so the header badge appears in demo mode.
+  const effectiveBlockingOpenCount = demo.active
+    ? effectiveComments.filter(c => c.is_blocking && c.status === 'open' && !c.parent_comment_id).length
+    : collab.blockingOpenCount;
+
   const scrollToCard = (commentId: string) => {
     const el = cardRefs.current.get(commentId);
     if (el) {
