@@ -542,7 +542,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted-foreground">
               {!roleGateOk
-                ? 'Choose a role before posting.'
+                ? 'Preparing your reviewer role…'
                 : suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
             </span>
             <Button size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
