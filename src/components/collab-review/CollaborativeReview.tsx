@@ -100,6 +100,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const suggestionsForField = collab.suggestions.filter(s => s.field_key === activeField);
 
   const filteredComments = commentsForField.filter(c => {
+    if (reviewerFilter && c.author_user_id !== reviewerFilter) return false;
     if (filter === 'open') return c.status === 'open';
     if (filter === 'resolved') return c.status === 'resolved';
     if (filter === 'mine') return c.author_user_id === user?.id;
@@ -107,12 +108,49 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     return true;
   });
   const filteredSuggestions = suggestionsForField.filter(s => {
+    if (reviewerFilter && s.author_user_id !== reviewerFilter) return false;
     if (filter === 'suggestions') return true;
     if (filter === 'mine') return s.author_user_id === user?.id;
     if (filter === 'resolved') return s.status !== 'pending';
     if (filter === 'open') return s.status === 'pending';
     return true;
   });
+
+  // Build reviewer legend entries (distinct authors on this field) with counts.
+  const legendEntries: ReviewerLegendEntry[] = (() => {
+    const map = new Map<string, ReviewerLegendEntry>();
+    const bump = (uid: string, roleId: string | null) => {
+      const key = uid;
+      const a = authorLabelSafe(uid, roleId);
+      const existing = map.get(key);
+      if (existing) { existing.count += 1; return; }
+      map.set(key, { id: uid, name: a.name, roleName: a.roleName, color: a.color, initials: a.initials, count: 1 });
+    };
+    commentsForField.forEach(c => bump(c.author_user_id, c.author_role_id));
+    suggestionsForField.forEach(s => bump(s.author_user_id, s.author_role_id));
+    return Array.from(map.values());
+  })();
+
+  // Number anchored comments (those with a selection range) for the inline pin badges.
+  const commentAnchorNumbers = (() => {
+    const anchored = commentsForField
+      .filter(c => c.selection_start != null && c.selection_end != null && (c.selection_end ?? 0) > (c.selection_start ?? 0))
+      .sort((a, b) => (a.selection_start ?? 0) - (b.selection_start ?? 0));
+    const m = new Map<string, number>();
+    anchored.forEach((c, i) => m.set(c.id, i + 1));
+    return m;
+  })();
+
+  const colorForAuthor = (uid: string, roleId: string | null) => authorLabelSafe(uid, roleId).color;
+
+  const scrollToCard = (commentId: string) => {
+    const el = cardRefs.current.get(commentId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary'), 1200);
+    }
+  };
 
   const captureSelection = () => {
     const ta = textareaRef.current;
