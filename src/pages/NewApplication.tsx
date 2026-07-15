@@ -28,6 +28,7 @@ import {
   CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { ApplicationUploadPanel } from '@/components/applications/ApplicationUploadPanel';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -2096,6 +2097,12 @@ export default function NewApplication() {
             !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0 && !stickyLoaded;
           return (
             <div className="space-y-3">
+              {showRenderer && (
+                <ApplicationUploadPanel
+                  formName={activeTemplate.name}
+                  sections={effectiveSections as any}
+                />
+              )}
               {showRenderer && (
                 <FormRenderer
                   formName={activeTemplate.name}
