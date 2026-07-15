@@ -145,10 +145,10 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   });
 
   const authorLabelSafe = (uid: string, roleId: string | null) => {
-    // Demo reviewers bypass the profile/role lookup entirely.
-    const demoR = demoReviewerFor(uid);
-    if (demoR) {
-      return { name: demoR.name, roleName: demoR.roleName, color: demoR.color, initials: demoR.initials };
+    // Seeded roster (including the signed-in user) bypasses profile/role lookup.
+    const seedR = reviewerFromRoster(seed.roster, uid);
+    if (seedR) {
+      return { name: seedR.name, roleName: seedR.roleName, color: seedR.color, initials: seedR.initials };
     }
     const p = authorMap.get(uid);
     const r = roleId ? roleMap.get(roleId) : null;
