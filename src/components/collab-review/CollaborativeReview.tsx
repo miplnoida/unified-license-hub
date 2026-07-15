@@ -16,7 +16,8 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import { ReviewerLegend, type ReviewerLegendEntry } from './markup/ReviewerLegend';
 import { ViewModeToggle, type ViewMode } from './markup/ViewModeToggle';
 import { InlineMarkup } from './markup/InlineMarkup';
-import { buildDemoOverlay, demoReviewerFor, isDemoId } from './demoContent';
+import { buildSeedOverlay, reviewerFromRoster, isSyntheticId } from './demoContent';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 interface FieldSpec { key: string; label: string; value: string }
 
