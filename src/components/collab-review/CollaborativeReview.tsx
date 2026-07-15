@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, Check, X, RotateCcw, Reply, AlertTriangle, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -210,11 +210,20 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     setSelection({ start, end, text: ta.value.substring(start, end) });
   };
 
+  // Auto-detect the reviewer role: prefer the role from the user's permission
+  // context, else the first configured role. No user-facing role picker.
   const multiRole = (collab.availableRoles?.length ?? 0) > 1;
-  const effectiveRoleId = multiRole
-    ? selectedRoleId
-    : (selectedRoleId ?? collab.perms.role_id ?? null);
-  const roleGateOk = !multiRole || !!selectedRoleId;
+  const autoRoleId = useMemo(() => {
+    const available = collab.availableRoles ?? [];
+    if (available.length === 0) return collab.perms.role_id ?? null;
+    if (collab.perms.role_id && available.includes(collab.perms.role_id)) return collab.perms.role_id;
+    return available[0] ?? null;
+  }, [collab.availableRoles, collab.perms.role_id]);
+  useEffect(() => {
+    if (!selectedRoleId && autoRoleId) setSelectedRoleId(autoRoleId);
+  }, [autoRoleId, selectedRoleId]);
+  const effectiveRoleId = selectedRoleId ?? autoRoleId;
+  const roleGateOk = !!effectiveRoleId;
 
   const submitComment = () => {
     if (!draft.trim() || !activeFieldSpec) return;
@@ -485,20 +494,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       </div>
 
 
-      {(collab.availableRoles?.length ?? 0) > 1 && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted-foreground">Post as:</span>
-          <Select value={effectiveRoleId ?? ''} onValueChange={v => setSelectedRoleId(v)}>
-            <SelectTrigger className="h-8 w-56"><SelectValue placeholder="Select role" /></SelectTrigger>
-            <SelectContent>
-              {collab.availableRoles.map((rid: string) => {
-                const r = roleMap.get(rid);
-                return <SelectItem key={rid} value={rid}>{r?.name ?? rid}</SelectItem>;
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+
+
 
       {collab.perms.can_comment ? (
         <div className="space-y-2 border rounded-md p-3">
@@ -514,7 +511,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
           {!roleGateOk && (
-            <p className="text-[11px] text-muted-foreground">Choose a role above before posting.</p>
+            <p className="text-[11px] text-muted-foreground">Preparing your reviewer role…</p>
           )}
         </div>
       ) : (
@@ -545,7 +542,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           <div className="flex justify-between items-center">
             <span className="text-[11px] text-muted-foreground">
               {!roleGateOk
-                ? 'Choose a role before posting.'
+                ? 'Preparing your reviewer role…'
                 : suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
             </span>
             <Button size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
