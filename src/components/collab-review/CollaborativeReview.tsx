@@ -113,9 +113,9 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     return null; // feature not enabled or user has no view permission on this step
   }
 
-  const commentsForField = collab.comments.filter(c => c.field_key === activeField && !c.parent_comment_id);
-  const repliesFor = (id: string) => collab.comments.filter(c => c.parent_comment_id === id);
-  const suggestionsForField = collab.suggestions.filter(s => s.field_key === activeField);
+  const commentsForField = effectiveComments.filter(c => c.field_key === activeField && !c.parent_comment_id);
+  const repliesFor = (id: string) => effectiveComments.filter(c => c.parent_comment_id === id);
+  const suggestionsForField = effectiveSuggestions.filter(s => s.field_key === activeField);
 
   const filteredComments = commentsForField.filter(c => {
     if (reviewerFilter && c.author_user_id !== reviewerFilter) return false;
@@ -135,6 +135,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   });
 
   const authorLabelSafe = (uid: string, roleId: string | null) => {
+    // Demo reviewers bypass the profile/role lookup entirely.
+    const demoR = demoReviewerFor(uid);
+    if (demoR) {
+      return { name: demoR.name, roleName: demoR.roleName, color: demoR.color, initials: demoR.initials };
+    }
     const p = authorMap.get(uid);
     const r = roleId ? roleMap.get(roleId) : null;
     const disp = roleId ? roleDisplayMap.get(roleId) : null;
