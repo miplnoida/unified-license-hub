@@ -511,7 +511,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
             <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
           {!roleGateOk && (
-            <p className="text-[11px] text-muted-foreground">Choose a role above before posting.</p>
+            <p className="text-[11px] text-muted-foreground">Preparing your reviewer role…</p>
           )}
         </div>
       ) : (
