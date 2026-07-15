@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, Check, X, RotateCcw, Reply, AlertTriangle, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoles } from '@/hooks/useRoles';
 import { INTERNAL_ROLES } from '@/types/platform';
+import { ReviewerLegend, type ReviewerLegendEntry } from './markup/ReviewerLegend';
+import { ViewModeToggle, type ViewMode } from './markup/ViewModeToggle';
+import { InlineMarkup } from './markup/InlineMarkup';
 
 interface FieldSpec { key: string; label: string; value: string }
 
@@ -39,7 +42,11 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('markup');
+  const [reviewerFilter, setReviewerFilter] = useState<string | null>(null);
+  const [showSelectionEditor, setShowSelectionEditor] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   const { user } = useAuth();
   const { data: allRoles = [] } = useRoles();
@@ -93,6 +100,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
   const suggestionsForField = collab.suggestions.filter(s => s.field_key === activeField);
 
   const filteredComments = commentsForField.filter(c => {
+    if (reviewerFilter && c.author_user_id !== reviewerFilter) return false;
     if (filter === 'open') return c.status === 'open';
     if (filter === 'resolved') return c.status === 'resolved';
     if (filter === 'mine') return c.author_user_id === user?.id;
@@ -100,12 +108,60 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     return true;
   });
   const filteredSuggestions = suggestionsForField.filter(s => {
+    if (reviewerFilter && s.author_user_id !== reviewerFilter) return false;
     if (filter === 'suggestions') return true;
     if (filter === 'mine') return s.author_user_id === user?.id;
     if (filter === 'resolved') return s.status !== 'pending';
     if (filter === 'open') return s.status === 'pending';
     return true;
   });
+
+  const authorLabelSafe = (uid: string, roleId: string | null) => {
+    const p = authorMap.get(uid);
+    const r = roleId ? roleMap.get(roleId) : null;
+    const disp = roleId ? roleDisplayMap.get(roleId) : null;
+    const showName = disp?.show_reviewer_name ?? true;
+    const showRole = disp?.show_role_name ?? true;
+    const name = p?.full_name || p?.email || 'Reviewer';
+    const initials = name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
+    return { name: showName ? name : initials, roleName: showRole ? (r?.name ?? '') : '', color: disp?.color ?? DEFAULT_COLOR, initials };
+  };
+
+  // Build reviewer legend entries (distinct authors on this field) with counts.
+  const legendEntries: ReviewerLegendEntry[] = (() => {
+    const map = new Map<string, ReviewerLegendEntry>();
+    const bump = (uid: string, roleId: string | null) => {
+      const key = uid;
+      const a = authorLabelSafe(uid, roleId);
+      const existing = map.get(key);
+      if (existing) { existing.count += 1; return; }
+      map.set(key, { id: uid, name: a.name, roleName: a.roleName, color: a.color, initials: a.initials, count: 1 });
+    };
+    commentsForField.forEach(c => bump(c.author_user_id, c.author_role_id));
+    suggestionsForField.forEach(s => bump(s.author_user_id, s.author_role_id));
+    return Array.from(map.values());
+  })();
+
+  // Number anchored comments (those with a selection range) for the inline pin badges.
+  const commentAnchorNumbers = (() => {
+    const anchored = commentsForField
+      .filter(c => c.selection_start != null && c.selection_end != null && (c.selection_end ?? 0) > (c.selection_start ?? 0))
+      .sort((a, b) => (a.selection_start ?? 0) - (b.selection_start ?? 0));
+    const m = new Map<string, number>();
+    anchored.forEach((c, i) => m.set(c.id, i + 1));
+    return m;
+  })();
+
+  const colorForAuthor = (uid: string, roleId: string | null) => authorLabelSafe(uid, roleId).color;
+
+  const scrollToCard = (commentId: string) => {
+    const el = cardRefs.current.get(commentId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary'), 1200);
+    }
+  };
 
   const captureSelection = () => {
     const ta = textareaRef.current;
@@ -157,16 +213,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     }, { onSuccess: () => { setReplyBody(''); setReplyTo(null); } });
   };
 
-  const authorLabel = (uid: string, roleId: string | null) => {
-    const p = authorMap.get(uid);
-    const r = roleId ? roleMap.get(roleId) : null;
-    const disp = roleId ? roleDisplayMap.get(roleId) : null;
-    const showName = disp?.show_reviewer_name ?? true;
-    const showRole = disp?.show_role_name ?? true;
-    const name = p?.full_name || p?.email || 'Reviewer';
-    const initials = name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
-    return { name: showName ? name : initials, roleName: showRole ? (r?.name ?? '') : '', color: disp?.color ?? DEFAULT_COLOR, initials };
-  };
+  const authorLabel = authorLabelSafe;
+
 
   const Sidebar = (
     <div className="flex flex-col gap-3">
@@ -181,6 +229,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
           </Badge>
         )}
       </div>
+      <ReviewerLegend entries={legendEntries} activeId={reviewerFilter} onToggle={setReviewerFilter} />
       <Select value={filter} onValueChange={v => setFilter(v as Filter)}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -201,7 +250,12 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       {filteredSuggestions.map(s => {
         const a = authorLabel(s.author_user_id, s.author_role_id);
         return (
-          <div key={s.id} className="border rounded-md p-3 space-y-2 bg-card">
+          <div
+            key={s.id}
+            ref={el => cardRefs.current.set(s.id, el)}
+            className="border rounded-md p-3 space-y-2 bg-card transition-shadow"
+            style={{ borderLeft: `3px solid ${a.color}` }}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white"
@@ -243,14 +297,31 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
       {filteredComments.map(c => {
         const a = authorLabel(c.author_user_id, c.author_role_id);
         const replies = repliesFor(c.id);
+        const pin = commentAnchorNumbers.get(c.id);
         return (
-          <div key={c.id} className="border rounded-md p-3 space-y-2 bg-card">
+          <div
+            key={c.id}
+            ref={el => cardRefs.current.set(c.id, el)}
+            className="border rounded-md p-3 space-y-2 bg-card transition-shadow"
+            style={{ borderLeft: `3px solid ${a.color}` }}
+          >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full text-[10px] flex items-center justify-center font-semibold text-white"
                       style={{ background: a.color }}>{a.initials}</span>
                 <div className="text-xs">
-                  <div className="font-medium">{a.name}</div>
+                  <div className="font-medium flex items-center gap-1.5">
+                    {a.name}
+                    {pin && (
+                      <span
+                        className="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold text-white"
+                        style={{ background: a.color }}
+                        title="Anchored in narrative"
+                      >
+                        {pin}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-muted-foreground">{a.roleName} · {new Date(c.created_at).toLocaleString()}</div>
                 </div>
               </div>
@@ -334,24 +405,41 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
         </Select>
       )}
       <div>
-        <div className="text-sm font-medium mb-1">{activeFieldSpec?.label}</div>
-        <Textarea
-          ref={textareaRef}
-          readOnly
-          value={activeFieldSpec?.value ?? ''}
-          onSelect={captureSelection}
-          onMouseUp={captureSelection}
-          onKeyUp={captureSelection}
-          rows={10}
-          placeholder="No narrative content."
-          className="font-mono text-sm"
-        />
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="text-sm font-medium">{activeFieldSpec?.label}</div>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+        </div>
+        {viewMode === 'original' ? (
+          <Textarea
+            ref={textareaRef}
+            readOnly
+            value={activeFieldSpec?.value ?? ''}
+            onSelect={captureSelection}
+            onMouseUp={captureSelection}
+            onKeyUp={captureSelection}
+            rows={10}
+            placeholder="No narrative content."
+            className="font-mono text-sm"
+          />
+        ) : (
+          <InlineMarkup
+            text={activeFieldSpec?.value ?? ''}
+            suggestions={filteredSuggestions}
+            comments={filteredComments}
+            commentAnchorNumbers={commentAnchorNumbers}
+            colorForAuthor={colorForAuthor}
+            mode={viewMode}
+            onAnchorClick={scrollToCard}
+            highlightAuthorId={reviewerFilter}
+          />
+        )}
         {selection && (
           <p className="text-xs text-muted-foreground mt-1">
             Selected {selection.end - selection.start} chars: “{selection.text.slice(0, 60)}{selection.text.length > 60 ? '…' : ''}”
           </p>
         )}
       </div>
+
 
       {(collab.availableRoles?.length ?? 0) > 1 && (
         <div className="flex items-center gap-2 text-xs">
