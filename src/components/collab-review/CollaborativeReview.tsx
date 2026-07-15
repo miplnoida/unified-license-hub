@@ -213,16 +213,8 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
     }, { onSuccess: () => { setReplyBody(''); setReplyTo(null); } });
   };
 
-  const authorLabel = (uid: string, roleId: string | null) => {
-    const p = authorMap.get(uid);
-    const r = roleId ? roleMap.get(roleId) : null;
-    const disp = roleId ? roleDisplayMap.get(roleId) : null;
-    const showName = disp?.show_reviewer_name ?? true;
-    const showRole = disp?.show_role_name ?? true;
-    const name = p?.full_name || p?.email || 'Reviewer';
-    const initials = name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
-    return { name: showName ? name : initials, roleName: showRole ? (r?.name ?? '') : '', color: disp?.color ?? DEFAULT_COLOR, initials };
-  };
+  const authorLabel = authorLabelSafe;
+
 
   const Sidebar = (
     <div className="flex flex-col gap-3">
