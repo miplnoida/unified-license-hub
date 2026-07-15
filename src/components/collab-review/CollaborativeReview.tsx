@@ -314,7 +314,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
               <Badge variant={s.status === 'accepted' ? 'default' : s.status === 'rejected' ? 'secondary' : 'outline'}>
                 {s.status}
               </Badge>
-              {s.status === 'pending' && !isDemoId(s.id) && (
+              {s.status === 'pending' && !isSyntheticId(s.id) && (
                 <div className="flex gap-1">
                   {collab.perms.can_accept && (
                     <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
@@ -327,9 +327,6 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                     </Button>
                   )}
                 </div>
-              )}
-              {isDemoId(s.id) && s.status === 'pending' && (
-                <span className="text-[10px] text-muted-foreground italic">Demo item</span>
               )}
             </div>
           </div>
