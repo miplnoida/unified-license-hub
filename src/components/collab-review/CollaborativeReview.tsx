@@ -405,24 +405,40 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
         </Select>
       )}
       <div>
-        <div className="text-sm font-medium mb-1">{activeFieldSpec?.label}</div>
-        <Textarea
-          ref={textareaRef}
-          readOnly
-          value={activeFieldSpec?.value ?? ''}
-          onSelect={captureSelection}
-          onMouseUp={captureSelection}
-          onKeyUp={captureSelection}
-          rows={10}
-          placeholder="No narrative content."
-          className="font-mono text-sm"
-        />
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="text-sm font-medium">{activeFieldSpec?.label}</div>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+        </div>
+        {viewMode === 'original' ? (
+          <Textarea
+            ref={textareaRef}
+            readOnly
+            value={activeFieldSpec?.value ?? ''}
+            onSelect={captureSelection}
+            onMouseUp={captureSelection}
+            onKeyUp={captureSelection}
+            rows={10}
+            placeholder="No narrative content."
+            className="font-mono text-sm"
+          />
+        ) : (
+          <InlineMarkup
+            text={activeFieldSpec?.value ?? ''}
+            suggestions={filteredSuggestions}
+            comments={filteredComments}
+            commentAnchorNumbers={commentAnchorNumbers}
+            colorFor={colorForAuthor}
+            mode={viewMode}
+            onCommentClick={scrollToCard}
+          />
+        )}
         {selection && (
           <p className="text-xs text-muted-foreground mt-1">
             Selected {selection.end - selection.start} chars: “{selection.text.slice(0, 60)}{selection.text.length > 60 ? '…' : ''}”
           </p>
         )}
       </div>
+
 
       {(collab.availableRoles?.length ?? 0) > 1 && (
         <div className="flex items-center gap-2 text-xs">
