@@ -100,6 +100,19 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
 
   const activeFieldSpec = effectiveFields.find(f => f.key === activeField) ?? effectiveFields[0];
 
+  // Auto-detect reviewer role. Declared BEFORE the early-return guard below
+  // so hook order stays stable across renders where perms are still loading.
+  const autoRoleId = useMemo(() => {
+    const available = collab.availableRoles ?? [];
+    if (available.length === 0) return collab.perms.role_id ?? null;
+    if (collab.perms.role_id && available.includes(collab.perms.role_id)) return collab.perms.role_id;
+    return available[0] ?? null;
+  }, [collab.availableRoles, collab.perms.role_id]);
+  useEffect(() => {
+    if (!selectedRoleId && autoRoleId) setSelectedRoleId(autoRoleId);
+  }, [autoRoleId, selectedRoleId]);
+
+
   if (!collab.perms.enabled || !collab.perms.can_view || !collab.stepId) {
     const isAdmin = !!user && (user.role === 'super_admin' || user.role === 'admin' || INTERNAL_ROLES.includes(user.role as any));
     if (isAdmin) {
