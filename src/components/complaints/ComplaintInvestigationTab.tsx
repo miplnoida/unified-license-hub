@@ -37,7 +37,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
   const [corrSubject, setCorrSubject] = useState('');
   const [corrBody, setCorrBody] = useState('');
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery({
+  const tasksQ = useQuery({
     queryKey: ['complaint_tasks', complaintId],
     queryFn: async () => {
       const { data, error } = await supabase.from('complaint_investigation_tasks')
@@ -46,8 +46,10 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       return data ?? [];
     },
   });
+  const tasks = tasksQ.data;
+  const tasksLoading = tasksQ.isLoading;
 
-  const { data: correspondence, isLoading: corrLoading } = useQuery({
+  const correspondenceQ = useQuery({
     queryKey: ['complaint_correspondence', complaintId],
     queryFn: async () => {
       const { data, error } = await supabase.from('complaint_correspondence')
@@ -56,12 +58,15 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       const authorIds = Array.from(new Set((data ?? []).map((r: any) => r.author_id).filter(Boolean)));
       const map = new Map<string, string>();
       if (authorIds.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', authorIds);
+        const { data: profs, error: profErr } = await supabase.from('profiles').select('id, full_name, email').in('id', authorIds);
+        if (profErr) throw profErr;
         (profs ?? []).forEach((p: any) => map.set(p.id, p.full_name || p.email));
       }
       return (data ?? []).map((r: any) => ({ ...r, author_name: r.author_id ? map.get(r.author_id) || 'Staff' : 'System' }));
     },
   });
+  const correspondence = correspondenceQ.data;
+  const corrLoading = correspondenceQ.isLoading;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['complaint_tasks', complaintId] });
