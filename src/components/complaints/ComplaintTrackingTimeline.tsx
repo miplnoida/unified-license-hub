@@ -1,175 +1,179 @@
-// Complaint tracking timeline — aggregates complaint audit logs and any
-// linked enforcement case events into a single, human-readable timeline that
-// both regulators and complainants/licensees can follow.
+// Complaint tracking timeline (v2) — uses the `get_complaint_tracking` RPC so
+// that step progress, current assignee, SLA and event visibility are governed
+// server-side by the Complaint Management Workflow configuration.
 //
-// Data sources:
-//   - audit_logs (action starts with "complaint.")
-//   - enforcement_case_events (when the complaint has been escalated)
-//
-// Read-only view. Uses only tables already exposed to complainants /
-// licensee users through existing RLS.
+// Same public props as the previous component so existing pages don't break.
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Clock } from "lucide-react";
+import { Loader2, Clock, CheckCircle2, Dot } from "lucide-react";
 
 interface Props {
   complaintId: string;
+  // Kept for backwards compatibility; ignored — the RPC handles enforcement.
   enforcementId?: string | null;
 }
 
-interface TimelineEntry {
-  id: string;
+interface Step {
+  step_key: string;
+  label: string;
+  order: number;
+  is_current: boolean;
+  is_terminal: boolean;
+  is_start: boolean;
+}
+
+interface Event {
+  source: "workflow" | "enforcement";
   when: string;
-  actor: string;
   title: string;
-  detail?: string | null;
-  source: "complaint" | "enforcement";
+  note: string | null;
+  actor: string | null;
 }
 
-const COMPLAINT_ACTION_LABELS: Record<string, string> = {
-  "complaint.filed": "Complaint filed",
-  "complaint.submitted": "Complaint submitted",
-  "complaint.assigned": "Assigned to investigator",
-  "complaint.investigation_started": "Investigation started",
-  "complaint.severity_updated": "Severity updated",
-  "complaint.resolved": "Marked resolved",
-  "complaint.closed": "Complaint closed",
-  "complaint.reopened": "Complaint reopened",
-  "complaint.licensee_linked": "Licensee mapped",
-  "complaint.escalated_to_enforcement": "Escalated to enforcement",
-};
-
-const ENFORCEMENT_EVENT_LABELS: Record<string, string> = {
-  case_opened: "Enforcement case opened",
-  notice_issued: "Notice issued to licensee",
-  response_received: "Licensee response recorded",
-  decision_recorded: "Decision recorded",
-  payment_received: "Penalty payment recorded",
-  case_closed: "Enforcement case closed",
-  case_withdrawn: "Enforcement case withdrawn",
-  appeal_filed: "Appeal filed",
-};
-
-function humanLabel(map: Record<string, string>, key: string): string {
-  return map[key] || key.replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+interface Tracking {
+  complaint_number: string;
+  status: string;
+  current_step_key: string | null;
+  current_step_label: string | null;
+  assigned_user_name: string | null;
+  assigned_role: string | null;
+  due_at: string | null;
+  sla_status: string;
+  instance_updated_at: string | null;
+  steps: Step[];
+  events: Event[];
+  is_internal: boolean;
+  error?: string;
 }
 
-export function ComplaintTrackingTimeline({ complaintId, enforcementId }: Props) {
-  const auditQ = useQuery({
-    queryKey: ["complaint_timeline_audit", complaintId],
+export function ComplaintTrackingTimeline({ complaintId }: Props) {
+  const q = useQuery({
+    queryKey: ["complaint_tracking", complaintId],
     enabled: !!complaintId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("audit_logs")
-        .select("id, action, created_at, user_id, meta")
-        .eq("entity_type", "complaint")
-        .eq("entity_id", complaintId)
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data, error } = await (supabase as any).rpc("get_complaint_tracking", { _complaint_id: complaintId });
       if (error) throw error;
-      const rows = (data || []) as any[];
-      const actorIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
-      const profMap = new Map<string, string>();
-      if (actorIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", actorIds);
-        (profs || []).forEach((p: any) => profMap.set(p.id, p.full_name || p.email || "Staff"));
-      }
-      return rows
-        .filter((r) => typeof r.action === "string" && r.action.startsWith("complaint."))
-        .map<TimelineEntry>((r) => ({
-          id: `c:${r.id}`,
-          when: r.created_at,
-          actor: r.user_id ? (profMap.get(r.user_id) || "Staff") : "System",
-          title: humanLabel(COMPLAINT_ACTION_LABELS, r.action),
-          detail:
-            (r.meta && typeof r.meta === "object" && (r.meta.reason || r.meta.note || r.meta.resolution || r.meta.findings)) ||
-            null,
-          source: "complaint",
-        }));
+      return (data || {}) as Tracking;
     },
   });
 
-  const enforcementQ = useQuery({
-    queryKey: ["complaint_timeline_enforcement", enforcementId],
-    enabled: !!enforcementId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enforcement_case_events")
-        .select("id, event_type, note, created_at, actor_id")
-        .eq("case_id", enforcementId!)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      const rows = (data || []) as any[];
-      const actorIds = Array.from(new Set(rows.map((r) => r.actor_id).filter(Boolean)));
-      const profMap = new Map<string, string>();
-      if (actorIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", actorIds);
-        (profs || []).forEach((p: any) => profMap.set(p.id, p.full_name || p.email || "Staff"));
-      }
-      return rows.map<TimelineEntry>((r) => ({
-        id: `e:${r.id}`,
-        when: r.created_at,
-        actor: r.actor_id ? (profMap.get(r.actor_id) || "Staff") : "System",
-        title: humanLabel(ENFORCEMENT_EVENT_LABELS, r.event_type),
-        detail: r.note || null,
-        source: "enforcement",
-      }));
-    },
-  });
+  if (q.isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading progress…
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const loading = auditQ.isLoading || enforcementQ.isLoading;
-  const entries: TimelineEntry[] = [
-    ...(auditQ.data ?? []),
-    ...(enforcementQ.data ?? []),
-  ].sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime());
+  const t = q.data;
+  if (!t || t.error) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          {t?.error === "FORBIDDEN" ? "You don't have access to this complaint's tracking." : "Progress information unavailable."}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const steps = t.steps || [];
+  const events = t.events || [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Clock className="h-4 w-4" /> Progress Timeline
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm">
-        {loading ? (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading history…
-          </div>
-        ) : entries.length === 0 ? (
-          <p className="text-muted-foreground">No activity recorded yet.</p>
-        ) : (
-          <ol className="relative border-l pl-4 space-y-4">
-            {entries.map((e) => (
-              <li key={e.id} className="relative">
-                <span className="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-primary" />
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium">{e.title}</span>
-                  <Badge variant={e.source === "enforcement" ? "destructive" : "secondary"} className="text-[10px]">
-                    {e.source === "enforcement" ? "Enforcement" : "Complaint"}
-                  </Badge>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Current Progress
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="flex flex-wrap gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">Current Step</div>
+              <div className="font-medium">{t.current_step_label || "—"}</div>
+            </div>
+            {t.is_internal && (
+              <>
+                <div>
+                  <div className="text-xs text-muted-foreground">Assignee</div>
+                  <div className="font-medium">{t.assigned_user_name || t.assigned_role || "—"}</div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(e.when).toLocaleString()} · by {e.actor}
-                </p>
-                {e.detail && (
-                  <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">{e.detail}</p>
+                {t.due_at && (
+                  <div>
+                    <div className="text-xs text-muted-foreground">SLA Due</div>
+                    <div className="font-medium">{new Date(t.due_at).toLocaleString()}</div>
+                  </div>
                 )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </CardContent>
-    </Card>
+                {t.sla_status && (
+                  <div>
+                    <div className="text-xs text-muted-foreground">SLA Status</div>
+                    <Badge variant={t.sla_status === "overdue" ? "destructive" : t.sla_status === "at_risk" ? "outline" : "secondary"}>
+                      {t.sla_status.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {steps.length > 0 && (
+            <ol className="flex flex-wrap gap-2 pt-2">
+              {steps.map((s) => (
+                <li
+                  key={s.step_key}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs ${
+                    s.is_current
+                      ? "border-primary bg-primary/10 font-medium"
+                      : s.is_terminal
+                      ? "border-muted bg-muted/40 text-muted-foreground"
+                      : "border-muted"
+                  }`}
+                >
+                  {s.is_terminal ? <CheckCircle2 className="h-3 w-3" /> : <Dot className="h-3 w-3" />}
+                  {s.label}
+                </li>
+              ))}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">History</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm">
+          {events.length === 0 ? (
+            <p className="text-muted-foreground">No activity recorded yet.</p>
+          ) : (
+            <ol className="relative border-l pl-4 space-y-4">
+              {events.map((e, idx) => (
+                <li key={idx} className="relative">
+                  <span className="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-primary" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">{e.title}</span>
+                    <Badge variant={e.source === "enforcement" ? "destructive" : "secondary"} className="text-[10px]">
+                      {e.source === "enforcement" ? "Enforcement" : "Complaint"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(e.when).toLocaleString()}
+                    {e.actor ? ` · by ${e.actor}` : ""}
+                  </p>
+                  {e.note && <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">{e.note}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
