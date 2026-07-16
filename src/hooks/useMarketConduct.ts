@@ -276,13 +276,12 @@ export function useCreateInternalComplaint() {
         throw new Error([error.message, (error as any).details, (error as any).hint].filter(Boolean).join(' '));
       }
 
-      // Best-effort auto-triage using existing edge function
-      try {
-        await supabase.functions.invoke('evaluate-complaint-triage', { body: { complaint_id: (data as any).id } });
-      } catch { /* ignore, triage remains manual */ }
+      // Triage is enqueued server-side via trg_complaint_triage_enqueue.
+      // No client-side edge invoke here — prevents duplicate triage runs.
 
       return data as any;
     },
+
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['complaints'] }); toast.success('Complaint recorded'); },
     onError: (e: any) => toast.error(e.message),
