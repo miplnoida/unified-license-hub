@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink, Building2, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { ArrowLeft, Loader2, Printer, Paperclip, ExternalLink, Building2, Check, ChevronsUpDown, AlertTriangle, Gavel } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
