@@ -76,7 +76,7 @@ interface RefLookup { id: string; name: string }
 const URL_KEYS = [
   'page','pageSize','sort','dir','q',
   'status','severity','priority','sla','type','product','channel','category',
-  'intake','team','triage','vulnerable',
+  'intake','team','triage','vulnerable','regulator','from','to',
 ] as const;
 type UrlKey = typeof URL_KEYS[number];
 
