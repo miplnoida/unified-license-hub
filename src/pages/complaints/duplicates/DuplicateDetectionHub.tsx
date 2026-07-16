@@ -15,21 +15,15 @@ export default function DuplicateDetectionHub() {
   const qc = useQueryClient();
 
   const { data: stats } = useQuery({
-    queryKey: ['complaint_duplicate_stats'],
+    queryKey: ['duplicate_hub_stats'],
     queryFn: async () => {
-      const [pairsRes, rulesRes] = await Promise.all([
-        supabase.from('complaint_duplicate_pairs' as any).select('status'),
-        supabase.from('complaint_duplicate_rules' as any).select('enabled'),
-      ]);
-      const pairs = (pairsRes.data as any[]) || [];
-      const rules = (rulesRes.data as any[]) || [];
-      return {
-        pending: pairs.filter(p => p.status === 'pending').length,
-        linkedMerged: pairs.filter(p => p.status === 'linked' || p.status === 'merged').length,
-        activeRules: rules.filter(r => r.enabled).length,
-      };
+      const { data, error } = await (supabase as any).rpc('duplicate_hub_stats');
+      if (error) throw error;
+      return (data ?? {}) as { pending: number; linkedMerged: number; activeRules: number };
     },
+    staleTime: 30_000,
   });
+
 
   const detect = useMutation({
     mutationFn: async () => {
