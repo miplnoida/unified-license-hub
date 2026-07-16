@@ -259,9 +259,9 @@ export default function ComplaintDetail() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusMeta.variant} className="mt-1">{statusMeta.label}</Badge></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Severity</p><Badge variant={sevMeta.variant} className="mt-1">{sevMeta.label}</Badge></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Days Open</p><p className="text-2xl font-semibold">{daysOpen}<span className="text-xs text-muted-foreground ml-1">/ {slaDays}</span></p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Days Open</p><p className="text-2xl font-semibold">{displayDaysOpen}<span className="text-xs text-muted-foreground ml-1">/ {slaDays}</span></p></CardContent></Card>
           <Card><CardContent className="pt-6 space-y-2"><p className="text-xs text-muted-foreground">SLA</p>
-            <Badge variant={slaStatus === 'breached' ? 'destructive' : slaStatus === 'at_risk' ? 'secondary' : 'default'} className="capitalize">{slaStatus.replace('_', ' ')}</Badge>
+            <Badge variant={slaStatusVariant(slaStatus)} className="capitalize">{slaStatusLabel(slaStatus)}</Badge>
             <ComplaintTotalSla complaintId={complaint.id} />
           </CardContent></Card>
         </div>
