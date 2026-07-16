@@ -60,6 +60,9 @@ export default function ComplaintDetail() {
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeReason, setCloseReason] = useState('');
   const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
+  const [licPickerOpen, setLicPickerOpen] = useState(false);
+  const [licSearch, setLicSearch] = useState('');
+  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; legal_name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
     queryKey: ['complaint', id],
