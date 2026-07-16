@@ -618,10 +618,10 @@ export default function ComplaintsList() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={isInternal ? 'Search # / subject / entity / email / team...' : 'Search complaints...'}
-                  className="pl-10" value={search} onChange={e => setSearch(e.target.value)}
+                  className="pl-10" value={searchDraft} onChange={e => onSearchChange(e.target.value)}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(v) => updateUrl({ status: v }, { resetPage: true })}>
                 <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -631,21 +631,21 @@ export default function ComplaintsList() {
 
               {isInternal && (
                 <>
-                  <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                  <Select value={severityFilter} onValueChange={(v) => updateUrl({ severity: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Severity" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Severity</SelectItem>
                       {['critical','high','medium','low'].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <Select value={priorityFilter} onValueChange={(v) => updateUrl({ priority: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Priority</SelectItem>
                       {['p1','p2','p3','p4'].map(s => <SelectItem key={s} value={s} className="uppercase">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Select value={slaFilter} onValueChange={setSlaFilter}>
+                  <Select value={slaFilter} onValueChange={(v) => updateUrl({ sla: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="SLA" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All SLA</SelectItem>
@@ -663,7 +663,7 @@ export default function ComplaintsList() {
                     <PopoverContent className="w-80 space-y-3">
                       <div>
                         <Label className="text-xs">Product</Label>
-                        <Select value={productFilter} onValueChange={setProductFilter}>
+                        <Select value={productFilter} onValueChange={(v) => updateUrl({ product: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -673,7 +673,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Channel</Label>
-                        <Select value={channelFilter} onValueChange={setChannelFilter}>
+                        <Select value={channelFilter} onValueChange={(v) => updateUrl({ channel: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -683,7 +683,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Conduct risk category</Label>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <Select value={categoryFilter} onValueChange={(v) => updateUrl({ category: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -693,7 +693,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Intake source</Label>
-                        <Select value={intakeFilter} onValueChange={setIntakeFilter}>
+                        <Select value={intakeFilter} onValueChange={(v) => updateUrl({ intake: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -703,7 +703,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Assigned team</Label>
-                        <Select value={teamFilter} onValueChange={setTeamFilter}>
+                        <Select value={teamFilter} onValueChange={(v) => updateUrl({ team: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -713,7 +713,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Triage source</Label>
-                        <Select value={triageFilter} onValueChange={setTriageFilter}>
+                        <Select value={triageFilter} onValueChange={(v) => updateUrl({ triage: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -723,7 +723,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Vulnerable customer</Label>
-                        <Select value={vulnerableFilter} onValueChange={setVulnerableFilter}>
+                        <Select value={vulnerableFilter} onValueChange={(v) => updateUrl({ vulnerable: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
