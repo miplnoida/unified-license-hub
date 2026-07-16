@@ -108,6 +108,9 @@ export default function ComplaintsList() {
   const teamFilter     = getParam('team','all');
   const triageFilter   = getParam('triage','all');
   const vulnerableFilter = getParam('vulnerable','all');
+  const regulatorFilter = getParam('regulator','all');
+  const dateFrom = getParam('from','');
+  const dateTo   = getParam('to','');
 
   const updateUrl = useCallback((patch: Partial<Record<UrlKey,string|null>>, opts?: { resetPage?: boolean }) => {
     const next = new URLSearchParams(searchParams);
