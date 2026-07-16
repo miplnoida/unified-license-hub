@@ -287,10 +287,10 @@ export default function ComplaintDetail() {
     queryKey: ['licensee_search_for_complaint', licSearch],
     enabled: licPickerOpen,
     queryFn: async () => {
-      const q = supabase.from('licensees').select('id, legal_name, license_number').order('legal_name').limit(20);
+      const q = supabase.from('licensees').select('id, name, license_number').order('name').limit(20);
       const term = licSearch.trim();
       const { data, error } = term
-        ? await q.or(`legal_name.ilike.%${term}%,license_number.ilike.%${term}%`)
+        ? await q.or(`name.ilike.%${term}%,license_number.ilike.%${term}%`)
         : await q;
       if (error) throw error;
       return (data ?? []) as any[];
