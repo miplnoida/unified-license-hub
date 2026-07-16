@@ -34,7 +34,9 @@ export default function DuplicateDetectionHub() {
     onSuccess: (r) => {
       toast.success(`Detection complete — ${r.detected ?? 0} new pair(s)`);
       qc.invalidateQueries({ queryKey: ['complaint_duplicate_pairs'] });
-      qc.invalidateQueries({ queryKey: ['complaint_duplicate_stats'] });
+      qc.invalidateQueries({ queryKey: ['duplicate_hub_stats'] });
+      qc.invalidateQueries({ queryKey: ['pending_duplicate_count'] });
+      qc.invalidateQueries({ queryKey: ['list_duplicate_clusters'] });
     },
     onError: (e: any) => toast.error(e.message),
   });
