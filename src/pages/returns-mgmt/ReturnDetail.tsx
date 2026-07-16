@@ -681,6 +681,86 @@ export default function ReturnDetail() {
           </Alert>
         )}
 
+        {pendingEditReq && (
+          <Card className="border-amber-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="h-4 w-4" /> Licensee Edit Request Pending
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm">
+                <div className="text-muted-foreground text-xs">Requested at {new Date(pendingEditReq.requested_at).toLocaleString()}</div>
+                <div className="mt-1 whitespace-pre-wrap"><strong>Reason:</strong> {pendingEditReq.reason}</div>
+              </div>
+              <div>
+                <Label htmlFor="edit-decision-comment" className="text-xs">Decision comment (optional for allow, recommended for deny)</Label>
+                <Textarea
+                  id="edit-decision-comment"
+                  rows={3}
+                  value={editDecisionComment}
+                  onChange={(e) => setEditDecisionComment(e.target.value)}
+                  placeholder="Add a note for the licensee..."
+                  disabled={decideEditRequest.isPending}
+                />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={decideEditRequest.isPending}
+                  onClick={async () => {
+                    const confirm = await Swal.fire({
+                      title: 'Allow licensee to edit?',
+                      text: 'The return will be reopened for the licensee to correct and resubmit.',
+                      icon: 'question',
+                      showCancelButton: true,
+                      confirmButtonText: 'Allow Edit',
+                      confirmButtonColor: '#16a34a',
+                    });
+                    if (!confirm.isConfirmed) return;
+                    try {
+                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'allowed', comment: editDecisionComment, returnId: id! });
+                      setEditDecisionComment('');
+                    } catch { /* toast handled */ }
+                  }}
+                >
+                  {decideEditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  Allow Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={decideEditRequest.isPending}
+                  onClick={async () => {
+                    if (!editDecisionComment.trim()) {
+                      toast.error('Please provide a reason for denying the request.');
+                      return;
+                    }
+                    const confirm = await Swal.fire({
+                      title: 'Deny edit request?',
+                      text: 'The licensee will be notified. The return status is unchanged.',
+                      icon: 'warning',
+                      showCancelButton: true,
+                      confirmButtonText: 'Deny Request',
+                      confirmButtonColor: '#dc2626',
+                    });
+                    if (!confirm.isConfirmed) return;
+                    try {
+                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
+                      setEditDecisionComment('');
+                    } catch { /* toast handled */ }
+                  }}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Deny Request
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Forms */}
           <div className="lg:col-span-2 space-y-4">
