@@ -253,10 +253,11 @@ export default function ComplaintsList() {
     queryKey: ['complaints_list_licensees', enrichmentIds.licIds],
     enabled: isInternal && enrichmentIds.licIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.from('licensees').select('id, legal_name, name').in('id', enrichmentIds.licIds);
+      const { data, error } = await supabase.from('licensees').select('id, name').in('id', enrichmentIds.licIds);
       if (error) throw error;
       const m = new Map<string, string>();
-      (data ?? []).forEach((l: any) => m.set(l.id, l.legal_name || l.name || '—'));
+      (data ?? []).forEach((l: any) => m.set(l.id, l.name || '—'));
+
       return m;
     },
   });
