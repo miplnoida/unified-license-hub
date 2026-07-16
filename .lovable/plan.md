@@ -1,56 +1,41 @@
-## Complaints list shows no data for super_admin
+## Goal
+Allow admins to map a licensee to an unlinked complaint directly from the "Escalate to Enforcement" card, then complete the escalation — without having to leave the page or edit the DB.
 
-### Root cause
+## Scope
+File: `src/pages/complaints/ComplaintDetail.tsx` (Escalate to Enforcement card, ~lines 461–477), plus a new backend RPC and one small hook query.
 
-`list_complaints` decides "internal viewer" via `has_complaint_perm(uid, 'view_all' | 'triage')`. That function only bypasses for the legacy `admin` role:
+## UX Changes (Escalate to Enforcement card)
+When `complaint.licensee_id` is null:
+1. Replace the amber "link this complaint via the DB" warning with an inline **Licensee picker**:
+   - Searchable Combobox (Command + Popover pattern already used in project) that queries `licensees` by legal name / license number.
+   - Shows top 20 matches; debounced 300ms search.
+   - Selecting a licensee stages it locally (not saved yet).
+2. Below picker: a **"Link Licensee"** button that persists the mapping via new RPC `link_complaint_licensee(_complaint_id, _licensee_id)`.
+3. Once linked, card re-renders with licensee name shown (small badge with "Change" link that clears mapping) and the existing findings textarea + **Open Enforcement Case** button becomes enabled.
 
-```sql
-public.has_role(_user_id, 'admin') OR EXISTS ( ...role_permissions... )
-```
+When `complaint.licensee_id` is already set: unchanged (already works today).
 
-The current signed-in user (`6d4f5483-…`) has role `super_admin`, which is not `admin` and has no `role_permissions` mapping. `has_complaint_perm` returns `false`, so `list_complaints` falls through to the "own complaints only" filter (`c.complainant_id = v_uid`) and returns 0 rows even though 28 complaints exist. Every other complaint RPC that uses `has_complaint_perm` has the same blind spot for `super_admin`.
+## Backend
+New migration adds:
+- `public.link_complaint_licensee(_complaint_id uuid, _licensee_id uuid) returns void`
+  - `SECURITY DEFINER`, `search_path=public`.
+  - Permission check via existing `has_complaint_perm(auth.uid(), 'edit')` or admin/super_admin bypass (mirrors `escalate_complaint_to_enforcement`).
+  - Validates licensee exists.
+  - Updates `complaints.licensee_id`, refreshes `updated_at`, writes an `audit_logs` row (`action='licensee_linked'`, before/after snapshot of licensee_id).
+- `GRANT EXECUTE ... TO authenticated`.
 
-Verified in DB:
-- `SELECT count(*) FROM complaints` → 28
-- `user_roles` row for the current user → `super_admin`
-- `has_complaint_perm('…','view_all')` → `false`
+Escalation RPC unchanged.
 
-### Fix
+## Frontend Details
+- New `useMutation` `linkLicensee` invoking the RPC; `onSuccess` invalidates `['complaint', id]`.
+- New `useQuery` for licensee search (enabled on non-empty search term); returns `id, legal_name, license_number, sector_id`.
+- Reuse `Command`, `Popover`, `Button` primitives already in the project. No new dependencies.
+- Preserve current escalation flow — no changes to `escalate_complaint_to_enforcement` call.
 
-One migration: update `public.has_complaint_perm(uuid, text)` so `super_admin` is also treated as a full-access bypass, matching the intent of the "Legacy admins / super admins bypass" comment already in the function.
+## Out of Scope
+- Bulk mapping, auto-suggestion from complaint text, and creating a new licensee from this dialog.
+- Changing linkage after enforcement case has been opened.
 
-```sql
-CREATE OR REPLACE FUNCTION public.has_complaint_perm(_user_id uuid, _action text)
-RETURNS boolean
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT
-    public.has_role(_user_id, 'admin')
-    OR public.has_role(_user_id, 'super_admin')
-    OR EXISTS (
-      SELECT 1
-      FROM public.role_permissions rp
-      JOIN public.permissions p         ON p.id = rp.permission_id
-      JOIN public.permission_actions pa ON pa.id = p.action_id
-      JOIN public.permission_modules pm ON pm.id = pa.module_id
-      JOIN public.user_dynamic_roles udr ON udr.role_id = rp.role_id
-      WHERE udr.user_id = _user_id
-        AND pm.key = 'complaint_management'
-        AND pa.key = _action
-    );
-$$;
-```
-
-No frontend changes. No schema changes. No policy changes. This restores admin visibility across every complaint RPC that gates on `has_complaint_perm` (list, get, analytics, mutations).
-
-### Verification
-
-1. `SELECT public.has_complaint_perm('6d4f5483-b81b-47bb-9e4d-265f9c1b0f25','view_all');` → `true`.
-2. Reload `/complaints` in the admin panel → the 28 existing complaints render with filters/pagination intact.
-3. No regression for `admin`-role users or users granted access through `role_permissions` (both branches still short-circuit to `true`).
-
-### Out of scope
-
-The larger complaints hardening plan in `.lovable/plan.md` (RPC concurrency, test suite, etc.) is untouched — this is a targeted visibility fix only.
+## Verification
+- Manual: open an unlinked complaint → search, pick licensee, click Link, then fill findings, click Open Enforcement Case → lands on new enforcement case.
+- History drawer shows a `licensee_linked` audit row.
