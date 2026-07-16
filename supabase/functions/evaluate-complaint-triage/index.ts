@@ -154,13 +154,43 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authHeader = req.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser(authHeader.slice(7));
-        actorId = user?.id ?? null;
-      } catch { /* ignore */ }
+    // Authenticate the caller. The function is invoked from two contexts:
+    //  1) End-users retrying triage from the UI — must present a Bearer JWT.
+    //  2) Internal service callers (server-side auto-triage on intake) — must
+    //     present the service-role key via the standard Supabase headers.
+    // Anything else is rejected 401.
+    const authHeader = req.headers.get('authorization') ?? '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const isServiceCall = !!bearer && !!serviceRoleKey && bearer === serviceRoleKey;
+
+    if (!isServiceCall) {
+      if (!bearer) {
+        return new Response(JSON.stringify({ success: false, error: 'unauthorized' }), {
+          status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(bearer);
+      if (claimsErr || !claims?.claims?.sub) {
+        return new Response(JSON.stringify({ success: false, error: 'unauthorized' }), {
+          status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
+      actorId = claims.claims.sub as string;
+
+      // Authorize: caller needs complaint_management.retry_triage (or fallback
+      // to complaint_management.create for the intake path).
+      const requiredAction = triggered_by === 'intake' ? 'create' : 'retry_triage';
+      const { data: allowed, error: permErr } = await supabase.rpc('has_complaint_perm', {
+        _user_id: actorId, _action: requiredAction,
+      });
+      if (permErr || allowed !== true) {
+        return new Response(JSON.stringify({ success: false, error: 'forbidden' }), {
+          status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
     }
+
 
     const { data: complaint, error: cErr } = await supabase
       .from('complaints').select('*').eq('id', complaint_id).maybeSingle();
