@@ -259,7 +259,7 @@ export default function ComplaintsList() {
           email: user.email || null,
           severity: 'medium',
           priority: 'p3',
-          status: 'open',
+          status: 'submitted',
           intake_source: 'internal',
           internal_created_by: user.id,
         }
@@ -269,6 +269,7 @@ export default function ComplaintsList() {
           description: newDesc.trim(),
           email: user.email,
           severity: newSeverity || 'medium',
+          status: 'submitted',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
     const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
