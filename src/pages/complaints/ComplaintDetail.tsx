@@ -361,14 +361,14 @@ export default function ComplaintDetail() {
                       <Textarea rows={3} placeholder="Resolution notes…" value={resolution} onChange={e => setResolution(e.target.value)} />
                       <div className="flex gap-2">
                         <Button onClick={() => resolve.mutate()} disabled={resolve.isPending} className="flex-1"><CheckCircle2 className="h-4 w-4 mr-2" />Mark Resolved</Button>
-                        <Button variant="outline" onClick={() => close.mutate()} disabled={close.isPending}><XCircle className="h-4 w-4 mr-2" />Close</Button>
+                        <Button variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close</Button>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {complaint.status === 'resolved' && (
-                  <Card><CardContent className="pt-6"><Button variant="outline" onClick={() => close.mutate()} disabled={close.isPending} className="w-full"><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
+                  <Card><CardContent className="pt-6"><Button variant="outline" onClick={() => setCloseOpen(true)} className="w-full"><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
                 )}
 
                 {!complaint.enforcement_action_id && (
