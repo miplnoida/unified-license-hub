@@ -122,16 +122,17 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const runAutoTriage = async () => {
     setAutoRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('evaluate-complaint-triage', {
-        body: { complaint_id: complaint.id },
-      });
+      // Permission-checked, audited server-side. The RPC queues reprocessing;
+      // the edge scheduler picks it up.
+      const { error } = await (supabase as any).rpc('retry_complaint_triage', { _id: complaint.id });
       if (error) throw error;
-      toast.success(`Triage applied${data?.matched_rule ? ` (rule: ${data.matched_rule.name})` : ' (no rule matched)'}`);
+      toast.success('Triage requested');
       qc.invalidateQueries({ queryKey: ['complaint', complaint.id] });
       onChanged?.();
     } catch (e: any) { toast.error(e.message); }
     finally { setAutoRunning(false); }
   };
+
 
   return (
     <Card>
