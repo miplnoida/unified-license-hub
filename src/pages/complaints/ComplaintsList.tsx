@@ -348,24 +348,29 @@ export default function ComplaintsList() {
 
   const handleUpdateStatus = async (complaint: any, newStatus: string) => {
     setUpdating(true);
-    const updates: any = { status: newStatus };
-    if (newStatus === 'under_investigation') updates.investigator_id = user?.id;
-    if (newStatus === 'resolved' && resolution) updates.resolution = resolution;
-
-    const { error } = await supabase.from('complaints').update(updates).eq('id', complaint.id);
-    if (error) { toast.error(error.message); setUpdating(false); return; }
-
-    await logAudit({
-      action: `complaint_${newStatus}`,
-      entityType: 'complaint',
-      entityId: complaint.id,
-      newValue: { status: newStatus },
-    });
-    toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
-    setUpdating(false);
-    setDetailDialog(null);
-    setResolution('');
-    loadComplaints();
+    try {
+      if (newStatus === 'under_investigation') {
+        const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: complaint.id });
+        if (error) throw error;
+      } else if (newStatus === 'resolved') {
+        if (!resolution || resolution.trim().length < 5) throw new Error('Resolution notes required (min 5 chars)');
+        const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
+        if (error) throw error;
+      } else if (newStatus === 'closed') {
+        const { error } = await (supabase as any).rpc('close_complaint', { _id: complaint.id, _reason: null });
+        if (error) throw error;
+      } else {
+        throw new Error(`Unsupported status transition: ${newStatus}`);
+      }
+      toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
+      setDetailDialog(null);
+      setResolution('');
+      loadComplaints();
+    } catch (e: any) {
+      toast.error(e?.message || 'Update failed');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const reprintAck = async (c: any) => {
