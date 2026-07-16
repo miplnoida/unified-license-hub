@@ -32,6 +32,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
+import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
@@ -672,6 +673,7 @@ export default function ComplaintDetail() {
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-4">
+            <WorkflowActionPanel complaintId={complaint.id} />
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}

@@ -873,18 +873,26 @@ export type Database = {
       }
       approval_step_actions: {
         Row: {
+          action_key: string | null
           action_type: string
+          allowed_role_slugs: string[]
+          complainant_visible: boolean
           created_at: string
           end_state: string | null
           id: string
           is_enabled: boolean
           label: string | null
+          licensee_visible: boolean
+          mutation_spec: Json
+          next_assignee_rule: Json
           next_step_id: string | null
           next_step_mode: string
+          notification_event_key: string | null
           paused_at: string | null
           paused_reason: string | null
           require_comments: boolean
           require_digital_signature: boolean
+          required_fields: Json
           result_status_override: string | null
           resumed_at: string | null
           signature_data_url: string | null
@@ -893,18 +901,26 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_key?: string | null
           action_type: string
+          allowed_role_slugs?: string[]
+          complainant_visible?: boolean
           created_at?: string
           end_state?: string | null
           id?: string
           is_enabled?: boolean
           label?: string | null
+          licensee_visible?: boolean
+          mutation_spec?: Json
+          next_assignee_rule?: Json
           next_step_id?: string | null
           next_step_mode?: string
+          notification_event_key?: string | null
           paused_at?: string | null
           paused_reason?: string | null
           require_comments?: boolean
           require_digital_signature?: boolean
+          required_fields?: Json
           result_status_override?: string | null
           resumed_at?: string | null
           signature_data_url?: string | null
@@ -913,18 +929,26 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_key?: string | null
           action_type?: string
+          allowed_role_slugs?: string[]
+          complainant_visible?: boolean
           created_at?: string
           end_state?: string | null
           id?: string
           is_enabled?: boolean
           label?: string | null
+          licensee_visible?: boolean
+          mutation_spec?: Json
+          next_assignee_rule?: Json
           next_step_id?: string | null
           next_step_mode?: string
+          notification_event_key?: string | null
           paused_at?: string | null
           paused_reason?: string | null
           require_comments?: boolean
           require_digital_signature?: boolean
+          required_fields?: Json
           result_status_override?: string | null
           resumed_at?: string | null
           signature_data_url?: string | null
@@ -1007,7 +1031,9 @@ export type Database = {
           approver_role: Database["public"]["Enums"]["app_role"]
           approver_role_id: string | null
           approver_type: string
+          assignment_rule: Json
           auto_approve_on_timeout: boolean
+          complainant_visible: boolean
           condition: Json | null
           created_at: string
           description: string | null
@@ -1016,7 +1042,11 @@ export type Database = {
           id: string
           is_legal_compliance_stage: boolean
           is_required: boolean
+          is_start: boolean
+          is_terminal: boolean
+          licensee_visible: boolean
           name: string
+          public_label: string | null
           require_digital_signature: boolean
           sla_breach_template_id: string | null
           sla_hours: number | null
@@ -1024,6 +1054,7 @@ export type Database = {
           sla_warning_template_id: string | null
           sla_warning_threshold_percent: number | null
           step_entry_notifications_enabled: boolean
+          step_key: string | null
           step_order: number
           step_type: string
           workflow_id: string
@@ -1034,7 +1065,9 @@ export type Database = {
           approver_role: Database["public"]["Enums"]["app_role"]
           approver_role_id?: string | null
           approver_type?: string
+          assignment_rule?: Json
           auto_approve_on_timeout?: boolean
+          complainant_visible?: boolean
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -1043,7 +1076,11 @@ export type Database = {
           id?: string
           is_legal_compliance_stage?: boolean
           is_required?: boolean
+          is_start?: boolean
+          is_terminal?: boolean
+          licensee_visible?: boolean
           name: string
+          public_label?: string | null
           require_digital_signature?: boolean
           sla_breach_template_id?: string | null
           sla_hours?: number | null
@@ -1051,6 +1088,7 @@ export type Database = {
           sla_warning_template_id?: string | null
           sla_warning_threshold_percent?: number | null
           step_entry_notifications_enabled?: boolean
+          step_key?: string | null
           step_order: number
           step_type?: string
           workflow_id: string
@@ -1061,7 +1099,9 @@ export type Database = {
           approver_role?: Database["public"]["Enums"]["app_role"]
           approver_role_id?: string | null
           approver_type?: string
+          assignment_rule?: Json
           auto_approve_on_timeout?: boolean
+          complainant_visible?: boolean
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -1070,7 +1110,11 @@ export type Database = {
           id?: string
           is_legal_compliance_stage?: boolean
           is_required?: boolean
+          is_start?: boolean
+          is_terminal?: boolean
+          licensee_visible?: boolean
           name?: string
+          public_label?: string | null
           require_digital_signature?: boolean
           sla_breach_template_id?: string | null
           sla_hours?: number | null
@@ -1078,6 +1122,7 @@ export type Database = {
           sla_warning_template_id?: string | null
           sla_warning_threshold_percent?: number | null
           step_entry_notifications_enabled?: boolean
+          step_key?: string | null
           step_order?: number
           step_type?: string
           workflow_id?: string
@@ -8084,6 +8129,72 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_outbox: {
+        Row: {
+          action_history_id: string | null
+          body: string | null
+          channel: string
+          correlation_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_key: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          recipient_email: string | null
+          recipient_user_id: string | null
+          retry_count: number
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+        }
+        Insert: {
+          action_history_id?: string | null
+          body?: string | null
+          channel: string
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event_key: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          action_history_id?: string | null
+          body?: string | null
+          channel?: string
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event_key?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           categories: Json
@@ -14410,16 +14521,20 @@ export type Database = {
       }
       workflow_instances: {
         Row: {
+          assigned_role: string | null
+          assigned_user_id: string | null
           completed_at: string | null
           created_at: string
           current_step_id: string | null
           current_step_key: string | null
+          due_at: string | null
           entity_id: string
           entity_type: string
           id: string
           paused_at: string | null
           paused_reason: string | null
           resumed_at: string | null
+          sla_status: string
           started_at: string
           status: string
           total_pause_seconds: number
@@ -14429,16 +14544,20 @@ export type Database = {
           workflow_version_id: string | null
         }
         Insert: {
+          assigned_role?: string | null
+          assigned_user_id?: string | null
           completed_at?: string | null
           created_at?: string
           current_step_id?: string | null
           current_step_key?: string | null
+          due_at?: string | null
           entity_id: string
           entity_type: string
           id?: string
           paused_at?: string | null
           paused_reason?: string | null
           resumed_at?: string | null
+          sla_status?: string
           started_at?: string
           status?: string
           total_pause_seconds?: number
@@ -14448,16 +14567,20 @@ export type Database = {
           workflow_version_id?: string | null
         }
         Update: {
+          assigned_role?: string | null
+          assigned_user_id?: string | null
           completed_at?: string | null
           created_at?: string
           current_step_id?: string | null
           current_step_key?: string | null
+          due_at?: string | null
           entity_id?: string
           entity_type?: string
           id?: string
           paused_at?: string | null
           paused_reason?: string | null
           resumed_at?: string | null
+          sla_status?: string
           started_at?: string
           status?: string
           total_pause_seconds?: number
@@ -15452,6 +15575,15 @@ export type Database = {
         Args: { _return_id: string }
         Returns: Json
       }
+      execute_complaint_workflow_action: {
+        Args: {
+          _action_key: string
+          _complaint_id: string
+          _expected_updated_at?: string
+          _payload?: Json
+        }
+        Returns: Json
+      }
       expire_delegation_rules: { Args: never; Returns: number }
       external_can_access_application: {
         Args: { _application_id: string; _capability: string; _user_id: string }
@@ -15662,6 +15794,19 @@ export type Database = {
         Returns: Json
       }
       get_complaint: { Args: { _id: string }; Returns: Json }
+      get_complaint_available_actions: {
+        Args: { _complaint_id: string }
+        Returns: {
+          action_key: string
+          action_type: string
+          label: string
+          mutation_kind: string
+          require_comments: boolean
+          required_fields: Json
+          sort_order: number
+          target_step_key: string
+        }[]
+      }
       get_complaint_current_assignees: {
         Args: { _complaint_ids: string[] }
         Returns: {
@@ -15672,6 +15817,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_complaint_tracking: { Args: { _complaint_id: string }; Returns: Json }
       get_declaration_invitation_public: {
         Args: { p_token: string }
         Returns: {
