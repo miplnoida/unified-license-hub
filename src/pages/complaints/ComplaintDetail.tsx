@@ -553,13 +553,13 @@ export default function ComplaintDetail() {
                                           key={l.id}
                                           value={l.id}
                                           onSelect={() => {
-                                            setStagedLicensee({ id: l.id, legal_name: l.legal_name, license_number: l.license_number });
+                                            setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
                                             setLicPickerOpen(false);
                                           }}
                                         >
                                           <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
                                           <div className="flex-1 min-w-0">
-                                            <div className="truncate">{l.legal_name}</div>
+                                            <div className="truncate">{l.name}</div>
                                             {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
                                           </div>
                                         </CommandItem>
