@@ -302,7 +302,7 @@ export default function ComplaintDetail() {
     enabled: !!complaint?.licensee_id,
     queryFn: async () => {
       const { data, error } = await supabase.from('licensees')
-        .select('id, legal_name, license_number')
+        .select('id, name, license_number')
         .eq('id', complaint!.licensee_id)
         .maybeSingle();
       if (error) throw error;
