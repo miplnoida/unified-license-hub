@@ -181,11 +181,18 @@ export default function ComplaintsList() {
 
   const loadComplaints = async () => {
     setLoading(true);
-    let q = supabase.from('complaints').select('*').order('created_at', { ascending: false });
-    if (!isInternal && user?.id) q = q.eq('complainant_id', user.id);
+    // Canonical: list_complaints RPC handles regulator-scoping, permission
+    // filtering, and returns server-computed sla_status.
+    const listReq = (supabase as any).rpc('list_complaints', {
+      _filters: {},
+      _sort: 'created_at.desc',
+      _page: 1,
+      _page_size: 200,
+      _search: null,
+    });
 
     const promises: any[] = [
-      q,
+      listReq,
       supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
     ];
     if (isInternal) {
@@ -196,7 +203,12 @@ export default function ComplaintsList() {
       );
     }
     const results = await Promise.all(promises);
-    const rows = (results[0].data || []) as any[];
+    if (results[0].error) {
+      toast.error(`Failed to load complaints: ${results[0].error.message}`);
+      setLoading(false);
+      return;
+    }
+    const rows = ((results[0].data as any)?.rows || []) as any[];
     setComplaints(rows);
     setComplaintTypes((results[1].data || []) as RefLookup[]);
     if (isInternal) {
