@@ -29,7 +29,7 @@ import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAtta
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
-import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
