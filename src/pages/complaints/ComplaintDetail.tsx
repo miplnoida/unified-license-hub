@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink, Building2, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { ArrowLeft, Loader2, Printer, Paperclip, ExternalLink, Building2, Check, ChevronsUpDown, AlertTriangle, Gavel } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,10 @@ import { CollaborativeReview } from '@/components/collab-review/CollaborativeRev
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
-import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
+// Lifecycle mutations (assign / resolve / close / escalate / severity) are
+// driven exclusively by the Complaint Management Workflow via
+// <WorkflowActionPanel>. Notification dispatch is owned by
+// `execute_complaint_workflow_action` → notification_outbox — never React.
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -154,37 +157,9 @@ export default function ComplaintDetail() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['complaint', id] });
 
-  const takeInvestigation = useMutation({
-    mutationFn: async () => {
-      const { error } = await (supabase as any).rpc('start_complaint_investigation', {
-        _id: id!,
-        _expected_updated_at: complaint?.updated_at ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Investigation started');
-      notifyComplaintLifecycle({
-        event_key: 'complaint.investigation_started',
-        complaint_id: id!,
-        complaint_number: complaint?.complaint_number,
-        complainant_id: complaint?.complainant_id,
-        licensee_id: complaint?.licensee_id,
-        sector_id: complaint?.sector_id,
-        regulator_id: complaint?.regulator_id,
-      });
-      invalidate();
-    },
-    onError: (e: any) => {
-      const msg = String(e?.message ?? '');
-      if (msg.includes('complaint_stale')) {
-        toast.error('This complaint was updated by another user. Reload before continuing.');
-      } else {
-        toast.error(msg);
-      }
-      invalidate();
-    },
-  });
+  // takeInvestigation / resolve / close / escalate lifecycle mutations were
+  // removed — they now run through <WorkflowActionPanel> in the Tracking tab,
+  // driven by the Complaint Management Workflow.
 
 
 
@@ -241,99 +216,9 @@ export default function ComplaintDetail() {
     setSeverityOverride({ from: current, to: severity });
   }
 
-  const resolve = useMutation({
-    mutationFn: async () => {
-      if (resolution.trim().length < 5) throw new Error('Resolution notes required');
-      const { error } = await (supabase as any).rpc('resolve_complaint', {
-        _id: id!, _resolution: resolution.trim(),
-        _expected_updated_at: complaint?.updated_at ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Complaint resolved');
-      notifyComplaintLifecycle({
-        event_key: 'complaint.resolved',
-        complaint_id: id!,
-        complaint_number: complaint?.complaint_number,
-        complainant_id: complaint?.complainant_id,
-        licensee_id: complaint?.licensee_id,
-        sector_id: complaint?.sector_id,
-        regulator_id: complaint?.regulator_id,
-        note: resolution.trim(),
-      });
-      setResolution('');
-      invalidate();
-    },
-    onError: handleMutationError,
-  });
-
-  const CLOSURE_CATEGORIES = ['resolved_at_source','withdrawn','duplicate','out_of_scope','no_action_required','referred_out'] as const;
-
-  const close = useMutation({
-    mutationFn: async () => {
-      const reason = closeReason.trim();
-      const category = (closeCategory || '').trim();
-      if (reason.length < 5) throw new Error('Closure reason required (min 5 chars)');
-      if (!category || !CLOSURE_CATEGORIES.includes(category as any)) {
-        throw new Error('Closure category is required');
-      }
-      const { error } = await (supabase as any).rpc('close_complaint', {
-        _id: id!, _reason: reason, _category: category,
-        _expected_updated_at: complaint?.updated_at ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Complaint closed');
-      notifyComplaintLifecycle({
-        event_key: 'complaint.closed',
-        complaint_id: id!,
-        complaint_number: complaint?.complaint_number,
-        complainant_id: complaint?.complainant_id,
-        licensee_id: complaint?.licensee_id,
-        sector_id: complaint?.sector_id,
-        regulator_id: complaint?.regulator_id,
-        note: closeReason.trim(),
-        extra: { closure_category: closeCategory },
-      });
-      setCloseOpen(false); setCloseReason(''); invalidate();
-    },
-    onError: handleMutationError,
-  });
-
-  const escalate = useMutation({
-    mutationFn: async () => {
-      if (!complaint?.licensee_id) throw new Error('Link a licensee before escalating.');
-      if (escalateNote.trim().length < 10) throw new Error('Provide findings (min 10 chars)');
-      const { data, error } = await (supabase as any).rpc('escalate_complaint_to_enforcement', {
-        _id: id!, _findings: escalateNote.trim(),
-      });
-      if (error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) throw new Error('Escalation failed');
-      return { id: row.enforcement_id, case_number: row.case_number };
-    },
-    onSuccess: (row) => {
-      toast.success(`Enforcement case ${row.case_number} opened`);
-      notifyComplaintLifecycle({
-        event_key: 'complaint.escalated_to_enforcement',
-        complaint_id: id!,
-        complaint_number: complaint?.complaint_number,
-        enforcement_id: row.id,
-        enforcement_case_number: row.case_number,
-        complainant_id: complaint?.complainant_id,
-        licensee_id: complaint?.licensee_id,
-        sector_id: complaint?.sector_id,
-        regulator_id: complaint?.regulator_id,
-        note: escalateNote.trim(),
-      });
-      setEscalateNote('');
-      invalidate();
-      nav(`/enforcement/${row.id}`);
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
+  // resolve / close / escalate lifecycle mutations were removed. All three
+  // now execute through <WorkflowActionPanel> → `execute_complaint_workflow_action`,
+  // which handles state transition, audit log, and notification-outbox rows.
 
   const licenseeSearchQ = useQuery({
     queryKey: ['licensee_search_for_complaint', licSearch],
@@ -536,141 +421,118 @@ export default function ComplaintDetail() {
           </TabsContent>
 
           <TabsContent value="actions" className="space-y-4">
-            {complaint.status === 'closed' ? (
-              <Card><CardContent className="pt-6 text-sm text-muted-foreground">This complaint is closed; no further actions can be taken.</CardContent></Card>
-            ) : (
-              <>
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Triage</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <Label>Severity</Label>
-                        <Select value={severity || complaint.severity} onValueChange={setSeverity}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(SEVERITY_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
-                    </div>
-                    {complaint.status === 'submitted' && (
-                      <div className="flex justify-end">
-                        <Button size="sm" onClick={() => takeInvestigation.mutate()} disabled={takeInvestigation.isPending}>
-                          <UserCheck className="h-4 w-4 mr-2" />Take Investigation
+            {/* Triage — severity + licensee mapping remain as data helpers.
+                All lifecycle actions (assign, resolve, close, escalate, notice, decision,
+                appeal, payment) live in the Tracking tab, driven by the workflow config. */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">Triage</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label>Severity</Label>
+                    <Select value={severity || complaint.severity} onValueChange={setSeverity}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SEVERITY_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {!complaint.enforcement_action_id && !complaint.licensee_id && (
+              <Card>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Link Licensee</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Map to Licensee (required before escalation action becomes available in Tracking)</Label>
+                    <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
+                          <span className="truncate">
+                            {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
+                          </span>
+                          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
                         </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {complaint.status === 'under_investigation' && (
-                  <Card>
-                    <CardHeader><CardTitle className="text-base">Resolve</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
-                      <Textarea rows={3} placeholder="Resolution notes…" value={resolution} onChange={e => setResolution(e.target.value)} />
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close</Button>
-                        <Button size="sm" onClick={() => resolve.mutate()} disabled={resolve.isPending}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Resolved</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {complaint.status === 'resolved' && (
-                  <Card><CardContent className="pt-6 flex justify-end"><Button size="sm" variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
-                )}
-
-                {!complaint.enforcement_action_id && (
-                  <Card>
-                    <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Escalate to Enforcement</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
-                      {complaint.licensee_id ? (
-                        <div className="rounded-md border bg-muted/40 p-3 text-xs flex items-start gap-2">
-                          <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
-                              {linkedLicenseeQ.data?.name || 'Licensee'}
-                            </div>
-                            {linkedLicenseeQ.data?.license_number && (
-                              <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
+                          <CommandList>
+                            {licenseeSearchQ.isLoading ? (
+                              <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
+                            ) : (licenseeSearchQ.data ?? []).length === 0 ? (
+                              <CommandEmpty>No licensees found.</CommandEmpty>
+                            ) : (
+                              <CommandGroup>
+                                {(licenseeSearchQ.data ?? []).map((l: any) => (
+                                  <CommandItem
+                                    key={l.id}
+                                    value={l.id}
+                                    onSelect={() => {
+                                      setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
+                                      setLicPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="truncate">{l.name}</div>
+                                      {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
                             )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label className="text-xs">Map to Licensee</Label>
-                          <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
-                                <span className="truncate">
-                                  {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
-                                </span>
-                                <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                              <Command shouldFilter={false}>
-                                <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
-                                <CommandList>
-                                  {licenseeSearchQ.isLoading ? (
-                                    <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
-                                  ) : (licenseeSearchQ.data ?? []).length === 0 ? (
-                                    <CommandEmpty>No licensees found.</CommandEmpty>
-                                  ) : (
-                                    <CommandGroup>
-                                      {(licenseeSearchQ.data ?? []).map((l: any) => (
-                                        <CommandItem
-                                          key={l.id}
-                                          value={l.id}
-                                          onSelect={() => {
-                                            setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
-                                            setLicPickerOpen(false);
-                                          }}
-                                        >
-                                          <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
-                                          <div className="flex-1 min-w-0">
-                                            <div className="truncate">{l.name}</div>
-                                            {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  )}
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <div className="flex justify-end">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              disabled={!stagedLicensee || linkLicensee.isPending}
-                              onClick={() => linkLicensee.mutate()}
-                            >
-                              {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
-                              Link Licensee
-                            </Button>
-                          </div>
-                          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                            <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
-                          </div>
-                        </div>
-                      )}
-                      <Textarea rows={3} placeholder="Findings that justify enforcement…" value={escalateNote} onChange={e => setEscalateNote(e.target.value)} disabled={!complaint.licensee_id} />
-                      <div className="flex justify-end">
-                        <Button size="sm" variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending || !complaint.licensee_id}>
-                          <Gavel className="h-4 w-4 mr-2" />Open Enforcement Case
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!stagedLicensee || linkLicensee.isPending}
+                        onClick={() => linkLicensee.mutate()}
+                      >
+                        {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
+                        Link Licensee
+                      </Button>
+                    </div>
+                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
+
+            {complaint.licensee_id && linkedLicenseeQ.data && (
+              <Card>
+                <CardContent className="pt-6 text-xs flex items-start gap-2">
+                  <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{linkedLicenseeQ.data.name}</div>
+                    {linkedLicenseeQ.data.license_number && (
+                      <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                Lifecycle actions (assign, resolve, close, escalate, issue notice, record response, decision,
+                appeal, payment, withdraw) are available in the <strong>Tracking</strong> tab. What's shown
+                there is decided by the Complaint Management Workflow configuration — administrators can add,
+                rename, or reorder actions without a code change.
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           <TabsContent value="tracking" className="space-y-4">
             <WorkflowActionPanel complaintId={complaint.id} />
@@ -710,38 +572,9 @@ export default function ComplaintDetail() {
           />
         )}
 
-        {closeOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setCloseOpen(false)}>
-            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold mb-2">Close complaint</h3>
-              <p className="text-sm text-muted-foreground mb-4">Provide a closure reason (min 5 chars). This is captured in the audit trail.</p>
-              <div className="space-y-3">
-                <div>
-                  <Label>Category</Label>
-                  <Select value={closeCategory} onValueChange={setCloseCategory}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="resolved_at_source">Resolved at source</SelectItem>
-                      <SelectItem value="withdrawn">Withdrawn by complainant</SelectItem>
-                      <SelectItem value="duplicate">Duplicate</SelectItem>
-                      <SelectItem value="out_of_scope">Out of scope</SelectItem>
-                      <SelectItem value="no_action_required">No action required</SelectItem>
-                      <SelectItem value="referred_out">Referred to another regulator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Reason</Label>
-                  <Textarea rows={3} value={closeReason} onChange={(e) => setCloseReason(e.target.value)} placeholder="Explain why this complaint is being closed…" />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
-                  <Button onClick={() => close.mutate()} disabled={close.isPending || closeReason.trim().length < 5}>Confirm close</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Close-complaint modal removed — closure now runs through the workflow
+            action panel in the Tracking tab. */}
+
 
         {ackOpen && complaint && (
           <ComplaintAcknowledgement
