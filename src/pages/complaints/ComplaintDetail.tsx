@@ -133,27 +133,27 @@ export default function ComplaintDetail() {
   });
 
   const setSeverityMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { reason?: string }) => {
       if (!severity) throw new Error('Pick a severity');
-      const { error } = await supabase.from('complaints').update({ severity }).eq('id', id!);
-      if (error) throw error;
-      await logAction('complaint.severity_set', 'complaint', id!, {
-        before: { severity: complaint?.severity ?? null },
-        after: { severity },
+      const current = complaint?.severity ?? null;
+      const changed = current && current !== severity;
+      const { error } = await (supabase as any).rpc('update_complaint_severity', {
+        _id: id!,
+        _severity: severity,
+        _reason: changed ? (opts?.reason ?? null) : null,
       });
+      if (error) throw error;
     },
     onSuccess: () => { toast.success('Severity updated'); setSeverity(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
 
   // Applies the severity change ONLY after the override is logged.
-  async function applySeverityChange(next: string, from: string) {
-    const { error } = await supabase.from('complaints').update({ severity: next }).eq('id', id!);
-    if (error) throw error;
-    await logAction('complaint.severity_set', 'complaint', id!, {
-      before: { severity: from },
-      after: { severity: next, via: 'override' },
+  async function applySeverityChange(next: string, from: string, reason: string) {
+    const { error } = await (supabase as any).rpc('update_complaint_severity', {
+      _id: id!, _severity: next, _reason: reason,
     });
+    if (error) throw error;
     toast.success('Severity overridden');
     setSeverity('');
     invalidate();
@@ -163,7 +163,7 @@ export default function ComplaintDetail() {
     if (!severity) { toast.error('Pick a severity'); return; }
     const current = complaint?.severity;
     if (!current || current === severity) {
-      setSeverityMut.mutate();
+      setSeverityMut.mutate({});
       return;
     }
     setSeverityOverride({ from: current, to: severity });
@@ -183,10 +183,16 @@ export default function ComplaintDetail() {
 
   const close = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any).rpc('close_complaint', { _id: id!, _reason: null });
+      if (closeReason.trim().length < 5) throw new Error('Closure reason required (min 5 chars)');
+      const { error } = await (supabase as any).rpc('close_complaint', {
+        _id: id!, _reason: closeReason.trim(), _category: closeCategory || null,
+      });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success('Complaint closed'); invalidate(); },
+    onSuccess: () => {
+      toast.success('Complaint closed');
+      setCloseOpen(false); setCloseReason(''); invalidate();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
