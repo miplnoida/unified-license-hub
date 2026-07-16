@@ -33,7 +33,10 @@ import { CollaborativeReview } from '@/components/collab-review/CollaborativeRev
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
-import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
+// Lifecycle mutations (assign / resolve / close / escalate / severity) are
+// driven exclusively by the Complaint Management Workflow via
+// <WorkflowActionPanel>. Notification dispatch is owned by
+// `execute_complaint_workflow_action` → notification_outbox — never React.
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
