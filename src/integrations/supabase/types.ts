@@ -11202,6 +11202,56 @@ export type Database = {
           },
         ]
       }
+      return_edit_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_comment: string | null
+          id: string
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          return_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_comment?: string | null
+          id?: string
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          return_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_comment?: string | null
+          id?: string
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          return_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_edit_requests_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_form_data: {
         Row: {
           created_at: string
@@ -14913,6 +14963,10 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      decide_return_edit_request: {
+        Args: { _comment: string; _decision: string; _request_id: string }
+        Returns: Json
+      }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       evaluate_return_validations: {
         Args: { _form_data?: Json; _return_id: string }
@@ -15664,6 +15718,10 @@ export type Database = {
       }
       request_resubmission_for_application: {
         Args: { _application_id: string; _comments: string }
+        Returns: Json
+      }
+      request_return_edit: {
+        Args: { _reason: string; _return_id: string }
         Returns: Json
       }
       reset_application_for_provisioning: {

@@ -425,6 +425,69 @@ export function useReturnRequests(returnId: string | undefined) {
   });
 }
 
+// ─── Applicant Edit Requests (licensee-initiated) ───
+export function useReturnEditRequests(returnId: string | undefined) {
+  return useQuery({
+    queryKey: ['return_edit_requests', returnId],
+    enabled: !!returnId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_edit_requests')
+        .select('*')
+        .eq('return_id', returnId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+}
+
+export function useRequestReturnEdit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ returnId, reason }: { returnId: string; reason: string }) => {
+      const { data, error } = await (supabase as any).rpc('request_return_edit', {
+        _return_id: returnId,
+        _reason: reason,
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['return_edit_requests', vars.returnId] });
+      qc.invalidateQueries({ queryKey: ['return_audit_log', vars.returnId] });
+      toast.success('Edit request submitted. Admin will review your request.');
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to submit edit request'),
+  });
+}
+
+export function useDecideReturnEditRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, decision, comment, returnId }: { requestId: string; decision: 'allowed' | 'denied'; comment: string; returnId: string }) => {
+      const { data, error } = await (supabase as any).rpc('decide_return_edit_request', {
+        _request_id: requestId,
+        _decision: decision,
+        _comment: comment,
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['return_edit_requests', vars.returnId] });
+      qc.invalidateQueries({ queryKey: ['returns_filed'] });
+      qc.invalidateQueries({ queryKey: ['returns_filed', vars.returnId] });
+      qc.invalidateQueries({ queryKey: ['return_requests', vars.returnId] });
+      qc.invalidateQueries({ queryKey: ['return_audit_log', vars.returnId] });
+      toast.success(vars.decision === 'allowed' ? 'Edit allowed — return reopened for licensee' : 'Edit request denied');
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to decide edit request'),
+  });
+}
+
 // ─── Due Dates ───
 export function useReturnDueDates(filters?: { year?: number; sectorId?: string }) {
   return useQuery({

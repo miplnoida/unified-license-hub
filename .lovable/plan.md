@@ -1,61 +1,78 @@
-## Complaint Auto-Escalation — Current State
+# Plan: Licensee "Request Edit" for Returns
 
-**Present:** Manual escalation only — a user can push a single complaint into enforcement via `ComplaintDetail.tsx` (Escalate tab) with a free-text justification.
+Mirror the existing Applications edit-request flow for Returns so applicants / Web Users / PPOC users can ask an admin to reopen a **already-submitted** return (status `SUB` or validated `VAL`) for correction. Admin allows or denies; on allow, the existing TBR resubmission path takes over. Existing admin-initiated "Request Edit" flow is left untouched.
 
-**Missing:** Automatic rule-based escalation driven by:
-- Consumer harm level
-- Complaint age (SLA / days open)
-- Institution risk rating
-- Volume thresholds (per institution / product / period)
-- Complaint recurrence (same complainant or same issue)
+## Scope
 
-No rule engine, no auto-triggered queue, no configuration UI. This plan adds a **UI-only** module with mock data, mirroring the Duplicate Detection scaffold already merged.
+In scope:
+- Licensee UI on `ViewReturnPage` (and status banner on `FillReturnPage`/`MyReturnsPage`) to request an edit with a mandatory reason.
+- Admin UI on `pages/returns-mgmt/ReturnDetail.tsx` to see pending applicant edit requests and Allow / Deny with a comment.
+- New DB table + RPCs + RLS + audit logging + notification dispatch.
 
-## Scope (UI only, mock data)
+Out of scope (unchanged):
+- Admin-initiated "Request Edit" (SUB → TBR) already implemented.
+- `resubmit-return` edge function and TBR fill flow — reused as-is once admin allows.
+- Return calculations, versioning, revisions logic.
 
-Add new hub at `/complaints/escalations` with three tabs:
+## Backend
 
-1. **Escalation Queue** — complaints auto-flagged for escalation, showing which rule fired, severity, age, assigned tier, and quick actions (Acknowledge / Escalate now / Dismiss / Snooze). All actions are local state.
-2. **Triggered Rules Log** — history of rule firings with timestamps, matched complaint, trigger reason, and outcome badge.
-3. **Escalation Rules** — admin config for each of the five criteria: enable toggle, thresholds, target tier (Supervisor / Head of Unit / Executive / Enforcement), and notification recipients. Weights preview + "Test rule" button that runs against mock complaints.
+New table `public.return_edit_requests`:
+- `return_id` (FK → `returns_filed`, cascade)
+- `reason` text (required)
+- `status` text: `pending` | `allowed` | `denied`
+- `requested_by` uuid, `requested_at`
+- `decided_by` uuid, `decision_comment` text, `decided_at`
+- Standard `id`, `created_at`, `updated_at`
+- Grants: `authenticated`, `service_role`; RLS:
+  - Licensee (owner of the return) can `SELECT` + `INSERT` on their own return.
+  - Admin/supervisor/analyst roles can `SELECT` and `UPDATE`.
 
-Plus:
-- Small **Auto-Escalation banner** on `ComplaintsList.tsx` showing count of pending auto-escalations (like the DuplicateAlertBanner).
-- New "Escalations" entry under Complaints in the Market Conduct sidebar.
-- New action route registered in `src/routes` and nav in `src/config/navigation.tsx`.
+New RPCs (SECURITY DEFINER):
+- `request_return_edit(_return_id, _reason)` — validates the caller owns the return and current `workflow_status ∈ {SUB, VAL}`; rejects if a pending request already exists; inserts row; writes `return_audit_log` (action `edit_requested`).
+- `decide_return_edit_request(_request_id, _decision, _comment)` — admin-only; on `allowed`, sets `returns_filed.workflow_status='TBR'`, inserts a `return_requests` row (`status='active'`, reason = user's reason) so the current TBR banner + `resubmit-return` edge function work unchanged. On `denied`, closes the request. Both branches log to `return_audit_log`.
 
-## Files to add (`src/pages/complaints/escalations/`)
+Notifications (best-effort via `dispatch-notification-event`): new event keys `return.edit_requested` (to reviewers) and `return.edit_request_decision` (to licensee). Templates seeded but non-blocking on failure.
+
+## Frontend
+
+### Licensee — `src/pages/entity/returns/ViewReturnPage.tsx`
+- When `workflow_status ∈ {SUB, VAL}` and no pending `return_edit_requests` row exists: show a **Request Edit** button next to the status badge.
+- Clicking opens a dialog (reason textarea, required) → calls `request_return_edit` RPC.
+- When a pending request exists: replace the button with an info alert "Edit request pending admin review".
+- When latest request is `denied`: show an alert with the admin's decision comment; allow submitting a new request.
+- When `allowed`: existing TBR flow already routes user to Fill page via the existing "Edit & Resubmit" button.
+
+### Licensee — `MyReturnsPage.tsx`
+- Small badge/indicator on rows with a pending edit request (read from a lightweight aggregated query). Non-invasive; row actions unchanged.
+
+### Admin — `src/pages/returns-mgmt/ReturnDetail.tsx`
+- New "Applicant Edit Request" panel visible when a `pending` request exists, showing requester, requested_at, reason.
+- Two buttons: **Allow Edit** and **Deny Request**, each requiring a decision comment.
+- On Allow: calls `decide_return_edit_request(..., 'allowed', comment)`; existing panel refreshes (return becomes TBR, existing TBR banner takes over).
+- Standard admin actions (Approve / Request Edit / etc.) are suppressed while a pending applicant edit request exists (mirrors application behaviour).
+
+### Shared
+- New hook `useReturnEditRequests(returnId)` in `src/hooks/useReturnsManagement.ts` for list + latest-pending + mutations.
+- Reuse `humanizeAudit` labels for the new audit actions in the history drawer.
+
+## State transitions
 
 ```text
-types.ts                       -- Rule, Trigger, EscalationCase types
-mockData.ts                    -- ~15 seeded complaints, 5 rules, ~10 triggers
-EscalationHub.tsx              -- tabbed shell + header stats
-EscalationQueueTable.tsx       -- queue with filters (rule, tier, severity, age)
-EscalationCaseDrawer.tsx       -- side panel: complaint summary, rule match, timeline, actions
-TriggeredRulesLog.tsx          -- chronological log with rule/outcome chips
-EscalationRulesAdmin.tsx       -- 5 rule cards (harm, age, risk, volume, recurrence)
-RuleCard.tsx                   -- reusable enable/threshold/tier editor
-RuleTestPanel.tsx              -- runs rule against mock complaints, shows would-fire list
-EscalationBanner.tsx           -- alert banner for ComplaintsList
+SUB ── licensee Request Edit ──▶ SUB (edit_request: pending)
+   ── admin Deny ─────────────▶ SUB (edit_request: denied)
+   ── admin Allow ────────────▶ TBR (edit_request: allowed, return_requests row opened)
+   ── licensee resubmits (existing resubmit-return) ─▶ SUB
+VAL ── same as SUB ──────────▶ TBR on allow
 ```
 
-## Files to touch (surgical)
+## Verification
 
-- `src/pages/complaints/ComplaintsList.tsx` — mount `EscalationBanner` alongside `DuplicateAlertBanner`.
-- `src/config/navigation.tsx` — add "Escalations" under Complaints (Market Conduct group).
-- `src/routes/*` (whichever registers `/complaints/duplicates`) — add `/complaints/escalations` route.
+- Tsgo typecheck.
+- Manual smoke via Playwright: licensee requests edit on a SUB return → admin allows → return moves to TBR → licensee edits and resubmits → back to SUB. Deny path: request denied, licensee sees reason, admin actions re-enabled.
+- Existing admin-side "Request Edit" and TBR resubmission unaffected (run one round trip to confirm).
 
-No backend, no migrations, no changes to existing escalation flow in `ComplaintDetail.tsx`. Existing `EscalationsTab` and prudential escalations are untouched.
+## Non-goals / guardrails
 
-## Design tokens & UX
-
-- Reuse shadcn Card / Table / Badge / Tabs / Dialog / Select consistent with Duplicate Detection module.
-- Severity badges: Critical (red), High (amber), Medium (blue), Low (slate) — outline variants with dark text on light bg (following the readability rule from the Matched Signals fix).
-- Rule cards show a live sample: "Would fire on 3 of 15 mock complaints."
-- All destructive/confirm actions use SweetAlert2 per project standard.
-
-## Out of scope
-
-- Wiring to `complaints` table, RLS, edge functions, cron sweeps.
-- Real notification dispatch.
-- Modifying the existing manual "Escalate to enforcement" flow.
+- No change to `resubmit-return`, `FillReturnPage` logic, prudential evaluation, or accounting reconciliation.
+- No changes to permissions/roles beyond RLS on the new table.
+- No changes to return revisions/snapshot behaviour.
