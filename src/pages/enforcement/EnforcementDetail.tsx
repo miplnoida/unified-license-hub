@@ -180,6 +180,11 @@ export default function EnforcementDetail() {
     },
     onSuccess: () => {
       toast.success('Decision recorded');
+      notifyComplaintLifecycle(buildNotifyPayload({
+        event_key: 'enforcement.decision_recorded',
+        note: decisionRationale.trim(),
+        extra: { outcome: decisionOutcome, penalty_amount: decisionPenalty || null, appeal_deadline: appealDeadline || null },
+      }));
       setDecisionOutcome(''); setDecisionRationale(''); setDecisionPenalty(''); setAppealDeadline('');
       invalidate();
     },
