@@ -287,13 +287,26 @@ export default function ComplaintDetail() {
     queryKey: ['licensee_search_for_complaint', licSearch],
     enabled: licPickerOpen,
     queryFn: async () => {
-      const q = supabase.from('licensees').select('id, name, license_number').order('name').limit(20);
       const term = licSearch.trim();
-      const { data, error } = term
-        ? await q.or(`name.ilike.%${term}%,license_number.ilike.%${term}%`)
-        : await q;
+      let q = supabase
+        .from('licensees')
+        .select('id, name, license_id, licenses:license_id(license_number)')
+        .order('name')
+        .limit(20);
+      if (term) q = q.ilike('name', `%${term}%`);
+      const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as any[];
+      const rows = (data ?? []).map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        license_number: l.licenses?.license_number ?? null,
+      }));
+      return term
+        ? rows.filter(r =>
+            r.name?.toLowerCase().includes(term.toLowerCase()) ||
+            r.license_number?.toLowerCase().includes(term.toLowerCase()),
+          )
+        : rows;
     },
   });
 
@@ -302,13 +315,19 @@ export default function ComplaintDetail() {
     enabled: !!complaint?.licensee_id,
     queryFn: async () => {
       const { data, error } = await supabase.from('licensees')
-        .select('id, name, license_number')
+        .select('id, name, license_id, licenses:license_id(license_number)')
         .eq('id', complaint!.licensee_id)
         .maybeSingle();
       if (error) throw error;
-      return data as any;
+      if (!data) return null;
+      return {
+        id: (data as any).id,
+        name: (data as any).name,
+        license_number: (data as any).licenses?.license_number ?? null,
+      };
     },
   });
+
 
   const linkLicensee = useMutation({
     mutationFn: async () => {
