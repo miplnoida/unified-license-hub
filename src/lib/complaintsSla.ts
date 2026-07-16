@@ -1,10 +1,25 @@
-export type SlaStatus = 'on_track' | 'at_risk' | 'breached' | 'resolved' | 'unknown';
+export type SlaStatus =
+  | 'on_track'
+  | 'at_risk'
+  | 'breached'
+  | 'resolved_on_time'
+  | 'resolved_late'
+  | 'unknown';
+
+const KNOWN_STATES: readonly SlaStatus[] = [
+  'on_track',
+  'at_risk',
+  'breached',
+  'resolved_on_time',
+  'resolved_late',
+  'unknown',
+];
 
 /**
  * Compute SLA status for a complaint from its timestamps.
  * Matches the SQL implementation in `public.complaint_sla_status`:
- * - resolved AFTER due date → breached (resolved-late)
- * - resolved on/before due → resolved
+ * - resolved AFTER due date → resolved_late
+ * - resolved on/before due  → resolved_on_time
  * - past due unresolved     → breached
  * - within 2 days or bottom 25% of window remaining → at_risk
  * - otherwise               → on_track
@@ -27,8 +42,8 @@ export function computeSlaStatus(
   }
   if (resolved_at) {
     const r = new Date(resolved_at);
-    if (due && r.getTime() > due.getTime()) return 'breached';
-    return 'resolved';
+    if (due && r.getTime() > due.getTime()) return 'resolved_late';
+    return 'resolved_on_time';
   }
   if (!due || isNaN(due.getTime())) return 'unknown';
   const msLeft = due.getTime() - now.getTime();
@@ -37,6 +52,16 @@ export function computeSlaStatus(
   if (daysLeft <= 2) return 'at_risk';
   if (sla_days && sla_days > 0 && daysLeft / sla_days <= 0.25) return 'at_risk';
   return 'on_track';
+}
+
+/**
+ * Normalize a legacy `resolved` value from the older server implementation to
+ * `resolved_on_time` so UI enums stay consistent while the migration rolls
+ * out.
+ */
+function normalizeLegacy(s: string): SlaStatus {
+  if (s === 'resolved') return 'resolved_on_time';
+  return (KNOWN_STATES as readonly string[]).includes(s) ? (s as SlaStatus) : 'unknown';
 }
 
 /**
@@ -53,9 +78,7 @@ export function slaBucketFromRow(row: {
 } | null | undefined): SlaStatus {
   if (!row) return 'unknown';
   const server = row.sla_status;
-  if (server && ['on_track', 'at_risk', 'breached', 'resolved', 'unknown'].includes(server)) {
-    return server as SlaStatus;
-  }
+  if (server) return normalizeLegacy(server);
   return computeSlaStatus(row.created_at, row.sla_due_at, row.sla_days, row.resolved_at);
 }
 
@@ -64,7 +87,8 @@ export function slaStatusLabel(s: SlaStatus): string {
     case 'on_track': return 'On track';
     case 'at_risk': return 'At risk';
     case 'breached': return 'Breached';
-    case 'resolved': return 'Resolved';
+    case 'resolved_on_time': return 'Resolved on time';
+    case 'resolved_late': return 'Resolved late';
     default: return '—';
   }
 }
@@ -72,9 +96,18 @@ export function slaStatusLabel(s: SlaStatus): string {
 export function slaStatusVariant(s: SlaStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (s) {
     case 'breached': return 'destructive';
+    case 'resolved_late': return 'destructive';
     case 'at_risk': return 'outline';
     case 'on_track': return 'default';
-    case 'resolved': return 'secondary';
+    case 'resolved_on_time': return 'secondary';
     default: return 'outline';
   }
 }
+
+export const SLA_FILTER_OPTIONS: { value: SlaStatus; label: string }[] = [
+  { value: 'on_track', label: 'On track' },
+  { value: 'at_risk', label: 'At risk' },
+  { value: 'breached', label: 'Breached' },
+  { value: 'resolved_on_time', label: 'Resolved on time' },
+  { value: 'resolved_late', label: 'Resolved late' },
+];
