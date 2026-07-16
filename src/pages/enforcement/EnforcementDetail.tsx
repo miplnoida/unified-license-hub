@@ -152,7 +152,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('response_received', responseText.trim(), { response_date: responseDate });
     },
-    onSuccess: () => { toast.success('Response recorded'); setResponseText(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Response recorded');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.response_received', note: responseText.trim() }));
+      setResponseText(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
