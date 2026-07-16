@@ -283,6 +283,50 @@ export default function ComplaintDetail() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const licenseeSearchQ = useQuery({
+    queryKey: ['licensee_search_for_complaint', licSearch],
+    enabled: licPickerOpen,
+    queryFn: async () => {
+      const q = supabase.from('licensees').select('id, legal_name, license_number').order('legal_name').limit(20);
+      const term = licSearch.trim();
+      const { data, error } = term
+        ? await q.or(`legal_name.ilike.%${term}%,license_number.ilike.%${term}%`)
+        : await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const linkedLicenseeQ = useQuery({
+    queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
+    enabled: !!complaint?.licensee_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('licensees')
+        .select('id, legal_name, license_number')
+        .eq('id', complaint!.licensee_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const linkLicensee = useMutation({
+    mutationFn: async () => {
+      if (!stagedLicensee) throw new Error('Select a licensee first');
+      const { error } = await (supabase as any).rpc('link_complaint_licensee', {
+        _complaint_id: id!,
+        _licensee_id: stagedLicensee.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Licensee linked');
+      setStagedLicensee(null);
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to link licensee'),
+  });
+
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
   if (!complaint) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Complaint not found.</div></DashboardLayout>;
