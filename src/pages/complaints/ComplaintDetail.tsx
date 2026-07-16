@@ -58,7 +58,7 @@ export default function ComplaintDetail() {
   const [closeReason, setCloseReason] = useState('');
   const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
 
-  const { data: complaint, isLoading } = useQuery({
+  const complaintQ = useQuery({
     queryKey: ['complaint', id],
     enabled: !!id,
     queryFn: async () => {
@@ -69,36 +69,52 @@ export default function ComplaintDetail() {
       return data as any;
     },
   });
+  const complaint = complaintQ.data;
+  const isLoading = complaintQ.isLoading;
 
-
-  const { data: complainant } = useQuery({
+  const complainantQ = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
     enabled: !!complaint?.complainant_id,
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('full_name, email, user_type').eq('id', complaint!.complainant_id).maybeSingle();
+      const { data, error } = await supabase.from('profiles')
+        .select('full_name, email, user_type')
+        .eq('id', complaint!.complainant_id)
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
   });
+  const complainant = complainantQ.data;
 
-  const { data: complaintType } = useQuery({
+  const complaintTypeQ = useQuery({
     queryKey: ['complaint_type', complaint?.complaint_type_id],
     enabled: !!complaint?.complaint_type_id,
     queryFn: async () => {
-      const { data } = await supabase.from('complaint_types').select('name, sla_days').eq('id', complaint!.complaint_type_id).maybeSingle();
+      const { data, error } = await supabase.from('complaint_types')
+        .select('name, sla_days')
+        .eq('id', complaint!.complaint_type_id)
+        .maybeSingle();
+      if (error) throw error;
       return data as any;
     },
   });
+  const complaintType = complaintTypeQ.data;
 
-  const { data: enforcement } = useQuery({
+  const enforcementQ = useQuery({
     queryKey: ['complaint_enforcement', complaint?.enforcement_action_id],
     enabled: !!complaint?.enforcement_action_id,
     queryFn: async () => {
-      const { data } = await supabase.from('enforcement_actions').select('id, case_number, status').eq('id', complaint!.enforcement_action_id).maybeSingle();
+      const { data, error } = await supabase.from('enforcement_actions')
+        .select('id, case_number, status')
+        .eq('id', complaint!.enforcement_action_id)
+        .maybeSingle();
+      if (error) throw error;
       return data as any;
     },
   });
+  const enforcement = enforcementQ.data;
 
-  const { data: attachments = [] } = useQuery({
+  const attachmentsQ = useQuery({
     queryKey: ['complaint_attachments', id],
     enabled: !!id,
     queryFn: async () => {
@@ -111,6 +127,7 @@ export default function ComplaintDetail() {
       return (data ?? []) as any[];
     },
   });
+  const attachments = attachmentsQ.data ?? [];
 
   async function openAttachment(filePath?: string) {
     if (!filePath) return;
