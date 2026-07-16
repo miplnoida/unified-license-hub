@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,17 +12,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { INTERNAL_ROLES } from '@/types/platform';
 import {
-  PlusCircle, Search, Eye, Loader2, UserCheck, Mail, User, BarChart3, ChevronDown, ChevronRight,
+  PlusCircle, Search, Eye, Loader2, BarChart3, ChevronDown, ChevronRight,
   MoreHorizontal, Printer, RefreshCw, ShieldAlert, Filter,
+  ChevronLeft, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
@@ -68,50 +69,228 @@ const INTAKE_SOURCES = ['consumer_portal', 'internal', 'staff_intake', 'referral
 
 interface RefLookup { id: string; name: string }
 
+interface RefLookup { id: string; name: string }
+
+// URL keys are the single source of truth for list state — every change writes
+// back to the URL, and every read re-triggers the RPC via useQuery.
+const URL_KEYS = [
+  'page','pageSize','sort','dir','q',
+  'status','severity','priority','sla','type','product','channel','category',
+  'intake','team','triage','vulnerable',
+] as const;
+type UrlKey = typeof URL_KEYS[number];
+
 export default function ComplaintsList() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [complaints, setComplaints] = useState<any[]>([]);
-  const [complaintTypes, setComplaintTypes] = useState<RefLookup[]>([]);
-  const [categories, setCategories] = useState<RefLookup[]>([]);
-  const [products, setProducts] = useState<RefLookup[]>([]);
-  const [channels, setChannels] = useState<RefLookup[]>([]);
-  const [licenseeMap, setLicenseeMap] = useState<Map<string, string>>(new Map());
-  const [profileMap, setProfileMap] = useState<Map<string, { full_name: string | null; email: string | null }>>(new Map());
-  const [assigneesByComplaint, setAssigneesByComplaint] = useState<Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // "open" isn't a real complaint status (submitted/under_investigation/resolved/closed
-  // are) — the dashboard's "Open" tile means "not yet resolved or closed", so it's
-  // handled as a broader bucket rather than an exact statusFilter match.
-  const dashboardOpenBucket = searchParams.get('status') === 'open';
+  const isInternal = !!(user && INTERNAL_ROLES.includes(user.role));
 
-  useEffect(() => {
-    const status = searchParams.get('status');
-    if (status && status !== 'open' && status in STATUS_LABELS) {
-      setStatusFilter(status);
+  // --- URL-backed list state ---
+  const getParam = (k: UrlKey, d = '') => searchParams.get(k) ?? d;
+  const page = Math.max(1, parseInt(getParam('page','1'), 10) || 1);
+  const pageSize = [25,50,100].includes(parseInt(getParam('pageSize','25'),10))
+    ? parseInt(getParam('pageSize','25'),10) : 25;
+  const sortCol = getParam('sort','created_at');
+  const sortDir = (getParam('dir','desc') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
+  const search = getParam('q','');
+  const statusFilter   = getParam('status','all');
+  const severityFilter = getParam('severity','all');
+  const priorityFilter = getParam('priority','all');
+  const slaFilter      = getParam('sla','all');
+  const typeFilter     = getParam('type','all');
+  const productFilter  = getParam('product','all');
+  const channelFilter  = getParam('channel','all');
+  const categoryFilter = getParam('category','all');
+  const intakeFilter   = getParam('intake','all');
+  const teamFilter     = getParam('team','all');
+  const triageFilter   = getParam('triage','all');
+  const vulnerableFilter = getParam('vulnerable','all');
+
+  const updateUrl = useCallback((patch: Partial<Record<UrlKey,string|null>>, opts?: { resetPage?: boolean }) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [k,v] of Object.entries(patch)) {
+      if (v === null || v === '' || v === 'all') next.delete(k);
+      else next.set(k, String(v));
     }
-    const sev = searchParams.get('severity');
-    if (sev && ['critical', 'high', 'medium', 'low'].includes(sev)) setSeverityFilter(sev);
-    const pri = searchParams.get('priority');
-    if (pri && ['p1', 'p2', 'p3', 'p4'].includes(pri)) setPriorityFilter(pri);
-    const sla = searchParams.get('sla');
-    if (sla && ['on_track', 'at_risk', 'breached', 'resolved'].includes(sla)) setSlaFilter(sla);
-  }, [searchParams]);
+    if (opts?.resetPage) next.delete('page');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  const [severityFilter, setSeverityFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [productFilter, setProductFilter] = useState('all');
-  const [channelFilter, setChannelFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [intakeFilter, setIntakeFilter] = useState('all');
-  const [slaFilter, setSlaFilter] = useState('all');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [triageFilter, setTriageFilter] = useState('all');
-  const [vulnerableFilter, setVulnerableFilter] = useState('all');
+  // Debounced search — write to URL after 300ms of no typing
+  const [searchDraft, setSearchDraft] = useState(search);
+  useEffect(() => { setSearchDraft(search); }, [search]);
+  const searchTimer = useRef<number | undefined>(undefined);
+  const onSearchChange = (v: string) => {
+    setSearchDraft(v);
+    if (searchTimer.current) window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => {
+      updateUrl({ q: v }, { resetPage: true });
+    }, 300);
+  };
+
+  // --- Filters payload built server-side ---
+  const filtersPayload = useMemo(() => {
+    const p: Record<string, unknown> = {};
+    if (statusFilter !== 'all') p.status = statusFilter;
+    if (severityFilter !== 'all') p.severity = severityFilter;
+    if (priorityFilter !== 'all') p.priority = priorityFilter;
+    if (slaFilter !== 'all') p.sla = slaFilter;
+    if (typeFilter !== 'all') p.complaint_type_id = typeFilter;
+    if (productFilter !== 'all') p.product_id = productFilter;
+    if (channelFilter !== 'all') p.channel_id = channelFilter;
+    if (categoryFilter !== 'all') p.conduct_risk_category_id = categoryFilter;
+    if (intakeFilter !== 'all') p.intake_source = intakeFilter;
+    if (teamFilter !== 'all') p.assigned_team = teamFilter;
+    if (triageFilter !== 'all') p.triage_override_status = triageFilter;
+    if (vulnerableFilter === 'yes') p.vulnerability_indicator = true;
+    if (vulnerableFilter === 'no')  p.vulnerability_indicator = false;
+    return p;
+  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter]);
+
+  // --- Reference data queries with explicit error handling ---
+  const typesQ = useQuery<RefLookup[]>({
+    queryKey: ['complaint_types_ref'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+    throwOnError: false,
+  });
+  const categoriesQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_categories_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_risk_categories').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+  const productsQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_products_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_products').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+  const channelsQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_channels_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_channels').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+
+  const complaintTypes = typesQ.data ?? [];
+  const categories     = categoriesQ.data ?? [];
+  const products       = productsQ.data ?? [];
+  const channels       = channelsQ.data ?? [];
+
+  // --- Server-side list query ---
+  const listQ = useQuery<{ total: number; rows: any[]; page: number; page_size: number }>({
+    queryKey: ['complaints_list', { page, pageSize, sortCol, sortDir, search, filtersPayload, isInternal }],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('list_complaints', {
+        _filters: filtersPayload,
+        _sort: `${sortCol}.${sortDir}`,
+        _page: page,
+        _page_size: pageSize,
+        _search: search.trim() ? search.trim() : undefined,
+      });
+      if (error) throw error;
+      const payload = (data ?? {}) as any;
+      return {
+        total: Number(payload.total ?? 0),
+        rows: Array.isArray(payload.rows) ? payload.rows : [],
+        page: Number(payload.page ?? 1),
+        page_size: Number(payload.page_size ?? pageSize),
+      };
+    },
+    placeholderData: (prev) => prev,
+    throwOnError: false,
+  });
+
+  const complaints = listQ.data?.rows ?? [];
+  const totalCount = listQ.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const loading = listQ.isLoading || listQ.isFetching;
+
+  // --- Batch resolve licensees + profiles + assignees for the current page only ---
+  const enrichmentIds = useMemo(() => {
+    const licIds = Array.from(new Set(complaints.map((r: any) => r.licensee_id).filter(Boolean))) as string[];
+    const profIds = Array.from(new Set(
+      complaints.flatMap((r: any) => [r.investigator_id, r.complainant_id]).filter(Boolean),
+    )) as string[];
+    const cids = complaints.map((r: any) => r.id) as string[];
+    return { licIds, profIds, cids };
+  }, [complaints]);
+
+  const licenseesQ = useQuery({
+    queryKey: ['complaints_list_licensees', enrichmentIds.licIds],
+    enabled: isInternal && enrichmentIds.licIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('licensees').select('id, legal_name, name').in('id', enrichmentIds.licIds);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((l: any) => m.set(l.id, l.legal_name || l.name || '—'));
+      return m;
+    },
+  });
+  const profilesQ = useQuery({
+    queryKey: ['complaints_list_profiles', enrichmentIds.profIds],
+    enabled: isInternal && enrichmentIds.profIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name, email').in('id', enrichmentIds.profIds);
+      if (error) throw error;
+      const m = new Map<string, { full_name: string | null; email: string | null }>();
+      (data ?? []).forEach((p: any) => m.set(p.id, { full_name: p.full_name, email: p.email }));
+      return m;
+    },
+  });
+  const assigneesQ = useQuery({
+    queryKey: ['complaints_list_assignees', enrichmentIds.cids],
+    enabled: isInternal && enrichmentIds.cids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: enrichmentIds.cids });
+      if (error) throw error;
+      const m = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+      ((data as any[]) ?? []).forEach((row: any) => {
+        const existing = m.get(row.complaint_id) || { role: row.step_role || null, users: [] };
+        if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
+          existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
+        }
+        existing.role = existing.role || row.step_role || null;
+        m.set(row.complaint_id, existing);
+      });
+      return m;
+    },
+  });
+
+  const licenseeMap = licenseesQ.data ?? new Map<string, string>();
+  const profileMap  = profilesQ.data  ?? new Map<string, { full_name: string | null; email: string | null }>();
+  const assigneesByComplaint = assigneesQ.data ?? new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+
+  const refs = useMemo(() => ({
+    types: new Map(complaintTypes.map(t => [t.id, t.name])),
+    categories: new Map(categories.map(t => [t.id, t.name])),
+    products: new Map(products.map(t => [t.id, t.name])),
+    channels: new Map(channels.map(t => [t.id, t.name])),
+    licensees: licenseeMap,
+    profiles: profileMap,
+  }), [complaintTypes, categories, products, channels, licenseeMap, profileMap]);
+
+  const refetchAll = () => {
+    qc.invalidateQueries({ queryKey: ['complaints_list'] });
+  };
+
+  // --- Local UI state (dialogs, expanded rows, ack, new-complaint form) ---
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -122,18 +301,20 @@ export default function ComplaintsList() {
     if (!detailDialog?.id) { setDetailAttachments([]); return; }
     let cancelled = false;
     (async () => {
-      const { data: ev } = await supabase
+      const { data: ev, error } = await supabase
         .from('complaint_evidence' as any)
         .select('label, file_upload_id')
         .eq('complaint_id', detailDialog.id);
-      const rows = (ev as any[]) || [];
+      if (error) { if (!cancelled) toast.error(`Attachments failed to load: ${error.message}`); return; }
+      const rows = (ev as any[]) ?? [];
       const ids = rows.map(r => r.file_upload_id).filter(Boolean);
       if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
-      const { data: files } = await supabase
+      const { data: files, error: fErr } = await supabase
         .from('file_uploads' as any)
         .select('id, file_name, file_path, file_size')
         .in('id', ids);
-      const fmap = new Map(((files as any[]) || []).map(f => [f.id, f]));
+      if (fErr) { if (!cancelled) toast.error(`File details failed: ${fErr.message}`); return; }
+      const fmap = new Map(((files as any[]) ?? []).map(f => [f.id, f]));
       const atts = rows.map(r => {
         const f = fmap.get(r.file_upload_id);
         return {
@@ -158,105 +339,16 @@ export default function ComplaintsList() {
 
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
-  const [detailProfile, setDetailProfile] = useState<any | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
   const [newSeverity, setNewSeverity] = useState('medium');
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
-  const [resolution, setResolution] = useState('');
-  const [updating, setUpdating] = useState(false);
 
-  const isInternal = !!(user && INTERNAL_ROLES.includes(user.role));
+  // Legacy dashboard link support: /complaints?status=open filters to open buckets
+  // via the RPC's `_filters.status='open'` handling (already implemented server-side).
 
-  const refs = useMemo(() => ({
-    types: new Map(complaintTypes.map(t => [t.id, t.name])),
-    categories: new Map(categories.map(t => [t.id, t.name])),
-    products: new Map(products.map(t => [t.id, t.name])),
-    channels: new Map(channels.map(t => [t.id, t.name])),
-    licensees: licenseeMap,
-    profiles: profileMap,
-  }), [complaintTypes, categories, products, channels, licenseeMap, profileMap]);
-
-  const loadComplaints = async () => {
-    setLoading(true);
-    // Canonical: list_complaints RPC handles regulator-scoping, permission
-    // filtering, and returns server-computed sla_status.
-    const listReq = (supabase as any).rpc('list_complaints', {
-      _filters: {},
-      _sort: 'created_at.desc',
-      _page: 1,
-      _page_size: 200,
-      _search: null,
-    });
-
-    const promises: any[] = [
-      listReq,
-      supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
-    ];
-    if (isInternal) {
-      promises.push(
-        supabase.from('conduct_risk_categories').select('id, name').order('name'),
-        supabase.from('conduct_products').select('id, name').order('name'),
-        supabase.from('conduct_channels').select('id, name').order('name'),
-      );
-    }
-    const results = await Promise.all(promises);
-    if (results[0].error) {
-      toast.error(`Failed to load complaints: ${results[0].error.message}`);
-      setLoading(false);
-      return;
-    }
-    const rows = ((results[0].data as any)?.rows || []) as any[];
-    setComplaints(rows);
-    setComplaintTypes((results[1].data || []) as RefLookup[]);
-    if (isInternal) {
-      setCategories((results[2].data || []) as RefLookup[]);
-      setProducts((results[3].data || []) as RefLookup[]);
-      setChannels((results[4].data || []) as RefLookup[]);
-
-      // Batch resolve licensees + profiles
-      const licIds = Array.from(new Set(rows.map(r => r.licensee_id).filter(Boolean)));
-      const profIds = new Set<string>(
-        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean) as string[]
-      );
-
-      // Resolve workflow assignees for each complaint via RPC (bypasses RLS/N+1 issues)
-      const complaintIds = rows.map(r => r.id);
-      const asgMap = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
-      if (complaintIds.length) {
-        const { data: asg, error: asgErr } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: complaintIds });
-        if (asgErr) {
-          console.error('get_complaint_current_assignees failed', asgErr);
-        }
-        ((asg as any[]) || []).forEach((row: any) => {
-          const existing = asgMap.get(row.complaint_id) || { role: row.step_role || null, users: [] };
-          if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
-            existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
-          }
-          existing.role = existing.role || row.step_role || null;
-          asgMap.set(row.complaint_id, existing);
-        });
-      }
-
-      const [licRes, profRes] = await Promise.all([
-        licIds.length ? supabase.from('licensees').select('id, legal_name, name').in('id', licIds) : Promise.resolve({ data: [] }),
-        profIds.size ? supabase.from('profiles').select('id, full_name, email').in('id', Array.from(profIds)) : Promise.resolve({ data: [] }),
-      ] as any);
-      const lm = new Map<string, string>();
-      ((licRes as any).data || []).forEach((l: any) => lm.set(l.id, l.legal_name || l.name || '—'));
-      setLicenseeMap(lm);
-      const pm = new Map<string, { full_name: string | null; email: string | null }>();
-      ((profRes as any).data || []).forEach((p: any) => pm.set(p.id, { full_name: p.full_name, email: p.email }));
-      setProfileMap(pm);
-
-      setAssigneesByComplaint(asgMap);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { loadComplaints(); }, [isInternal, user?.id]);
 
   const handleCreate = async () => {
     if (!newSubject.trim() || !newDesc.trim() || !user) {
@@ -330,35 +422,34 @@ export default function ComplaintsList() {
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
-    loadComplaints();
+    refetchAll();
   };
 
   const handleUpdateStatus = async (complaint: any, newStatus: string) => {
-    setUpdating(true);
     try {
       if (newStatus === 'under_investigation') {
-        const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: complaint.id });
+        const { error } = await (supabase as any).rpc('start_complaint_investigation', {
+          _id: complaint.id,
+          _expected_updated_at: complaint.updated_at,
+        });
         if (error) throw error;
-      } else if (newStatus === 'resolved') {
-        if (!resolution || resolution.trim().length < 5) throw new Error('Resolution notes required (min 5 chars)');
-        const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
-        if (error) throw error;
-      } else if (newStatus === 'closed') {
-        // Closure requires a reason + category; enforce via the detail-page dialog.
-        toast.info('Open the complaint to close it — a reason and category are required.');
+        toast.success('Investigation started');
+        setDetailDialog(null);
+        refetchAll();
+      } else if (newStatus === 'resolved' || newStatus === 'closed') {
+        // Resolution/closure require reason + category; enforce via the detail page.
+        toast.info('Open the complaint to add resolution notes and close it.');
         nav(`/complaints/${complaint.id}`);
-        return;
       } else {
         throw new Error(`Unsupported status transition: ${newStatus}`);
       }
-      toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
-      setDetailDialog(null);
-      setResolution('');
-      loadComplaints();
     } catch (e: any) {
-      toast.error(e?.message || 'Update failed');
-    } finally {
-      setUpdating(false);
+      const msg = e?.message || 'Update failed';
+      if (msg.includes('complaint_stale')) {
+        toast.error('Someone else updated this complaint. Please reload.');
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -416,7 +507,7 @@ export default function ComplaintsList() {
         toast.error(`Triage failed: ${error.message}`);
       } else {
         toast.success('Triage requested');
-        loadComplaints();
+        refetchAll();
       }
     } catch (e: any) {
       toast.dismiss(t);
@@ -438,32 +529,9 @@ export default function ComplaintsList() {
     [complaints],
   );
 
-  const filtered = complaints.filter(c => {
-    const sla = slaBucketFromRow(c);
-    if (search) {
-      const s = search.toLowerCase();
-      const hay = [
-        c.complaint_number, c.subject, c.email, c.assigned_team,
-        c.licensee_id && licenseeMap.get(c.licensee_id),
-        c.complaint_type_id && refs.types.get(c.complaint_type_id),
-      ].filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(s)) return false;
-    }
-    if (dashboardOpenBucket && ['resolved', 'closed'].includes(c.status)) return false;
-    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-    if (severityFilter !== 'all' && c.severity !== severityFilter) return false;
-    if (priorityFilter !== 'all' && c.priority !== priorityFilter) return false;
-    if (productFilter !== 'all' && c.product_id !== productFilter) return false;
-    if (channelFilter !== 'all' && c.channel_id !== channelFilter) return false;
-    if (categoryFilter !== 'all' && c.conduct_risk_category_id !== categoryFilter) return false;
-    if (intakeFilter !== 'all' && c.intake_source !== intakeFilter) return false;
-    if (slaFilter !== 'all' && sla !== slaFilter) return false;
-    if (teamFilter !== 'all' && c.assigned_team !== teamFilter) return false;
-    if (triageFilter !== 'all' && c.triage_source !== triageFilter) return false;
-    if (vulnerableFilter === 'yes' && !c.vulnerability_indicator) return false;
-    if (vulnerableFilter === 'no' && c.vulnerability_indicator) return false;
-    return true;
-  });
+  // Filtering + search + sort + pagination are all server-side now.
+  // `complaints` is already the paginated slice — no local filtering.
+  const filtered = complaints;
 
   const filteredIds = useMemo(() => filtered.map(c => c.id), [filtered]);
   const { byEntityId: totalSlaByComplaint } = useWorkflowTotalSla({
@@ -550,10 +618,10 @@ export default function ComplaintsList() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={isInternal ? 'Search # / subject / entity / email / team...' : 'Search complaints...'}
-                  className="pl-10" value={search} onChange={e => setSearch(e.target.value)}
+                  className="pl-10" value={searchDraft} onChange={e => onSearchChange(e.target.value)}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(v) => updateUrl({ status: v }, { resetPage: true })}>
                 <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
@@ -563,21 +631,21 @@ export default function ComplaintsList() {
 
               {isInternal && (
                 <>
-                  <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                  <Select value={severityFilter} onValueChange={(v) => updateUrl({ severity: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Severity" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Severity</SelectItem>
                       {['critical','high','medium','low'].map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <Select value={priorityFilter} onValueChange={(v) => updateUrl({ priority: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Priority</SelectItem>
                       {['p1','p2','p3','p4'].map(s => <SelectItem key={s} value={s} className="uppercase">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Select value={slaFilter} onValueChange={setSlaFilter}>
+                  <Select value={slaFilter} onValueChange={(v) => updateUrl({ sla: v }, { resetPage: true })}>
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="SLA" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All SLA</SelectItem>
@@ -595,7 +663,7 @@ export default function ComplaintsList() {
                     <PopoverContent className="w-80 space-y-3">
                       <div>
                         <Label className="text-xs">Product</Label>
-                        <Select value={productFilter} onValueChange={setProductFilter}>
+                        <Select value={productFilter} onValueChange={(v) => updateUrl({ product: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -605,7 +673,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Channel</Label>
-                        <Select value={channelFilter} onValueChange={setChannelFilter}>
+                        <Select value={channelFilter} onValueChange={(v) => updateUrl({ channel: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -615,7 +683,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Conduct risk category</Label>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <Select value={categoryFilter} onValueChange={(v) => updateUrl({ category: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -625,7 +693,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Intake source</Label>
-                        <Select value={intakeFilter} onValueChange={setIntakeFilter}>
+                        <Select value={intakeFilter} onValueChange={(v) => updateUrl({ intake: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -635,7 +703,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Assigned team</Label>
-                        <Select value={teamFilter} onValueChange={setTeamFilter}>
+                        <Select value={teamFilter} onValueChange={(v) => updateUrl({ team: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -645,7 +713,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Triage source</Label>
-                        <Select value={triageFilter} onValueChange={setTriageFilter}>
+                        <Select value={triageFilter} onValueChange={(v) => updateUrl({ triage: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -655,7 +723,7 @@ export default function ComplaintsList() {
                       </div>
                       <div>
                         <Label className="text-xs">Vulnerable customer</Label>
-                        <Select value={vulnerableFilter} onValueChange={setVulnerableFilter}>
+                        <Select value={vulnerableFilter} onValueChange={(v) => updateUrl({ vulnerable: v }, { resetPage: true })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All</SelectItem>
@@ -672,9 +740,23 @@ export default function ComplaintsList() {
           </CardContent>
         </Card>
 
+        {listQ.isError && (
+          <Card className="border-destructive/40">
+            <CardContent className="pt-6 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-destructive">Failed to load complaints</p>
+                <p className="text-xs text-muted-foreground">{(listQ.error as Error)?.message || 'Unknown error'}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => listQ.refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="p-0 overflow-x-auto">
-            {loading ? (
+            {loading && complaints.length === 0 ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : !isInternal ? (
               // External: keep original simple layout
@@ -857,7 +939,37 @@ export default function ComplaintsList() {
             )}
           </CardContent>
         </Card>
+
+        {/* Server-side pagination footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
+          <div className="text-xs text-muted-foreground">
+            {totalCount === 0
+              ? 'No results'
+              : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalCount)} of ${totalCount}`}
+            {listQ.isFetching && complaints.length > 0 && <span className="ml-2 inline-flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" />refreshing…</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Rows</Label>
+            <Select value={String(pageSize)} onValueChange={(v) => updateUrl({ pageSize: v }, { resetPage: true })}>
+              <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1}
+              onClick={() => updateUrl({ page: '1' })}><ChevronsLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1}
+              onClick={() => updateUrl({ page: String(page - 1) })}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-xs tabular-nums px-2">{page} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages}
+              onClick={() => updateUrl({ page: String(page + 1) })}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages}
+              onClick={() => updateUrl({ page: String(totalPages) })}><ChevronsRight className="h-4 w-4" /></Button>
+          </div>
+        </div>
       </div>
+
+
 
       {/* Detail Dialog (external users only) */}
       <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) { setDetailDialog(null); setDetailAttachments([]); } }}>
