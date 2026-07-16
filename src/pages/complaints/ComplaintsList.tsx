@@ -150,8 +150,11 @@ export default function ComplaintsList() {
     if (triageFilter !== 'all') p.triage_override_status = triageFilter;
     if (vulnerableFilter === 'yes') p.vulnerability_indicator = true;
     if (vulnerableFilter === 'no')  p.vulnerability_indicator = false;
+    if (regulatorFilter !== 'all') p.regulator_id = regulatorFilter;
+    if (dateFrom) p.date_from = new Date(dateFrom).toISOString();
+    if (dateTo)   p.date_to   = new Date(dateTo + 'T23:59:59').toISOString();
     return p;
-  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter]);
+  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter,regulatorFilter,dateFrom,dateTo]);
 
   // --- Reference data queries with explicit error handling ---
   const typesQ = useQuery<RefLookup[]>({
