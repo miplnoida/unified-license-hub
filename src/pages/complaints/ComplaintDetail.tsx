@@ -129,35 +129,64 @@ export default function ComplaintDetail() {
 
   const takeInvestigation = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: id! });
+      const { error } = await (supabase as any).rpc('start_complaint_investigation', {
+        _id: id!,
+        _expected_updated_at: complaint?.updated_at ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => { toast.success('Investigation started'); invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? '');
+      if (msg.includes('complaint_stale')) {
+        toast.error('This complaint was updated by another user. Reload before continuing.');
+      } else {
+        toast.error(msg);
+      }
+      invalidate();
+    },
   });
+
+
+
+  // Optimistic concurrency: every mutation carries the updated_at we loaded, so
+  // the RPC raises `complaint_stale` if another user modified the row.
+  const handleMutationError = (e: any) => {
+    const msg = String(e?.message ?? '');
+    if (msg.includes('complaint_stale')) {
+      toast.error('This complaint was updated by another user. Reload before continuing.');
+    } else {
+      toast.error(msg || 'Update failed');
+    }
+    invalidate();
+  };
 
   const setSeverityMut = useMutation({
     mutationFn: async (opts?: { reason?: string }) => {
       if (!severity) throw new Error('Pick a severity');
       const current = complaint?.severity ?? null;
       const changed = current && current !== severity;
-      const { error } = await (supabase as any).rpc('update_complaint_severity', {
+      const args: Record<string, unknown> = {
         _id: id!,
         _severity: severity,
-        _reason: changed ? (opts?.reason ?? null) : null,
-      });
+        _expected_updated_at: complaint?.updated_at ?? null,
+      };
+      // Only pass _reason when a genuine reason exists (avoid null literals).
+      if (changed && opts?.reason) args._reason = opts.reason;
+      const { error } = await (supabase as any).rpc('update_complaint_severity', args);
       if (error) throw error;
     },
     onSuccess: () => { toast.success('Severity updated'); setSeverity(''); invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: handleMutationError,
   });
 
   // Applies the severity change ONLY after the override is logged.
   async function applySeverityChange(next: string, from: string, reason: string) {
     const { error } = await (supabase as any).rpc('update_complaint_severity', {
       _id: id!, _severity: next, _reason: reason,
+      _expected_updated_at: complaint?.updated_at ?? null,
     });
-    if (error) throw error;
+    if (error) { handleMutationError(error); return; }
     toast.success('Severity overridden');
     setSeverity('');
     invalidate();
@@ -178,18 +207,27 @@ export default function ComplaintDetail() {
       if (resolution.trim().length < 5) throw new Error('Resolution notes required');
       const { error } = await (supabase as any).rpc('resolve_complaint', {
         _id: id!, _resolution: resolution.trim(),
+        _expected_updated_at: complaint?.updated_at ?? null,
       });
       if (error) throw error;
     },
     onSuccess: () => { toast.success('Complaint resolved'); setResolution(''); invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: handleMutationError,
   });
+
+  const CLOSURE_CATEGORIES = ['resolved_at_source','withdrawn','duplicate','out_of_scope','no_action_required','referred_out'] as const;
 
   const close = useMutation({
     mutationFn: async () => {
-      if (closeReason.trim().length < 5) throw new Error('Closure reason required (min 5 chars)');
+      const reason = closeReason.trim();
+      const category = (closeCategory || '').trim();
+      if (reason.length < 5) throw new Error('Closure reason required (min 5 chars)');
+      if (!category || !CLOSURE_CATEGORIES.includes(category as any)) {
+        throw new Error('Closure category is required');
+      }
       const { error } = await (supabase as any).rpc('close_complaint', {
-        _id: id!, _reason: closeReason.trim(), _category: closeCategory || null,
+        _id: id!, _reason: reason, _category: category,
+        _expected_updated_at: complaint?.updated_at ?? null,
       });
       if (error) throw error;
     },
@@ -197,7 +235,7 @@ export default function ComplaintDetail() {
       toast.success('Complaint closed');
       setCloseOpen(false); setCloseReason(''); invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: handleMutationError,
   });
 
   const escalate = useMutation({
