@@ -498,16 +498,16 @@ export default function ComplaintDetail() {
                     <CardHeader><CardTitle className="text-base">Resolve</CardTitle></CardHeader>
                     <CardContent className="space-y-3">
                       <Textarea rows={3} placeholder="Resolution notes…" value={resolution} onChange={e => setResolution(e.target.value)} />
-                      <div className="flex gap-2">
-                        <Button onClick={() => resolve.mutate()} disabled={resolve.isPending} className="flex-1"><CheckCircle2 className="h-4 w-4 mr-2" />Mark Resolved</Button>
-                        <Button variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close</Button>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close</Button>
+                        <Button size="sm" onClick={() => resolve.mutate()} disabled={resolve.isPending}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Resolved</Button>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {complaint.status === 'resolved' && (
-                  <Card><CardContent className="pt-6"><Button variant="outline" onClick={() => setCloseOpen(true)} className="w-full"><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
+                  <Card><CardContent className="pt-6 flex justify-end"><Button size="sm" variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
                 )}
 
                 {!complaint.enforcement_action_id && (
