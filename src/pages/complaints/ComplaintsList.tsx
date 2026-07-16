@@ -778,17 +778,11 @@ export default function ComplaintsList() {
         </Card>
 
         {listQ.isError && (
-          <Card className="border-destructive/40">
-            <CardContent className="pt-6 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-destructive">Failed to load complaints</p>
-                <p className="text-xs text-muted-foreground">{(listQ.error as Error)?.message || 'Unknown error'}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => listQ.refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" />Retry
-              </Button>
-            </CardContent>
-          </Card>
+          <QueryErrorState
+            title="Failed to load complaints"
+            error={listQ.error}
+            onRetry={() => listQ.refetch()}
+          />
         )}
 
         <Card>
