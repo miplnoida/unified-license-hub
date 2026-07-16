@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, FileText, ExternalLink, Printer, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 
 interface Props {
   complaint: any;
