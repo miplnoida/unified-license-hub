@@ -70,7 +70,6 @@ const INTAKE_SOURCES = ['consumer_portal', 'internal', 'staff_intake', 'referral
 
 interface RefLookup { id: string; name: string }
 
-interface RefLookup { id: string; name: string }
 
 // URL keys are the single source of truth for list state — every change writes
 // back to the URL, and every read re-triggers the RPC via useQuery.
