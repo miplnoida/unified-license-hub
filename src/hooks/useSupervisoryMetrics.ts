@@ -42,14 +42,22 @@ const daysAgo = (n: number) => {
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+// Sentinel used with `.in(col, [...])` when a sector filter is active but the
+// sector has zero licensees — guarantees zero matching rows instead of the
+// `.in()` no-op behaviour (which would otherwise return everything).
+const NO_MATCH_ID = '00000000-0000-0000-0000-000000000000';
+
 // Real returns live in `returns_filed` (workflow_status TEMP/WIP/SUB/VAL/TBR/REJ),
 // not the legacy `compliance_returns` table (which nothing in the live filing
 // flow writes to — see ViewReturns.tsx for the same returns_filed pattern this
 // mirrors). One fetch produces both the dashboard counts and the top-5
-// overdue list, avoiding a duplicate query.
-const fetchReturnsFiledSummary = async () => {
+// overdue list, avoiding a duplicate query. `returns_filed` carries its own
+// `sector_id` column, so this is filtered directly (no licensee join needed).
+const fetchReturnsFiledSummary = async (sectorId: string | null) => {
   const today = todayDateIso();
-  const { data, error } = await supabase.from('returns_filed').select('id, workflow_status, due_date');
+  let q = supabase.from('returns_filed').select('id, workflow_status, due_date');
+  if (sectorId) q = q.eq('sector_id', sectorId);
+  const { data, error } = await q;
   const empty = { overdue: 0, pending_review: 0, submitted: 0, due_soon: 0 };
   if (error) return { counts: empty, overdueRows: [] as Array<{ id: string; due_date: string | null; status: string }> };
 
@@ -183,12 +191,28 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const sectorEq = (q: any) => sectorId ? q.eq('sector_id', sectorId) : q;
       const regulatorEq = (q: any) => regulatorId ? q.eq('regulator_id', regulatorId) : q;
 
+      // Several tables (complaints, enforcement_actions, inspections,
+      // risk_ratings) reference the regulated entity via `entity_id`/
+      // `licensee_id` rather than carrying their own `sector_id` column, so a
+      // sector filter has to resolve through `licensees.sector_id` first.
+      // Resolved once per dashboard load and reused across every query below.
+      const licenseeIdsForSector: string[] | null = sectorId
+        ? ((await supabase.from('licensees').select('id').eq('sector_id', sectorId)).data || []).map((r: any) => r.id)
+        : null;
+      const entityIdsForFilter = licenseeIdsForSector && licenseeIdsForSector.length === 0
+        ? [NO_MATCH_ID]
+        : licenseeIdsForSector;
+      const entityEq = (q: any, column: string) => entityIdsForFilter ? q.in(column, entityIdsForFilter) : q;
+
       /**
        * Count helper — runs get_application_list_page with the canonical
        * rpcParams declared in APPLICATION_DRILLDOWNS for `key` and returns
        * the RPC's total_count. This is the SAME RPC + params the
        * /applications/queue page invokes when the user clicks the link,
-       * so dashboard count and list count are guaranteed identical.
+       * so dashboard count and list count are guaranteed identical, and it
+       * already resolves `_sector_id` server-side, so this is the source of
+       * truth for every sector-aware application metric below (including
+       * the "total" tile, which used to be a raw, sector-blind count).
        */
       const countDrilldown = async (key: ApplicationDrilldownKey, pageSize = 1, sortDir: 'asc' | 'desc' = 'desc') => {
         const def = APPLICATION_DRILLDOWNS[key];
@@ -203,7 +227,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
           _sort_by: 'created_at',
           _sort_dir: sortDir,
           _licensee_id: null,
-          _sector_id: filters?.sectorId || null,
+          _sector_id: sectorId,
           _sla: rpcParams._sla ?? null,
           _status_group: rpcParams._status_group ?? null,
         });
@@ -212,7 +236,6 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       };
 
       const [
-        appsTotal,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
         returnsFiledSummary,
         payPending, payPaid, payFailed,
@@ -222,8 +245,6 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         riskHigh, riskMedium, riskLow,
         licenseesTotal, licenseesActive,
       ] = await Promise.all([
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }))),
-
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true })))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active')))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'expired')))),
@@ -232,42 +253,44 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', daysFromNow(30)).gte('valid_until', new Date().toISOString())))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', daysFromNow(90)).gte('valid_until', new Date().toISOString())))),
 
-        fetchReturnsFiledSummary(),
+        fetchReturnsFiledSummary(sectorId),
 
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['pending', 'awaiting_verification'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['paid', 'completed', 'verified'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['failed', 'rejected'])),
 
-        head(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned'])),
-        head(supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('status', 'completed')),
-        head(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned']).lt('date_conducted', todayIso())),
+        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned']), 'entity_id')),
+        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('status', 'completed'), 'entity_id')),
+        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned']).lt('date_conducted', todayIso()), 'entity_id')),
 
-        head(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).in('status', ['open', 'investigation', 'pending'])),
-        head(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).gte('date_opened', daysAgo(30).slice(0, 10))),
-        head(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
-        head(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).eq('status', 'closed')),
+        head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).in('status', ['open', 'investigation', 'pending']), 'entity_id')),
+        head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).gte('date_opened', daysAgo(30).slice(0, 10)), 'entity_id')),
+        head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).eq('status', 'pending'), 'entity_id')),
+        head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).eq('status', 'closed'), 'entity_id')),
 
-        head(regulatorEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).in('status', ['open', 'submitted', 'pending', 'under_investigation']))),
-        head(regulatorEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).eq('status', 'under_investigation'))),
-        head(regulatorEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).in('status', ['closed', 'resolved']))),
+        head(regulatorEq(entityEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).in('status', ['open', 'submitted', 'pending', 'under_investigation']), 'licensee_id'))),
+        head(regulatorEq(entityEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).eq('status', 'under_investigation'), 'licensee_id'))),
+        head(regulatorEq(entityEq(supabase.from('complaints').select('*', { count: 'exact', head: true }).in('status', ['closed', 'resolved']), 'licensee_id'))),
 
-        head(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'high%')),
-        head(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'medium%')),
-        head(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'low%')),
+        head(entityEq(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'high%'), 'entity_id')),
+        head(entityEq(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'medium%'), 'entity_id')),
+        head(entityEq(supabase.from('risk_ratings').select('*', { count: 'exact', head: true }).ilike('overall_rating', 'low%'), 'entity_id')),
 
         head(sectorEq(supabase.from('licensees').select('*', { count: 'exact', head: true }))),
         head(sectorEq(supabase.from('licensees').select('*', { count: 'exact', head: true }).eq('status', 'active'))),
       ]);
 
-      // All per-status application metrics resolve via the SAME RPC the
-      // drill-down list uses, with rpcParams sourced from the central
-      // dashboard drill-down registry. This guarantees the dashboard
-      // count for each metric is identical to the count shown on
-      // /applications/queue when the user follows the link.
+      // All per-status application metrics (including the overall total,
+      // via the `all` drilldown) resolve via the SAME RPC the drill-down
+      // list uses, with rpcParams sourced from the central dashboard
+      // drill-down registry. This guarantees the dashboard count for each
+      // metric is identical to the count shown on /applications/queue when
+      // the user follows the link, and that every one is sector-aware.
       const [
-        pendingRes, slaBreachedRes, slaDueSoonRes,
+        allRes, pendingRes, slaBreachedRes, slaDueSoonRes,
         draftRes, submittedRes, inProgressRes, approvedRes, rejectedRes, returnedRes,
       ] = await Promise.all([
+        countDrilldown('all'),
         countDrilldown('pending', 5, 'asc'),
         countDrilldown('slaBreached'),
         countDrilldown('slaDueSoon'),
@@ -279,6 +302,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         countDrilldown('returned'),
       ]);
 
+      const appsTotal = allRes.count;
       const pendingRows = pendingRes.rows;
       const appsPending = pendingRes.count;
       const appsSlaBreached = slaBreachedRes.count;
@@ -290,31 +314,43 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const appsRejected = rejectedRes.count;
       const appsReturned = returnedRes.count;
 
-      // Priority lists (small, ids only)
+      // Priority lists (small, ids only) — same sector scoping as their
+      // corresponding aggregate counts above.
       const [expiringRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
-        supabase.from('licenses')
-          .select('id, license_number, valid_until')
-          .eq('status', 'active')
-          .gte('valid_until', new Date().toISOString())
-          .lte('valid_until', daysFromNow(30))
-          .order('valid_until', { ascending: true })
-          .limit(5),
-        supabase.from('risk_ratings')
-          .select('id, entity_id, overall_rating')
-          .ilike('overall_rating', 'high%')
-          .order('assessment_date', { ascending: false })
-          .limit(5),
-        supabase.from('enforcement_actions')
-          .select('id, case_number, status')
-          .in('status', ['open', 'investigation', 'pending'])
-          .order('date_opened', { ascending: true })
-          .limit(5),
+        sectorEq(
+          supabase.from('licenses')
+            .select('id, license_number, valid_until')
+            .eq('status', 'active')
+            .gte('valid_until', new Date().toISOString())
+            .lte('valid_until', daysFromNow(30))
+            .order('valid_until', { ascending: true })
+            .limit(5)
+        ),
+        entityEq(
+          supabase.from('risk_ratings')
+            .select('id, entity_id, overall_rating')
+            .ilike('overall_rating', 'high%')
+            .order('assessment_date', { ascending: false })
+            .limit(5),
+          'entity_id'
+        ),
+        entityEq(
+          supabase.from('enforcement_actions')
+            .select('id, case_number, status')
+            .in('status', ['open', 'investigation', 'pending'])
+            .order('date_opened', { ascending: true })
+            .limit(5),
+          'entity_id'
+        ),
         supabase.from('payments')
           .select('amount, status, paid_at, created_at')
           .limit(1000),
       ]);
 
       // Aggregate payment amounts client-side from the (RLS-scoped) sample.
+      // NOTE: payments have no direct sector/licensee link (only
+      // `application_id`), so this tile is not yet sector-filterable
+      // without an extra join through applications — left unfiltered.
       let outstanding_amount = 0;
       let revenue_month = 0;
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();

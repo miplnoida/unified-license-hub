@@ -6,6 +6,7 @@ import { useSupervisoryMetrics, SupervisoryFilters } from '@/hooks/useSupervisor
 import { useFpaDashboardMetrics } from '@/hooks/useFpaDashboardMetrics';
 import { useConductDashboardMetrics } from '@/hooks/useConductDashboardMetrics';
 import { usePrudentialDashboardMetrics } from '@/hooks/usePrudentialSupervision';
+import { useSectors } from '@/hooks/useMasterConfig';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { MetricCard } from './cards/MetricCard';
@@ -17,17 +18,20 @@ import { SupervisoryTrendsWidget } from './widgets/SupervisoryTrendsWidget';
 import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
-  Building2, ShieldAlert, Gauge, MessagesSquare, UserCheck, Landmark, Megaphone,
+  Building2, ShieldAlert, Gauge, MessagesSquare, UserCheck, Landmark, Megaphone, Filter as FilterIcon,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const fmtMoney = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 
 export function SupervisoryDashboard() {
-  const [filters] = useState<SupervisoryFilters>({});
+  const [filters, setFilters] = useState<SupervisoryFilters>({});
   const { data, isLoading } = useSupervisoryMetrics(filters);
+  const { data: sectors } = useSectors();
   const { hasModuleAccess } = useUserDynamicPermissions();
 
   // Open (unacknowledged, non-escalated) prudential breaches — tile links to inbox
@@ -94,6 +98,29 @@ export function SupervisoryDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Sector filter — re-scopes every metric, breakdown, and priority list below to the selected sector */}
+      <div className="w-full flex justify-end">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="dashboard-sector-filter" className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+            <FilterIcon className="h-3 w-3" /> Sector
+          </Label>
+          <Select
+            value={filters.sectorId ?? 'all'}
+            onValueChange={(value) => setFilters((prev) => ({ ...prev, sectorId: value === 'all' ? null : value }))}
+          >
+            <SelectTrigger id="dashboard-sector-filter" className="w-[220px]">
+              <SelectValue placeholder="All sectors" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sectors</SelectItem>
+              {(sectors ?? []).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Summary strip — each tile is permission-gated */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {can.applications && (
