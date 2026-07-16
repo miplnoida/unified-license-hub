@@ -62,7 +62,7 @@ export default function ComplaintDetail() {
   const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
   const [licPickerOpen, setLicPickerOpen] = useState(false);
   const [licSearch, setLicSearch] = useState('');
-  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; legal_name: string; license_number?: string | null } | null>(null);
+  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
     queryKey: ['complaint', id],
@@ -287,10 +287,10 @@ export default function ComplaintDetail() {
     queryKey: ['licensee_search_for_complaint', licSearch],
     enabled: licPickerOpen,
     queryFn: async () => {
-      const q = supabase.from('licensees').select('id, legal_name, license_number').order('legal_name').limit(20);
+      const q = supabase.from('licensees').select('id, name, license_number').order('name').limit(20);
       const term = licSearch.trim();
       const { data, error } = term
-        ? await q.or(`legal_name.ilike.%${term}%,license_number.ilike.%${term}%`)
+        ? await q.or(`name.ilike.%${term}%,license_number.ilike.%${term}%`)
         : await q;
       if (error) throw error;
       return (data ?? []) as any[];
@@ -302,7 +302,7 @@ export default function ComplaintDetail() {
     enabled: !!complaint?.licensee_id,
     queryFn: async () => {
       const { data, error } = await supabase.from('licensees')
-        .select('id, legal_name, license_number')
+        .select('id, name, license_number')
         .eq('id', complaint!.licensee_id)
         .maybeSingle();
       if (error) throw error;
@@ -519,7 +519,7 @@ export default function ComplaintDetail() {
                           <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">
-                              {linkedLicenseeQ.data?.legal_name || 'Licensee'}
+                              {linkedLicenseeQ.data?.name || 'Licensee'}
                             </div>
                             {linkedLicenseeQ.data?.license_number && (
                               <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
@@ -533,7 +533,7 @@ export default function ComplaintDetail() {
                             <PopoverTrigger asChild>
                               <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
                                 <span className="truncate">
-                                  {stagedLicensee ? stagedLicensee.legal_name : 'Search licensee by name or license #'}
+                                  {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
                                 </span>
                                 <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
                               </Button>
@@ -553,13 +553,13 @@ export default function ComplaintDetail() {
                                           key={l.id}
                                           value={l.id}
                                           onSelect={() => {
-                                            setStagedLicensee({ id: l.id, legal_name: l.legal_name, license_number: l.license_number });
+                                            setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
                                             setLicPickerOpen(false);
                                           }}
                                         >
                                           <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
                                           <div className="flex-1 min-w-0">
-                                            <div className="truncate">{l.legal_name}</div>
+                                            <div className="truncate">{l.name}</div>
                                             {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
                                           </div>
                                         </CommandItem>
