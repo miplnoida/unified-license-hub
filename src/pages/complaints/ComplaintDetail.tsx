@@ -533,7 +533,7 @@ export default function ComplaintDetail() {
                             <PopoverTrigger asChild>
                               <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
                                 <span className="truncate">
-                                  {stagedLicensee ? stagedLicensee.legal_name : 'Search licensee by name or license #'}
+                                  {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
                                 </span>
                                 <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
                               </Button>
