@@ -52,7 +52,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
   }, []);
 
   const persist = async (payload: any) => {
-    const { error } = await supabase.from('complaints').update(payload).eq('id', complaint.id);
+    const { error } = await (supabase as any).rpc('classify_complaint', { _id: complaint.id, _payload: payload });
     if (error) throw error;
     await logAudit({ action: 'complaint.conduct_classification_updated', entityType: 'complaint', entityId: complaint.id, metadata: payload });
   };
