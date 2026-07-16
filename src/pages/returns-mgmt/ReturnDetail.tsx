@@ -238,6 +238,10 @@ export default function ReturnDetail() {
   });
   const { data: formData = [] } = useReturnFormData(id);
   const { data: requests = [] } = useReturnRequests(id);
+  const { data: editRequests = [] } = useReturnEditRequests(id);
+  const decideEditRequest = useDecideReturnEditRequest();
+  const pendingEditReq = editRequests.find((r: any) => r.status === 'pending');
+  const [editDecisionComment, setEditDecisionComment] = useState('');
   const { data: comments = [] } = useReturnComments(id);
   const { data: auditLog = [] } = useReturnAuditLog(id);
   const { data: revisions = [], isLoading: revisionsLoading, error: revisionsError } = useReturnRevisions(id);
