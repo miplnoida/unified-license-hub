@@ -30,11 +30,12 @@ import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAtta
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
-import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant, SLA_FILTER_OPTIONS } from '@/lib/complaintsSla';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
