@@ -17,6 +17,7 @@ import { logAction } from '@/hooks/useAuditLog';
 import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink } from 'lucide-react';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
