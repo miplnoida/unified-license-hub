@@ -292,19 +292,10 @@ export default function ComplaintsList() {
     }
     const inserted = insertedRaw as any;
 
-    if (inserted?.id) {
-      // Kick off async triage — best-effort; server also queues via trigger.
-      try {
-        const { error: trErr } = await supabase.functions.invoke('evaluate-complaint-triage', {
-          body: { complaint_id: inserted.id, triggered_by: 'intake' },
-        });
-        if (trErr) {
-          toast.warning(`Complaint filed, but auto-triage failed: ${trErr.message}`);
-        }
-      } catch (e: any) {
-        toast.warning(`Complaint filed, but auto-triage failed: ${e?.message || 'unknown'}.`);
-      }
-    }
+    // Triage is enqueued server-side via trg_complaint_triage_enqueue; no
+    // client-side edge invoke here (prevents duplicate triage runs).
+
+
 
 
     let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
