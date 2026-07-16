@@ -60,11 +60,14 @@ export default function ComplaintDetail() {
     queryKey: ['complaint', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from('complaints').select('*').eq('id', id!).maybeSingle();
+      // get_complaint RPC returns the row + server-computed sla_status,
+      // scoped by has_complaint_perm / complainant_id.
+      const { data, error } = await (supabase as any).rpc('get_complaint', { _id: id });
       if (error) throw error;
       return data as any;
     },
   });
+
 
   const { data: complainant } = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
