@@ -24,8 +24,9 @@ describe('complaint workflow guardrails', () => {
     expect(existsSync('src/lib/complaintNotifications.ts')).toBe(false);
   });
 
-  it('no notifyComplaintLifecycle references remain', () => {
-    expect(rg('notifyComplaintLifecycle')).toEqual([]);
+  it('no notifyComplaintLifecycle references remain in production code', () => {
+    const hits = rg('notifyComplaintLifecycle').filter((l) => !l.startsWith('src/test/'));
+    expect(hits).toEqual([]);
   });
 
   it('no hardcoded lifecycle gates remain in enforcement/complaint pages', () => {
