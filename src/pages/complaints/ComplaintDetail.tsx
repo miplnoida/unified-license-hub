@@ -157,37 +157,9 @@ export default function ComplaintDetail() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['complaint', id] });
 
-  const takeInvestigation = useMutation({
-    mutationFn: async () => {
-      const { error } = await (supabase as any).rpc('start_complaint_investigation', {
-        _id: id!,
-        _expected_updated_at: complaint?.updated_at ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Investigation started');
-      notifyComplaintLifecycle({
-        event_key: 'complaint.investigation_started',
-        complaint_id: id!,
-        complaint_number: complaint?.complaint_number,
-        complainant_id: complaint?.complainant_id,
-        licensee_id: complaint?.licensee_id,
-        sector_id: complaint?.sector_id,
-        regulator_id: complaint?.regulator_id,
-      });
-      invalidate();
-    },
-    onError: (e: any) => {
-      const msg = String(e?.message ?? '');
-      if (msg.includes('complaint_stale')) {
-        toast.error('This complaint was updated by another user. Reload before continuing.');
-      } else {
-        toast.error(msg);
-      }
-      invalidate();
-    },
-  });
+  // takeInvestigation / resolve / close / escalate lifecycle mutations were
+  // removed — they now run through <WorkflowActionPanel> in the Tracking tab,
+  // driven by the Complaint Management Workflow.
 
 
 
