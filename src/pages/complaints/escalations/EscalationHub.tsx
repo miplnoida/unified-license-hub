@@ -53,7 +53,8 @@ export default function EscalationHub() {
     },
     onSuccess: (r) => {
       toast.success(`Sweep complete — ${r.created_cases ?? 0} new case(s)`);
-      qc.invalidateQueries({ queryKey: ['complaint_escalation_stats'] });
+      qc.invalidateQueries({ queryKey: ['escalation_hub_stats'] });
+      qc.invalidateQueries({ queryKey: ['pending_escalation_count'] });
       qc.invalidateQueries({ queryKey: ['complaint_escalation_cases'] });
       qc.invalidateQueries({ queryKey: ['complaint_escalation_log'] });
     },
