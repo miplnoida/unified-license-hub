@@ -749,6 +749,26 @@ export default function ComplaintsList() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div>
+                        <Label className="text-xs">Regulator</Label>
+                        <Select value={regulatorFilter} onValueChange={(v) => updateUrl({ regulator: v }, { resetPage: true })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            {regulators.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Created from</Label>
+                          <Input type="date" value={dateFrom} onChange={e => updateUrl({ from: e.target.value || null }, { resetPage: true })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Created to</Label>
+                          <Input type="date" value={dateTo} onChange={e => updateUrl({ to: e.target.value || null }, { resetPage: true })} />
+                        </div>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </>
