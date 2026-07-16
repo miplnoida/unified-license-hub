@@ -27,6 +27,7 @@ import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBa
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
