@@ -52,6 +52,9 @@ export default function ComplaintDetail() {
   const [escalateNote, setEscalateNote] = useState('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState('');
+  const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
 
   const { data: complaint, isLoading } = useQuery({
     queryKey: ['complaint', id],
