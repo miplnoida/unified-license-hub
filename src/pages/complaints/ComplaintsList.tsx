@@ -194,10 +194,21 @@ export default function ComplaintsList() {
     },
   });
 
+  const regulatorsQ = useQuery<RefLookup[]>({
+    queryKey: ['regulators_ref_complaints'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+
   const complaintTypes = typesQ.data ?? [];
   const categories     = categoriesQ.data ?? [];
   const products       = productsQ.data ?? [];
   const channels       = channelsQ.data ?? [];
+  const regulators     = regulatorsQ.data ?? [];
 
   // --- Server-side list query ---
   const listQ = useQuery<{ total: number; rows: any[]; page: number; page_size: number }>({
