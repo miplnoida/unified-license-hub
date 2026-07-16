@@ -232,7 +232,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('case_withdrawn', withdrawReason.trim());
     },
-    onSuccess: () => { toast.success('Case withdrawn'); setWithdrawReason(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Case withdrawn');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.case_withdrawn', note: withdrawReason.trim() }));
+      setWithdrawReason(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
