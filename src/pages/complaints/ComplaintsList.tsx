@@ -30,11 +30,12 @@ import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAtta
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
-import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant, SLA_FILTER_OPTIONS } from '@/lib/complaintsSla';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
@@ -69,7 +70,6 @@ const INTAKE_SOURCES = ['consumer_portal', 'internal', 'staff_intake', 'referral
 
 interface RefLookup { id: string; name: string }
 
-interface RefLookup { id: string; name: string }
 
 // URL keys are the single source of truth for list state — every change writes
 // back to the URL, and every read re-triggers the RPC via useQuery.
@@ -666,10 +666,9 @@ export default function ComplaintsList() {
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="SLA" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All SLA</SelectItem>
-                      <SelectItem value="on_track">On track</SelectItem>
-                      <SelectItem value="at_risk">At risk</SelectItem>
-                      <SelectItem value="breached">Breached</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
+                      {SLA_FILTER_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
@@ -778,17 +777,11 @@ export default function ComplaintsList() {
         </Card>
 
         {listQ.isError && (
-          <Card className="border-destructive/40">
-            <CardContent className="pt-6 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-destructive">Failed to load complaints</p>
-                <p className="text-xs text-muted-foreground">{(listQ.error as Error)?.message || 'Unknown error'}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => listQ.refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" />Retry
-              </Button>
-            </CardContent>
-          </Card>
+          <QueryErrorState
+            title="Failed to load complaints"
+            error={listQ.error}
+            onRetry={() => listQ.refetch()}
+          />
         )}
 
         <Card>
