@@ -29,23 +29,21 @@ export default function EscalationHub() {
   const qc = useQueryClient();
 
   const { data: stats } = useQuery({
-    queryKey: ['complaint_escalation_stats'],
+    queryKey: ['escalation_hub_stats'],
     queryFn: async () => {
-      const [casesRes, rulesRes] = await Promise.all([
-        supabase.from('complaint_escalation_cases' as any).select('status, severity'),
-        supabase.from('complaint_escalation_rules' as any).select('enabled'),
-      ]);
-      const cases = (casesRes.data as any[]) || [];
-      const rules = (rulesRes.data as any[]) || [];
-      return {
-        pending: cases.filter(c => c.status === 'pending').length,
-        critical: cases.filter(c => c.severity === 'critical').length,
-        escalated: cases.filter(c => c.status === 'escalated').length,
-        activeRules: rules.filter(r => r.enabled).length,
-        totalRules: rules.length,
+      const { data, error } = await (supabase as any).rpc('escalation_hub_stats');
+      if (error) throw error;
+      return (data ?? {}) as {
+        pending: number;
+        critical: number;
+        escalated: number;
+        activeRules: number;
+        totalRules: number;
       };
     },
+    staleTime: 30_000,
   });
+
 
   const sweep = useMutation({
     mutationFn: async () => {
