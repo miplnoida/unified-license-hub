@@ -670,6 +670,13 @@ export default function ComplaintDetail() {
               </>
             )}
           </TabsContent>
+
+          <TabsContent value="tracking" className="space-y-4">
+            <ComplaintTrackingTimeline
+              complaintId={complaint.id}
+              enforcementId={complaint.enforcement_action_id ?? undefined}
+            />
+          </TabsContent>
         </Tabs>
 
         {severityOverride && complaint && (
