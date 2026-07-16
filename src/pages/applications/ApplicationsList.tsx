@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
-import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
+import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
@@ -249,6 +249,8 @@ export default function ApplicationsList() {
     right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
   } | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
+  const newApplicationPath = typeFilter === 'post' ? '/post-license/new' : '/pre-license/new';
+  const showApplicationTypeChooser = !isInternal && !portalContext.loading && portalContext.isLicensee && !typeFilter;
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
@@ -1232,7 +1234,7 @@ export default function ApplicationsList() {
           description={isInternal ? 'All pre-license and post-license requests' : 'View and manage your license applications'}
           actions={
             !isInternal && (
-              user && LICENSEE_ROLES.includes(user.role) ? (
+              showApplicationTypeChooser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button>
@@ -1241,7 +1243,7 @@ export default function ApplicationsList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate('/applications/new')}>
+                    <DropdownMenuItem onClick={() => navigate('/pre-license/new')}>
                       New Pre-Licensee Application
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/post-license/new')}>
@@ -1250,7 +1252,7 @@ export default function ApplicationsList() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => navigate('/applications/new')}>
+                <Button onClick={() => navigate(newApplicationPath)}>
                   <PlusCircle className="h-4 w-4 mr-2" />New Application
                 </Button>
               )
