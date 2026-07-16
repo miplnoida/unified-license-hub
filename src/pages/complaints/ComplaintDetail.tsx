@@ -673,6 +673,7 @@ export default function ComplaintDetail() {
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-4">
+            <WorkflowActionPanel complaintId={complaint.id} />
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
