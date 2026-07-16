@@ -51,6 +51,19 @@ export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onComplete
   const [values, setValues] = useState<Record<string, any>>({});
   const [comments, setComments] = useState("");
 
+  // Concurrency source of truth is workflow_instances.updated_at, exposed by
+  // get_complaint_tracking. Never use complaints.updated_at for workflow guards.
+  const trackingQ = useQuery({
+    queryKey: ["complaint_tracking", complaintId],
+    enabled: !!complaintId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_complaint_tracking", { _complaint_id: complaintId });
+      if (error) throw error;
+      return (data || {}) as { instance_updated_at?: string | null };
+    },
+  });
+  const effectiveInstanceUpdatedAt = instanceUpdatedAt ?? trackingQ.data?.instance_updated_at ?? null;
+
   const actionsQ = useQuery({
     queryKey: ["complaint_actions", complaintId],
     enabled: !!complaintId,
