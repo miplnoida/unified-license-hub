@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 interface Props { complaintId: string; complaintStatus: string; }
 
