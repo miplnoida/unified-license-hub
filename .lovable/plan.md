@@ -1,28 +1,17 @@
-# Fix: Oversized buttons in Complaint Detail → Actions tab
-
-## Scope
-File: `src/pages/complaints/ComplaintDetail.tsx` (Actions tab, ~lines 466–593). UI-only change.
-
 ## Problem
-Several action buttons currently span full card width (`className="w-full"`), which looks stretched inside the narrow right-column Actions panel:
-- Take Investigation
-- Mark Resolved (`flex-1`) + Close (icon-only sized)
-- Close Complaint (resolved state)
-- Link Licensee
-- Open Enforcement Case
+The "Map to licensee" search returns no results because the query targets `licensees.legal_name`, but that column doesn't exist on the table (the column is `name`). PostgREST returns HTTP 400 (`column licensees.legal_name does not exist`), so the dropdown always renders empty.
 
-## Change
-Replace `w-full` with natural-width, right-aligned action rows so buttons size to their content:
+## Fix
+In `src/pages/complaints/ComplaintDetail.tsx`, replace every `legal_name` reference with `name` (the actual column on `public.licensees`):
 
-1. **Triage → Take Investigation**: wrap in `<div className="flex justify-end">` and drop `w-full`; add `size="sm"`.
-2. **Resolve card**: keep the two buttons side-by-side but right-aligned (`flex justify-end gap-2`), remove `flex-1` from Mark Resolved, use `size="sm"` on both.
-3. **Resolved → Close Complaint**: right-aligned, `size="sm"`, no `w-full`.
-4. **Escalate to Enforcement**:
-   - Link Licensee button: remove `w-full`, right-align, keep `size="sm"`.
-   - Open Enforcement Case: remove `w-full`, right-align, `size="sm"`.
-   - Leave the licensee search Popover trigger at full width (it's a combobox input, not an action).
+- Line 65: state type `{ id; legal_name; ... }` → `{ id; name; ... }`
+- Line 290: `.select('id, legal_name, license_number').order('legal_name')` → `.select('id, name, license_number').order('name')`
+- Line 293: `.or('legal_name.ilike…,license_number.ilike…')` → use `name.ilike…`
+- Line 305: linked-licensee fetch `.select('id, legal_name, license_number')` → `.select('id, name, license_number')`
+- Lines 522, 536, 556, 562: render `l.name` / `stagedLicensee.name` instead of `legal_name`
 
-No changes to mutations, permissions, layout of other tabs, or business logic.
+No schema/migration changes — the DB is already correct; only the client query is wrong. No other complaint logic is touched.
 
 ## Verification
-Visual check in preview at `/complaints/:id` → Actions tab across states (submitted, under_investigation, resolved, unlinked-licensee).
+- Open a complaint without a linked licensee, type into the search — results appear (no 400 in network tab).
+- Select a licensee → link succeeds and the card shows the name.
