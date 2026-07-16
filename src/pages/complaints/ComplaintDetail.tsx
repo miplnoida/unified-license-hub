@@ -58,14 +58,12 @@ export default function ComplaintDetail() {
   const nav = useNavigate();
   const qc = useQueryClient();
 
-  const [resolution, setResolution] = useState('');
+  // Only presentation + data-helper state remains. All lifecycle mutations
+  // (assign / resolve / close / escalate / notice / decision / appeal / payment)
+  // execute through <WorkflowActionPanel> in the Tracking tab.
   const [severity, setSeverity] = useState<string>('');
-  const [escalateNote, setEscalateNote] = useState('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
-  const [closeOpen, setCloseOpen] = useState(false);
-  const [closeReason, setCloseReason] = useState('');
-  const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
   const [licPickerOpen, setLicPickerOpen] = useState(false);
   const [licSearch, setLicSearch] = useState('');
   const [stagedLicensee, setStagedLicensee] = useState<{ id: string; name: string; license_number?: string | null } | null>(null);

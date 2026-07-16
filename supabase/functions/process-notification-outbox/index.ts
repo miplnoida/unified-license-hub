@@ -1,14 +1,13 @@
-// Notification outbox worker.
+// Notification outbox worker (v2).
 //
-// Drains pending rows from `public.notification_outbox`, writes in-app
-// notifications into `public.notifications` and dispatches emails through
-// the existing `dispatch-notification-event` edge function (which owns
-// template rendering + delivery). Failures update retry_count / next_attempt_at
-// with exponential backoff; after 6 attempts the row is marked `dead`.
+// Uses the atomic `claim_notification_outbox` RPC (FOR UPDATE SKIP LOCKED) so
+// multiple concurrent workers can drain the queue without double-sending. Each
+// claimed row is left in `processing` while we dispatch, then flipped to `sent`
+// or bounced back to `pending` with exponential backoff on failure. After
+// MAX_ATTEMPTS the row is marked `dead` for admin retry.
 //
-// Idempotency: the outbox has a unique dedupe key
-// (event_key, entity_id, recipient, channel, action_history_id) so
-// re-inserts during retried RPCs are safe.
+// Also invokes `reap_stuck_notification_outbox` at the start of each run so
+// rows stuck in `processing` (crashed worker, timeout) are recycled after 10m.
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -27,15 +26,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+  const workerId = crypto.randomUUID();
 
-  // Pull a batch of pending, due rows.
-  const { data: batch, error } = await admin
-    .from("notification_outbox")
-    .select("*")
-    .eq("status", "pending")
-    .lte("next_attempt_at", new Date().toISOString())
-    .order("created_at", { ascending: true })
-    .limit(BATCH_SIZE);
+  // Recycle stuck claims first (best-effort).
+  try {
+    await admin.rpc("reap_stuck_notification_outbox");
+  } catch (_) { /* non-fatal */ }
+
+  // Atomically claim a batch of pending, due rows.
+  const { data: batch, error } = await admin.rpc("claim_notification_outbox", {
+    _limit: BATCH_SIZE,
+    _worker: workerId,
+  });
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -48,7 +50,7 @@ Deno.serve(async (req) => {
   let failed = 0;
   let dead = 0;
 
-  for (const row of batch || []) {
+  for (const row of (batch as any[]) || []) {
     try {
       if (row.channel === "in_app") {
         if (!row.recipient_user_id) throw new Error("in_app_row_missing_user");
@@ -68,7 +70,6 @@ Deno.serve(async (req) => {
         });
         if (insErr) throw insErr;
       } else if (row.channel === "email") {
-        // Delegate to the shared dispatcher, which owns email template rendering.
         const dispatchRes = await admin.functions.invoke("dispatch-notification-event", {
           body: {
             event_key: row.event_key,
@@ -87,11 +88,11 @@ Deno.serve(async (req) => {
 
       await admin
         .from("notification_outbox")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .update({ status: "sent", sent_at: new Date().toISOString(), claimed_at: null, claimed_by: null })
         .eq("id", row.id);
       sent++;
     } catch (e: any) {
-      const nextRetry = row.retry_count + 1;
+      const nextRetry = (row.retry_count ?? 0) + 1;
       const isDead = nextRetry >= MAX_ATTEMPTS;
       const delayMinutes = Math.min(60, Math.pow(2, nextRetry));
       await admin
@@ -101,6 +102,8 @@ Deno.serve(async (req) => {
           retry_count: nextRetry,
           last_error: (e?.message || String(e)).slice(0, 500),
           next_attempt_at: new Date(Date.now() + delayMinutes * 60_000).toISOString(),
+          claimed_at: null,
+          claimed_by: null,
         })
         .eq("id", row.id);
       if (isDead) dead++;
@@ -109,7 +112,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ picked: batch?.length || 0, sent, failed, dead }),
+    JSON.stringify({ worker: workerId, picked: (batch as any[])?.length || 0, sent, failed, dead }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
