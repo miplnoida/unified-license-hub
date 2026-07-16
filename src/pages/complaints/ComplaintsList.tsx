@@ -35,21 +35,20 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  submitted: 'default',
-  open: 'default',
-  under_investigation: 'outline',
-  resolved: 'default',
-  closed: 'secondary',
-};
+// Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
+// keep existing JSX references intact while the module is the single source of
+// truth for labels/variants/transitions.
+import {
+  complaintStatusLabel,
+  complaintStatusVariant,
+  isOpenComplaint,
+  COMPLAINT_STATUS_LABELS,
+} from '@/lib/complaintStatus';
 
-const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Submitted',
-  open: 'Open',
-  under_investigation: 'Under Investigation',
-  resolved: 'Resolved',
-  closed: 'Closed',
-};
+const statusVariant = new Proxy({} as Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>, {
+  get: (_t, k: string) => complaintStatusVariant(k),
+});
+const STATUS_LABELS: Record<string, string> = COMPLAINT_STATUS_LABELS;
 
 const severityVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   critical: 'destructive',
