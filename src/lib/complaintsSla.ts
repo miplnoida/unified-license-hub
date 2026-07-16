@@ -2,11 +2,13 @@ export type SlaStatus = 'on_track' | 'at_risk' | 'breached' | 'resolved' | 'unkn
 
 /**
  * Compute SLA status for a complaint from its timestamps.
- * - resolved: complaint has a resolved_at
- * - breached: past sla_due_at and unresolved
- * - at_risk: within 25% of the SLA window remaining (or <= 2 days)
- * - on_track: otherwise, when a due date is known
- * - unknown: no due date / days available
+ * Matches the SQL implementation in `public.complaint_sla_status`:
+ * - resolved AFTER due date → breached
+ * - resolved on/before due → resolved
+ * - past due unresolved     → breached
+ * - within 2 days or bottom 25% of window remaining → at_risk
+ * - otherwise               → on_track
+ * - no due info             → unknown
  */
 export function computeSlaStatus(
   created_at?: string | null,
@@ -15,18 +17,22 @@ export function computeSlaStatus(
   resolved_at?: string | null,
   now: Date = new Date(),
 ): SlaStatus {
-  if (resolved_at) return 'resolved';
   let due: Date | null = null;
   if (sla_due_at) due = new Date(sla_due_at);
   else if (created_at && sla_days) {
     due = new Date(new Date(created_at).getTime() + sla_days * 86400000);
+  }
+  if (resolved_at) {
+    const r = new Date(resolved_at);
+    if (due && r.getTime() > due.getTime()) return 'breached';
+    return 'resolved';
   }
   if (!due || isNaN(due.getTime())) return 'unknown';
   const msLeft = due.getTime() - now.getTime();
   if (msLeft < 0) return 'breached';
   const daysLeft = msLeft / 86400000;
   if (daysLeft <= 2) return 'at_risk';
-  if (sla_days && daysLeft / sla_days <= 0.25) return 'at_risk';
+  if (sla_days && sla_days > 0 && daysLeft / sla_days <= 0.25) return 'at_risk';
   return 'on_track';
 }
 

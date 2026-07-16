@@ -52,6 +52,9 @@ export default function ComplaintDetail() {
   const [escalateNote, setEscalateNote] = useState('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState('');
+  const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
 
   const { data: complaint, isLoading } = useQuery({
     queryKey: ['complaint', id],
@@ -130,27 +133,27 @@ export default function ComplaintDetail() {
   });
 
   const setSeverityMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { reason?: string }) => {
       if (!severity) throw new Error('Pick a severity');
-      const { error } = await supabase.from('complaints').update({ severity }).eq('id', id!);
-      if (error) throw error;
-      await logAction('complaint.severity_set', 'complaint', id!, {
-        before: { severity: complaint?.severity ?? null },
-        after: { severity },
+      const current = complaint?.severity ?? null;
+      const changed = current && current !== severity;
+      const { error } = await (supabase as any).rpc('update_complaint_severity', {
+        _id: id!,
+        _severity: severity,
+        _reason: changed ? (opts?.reason ?? null) : null,
       });
+      if (error) throw error;
     },
     onSuccess: () => { toast.success('Severity updated'); setSeverity(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
 
   // Applies the severity change ONLY after the override is logged.
-  async function applySeverityChange(next: string, from: string) {
-    const { error } = await supabase.from('complaints').update({ severity: next }).eq('id', id!);
-    if (error) throw error;
-    await logAction('complaint.severity_set', 'complaint', id!, {
-      before: { severity: from },
-      after: { severity: next, via: 'override' },
+  async function applySeverityChange(next: string, from: string, reason: string) {
+    const { error } = await (supabase as any).rpc('update_complaint_severity', {
+      _id: id!, _severity: next, _reason: reason,
     });
+    if (error) throw error;
     toast.success('Severity overridden');
     setSeverity('');
     invalidate();
@@ -160,7 +163,7 @@ export default function ComplaintDetail() {
     if (!severity) { toast.error('Pick a severity'); return; }
     const current = complaint?.severity;
     if (!current || current === severity) {
-      setSeverityMut.mutate();
+      setSeverityMut.mutate({});
       return;
     }
     setSeverityOverride({ from: current, to: severity });
@@ -180,10 +183,16 @@ export default function ComplaintDetail() {
 
   const close = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any).rpc('close_complaint', { _id: id!, _reason: null });
+      if (closeReason.trim().length < 5) throw new Error('Closure reason required (min 5 chars)');
+      const { error } = await (supabase as any).rpc('close_complaint', {
+        _id: id!, _reason: closeReason.trim(), _category: closeCategory || null,
+      });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success('Complaint closed'); invalidate(); },
+    onSuccess: () => {
+      toast.success('Complaint closed');
+      setCloseOpen(false); setCloseReason(''); invalidate();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -352,14 +361,14 @@ export default function ComplaintDetail() {
                       <Textarea rows={3} placeholder="Resolution notes…" value={resolution} onChange={e => setResolution(e.target.value)} />
                       <div className="flex gap-2">
                         <Button onClick={() => resolve.mutate()} disabled={resolve.isPending} className="flex-1"><CheckCircle2 className="h-4 w-4 mr-2" />Mark Resolved</Button>
-                        <Button variant="outline" onClick={() => close.mutate()} disabled={close.isPending}><XCircle className="h-4 w-4 mr-2" />Close</Button>
+                        <Button variant="outline" onClick={() => setCloseOpen(true)}><XCircle className="h-4 w-4 mr-2" />Close</Button>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {complaint.status === 'resolved' && (
-                  <Card><CardContent className="pt-6"><Button variant="outline" onClick={() => close.mutate()} disabled={close.isPending} className="w-full"><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
+                  <Card><CardContent className="pt-6"><Button variant="outline" onClick={() => setCloseOpen(true)} className="w-full"><XCircle className="h-4 w-4 mr-2" />Close Complaint</Button></CardContent></Card>
                 )}
 
                 {!complaint.enforcement_action_id && (
@@ -404,13 +413,46 @@ export default function ComplaintDetail() {
             }}
             title="Override complaint severity"
             description={`Changing severity from ${severityOverride.from} to ${severityOverride.to} contradicts the current triage classification. Provide a written justification.`}
-            onOverridden={async () => {
+            onOverridden={async (overrideId) => {
               const next = severityOverride.to;
               const from = severityOverride.from;
               setSeverityOverride(null);
-              await applySeverityChange(next, from);
+              await applySeverityChange(next, from, `Override justification captured (override_id=${overrideId})`);
             }}
           />
+        )}
+
+        {closeOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setCloseOpen(false)}>
+            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold mb-2">Close complaint</h3>
+              <p className="text-sm text-muted-foreground mb-4">Provide a closure reason (min 5 chars). This is captured in the audit trail.</p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Category</Label>
+                  <Select value={closeCategory} onValueChange={setCloseCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="resolved_at_source">Resolved at source</SelectItem>
+                      <SelectItem value="withdrawn">Withdrawn by complainant</SelectItem>
+                      <SelectItem value="duplicate">Duplicate</SelectItem>
+                      <SelectItem value="out_of_scope">Out of scope</SelectItem>
+                      <SelectItem value="no_action_required">No action required</SelectItem>
+                      <SelectItem value="referred_out">Referred to another regulator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Reason</Label>
+                  <Textarea rows={3} value={closeReason} onChange={(e) => setCloseReason(e.target.value)} placeholder="Explain why this complaint is being closed…" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
+                  <Button onClick={() => close.mutate()} disabled={close.isPending || closeReason.trim().length < 5}>Confirm close</Button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {ackOpen && complaint && (

@@ -1608,6 +1608,300 @@ export type Database = {
           },
         ]
       }
+      complaint_duplicate_pairs: {
+        Row: {
+          candidate_complaint_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          detected_at: string
+          id: string
+          matched: Json
+          primary_complaint_id: string
+          recommendation: string | null
+          similarity_score: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_complaint_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          detected_at?: string
+          id?: string
+          matched?: Json
+          primary_complaint_id: string
+          recommendation?: string | null
+          similarity_score?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_complaint_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          detected_at?: string
+          id?: string
+          matched?: Json
+          primary_complaint_id?: string
+          recommendation?: string | null
+          similarity_score?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_duplicate_pairs_candidate_complaint_id_fkey"
+            columns: ["candidate_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_candidate_complaint_id_fkey"
+            columns: ["candidate_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_primary_complaint_id_fkey"
+            columns: ["primary_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_primary_complaint_id_fkey"
+            columns: ["primary_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_duplicate_rules: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          name: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          category?: string
+          code: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      complaint_escalation_cases: {
+        Row: {
+          assigned_to: string | null
+          complaint_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          notes: string | null
+          rule_id: string | null
+          rule_key: string
+          rule_label: string
+          severity: string
+          status: string
+          target_tier: string
+          trigger_reason: string | null
+          triggered_at: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          complaint_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_id?: string | null
+          rule_key: string
+          rule_label: string
+          severity?: string
+          status?: string
+          target_tier?: string
+          trigger_reason?: string | null
+          triggered_at?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          complaint_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_id?: string | null
+          rule_key?: string
+          rule_label?: string
+          severity?: string
+          status?: string
+          target_tier?: string
+          trigger_reason?: string | null
+          triggered_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_escalation_cases_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_escalation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_escalation_log: {
+        Row: {
+          complaint_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          outcome: string
+          rule_key: string
+          rule_label: string | null
+          severity: string | null
+          snapshot: Json
+          triggered_at: string
+        }
+        Insert: {
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          outcome?: string
+          rule_key: string
+          rule_label?: string | null
+          severity?: string | null
+          snapshot?: Json
+          triggered_at?: string
+        }
+        Update: {
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          outcome?: string
+          rule_key?: string
+          rule_label?: string | null
+          severity?: string | null
+          snapshot?: Json
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_escalation_log_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_log_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_escalation_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          criterion: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          label: string
+          notify: Json
+          priority: number
+          target_tier: string
+          thresholds: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          criterion: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          label: string
+          notify?: Json
+          priority?: number
+          target_tier?: string
+          thresholds?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          criterion?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          label?: string
+          notify?: Json
+          priority?: number
+          target_tier?: string
+          thresholds?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       complaint_evidence: {
         Row: {
           complaint_id: string
@@ -1755,6 +2049,10 @@ export type Database = {
           acknowledged_at: string | null
           assigned_team: string | null
           channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_category: string | null
+          closure_reason: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
@@ -1781,6 +2079,9 @@ export type Database = {
           resolved_at: string | null
           search_vector: unknown
           severity: string
+          severity_overridden_at: string | null
+          severity_overridden_by: string | null
+          severity_override_reason: string | null
           sla_days: number | null
           sla_due_at: string | null
           status: string
@@ -1800,6 +2101,10 @@ export type Database = {
           acknowledged_at?: string | null
           assigned_team?: string | null
           channel_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_category?: string | null
+          closure_reason?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
@@ -1826,6 +2131,9 @@ export type Database = {
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
+          severity_overridden_at?: string | null
+          severity_overridden_by?: string | null
+          severity_override_reason?: string | null
           sla_days?: number | null
           sla_due_at?: string | null
           status?: string
@@ -1845,6 +2153,10 @@ export type Database = {
           acknowledged_at?: string | null
           assigned_team?: string | null
           channel_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_category?: string | null
+          closure_reason?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
@@ -1871,6 +2183,9 @@ export type Database = {
           resolved_at?: string | null
           search_vector?: unknown
           severity?: string
+          severity_overridden_at?: string | null
+          severity_overridden_by?: string | null
+          severity_override_reason?: string | null
           sla_days?: number | null
           sla_due_at?: string | null
           status?: string
@@ -14749,6 +15064,10 @@ export type Database = {
           acknowledged_at: string | null
           assigned_team: string | null
           channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_category: string | null
+          closure_reason: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
@@ -14775,6 +15094,9 @@ export type Database = {
           resolved_at: string | null
           search_vector: unknown
           severity: string
+          severity_overridden_at: string | null
+          severity_overridden_by: string | null
+          severity_override_reason: string | null
           sla_days: number | null
           sla_due_at: string | null
           status: string
@@ -14864,6 +15186,10 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      classify_complaint: {
+        Args: { _id: string; _payload: Json }
+        Returns: undefined
+      }
       classify_ratio_risk: {
         Args: {
           _breach: number
@@ -14878,58 +15204,8 @@ export type Database = {
         Returns: string
       }
       close_complaint: {
-        Args: { _id: string; _reason?: string }
-        Returns: {
-          acknowledged_at: string | null
-          assigned_team: string | null
-          channel_id: string | null
-          complainant_id: string | null
-          complaint_number: string
-          complaint_type_id: string | null
-          conduct_risk_category_id: string | null
-          created_at: string
-          customer_type: string | null
-          description: string
-          email: string | null
-          enforcement_action_id: string | null
-          findings: string | null
-          id: string
-          intake_source: string | null
-          internal_created_by: string | null
-          investigation_notes: string | null
-          investigator_id: string | null
-          license_holder_id: string | null
-          licensee_id: string | null
-          priority: string | null
-          product_id: string | null
-          regulator_id: string | null
-          repeat_complaint_count: number
-          resolution: string | null
-          resolution_notes: string | null
-          resolved_at: string | null
-          search_vector: unknown
-          severity: string
-          sla_days: number | null
-          sla_due_at: string | null
-          status: string
-          subject: string
-          triage_evaluated_at: string | null
-          triage_last_error: string | null
-          triage_original_values: Json | null
-          triage_override_status: string
-          triage_result_snapshot: Json | null
-          triage_rule_id: string | null
-          triage_source: string | null
-          updated_at: string
-          vulnerability_indicator: boolean
-          vulnerability_notes: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "complaints"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Args: { _category?: string; _id: string; _reason: string }
+        Returns: undefined
       }
       complaint_sla_status: {
         Args: {
@@ -14940,6 +15216,7 @@ export type Database = {
         }
         Returns: string
       }
+      complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
@@ -15085,11 +15362,23 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      decide_duplicate_pair: {
+        Args: { _action: string; _id: string }
+        Returns: undefined
+      }
+      decide_escalation_case: {
+        Args: { _decision: string; _id: string; _notes?: string }
+        Returns: undefined
+      }
       decide_return_edit_request: {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      detect_complaint_duplicates: {
+        Args: { _complaint_id?: string; _window_days?: number }
+        Returns: Json
+      }
       escalate_complaint_to_enforcement: {
         Args: { _findings: string; _id: string }
         Returns: {
@@ -15549,6 +15838,16 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
+      list_complaints: {
+        Args: {
+          _filters?: Json
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _sort?: string
+        }
+        Returns: Json
+      }
       log_compliance_audit: {
         Args: {
           _action_type: Database["public"]["Enums"]["compliance_audit_action"]
@@ -15877,6 +16176,10 @@ export type Database = {
           acknowledged_at: string | null
           assigned_team: string | null
           channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_category: string | null
+          closure_reason: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
@@ -15903,6 +16206,9 @@ export type Database = {
           resolved_at: string | null
           search_vector: unknown
           severity: string
+          severity_overridden_at: string | null
+          severity_overridden_by: string | null
+          severity_override_reason: string | null
           sla_days: number | null
           sla_due_at: string | null
           status: string
@@ -16039,6 +16345,7 @@ export type Database = {
         Args: { _rule_id: string; _to_version: number }
         Returns: number
       }
+      run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }
       save_ppoc_mapping: {
         Args: {
@@ -16105,6 +16412,10 @@ export type Database = {
           acknowledged_at: string | null
           assigned_team: string | null
           channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_category: string | null
+          closure_reason: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
@@ -16131,6 +16442,9 @@ export type Database = {
           resolved_at: string | null
           search_vector: unknown
           severity: string
+          severity_overridden_at: string | null
+          severity_overridden_by: string | null
+          severity_override_reason: string | null
           sla_days: number | null
           sla_due_at: string | null
           status: string
@@ -16178,6 +16492,10 @@ export type Database = {
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
+      }
+      update_complaint_severity: {
+        Args: { _id: string; _reason?: string; _severity: string }
+        Returns: undefined
       }
       user_can_access_document_object: {
         Args: { _object_name: string }

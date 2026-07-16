@@ -1,20 +1,49 @@
 import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Copy, Layers, SlidersHorizontal, ArrowLeft } from 'lucide-react';
+import { Copy, SlidersHorizontal, ArrowLeft, PlayCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { SuspectedDuplicatesTable } from '@/components/complaints/duplicates/SuspectedDuplicatesTable';
-import { ClusterGroupsPanel } from '@/components/complaints/duplicates/ClusterGroupsPanel';
 import { DetectionRulesPanel } from '@/components/complaints/duplicates/DetectionRulesPanel';
-import { seedPairs, seedClusters, seedRules } from './seed';
 
 export default function DuplicateDetectionHub() {
-  const pending = seedPairs.filter(p => p.status === 'pending').length;
-  const linked = seedPairs.filter(p => p.status === 'linked' || p.status === 'merged').length;
-  const clusters = seedClusters.length;
-  const activeRules = seedRules.filter(r => r.enabled).length;
+  const qc = useQueryClient();
+
+  const { data: stats } = useQuery({
+    queryKey: ['complaint_duplicate_stats'],
+    queryFn: async () => {
+      const [pairsRes, rulesRes] = await Promise.all([
+        supabase.from('complaint_duplicate_pairs' as any).select('status'),
+        supabase.from('complaint_duplicate_rules' as any).select('enabled'),
+      ]);
+      const pairs = (pairsRes.data as any[]) || [];
+      const rules = (rulesRes.data as any[]) || [];
+      return {
+        pending: pairs.filter(p => p.status === 'pending').length,
+        linkedMerged: pairs.filter(p => p.status === 'linked' || p.status === 'merged').length,
+        activeRules: rules.filter(r => r.enabled).length,
+      };
+    },
+  });
+
+  const detect = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase as any).rpc('detect_complaint_duplicates', { _complaint_id: null, _window_days: 30 });
+      if (error) throw error;
+      return data as { detected: number };
+    },
+    onSuccess: (r) => {
+      toast.success(`Detection complete — ${r.detected ?? 0} new pair(s)`);
+      qc.invalidateQueries({ queryKey: ['complaint_duplicate_pairs'] });
+      qc.invalidateQueries({ queryKey: ['complaint_duplicate_stats'] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   return (
     <DashboardLayout>
@@ -23,27 +52,30 @@ export default function DuplicateDetectionHub() {
           title="Duplicate Complaint Detection"
           description="Identify duplicate submissions and related complaints across institutions, products, intermediaries and issues"
           actions={
-            <Button variant="outline" asChild>
-              <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to Complaints</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => detect.mutate()} disabled={detect.isPending}>
+                {detect.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                Run detection
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to Complaints</Link>
+              </Button>
+            </div>
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Pending Review</p><p className="text-2xl font-semibold">{pending}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Linked / Merged</p><p className="text-2xl font-semibold">{linked}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Active Clusters</p><p className="text-2xl font-semibold">{clusters}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Active Rules</p><p className="text-2xl font-semibold">{activeRules}</p></CardContent></Card>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Pending Review</p><p className="text-2xl font-semibold">{stats?.pending ?? 0}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Linked / Merged</p><p className="text-2xl font-semibold">{stats?.linkedMerged ?? 0}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Active Rules</p><p className="text-2xl font-semibold">{stats?.activeRules ?? 0}</p></CardContent></Card>
         </div>
 
         <Tabs defaultValue="suspected">
           <TabsList>
             <TabsTrigger value="suspected" className="gap-2"><Copy className="h-4 w-4" />Suspected Duplicates</TabsTrigger>
-            <TabsTrigger value="clusters" className="gap-2"><Layers className="h-4 w-4" />Clusters</TabsTrigger>
             <TabsTrigger value="rules" className="gap-2"><SlidersHorizontal className="h-4 w-4" />Detection Rules</TabsTrigger>
           </TabsList>
           <TabsContent value="suspected" className="mt-4"><SuspectedDuplicatesTable /></TabsContent>
-          <TabsContent value="clusters" className="mt-4"><ClusterGroupsPanel /></TabsContent>
           <TabsContent value="rules" className="mt-4"><DetectionRulesPanel /></TabsContent>
         </Tabs>
       </div>
