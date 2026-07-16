@@ -161,7 +161,19 @@ export default function ComplaintDetail() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success('Investigation started'); invalidate(); },
+    onSuccess: () => {
+      toast.success('Investigation started');
+      notifyComplaintLifecycle({
+        event_key: 'complaint.investigation_started',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+      });
+      invalidate();
+    },
     onError: (e: any) => {
       const msg = String(e?.message ?? '');
       if (msg.includes('complaint_stale')) {
