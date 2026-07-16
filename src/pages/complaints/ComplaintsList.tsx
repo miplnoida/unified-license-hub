@@ -939,7 +939,37 @@ export default function ComplaintsList() {
             )}
           </CardContent>
         </Card>
+
+        {/* Server-side pagination footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
+          <div className="text-xs text-muted-foreground">
+            {totalCount === 0
+              ? 'No results'
+              : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalCount)} of ${totalCount}`}
+            {listQ.isFetching && complaints.length > 0 && <span className="ml-2 inline-flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" />refreshing…</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Rows</Label>
+            <Select value={String(pageSize)} onValueChange={(v) => updateUrl({ pageSize: v }, { resetPage: true })}>
+              <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1}
+              onClick={() => updateUrl({ page: '1' })}><ChevronsLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1}
+              onClick={() => updateUrl({ page: String(page - 1) })}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-xs tabular-nums px-2">{page} / {totalPages}</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages}
+              onClick={() => updateUrl({ page: String(page + 1) })}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages}
+              onClick={() => updateUrl({ page: String(totalPages) })}><ChevronsRight className="h-4 w-4" /></Button>
+          </div>
+        </div>
       </div>
+
+
 
       {/* Detail Dialog (external users only) */}
       <Dialog open={!!detailDialog} onOpenChange={open => { if (!open) { setDetailDialog(null); setDetailAttachments([]); } }}>
