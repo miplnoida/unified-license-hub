@@ -507,7 +507,7 @@ export default function ComplaintsList() {
         toast.error(`Triage failed: ${error.message}`);
       } else {
         toast.success('Triage requested');
-        loadComplaints();
+        refetchAll();
       }
     } catch (e: any) {
       toast.dismiss(t);
