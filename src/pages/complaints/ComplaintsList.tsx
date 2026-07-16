@@ -29,7 +29,7 @@ import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAtta
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
-import { computeSlaStatus, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
@@ -181,11 +181,18 @@ export default function ComplaintsList() {
 
   const loadComplaints = async () => {
     setLoading(true);
-    let q = supabase.from('complaints').select('*').order('created_at', { ascending: false });
-    if (!isInternal && user?.id) q = q.eq('complainant_id', user.id);
+    // Canonical: list_complaints RPC handles regulator-scoping, permission
+    // filtering, and returns server-computed sla_status.
+    const listReq = (supabase as any).rpc('list_complaints', {
+      _filters: {},
+      _sort: 'created_at.desc',
+      _page: 1,
+      _page_size: 200,
+      _search: null,
+    });
 
     const promises: any[] = [
-      q,
+      listReq,
       supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
     ];
     if (isInternal) {
@@ -196,7 +203,12 @@ export default function ComplaintsList() {
       );
     }
     const results = await Promise.all(promises);
-    const rows = (results[0].data || []) as any[];
+    if (results[0].error) {
+      toast.error(`Failed to load complaints: ${results[0].error.message}`);
+      setLoading(false);
+      return;
+    }
+    const rows = ((results[0].data as any)?.rows || []) as any[];
     setComplaints(rows);
     setComplaintTypes((results[1].data || []) as RefLookup[]);
     if (isInternal) {
@@ -280,19 +292,10 @@ export default function ComplaintsList() {
     }
     const inserted = insertedRaw as any;
 
-    if (inserted?.id) {
-      // Kick off async triage — best-effort; server also queues via trigger.
-      try {
-        const { error: trErr } = await supabase.functions.invoke('evaluate-complaint-triage', {
-          body: { complaint_id: inserted.id, triggered_by: 'intake' },
-        });
-        if (trErr) {
-          toast.warning(`Complaint filed, but auto-triage failed: ${trErr.message}`);
-        }
-      } catch (e: any) {
-        toast.warning(`Complaint filed, but auto-triage failed: ${e?.message || 'unknown'}.`);
-      }
-    }
+    // Triage is enqueued server-side via trg_complaint_triage_enqueue; no
+    // client-side edge invoke here (prevents duplicate triage runs).
+
+
 
 
     let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
@@ -403,17 +406,16 @@ export default function ComplaintsList() {
   };
 
   const retryTriage = async (c: any) => {
-    const t = toast.loading('Running auto-triage...');
+    const t = toast.loading('Queuing auto-triage...');
     try {
-      const { data, error } = await supabase.functions.invoke('evaluate-complaint-triage', {
-        body: { complaint_id: c.id, triggered_by: 'retry' },
-      });
+      // Permission-checked, audited server-side. The RPC only marks the row
+      // for reprocessing; the edge scheduler picks it up.
+      const { error } = await (supabase as any).rpc('retry_complaint_triage', { _id: c.id });
       toast.dismiss(t);
-      if (error || (data && data.success === false)) {
-        toast.error(`Triage failed: ${error?.message || data?.error || 'unknown'}`);
+      if (error) {
+        toast.error(`Triage failed: ${error.message}`);
       } else {
-        toast.success('Triage completed');
-        await logAudit({ action: 'complaint_triage_retry', entityType: 'complaint', entityId: c.id });
+        toast.success('Triage requested');
         loadComplaints();
       }
     } catch (e: any) {
@@ -421,6 +423,7 @@ export default function ComplaintsList() {
       toast.error(`Triage failed: ${e?.message || 'unknown'}`);
     }
   };
+
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
@@ -436,7 +439,7 @@ export default function ComplaintsList() {
   );
 
   const filtered = complaints.filter(c => {
-    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+    const sla = slaBucketFromRow(c);
     if (search) {
       const s = search.toLowerCase();
       const hay = [
@@ -691,7 +694,7 @@ export default function ComplaintsList() {
                   {filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => {
-                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    const sla = slaBucketFromRow(c);
                     return (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
@@ -741,7 +744,7 @@ export default function ComplaintsList() {
                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => {
                     const expanded = expandedRows.has(c.id);
-                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    const sla = slaBucketFromRow(c);
                     const inv = c.investigator_id ? profileMap.get(c.investigator_id) : null;
                     const entityLabel = c.licensee_id ? licenseeMap.get(c.licensee_id) : null;
                     const complainant = c.complainant_id ? profileMap.get(c.complainant_id) : null;

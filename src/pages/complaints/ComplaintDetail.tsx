@@ -17,6 +17,7 @@ import { logAction } from '@/hooks/useAuditLog';
 import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink } from 'lucide-react';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
+import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 import ComplaintInvestigationTab from '@/components/complaints/ComplaintInvestigationTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
@@ -60,11 +61,14 @@ export default function ComplaintDetail() {
     queryKey: ['complaint', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from('complaints').select('*').eq('id', id!).maybeSingle();
+      // get_complaint RPC returns the row + server-computed sla_status,
+      // scoped by has_complaint_perm / complainant_id.
+      const { data, error } = await (supabase as any).rpc('get_complaint', { _id: id });
       if (error) throw error;
       return data as any;
     },
   });
+
 
   const { data: complainant } = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
@@ -222,11 +226,14 @@ export default function ComplaintDetail() {
 
   const statusMeta = STATUS_META[complaint.status] || { label: complaint.status, variant: 'outline' };
   const sevMeta = SEVERITY_META[complaint.severity] || { label: complaint.severity, variant: 'outline' };
-  const slaDays = complaintType?.sla_days || 30;
-  const daysOpen = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));
-  const slaStatus = complaint.resolved_at
-    ? 'met'
-    : daysOpen > slaDays ? 'breached' : daysOpen > slaDays * 0.8 ? 'at_risk' : 'on_track';
+  const slaDays = complaint.sla_days || complaintType?.sla_days || 30;
+  const _openDays = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const displayDaysOpen = complaint.resolved_at
+    ? Math.floor((new Date(complaint.resolved_at).getTime() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24))
+    : _openDays;
+  // Canonical SLA — server-computed when available (list_complaints/get_complaint
+  // return sla_status); JS helper is fallback for optimistic UI.
+  const slaStatus = slaBucketFromRow(complaint);
 
   return (
     <DashboardLayout>
@@ -252,9 +259,9 @@ export default function ComplaintDetail() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusMeta.variant} className="mt-1">{statusMeta.label}</Badge></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Severity</p><Badge variant={sevMeta.variant} className="mt-1">{sevMeta.label}</Badge></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Days Open</p><p className="text-2xl font-semibold">{daysOpen}<span className="text-xs text-muted-foreground ml-1">/ {slaDays}</span></p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Days Open</p><p className="text-2xl font-semibold">{displayDaysOpen}<span className="text-xs text-muted-foreground ml-1">/ {slaDays}</span></p></CardContent></Card>
           <Card><CardContent className="pt-6 space-y-2"><p className="text-xs text-muted-foreground">SLA</p>
-            <Badge variant={slaStatus === 'breached' ? 'destructive' : slaStatus === 'at_risk' ? 'secondary' : 'default'} className="capitalize">{slaStatus.replace('_', ' ')}</Badge>
+            <Badge variant={slaStatusVariant(slaStatus)} className="capitalize">{slaStatusLabel(slaStatus)}</Badge>
             <ComplaintTotalSla complaintId={complaint.id} />
           </CardContent></Card>
         </div>

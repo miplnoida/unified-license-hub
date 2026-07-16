@@ -1,116 +1,82 @@
-## Complaints Module — Final Refactor (Phase 3)
+## Complaints Module — Production Hardening (Final Pass)
 
-Close the gap between the Phase 2 plan and what's actually in the tree. Verified pending work by grep:
+Backend RPCs (`list_complaints`, `create_complaint`, `close_complaint`, `transition_complaint_status`, `assign_complaint`, `update_complaint_severity`, `retry_complaint_triage`, `escalation_hub_stats`, `duplicate_hub_stats`, `list_duplicate_clusters`, `simulate_escalation_rule`, `pending_escalation_count`, `pending_duplicate_count`) already exist with `_expected_updated_at` concurrency guards. The remaining work is frontend rewiring, small backend gap-filling, cleanup, and tests.
 
-- `ComplaintsList.tsx` still does `.select('*')` on complaints, still `.insert()`s directly, still generates complaint numbers, still calls `close_complaint(..., _reason: null)`, and still uses `computeSlaStatus` at 3 sites.
-- `ComplaintDetail.tsx` still `.select('*').from('complaints')`.
-- `ComplaintEvidenceRow.tsx` still calls `computeSlaStatus`.
-- `useMarketConduct.ts` still `.insert()`s complaints directly (duplicate intake path).
-- `EscalationHub` pulls full `complaint_escalation_cases` / `_rules` tables client-side for stats.
-- `EscalationCaseDrawer.tsx` and `RuleCard.tsx` still import `MOCK_COMPLAINTS`; `mockData.ts` still ships; `duplicates/seed.ts` still ships; `ClusterGroupsPanel.tsx` still imports `seedClusters`.
-- `EscalationBanner` and `DuplicateAlertBanner` return `null`.
-- No optimistic concurrency guard on complaint mutations.
-- Duplicate cluster and rule-simulation endpoints are missing.
+## 1. `ComplaintsList.tsx` rewrite (biggest change)
 
-## 1. Backend (one migration + edge function tweak)
+- Replace `supabase.from('complaints').select('*')` with `useQuery(['complaints', filters, sort, page, search])` calling `list_complaints({ _filters, _sort, _dir, _page, _page_size, _search })`. URL-sync via `useSearchParams`. Add Prev/Next pagination + page-size selector (25/50/100). No client slicing.
+- `handleCreate` → `create_complaint` only. Remove: client `generate_complaint_number`, manual `logAudit`, manual `notification_dispatch_log` insert, and the post-create `evaluate-complaint-triage` invoke (trigger already enqueues triage).
+- Remove all three `computeSlaStatus(...)` call sites; render `row.sla_status` via `slaBucketFromRow` + `slaStatusLabel/Variant`.
+- Row close action opens shared `<CloseComplaintDialog>` requiring `reason` (min 5 chars) + `category` select (resolved / withdrawn / duplicate / no_jurisdiction / other); never send `_reason: null` or `_category: null`.
+- Status change → `transition_complaint_status`; assignment → `assign_complaint`; triage retry → `retry_complaint_triage` RPC (drop the direct edge invoke at line 408). Every mutation passes `_expected_updated_at` from the loaded row and surfaces `complaint_stale` as a "Someone else updated this complaint, please reload" toast.
+- Query uses `throwOnError` + explicit `isError` render of a retryable error card — never silent empty state.
 
-- Add missing RPCs, all `SECURITY DEFINER` with `assert_complaint_perm` + audit + notification helper + optimistic concurrency (`_expected_updated_at`):
-  - `list_complaints(_filters jsonb, _sort text, _dir text, _page int, _page_size int, _search text) → jsonb` returning `{rows, total, facets}`. Applies regulator scope, status/severity/type/date/SLA filters, ILIKE across `complaint_number,title,consumer_name,email`, keyset-friendly ORDER BY.
-  - `create_complaint(_payload jsonb)` — single canonical intake used by internal + external; server-side number generation (already exists via trigger — keep), SLA fill, dedupe short-circuit, triage enqueue, notification event `complaint.created`. Returns full row.
-  - `close_complaint(_id, _reason text NOT NULL, _category text NOT NULL, _expected_updated_at timestamptz)` — reject NULL reason.
-  - `update_complaint_severity(_id, _severity, _reason, _expected_updated_at)` — already exists; add concurrency guard + reason NOT NULL.
-  - `transition_complaint_status(_id, _new_status, _reason, _expected_updated_at)` — replaces every remaining `.update({status:...})`.
-  - `assign_complaint(_id, _assignee, _expected_updated_at)`.
-  - `retry_complaint_triage(_id)` — wraps edge invocation server-side.
-  - `escalation_hub_stats() → jsonb` — `{pending, critical, escalated, active_rules, total_rules}` computed in SQL.
-  - `duplicate_hub_stats() → jsonb`, `list_duplicate_pairs(_filters)`, `decide_duplicate_pair(_id, _action)`, `list_duplicate_clusters(_dimension)`, `upsert_duplicate_rule`, `toggle_duplicate_rule`, `simulate_escalation_rule(_criterion, _threshold)`.
-  - `pending_escalation_count()` and `pending_duplicate_count()` for banners.
-- Add `complaint_duplicate_clusters` table (dimension, key, member_ids uuid[]) with GRANTs + RLS + `updated_at` trigger (Phase 2 planned it, migration didn't ship it).
-- Every RPC writes an `audit_logs` row via `log_self_audit`-style helper: actor, before/after JSON, reason, entity_id, event.
-- Concurrency: mutating RPCs compare `_expected_updated_at` to current row; on mismatch RAISE `complaint_stale` — frontend surfaces "Someone else updated this complaint, please reload".
+## 2. `ComplaintDetail.tsx`
 
-## 2. `src/lib/complaintsSla.ts` — single SLA source
+- Replace `.from('complaints').select('*')` with `get_complaint(_id)` RPC (add if missing — see §5). Consume `sla_status` from the response.
+- Extract `<CloseComplaintDialog>` (shared with list). Keep existing severity / transition / assign paths but pass `_expected_updated_at`.
 
-- Keep the pure JS helper (already SQL-aligned) for optimistic UI on a single already-fetched row.
-- Prefer server-computed `sla_bucket` from `list_complaints` / `complaints_analytics` everywhere possible. `ComplaintsList`, `ComplaintEvidenceRow`, `ConductDashboard` will read `row.sla_bucket` from the RPC payload — no more per-render recompute.
-- Add exhaustive unit test to guarantee JS ↔ SQL parity for on_track / at_risk / breached / resolved_on_time / resolved_late.
+## 3. Intake unification
 
-## 3. Frontend rewiring
+- `useMarketConduct.ts`: replace direct `sb.from('complaints').insert(...)` with `create_complaint`; drop the post-insert `evaluate-complaint-triage` invoke.
+- `ConductClassificationCard.tsx` + `TriageRules.tsx` classification "run triage" button → call `retry_complaint_triage` RPC (permission-checked, audited server-side).
 
-### `ComplaintsList.tsx`
-- Replace the raw select with `useQuery(['complaints', filters, sort, page, search])` calling `list_complaints`. URL-sync `page/pageSize/sort/search/filters` via `useSearchParams`. Add pagination controls (Prev / Next / page size 25/50/100). No client slicing.
-- `handleCreate` → `create_complaint`. Remove:
-  - the `generate_complaint_number` client call,
-  - the manual `logAudit`,
-  - the manual `notification_dispatch_log` insert,
-  - the direct `evaluate-complaint-triage` invoke.
-- Remove all `computeSlaStatus` sites; render `row.sla_bucket` + label helper.
-- Row close action opens a `<CloseComplaintDialog>` (reused from detail) that requires `reason` (textarea, min 5 chars) + `category` (select: resolved / withdrawn / duplicate / no-jurisdiction / other) before `close_complaint`. Remove the `_reason: null` call entirely.
-- Every query passes `throwOnError` / uses `isError` to render an error card with retry — no empty-state masking.
-- Status changes → `transition_complaint_status`; assignment → `assign_complaint`; triage retry → `retry_complaint_triage`. All pass `expected_updated_at`.
+## 4. Dashboards & analytics — no more head counts
 
-### `ComplaintDetail.tsx`
-- Replace `.select('*')` with `list_complaints({id})` single-row form OR a new lightweight `get_complaint(_id)` RPC that returns the row + derived `sla_bucket` + workflow state. (Choosing the RPC — cleaner.)
-- Severity, close, transition, assign — all through RPCs with `expected_updated_at`.
-- Extract `<CloseComplaintDialog>` and share with the list.
+- `useConductDashboardMetrics.ts`, `useSupervisoryMetrics.ts`, `useSupervisoryTrends.ts`, `ConductEntitiesList.tsx`, `AnalyticsDashboard.tsx`, `ExecutiveSupervisoryDashboard.tsx`: replace the raw `from('complaints').select(count: 'exact')` scans with a single new `complaints_dashboard_counts(_scope jsonb)` RPC (SQL aggregate, regulator-scoped) returning `{open, critical, breached, under_investigation, closed, trend[]}`. One round-trip per surface.
+- `ComplaintsAnalytics.tsx`: keep RPC; add filters UI (date range, regulator, sector, type, severity) piped into `_filters`; add explicit error card with retry.
 
-### `NewInternalComplaint.tsx` + `useMarketConduct.ts`
-- Both intake paths call `create_complaint`. Delete the direct `sb.from('complaints').insert(...)` in `useMarketConduct.ts` and route it through the RPC. Single canonical create path.
+## 5. Backend gap-fill (single new migration)
 
-### `ComplaintsAnalytics.tsx`
-- Already on RPC — add filters UI (date range, regulator, sector, type, severity) that pass into `_filters`. Explicit `isError` error card with retry.
+- `get_complaint(_id uuid) returns jsonb` — returns full row + `sla_status` (via `complaint_sla_status`) + workflow state; scoped by `assert_complaint_perm`.
+- `complaints_dashboard_counts(_scope jsonb default '{}') returns jsonb` — regulator/entity-scoped aggregates.
+- Confirm `close_complaint` rejects NULL `_reason` and NULL `_category` (add `RAISE EXCEPTION` if missing).
+- Confirm every mutating RPC writes to `audit_logs` and inserts into `notification_dispatch_log` via the shared helper; add where missing.
+- Grants: `authenticated`, `service_role`.
 
-### `ComplaintEvidenceRow.tsx`, `useConductDashboardMetrics.ts`, `useSupervisoryMetrics.ts`, reports
-- Consume `sla_bucket` from RPC responses. Dashboards call `complaints_analytics` (or a slim `complaints_dashboard_counts` RPC) instead of running four `count: 'exact'` queries client-side.
+## 6. Cleanup (grep gates must be zero)
 
-### Escalation hub
-- `EscalationHub` stats → `escalation_hub_stats` RPC.
-- Delete `mockData.ts`. `EscalationCaseDrawer` fetches the linked complaint via `get_complaint`. `RuleCard` "Would fire on N" uses `simulate_escalation_rule` RPC (server-computed count) — no MOCK_COMPLAINTS.
-- Restore `EscalationBanner` — query `pending_escalation_count()`; render live badge with link to hub.
-- Rule toggle/upsert already RPC-backed — keep.
-
-### Duplicate hub
-- Delete `src/pages/complaints/duplicates/seed.ts`.
-- `ClusterGroupsPanel` → `list_duplicate_clusters(_dimension)` RPC (add new table + RPC in §1).
-- `DetectionRulesPanel`, `SuspectedDuplicatesTable`, `DuplicateDetectionHub` — replace direct table selects with the new list RPCs so RLS + permission checks are centralized.
-- Restore `DuplicateAlertBanner` with `pending_duplicate_count()`.
-
-### Error handling standard
-- Introduce `<ComplaintsErrorCard onRetry>` used by every complaint query. `throwOnError: true` on `useQuery`, caught by an `ErrorBoundary` around each surface — never fall through to "0" stats.
-
-## 4. Cleanup (grep gates must be zero)
-
-Delete / migrate:
-- `src/pages/complaints/escalations/mockData.ts`
-- `src/pages/complaints/duplicates/seed.ts`
-- All `MOCK_*` / `seed*` imports.
-- `computeSlaStatus(` usages outside `src/lib/complaintsSla.ts` and its test.
-- `from('complaints').insert(` and `from('complaints').update(` in `src/` (production).
-- `close_complaint(..., _reason: null)`.
-
-## 5. Verification (must all return zero non-test hits)
+Delete/rewrite so these all return empty in `src/` production code (tests excluded):
 
 ```
 rg "from\(['\"]complaints['\"]\)\.insert" src
 rg "from\(['\"]complaints['\"]\)\.update" src
-rg "from\(['\"]complaints['\"]\)\.select" src        # only list/get_complaint RPC allowed
-rg "computeSlaStatus\(" src | rg -v "src/lib/complaintsSla|\.test\."
-rg "MOCK_CASES|MOCK_RULES|MOCK_COMPLAINTS|MOCK_TRIGGERS|seedPairs|seedClusters|seedRules|duplicates/seed|escalations/mockData" src
-rg "close_complaint.*_reason:\s*null" src
-rg "generate_complaint_number" src/pages src/components
+rg "from\(['\"]complaints['\"]\)\.select\('\*'\)" src/pages/complaints
+rg "evaluate-complaint-triage" src/pages/complaints src/hooks src/components/complaints
+rg "computeSlaStatus\(" src/pages/complaints src/components/complaints
+rg "MOCK_|mockData|seedPairs|seedClusters|duplicates/seed" src
+rg "_reason:\s*null|_category:\s*null" src/pages/complaints
+rg "generate_complaint_number" src/pages src/components src/hooks
 ```
 
-Plus manual smoke: paginated list, filter+search+sort round-trip through URL, close with mandatory reason, severity override with reason, analytics with date filter, escalation rule toggle + sweep + banner count, duplicate decide + cluster panel + banner count, stale-update (open two tabs, change one, second submit shows concurrency error), unauthenticated triage retry rejected.
+Note: `src/pages/reports/ReportPage.tsx` uses a local `mockData` const unrelated to complaints — out of scope, leave alone.
 
-## Technical notes
+## 7. Tests (add under `src/test/`)
 
-- `list_complaints` returns `sla_bucket` computed via existing `complaint_sla_status` SQL fn — keeps FE dumb.
-- All lifecycle RPCs share an internal `_apply_complaint_change(_id, _patch jsonb, _reason, _event, _expected_updated_at)` helper for audit + notification + concurrency uniformity.
-- Indexes: `(regulator_id, status, created_at desc)`, `(assigned_to, status)`, `(complaint_number)` unique already exists.
-- No changes to `src/integrations/supabase/client.ts`, `types.ts`, `.env`; types regenerate after migration.
-- Migration order: table + grants + RLS + policies + trigger, then all RPCs, then edge function redeploy (`evaluate-complaint-triage` unchanged interface).
+- `complaintsSla.test.ts` — parity with SQL `complaint_sla_status` across on_track / at_risk / breached / resolved_on_time / resolved_late.
+- `complaintsList.test.tsx` — mock `list_complaints`, assert server-side pagination + search + sort + filter + error card + retry.
+- `closeComplaintDialog.test.tsx` — submit disabled without reason/category; success calls RPC with both.
+- `complaintMutations.test.ts` — stale `_expected_updated_at` surfaces reload toast; permission denial surfaces error.
+- `complaintIntake.test.ts` — internal + external paths both hit `create_complaint`, no duplicate triage.
+- `complaintTriage.test.ts` — retry only via RPC, unauthorized rejected.
+
+## 8. Verification before commit
+
+- `bunx tsgo --noEmit`
+- `bun run lint`
+- `bun run build`
+- `bun run test`
+- All grep gates in §6 return no non-test hits.
+- Manual smoke: paginated list w/ URL round-trip, close with mandatory reason+category, severity override with reason, analytics with filters, escalation sweep + banner, duplicate decide + cluster panel + banner, two-tab stale-update, unauthenticated triage retry rejected.
 
 ## Non-goals
 
-- No UI redesign. Layouts, columns, and copy stay. New pieces (pagination controls, close dialog, error card, banners) match existing shadcn patterns.
-- No feature removal. Every existing button keeps working post-refactor.
+- No UI redesign. Layouts, columns, copy stay identical.
+- No feature removal. Every existing button keeps working.
+- `ReportPage` local `mockData` (unrelated to complaints) untouched.
+
+## Technical notes
+
+- All complaint mutations flow through RPCs that share `_apply_complaint_change` for audit + notification + concurrency uniformity.
+- `list_complaints` and `get_complaint` return server-computed `sla_status`; `slaBucketFromRow` prefers it, JS helper is fallback only.
+- One new migration; `src/integrations/supabase/client.ts`, `types.ts`, `.env` untouched (types regen after apply).
