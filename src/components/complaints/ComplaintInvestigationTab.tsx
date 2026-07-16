@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 interface Props { complaintId: string; complaintStatus: string; }
 
@@ -36,7 +37,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
   const [corrSubject, setCorrSubject] = useState('');
   const [corrBody, setCorrBody] = useState('');
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery({
+  const tasksQ = useQuery({
     queryKey: ['complaint_tasks', complaintId],
     queryFn: async () => {
       const { data, error } = await supabase.from('complaint_investigation_tasks')
@@ -45,8 +46,10 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       return data ?? [];
     },
   });
+  const tasks = tasksQ.data;
+  const tasksLoading = tasksQ.isLoading;
 
-  const { data: correspondence, isLoading: corrLoading } = useQuery({
+  const correspondenceQ = useQuery({
     queryKey: ['complaint_correspondence', complaintId],
     queryFn: async () => {
       const { data, error } = await supabase.from('complaint_correspondence')
@@ -55,12 +58,15 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       const authorIds = Array.from(new Set((data ?? []).map((r: any) => r.author_id).filter(Boolean)));
       const map = new Map<string, string>();
       if (authorIds.length) {
-        const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', authorIds);
+        const { data: profs, error: profErr } = await supabase.from('profiles').select('id, full_name, email').in('id', authorIds);
+        if (profErr) throw profErr;
         (profs ?? []).forEach((p: any) => map.set(p.id, p.full_name || p.email));
       }
       return (data ?? []).map((r: any) => ({ ...r, author_name: r.author_id ? map.get(r.author_id) || 'Staff' : 'System' }));
     },
   });
+  const correspondence = correspondenceQ.data;
+  const corrLoading = correspondenceQ.isLoading;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['complaint_tasks', complaintId] });
@@ -147,6 +153,8 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           )}
           {tasksLoading ? (
             <div className="py-6 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : tasksQ.isError ? (
+            <QueryErrorState message="Failed to load tasks" onRetry={() => tasksQ.refetch()} />
           ) : !tasks?.length ? (
             <p className="text-sm text-muted-foreground text-center py-6">No tasks yet.</p>
           ) : (
@@ -211,6 +219,8 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           )}
           {corrLoading ? (
             <div className="py-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : correspondenceQ.isError ? (
+            <QueryErrorState message="Failed to load correspondence" onRetry={() => correspondenceQ.refetch()} />
           ) : !correspondence?.length ? (
             <p className="text-sm text-muted-foreground text-center py-6">No correspondence recorded.</p>
           ) : (

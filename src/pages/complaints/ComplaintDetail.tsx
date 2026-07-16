@@ -27,6 +27,7 @@ import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBa
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -57,7 +58,7 @@ export default function ComplaintDetail() {
   const [closeReason, setCloseReason] = useState('');
   const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
 
-  const { data: complaint, isLoading } = useQuery({
+  const complaintQ = useQuery({
     queryKey: ['complaint', id],
     enabled: !!id,
     queryFn: async () => {
@@ -68,36 +69,52 @@ export default function ComplaintDetail() {
       return data as any;
     },
   });
+  const complaint = complaintQ.data;
+  const isLoading = complaintQ.isLoading;
 
-
-  const { data: complainant } = useQuery({
+  const complainantQ = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
     enabled: !!complaint?.complainant_id,
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('full_name, email, user_type').eq('id', complaint!.complainant_id).maybeSingle();
+      const { data, error } = await supabase.from('profiles')
+        .select('full_name, email, user_type')
+        .eq('id', complaint!.complainant_id)
+        .maybeSingle();
+      if (error) throw error;
       return data;
     },
   });
+  const complainant = complainantQ.data;
 
-  const { data: complaintType } = useQuery({
+  const complaintTypeQ = useQuery({
     queryKey: ['complaint_type', complaint?.complaint_type_id],
     enabled: !!complaint?.complaint_type_id,
     queryFn: async () => {
-      const { data } = await supabase.from('complaint_types').select('name, sla_days').eq('id', complaint!.complaint_type_id).maybeSingle();
+      const { data, error } = await supabase.from('complaint_types')
+        .select('name, sla_days')
+        .eq('id', complaint!.complaint_type_id)
+        .maybeSingle();
+      if (error) throw error;
       return data as any;
     },
   });
+  const complaintType = complaintTypeQ.data;
 
-  const { data: enforcement } = useQuery({
+  const enforcementQ = useQuery({
     queryKey: ['complaint_enforcement', complaint?.enforcement_action_id],
     enabled: !!complaint?.enforcement_action_id,
     queryFn: async () => {
-      const { data } = await supabase.from('enforcement_actions').select('id, case_number, status').eq('id', complaint!.enforcement_action_id).maybeSingle();
+      const { data, error } = await supabase.from('enforcement_actions')
+        .select('id, case_number, status')
+        .eq('id', complaint!.enforcement_action_id)
+        .maybeSingle();
+      if (error) throw error;
       return data as any;
     },
   });
+  const enforcement = enforcementQ.data;
 
-  const { data: attachments = [] } = useQuery({
+  const attachmentsQ = useQuery({
     queryKey: ['complaint_attachments', id],
     enabled: !!id,
     queryFn: async () => {
@@ -110,6 +127,7 @@ export default function ComplaintDetail() {
       return (data ?? []) as any[];
     },
   });
+  const attachments = attachmentsQ.data ?? [];
 
   async function openAttachment(filePath?: string) {
     if (!filePath) return;
@@ -260,6 +278,7 @@ export default function ComplaintDetail() {
   });
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
+  if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
   if (!complaint) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Complaint not found.</div></DashboardLayout>;
 
   const statusMeta = STATUS_META[complaint.status] || { label: complaint.status, variant: 'outline' };
@@ -315,13 +334,26 @@ export default function ComplaintDetail() {
             <Card>
               <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <div><p className="text-muted-foreground">Type</p><p>{complaintType?.name || '—'}</p></div>
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  {complaintTypeQ.isError ? (
+                    <QueryErrorState compact message="Failed to load complaint type" onRetry={() => complaintTypeQ.refetch()} />
+                  ) : (
+                    <p>{complaintType?.name || '—'}</p>
+                  )}
+                </div>
                 <div><p className="text-muted-foreground">Description</p><p className="whitespace-pre-wrap">{complaint.description}</p></div>
                 {complaint.resolution && <div><p className="text-muted-foreground">Resolution</p><p className="whitespace-pre-wrap">{complaint.resolution}</p></div>}
-                {enforcement && (
+                {complaint.enforcement_action_id && (
                   <div>
                     <p className="text-muted-foreground">Linked Enforcement</p>
-                    <Link to={`/enforcement/${enforcement.id}`} className="text-primary underline">{enforcement.case_number} ({enforcement.status})</Link>
+                    {enforcementQ.isError ? (
+                      <QueryErrorState compact message="Failed to load enforcement case" onRetry={() => enforcementQ.refetch()} />
+                    ) : enforcement ? (
+                      <Link to={`/enforcement/${enforcement.id}`} className="text-primary underline">{enforcement.case_number} ({enforcement.status})</Link>
+                    ) : (
+                      <p className="text-muted-foreground">—</p>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -329,15 +361,25 @@ export default function ComplaintDetail() {
             <Card>
               <CardHeader><CardTitle className="text-base">Complainant</CardTitle></CardHeader>
               <CardContent className="grid gap-2 text-sm md:grid-cols-3">
-                <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || '—'}</p></div>
-                <div><p className="text-muted-foreground">Email</p><p>{complaint.email || complainant?.email || '—'}</p></div>
-                <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
+                {complainantQ.isError ? (
+                  <div className="md:col-span-3">
+                    <QueryErrorState compact message="Failed to load complainant profile" onRetry={() => complainantQ.refetch()} />
+                  </div>
+                ) : (
+                  <>
+                    <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || '—'}</p></div>
+                    <div><p className="text-muted-foreground">Email</p><p>{complaint.email || complainant?.email || '—'}</p></div>
+                    <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
+                  </>
+                )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Paperclip className="h-4 w-4" />Attachments {attachments.length > 0 && <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>}</CardTitle></CardHeader>
               <CardContent className="text-sm">
-                {attachments.length === 0 ? (
+                {attachmentsQ.isError ? (
+                  <QueryErrorState message="Failed to load attachments" onRetry={() => attachmentsQ.refetch()} />
+                ) : attachments.length === 0 ? (
                   <p className="text-muted-foreground">No attachments uploaded with this complaint.</p>
                 ) : (
                   <ul className="divide-y">
