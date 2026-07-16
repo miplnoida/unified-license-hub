@@ -519,7 +519,7 @@ export default function ComplaintDetail() {
                           <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">
-                              {linkedLicenseeQ.data?.legal_name || 'Licensee'}
+                              {linkedLicenseeQ.data?.name || 'Licensee'}
                             </div>
                             {linkedLicenseeQ.data?.license_number && (
                               <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
