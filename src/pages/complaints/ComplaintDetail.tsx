@@ -484,9 +484,11 @@ export default function ComplaintDetail() {
                       <Button onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
                     </div>
                     {complaint.status === 'submitted' && (
-                      <Button onClick={() => takeInvestigation.mutate()} disabled={takeInvestigation.isPending} className="w-full">
-                        <UserCheck className="h-4 w-4 mr-2" />Take Investigation
-                      </Button>
+                      <div className="flex justify-end">
+                        <Button size="sm" onClick={() => takeInvestigation.mutate()} disabled={takeInvestigation.isPending}>
+                          <UserCheck className="h-4 w-4 mr-2" />Take Investigation
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
