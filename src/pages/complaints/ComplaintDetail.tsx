@@ -422,6 +422,39 @@ export default function ComplaintDetail() {
           />
         )}
 
+        {closeOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setCloseOpen(false)}>
+            <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold mb-2">Close complaint</h3>
+              <p className="text-sm text-muted-foreground mb-4">Provide a closure reason (min 5 chars). This is captured in the audit trail.</p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Category</Label>
+                  <Select value={closeCategory} onValueChange={setCloseCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="resolved_at_source">Resolved at source</SelectItem>
+                      <SelectItem value="withdrawn">Withdrawn by complainant</SelectItem>
+                      <SelectItem value="duplicate">Duplicate</SelectItem>
+                      <SelectItem value="out_of_scope">Out of scope</SelectItem>
+                      <SelectItem value="no_action_required">No action required</SelectItem>
+                      <SelectItem value="referred_out">Referred to another regulator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Reason</Label>
+                  <Textarea rows={3} value={closeReason} onChange={(e) => setCloseReason(e.target.value)} placeholder="Explain why this complaint is being closed…" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
+                  <Button onClick={() => close.mutate()} disabled={close.isPending || closeReason.trim().length < 5}>Confirm close</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {ackOpen && complaint && (
           <ComplaintAcknowledgement
             open={ackOpen}
