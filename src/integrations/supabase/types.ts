@@ -15270,6 +15270,7 @@ export type Database = {
         Returns: string
       }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
+      complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
@@ -16230,67 +16231,133 @@ export type Database = {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
       }
-      resolve_complaint: {
-        Args: { _id: string; _resolution: string }
-        Returns: {
-          acknowledged_at: string | null
-          assigned_team: string | null
-          channel_id: string | null
-          closed_at: string | null
-          closed_by: string | null
-          closure_category: string | null
-          closure_reason: string | null
-          complainant_id: string | null
-          complaint_number: string
-          complaint_type_id: string | null
-          conduct_risk_category_id: string | null
-          created_at: string
-          customer_type: string | null
-          description: string
-          email: string | null
-          enforcement_action_id: string | null
-          findings: string | null
-          id: string
-          intake_source: string | null
-          internal_created_by: string | null
-          investigation_notes: string | null
-          investigator_id: string | null
-          license_holder_id: string | null
-          licensee_id: string | null
-          priority: string | null
-          product_id: string | null
-          regulator_id: string | null
-          repeat_complaint_count: number
-          resolution: string | null
-          resolution_notes: string | null
-          resolved_at: string | null
-          search_vector: unknown
-          severity: string
-          severity_overridden_at: string | null
-          severity_overridden_by: string | null
-          severity_override_reason: string | null
-          sla_days: number | null
-          sla_due_at: string | null
-          status: string
-          subject: string
-          triage_evaluated_at: string | null
-          triage_last_error: string | null
-          triage_original_values: Json | null
-          triage_override_status: string
-          triage_result_snapshot: Json | null
-          triage_rule_id: string | null
-          triage_source: string | null
-          updated_at: string
-          vulnerability_indicator: boolean
-          vulnerability_notes: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "complaints"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      resolve_complaint:
+        | {
+            Args: { _id: string; _resolution: string }
+            Returns: {
+              acknowledged_at: string | null
+              assigned_team: string | null
+              channel_id: string | null
+              closed_at: string | null
+              closed_by: string | null
+              closure_category: string | null
+              closure_reason: string | null
+              complainant_id: string | null
+              complaint_number: string
+              complaint_type_id: string | null
+              conduct_risk_category_id: string | null
+              created_at: string
+              customer_type: string | null
+              description: string
+              email: string | null
+              enforcement_action_id: string | null
+              findings: string | null
+              id: string
+              intake_source: string | null
+              internal_created_by: string | null
+              investigation_notes: string | null
+              investigator_id: string | null
+              license_holder_id: string | null
+              licensee_id: string | null
+              priority: string | null
+              product_id: string | null
+              regulator_id: string | null
+              repeat_complaint_count: number
+              resolution: string | null
+              resolution_notes: string | null
+              resolved_at: string | null
+              search_vector: unknown
+              severity: string
+              severity_overridden_at: string | null
+              severity_overridden_by: string | null
+              severity_override_reason: string | null
+              sla_days: number | null
+              sla_due_at: string | null
+              status: string
+              subject: string
+              triage_evaluated_at: string | null
+              triage_last_error: string | null
+              triage_original_values: Json | null
+              triage_override_status: string
+              triage_result_snapshot: Json | null
+              triage_rule_id: string | null
+              triage_source: string | null
+              updated_at: string
+              vulnerability_indicator: boolean
+              vulnerability_notes: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "complaints"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _expected_updated_at: string
+              _id: string
+              _resolution: string
+            }
+            Returns: {
+              acknowledged_at: string | null
+              assigned_team: string | null
+              channel_id: string | null
+              closed_at: string | null
+              closed_by: string | null
+              closure_category: string | null
+              closure_reason: string | null
+              complainant_id: string | null
+              complaint_number: string
+              complaint_type_id: string | null
+              conduct_risk_category_id: string | null
+              created_at: string
+              customer_type: string | null
+              description: string
+              email: string | null
+              enforcement_action_id: string | null
+              findings: string | null
+              id: string
+              intake_source: string | null
+              internal_created_by: string | null
+              investigation_notes: string | null
+              investigator_id: string | null
+              license_holder_id: string | null
+              licensee_id: string | null
+              priority: string | null
+              product_id: string | null
+              regulator_id: string | null
+              repeat_complaint_count: number
+              resolution: string | null
+              resolution_notes: string | null
+              resolved_at: string | null
+              search_vector: unknown
+              severity: string
+              severity_overridden_at: string | null
+              severity_overridden_by: string | null
+              severity_override_reason: string | null
+              sla_days: number | null
+              sla_due_at: string | null
+              status: string
+              subject: string
+              triage_evaluated_at: string | null
+              triage_last_error: string | null
+              triage_original_values: Json | null
+              triage_override_status: string
+              triage_result_snapshot: Json | null
+              triage_rule_id: string | null
+              triage_source: string | null
+              updated_at: string
+              vulnerability_indicator: boolean
+              vulnerability_notes: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "complaints"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       resolve_effective_threshold: {
         Args: {
           _as_of?: string
@@ -16471,67 +16538,129 @@ export type Database = {
         }
         Returns: string
       }
-      start_complaint_investigation: {
-        Args: { _id: string }
-        Returns: {
-          acknowledged_at: string | null
-          assigned_team: string | null
-          channel_id: string | null
-          closed_at: string | null
-          closed_by: string | null
-          closure_category: string | null
-          closure_reason: string | null
-          complainant_id: string | null
-          complaint_number: string
-          complaint_type_id: string | null
-          conduct_risk_category_id: string | null
-          created_at: string
-          customer_type: string | null
-          description: string
-          email: string | null
-          enforcement_action_id: string | null
-          findings: string | null
-          id: string
-          intake_source: string | null
-          internal_created_by: string | null
-          investigation_notes: string | null
-          investigator_id: string | null
-          license_holder_id: string | null
-          licensee_id: string | null
-          priority: string | null
-          product_id: string | null
-          regulator_id: string | null
-          repeat_complaint_count: number
-          resolution: string | null
-          resolution_notes: string | null
-          resolved_at: string | null
-          search_vector: unknown
-          severity: string
-          severity_overridden_at: string | null
-          severity_overridden_by: string | null
-          severity_override_reason: string | null
-          sla_days: number | null
-          sla_due_at: string | null
-          status: string
-          subject: string
-          triage_evaluated_at: string | null
-          triage_last_error: string | null
-          triage_original_values: Json | null
-          triage_override_status: string
-          triage_result_snapshot: Json | null
-          triage_rule_id: string | null
-          triage_source: string | null
-          updated_at: string
-          vulnerability_indicator: boolean
-          vulnerability_notes: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "complaints"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      start_complaint_investigation:
+        | {
+            Args: { _id: string }
+            Returns: {
+              acknowledged_at: string | null
+              assigned_team: string | null
+              channel_id: string | null
+              closed_at: string | null
+              closed_by: string | null
+              closure_category: string | null
+              closure_reason: string | null
+              complainant_id: string | null
+              complaint_number: string
+              complaint_type_id: string | null
+              conduct_risk_category_id: string | null
+              created_at: string
+              customer_type: string | null
+              description: string
+              email: string | null
+              enforcement_action_id: string | null
+              findings: string | null
+              id: string
+              intake_source: string | null
+              internal_created_by: string | null
+              investigation_notes: string | null
+              investigator_id: string | null
+              license_holder_id: string | null
+              licensee_id: string | null
+              priority: string | null
+              product_id: string | null
+              regulator_id: string | null
+              repeat_complaint_count: number
+              resolution: string | null
+              resolution_notes: string | null
+              resolved_at: string | null
+              search_vector: unknown
+              severity: string
+              severity_overridden_at: string | null
+              severity_overridden_by: string | null
+              severity_override_reason: string | null
+              sla_days: number | null
+              sla_due_at: string | null
+              status: string
+              subject: string
+              triage_evaluated_at: string | null
+              triage_last_error: string | null
+              triage_original_values: Json | null
+              triage_override_status: string
+              triage_result_snapshot: Json | null
+              triage_rule_id: string | null
+              triage_source: string | null
+              updated_at: string
+              vulnerability_indicator: boolean
+              vulnerability_notes: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "complaints"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _expected_updated_at: string; _id: string }
+            Returns: {
+              acknowledged_at: string | null
+              assigned_team: string | null
+              channel_id: string | null
+              closed_at: string | null
+              closed_by: string | null
+              closure_category: string | null
+              closure_reason: string | null
+              complainant_id: string | null
+              complaint_number: string
+              complaint_type_id: string | null
+              conduct_risk_category_id: string | null
+              created_at: string
+              customer_type: string | null
+              description: string
+              email: string | null
+              enforcement_action_id: string | null
+              findings: string | null
+              id: string
+              intake_source: string | null
+              internal_created_by: string | null
+              investigation_notes: string | null
+              investigator_id: string | null
+              license_holder_id: string | null
+              licensee_id: string | null
+              priority: string | null
+              product_id: string | null
+              regulator_id: string | null
+              repeat_complaint_count: number
+              resolution: string | null
+              resolution_notes: string | null
+              resolved_at: string | null
+              search_vector: unknown
+              severity: string
+              severity_overridden_at: string | null
+              severity_overridden_by: string | null
+              severity_override_reason: string | null
+              sla_days: number | null
+              sla_due_at: string | null
+              status: string
+              subject: string
+              triage_evaluated_at: string | null
+              triage_last_error: string | null
+              triage_original_values: Json | null
+              triage_override_status: string
+              triage_result_snapshot: Json | null
+              triage_rule_id: string | null
+              triage_source: string | null
+              updated_at: string
+              vulnerability_indicator: boolean
+              vulnerability_notes: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "complaints"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       start_registration_workflow: {
         Args: { _registration_id: string }
         Returns: string
@@ -16567,10 +16696,20 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_complaint_severity: {
-        Args: { _id: string; _reason?: string; _severity: string }
-        Returns: undefined
-      }
+      update_complaint_severity:
+        | {
+            Args: { _id: string; _reason?: string; _severity: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _expected_updated_at: string
+              _id: string
+              _reason: string
+              _severity: string
+            }
+            Returns: undefined
+          }
       user_can_access_document_object: {
         Args: { _object_name: string }
         Returns: boolean
