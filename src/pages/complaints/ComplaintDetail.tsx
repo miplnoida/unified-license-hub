@@ -570,16 +570,17 @@ export default function ComplaintDetail() {
                               </Command>
                             </PopoverContent>
                           </Popover>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="w-full"
-                            disabled={!stagedLicensee || linkLicensee.isPending}
-                            onClick={() => linkLicensee.mutate()}
-                          >
-                            {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
-                            Link Licensee
-                          </Button>
+                          <div className="flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={!stagedLicensee || linkLicensee.isPending}
+                              onClick={() => linkLicensee.mutate()}
+                            >
+                              {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
+                              Link Licensee
+                            </Button>
+                          </div>
                           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
                             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                             <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
@@ -587,9 +588,11 @@ export default function ComplaintDetail() {
                         </div>
                       )}
                       <Textarea rows={3} placeholder="Findings that justify enforcement…" value={escalateNote} onChange={e => setEscalateNote(e.target.value)} disabled={!complaint.licensee_id} />
-                      <Button variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending || !complaint.licensee_id} className="w-full">
-                        <Gavel className="h-4 w-4 mr-2" />Open Enforcement Case
-                      </Button>
+                      <div className="flex justify-end">
+                        <Button size="sm" variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending || !complaint.licensee_id}>
+                          <Gavel className="h-4 w-4 mr-2" />Open Enforcement Case
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
