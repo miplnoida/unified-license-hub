@@ -16,6 +16,8 @@ import {
   useReturnRequests,
   useReturnComments,
   useReturnAuditLog,
+  useReturnEditRequests,
+  useDecideReturnEditRequest,
 } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
