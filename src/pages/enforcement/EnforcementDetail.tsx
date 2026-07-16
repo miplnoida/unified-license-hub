@@ -64,6 +64,33 @@ export default function EnforcementDetail() {
     },
   });
 
+  // Linked complaint (if any) — used to route lifecycle notifications back
+  // to the complainant and the licensee's primary/secondary users.
+  const { data: linkedComplaint } = useQuery({
+    queryKey: ['enforcement_case_linked_complaint', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('complaints')
+        .select('id, complaint_number, complainant_id, licensee_id, sector_id, regulator_id')
+        .eq('enforcement_action_id', id!)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const buildNotifyPayload = (extra: Partial<Parameters<typeof notifyComplaintLifecycle>[0]> = {}) => ({
+    complaint_id: linkedComplaint?.id,
+    complaint_number: linkedComplaint?.complaint_number,
+    enforcement_id: id!,
+    enforcement_case_number: caseRow?.case_number,
+    complainant_id: linkedComplaint?.complainant_id,
+    licensee_id: linkedComplaint?.licensee_id ?? caseRow?.entity_id,
+    sector_id: linkedComplaint?.sector_id,
+    regulator_id: linkedComplaint?.regulator_id,
+    ...extra,
+  });
+
   const { data: events } = useQuery({
     queryKey: ['enforcement_case_events', id],
     enabled: !!id,
