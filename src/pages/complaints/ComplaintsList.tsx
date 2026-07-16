@@ -357,8 +357,10 @@ export default function ComplaintsList() {
         const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
         if (error) throw error;
       } else if (newStatus === 'closed') {
-        const { error } = await (supabase as any).rpc('close_complaint', { _id: complaint.id, _reason: null });
-        if (error) throw error;
+        // Closure requires a reason + category; enforce via the detail-page dialog.
+        toast.info('Open the complaint to close it — a reason and category are required.');
+        nav(`/complaints/${complaint.id}`);
+        return;
       } else {
         throw new Error(`Unsupported status transition: ${newStatus}`);
       }
