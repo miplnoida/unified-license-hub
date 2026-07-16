@@ -19,6 +19,7 @@ import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
+import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
