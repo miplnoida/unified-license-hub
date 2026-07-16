@@ -79,7 +79,10 @@ export default function EnforcementDetail() {
     },
   });
 
-  const buildNotifyPayload = (extra: Partial<Parameters<typeof notifyComplaintLifecycle>[0]> = {}) => ({
+  const buildNotifyPayload = (
+    args: { event_key: Parameters<typeof notifyComplaintLifecycle>[0]['event_key']; note?: string; extra?: Record<string, unknown> },
+  ): Parameters<typeof notifyComplaintLifecycle>[0] => ({
+    event_key: args.event_key,
     complaint_id: linkedComplaint?.id,
     complaint_number: linkedComplaint?.complaint_number,
     enforcement_id: id!,
@@ -88,7 +91,8 @@ export default function EnforcementDetail() {
     licensee_id: linkedComplaint?.licensee_id ?? caseRow?.entity_id,
     sector_id: linkedComplaint?.sector_id,
     regulator_id: linkedComplaint?.regulator_id,
-    ...extra,
+    note: args.note,
+    extra: args.extra,
   });
 
   const { data: events } = useQuery({
