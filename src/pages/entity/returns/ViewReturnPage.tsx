@@ -342,7 +342,35 @@ function ViewReturnBody({ returnData, normalizedStatus, activeRequest, orderedFo
             })}
           </Tabs>
         )}
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request Edit</DialogTitle>
+              <DialogDescription>
+                Ask the regulator to reopen this return so you can correct it. Please explain what needs to change.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="edit-reason">Reason <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="edit-reason"
+                rows={5}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Describe the correction you need to make..."
+                disabled={requestEdit.isPending}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={requestEdit.isPending}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={!reason.trim() || requestEdit.isPending}>
+                {requestEdit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Submit Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-    </DashboardLayout>
   );
 }
