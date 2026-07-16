@@ -6,41 +6,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { TIER_LABEL, type EscalationRule, type Tier } from './types';
-import { MOCK_COMPLAINTS } from './mockData';
 
 interface Props {
   rule: EscalationRule;
   onChange: (r: EscalationRule) => void;
 }
 
-function wouldFire(rule: EscalationRule): number {
-  return MOCK_COMPLAINTS.filter((c) => {
-    switch (rule.key) {
-      case 'consumer_harm': {
-        const order = ['low','medium','high','critical'];
-        const min = String(rule.thresholds.minSeverity || 'high');
-        return order.indexOf(c.harm) >= order.indexOf(min);
-      }
-      case 'age':
-        return c.ageDays >= Number(rule.thresholds.maxAgeDays || 14);
-      case 'risk_rating': {
-        const order = ['low','medium','high','critical'];
-        const min = String(rule.thresholds.minRisk || 'high');
-        return order.indexOf(c.institutionRisk) >= order.indexOf(min);
-      }
-      case 'volume':
-        return c.institutionVolume30d >= Number(rule.thresholds.minCount || 10);
-      case 'recurrence':
-        return c.recurrenceCount >= Number(rule.thresholds.minRepeats || 3);
-    }
-  }).length;
-}
+const CRITERION_MAP: Record<EscalationRule['key'], string> = {
+  consumer_harm: 'harm',
+  age: 'age',
+  risk_rating: 'harm', // graded by minRisk; the SQL simulator treats it like harm ranking
+  volume: 'volume',
+  recurrence: 'recurrence',
+};
 
 export function RuleCard({ rule, onChange }: Props) {
   const set = (patch: Partial<EscalationRule>) => onChange({ ...rule, ...patch });
   const setThr = (k: string, v: number | string) => onChange({ ...rule, thresholds: { ...rule.thresholds, [k]: v } });
-  const fireCount = wouldFire(rule);
+
+  const { data: sim, isError, refetch, isFetching } = useQuery({
+    queryKey: ['simulate_escalation_rule', rule.key, rule.thresholds],
+    queryFn: async () => {
+      const criterion = CRITERION_MAP[rule.key];
+      const { data, error } = await (supabase as any).rpc('simulate_escalation_rule', {
+        _criterion: criterion,
+        _thresholds: rule.thresholds,
+      });
+      if (error) throw error;
+      return data as { total_open: number; fire_count: number };
+    },
+    staleTime: 30_000,
+  });
 
   return (
     <Card>
@@ -115,9 +114,16 @@ export function RuleCard({ rule, onChange }: Props) {
 
         <div className="flex items-center justify-between border-t pt-3">
           <div className="text-xs text-slate-700">
-            Would fire on <span className="font-semibold">{fireCount}</span> of {MOCK_COMPLAINTS.length} sample complaints.
+            {isError
+              ? <span className="text-destructive">Simulation unavailable.</span>
+              : <>Would fire on <span className="font-semibold">{sim?.fire_count ?? '—'}</span> of {sim?.total_open ?? '—'} open complaints.</>}
           </div>
-          <Button size="sm" variant="outline" onClick={() => toast.success(`Tested "${rule.label}" — ${fireCount} match(es)`)}>Test rule</Button>
+          <Button size="sm" variant="outline" disabled={isFetching} onClick={() => {
+            refetch().then((r) => {
+              const v = r.data as { fire_count: number } | undefined;
+              if (v) toast.success(`Tested "${rule.label}" — ${v.fire_count} match(es)`);
+            });
+          }}>Test rule</Button>
         </div>
       </CardContent>
     </Card>

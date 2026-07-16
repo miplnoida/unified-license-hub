@@ -1608,6 +1608,36 @@ export type Database = {
           },
         ]
       }
+      complaint_duplicate_clusters: {
+        Row: {
+          cluster_key: string
+          created_at: string
+          dimension: string
+          id: string
+          member_ids: string[]
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_key: string
+          created_at?: string
+          dimension: string
+          id?: string
+          member_ids?: string[]
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_key?: string
+          created_at?: string
+          dimension?: string
+          id?: string
+          member_ids?: string[]
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       complaint_duplicate_pairs: {
         Row: {
           candidate_complaint_id: string
@@ -14900,6 +14930,10 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_complaint_fresh: {
+        Args: { _expected: string; _id: string }
+        Returns: undefined
+      }
       _assert_review_action: {
         Args: {
           _action: string
@@ -15053,72 +15087,81 @@ export type Database = {
         Args: { _rule_id: string }
         Returns: undefined
       }
-      assign_complaint: {
-        Args: {
-          _id: string
-          _investigator?: string
-          _reason?: string
-          _team?: string
-        }
-        Returns: {
-          acknowledged_at: string | null
-          assigned_team: string | null
-          channel_id: string | null
-          closed_at: string | null
-          closed_by: string | null
-          closure_category: string | null
-          closure_reason: string | null
-          complainant_id: string | null
-          complaint_number: string
-          complaint_type_id: string | null
-          conduct_risk_category_id: string | null
-          created_at: string
-          customer_type: string | null
-          description: string
-          email: string | null
-          enforcement_action_id: string | null
-          findings: string | null
-          id: string
-          intake_source: string | null
-          internal_created_by: string | null
-          investigation_notes: string | null
-          investigator_id: string | null
-          license_holder_id: string | null
-          licensee_id: string | null
-          priority: string | null
-          product_id: string | null
-          regulator_id: string | null
-          repeat_complaint_count: number
-          resolution: string | null
-          resolution_notes: string | null
-          resolved_at: string | null
-          search_vector: unknown
-          severity: string
-          severity_overridden_at: string | null
-          severity_overridden_by: string | null
-          severity_override_reason: string | null
-          sla_days: number | null
-          sla_due_at: string | null
-          status: string
-          subject: string
-          triage_evaluated_at: string | null
-          triage_last_error: string | null
-          triage_original_values: Json | null
-          triage_override_status: string
-          triage_result_snapshot: Json | null
-          triage_rule_id: string | null
-          triage_source: string | null
-          updated_at: string
-          vulnerability_indicator: boolean
-          vulnerability_notes: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "complaints"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      assign_complaint:
+        | {
+            Args: {
+              _assignee: string
+              _expected_updated_at?: string
+              _id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _id: string
+              _investigator?: string
+              _reason?: string
+              _team?: string
+            }
+            Returns: {
+              acknowledged_at: string | null
+              assigned_team: string | null
+              channel_id: string | null
+              closed_at: string | null
+              closed_by: string | null
+              closure_category: string | null
+              closure_reason: string | null
+              complainant_id: string | null
+              complaint_number: string
+              complaint_type_id: string | null
+              conduct_risk_category_id: string | null
+              created_at: string
+              customer_type: string | null
+              description: string
+              email: string | null
+              enforcement_action_id: string | null
+              findings: string | null
+              id: string
+              intake_source: string | null
+              internal_created_by: string | null
+              investigation_notes: string | null
+              investigator_id: string | null
+              license_holder_id: string | null
+              licensee_id: string | null
+              priority: string | null
+              product_id: string | null
+              regulator_id: string | null
+              repeat_complaint_count: number
+              resolution: string | null
+              resolution_notes: string | null
+              resolved_at: string | null
+              search_vector: unknown
+              severity: string
+              severity_overridden_at: string | null
+              severity_overridden_by: string | null
+              severity_override_reason: string | null
+              sla_days: number | null
+              sla_due_at: string | null
+              status: string
+              subject: string
+              triage_evaluated_at: string | null
+              triage_last_error: string | null
+              triage_original_values: Json | null
+              triage_override_status: string
+              triage_result_snapshot: Json | null
+              triage_rule_id: string | null
+              triage_source: string | null
+              updated_at: string
+              vulnerability_indicator: boolean
+              vulnerability_notes: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "complaints"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
@@ -15203,10 +15246,20 @@ export type Database = {
         Args: { _new_name: string; _rule_id: string }
         Returns: string
       }
-      close_complaint: {
-        Args: { _category?: string; _id: string; _reason: string }
-        Returns: undefined
-      }
+      close_complaint:
+        | {
+            Args: { _category?: string; _id: string; _reason: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _category?: string
+              _expected_updated_at?: string
+              _id: string
+              _reason: string
+            }
+            Returns: undefined
+          }
       complaint_sla_status: {
         Args: {
           _created_at: string
@@ -15258,6 +15311,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_complaint: { Args: { _payload: Json }; Returns: Json }
       create_document_version: {
         Args: {
           _action?: string
@@ -15379,6 +15433,7 @@ export type Database = {
         Args: { _complaint_id?: string; _window_days?: number }
         Returns: Json
       }
+      duplicate_hub_stats: { Args: never; Returns: Json }
       escalate_complaint_to_enforcement: {
         Args: { _findings: string; _id: string }
         Returns: {
@@ -15387,6 +15442,7 @@ export type Database = {
           enforcement_id: string
         }[]
       }
+      escalation_hub_stats: { Args: never; Returns: Json }
       evaluate_return_validations: {
         Args: { _form_data?: Json; _return_id: string }
         Returns: Json
@@ -15604,6 +15660,7 @@ export type Database = {
         Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
       }
+      get_complaint: { Args: { _id: string }; Returns: Json }
       get_complaint_current_assignees: {
         Args: { _complaint_ids: string[] }
         Returns: {
@@ -15848,6 +15905,7 @@ export type Database = {
         }
         Returns: Json
       }
+      list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
       log_compliance_audit: {
         Args: {
           _action_type: Database["public"]["Enums"]["compliance_audit_action"]
@@ -15960,6 +16018,8 @@ export type Database = {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
         Returns: Json
       }
+      pending_duplicate_count: { Args: never; Returns: number }
+      pending_escalation_count: { Args: never; Returns: number }
       perform_final_workflow_approval: {
         Args: {
           _actor_id: string
@@ -16333,6 +16393,7 @@ export type Database = {
         }
         Returns: Json
       }
+      retry_complaint_triage: { Args: { _id: string }; Returns: undefined }
       rollback_prudential_ratio: {
         Args: { _ratio_id: string; _to_version: number }
         Returns: number
@@ -16395,6 +16456,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      simulate_escalation_rule: {
+        Args: { _criterion: string; _thresholds: Json }
+        Returns: Json
       }
       snapshot_return_revision: {
         Args: {
@@ -16492,6 +16557,15 @@ export type Database = {
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
+      }
+      transition_complaint_status: {
+        Args: {
+          _expected_updated_at?: string
+          _id: string
+          _new_status: string
+          _reason?: string
+        }
+        Returns: undefined
       }
       update_complaint_severity: {
         Args: { _id: string; _reason?: string; _severity: string }

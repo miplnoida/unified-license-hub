@@ -252,64 +252,48 @@ export default function ComplaintsList() {
       return;
     }
     setCreating(true);
-    const insertData: any = isInternal
+    // Canonical intake: server-side create_complaint handles number gen, audit,
+    // and trigger-based notifications. No duplicate client-side dispatch here.
+    const payload: Record<string, unknown> = isInternal
       ? {
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email || null,
           severity: 'medium',
           priority: 'p3',
-          status: 'submitted',
           intake_source: 'internal',
-          internal_created_by: user.id,
         }
       : {
-          complainant_id: user.id,
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
           severity: newSeverity || 'medium',
-          status: 'submitted',
+          intake_source: 'consumer_portal',
         };
-    if (newTypeId) insertData.complaint_type_id = newTypeId;
-    const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
+    if (newTypeId) payload.complaint_type_id = newTypeId;
+
+    const { data: insertedRaw, error } = await (supabase as any).rpc('create_complaint', { _payload: payload });
     if (error) {
-      toast.error([error.message, error.details, error.hint].filter(Boolean).join(' '));
+      toast.error([error.message, (error as any).details, (error as any).hint].filter(Boolean).join(' '));
       setCreating(false);
       return;
     }
-
-    await logAudit({ action: 'complaint_created', entityType: 'complaint', entityId: inserted?.id });
+    const inserted = insertedRaw as any;
 
     if (inserted?.id) {
+      // Kick off async triage — best-effort; server also queues via trigger.
       try {
-        const { data: tr, error: trErr } = await supabase.functions.invoke('evaluate-complaint-triage', {
+        const { error: trErr } = await supabase.functions.invoke('evaluate-complaint-triage', {
           body: { complaint_id: inserted.id, triggered_by: 'intake' },
         });
-        if (trErr || (tr && tr.success === false)) {
-          toast.warning(`Complaint filed, but auto-triage failed: ${trErr?.message || tr?.error || 'unknown error'}.`);
+        if (trErr) {
+          toast.warning(`Complaint filed, but auto-triage failed: ${trErr.message}`);
         }
       } catch (e: any) {
         toast.warning(`Complaint filed, but auto-triage failed: ${e?.message || 'unknown'}.`);
       }
     }
 
-    if (inserted?.id) {
-      // Fire-and-forget email dispatch (in-app rows are inserted by the DB trigger)
-      void import('@/lib/notificationEvents').then(({ dispatchNotificationEvent }) =>
-        dispatchNotificationEvent({
-          event_key: 'complaint.filed',
-          entity_type: 'complaint',
-          entity_id: inserted.id,
-          payload: {
-            complaint_number: (inserted as any).complaint_number,
-            subject: (inserted as any).subject,
-            sla_due_at: (inserted as any).sla_due_at,
-            complainant_email: (inserted as any).email ?? user.email,
-          },
-        }),
-      );
-    }
 
     let uploadedAttachments: { name: string; size: number; fileUploadId: string; filePath: string }[] = [];
     if (inserted?.id && newAttachments.length > 0) {
@@ -357,8 +341,10 @@ export default function ComplaintsList() {
         const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
         if (error) throw error;
       } else if (newStatus === 'closed') {
-        const { error } = await (supabase as any).rpc('close_complaint', { _id: complaint.id, _reason: null });
-        if (error) throw error;
+        // Closure requires a reason + category; enforce via the detail-page dialog.
+        toast.info('Open the complaint to close it — a reason and category are required.');
+        nav(`/complaints/${complaint.id}`);
+        return;
       } else {
         throw new Error(`Unsupported status transition: ${newStatus}`);
       }
