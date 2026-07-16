@@ -100,7 +100,7 @@ export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onComplete
         _complaint_id: complaintId,
         _action_key: selected.action_key,
         _payload: payload,
-        _expected_updated_at: instanceUpdatedAt ?? null,
+        _expected_updated_at: effectiveInstanceUpdatedAt,
       });
       if (error) throw error;
       return data;
