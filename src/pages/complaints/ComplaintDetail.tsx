@@ -264,6 +264,7 @@ export default function ComplaintDetail() {
       setResolution('');
       invalidate();
     },
+    onError: handleMutationError,
   });
 
   const CLOSURE_CATEGORIES = ['resolved_at_source','withdrawn','duplicate','out_of_scope','no_action_required','referred_out'] as const;
