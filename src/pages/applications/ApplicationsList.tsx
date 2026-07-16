@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
 import { logExport } from '@/lib/complianceAudit';
@@ -1231,9 +1232,28 @@ export default function ApplicationsList() {
           description={isInternal ? 'All pre-license and post-license requests' : 'View and manage your license applications'}
           actions={
             !isInternal && (
-              <Button onClick={() => navigate(user && LICENSEE_ROLES.includes(user.role) ? '/post-license/new' : '/applications/new')}>
-                <PlusCircle className="h-4 w-4 mr-2" />New Application
-              </Button>
+              user && LICENSEE_ROLES.includes(user.role) ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <PlusCircle className="h-4 w-4 mr-2" />New Application
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/applications/new')}>
+                      New Pre-Licensee Application
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/post-license/new')}>
+                      New Post-Licensee Application
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button onClick={() => navigate('/applications/new')}>
+                  <PlusCircle className="h-4 w-4 mr-2" />New Application
+                </Button>
+              )
             )
           }
         />

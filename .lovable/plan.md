@@ -1,34 +1,42 @@
-# Fix: "invalid input value for enum return_workflow_status: ''" on Request Edit
+## Problem
 
-## Root cause
+On the Web User / PPOC (licensee) panel, the "My Applications" page has a **New Application** button that always opens the **post-licensee** new-application URL (`/post-license/new`) — even when the user is filing a **pre-licensee** application (e.g. applying for a license in a new sector). This mirrors a hard-coded role check that doesn't consider the user's actual intent or portal context.
 
-In the `request_return_edit` RPC (added last turn), the status guard reads:
-
-```sql
-IF upper(coalesce(v_return.workflow_status, '')) NOT IN ('SUB','VAL') THEN
+Source: `src/pages/applications/ApplicationsList.tsx:1234`
+```tsx
+<Button onClick={() => navigate(
+  user && LICENSEE_ROLES.includes(user.role)
+    ? '/post-license/new'
+    : '/applications/new'
+)}>
+  New Application
+</Button>
 ```
 
-`returns_filed.workflow_status` is of enum type `return_workflow_status`. `coalesce(enum, '')` forces Postgres to cast the text literal `''` to the enum, which fails because `''` is not one of the enum labels (`TEMP/WIP/SUB/VAL/TBR/REJ`). Postgres raises `invalid input value for enum return_workflow_status: ""` even when the row's status is non-null, causing every licensee "Request Edit" submission to fail.
+Any user in `LICENSEE_ROLES` (licensee_primary, licensee_secondary — which includes web users and PPOCs acting for a licensee) is force-routed to the post-license flow, so pre-licensee applications become unreachable from this screen.
 
-`decide_return_edit_request` doesn't have this pattern, so admin decisions are unaffected.
-
-## Fix
-
-New migration that recreates `public.request_return_edit(uuid, text)` with the enum coerced to text before coalescing:
-
-```sql
-IF upper(coalesce(v_return.workflow_status::text, '')) NOT IN ('SUB','VAL') THEN
+Elsewhere (`ApplicantDashboard.tsx:40`) the correct pattern is already used:
+```ts
+const newApplicationPath = portalCtx.isPreLicensee ? '/pre-license/new' : '/applications/new';
 ```
+Note: `/applications/new` (the shared `NewApplication` page) is the neutral entry point that already handles licensee context via effective role — it does NOT force a post-license flow.
 
-Everything else in the RPC (auth check, ownership check, duplicate-pending guard, insert into `return_edit_requests`, audit log write) stays identical.
+## Fix (UI only, single file)
+
+In `src/pages/applications/ApplicationsList.tsx`:
+
+1. Replace the hard-coded role branch with a small dropdown/menu on the "New Application" button so licensee users (web user / PPOC / primary / secondary) can choose:
+   - **New Pre-Licensee Application** → `/applications/new`
+   - **New Post-Licensee Application** → `/post-license/new`
+
+   Non-licensee applicants continue to see a single button that goes to `/applications/new` (unchanged behavior).
+
+2. Use the existing `DropdownMenu` shadcn component already imported across the codebase; keep the trigger visually identical (primary button + `PlusCircle` icon + caret).
+
+No changes to routes, backend, or the `NewApplication` / `NewPostLicenseApplication` pages themselves — the bug is purely the button's destination on this one screen.
 
 ## Verification
 
-- Re-run typecheck (no FE changes).
-- Manually invoke `request_return_edit` on a `SUB` return via the licensee UI; confirm success and a pending row appears with a `applicant_edit_requested` audit entry.
-- Confirm the admin Allow/Deny path still works end-to-end (unchanged RPC).
-
-## Out of scope
-
-- No frontend changes.
-- No changes to `decide_return_edit_request`, `return_edit_requests` table, RLS, or existing TBR/resubmit flow.
+- As a licensee_primary / PPOC / web user, open **My Applications** → click **New Application** → choose **Pre-Licensee** → lands on `/applications/new` (sector/sub-sector/service picker for a new license), not `/post-license/new`.
+- Choosing **Post-Licensee** still lands on `/post-license/new` (existing post-license flow).
+- As a pre_licensee applicant, the button remains a single-action button to `/applications/new` (unchanged).
