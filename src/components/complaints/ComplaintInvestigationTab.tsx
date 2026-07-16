@@ -153,6 +153,8 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           )}
           {tasksLoading ? (
             <div className="py-6 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : tasksQ.isError ? (
+            <QueryErrorState message="Failed to load tasks" onRetry={() => tasksQ.refetch()} />
           ) : !tasks?.length ? (
             <p className="text-sm text-muted-foreground text-center py-6">No tasks yet.</p>
           ) : (
