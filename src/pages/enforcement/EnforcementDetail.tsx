@@ -129,7 +129,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('notice_issued', noticeText.trim());
     },
-    onSuccess: () => { toast.success('Notice issued'); setNoticeText(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Notice issued');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.notice_issued', note: noticeText.trim() }));
+      setNoticeText(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
