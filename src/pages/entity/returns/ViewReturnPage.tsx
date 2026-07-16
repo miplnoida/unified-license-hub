@@ -4,12 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
+import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments, useReturnEditRequests, useRequestReturnEdit } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, MessageSquareWarning } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
