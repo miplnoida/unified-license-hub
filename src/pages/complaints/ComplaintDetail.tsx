@@ -315,6 +315,18 @@ export default function ComplaintDetail() {
     },
     onSuccess: (row) => {
       toast.success(`Enforcement case ${row.case_number} opened`);
+      notifyComplaintLifecycle({
+        event_key: 'complaint.escalated_to_enforcement',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        enforcement_id: row.id,
+        enforcement_case_number: row.case_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+        note: escalateNote.trim(),
+      });
       setEscalateNote('');
       invalidate();
       nav(`/enforcement/${row.id}`);
