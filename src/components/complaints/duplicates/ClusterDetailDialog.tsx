@@ -1,8 +1,18 @@
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
-import type { DuplicateCluster } from '@/pages/complaints/duplicates/types';
+import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+export interface ClusterRow {
+  id: string;
+  dimension: string;
+  key: string | null;
+  member_ids: string[] | null;
+  created_at: string;
+  updated_at?: string;
+}
 
 const dimensionLabel: Record<string, string> = {
   institution: 'Institution',
@@ -13,62 +23,64 @@ const dimensionLabel: Record<string, string> = {
 
 export function ClusterDetailDialog({
   cluster, open, onOpenChange,
-}: { cluster: DuplicateCluster | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+}: { cluster: ClusterRow | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const memberIds = cluster?.member_ids ?? [];
+
+  const { data: members = [], isLoading, isError } = useQuery({
+    queryKey: ['cluster_members', cluster?.id],
+    enabled: !!cluster && open && memberIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('complaints')
+        .select('id, complaint_number, subject, severity, status, created_at')
+        .in('id', memberIds);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
   if (!cluster) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Badge variant="outline">{dimensionLabel[cluster.dimension]}</Badge>
-            {cluster.label}
+            <Badge variant="outline">{dimensionLabel[cluster.dimension] ?? cluster.dimension}</Badge>
+            {cluster.key ?? '—'}
           </DialogTitle>
           <DialogDescription>
-            {cluster.count} related complaints between {new Date(cluster.dateRange.from).toLocaleDateString()} and{' '}
-            {new Date(cluster.dateRange.to).toLocaleDateString()}
+            {memberIds.length} related complaints in this cluster.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-2 h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={cluster.trend}>
-                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between"><span>High</span><span className="font-medium">{cluster.severityMix.high}</span></div>
-            <div className="flex items-center justify-between"><span>Medium</span><span className="font-medium">{cluster.severityMix.medium}</span></div>
-            <div className="flex items-center justify-between"><span>Low</span><span className="font-medium">{cluster.severityMix.low}</span></div>
-          </div>
-        </div>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Reference</TableHead>
-              <TableHead>Complainant</TableHead>
-              <TableHead>Issue</TableHead>
-              <TableHead>Severity</TableHead>
-              <TableHead>Submitted</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {cluster.complaints.map(c => (
-              <TableRow key={c.id}>
-                <TableCell className="font-mono text-xs">{c.reference}</TableCell>
-                <TableCell>{c.complainantName}</TableCell>
-                <TableCell>{c.issue}</TableCell>
-                <TableCell><Badge variant="outline" className="capitalize">{c.severity}</Badge></TableCell>
-                <TableCell>{new Date(c.submittedAt).toLocaleDateString()}</TableCell>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : isError ? (
+          <div className="p-4 text-sm text-destructive">Unable to load cluster members.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Reference</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Submitted</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {members.map((c: any) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-mono text-xs">{c.complaint_number}</TableCell>
+                  <TableCell className="max-w-[280px] truncate">{c.subject}</TableCell>
+                  <TableCell><Badge variant="outline" className="capitalize">{c.severity ?? '—'}</Badge></TableCell>
+                  <TableCell className="capitalize">{c.status?.replace(/_/g, ' ')}</TableCell>
+                  <TableCell>{new Date(c.created_at).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </DialogContent>
     </Dialog>
   );
