@@ -122,16 +122,8 @@ export default function ComplaintDetail() {
 
   const takeInvestigation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('complaints').update({
-        status: 'under_investigation',
-        investigator_id: user?.id,
-        acknowledged_at: new Date().toISOString(),
-      }).eq('id', id!);
+      const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: id! });
       if (error) throw error;
-      await logAction('complaint.investigation_started', 'complaint', id!, {
-        before: { status: complaint?.status ?? null },
-        after: { status: 'under_investigation', investigator_id: user?.id ?? null },
-      });
     },
     onSuccess: () => { toast.success('Investigation started'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -167,8 +159,6 @@ export default function ComplaintDetail() {
   function handleSeverityUpdate() {
     if (!severity) { toast.error('Pick a severity'); return; }
     const current = complaint?.severity;
-    // If severity is unchanged, no-op. If different from current system severity,
-    // treat as an override: require justification via OverrideReasonDialog.
     if (!current || current === severity) {
       setSeverityMut.mutate();
       return;
@@ -179,16 +169,10 @@ export default function ComplaintDetail() {
   const resolve = useMutation({
     mutationFn: async () => {
       if (resolution.trim().length < 5) throw new Error('Resolution notes required');
-      const { error } = await supabase.from('complaints').update({
-        status: 'resolved',
-        resolution: resolution.trim(),
-        resolved_at: new Date().toISOString(),
-      }).eq('id', id!);
-      if (error) throw error;
-      await logAction('complaint.resolved', 'complaint', id!, {
-        before: { status: complaint?.status ?? null },
-        after: { status: 'resolved', resolution },
+      const { error } = await (supabase as any).rpc('resolve_complaint', {
+        _id: id!, _resolution: resolution.trim(),
       });
+      if (error) throw error;
     },
     onSuccess: () => { toast.success('Complaint resolved'); setResolution(''); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -196,12 +180,8 @@ export default function ComplaintDetail() {
 
   const close = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('complaints').update({ status: 'closed' }).eq('id', id!);
+      const { error } = await (supabase as any).rpc('close_complaint', { _id: id!, _reason: null });
       if (error) throw error;
-      await logAction('complaint.closed', 'complaint', id!, {
-        before: { status: complaint?.status ?? null },
-        after: { status: 'closed' },
-      });
     },
     onSuccess: () => { toast.success('Complaint closed'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
@@ -211,27 +191,13 @@ export default function ComplaintDetail() {
     mutationFn: async () => {
       if (!complaint?.licensee_id) throw new Error('Link a licensee before escalating.');
       if (escalateNote.trim().length < 10) throw new Error('Provide findings (min 10 chars)');
-      const { data: created, error } = await (supabase.from('enforcement_actions') as any).insert({
-        entity_id: complaint.licensee_id,
-        enforcement_type: 'complaint_escalation',
-        status: 'open',
-        description: `Escalated from complaint ${complaint.complaint_number}: ${complaint.subject}\n\nFindings: ${escalateNote.trim()}`,
-        findings: escalateNote.trim(),
-        opened_by: user?.id ?? null,
-        source_type: 'complaint',
-        source_reference_id: complaint.id,
-      }).select('id, case_number').single();
-      if (error) throw error;
-      await supabase.from('complaints').update({ enforcement_action_id: created.id }).eq('id', id!);
-      await (supabase.from('enforcement_case_events') as any).insert({
-        case_id: created.id,
-        event_type: 'opened',
-        note: `Auto-opened from complaint ${complaint.complaint_number}`,
-        detail: { complaint_id: complaint.id },
-        actor_id: user?.id ?? null,
+      const { data, error } = await (supabase as any).rpc('escalate_complaint_to_enforcement', {
+        _id: id!, _findings: escalateNote.trim(),
       });
-      await logAction('complaint.escalated_to_enforcement', 'complaint', id!, { meta: { enforcement_id: created.id } });
-      return created;
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) throw new Error('Escalation failed');
+      return { id: row.enforcement_id, case_number: row.case_number };
     },
     onSuccess: (row) => {
       toast.success(`Enforcement case ${row.case_number} opened`);

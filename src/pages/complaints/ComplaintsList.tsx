@@ -35,21 +35,20 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  submitted: 'default',
-  open: 'default',
-  under_investigation: 'outline',
-  resolved: 'default',
-  closed: 'secondary',
-};
+// Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
+// keep existing JSX references intact while the module is the single source of
+// truth for labels/variants/transitions.
+import {
+  complaintStatusLabel,
+  complaintStatusVariant,
+  isOpenComplaint,
+  COMPLAINT_STATUS_LABELS,
+} from '@/lib/complaintStatus';
 
-const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Submitted',
-  open: 'Open',
-  under_investigation: 'Under Investigation',
-  resolved: 'Resolved',
-  closed: 'Closed',
-};
+const statusVariant = new Proxy({} as Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>, {
+  get: (_t, k: string) => complaintStatusVariant(k),
+});
+const STATUS_LABELS: Record<string, string> = COMPLAINT_STATUS_LABELS;
 
 const severityVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   critical: 'destructive',
@@ -260,7 +259,7 @@ export default function ComplaintsList() {
           email: user.email || null,
           severity: 'medium',
           priority: 'p3',
-          status: 'open',
+          status: 'submitted',
           intake_source: 'internal',
           internal_created_by: user.id,
         }
@@ -270,6 +269,7 @@ export default function ComplaintsList() {
           description: newDesc.trim(),
           email: user.email,
           severity: newSeverity || 'medium',
+          status: 'submitted',
         };
     if (newTypeId) insertData.complaint_type_id = newTypeId;
     const { data: inserted, error } = await supabase.from('complaints').insert(insertData).select('id, complaint_number, subject, description, created_at, email, sla_days, sla_due_at').single();
@@ -348,24 +348,29 @@ export default function ComplaintsList() {
 
   const handleUpdateStatus = async (complaint: any, newStatus: string) => {
     setUpdating(true);
-    const updates: any = { status: newStatus };
-    if (newStatus === 'under_investigation') updates.investigator_id = user?.id;
-    if (newStatus === 'resolved' && resolution) updates.resolution = resolution;
-
-    const { error } = await supabase.from('complaints').update(updates).eq('id', complaint.id);
-    if (error) { toast.error(error.message); setUpdating(false); return; }
-
-    await logAudit({
-      action: `complaint_${newStatus}`,
-      entityType: 'complaint',
-      entityId: complaint.id,
-      newValue: { status: newStatus },
-    });
-    toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
-    setUpdating(false);
-    setDetailDialog(null);
-    setResolution('');
-    loadComplaints();
+    try {
+      if (newStatus === 'under_investigation') {
+        const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: complaint.id });
+        if (error) throw error;
+      } else if (newStatus === 'resolved') {
+        if (!resolution || resolution.trim().length < 5) throw new Error('Resolution notes required (min 5 chars)');
+        const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
+        if (error) throw error;
+      } else if (newStatus === 'closed') {
+        const { error } = await (supabase as any).rpc('close_complaint', { _id: complaint.id, _reason: null });
+        if (error) throw error;
+      } else {
+        throw new Error(`Unsupported status transition: ${newStatus}`);
+      }
+      toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
+      setDetailDialog(null);
+      setResolution('');
+      loadComplaints();
+    } catch (e: any) {
+      toast.error(e?.message || 'Update failed');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const reprintAck = async (c: any) => {
