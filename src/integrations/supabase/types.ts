@@ -8134,6 +8134,8 @@ export type Database = {
           action_history_id: string | null
           body: string | null
           channel: string
+          claimed_at: string | null
+          claimed_by: string | null
           correlation_id: string | null
           created_at: string
           entity_id: string | null
@@ -8155,6 +8157,8 @@ export type Database = {
           action_history_id?: string | null
           body?: string | null
           channel: string
+          claimed_at?: string | null
+          claimed_by?: string | null
           correlation_id?: string | null
           created_at?: string
           entity_id?: string | null
@@ -8176,6 +8180,8 @@ export type Database = {
           action_history_id?: string | null
           body?: string | null
           channel?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
           correlation_id?: string | null
           created_at?: string
           entity_id?: string | null
@@ -15352,6 +15358,38 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      claim_notification_outbox: {
+        Args: { _limit?: number; _worker?: string }
+        Returns: {
+          action_history_id: string | null
+          body: string | null
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          correlation_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event_key: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          recipient_email: string | null
+          recipient_user_id: string | null
+          retry_count: number
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       classify_complaint: {
         Args: { _id: string; _payload: Json }
         Returns: undefined
@@ -16290,6 +16328,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
       record_return_breach: {
         Args: {
@@ -16611,6 +16650,10 @@ export type Database = {
         Returns: Json
       }
       retry_complaint_triage: { Args: { _id: string }; Returns: undefined }
+      retry_dead_notification_outbox: {
+        Args: { _ids: string[] }
+        Returns: number
+      }
       rollback_prudential_ratio: {
         Args: { _ratio_id: string; _to_version: number }
         Returns: number
