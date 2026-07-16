@@ -422,35 +422,34 @@ export default function ComplaintsList() {
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
-    loadComplaints();
+    refetchAll();
   };
 
   const handleUpdateStatus = async (complaint: any, newStatus: string) => {
-    setUpdating(true);
     try {
       if (newStatus === 'under_investigation') {
-        const { error } = await (supabase as any).rpc('start_complaint_investigation', { _id: complaint.id });
+        const { error } = await (supabase as any).rpc('start_complaint_investigation', {
+          _id: complaint.id,
+          _expected_updated_at: complaint.updated_at,
+        });
         if (error) throw error;
-      } else if (newStatus === 'resolved') {
-        if (!resolution || resolution.trim().length < 5) throw new Error('Resolution notes required (min 5 chars)');
-        const { error } = await (supabase as any).rpc('resolve_complaint', { _id: complaint.id, _resolution: resolution.trim() });
-        if (error) throw error;
-      } else if (newStatus === 'closed') {
-        // Closure requires a reason + category; enforce via the detail-page dialog.
-        toast.info('Open the complaint to close it — a reason and category are required.');
+        toast.success('Investigation started');
+        setDetailDialog(null);
+        refetchAll();
+      } else if (newStatus === 'resolved' || newStatus === 'closed') {
+        // Resolution/closure require reason + category; enforce via the detail page.
+        toast.info('Open the complaint to add resolution notes and close it.');
         nav(`/complaints/${complaint.id}`);
-        return;
       } else {
         throw new Error(`Unsupported status transition: ${newStatus}`);
       }
-      toast.success(`Complaint ${STATUS_LABELS[newStatus]?.toLowerCase() || newStatus}`);
-      setDetailDialog(null);
-      setResolution('');
-      loadComplaints();
     } catch (e: any) {
-      toast.error(e?.message || 'Update failed');
-    } finally {
-      setUpdating(false);
+      const msg = e?.message || 'Update failed';
+      if (msg.includes('complaint_stale')) {
+        toast.error('Someone else updated this complaint. Please reload.');
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
