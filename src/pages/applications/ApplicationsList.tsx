@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
 import { logExport } from '@/lib/complianceAudit';
