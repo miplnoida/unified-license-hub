@@ -436,7 +436,7 @@ export default function ComplaintsList() {
   );
 
   const filtered = complaints.filter(c => {
-    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+    const sla = slaBucketFromRow(c);
     if (search) {
       const s = search.toLowerCase();
       const hay = [
@@ -691,7 +691,7 @@ export default function ComplaintsList() {
                   {filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => {
-                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    const sla = slaBucketFromRow(c);
                     return (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
@@ -741,7 +741,7 @@ export default function ComplaintsList() {
                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => {
                     const expanded = expandedRows.has(c.id);
-                    const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+                    const sla = slaBucketFromRow(c);
                     const inv = c.investigator_id ? profileMap.get(c.investigator_id) : null;
                     const entityLabel = c.licensee_id ? licenseeMap.get(c.licensee_id) : null;
                     const complainant = c.complainant_id ? profileMap.get(c.complainant_id) : null;
