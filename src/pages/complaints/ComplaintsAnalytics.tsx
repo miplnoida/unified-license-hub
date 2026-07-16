@@ -8,50 +8,35 @@ import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
+interface AnalyticsResult {
+  total: number;
+  open: number;
+  resolved_or_closed: number;
+  avg_resolve_hours: number;
+  breached: number;
+  at_risk: number;
+  on_track: number;
+  by_status: Record<string, number>;
+  by_severity: Record<string, number>;
+  by_type: { type_id: string | null; name: string | null; count: number }[];
+  trend: { day: string; count: number }[];
+}
+
 export default function ComplaintsAnalytics() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['complaints_analytics'],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['complaints_analytics_rpc'],
     queryFn: async () => {
-      const [{ data: complaints }, { data: types }] = await Promise.all([
-        supabase.from('complaints').select('id, status, severity, complaint_type_id, created_at, resolved_at'),
-        supabase.from('complaint_types').select('id, name, sla_days'),
-      ]);
-      return { complaints: complaints ?? [], types: types ?? [] };
+      const { data, error } = await (supabase as any).rpc('complaints_analytics', { _filters: {} });
+      if (error) throw error;
+      return data as AnalyticsResult;
     },
   });
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
+  if (error) return <DashboardLayout><div className="p-8 text-center text-destructive">{(error as Error).message}</div></DashboardLayout>;
 
-  const c = data?.complaints ?? [];
-  const types = data?.types ?? [];
-  const typeMap = new Map(types.map((t: any) => [t.id, t]));
-
-  const total = c.length;
-  const open = c.filter((x: any) => x.status !== 'closed' && x.status !== 'resolved').length;
-  const resolved = c.filter((x: any) => x.status === 'resolved' || x.status === 'closed').length;
-
-  const bySeverity = c.reduce<Record<string, number>>((acc, x: any) => {
-    acc[x.severity || 'low'] = (acc[x.severity || 'low'] || 0) + 1;
-    return acc;
-  }, {});
-
-  const byType = c.reduce<Record<string, number>>((acc, x: any) => {
-    const name = x.complaint_type_id ? (typeMap.get(x.complaint_type_id) as any)?.name || 'Unknown' : 'Untyped';
-    acc[name] = (acc[name] || 0) + 1;
-    return acc;
-  }, {});
-
-  const withResolved = c.filter((x: any) => x.resolved_at);
-  const avgResolveDays = withResolved.length
-    ? Math.round(withResolved.reduce((s: number, x: any) => s + (new Date(x.resolved_at).getTime() - new Date(x.created_at).getTime()) / (1000 * 60 * 60 * 24), 0) / withResolved.length)
-    : 0;
-
-  const slaBreached = c.filter((x: any) => {
-    if (x.resolved_at) return false;
-    const days = (Date.now() - new Date(x.created_at).getTime()) / (1000 * 60 * 60 * 24);
-    const sla = x.complaint_type_id ? (typeMap.get(x.complaint_type_id) as any)?.sla_days || 30 : 30;
-    return days > sla;
-  }).length;
+  const d = data!;
+  const avgResolveDays = Math.round((d.avg_resolve_hours || 0) / 24);
 
   return (
     <DashboardLayout>
@@ -63,39 +48,60 @@ export default function ComplaintsAnalytics() {
         />
 
         <div className="grid gap-4 md:grid-cols-5">
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-semibold">{total}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Open</p><p className="text-2xl font-semibold">{open}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Resolved/Closed</p><p className="text-2xl font-semibold">{resolved}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-semibold">{d.total}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Open</p><p className="text-2xl font-semibold">{d.open}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Resolved/Closed</p><p className="text-2xl font-semibold">{d.resolved_or_closed}</p></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Avg Resolve (days)</p><p className="text-2xl font-semibold">{avgResolveDays}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">SLA Breached</p><p className="text-2xl font-semibold text-destructive">{slaBreached}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">SLA Breached</p><p className="text-2xl font-semibold text-destructive">{d.breached}</p></CardContent></Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader><CardTitle className="text-base">SLA Compliance</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex items-center justify-between"><Badge>On track</Badge><span className="font-medium">{d.on_track}</span></div>
+              <div className="flex items-center justify-between"><Badge variant="outline">At risk</Badge><span className="font-medium">{d.at_risk}</span></div>
+              <div className="flex items-center justify-between"><Badge variant="destructive">Breached</Badge><span className="font-medium">{d.breached}</span></div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader><CardTitle className="text-base">By Severity</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {Object.entries(bySeverity).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+              {Object.entries(d.by_severity || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between text-sm">
                   <Badge variant="outline" className="capitalize">{k}</Badge>
                   <span className="font-medium">{v}</span>
                 </div>
               ))}
-              {Object.keys(bySeverity).length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
+              {Object.keys(d.by_severity || {}).length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-base">By Type</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">By Status</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+              {Object.entries(d.by_status || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between text-sm">
-                  <span>{k}</span>
+                  <span className="capitalize">{k.replace(/_/g, ' ')}</span>
                   <span className="font-medium">{v}</span>
                 </div>
               ))}
-              {Object.keys(byType).length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
+              {Object.keys(d.by_status || {}).length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">By Type</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {(d.by_type || []).map((t) => (
+              <div key={String(t.type_id) + t.name} className="flex items-center justify-between text-sm">
+                <span>{t.name || 'Untyped'}</span>
+                <span className="font-medium">{t.count}</span>
+              </div>
+            ))}
+            {(d.by_type || []).length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
