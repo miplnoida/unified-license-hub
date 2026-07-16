@@ -76,7 +76,7 @@ interface RefLookup { id: string; name: string }
 const URL_KEYS = [
   'page','pageSize','sort','dir','q',
   'status','severity','priority','sla','type','product','channel','category',
-  'intake','team','triage','vulnerable',
+  'intake','team','triage','vulnerable','regulator','from','to',
 ] as const;
 type UrlKey = typeof URL_KEYS[number];
 
@@ -108,6 +108,9 @@ export default function ComplaintsList() {
   const teamFilter     = getParam('team','all');
   const triageFilter   = getParam('triage','all');
   const vulnerableFilter = getParam('vulnerable','all');
+  const regulatorFilter = getParam('regulator','all');
+  const dateFrom = getParam('from','');
+  const dateTo   = getParam('to','');
 
   const updateUrl = useCallback((patch: Partial<Record<UrlKey,string|null>>, opts?: { resetPage?: boolean }) => {
     const next = new URLSearchParams(searchParams);
@@ -147,8 +150,11 @@ export default function ComplaintsList() {
     if (triageFilter !== 'all') p.triage_override_status = triageFilter;
     if (vulnerableFilter === 'yes') p.vulnerability_indicator = true;
     if (vulnerableFilter === 'no')  p.vulnerability_indicator = false;
+    if (regulatorFilter !== 'all') p.regulator_id = regulatorFilter;
+    if (dateFrom) p.date_from = new Date(dateFrom).toISOString();
+    if (dateTo)   p.date_to   = new Date(dateTo + 'T23:59:59').toISOString();
     return p;
-  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter]);
+  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter,regulatorFilter,dateFrom,dateTo]);
 
   // --- Reference data queries with explicit error handling ---
   const typesQ = useQuery<RefLookup[]>({
@@ -188,10 +194,21 @@ export default function ComplaintsList() {
     },
   });
 
+  const regulatorsQ = useQuery<RefLookup[]>({
+    queryKey: ['regulators_ref_complaints'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+
   const complaintTypes = typesQ.data ?? [];
   const categories     = categoriesQ.data ?? [];
   const products       = productsQ.data ?? [];
   const channels       = channelsQ.data ?? [];
+  const regulators     = regulatorsQ.data ?? [];
 
   // --- Server-side list query ---
   const listQ = useQuery<{ total: number; rows: any[]; page: number; page_size: number }>({
@@ -731,6 +748,26 @@ export default function ComplaintsList() {
                             <SelectItem value="no">No</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Regulator</Label>
+                        <Select value={regulatorFilter} onValueChange={(v) => updateUrl({ regulator: v }, { resetPage: true })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            {regulators.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Created from</Label>
+                          <Input type="date" value={dateFrom} onChange={e => updateUrl({ from: e.target.value || null }, { resetPage: true })} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Created to</Label>
+                          <Input type="date" value={dateTo} onChange={e => updateUrl({ to: e.target.value || null }, { resetPage: true })} />
+                        </div>
                       </div>
                     </PopoverContent>
                   </Popover>
