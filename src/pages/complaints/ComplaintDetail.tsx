@@ -14,7 +14,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Loader2, Gavel, CheckCircle2, XCircle, UserCheck, AlertTriangle, Printer, Paperclip, ExternalLink, Building2, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/complaints/ComplaintAcknowledgement';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
@@ -57,6 +60,9 @@ export default function ComplaintDetail() {
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeReason, setCloseReason] = useState('');
   const [closeCategory, setCloseCategory] = useState<string>('resolved_at_source');
+  const [licPickerOpen, setLicPickerOpen] = useState(false);
+  const [licSearch, setLicSearch] = useState('');
+  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; legal_name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
     queryKey: ['complaint', id],
@@ -277,6 +283,50 @@ export default function ComplaintDetail() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const licenseeSearchQ = useQuery({
+    queryKey: ['licensee_search_for_complaint', licSearch],
+    enabled: licPickerOpen,
+    queryFn: async () => {
+      const q = supabase.from('licensees').select('id, legal_name, license_number').order('legal_name').limit(20);
+      const term = licSearch.trim();
+      const { data, error } = term
+        ? await q.or(`legal_name.ilike.%${term}%,license_number.ilike.%${term}%`)
+        : await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const linkedLicenseeQ = useQuery({
+    queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
+    enabled: !!complaint?.licensee_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('licensees')
+        .select('id, legal_name, license_number')
+        .eq('id', complaint!.licensee_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const linkLicensee = useMutation({
+    mutationFn: async () => {
+      if (!stagedLicensee) throw new Error('Select a licensee first');
+      const { error } = await (supabase as any).rpc('link_complaint_licensee', {
+        _complaint_id: id!,
+        _licensee_id: stagedLicensee.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Licensee linked');
+      setStagedLicensee(null);
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to link licensee'),
+  });
+
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
   if (!complaint) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Complaint not found.</div></DashboardLayout>;
@@ -462,13 +512,79 @@ export default function ComplaintDetail() {
                   <Card>
                     <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Escalate to Enforcement</CardTitle></CardHeader>
                     <CardContent className="space-y-3">
-                      {!complaint.licensee_id && (
-                        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs flex gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                          <span>Link this complaint to a licensee (via the DB or complaint intake) before escalating.</span>
+                      {complaint.licensee_id ? (
+                        <div className="rounded-md border bg-muted/40 p-3 text-xs flex items-start gap-2">
+                          <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
+                              {linkedLicenseeQ.data?.legal_name || 'Licensee'}
+                            </div>
+                            {linkedLicenseeQ.data?.license_number && (
+                              <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-xs">Map to Licensee</Label>
+                          <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
+                                <span className="truncate">
+                                  {stagedLicensee ? stagedLicensee.legal_name : 'Search licensee by name or license #'}
+                                </span>
+                                <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                              <Command shouldFilter={false}>
+                                <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
+                                <CommandList>
+                                  {licenseeSearchQ.isLoading ? (
+                                    <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
+                                  ) : (licenseeSearchQ.data ?? []).length === 0 ? (
+                                    <CommandEmpty>No licensees found.</CommandEmpty>
+                                  ) : (
+                                    <CommandGroup>
+                                      {(licenseeSearchQ.data ?? []).map((l: any) => (
+                                        <CommandItem
+                                          key={l.id}
+                                          value={l.id}
+                                          onSelect={() => {
+                                            setStagedLicensee({ id: l.id, legal_name: l.legal_name, license_number: l.license_number });
+                                            setLicPickerOpen(false);
+                                          }}
+                                        >
+                                          <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="truncate">{l.legal_name}</div>
+                                            {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  )}
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-full"
+                            disabled={!stagedLicensee || linkLicensee.isPending}
+                            onClick={() => linkLicensee.mutate()}
+                          >
+                            {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
+                            Link Licensee
+                          </Button>
+                          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
+                          </div>
                         </div>
                       )}
-                      <Textarea rows={3} placeholder="Findings that justify enforcement…" value={escalateNote} onChange={e => setEscalateNote(e.target.value)} />
+                      <Textarea rows={3} placeholder="Findings that justify enforcement…" value={escalateNote} onChange={e => setEscalateNote(e.target.value)} disabled={!complaint.licensee_id} />
                       <Button variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending || !complaint.licensee_id} className="w-full">
                         <Gavel className="h-4 w-4 mr-2" />Open Enforcement Case
                       </Button>

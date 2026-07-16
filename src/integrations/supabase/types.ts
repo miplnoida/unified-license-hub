@@ -15896,6 +15896,10 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
+      link_complaint_licensee: {
+        Args: { _complaint_id: string; _licensee_id: string }
+        Returns: undefined
+      }
       list_complaints: {
         Args: {
           _filters?: Json
