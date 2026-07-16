@@ -215,7 +215,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('case_closed', closeNote.trim());
     },
-    onSuccess: () => { toast.success('Case closed'); setCloseNote(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Case closed');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.case_closed', note: closeNote.trim() }));
+      setCloseNote(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
