@@ -666,10 +666,9 @@ export default function ComplaintsList() {
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="SLA" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All SLA</SelectItem>
-                      <SelectItem value="on_track">On track</SelectItem>
-                      <SelectItem value="at_risk">At risk</SelectItem>
-                      <SelectItem value="breached">Breached</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
+                      {SLA_FILTER_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
