@@ -1608,6 +1608,300 @@ export type Database = {
           },
         ]
       }
+      complaint_duplicate_pairs: {
+        Row: {
+          candidate_complaint_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          detected_at: string
+          id: string
+          matched: Json
+          primary_complaint_id: string
+          recommendation: string | null
+          similarity_score: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_complaint_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          detected_at?: string
+          id?: string
+          matched?: Json
+          primary_complaint_id: string
+          recommendation?: string | null
+          similarity_score?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_complaint_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          detected_at?: string
+          id?: string
+          matched?: Json
+          primary_complaint_id?: string
+          recommendation?: string | null
+          similarity_score?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_duplicate_pairs_candidate_complaint_id_fkey"
+            columns: ["candidate_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_candidate_complaint_id_fkey"
+            columns: ["candidate_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_primary_complaint_id_fkey"
+            columns: ["primary_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_duplicate_pairs_primary_complaint_id_fkey"
+            columns: ["primary_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_duplicate_rules: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          name: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          category?: string
+          code: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      complaint_escalation_cases: {
+        Row: {
+          assigned_to: string | null
+          complaint_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          notes: string | null
+          rule_id: string | null
+          rule_key: string
+          rule_label: string
+          severity: string
+          status: string
+          target_tier: string
+          trigger_reason: string | null
+          triggered_at: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          complaint_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_id?: string | null
+          rule_key: string
+          rule_label: string
+          severity?: string
+          status?: string
+          target_tier?: string
+          trigger_reason?: string | null
+          triggered_at?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          complaint_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_id?: string | null
+          rule_key?: string
+          rule_label?: string
+          severity?: string
+          status?: string
+          target_tier?: string
+          trigger_reason?: string | null
+          triggered_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_escalation_cases_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_escalation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_escalation_log: {
+        Row: {
+          complaint_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          outcome: string
+          rule_key: string
+          rule_label: string | null
+          severity: string | null
+          snapshot: Json
+          triggered_at: string
+        }
+        Insert: {
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          outcome?: string
+          rule_key: string
+          rule_label?: string | null
+          severity?: string | null
+          snapshot?: Json
+          triggered_at?: string
+        }
+        Update: {
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          outcome?: string
+          rule_key?: string
+          rule_label?: string | null
+          severity?: string | null
+          snapshot?: Json
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_escalation_log_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_log_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_escalation_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          criterion: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          label: string
+          notify: Json
+          priority: number
+          target_tier: string
+          thresholds: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          criterion: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          label: string
+          notify?: Json
+          priority?: number
+          target_tier?: string
+          thresholds?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          criterion?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          label?: string
+          notify?: Json
+          priority?: number
+          target_tier?: string
+          thresholds?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       complaint_evidence: {
         Row: {
           complaint_id: string
@@ -15068,11 +15362,23 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      decide_duplicate_pair: {
+        Args: { _action: string; _id: string }
+        Returns: undefined
+      }
+      decide_escalation_case: {
+        Args: { _decision: string; _id: string; _notes?: string }
+        Returns: undefined
+      }
       decide_return_edit_request: {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      detect_complaint_duplicates: {
+        Args: { _complaint_id?: string; _window_days?: number }
+        Returns: Json
+      }
       escalate_complaint_to_enforcement: {
         Args: { _findings: string; _id: string }
         Returns: {
@@ -16039,6 +16345,7 @@ export type Database = {
         Args: { _rule_id: string; _to_version: number }
         Returns: number
       }
+      run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }
       save_ppoc_mapping: {
         Args: {
