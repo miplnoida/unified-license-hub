@@ -406,17 +406,16 @@ export default function ComplaintsList() {
   };
 
   const retryTriage = async (c: any) => {
-    const t = toast.loading('Running auto-triage...');
+    const t = toast.loading('Queuing auto-triage...');
     try {
-      const { data, error } = await supabase.functions.invoke('evaluate-complaint-triage', {
-        body: { complaint_id: c.id, triggered_by: 'retry' },
-      });
+      // Permission-checked, audited server-side. The RPC only marks the row
+      // for reprocessing; the edge scheduler picks it up.
+      const { error } = await (supabase as any).rpc('retry_complaint_triage', { _id: c.id });
       toast.dismiss(t);
-      if (error || (data && data.success === false)) {
-        toast.error(`Triage failed: ${error?.message || data?.error || 'unknown'}`);
+      if (error) {
+        toast.error(`Triage failed: ${error.message}`);
       } else {
-        toast.success('Triage completed');
-        await logAudit({ action: 'complaint_triage_retry', entityType: 'complaint', entityId: c.id });
+        toast.success('Triage requested');
         loadComplaints();
       }
     } catch (e: any) {
@@ -424,6 +423,7 @@ export default function ComplaintsList() {
       toast.error(`Triage failed: ${e?.message || 'unknown'}`);
     }
   };
+
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
