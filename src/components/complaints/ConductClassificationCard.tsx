@@ -47,7 +47,10 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         supabase.from('conduct_channels').select('id,name').eq('active', true).order('name'),
         supabase.from('conduct_risk_categories').select('id,name,code').eq('active', true).order('name'),
       ]);
-      setProducts(p.data || []); setChannels(c.data || []); setCats(k.data || []);
+      if (p.error) toast.error(`Products failed: ${p.error.message}`);
+      if (c.error) toast.error(`Channels failed: ${c.error.message}`);
+      if (k.error) toast.error(`Categories failed: ${k.error.message}`);
+      setProducts(p.data ?? []); setChannels(c.data ?? []); setCats(k.data ?? []);
     })();
   }, []);
 
