@@ -250,13 +250,11 @@ export function useCreateInternalComplaint() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Record<string, any>) => {
-      const { data: user } = await supabase.auth.getUser();
-      const num = 'CMP-' + Date.now().toString(36).toUpperCase();
+      // Canonical intake — server RPC handles complaint number, audit, notifications
       const validPriorities = ['p1', 'p2', 'p3', 'p4'];
       const validSeverities = ['low', 'medium', 'high', 'critical'];
       const validCustomerTypes = ['retail', 'sme', 'corporate', 'vulnerable', 'other'];
-      const body = {
-        complaint_number: num,
+      const rpcPayload: Record<string, unknown> = {
         subject: payload.subject,
         description: payload.description,
         licensee_id: payload.licensee_id ?? null,
@@ -270,41 +268,22 @@ export function useCreateInternalComplaint() {
         customer_type: validCustomerTypes.includes(payload.customer_type) ? payload.customer_type : null,
         vulnerability_indicator: !!payload.vulnerability_indicator,
         vulnerability_notes: emptyToNull(payload.vulnerability_notes),
-        status: 'open',
         intake_source: payload.intake_source ?? 'internal',
-        internal_created_by: user.user?.id ?? null,
       };
-      const { data, error } = await sb.from('complaints').insert(body).select('*').single();
+      const { data, error } = await (sb as any).rpc('create_complaint', { _payload: rpcPayload });
       if (error) {
-        if (import.meta.env.DEV) console.error('[internal complaint insert] failed', { code: error.code, message: error.message, details: error.details, hint: error.hint, body });
-        throw new Error([error.message, error.details, error.hint].filter(Boolean).join(' '));
+        if (import.meta.env.DEV) console.error('[internal complaint create_complaint] failed', error);
+        throw new Error([error.message, (error as any).details, (error as any).hint].filter(Boolean).join(' '));
       }
-
-      await audit('CREATE', 'complaint', data.id, null, data);
-      await notify('conduct_complaint_created', 'complaint', data.id, {
-        complaint_number: data.complaint_number, subject: data.subject, licensee_id: data.licensee_id,
-      });
-      // Email dispatch (in-app rows come from the DB trigger)
-      void import('@/lib/notificationEvents').then(({ dispatchNotificationEvent }) =>
-        dispatchNotificationEvent({
-          event_key: 'complaint.filed',
-          entity_type: 'complaint',
-          entity_id: data.id,
-          payload: {
-            complaint_number: data.complaint_number,
-            subject: data.subject,
-            sla_due_at: data.sla_due_at,
-          },
-        }),
-      );
 
       // Best-effort auto-triage using existing edge function
       try {
-        await supabase.functions.invoke('evaluate-complaint-triage', { body: { complaint_id: data.id } });
+        await supabase.functions.invoke('evaluate-complaint-triage', { body: { complaint_id: (data as any).id } });
       } catch { /* ignore, triage remains manual */ }
 
-      return data;
+      return data as any;
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['complaints'] }); toast.success('Complaint recorded'); },
     onError: (e: any) => toast.error(e.message),
   });
