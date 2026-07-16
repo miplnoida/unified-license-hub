@@ -285,6 +285,17 @@ export default function ComplaintDetail() {
     },
     onSuccess: () => {
       toast.success('Complaint closed');
+      notifyComplaintLifecycle({
+        event_key: 'complaint.closed',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+        note: closeReason.trim(),
+        extra: { closure_category: closeCategory },
+      });
       setCloseOpen(false); setCloseReason(''); invalidate();
     },
     onError: handleMutationError,
