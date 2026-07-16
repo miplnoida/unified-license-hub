@@ -31,6 +31,8 @@ import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
+import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
 
 const STATUS_META: Record<string, { label: string; variant: any }> = {
   submitted: { label: 'Submitted', variant: 'default' },
@@ -159,7 +161,19 @@ export default function ComplaintDetail() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success('Investigation started'); invalidate(); },
+    onSuccess: () => {
+      toast.success('Investigation started');
+      notifyComplaintLifecycle({
+        event_key: 'complaint.investigation_started',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+      });
+      invalidate();
+    },
     onError: (e: any) => {
       const msg = String(e?.message ?? '');
       if (msg.includes('complaint_stale')) {
@@ -235,7 +249,21 @@ export default function ComplaintDetail() {
       });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success('Complaint resolved'); setResolution(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Complaint resolved');
+      notifyComplaintLifecycle({
+        event_key: 'complaint.resolved',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+        note: resolution.trim(),
+      });
+      setResolution('');
+      invalidate();
+    },
     onError: handleMutationError,
   });
 
@@ -257,6 +285,17 @@ export default function ComplaintDetail() {
     },
     onSuccess: () => {
       toast.success('Complaint closed');
+      notifyComplaintLifecycle({
+        event_key: 'complaint.closed',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+        note: closeReason.trim(),
+        extra: { closure_category: closeCategory },
+      });
       setCloseOpen(false); setCloseReason(''); invalidate();
     },
     onError: handleMutationError,
@@ -276,6 +315,18 @@ export default function ComplaintDetail() {
     },
     onSuccess: (row) => {
       toast.success(`Enforcement case ${row.case_number} opened`);
+      notifyComplaintLifecycle({
+        event_key: 'complaint.escalated_to_enforcement',
+        complaint_id: id!,
+        complaint_number: complaint?.complaint_number,
+        enforcement_id: row.id,
+        enforcement_case_number: row.case_number,
+        complainant_id: complaint?.complainant_id,
+        licensee_id: complaint?.licensee_id,
+        sector_id: complaint?.sector_id,
+        regulator_id: complaint?.regulator_id,
+        note: escalateNote.trim(),
+      });
       setEscalateNote('');
       invalidate();
       nav(`/enforcement/${row.id}`);
@@ -397,6 +448,7 @@ export default function ComplaintDetail() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="investigation">Investigation</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="tracking">Tracking</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -617,6 +669,13 @@ export default function ComplaintDetail() {
                 )}
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="tracking" className="space-y-4">
+            <ComplaintTrackingTimeline
+              complaintId={complaint.id}
+              enforcementId={complaint.enforcement_action_id ?? undefined}
+            />
           </TabsContent>
         </Tabs>
 

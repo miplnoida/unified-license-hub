@@ -19,6 +19,7 @@ import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
+import { notifyComplaintLifecycle } from '@/lib/complaintNotifications';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
@@ -63,6 +64,37 @@ export default function EnforcementDetail() {
     },
   });
 
+  // Linked complaint (if any) — used to route lifecycle notifications back
+  // to the complainant and the licensee's primary/secondary users.
+  const { data: linkedComplaint } = useQuery({
+    queryKey: ['enforcement_case_linked_complaint', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('complaints')
+        .select('id, complaint_number, complainant_id, licensee_id, sector_id, regulator_id')
+        .eq('enforcement_action_id', id!)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const buildNotifyPayload = (
+    args: { event_key: Parameters<typeof notifyComplaintLifecycle>[0]['event_key']; note?: string; extra?: Record<string, unknown> },
+  ): Parameters<typeof notifyComplaintLifecycle>[0] => ({
+    event_key: args.event_key,
+    complaint_id: linkedComplaint?.id,
+    complaint_number: linkedComplaint?.complaint_number,
+    enforcement_id: id!,
+    enforcement_case_number: caseRow?.case_number,
+    complainant_id: linkedComplaint?.complainant_id,
+    licensee_id: linkedComplaint?.licensee_id ?? caseRow?.entity_id,
+    sector_id: linkedComplaint?.sector_id,
+    regulator_id: linkedComplaint?.regulator_id,
+    note: args.note,
+    extra: args.extra,
+  });
+
   const { data: events } = useQuery({
     queryKey: ['enforcement_case_events', id],
     enabled: !!id,
@@ -101,7 +133,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('notice_issued', noticeText.trim());
     },
-    onSuccess: () => { toast.success('Notice issued'); setNoticeText(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Notice issued');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.notice_issued', note: noticeText.trim() }));
+      setNoticeText(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
@@ -116,7 +152,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('response_received', responseText.trim(), { response_date: responseDate });
     },
-    onSuccess: () => { toast.success('Response recorded'); setResponseText(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Response recorded');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.response_received', note: responseText.trim() }));
+      setResponseText(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
@@ -140,6 +180,11 @@ export default function EnforcementDetail() {
     },
     onSuccess: () => {
       toast.success('Decision recorded');
+      notifyComplaintLifecycle(buildNotifyPayload({
+        event_key: 'enforcement.decision_recorded',
+        note: decisionRationale.trim(),
+        extra: { outcome: decisionOutcome, penalty_amount: decisionPenalty || null, appeal_deadline: appealDeadline || null },
+      }));
       setDecisionOutcome(''); setDecisionRationale(''); setDecisionPenalty(''); setAppealDeadline('');
       invalidate();
     },
@@ -170,7 +215,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('case_closed', closeNote.trim());
     },
-    onSuccess: () => { toast.success('Case closed'); setCloseNote(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Case closed');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.case_closed', note: closeNote.trim() }));
+      setCloseNote(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
@@ -183,7 +232,11 @@ export default function EnforcementDetail() {
       if (error) throw error;
       await recordEvent('case_withdrawn', withdrawReason.trim());
     },
-    onSuccess: () => { toast.success('Case withdrawn'); setWithdrawReason(''); invalidate(); },
+    onSuccess: () => {
+      toast.success('Case withdrawn');
+      notifyComplaintLifecycle(buildNotifyPayload({ event_key: 'enforcement.case_withdrawn', note: withdrawReason.trim() }));
+      setWithdrawReason(''); invalidate();
+    },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
