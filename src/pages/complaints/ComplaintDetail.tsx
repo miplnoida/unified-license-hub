@@ -227,10 +227,10 @@ export default function ComplaintDetail() {
   const statusMeta = STATUS_META[complaint.status] || { label: complaint.status, variant: 'outline' };
   const sevMeta = SEVERITY_META[complaint.severity] || { label: complaint.severity, variant: 'outline' };
   const slaDays = complaint.sla_days || complaintType?.sla_days || 30;
-  const _daysOpenRaw = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const _openDays = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));
   const displayDaysOpen = complaint.resolved_at
     ? Math.floor((new Date(complaint.resolved_at).getTime() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24))
-    : _daysOpenRaw;
+    : _openDays;
   // Canonical SLA — server-computed when available (list_complaints/get_complaint
   // return sla_status); JS helper is fallback for optimistic UI.
   const slaStatus = slaBucketFromRow(complaint);
