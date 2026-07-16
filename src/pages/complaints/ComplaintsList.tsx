@@ -529,32 +529,9 @@ export default function ComplaintsList() {
     [complaints],
   );
 
-  const filtered = complaints.filter(c => {
-    const sla = slaBucketFromRow(c);
-    if (search) {
-      const s = search.toLowerCase();
-      const hay = [
-        c.complaint_number, c.subject, c.email, c.assigned_team,
-        c.licensee_id && licenseeMap.get(c.licensee_id),
-        c.complaint_type_id && refs.types.get(c.complaint_type_id),
-      ].filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(s)) return false;
-    }
-    if (dashboardOpenBucket && ['resolved', 'closed'].includes(c.status)) return false;
-    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-    if (severityFilter !== 'all' && c.severity !== severityFilter) return false;
-    if (priorityFilter !== 'all' && c.priority !== priorityFilter) return false;
-    if (productFilter !== 'all' && c.product_id !== productFilter) return false;
-    if (channelFilter !== 'all' && c.channel_id !== channelFilter) return false;
-    if (categoryFilter !== 'all' && c.conduct_risk_category_id !== categoryFilter) return false;
-    if (intakeFilter !== 'all' && c.intake_source !== intakeFilter) return false;
-    if (slaFilter !== 'all' && sla !== slaFilter) return false;
-    if (teamFilter !== 'all' && c.assigned_team !== teamFilter) return false;
-    if (triageFilter !== 'all' && c.triage_source !== triageFilter) return false;
-    if (vulnerableFilter === 'yes' && !c.vulnerability_indicator) return false;
-    if (vulnerableFilter === 'no' && c.vulnerability_indicator) return false;
-    return true;
-  });
+  // Filtering + search + sort + pagination are all server-side now.
+  // `complaints` is already the paginated slice — no local filtering.
+  const filtered = complaints;
 
   const filteredIds = useMemo(() => filtered.map(c => c.id), [filtered]);
   const { byEntityId: totalSlaByComplaint } = useWorkflowTotalSla({
