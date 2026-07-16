@@ -413,11 +413,11 @@ export default function ComplaintDetail() {
             }}
             title="Override complaint severity"
             description={`Changing severity from ${severityOverride.from} to ${severityOverride.to} contradicts the current triage classification. Provide a written justification.`}
-            onOverridden={async () => {
+            onOverridden={async (overrideId) => {
               const next = severityOverride.to;
               const from = severityOverride.from;
               setSeverityOverride(null);
-              await applySeverityChange(next, from);
+              await applySeverityChange(next, from, `Override justification captured (override_id=${overrideId})`);
             }}
           />
         )}
