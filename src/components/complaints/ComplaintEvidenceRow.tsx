@@ -24,7 +24,7 @@ const No = () => <XCircle className="h-4 w-4 text-muted-foreground inline-block"
 export function ComplaintEvidenceRow({ complaint: c, refs, onReprintAck, onRetryTriage }: Props) {
   const classificationComplete = !!(c.conduct_risk_category_id && c.product_id && c.channel_id && c.severity && c.priority);
   const routingAssigned = !!(c.assigned_team || c.investigator_id);
-  const sla = computeSlaStatus(c.created_at, c.sla_due_at, c.sla_days, c.resolved_at);
+  const sla = slaBucketFromRow(c);
   const inv = c.investigator_id ? refs.profiles.get(c.investigator_id) : null;
 
   const Item = ({ label, ok, hint }: { label: string; ok: boolean; hint?: string }) => (
