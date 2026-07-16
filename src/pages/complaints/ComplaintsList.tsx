@@ -69,50 +69,228 @@ const INTAKE_SOURCES = ['consumer_portal', 'internal', 'staff_intake', 'referral
 
 interface RefLookup { id: string; name: string }
 
+interface RefLookup { id: string; name: string }
+
+// URL keys are the single source of truth for list state — every change writes
+// back to the URL, and every read re-triggers the RPC via useQuery.
+const URL_KEYS = [
+  'page','pageSize','sort','dir','q',
+  'status','severity','priority','sla','type','product','channel','category',
+  'intake','team','triage','vulnerable',
+] as const;
+type UrlKey = typeof URL_KEYS[number];
+
 export default function ComplaintsList() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [complaints, setComplaints] = useState<any[]>([]);
-  const [complaintTypes, setComplaintTypes] = useState<RefLookup[]>([]);
-  const [categories, setCategories] = useState<RefLookup[]>([]);
-  const [products, setProducts] = useState<RefLookup[]>([]);
-  const [channels, setChannels] = useState<RefLookup[]>([]);
-  const [licenseeMap, setLicenseeMap] = useState<Map<string, string>>(new Map());
-  const [profileMap, setProfileMap] = useState<Map<string, { full_name: string | null; email: string | null }>>(new Map());
-  const [assigneesByComplaint, setAssigneesByComplaint] = useState<Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // "open" isn't a real complaint status (submitted/under_investigation/resolved/closed
-  // are) — the dashboard's "Open" tile means "not yet resolved or closed", so it's
-  // handled as a broader bucket rather than an exact statusFilter match.
-  const dashboardOpenBucket = searchParams.get('status') === 'open';
+  const isInternal = !!(user && INTERNAL_ROLES.includes(user.role));
 
-  useEffect(() => {
-    const status = searchParams.get('status');
-    if (status && status !== 'open' && status in STATUS_LABELS) {
-      setStatusFilter(status);
+  // --- URL-backed list state ---
+  const getParam = (k: UrlKey, d = '') => searchParams.get(k) ?? d;
+  const page = Math.max(1, parseInt(getParam('page','1'), 10) || 1);
+  const pageSize = [25,50,100].includes(parseInt(getParam('pageSize','25'),10))
+    ? parseInt(getParam('pageSize','25'),10) : 25;
+  const sortCol = getParam('sort','created_at');
+  const sortDir = (getParam('dir','desc') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
+  const search = getParam('q','');
+  const statusFilter   = getParam('status','all');
+  const severityFilter = getParam('severity','all');
+  const priorityFilter = getParam('priority','all');
+  const slaFilter      = getParam('sla','all');
+  const typeFilter     = getParam('type','all');
+  const productFilter  = getParam('product','all');
+  const channelFilter  = getParam('channel','all');
+  const categoryFilter = getParam('category','all');
+  const intakeFilter   = getParam('intake','all');
+  const teamFilter     = getParam('team','all');
+  const triageFilter   = getParam('triage','all');
+  const vulnerableFilter = getParam('vulnerable','all');
+
+  const updateUrl = useCallback((patch: Partial<Record<UrlKey,string|null>>, opts?: { resetPage?: boolean }) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [k,v] of Object.entries(patch)) {
+      if (v === null || v === '' || v === 'all') next.delete(k);
+      else next.set(k, String(v));
     }
-    const sev = searchParams.get('severity');
-    if (sev && ['critical', 'high', 'medium', 'low'].includes(sev)) setSeverityFilter(sev);
-    const pri = searchParams.get('priority');
-    if (pri && ['p1', 'p2', 'p3', 'p4'].includes(pri)) setPriorityFilter(pri);
-    const sla = searchParams.get('sla');
-    if (sla && ['on_track', 'at_risk', 'breached', 'resolved'].includes(sla)) setSlaFilter(sla);
-  }, [searchParams]);
+    if (opts?.resetPage) next.delete('page');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  const [severityFilter, setSeverityFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [productFilter, setProductFilter] = useState('all');
-  const [channelFilter, setChannelFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [intakeFilter, setIntakeFilter] = useState('all');
-  const [slaFilter, setSlaFilter] = useState('all');
-  const [teamFilter, setTeamFilter] = useState('all');
-  const [triageFilter, setTriageFilter] = useState('all');
-  const [vulnerableFilter, setVulnerableFilter] = useState('all');
+  // Debounced search — write to URL after 300ms of no typing
+  const [searchDraft, setSearchDraft] = useState(search);
+  useEffect(() => { setSearchDraft(search); }, [search]);
+  const searchTimer = useRef<number | undefined>(undefined);
+  const onSearchChange = (v: string) => {
+    setSearchDraft(v);
+    if (searchTimer.current) window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => {
+      updateUrl({ q: v }, { resetPage: true });
+    }, 300);
+  };
+
+  // --- Filters payload built server-side ---
+  const filtersPayload = useMemo(() => {
+    const p: Record<string, unknown> = {};
+    if (statusFilter !== 'all') p.status = statusFilter;
+    if (severityFilter !== 'all') p.severity = severityFilter;
+    if (priorityFilter !== 'all') p.priority = priorityFilter;
+    if (slaFilter !== 'all') p.sla = slaFilter;
+    if (typeFilter !== 'all') p.complaint_type_id = typeFilter;
+    if (productFilter !== 'all') p.product_id = productFilter;
+    if (channelFilter !== 'all') p.channel_id = channelFilter;
+    if (categoryFilter !== 'all') p.conduct_risk_category_id = categoryFilter;
+    if (intakeFilter !== 'all') p.intake_source = intakeFilter;
+    if (teamFilter !== 'all') p.assigned_team = teamFilter;
+    if (triageFilter !== 'all') p.triage_override_status = triageFilter;
+    if (vulnerableFilter === 'yes') p.vulnerability_indicator = true;
+    if (vulnerableFilter === 'no')  p.vulnerability_indicator = false;
+    return p;
+  }, [statusFilter,severityFilter,priorityFilter,slaFilter,typeFilter,productFilter,channelFilter,categoryFilter,intakeFilter,teamFilter,triageFilter,vulnerableFilter]);
+
+  // --- Reference data queries with explicit error handling ---
+  const typesQ = useQuery<RefLookup[]>({
+    queryKey: ['complaint_types_ref'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+    throwOnError: false,
+  });
+  const categoriesQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_categories_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_risk_categories').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+  const productsQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_products_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_products').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+  const channelsQ = useQuery<RefLookup[]>({
+    queryKey: ['conduct_channels_ref'],
+    enabled: isInternal,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conduct_channels').select('id, name').order('name');
+      if (error) throw error;
+      return (data as RefLookup[]) ?? [];
+    },
+  });
+
+  const complaintTypes = typesQ.data ?? [];
+  const categories     = categoriesQ.data ?? [];
+  const products       = productsQ.data ?? [];
+  const channels       = channelsQ.data ?? [];
+
+  // --- Server-side list query ---
+  const listQ = useQuery<{ total: number; rows: any[]; page: number; page_size: number }>({
+    queryKey: ['complaints_list', { page, pageSize, sortCol, sortDir, search, filtersPayload, isInternal }],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('list_complaints', {
+        _filters: filtersPayload,
+        _sort: `${sortCol}.${sortDir}`,
+        _page: page,
+        _page_size: pageSize,
+        _search: search.trim() ? search.trim() : undefined,
+      });
+      if (error) throw error;
+      const payload = (data ?? {}) as any;
+      return {
+        total: Number(payload.total ?? 0),
+        rows: Array.isArray(payload.rows) ? payload.rows : [],
+        page: Number(payload.page ?? 1),
+        page_size: Number(payload.page_size ?? pageSize),
+      };
+    },
+    placeholderData: (prev) => prev,
+    throwOnError: false,
+  });
+
+  const complaints = listQ.data?.rows ?? [];
+  const totalCount = listQ.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const loading = listQ.isLoading || listQ.isFetching;
+
+  // --- Batch resolve licensees + profiles + assignees for the current page only ---
+  const enrichmentIds = useMemo(() => {
+    const licIds = Array.from(new Set(complaints.map((r: any) => r.licensee_id).filter(Boolean))) as string[];
+    const profIds = Array.from(new Set(
+      complaints.flatMap((r: any) => [r.investigator_id, r.complainant_id]).filter(Boolean),
+    )) as string[];
+    const cids = complaints.map((r: any) => r.id) as string[];
+    return { licIds, profIds, cids };
+  }, [complaints]);
+
+  const licenseesQ = useQuery({
+    queryKey: ['complaints_list_licensees', enrichmentIds.licIds],
+    enabled: isInternal && enrichmentIds.licIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('licensees').select('id, legal_name, name').in('id', enrichmentIds.licIds);
+      if (error) throw error;
+      const m = new Map<string, string>();
+      (data ?? []).forEach((l: any) => m.set(l.id, l.legal_name || l.name || '—'));
+      return m;
+    },
+  });
+  const profilesQ = useQuery({
+    queryKey: ['complaints_list_profiles', enrichmentIds.profIds],
+    enabled: isInternal && enrichmentIds.profIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name, email').in('id', enrichmentIds.profIds);
+      if (error) throw error;
+      const m = new Map<string, { full_name: string | null; email: string | null }>();
+      (data ?? []).forEach((p: any) => m.set(p.id, { full_name: p.full_name, email: p.email }));
+      return m;
+    },
+  });
+  const assigneesQ = useQuery({
+    queryKey: ['complaints_list_assignees', enrichmentIds.cids],
+    enabled: isInternal && enrichmentIds.cids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: enrichmentIds.cids });
+      if (error) throw error;
+      const m = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+      ((data as any[]) ?? []).forEach((row: any) => {
+        const existing = m.get(row.complaint_id) || { role: row.step_role || null, users: [] };
+        if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
+          existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
+        }
+        existing.role = existing.role || row.step_role || null;
+        m.set(row.complaint_id, existing);
+      });
+      return m;
+    },
+  });
+
+  const licenseeMap = licenseesQ.data ?? new Map<string, string>();
+  const profileMap  = profilesQ.data  ?? new Map<string, { full_name: string | null; email: string | null }>();
+  const assigneesByComplaint = assigneesQ.data ?? new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
+
+  const refs = useMemo(() => ({
+    types: new Map(complaintTypes.map(t => [t.id, t.name])),
+    categories: new Map(categories.map(t => [t.id, t.name])),
+    products: new Map(products.map(t => [t.id, t.name])),
+    channels: new Map(channels.map(t => [t.id, t.name])),
+    licensees: licenseeMap,
+    profiles: profileMap,
+  }), [complaintTypes, categories, products, channels, licenseeMap, profileMap]);
+
+  const refetchAll = () => {
+    qc.invalidateQueries({ queryKey: ['complaints_list'] });
+  };
+
+  // --- Local UI state (dialogs, expanded rows, ack, new-complaint form) ---
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -123,18 +301,20 @@ export default function ComplaintsList() {
     if (!detailDialog?.id) { setDetailAttachments([]); return; }
     let cancelled = false;
     (async () => {
-      const { data: ev } = await supabase
+      const { data: ev, error } = await supabase
         .from('complaint_evidence' as any)
         .select('label, file_upload_id')
         .eq('complaint_id', detailDialog.id);
-      const rows = (ev as any[]) || [];
+      if (error) { if (!cancelled) toast.error(`Attachments failed to load: ${error.message}`); return; }
+      const rows = (ev as any[]) ?? [];
       const ids = rows.map(r => r.file_upload_id).filter(Boolean);
       if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
-      const { data: files } = await supabase
+      const { data: files, error: fErr } = await supabase
         .from('file_uploads' as any)
         .select('id, file_name, file_path, file_size')
         .in('id', ids);
-      const fmap = new Map(((files as any[]) || []).map(f => [f.id, f]));
+      if (fErr) { if (!cancelled) toast.error(`File details failed: ${fErr.message}`); return; }
+      const fmap = new Map(((files as any[]) ?? []).map(f => [f.id, f]));
       const atts = rows.map(r => {
         const f = fmap.get(r.file_upload_id);
         return {
@@ -159,105 +339,16 @@ export default function ComplaintsList() {
 
   const [ackDialog, setAckDialog] = useState<ComplaintAckInput | null>(null);
   const [ackVariant, setAckVariant] = useState<'applicant' | 'internal'>('internal');
-  const [detailProfile, setDetailProfile] = useState<any | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
   const [newSeverity, setNewSeverity] = useState('medium');
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
-  const [resolution, setResolution] = useState('');
-  const [updating, setUpdating] = useState(false);
 
-  const isInternal = !!(user && INTERNAL_ROLES.includes(user.role));
+  // Legacy dashboard link support: /complaints?status=open filters to open buckets
+  // via the RPC's `_filters.status='open'` handling (already implemented server-side).
 
-  const refs = useMemo(() => ({
-    types: new Map(complaintTypes.map(t => [t.id, t.name])),
-    categories: new Map(categories.map(t => [t.id, t.name])),
-    products: new Map(products.map(t => [t.id, t.name])),
-    channels: new Map(channels.map(t => [t.id, t.name])),
-    licensees: licenseeMap,
-    profiles: profileMap,
-  }), [complaintTypes, categories, products, channels, licenseeMap, profileMap]);
-
-  const loadComplaints = async () => {
-    setLoading(true);
-    // Canonical: list_complaints RPC handles regulator-scoping, permission
-    // filtering, and returns server-computed sla_status.
-    const listReq = (supabase as any).rpc('list_complaints', {
-      _filters: {},
-      _sort: 'created_at.desc',
-      _page: 1,
-      _page_size: 200,
-      _search: null,
-    });
-
-    const promises: any[] = [
-      listReq,
-      supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
-    ];
-    if (isInternal) {
-      promises.push(
-        supabase.from('conduct_risk_categories').select('id, name').order('name'),
-        supabase.from('conduct_products').select('id, name').order('name'),
-        supabase.from('conduct_channels').select('id, name').order('name'),
-      );
-    }
-    const results = await Promise.all(promises);
-    if (results[0].error) {
-      toast.error(`Failed to load complaints: ${results[0].error.message}`);
-      setLoading(false);
-      return;
-    }
-    const rows = ((results[0].data as any)?.rows || []) as any[];
-    setComplaints(rows);
-    setComplaintTypes((results[1].data || []) as RefLookup[]);
-    if (isInternal) {
-      setCategories((results[2].data || []) as RefLookup[]);
-      setProducts((results[3].data || []) as RefLookup[]);
-      setChannels((results[4].data || []) as RefLookup[]);
-
-      // Batch resolve licensees + profiles
-      const licIds = Array.from(new Set(rows.map(r => r.licensee_id).filter(Boolean)));
-      const profIds = new Set<string>(
-        rows.flatMap(r => [r.investigator_id, r.complainant_id]).filter(Boolean) as string[]
-      );
-
-      // Resolve workflow assignees for each complaint via RPC (bypasses RLS/N+1 issues)
-      const complaintIds = rows.map(r => r.id);
-      const asgMap = new Map<string, { role: string | null; users: Array<{ id: string; full_name: string | null; email: string | null }> }>();
-      if (complaintIds.length) {
-        const { data: asg, error: asgErr } = await (supabase as any).rpc('get_complaint_current_assignees', { _complaint_ids: complaintIds });
-        if (asgErr) {
-          console.error('get_complaint_current_assignees failed', asgErr);
-        }
-        ((asg as any[]) || []).forEach((row: any) => {
-          const existing = asgMap.get(row.complaint_id) || { role: row.step_role || null, users: [] };
-          if (row.user_id && !existing.users.find(u => u.id === row.user_id)) {
-            existing.users.push({ id: row.user_id, full_name: row.full_name, email: row.email });
-          }
-          existing.role = existing.role || row.step_role || null;
-          asgMap.set(row.complaint_id, existing);
-        });
-      }
-
-      const [licRes, profRes] = await Promise.all([
-        licIds.length ? supabase.from('licensees').select('id, legal_name, name').in('id', licIds) : Promise.resolve({ data: [] }),
-        profIds.size ? supabase.from('profiles').select('id, full_name, email').in('id', Array.from(profIds)) : Promise.resolve({ data: [] }),
-      ] as any);
-      const lm = new Map<string, string>();
-      ((licRes as any).data || []).forEach((l: any) => lm.set(l.id, l.legal_name || l.name || '—'));
-      setLicenseeMap(lm);
-      const pm = new Map<string, { full_name: string | null; email: string | null }>();
-      ((profRes as any).data || []).forEach((p: any) => pm.set(p.id, { full_name: p.full_name, email: p.email }));
-      setProfileMap(pm);
-
-      setAssigneesByComplaint(asgMap);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { loadComplaints(); }, [isInternal, user?.id]);
 
   const handleCreate = async () => {
     if (!newSubject.trim() || !newDesc.trim() || !user) {
