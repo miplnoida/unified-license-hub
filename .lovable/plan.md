@@ -1,178 +1,142 @@
+# Complete Complaint Management Workflow Migration
 
-# Complaint Management Workflow — Completion Plan
-
-Goal: make the complaint + enforcement lifecycle 100% driven by workflow configuration. React becomes a thin presentation layer that only calls `execute_complaint_workflow_action` and `get_complaint_tracking`. All notifications go through the durable outbox.
-
----
+Finish converting the Complaints + Enforcement lifecycle to a fully configuration-driven workflow. No lifecycle logic, recipient selection, or status transitions may remain in React or in hardcoded SQL branches.
 
 ## 1. Frontend cleanup (presentation-only)
 
-**`src/pages/enforcement/EnforcementDetail.tsx`**
-- Remove: direct `enforcement_actions` updates, `enforcement_case_events` inserts, `notifyComplaintLifecycle` calls, hardcoded status arrays, all `canIssueNotice / canRecordResponse / canDecide / canAppeal / canCloseOrWithdraw` gates, any `status === '…'` action visibility.
-- Replace lifecycle buttons with `<WorkflowActionPanel complaintId={linkedComplaintId} />` driven by `get_complaint_available_actions`.
-- Keep only: header, read-only details, tabs, tracking timeline, evidence/correspondence panels.
-
 **`src/pages/complaints/ComplaintDetail.tsx`**
-- Delete legacy Assign / Resolve / Close / Escalate cards.
-- Sole action entry point: `WorkflowActionPanel`.
-- Sole timeline source: `get_complaint_tracking` via `ComplaintTrackingTimeline`.
+- Delete remaining lifecycle state: `resolution*`, `escalation*`, `closeDialog*`, `closeReason`, `closeCategory`, any residual mutation handlers, and unused imports.
+- Actions tab reduced to non-lifecycle data helpers only (severity mapping, licensee link) — or removed entirely if those become workflow actions.
+- Single lifecycle entry point: `<WorkflowActionPanel />` inside the Tracking tab.
 
-**`src/lib/complaintNotifications.ts`**
-- Delete file. Purge all `notifyComplaintLifecycle` imports.
+**`src/pages/enforcement/EnforcementDetail.tsx`**
+- Confirm no direct writes to `enforcement_actions` / `enforcement_case_events`; render `<WorkflowActionPanel complaintId={linkedComplaintId} />` and `<ComplaintTrackingTimeline />` only.
 
-**Grep gates in CI test** (`src/test/complaintWorkflowGuardrails.test.ts`, new):
-- Assert `rg` finds zero matches for: `notifyComplaintLifecycle`, direct `enforcement_actions`/`enforcement_case_events` mutations in `src/`, `canIssueNotice|canRecordResponse|canDecide|canAppeal|canCloseOrWithdraw`, `status === 'notice_issued'|'decided'` under `src/pages/enforcement`.
+**Portals**
+- Mount `<ComplaintTrackingTimeline />` on the complainant portal detail page and the licensee complaint detail page (visibility handled by RPC).
 
----
+## 2. Concurrency fix
 
-## 2. Workflow schema — configuration surface
+- `get_complaint_tracking` and `get_complaint_available_actions` return `workflow_instance_updated_at`.
+- `WorkflowActionPanel` passes that timestamp (not `complaints.updated_at`) as `_expected_updated_at` to `execute_complaint_workflow_action`.
+- RPC compares against `workflow_instances.updated_at` under `FOR UPDATE`; returns `STALE_STATE` on mismatch.
 
-Migration `complaint_workflow_config_v2`:
+## 3. Configuration-driven notifications
 
-- `approval_step_actions`: ensure columns `assignment_rule jsonb`, `mutation_spec jsonb`, `required_fields jsonb`, `target_step_key text`, `sort_order int`, `require_approval bool`, `visibility jsonb` (who can see the action button), `sla_minutes int`.
-- New `approval_action_notification_rules` (per step_action) — replaces hardcoded recipient SQL:
-  ```
-  id, step_action_id, event_key, channel ('in_app'|'email'|'sms'),
-  recipient_rule text,        -- see §3
-  recipient_config jsonb,     -- role_key / team_id / payload_field / email / regulator_scope
-  template_key text,          -- FK to notification_templates
-  is_enabled bool, sort_order int
-  ```
-  GRANT + RLS (admin-only write; read to authenticated).
-- New `approval_step_assignment_rules` (optional overrides) — same shape idea: `rule_kind`, `config jsonb`.
+New table `approval_action_notification_rules` (per action):
+```
+action_id, recipient_rule, channel, template_key, cc_rules jsonb,
+payload_user_key text, configured_email text, active bool
+```
 
-## 3. Assignment engine (SQL)
+Recipient rules supported (resolved in a SQL helper `resolve_notification_recipients(_instance_id, _action_id, _actor_id, _payload)`):
+- current_assignee, next_assignee, complainant, licensee_primary, licensee_secondary,
+  assigned_role, assigned_team, regulator_users, previous_actor, payload_user, configured_email.
 
-`resolve_workflow_assignee(_complaint_id, _step_id, _payload jsonb)` returns `(user_id, role_key, team_id)`.
+`execute_complaint_workflow_action` calls the resolver and inserts only into `notification_outbox` — no direct email/in-app dispatch. Admin UI edits the rules; no code changes needed to add recipients.
 
-Supported `rule_kind`:
-- `role` — first active user with role in regulator scope
-- `user` — fixed user_id
-- `team` — team_id, no specific user
-- `investigator` — current investigator on complaint
-- `previous_actor` — last actor in `approval_actions`
-- `payload_user` — `_payload->>'assignee_id'`
-- `regulator_scope` — regulator admins for complaint's regulator
-- `inherit_current` — keep current assignee
-- `expression` — safe jsonlogic evaluator against complaint + payload
+## 4. Assignment engine
 
-Persist on `workflow_instances`: `assigned_user_id`, `assigned_role`, `assigned_team_id`, `pending_action`, `due_at`.
+Extend `approval_steps.assignment_rule jsonb` supported kinds:
+- role, user, team, investigator, previous_actor, payload_user, regulator_scope, inherit, expression.
 
-## 4. Permission engine (SQL)
+Helper `resolve_step_assignment(_instance_id, _step_id, _actor_id, _payload) returns (user_id, role, team, due_at)`; called on every transition and stored on `workflow_instances` + `approval_actions` (assigned_user_id, assigned_role, assigned_team, pending_action, due_at).
 
-`can_execute_complaint_action(_user_id, _complaint_id, _action_id)`:
-- authenticated
-- regulator scope match
-- one of: assigned_user / assigned_team member / configured role / delegated
-- step is current
-- required approvals satisfied
-- action visibility allows role
+Only the resolved user/role/team may execute the pending action (enforced in RPC).
 
-Called at top of `execute_complaint_workflow_action`; raises `ROLE_NOT_PERMITTED` on fail.
+## 5. Permission engine
 
-## 5. Rewrite `execute_complaint_workflow_action`
+`execute_complaint_workflow_action` validates in this order and raises structured errors:
+1. `auth.uid()` present.
+2. Regulator scope matches complaint.
+3. Actor is assigned user OR holds assigned role OR is in assigned team OR delegated (via `delegation_rules`) OR configured on the action's allowed roles.
+4. Action is available at current step.
+5. Approval requirement satisfied (min approvers / distinct approvers).
+6. Required fields present.
 
-Order:
-1. Lock complaint + workflow_instance row (`FOR UPDATE`), check `_expected_updated_at`.
-2. Permission check.
-3. Validate `required_fields` against `_payload`.
-4. Apply `mutation_spec` (declarative jsonb: `set_complaint_status`, `set_enforcement_status`, `insert_enforcement_event`, `set_field`, `create_enforcement_case`, `record_payment`, `record_appeal`, …). No hardcoded per-action branches.
-5. Insert `approval_actions` row (audit).
-6. Advance to `target_step_key`; call `resolve_workflow_assignee`; update instance.
-7. **Notifications**: loop `approval_action_notification_rules` for the action, resolve recipients via `resolve_notification_recipients(rule, complaint, action_ctx)`, insert `notification_outbox` rows only. No direct sends, no `notifications` inserts.
-8. Return new state + available_actions for the next step.
+`get_complaint_available_actions` uses the same predicate — UI is a mirror, not the source of truth.
 
-`resolve_notification_recipients(rule_kind, config, ctx)` supports:
-`current_assignee, next_assignee, workflow_assigned_user, assigned_team, assigned_role, complainant, licensee_primary, licensee_secondary, regulator_users, previous_actor, payload_user, configured_email`.
+## 6. Notification worker hardening
 
-## 6. Notification outbox worker
+Rewrite `process-notification-outbox`:
+- New RPC `claim_notification_outbox(_limit int)` runs `SELECT ... FOR UPDATE SKIP LOCKED` and flips rows to `processing` with a `claimed_at` + `claimed_by` (function invocation id).
+- Worker processes claimed rows, marks `sent` or increments `retry_count` with exponential backoff (`2^n` minutes, capped).
+- After `MAX_ATTEMPTS` → `dead`. Admin retry RPC `retry_dead_outbox(_ids uuid[])`.
+- Idempotency via existing dedupe unique index; add `processing` status to enum; add stuck-claim reaper (rows in `processing` > 10 min → `pending`).
 
-`supabase/functions/process-notification-outbox/index.ts` already exists — harden it:
-- Batch 50, `FOR UPDATE SKIP LOCKED` via RPC `claim_outbox_batch`.
-- Per row: render template (`notification_templates` by `template_key`), then:
-  - `in_app` → insert `notifications`
-  - `email` → invoke `dispatch-notification-event` with pre-rendered subject/body
-  - `sms` → stub (log skipped)
-- Retry with exponential backoff (2ⁿ min, cap 60); after 6 attempts → `dead`.
-- Idempotency via existing unique `(event_key, entity_id, recipient, channel, action_history_id)`.
-- Admin retry RPC `retry_dead_outbox(_id)`.
-- pg_cron: keep every-minute schedule.
+## 7. Tracking RPC completion
 
-## 7. Tracking unification
+`get_complaint_tracking` returns:
+- steps: completed / current / upcoming with labels.
+- current: step, next action, assigned user/role/team, SLA status, due_at.
+- history: workflow actions + enforcement events + audit entries, merged and time-ordered.
+- `workflow_instance_updated_at`.
+- Visibility: internal users see all; complainant/licensee see only events whose action row has `public_visible = true` (new column on `approval_step_actions`).
 
-Rewrite `get_complaint_tracking(_complaint_id, _viewer_role)`:
-- Returns `{ steps[], current_step, next_action, assigned_user, assigned_role, assigned_team, sla, due_at, history[] }`.
-- `history[]` merges: `approval_actions`, `enforcement_case_events`, `audit_logs` (where entity matches), `notification_outbox` (sent items only).
-- Filter by viewer:
-  - internal → all
-  - licensee / complainant → only rows where `approval_step_actions.visibility.public = true` OR event is in configured public list.
-- No frontend direct reads of `audit_logs` / `enforcement_case_events` for complaints.
+## 8. Portal integration
 
-Wire timeline into:
-- `ComplaintDetail` (Tracking tab)
-- `EnforcementDetail` (Tracking tab)
-- Licensee portal complaint page
-- Complainant portal complaint page
+- Complainant complaint detail page: embed `<ComplaintTrackingTimeline />`.
+- Licensee complaint detail page (if separate): same.
+- Public events include: received, under review, investigation, enforcement, notice issued, response received, decision, payment, appeal, resolved, closed — driven by `public_visible` flag on configured actions (seeded in migration).
 
-## 8. Workflow configuration seed
+## 9. Legacy purge
 
-Update the seeded 12-step "Complaint Management Workflow":
-- Add per-action `assignment_rule`, `required_fields`, `mutation_spec`, `target_step_key`, `visibility`.
-- Insert `approval_action_notification_rules` for every action covering: filed, assigned, reassigned, investigation_started, escalated, notice_issued, response_received, decision_recorded, payment_recorded, appeal_filed, resolved, closed, withdrawn, approval_requested, approval_completed, overdue, sla_breach.
-- Two channels each (`in_app` + `email`) with existing templates; create missing `notification_templates` for enforcement events.
-- SLA per step.
+Remove/verify absent:
+- `src/lib/complaintNotifications.ts` (already deleted).
+- Any remaining direct updates to `complaints.status`, `enforcement_actions.*`, `enforcement_case_events` from complaint/enforcement detail pages.
+- Legacy dialogs / handlers listed in §1.
+- Any hardcoded status arrays gating UI actions in complaint pages.
 
-## 9. Tests (`vitest`)
+## 10. Tests (real, not grep-only)
 
-New files under `src/test/`:
-- `complaintWorkflowGuardrails.test.ts` — grep checks per §1.
-- `complaintWorkflowTransitions.test.ts` — mocked RPC transitions.
-- `complaintPermissionEngine.test.ts` — allowed/denied matrix.
-- `complaintAssignmentResolver.test.ts` — each `rule_kind`.
-- `complaintNotificationRecipients.test.ts` — each recipient rule.
-- `complaintOutboxWorker.test.ts` — retry/backoff/dead-letter/idempotency.
-- `complaintTrackingVisibility.test.ts` — internal vs licensee vs complainant views.
-- `enforcementLifecycleThroughWorkflow.test.ts` — notice → response → decision → close all via RPC.
-- `complaintAdminConfigChange.test.ts` — changing a step's notification rule reflects at runtime.
+Vitest + SQL fixtures (pgTAP-style via `supabase--read_query` scripts):
+- Workflow transition matrix (each configured step → allowed actions).
+- Authorization: assigned user allowed; unassigned denied; delegated allowed; wrong regulator denied.
+- Assignment resolution per rule kind.
+- Notification recipient resolution per rule kind.
+- Outbox: claim under concurrency (two workers, no double-send), retry backoff, dead-letter, admin retry, idempotent re-insert.
+- Concurrency: stale `workflow_instance_updated_at` → `STALE_STATE`.
+- Tracking visibility: internal vs complainant vs licensee.
+- Enforcement lifecycle driven only through workflow actions.
+- Keep grep guardrail as smoke, not primary coverage.
 
-SQL smoke: `scripts/complaint-workflow-smoke.sql`.
+## 11. Verification gates
 
-## 10. Verification gates
+Before finishing:
+```
+bunx tsc --noEmit
+bun run lint
+bun run build
+bun run test
+```
+Plus: run `security--run_security_scan`, review outbox worker with two parallel invocations against a seeded complaint, and confirm portal tracking renders for a complainant test user.
 
-Run before final commit:
-- `bunx tsgo --noEmit`
-- `bun run lint`
-- `bun run build`
-- `bun run test`
-- Grep set from the task (all must return zero).
+## Technical details (schema)
 
-## Technical details
+```sql
+-- approval_step_actions
+ALTER TABLE approval_step_actions
+  ADD COLUMN IF NOT EXISTS public_visible boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS assignment_rule jsonb,
+  ADD COLUMN IF NOT EXISTS mutation_spec jsonb;
 
-**Files changed (new/modified)**
-- `src/pages/enforcement/EnforcementDetail.tsx` (major rewrite → presentation only)
-- `src/pages/complaints/ComplaintDetail.tsx` (remove legacy cards)
-- `src/components/complaints/WorkflowActionPanel.tsx` (already dynamic — extend for enforcement complaint linkage)
-- `src/components/complaints/ComplaintTrackingTimeline.tsx` (viewer-role prop, merged history)
-- `src/pages/portal/LicenseeComplaintDetail.tsx`, `src/pages/portal/ComplainantComplaintDetail.tsx` — mount tracking
-- Delete: `src/lib/complaintNotifications.ts`
-- `supabase/functions/process-notification-outbox/index.ts` — harden
-- `supabase/functions/dispatch-notification-event/index.ts` — accept pre-rendered payload
-- Tests as above
+-- notification rules
+CREATE TABLE approval_action_notification_rules (
+  id uuid pk, action_id uuid fk approval_step_actions,
+  recipient_rule text, channel text, template_key text,
+  payload_user_key text, configured_email text,
+  cc_rules jsonb default '[]', active boolean default true,
+  created_at, updated_at
+);
 
-**Migrations**
-1. `complaint_workflow_config_v2` — schema for rules tables + columns.
-2. `complaint_workflow_rpcs_v2` — rewrite `execute_complaint_workflow_action`, add `resolve_workflow_assignee`, `resolve_notification_recipients`, `can_execute_complaint_action`, `claim_outbox_batch`, `retry_dead_outbox`, rewrite `get_complaint_tracking`.
-3. `complaint_workflow_seed_v2` — seed 12-step config + notification rules + templates (as `insert` tool, since it contains data).
+-- outbox
+ALTER TABLE notification_outbox
+  ADD COLUMN IF NOT EXISTS claimed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS claimed_by text;
+-- extend status check to include 'processing'
+```
 
-**Rollback**: previous RPC versions kept as `*_legacy` for one release; feature flag `complaint_workflow_v2_enabled` in `site_settings` gates the RPC selection in the frontend during rollout (optional, off by default only if you want a safety net).
+Grants + RLS for both new/altered tables; service_role for edge functions; authenticated read for config where appropriate.
 
----
-
-## Out of scope
-- Renaming the Approval Workflow module.
-- Non-complaint entities (applications, returns) — untouched.
-- SMS delivery (stubbed; outbox row created but marked skipped).
-
-## Known limitations after ship
-- `expression` assignment rule uses a minimal jsonlogic subset — full DSL later.
-- Historical complaints predating v2 keep their prior audit trail; new events append via the workflow.
+## Deliverables in final report
+Files changed, migrations, RPCs modified, workflow config changes, notification rule seeds, assignment rule seeds, test results (tsc / lint / build / test outputs), regression summary, remaining limitations, commit hash.
