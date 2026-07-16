@@ -228,6 +228,44 @@ export default function ViewReturnPage() {
 
   return (
     <DashboardLayout>
+      <ViewReturnBody
+        returnData={returnData}
+        normalizedStatus={normalizedStatus}
+        activeRequest={activeRequest}
+        orderedForms={orderedForms}
+        tabs={tabs}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        valuesByForm={valuesByForm}
+        versionByForm={versionByForm}
+        comments={comments}
+        id={id!}
+        navigate={navigate}
+      />
+    </DashboardLayout>
+  );
+}
+
+function ViewReturnBody({ returnData, normalizedStatus, activeRequest, orderedForms, tabs, activeTab, setActiveTab, valuesByForm, versionByForm, comments, id, navigate }: any) {
+  const { data: editRequests = [] } = useReturnEditRequests(id);
+  const requestEdit = useRequestReturnEdit();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [reason, setReason] = useState('');
+
+  const pendingEditReq = editRequests.find((r: any) => r.status === 'pending');
+  const latestEditReq = editRequests[0]; // ordered by created_at desc
+  const canRequestEdit = ['SUB', 'VAL'].includes(normalizedStatus) && !pendingEditReq;
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) return;
+    try {
+      await requestEdit.mutateAsync({ returnId: id, reason: reason.trim() });
+      setDialogOpen(false);
+      setReason('');
+    } catch { /* toast handled in hook */ }
+  };
+
+  return (
       <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
@@ -240,6 +278,11 @@ export default function ViewReturnPage() {
             {['TEMP', 'WIP', 'TBR'].includes(normalizedStatus) && (
               <Button size="sm" onClick={() => navigate(`/entity/returns/${id}/fill`)}><Pencil className="h-4 w-4 mr-2" />Edit & Resubmit</Button>
             )}
+            {canRequestEdit && (
+              <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+                <MessageSquareWarning className="h-4 w-4 mr-2" />Request Edit
+              </Button>
+            )}
           </div>
         </div>
 
@@ -250,6 +293,23 @@ export default function ViewReturnPage() {
         {normalizedStatus === 'TBR' && activeRequest && (
           <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription><strong>Resubmission Required:</strong> {activeRequest.reasons}</AlertDescription></Alert>
         )}
+        {pendingEditReq && (
+          <Alert className="border-amber-500 bg-amber-50">
+            <Clock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-900">
+              <strong>Edit request pending admin review.</strong> Submitted {new Date(pendingEditReq.requested_at).toLocaleString()} — "{pendingEditReq.reason}"
+            </AlertDescription>
+          </Alert>
+        )}
+        {!pendingEditReq && latestEditReq?.status === 'denied' && ['SUB', 'VAL'].includes(normalizedStatus) && (
+          <Alert className="border-red-400 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-900">
+              <strong>Your edit request was denied.</strong>{latestEditReq.decision_comment ? ` — ${latestEditReq.decision_comment}` : ''} You can submit a new request if needed.
+            </AlertDescription>
+          </Alert>
+        )}
+
 
         {/* Read-only forms */}
         {tabs.length > 0 && (
