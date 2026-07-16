@@ -219,6 +219,8 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           )}
           {corrLoading ? (
             <div className="py-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : correspondenceQ.isError ? (
+            <QueryErrorState message="Failed to load correspondence" onRetry={() => correspondenceQ.refetch()} />
           ) : !correspondence?.length ? (
             <p className="text-sm text-muted-foreground text-center py-6">No correspondence recorded.</p>
           ) : (
