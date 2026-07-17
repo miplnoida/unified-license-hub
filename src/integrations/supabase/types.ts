@@ -2213,8 +2213,10 @@ export type Database = {
           triage_rule_id: string | null
           triage_source: string | null
           updated_at: string
+          vulnerability_category: string | null
           vulnerability_indicator: boolean
           vulnerability_notes: string | null
+          vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
         }
         Insert: {
           acknowledged_at?: string | null
@@ -2265,8 +2267,10 @@ export type Database = {
           triage_rule_id?: string | null
           triage_source?: string | null
           updated_at?: string
+          vulnerability_category?: string | null
           vulnerability_indicator?: boolean
           vulnerability_notes?: string | null
+          vulnerability_review_state?: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
         }
         Update: {
           acknowledged_at?: string | null
@@ -2317,8 +2321,10 @@ export type Database = {
           triage_rule_id?: string | null
           triage_source?: string | null
           updated_at?: string
+          vulnerability_category?: string | null
           vulnerability_indicator?: boolean
           vulnerability_notes?: string | null
+          vulnerability_review_state?: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
         }
         Relationships: [
           {
@@ -15325,8 +15331,10 @@ export type Database = {
               triage_rule_id: string | null
               triage_source: string | null
               updated_at: string
+              vulnerability_category: string | null
               vulnerability_indicator: boolean
               vulnerability_notes: string | null
+              vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
             }
             SetofOptions: {
               from: "*"
@@ -15479,6 +15487,15 @@ export type Database = {
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
+      }
+      complete_vulnerability_review: {
+        Args: {
+          _category?: string
+          _complaint_id: string
+          _decision: string
+          _notes?: string
+        }
+        Returns: undefined
       }
       conduct_entity_audit_history: {
         Args: { _entity_id: string }
@@ -16518,8 +16535,10 @@ export type Database = {
               triage_rule_id: string | null
               triage_source: string | null
               updated_at: string
+              vulnerability_category: string | null
               vulnerability_indicator: boolean
               vulnerability_notes: string | null
+              vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
             }
             SetofOptions: {
               from: "*"
@@ -16583,8 +16602,10 @@ export type Database = {
               triage_rule_id: string | null
               triage_source: string | null
               updated_at: string
+              vulnerability_category: string | null
               vulnerability_indicator: boolean
               vulnerability_notes: string | null
+              vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
             }
             SetofOptions: {
               from: "*"
@@ -16843,8 +16864,10 @@ export type Database = {
               triage_rule_id: string | null
               triage_source: string | null
               updated_at: string
+              vulnerability_category: string | null
               vulnerability_indicator: boolean
               vulnerability_notes: string | null
+              vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
             }
             SetofOptions: {
               from: "*"
@@ -16904,8 +16927,10 @@ export type Database = {
               triage_rule_id: string | null
               triage_source: string | null
               updated_at: string
+              vulnerability_category: string | null
               vulnerability_indicator: boolean
               vulnerability_notes: string | null
+              vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
             }
             SetofOptions: {
               from: "*"
@@ -17019,6 +17044,10 @@ export type Database = {
         | "licensee_primary"
         | "licensee_secondary"
         | "legal_compliance"
+      complaint_vulnerability_review_state:
+        | "not_applicable"
+        | "needs_remediation"
+        | "confirmed"
       compliance_audit_action:
         | "CREATE"
         | "UPDATE"
@@ -17202,6 +17231,11 @@ export const Constants = {
         "licensee_primary",
         "licensee_secondary",
         "legal_compliance",
+      ],
+      complaint_vulnerability_review_state: [
+        "not_applicable",
+        "needs_remediation",
+        "confirmed",
       ],
       compliance_audit_action: [
         "CREATE",
