@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
 import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
+import { LicenseePicker } from '@/components/complaints/LicenseePicker';
 import { toast } from 'sonner';
 
 const sb = supabase as any;
@@ -50,14 +51,13 @@ export default function NewInternalComplaint() {
   const { data: refs } = useQuery({
     queryKey: ['internal-complaint-refs'],
     queryFn: async () => {
-      const [{ data: l }, { data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
-        sb.from('licensees').select('id, name').order('name').limit(500),
+      const [{ data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
         sb.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
         sb.from('conduct_risk_categories').select('id, name').eq('active', true).order('sort_order,name'),
         sb.from('conduct_products').select('id, name').eq('active', true).order('name'),
         sb.from('conduct_channels').select('id, name').eq('active', true).order('name'),
       ]);
-      return { licensees: l ?? [], types: ct ?? [], categories: crc ?? [], products: p ?? [], channels: c ?? [] };
+      return { types: ct ?? [], categories: crc ?? [], products: p ?? [], channels: c ?? [] };
     },
   });
 
@@ -130,10 +130,12 @@ export default function NewInternalComplaint() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Regulated entity</Label>
-                <Select value={form.licensee_id} onValueChange={v => updateForm({ licensee_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
-                  <SelectContent>{(refs?.licensees ?? []).map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <LicenseePicker
+                  value={form.licensee_id || null}
+                  onChange={(id) => updateForm({ licensee_id: id ?? '' })}
+                  ariaInvalid={!!errors.licensee_id}
+                />
+                {errors.licensee_id && <p className="mt-1 text-xs text-red-600">{errors.licensee_id}</p>}
               </div>
               <div>
                 <Label>Intake source</Label>
