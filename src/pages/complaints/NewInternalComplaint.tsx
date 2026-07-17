@@ -15,12 +15,10 @@ import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
 import { toast } from 'sonner';
 
 const sb = supabase as any;
-
-const INTAKE_SOURCES = ['internal','supervisory','whistleblower','referral','industry','other'];
-const SEVERITY = ['low','medium','high','critical'];
 
 /**
  * Internal regulator-side complaint intake.
@@ -33,6 +31,8 @@ export default function NewInternalComplaint() {
   const create = useCreateInternalComplaint();
   const { user } = useAuth();
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dirty, setDirty] = useState(false);
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
@@ -41,6 +41,11 @@ export default function NewInternalComplaint() {
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
+
+  const updateForm = (patch: Record<string, unknown>) => {
+    setForm((prev: any) => ({ ...prev, ...patch }));
+    setDirty(true);
+  };
 
   const { data: refs } = useQuery({
     queryKey: ['internal-complaint-refs'],
@@ -56,18 +61,43 @@ export default function NewInternalComplaint() {
     },
   });
 
+  const cancel = () => {
+    if (dirty && !window.confirm('Discard this complaint? Unsaved changes will be lost.')) return;
+    navigate('/complaints');
+  };
+
   const submit = async () => {
-    if (!form.subject.trim() || !form.description.trim()) {
-      toast.error('Subject and description are required'); return;
-    }
-    const created = await create.mutateAsync({
+    if (create.isPending) return; // duplicate-submit guard
+    setErrors({});
+
+    // Structural validation via shared Zod schema. Field-specific messages
+    // are shown inline; we still coerce empty-string UUIDs to null for the
+    // backend contract.
+    const candidate = {
       ...form,
       licensee_id: form.licensee_id || null,
       complaint_type_id: form.complaint_type_id || null,
       conduct_risk_category_id: form.conduct_risk_category_id || null,
       product_id: form.product_id || null,
       channel_id: form.channel_id || null,
-    });
+      customer_type: form.customer_type || null,
+      email: form.email?.trim() ? form.email.trim() : undefined,
+      vulnerability_notes: form.vulnerability_notes || undefined,
+    };
+
+    const parsed = internalComplaintSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.join('.') || '_form';
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      toast.error('Please correct the highlighted fields.');
+      return;
+    }
+
+    const created = await create.mutateAsync(parsed.data as any);
     if (attachments.length && user?.id && created?.id) {
       const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
       if (r.failed.length) {
@@ -76,6 +106,7 @@ export default function NewInternalComplaint() {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
     }
+    setDirty(false);
     navigate(`/complaints/${created.id}`);
   };
 
@@ -85,62 +116,71 @@ export default function NewInternalComplaint() {
         <PageHeader title="New internal complaint" description="Record a complaint observed internally, referred by another agency, or reported anonymously." />
         <Card>
           <CardContent className="p-6 grid gap-4">
-            <div><Label>Subject *</Label><Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} /></div>
-            <div><Label>Description *</Label><Textarea rows={5} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div>
+              <Label>Subject *</Label>
+              <Input value={form.subject} onChange={e => updateForm({ subject: e.target.value })} aria-invalid={!!errors.subject} />
+              {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject}</p>}
+            </div>
+            <div>
+              <Label>Description *</Label>
+              <Textarea rows={5} value={form.description} onChange={e => updateForm({ description: e.target.value })} aria-invalid={!!errors.description} />
+              {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description}</p>}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Regulated entity</Label>
-                <Select value={form.licensee_id} onValueChange={v => setForm({ ...form, licensee_id: v })}>
+                <Select value={form.licensee_id} onValueChange={v => updateForm({ licensee_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
                   <SelectContent>{(refs?.licensees ?? []).map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Intake source</Label>
-                <Select value={form.intake_source} onValueChange={v => setForm({ ...form, intake_source: v })}>
+                <Select value={form.intake_source} onValueChange={v => updateForm({ intake_source: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{INTAKE_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Complaint type</Label>
-                <Select value={form.complaint_type_id} onValueChange={v => setForm({ ...form, complaint_type_id: v })}>
+                <Select value={form.complaint_type_id} onValueChange={v => updateForm({ complaint_type_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>{(refs?.types ?? []).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {errors.complaint_type_id && <p className="mt-1 text-xs text-red-600">{errors.complaint_type_id}</p>}
               </div>
               <div>
                 <Label>Conduct category</Label>
-                <Select value={form.conduct_risk_category_id} onValueChange={v => setForm({ ...form, conduct_risk_category_id: v })}>
+                <Select value={form.conduct_risk_category_id} onValueChange={v => updateForm({ conduct_risk_category_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>{(refs?.categories ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Product</Label>
-                <Select value={form.product_id} onValueChange={v => setForm({ ...form, product_id: v })}>
+                <Select value={form.product_id} onValueChange={v => updateForm({ product_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>{(refs?.products ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Channel</Label>
-                <Select value={form.channel_id} onValueChange={v => setForm({ ...form, channel_id: v })}>
+                <Select value={form.channel_id} onValueChange={v => updateForm({ channel_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
                   <SelectContent>{(refs?.channels ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Severity</Label>
-                <Select value={form.severity} onValueChange={v => setForm({ ...form, severity: v })}>
+                <Select value={form.severity} onValueChange={v => updateForm({ severity: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITY.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Customer type</Label>
-                <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
+                <Select value={form.customer_type || 'none'} onValueChange={v => updateForm({ customer_type: v === 'none' ? '' : v })}>
                   <SelectTrigger><SelectValue placeholder="Select customer type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Not specified</SelectItem>
@@ -154,20 +194,26 @@ export default function NewInternalComplaint() {
               </div>
               <div className="col-span-2 flex items-center justify-between border rounded-md px-3 py-2">
                 <Label>Vulnerable customer</Label>
-                <Switch checked={form.vulnerability_indicator} onCheckedChange={v => setForm({ ...form, vulnerability_indicator: v })} />
+                <Switch checked={form.vulnerability_indicator} onCheckedChange={v => updateForm({ vulnerability_indicator: v, vulnerability_notes: v ? form.vulnerability_notes : '' })} />
               </div>
               {form.vulnerability_indicator && (
-                <div className="col-span-2"><Label>Vulnerability notes</Label><Textarea rows={2} value={form.vulnerability_notes} onChange={e => setForm({ ...form, vulnerability_notes: e.target.value })} /></div>
+                <div className="col-span-2">
+                  <Label>Vulnerability notes</Label>
+                  <Textarea rows={2} value={form.vulnerability_notes} onChange={e => updateForm({ vulnerability_notes: e.target.value })} aria-invalid={!!errors.vulnerability_indicator} />
+                  {errors.vulnerability_indicator && <p className="mt-1 text-xs text-red-600">{errors.vulnerability_indicator}</p>}
+                </div>
               )}
               <div className="col-span-2">
                 <Label>Complainant email (optional)</Label>
-                <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Leave blank for anonymous / internal" />
+                <Input value={form.email} onChange={e => updateForm({ email: e.target.value })} placeholder="Leave blank for anonymous / internal" aria-invalid={!!errors.email} />
+                {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
               </div>
             </div>
 
-            <ComplaintAttachmentsField files={attachments} onChange={setAttachments} disabled={create.isPending} />
+            <ComplaintAttachmentsField files={attachments} onChange={(files) => { setAttachments(files); setDirty(true); }} disabled={create.isPending} />
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={cancel} disabled={create.isPending}>Cancel</Button>
               <Button onClick={submit} disabled={create.isPending}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
             </div>
           </CardContent>
