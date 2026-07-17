@@ -2220,6 +2220,42 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_storage_cleanup_deadletter: {
+        Row: {
+          attempts: number
+          bucket_name: string | null
+          created_at: string
+          evidence_id: string | null
+          file_path: string | null
+          file_upload_id: string | null
+          id: string
+          last_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          bucket_name?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          last_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          bucket_name?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          last_error?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       complaint_types: {
         Row: {
           created_at: string
@@ -15577,7 +15613,9 @@ export type Database = {
       cleanup_orphaned_complaint_evidence: {
         Args: { _older_than?: string }
         Returns: {
+          bucket_name: string
           deleted_evidence_id: string
+          file_path: string
           file_upload_id: string
         }[]
       }
