@@ -235,7 +235,7 @@ export default function ComplaintDetail() {
       if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
 
       const numberQ = term
-        ? supabase
+        ? (supabase as any)
             .from('licensees')
             .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
             .ilike('licenses.license_number', `%${term}%`)
