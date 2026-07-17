@@ -15,12 +15,10 @@ import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
 import { toast } from 'sonner';
 
 const sb = supabase as any;
-
-const INTAKE_SOURCES = ['internal','supervisory','whistleblower','referral','industry','other'];
-const SEVERITY = ['low','medium','high','critical'];
 
 /**
  * Internal regulator-side complaint intake.
