@@ -1,157 +1,105 @@
-# Complaints Module — Final Security & Verification Closure
 
-Scope: verification and security only. No new features. No migration rewrites.
+# Complaints Module — Final Fix Plan (execute end-to-end)
 
-## 1. Persona RLS Matrix (pgTAP)
+Executed in Build mode after approval. One pass, all 16 sections. Nothing marked Fixed unless implementation + tests exist; runtime-only items (Docker/Supabase CLI) recorded as "Not Verified — CI" per your answer to Q3.
 
-Replace `supabase/tests/complaints/11_rls.sql` (smoke) with a behavioural suite. Split into files so each stays focused and CI failures are attributable:
+## 1. Backend — migrations & RPCs (single migration file)
 
-- `11_rls_fixtures.sql` — seed regulators (2), licensees (2/regulator), personas in `auth.users` + `profiles` + `user_roles` + `licensee_users`, complaints (A, B, licensee-1, licensee-2, cross-reg), evidence, duplicate pairs, escalation cases, workflow_instances, approval_actions, notification_outbox rows, audit_logs, file_uploads. Export IDs via `set_config('test.*', ...)`.
-- `11_rls_anon.sql` — anon SELECT/INSERT/UPDATE/DELETE denied on internal tables; `get_public_complaint_tracking` returns redacted row only.
-- `11_rls_complainants.sql` — complainant A cannot see B's complaint/evidence/audit/outbox; can read own.
-- `11_rls_licensee.sql` — primary vs secondary licensee user isolation; cross-licensee denial.
-- `11_rls_staff.sql` — intake officer, investigator, supervisor, enforcement officer, regulator admin — allowed reads/writes per policy; cannot mutate audit_logs, cannot write status catalogue, cannot read scoring_config / deadletter (admin-only), cannot invoke service-only RPCs.
-- `11_rls_cross_regulator.sql` — reg-B staff cannot see reg-A complaints, evidence, duplicate pairs, escalation cases, workflow_instances, notifications.
-- `11_rls_service_role.sql` — boundary checks only where required (outbox claim, cleanup deadletter writes).
+`supabase/migrations/<ts>_complaints_final_hardening.sql`
 
-Personas set JWT via `set_local role authenticated; set_local "request.jwt.claims" = '{"sub":"...","role":"authenticated"}'`.
+- **`create_complaint_with_attachments(_variant, _payload, _staged_upload_ids uuid[], _idempotency_key text)`** — SECURITY DEFINER, atomic:
+  1. Idempotency check on `(created_by, idempotency_key)`; return existing complaint if hit.
+  2. Delegate payload validation to existing `create_complaint` internals (reused via extracted helper `_validate_and_insert_complaint`).
+  3. For each staged upload: verify `uploaded_by = auth.uid()`, `context = 'complaint_staged'`, not already linked, regulator scope matches complaint's regulator.
+  4. Insert `complaint_evidence` rows; on any failure raise → whole tx rolls back.
+  5. Start workflow instance, write audit, enqueue notifications.
+  6. Public/anonymous/licensee variants ignore server-controlled fields (severity/priority/regulator/assignee/status) — enforced in the validator.
+- **`finalize_complaint_with_attachments`** kept for legacy retry path; new writes use the combined RPC.
+- **`change_complaint_severity(_complaint_id, _new_severity, _reason, _expected_version)`** — SECURITY DEFINER:
+  - Role check via `has_role`; regulator scope; workflow-state gate; optimistic concurrency on `complaints.version`; requires reason when previous severity non-null; audit + notification outbox row.
+  - Adds `complaints.version int not null default 1` with bump trigger.
+- **`list_complaint_assignment_teams(_regulator_id)`** — returns distinct active teams from workflow assignment config + `complaints.assigned_team`, regulator-scoped.
+- **Complaint list/count RPCs** updated to accept `_date_from date, _date_to date, _tz text` and apply `(created_at AT TIME ZONE _tz)::date BETWEEN _date_from AND _date_to`.
+- **Vulnerability escalation**: extend `complaint_escalation_rules.criterion` check to include `'vulnerability'`; extend `evaluate_complaint_escalations` with a vulnerability branch reading `complaints.vulnerability_indicator`, `vulnerability_categories`, `vulnerability_review_state`; regulator-scoped, dedupe active cases, skip closed.
+- **Staged upload state**: `file_uploads.context = 'complaint_staged'` + partial index; new `cleanup_stale_staged_complaint_uploads()` (extends storage cleanup edge fn).
+- GRANTs + RLS unchanged surface; new RPCs granted to `authenticated`, service_role.
 
-Assertions use `throws_ok` / `lives_ok` / `results_eq` / row-count comparisons — never just `relrowsecurity`.
+## 2. Frontend
 
-Covered objects (per persona × op): `complaints, complaint_evidence, complaint_duplicate_pairs, complaint_duplicate_clusters, complaint_escalation_cases, complaint_status_catalogue, workflow_instances, approval_actions, notification_outbox, audit_logs, file_uploads, complaint_duplicate_scoring_config, complaint_storage_cleanup_deadletter`.
+**Shared intake service** — `src/hooks/useCreateComplaint.ts` extended with variants (`public|anonymous|licensee|internal|referral|whistleblower|staff_intake`), staging → finalize flow, idempotency key (uuid per form mount), structured error translation via new `src/lib/complaintErrors.ts`. All complaint creation surfaces refactored:
 
-## 2. RPC Permission Tests
+- `src/pages/complaints/NewInternalComplaint.tsx` — wraps submit in try/catch/finally, resets pending state, keeps form dirty on failure, single toast source, uses shared service.
+- `src/pages/complaints/ComplaintsList.tsx` — quick-create + Assigned-Team filter now sourced from `list_complaint_assignment_teams` via new `useComplaintAssignmentTeams(regulatorId)` hook; rename "Demo evidence view" → "Expand evidence summaries" with paginated expansion only.
+- `src/pages/complaints/ComplaintDetail.tsx` — remove local `STATUS_META`; use `complaintStatusLabel/Variant` + `useComplaintStatusCatalogue`; replace direct `from('licensees').limit(20)` with shared `LicenseePicker` (server-side search RPC `search_licensees`, regulator-scoped, pagination, load-more, selection persistence, error states).
+- Public + licensee complaint forms refactored onto the shared service; server remains authoritative on privileged fields.
+- **Reference-data hook** (`useComplaintReferenceData`) — inspects every response, distinguishes permission/session/network/empty, renders `QueryErrorState` with Retry, blocks submit when mandatory refs failed. Query keys include `activeRegulatorId`, `activeSectorId`, `portalType`, `roleSetHash`.
+- **Date filter**: DatePicker sends `{date_from, date_to, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone}`; no client Date math.
+- **Cache hygiene**: `AuthContext` sign-out clears complaint query keys; regulator switch invalidates `['complaints', ...]` prefix.
 
-New `supabase/tests/complaints/16_rpc_permissions.sql`. For each of:
+## 3. Tests
 
-```
-create_complaint, finalize_complaint_with_attachments,
-execute_complaint_workflow_action, generate_complaint_duplicate_candidates,
-confirm_complaint_duplicate, dismiss_complaint_duplicate,
-manual_escalate_complaint, dismiss_complaint_escalation,
-evaluate_complaint_escalations, evaluate_all_complaint_escalations,
-cleanup_orphaned_complaint_evidence, get_public_complaint_tracking,
-claim_notification_outbox, reap_stuck_notification_outbox
-```
+Frontend (`src/test/`):
+- `complaintCreateWithAttachments.test.ts` — success, rollback, cross-user rejection, idempotent duplicate, retry.
+- `complaintLicenseeSearch.test.ts` — pagination, licence# beyond 20, cross-regulator absent, permission error surfaced.
+- `complaintReferenceData.test.ts` — permission vs empty vs network.
+- `complaintSubmissionRecovery.test.tsx` — pending resets, form retained, no double toast.
+- `complaintStatusCatalogueGuard.test.ts` — regex guard preventing new local STATUS_META in `src/pages/complaints/**`.
+- `complaintAssignmentTeams.test.ts` — team on later page still listed.
+- `complaintDateBoundaries.test.ts` — 00:00, 23:59:59, DST regulator, just-outside.
+- `complaintSeverityGovernance.test.ts` — no-op, initial, reason required, unauthorised, stale version, cross-regulator.
+- `complaintIntakeSharedService.test.ts` — variants + guardrail that only shared service calls `create_complaint*` RPCs.
+- `complaintRegulatorCacheSwitch.test.ts` — switch regulator triggers refetch, sign-out clears cache.
 
-assert: authorised persona succeeds (`lives_ok`), unauthorised fails (`throws_ok` on permission or app-level exception), cross-regulator call fails, service-only functions raise for `authenticated`. Public tracking returns only whitelisted columns (assert column set).
+pgTAP (`supabase/tests/complaints/`):
+- `17_atomic_intake.sql` — combined RPC rollback, cross-user/regulator staged file rejection, idempotency.
+- `18_severity_governance.sql` — full matrix.
+- `19_assignment_teams.sql` — regulator scope + inactive exclusion.
+- `20_date_boundaries.sql` — TZ conversion assertions.
+- `07_escalations.sql` — replace documented-gap assertion with real vulnerability behavioural tests (indicator, category, unresolved review, closed skip, dedupe, cross-regulator).
 
-## 3. Duplicate Behavioural Tests
+Edge Function tests: existing 12 retained; add case in `complaint-storage-cleanup/index_test.ts` for stale `complaint_staged` uploads.
 
-Extend `supabase/tests/complaints/06_duplicates.sql`:
+## 4. CI & Lint (Section 14 — Option B)
 
-- Assert weight contributions by toggling scoring_config (set email weight to 0 → no pair; restore → pair). Same for licensee/subject/description weights.
-- Assert `similarity_score` and score-component columns persisted on the pair.
-- Assert threshold change flips candidate creation.
-- Phone match (if column exists — else skip with `SKIP`).
-- Confirm RPC: sets `parent_complaint_id`, writes `audit_logs` row (`action='confirm_duplicate'`), enqueues `notification_outbox` row.
-- Dismiss RPC: sets `status='dismissed'`; re-running generator does not recreate.
-- Cross-regulator confirm → `throws_ok`.
-- Unauthorised persona confirm → `throws_ok`.
-- Reversed complaint pair order → symmetric uniqueness holds (no second pair).
+- Add `.eslintrc-baseline.json` capturing current violations via `eslint --format json` snapshot.
+- New script `scripts/lint-baseline.mjs`: fails only on violations not in baseline OR in Complaints module paths (`src/pages/complaints/**`, `src/hooks/useCreateComplaint*`, `src/lib/complaint*`, `supabase/functions/complaint-*`).
+- `.github/workflows/ci.yml`: lint job runs `node scripts/lint-baseline.mjs` (blocking); db-tests + edge-fn jobs no longer depend on legacy lint; no `continue-on-error` on Complaints checks. Add `docs/lint-baseline.md` explaining the baseline + removal tracker issue reference.
 
-## 4. Escalation Behavioural Tests
+## 5. Verification doc
 
-Extend `supabase/tests/complaints/07_escalations.sql`. For each supported criterion (`age`, `sla`, `harm`, `risk_rating`, `volume`, and `vulnerability` if the rule model supports it — otherwise `SKIP` with reason):
+Rewrite `docs/verification/complaints/11_final_verification.md`:
+- Baseline commit `21db8cc`, final commit (post-push).
+- Files changed, migrations added, RPCs added/changed (table).
+- Local results: `bun install`, `tsgo`, `bun run build`, `bun run test`, `deno test`.
+- Section-by-section status using {Fixed | Partially Fixed | Failed | Not Verified | Not Reproducible}. `supabase test db`, `supabase db reset`, cron/storage runtime → **Not Verified — runs in CI** with exact commands & expected output (per your Q3 answer).
+- Cron/env/edge-function checklist as SQL + expected rows.
 
-- matching complaint → case created
-- non-matching → no case
-- disabled rule → no case
-- duplicate active case prevented (`uq_escalation_active_kind`)
-- dismiss transitions state; reopen only when allowed
-- audit row written; notification_outbox row written
-- closed/resolved complaint skipped
-- wrong-regulator complaint unaffected
-- manual escalation succeeds
-- evaluator idempotent (second run: 0)
-- `evaluate_all_complaint_escalations` with one deliberately invalid rule/complaint — assert valid complaints still processed (savepoint per iteration).
-
-## 5. Edge Function: Escalation Sweep Tests
-
-New `supabase/functions/complaint-escalation-sweep/index_test.ts` (Deno). Import via dotenv per project convention. Cases:
-
-- successful RPC invocation (mocked `admin.rpc`) → returns `{ok:true, scanned, escalated, duration_ms}` HTTP 200.
-- RPC error → response `{ok:false, error}` HTTP 200 (matches current pattern).
-- Missing `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` → surfaces failure.
-- OPTIONS → CORS 200.
-- Consumes response bodies to avoid leak warnings.
-
-Document cron: job name, schedule (`*/15 * * * *`), target function, verify via `supabase--read_query` on `cron.job` (no secrets in doc).
-
-## 6. Edge Function: Storage Cleanup Tests
-
-New `supabase/functions/complaint-storage-cleanup/index_test.ts`. Mock Supabase client (`storage.from(bucket).remove`) and `rpc('cleanup_orphaned_complaint_evidence')`. Assert:
-
-- Stale orphan → `remove([path])` called with expected bucket+path; DB row deleted.
-- Recent staged / finalised / linked evidence → not returned by RPC, so no removal call.
-- First two removals fail, third succeeds → no dead-letter row.
-- Three failures → dead-letter insert with `attempts=3`, `last_error` populated.
-- Successful retry → dead-letter not written.
-- Idempotency: same object processed twice in one run → single `remove` call.
-- Malformed bucket/path → handled without throwing, logged to dead-letter or skipped safely.
-- Unauthorised HTTP caller → rejected (function requires service-role env; if it accepts anonymous calls, add auth check — verification-only, no scope creep).
-- Assert response body does NOT contain service-role key or env values.
-
-## 7. CI Discovery Hardening
-
-Edit `.github/workflows/ci.yml` (verification change, not feature):
-
-- Replace the `compgen -G` guard with an explicit `test -f` check on:
-  ```
-  supabase/functions/complaint-escalation-sweep/index_test.ts
-  supabase/functions/complaint-storage-cleanup/index_test.ts
-  ```
-  Fail (`exit 1`) if either is missing.
-- Always run `deno test --allow-net --allow-env supabase/functions/`; drop the "no tests found; skipping" branch.
-- No `continue-on-error` on required steps.
-
-## 8. Evidence Documents
-
-- New `docs/verification/complaints/12_rls_persona_matrix.md` — generated table. Approach: add a final pgTAP block that emits `NOTICE` lines `PERSONA|OBJECT|OP|EXPECT|ACTUAL|ASSERTION` and pipe `supabase test db` output through a small awk script (committed under `scripts/`) to produce the markdown table. Include every persona × every listed object × op.
-- Update `docs/verification/complaints/11_final_verification.md`:
-  - baseline SHA (previous) + final SHA (final)
-  - migration file list (unchanged, references only)
-  - assertion counts: duplicates, escalation, RLS, edge fn, frontend
-  - `pgtap` result summary, `supabase db reset` result
-  - Frontend: `bun run test` summary
-  - CI workflow run URL — left as `TBD post-push` per user direction; local reproduction commands listed verbatim
-  - remaining limitations (only the observable-GitHub-run gate)
-  - link to `12_rls_persona_matrix.md`
-  - reclassify RLS from Fixed(baseline) → Fixed only after matrix passes.
-
-## 9. Local Execution Gate
-
-Before finalising docs, run in the sandbox:
+## Technical notes
 
 ```
-bun install --frozen-lockfile
-bunx tsgo --noEmit
-bun run lint
-bun run build
-bun run test
-# DB tests via psql against the managed DB is not possible; document that
-# supabase test db must be run against a local `supabase start`. Where the
-# sandbox cannot run `supabase start`, capture pgTAP by executing each test
-# file through psql inside a transaction with ROLLBACK and record output.
-deno test --allow-net --allow-env supabase/functions/
+Migration order:
+  1. ALTER complaints ADD version, add trigger
+  2. ALTER complaint_escalation_rules criterion CHECK
+  3. CREATE FUNCTION _validate_and_insert_complaint (extracted)
+  4. CREATE/REPLACE create_complaint (delegates to helper)
+  5. CREATE create_complaint_with_attachments
+  6. CREATE change_complaint_severity
+  7. CREATE list_complaint_assignment_teams
+  8. CREATE/REPLACE evaluate_complaint_escalations (+ vulnerability)
+  9. ALTER list/count RPCs for tz-aware date filters
+  10. GRANTs
 ```
 
-Capture stdout/stderr into `docs/verification/complaints/artifacts/` for reproducibility.
+Idempotency key stored on `complaints.idempotency_key` (nullable, unique per `created_by`).
 
-## Non-goals
+Optimistic concurrency: `complaints.version` bumped by trigger on any UPDATE; `change_complaint_severity` compares `_expected_version`.
 
-- No new features, no migration rewrites, no RLS policy changes unless a persona test proves a real gap. If a gap is found, fix the policy in a targeted migration and re-run — but do not broaden scope.
-- No secrets in docs.
+Shared status source: `useComplaintStatusCatalogue` (existing hook) is the single reader of `complaint_status_catalogue`; helpers `complaintStatusLabel/Variant` accept a catalogue map.
 
-## Deliverables checklist
+Regulator-scoped query keys use existing `useRegulator()` + `useActiveSector()` — added to every complaint-related `useQuery`.
 
-- [ ] `11_rls_*.sql` split suite replacing smoke
-- [ ] `16_rpc_permissions.sql`
-- [ ] Expanded `06_duplicates.sql`, `07_escalations.sql`
-- [ ] `complaint-escalation-sweep/index_test.ts`
-- [ ] `complaint-storage-cleanup/index_test.ts`
-- [ ] `.github/workflows/ci.yml` hardened discovery
-- [ ] `12_rls_persona_matrix.md` (generated)
-- [ ] `11_final_verification.md` updated with counts + local artefacts
-- [ ] `scripts/rls-matrix-to-md.awk` (or similar) generator
-- [ ] Artefact logs under `docs/verification/complaints/artifacts/`
+## Out of scope
+
+- Non-Complaints modules — untouched unless a shared file (e.g. `AuthContext` sign-out cache clear) is required.
+- Full repo lint cleanup (deferred via baseline per Q2).
+- Docker-dependent runtime verification (documented per Q3).
