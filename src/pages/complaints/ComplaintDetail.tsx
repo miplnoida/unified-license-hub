@@ -327,6 +327,12 @@ export default function ComplaintDetail() {
           </CardContent></Card>
         </div>
 
+        <VulnerabilityReviewBanner
+          complaintId={complaint.id}
+          reviewState={(complaint as any).vulnerability_review_state ?? null}
+          onCompleted={() => complaintQ.refetch()}
+        />
+
         <Tabs defaultValue="overview">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
