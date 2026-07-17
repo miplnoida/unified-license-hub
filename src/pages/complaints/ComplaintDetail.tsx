@@ -281,8 +281,8 @@ export default function ComplaintDetail() {
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
   if (!complaint) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Complaint not found.</div></DashboardLayout>;
+  const statusMeta = { label: complaintStatusLabel(complaint.status), variant: complaintStatusVariant(complaint.status) };
 
-  const statusMeta = STATUS_META[complaint.status] || { label: complaint.status, variant: 'outline' };
   const sevMeta = SEVERITY_META[complaint.severity] || { label: complaint.severity, variant: 'outline' };
   const slaDays = complaint.sla_days || complaintType?.sla_days || 30;
   const _openDays = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));
