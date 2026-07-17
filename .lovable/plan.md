@@ -1,141 +1,94 @@
-# Complaints Module — Verification-First Completion Plan
+## Complaints Module — End-to-End Hardening (Phases 1–8)
 
-This plan finishes the Complaints hardening work from `docs/22_AUDIT_REPORT.md` under a strict "no claim without evidence" policy. Each phase produces artifacts (logs, SQL output, screenshots) checked into `docs/verification/complaints/` so classification (Fixed / Partial / Not Verified / Failed) is auditable.
+Baseline: `docs/verification/complaints/01_inventory.md` at commit `7a72985f`.
+All work lands on the current branch as a series of small commits, one per phase, continuing without pause. No production data touched — all SQL runs against the disposable Lovable Cloud dev database via the migration tool.
 
-## Phase 0 — Baseline & Honest Inventory (read-only)
+### Phase 1 — Canonical intake
+- Migration: `complaint_intake_rules` (regulator-scoped required-field config, seed defaults), `complaint_numbers` sequence per regulator/year.
+- Rewrite RPC `public.create_complaint(variant, payload jsonb)` (SECURITY DEFINER, safe search_path, PUBLIC revoked, granted to `anon` for public variant only, `authenticated` for others) to:
+  - Validate variant ∈ {public, internal, licensee, staff}; strip `severity`/`priority` for public/licensee.
+  - Enforce `complaint_intake_rules` required fields → structured `{code, field, message}[]` errors via `RAISE EXCEPTION USING DETAIL=json`.
+  - Generate `complaint_number` (`<REG>-<YYYY>-<seq>`).
+  - Insert `complaints` row; create `workflow_instances` row bound to the "Complaint Management Workflow" active version; write `audit_logs`; enqueue `notification_outbox` for `complaint.created` — all in one transaction.
+  - Return `{id, complaint_number, workflow_instance_id}`.
+- Frontend: `src/hooks/useCreateComplaint.ts` (canonical hook); refactor `NewInternalComplaint`, licensee submit page, and public submission Edge Function to call it. Keep field-level errors, duplicate-submit guard, Cancel + unsaved-changes prompt.
+- Tests: `supabase/tests/complaints/01_create.sql` — happy path per variant, missing-required, external-severity rejection, workflow instance existence, audit + outbox rows. Vitest for hook validation.
 
-- Record baseline commit hash into `docs/verification/complaints/00_baseline.md`.
-- Re-read `docs/22_AUDIT_REPORT.md` (Complaints section) and `.lovable/plan.md`.
-- Inventory every complaints artifact:
-  - Frontend: `src/pages/complaints/*`, `src/components/complaints/*`, `src/hooks/useMarketConduct.ts`, `useComplaint*`, `WorkflowActionPanel.tsx`, `ComplaintTrackingTimeline.tsx`, banners, `complaintStatus.ts`, `complaintSchemas.ts`, `complaintAttachments.ts`.
-  - Backend: every migration touching `complaints`, `complaint_*`, `approval_*` for entity_type='complaint', `notification_outbox`, `execute_complaint_workflow_action`, `get_complaint_tracking`, `claim_notification_outbox`, `reap_stuck_notification_outbox`, `retry_dead_notification_outbox`, complaint triggers.
-  - Edge Functions: `submit-public-complaint`, `evaluate-complaint-triage`, `dispatch-notification-event`, `process-notification-outbox`.
-  - Tests: `complaintSchemas.test.ts`, `complaintWorkflowGuardrails.test.ts`, `complaintsSla.test.ts`, `marketConduct.test.ts`.
-- For each of the 16 audit items produce a row in `docs/verification/complaints/01_inventory.md` with columns: **Already Fixed / Partial / Broken / Missing**, backed by file+line references. No code changes in this phase.
+### Phase 2 — Vulnerability + entity lookup
+- Trigger `trg_complaints_vulnerability_consistency` BEFORE INSERT/UPDATE: if `vulnerability_indicator=false` → nullify category/notes; if true → require at least one of category/notes else raise.
+- RPC `public.search_licensees(q text, regulator uuid, cursor uuid, limit int)` — keyset paginated, regulator-scoped, index on `(regulator_id, lower(name))`.
+- Frontend `LicenseeSearchCombobox` with 250ms debounce, explicit empty/permission-denied/network/db error UI. Replace the 500-row `.limit(500)` fetch in `NewInternalComplaint`.
+- Tests: SQL trigger matrix (true/false × notes/category present/absent), pagination beyond 500 rows via generated fixtures, RLS scope check.
 
-## Phase 1 — Canonical Creation Path (audit items 1, 2, 3, 6, 7)
+### Phase 3 — Attachments + canonical status
+- RPC `finalize_complaint_with_attachments(complaint_id, pending_upload_ids uuid[])`: validates ownership of each `file_uploads` row, links into `complaint_evidence`, marks uploads finalized — single transaction, returns per-file result.
+- Cron/Edge Function `reap-orphan-uploads` (daily) deletes unfinalized uploads > 24h.
+- Migration: `complaint_status_catalog` seed table (code, label, category, is_terminal, is_duplicate, is_rejected); FK from `complaints.status`.
+- Frontend: `src/lib/complaintStatus.ts` re-exports catalog; list/detail/dashboard/report/tracking all read from it.
+- Tests: attachment success, partial failure rollback (force one upload to bad id → assert 0 evidence rows inserted), orphan reaper, status catalog completeness.
 
-Backend (single forward-only migration):
+### Phase 4 — Workflow enforcement
+- Audit every existing RPC/edge that mutates `complaints.status` outside `execute_complaint_workflow_action`; drop or restrict (`REVOKE EXECUTE`) any bypass. Add DB trigger on `complaints` blocking direct status changes unless `current_setting('app.workflow_ctx', true) = 'engine'`.
+- Extend `execute_complaint_workflow_action` checks: instance exists, action available on current step, actor authorized, assignee authorized, regulator scope, required fields present, `updated_at` optimistic lock, step order enforced. Notifications + audit written in same tx.
+- Tests: SQL scripts covering each guard (unavailable action, wrong actor, stale updated_at, cross-regulator, skipped step), plus positive path across a 4-step workflow.
 
-- `create_complaint(payload jsonb, variant text)` — SECURITY DEFINER, `SET search_path=public`, `REVOKE ... FROM PUBLIC`, `GRANT EXECUTE TO authenticated`. Validates against `complaint_intake_rules`, strips `severity`/`priority` for non-staff variants, generates complaint number, inserts complaint, writes audit row, kicks off the existing `trg_start_complaint_workflow`, enqueues notification outbox rows in the same transaction. Returns `{ok, complaint_id, complaint_number, errors[]}`.
-- `finalize_complaint_with_attachments(complaint_id uuid, pending_upload_ids uuid[])` — atomically links uploads via `complaint_evidence` inside a single transaction; scheduled reaper cleans orphans older than 24h.
-- New table `complaint_intake_rules` (regulator_id, intake_source, required fields flags) — with CREATE → GRANT → RLS ENABLE → POLICY in that order, in the same migration.
+### Phase 5 — Duplicate + escalation live
+- Replace mock data in `DuplicateAlertBanner` / duplicate module with real RPCs: `generate_duplicate_candidates(complaint_id)` (trigram/simhash on subject+description scoped to regulator), `confirm_duplicate`, `dismiss_duplicate`, `link_parent`. Paginate.
+- Replace mock escalation with `evaluate_complaint_escalation` (age, severity, harm, repeat-volume rules from `complaint_escalation_rules`) + manual escalate RPC → creates `enforcement_case` link, enqueues notifications, writes audit.
+- Remove `return null` swallow patterns in banners — surface retryable error state (already begun).
+- Tests: SQL for each rule; cross-regulator isolation; banner tests render error state.
 
-Edge Function:
+### Phase 6 — Public tracking + outbox worker
+- RPC `get_public_complaint_tracking(complaint_number, verification_token)` — token stored hashed on `complaints`; returns stage/label/timestamp only, redacts assignee/internal notes/internal events. Separate authenticated variants for licensee/complainant/regulator with server-side redaction rules.
+- Notification worker (`process-notification-outbox` edge function): `claim_notification_outbox` (FOR UPDATE SKIP LOCKED), states pending/processing/sent/failed/dead, exp backoff, `reap_stuck_notification_outbox`, `retry_dead_notification_outbox`, idempotency key `(event_id, recipient)`.
+- Tests: concurrent claim (2 workers × 100 rows → no double delivery), stuck reaper, dead-letter retry, redaction matrix per persona.
 
-- `submit-public-complaint` refactored to be a thin wrapper: verify captcha/rate-limit, call `create_complaint` via service role, return only the sanitized result.
+### Phase 7 — RLS + security
+- pgTAP-style SQL suite `supabase/tests/complaints/07_rls_matrix.sql` covering 11 personas × operations across `complaints`, `complaint_evidence`, `complaint_duplicate_*`, `complaint_escalation_*`, `notification_outbox`, and each RPC.
+- Every new SECURITY DEFINER: `SET search_path = public, pg_temp`, `REVOKE ALL ON FUNCTION ... FROM PUBLIC`, explicit `GRANT EXECUTE` to intended roles, `auth.uid()` checks, regulator-scope check.
+- Assert client bundle never references service-role key (grep + build artifact scan in CI script).
 
-Frontend:
+### Phase 8 — Test + verification runs
+- Add all SQL tests under `supabase/tests/complaints/` and Vitest suites under `src/test/complaints/`.
+- Execute in order and capture output verbatim into evidence files:
+  1. `bun install --frozen-lockfile`
+  2. `bunx tsc --noEmit`
+  3. `bun run lint`
+  4. `bun run build`
+  5. `bun run test`
+  6. `supabase db reset` (disposable) + run `supabase/tests/complaints/*.sql`
+  7. Edge function tests (`deno test` per function)
+  8. `security--run_security_scan`, `code--dependency_scan`
+- On failure: fix root cause, rerun, record both attempts.
 
-- `useCreateComplaint` becomes the single client entry point (variants: `public | internal | licensee`).
-- `NewInternalComplaint.tsx`, public form, and licensee form all switched to `react-hook-form + zodResolver` using `src/lib/complaintSchemas.ts`.
-- Field-level errors; disabled state during submit; duplicate-submit guard; unsaved-changes guard on Cancel.
-
-Verification for Phase 1:
-
-- SQL integration tests in `supabase/tests/complaints/01_create.sql` (pgTAP-style asserts via `psql -v ON_ERROR_STOP=1`):
-  - happy path returns complaint_number
-  - severity injection stripped for public variant
-  - missing required field → structured error, no row inserted
-  - attachments link only on success; on rollback no `complaint_evidence` rows persist
-- Vitest: schema unit tests + hook tests for all three variants.
-- Manual Playwright run against local preview for each variant, screenshots stored under `docs/verification/complaints/phase1/`.
-
-## Phase 2 — Vulnerability & Entity Lookup (items 4, 5)
-
-- DB trigger `enforce_vulnerability_consistency` on `complaints` (indicator false → notes+category null; indicator true → at least one populated).
-- `search_licensees(query, regulator_id, limit, offset)` RPC; frontend switched to debounced async combobox based on existing `LicenseeSwitcher` pattern.
-- Reference-data hooks return discriminated `{status: 'empty'|'denied'|'network'|'error'|'ok', data}`; banners/errors reflect the real state.
-
-Verification: SQL tests for the trigger; RTL tests for combobox states; screenshots of empty/denied/network states.
-
-## Phase 3 — Status Model & Workflow Enforcement (items 8, 9)
-
-- New view `v_complaint_status_catalog`; `complaintStatus.ts` generated from it (script under `scripts/gen-complaint-status.ts`).
-- Ensure enum values `rejected` and `duplicate` exist; migrate legacy rows.
-- Expand `complaintWorkflowGuardrails.test.ts` to fail on any direct `.update({status})` / `.insert()` into `complaints`, `enforcement_actions`, `enforcement_case_events` from `src/**`.
-- Confirm `ComplaintDetail.tsx` and `EnforcementDetail.tsx` mutate lifecycle only via `execute_complaint_workflow_action`.
-
-Verification: guardrail test output captured; SQL test that direct status writes by non-service roles are blocked by RLS.
-
-## Phase 4 — Duplicate & Escalation Wiring (items 10, 11)
-
-- `generate_duplicate_candidates(complaint_id)` using pg_trgm on subject/description + licensee + email/phone; nightly job + on-insert trigger. Populates `complaint_duplicate_pairs` + `complaint_duplicate_clusters`.
-- Actions: `dismiss_duplicate_pair`, `confirm_duplicate_link` (sets status='duplicate', links parent, writes audit).
-- `evaluate_complaint_escalations()` scheduled function reads `complaint_escalation_rules` (age, severity, harm, repeat volume) and inserts into `complaint_escalation_cases`.
-- `DuplicateAlertBanner` / `EscalationBanner` already return error UIs; hubs wired to paginated RPCs `list_duplicate_pairs`, `list_escalation_cases`. Remove any remaining mock data.
-
-Verification: SQL fixtures create near-duplicates → RPC returns pair with score > threshold; escalation rule fixture ages a complaint → escalation case appears. Recorded in `phase4/`.
-
-## Phase 5 — Public Tracking & Notifications (items 12, 13)
-
-- `get_public_complaint_tracking(reference, verification_token)` returns only events where `approval_steps.is_public_visible=true`; strips assignee names & internal notes.
-- Add `approval_steps.public_stage_label` / `public_stage_description`; seed for complaint workflow.
-- Re-verify `claim_notification_outbox` uses `FOR UPDATE SKIP LOCKED`; add unique idempotency index `(event_key, entity_id, recipient, correlation_id)`; confirm enqueue is inside `execute_complaint_workflow_action` transaction.
-
-Verification: SQL test — internal note never appears in public RPC result; concurrent claim test proves no double delivery; forced worker crash → row returns to queue.
-
-## Phase 6 — RLS, Permissions & Guardrail Honesty (items 14, 15)
-
-- Tighten `WITH CHECK (true)` policies on `complaints` and related tables; scope by regulator + role via `has_role` / `has_regulator_scope` security-definer functions.
-- Guardrail test rewritten to distinguish `rg` exit codes 0/1/≥2 (already partially done — verify).
-- Grep-based test asserts no service-role client is imported into `src/**` browser code.
-- Full RLS matrix executed via `supabase/tests/complaints/rls_matrix.sql` across 11 personas: Anonymous, Public complainant, Authenticated complainant, Licensee Primary, Licensee Secondary, Complaint Officer, Investigator, Supervisor, Enforcement, Regulator Admin, Different Regulator. For every complaint table: SELECT/INSERT/UPDATE/DELETE expected vs actual, recorded as a table in `phase6/rls_matrix.md`.
-
-## Phase 7 — Automated & Manual Verification (item 16)
-
-Automated (all outputs captured verbatim in `phase7/`):
-
+### Evidence files
+Create/update:
 ```
-bun install --frozen-lockfile
-bunx tsgo --noEmit
-bun run lint
-bun run build
-bun run test
+docs/verification/complaints/
+  02_phase1_intake.md
+  03_phase2_vulnerability_lookup.md
+  04_phase3_attachments_status.md
+  05_phase4_workflow.md
+  06_phase5_duplicate_escalation.md
+  07_phase6_tracking_notifications.md
+  08_phase7_rls_security.md
+  09_phase8_tests.md
+  10_final_verification.md
 ```
+Each contains: files touched, migrations, RPCs, RLS deltas, workflow config deltas, tests added, full command output, remaining risk.
 
-SQL: `psql -v ON_ERROR_STOP=1 -f supabase/tests/complaints/*.sql` against a disposable DB reset from migrations.
-Edge Functions: `supabase functions test` for the four complaint-relevant functions.
-Security: `security--run_security_scan` output stored.
+### Final report (in chat + `10_final_verification.md`)
+- Baseline hash `7a72985f`, per-phase commit hashes, final hash.
+- 16-item status table (Fixed / Partially Fixed / Failed / Not Verified / Not Reproducible) with evidence pointer per row.
+- RLS persona matrix, end-to-end lifecycle log, known limitations, regression risks.
 
-Manual (Playwright, headless=True, viewport 1280×1800; screenshots per step):
+### Technical notes (for reviewers)
+- Single Supabase project (Lovable Cloud dev DB is disposable) — used for all SQL runs; no prod credentials involved.
+- All new tables in `public` include GRANTs before RLS enable; existing tables get additive policies only.
+- Workflow bypass trigger uses a session GUC set by the workflow engine RPC so app code cannot forge it.
+- Notification outbox schema already exists (per prior work); this phase hardens the worker, not the schema, unless columns for idempotency/backoff are missing — in which case an additive migration is included in Phase 6.
 
-- Public submission end-to-end (anonymous + identified)
-- Internal creation (staff)
-- Licensee submission
-- Full lifecycle: submission → triage → assignment → investigation → evidence → correspondence → escalation → enforcement → resolution → appeal → closure
-- Bypass attempts: invalid transition, skipped step, wrong assignee, stale update, cross-regulator access — each MUST fail; failure captured
-- Public tracking page shows only public stages
-- Attachment upload/download with signed URL expiry
-- Duplicate detection candidate + confirm/dismiss
-- Escalation auto-trigger by age fixture
-
-## Phase 8 — Final Report
-
-`docs/verification/complaints/REPORT.md` containing exactly the sections the user requires:
-
-- Baseline + final commit hash
-- Files changed / migrations added / RPCs added-changed / Edge Functions changed / Tables changed / RLS changes / Workflow changes / Tests added
-- Build, test, SQL test, RLS matrix, workflow execution log, manual verification log
-- Performance observations, security observations
-- Remaining issues, regression risks
-- Per-issue table with columns: **Status, Evidence path, File, Function/RPC, Root cause, Confidence**
-- Any item that could not be executed (missing env, unavailable service) is marked **NOT VERIFIED** with the exact reason — never "should work" / "likely works"
-
-## Technical constraints honored
-
-- Forward-only migrations only; every new public table follows CREATE → GRANT → RLS ENABLE → POLICY in the same migration.
-- Every new SECURITY DEFINER function: `SET search_path=public`, `REVOKE FROM PUBLIC`, narrow `GRANT`, `auth.uid()` + regulator-scope checks, structured error returns, `SELECT ... FOR UPDATE` where required.
-- No mock/demo data on production paths.
-- No `return null` swallowing of errors.
-- No edits to `src/integrations/supabase/client.ts` or `types.ts`.
-
-## Out of scope
-
-- Non-complaint modules.
-- Repo-wide `as any` cleanup (tracked separately in the audit).
-- Historical migration edits.
-
-## Deliverables per phase
-
-Each phase closes with a signed-off entry in `docs/verification/complaints/PROGRESS.md` (Fixed / Partial / Not Verified / Failed + evidence link). Nothing is marked Fixed without a linked artifact.
+### Constraints / non-goals
+- No changes to unrelated modules (returns, prudential, F&P) except where they share the outbox worker.
+- No new third-party dependencies without justification recorded in the phase evidence file.
+- If a scope item cannot be verified (e.g. real SMTP), it is mocked at the transport boundary and labelled "Partially Fixed" — never "Fixed".
