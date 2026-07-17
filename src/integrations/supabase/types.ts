@@ -16723,6 +16723,17 @@ export type Database = {
         }
         Returns: Json
       }
+      search_licensees: {
+        Args: { _limit?: number; _offset?: number; _q?: string }
+        Returns: {
+          id: string
+          name: string
+          sector_id: string
+          sector_name: string
+          status: string
+          total_count: number
+        }[]
+      }
       seed_external_portal_defaults: {
         Args: {
           _actor?: string
