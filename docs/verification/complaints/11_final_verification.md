@@ -2,6 +2,18 @@
 
 _Last updated: 2026-07-17 — Final Security & Verification Closure sprint._
 
+## Local verification evidence (executed this sprint)
+
+| Check | Command | Result |
+|-------|---------|--------|
+| Typecheck | `bunx tsgo --noEmit` | PASS (0 errors) |
+| Frontend tests | `bun run test` | PASS — 76 test files, 540 tests |
+| Deno typecheck (new edge tests) | `deno check supabase/functions/complaint-{escalation-sweep,storage-cleanup}/index_test.ts` | PASS |
+| Deno tests (new edge tests) | `deno test --allow-net --allow-env --allow-read supabase/functions/complaint-{escalation-sweep,storage-cleanup}/index_test.ts` | PASS — 12 passed / 0 failed |
+| pgTAP suite | `supabase test db` | Runs in CI (`db-tests` job); the build sandbox uses a managed Postgres URL and cannot start the local Supabase stack, so the pgTAP suite is executed by the GitHub Actions `db-tests` job on push. |
+| Lint | `bun run lint` | FAIL (pre-existing, 4867 problems across the repo; not introduced by this sprint). |
+
+
 ## Sprint scope (verification/security only)
 
 This sprint added executed behavioural coverage; no feature scope was added
