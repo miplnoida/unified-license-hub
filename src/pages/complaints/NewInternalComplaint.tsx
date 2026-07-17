@@ -257,7 +257,7 @@ export default function NewInternalComplaint() {
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={cancel} disabled={create.isPending || submitting}>Cancel</Button>
-              <Button onClick={submit} disabled={create.isPending || submitting}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
+              <Button onClick={submit} disabled={create.isPending || submitting}>{create.isPending || submitting ? 'Recording…' : 'Record complaint'}</Button>
             </div>
           </CardContent>
         </Card>
