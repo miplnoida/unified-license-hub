@@ -1983,8 +1983,10 @@ export type Database = {
           created_at: string
           description: string | null
           file_upload_id: string | null
+          finalized_at: string | null
           id: string
           label: string
+          staged_at: string
           uploaded_by: string | null
         }
         Insert: {
@@ -1992,8 +1994,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           file_upload_id?: string | null
+          finalized_at?: string | null
           id?: string
           label: string
+          staged_at?: string
           uploaded_by?: string | null
         }
         Update: {
@@ -2001,8 +2005,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           file_upload_id?: string | null
+          finalized_at?: string | null
           id?: string
           label?: string
+          staged_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
@@ -2231,6 +2237,7 @@ export type Database = {
           investigator_id: string | null
           license_holder_id: string | null
           licensee_id: string | null
+          parent_complaint_id: string | null
           priority: string | null
           product_id: string | null
           regulator_id: string | null
@@ -2285,6 +2292,7 @@ export type Database = {
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
+          parent_complaint_id?: string | null
           priority?: string | null
           product_id?: string | null
           regulator_id?: string | null
@@ -2339,6 +2347,7 @@ export type Database = {
           investigator_id?: string | null
           license_holder_id?: string | null
           licensee_id?: string | null
+          parent_complaint_id?: string | null
           priority?: string | null
           product_id?: string | null
           regulator_id?: string | null
@@ -2412,6 +2421,20 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
           {
+            foreignKeyName: "complaints_parent_complaint_id_fkey"
+            columns: ["parent_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_parent_complaint_id_fkey"
+            columns: ["parent_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "complaints_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -2424,6 +2447,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "regulators"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "complaint_status_catalogue"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "complaints_triage_rule_id_fkey"
@@ -14905,6 +14935,13 @@ export type Database = {
             referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "complaints_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "complaint_status_catalogue"
+            referencedColumns: ["code"]
+          },
         ]
       }
       report_view_compliance_returns: {
@@ -15349,6 +15386,7 @@ export type Database = {
               investigator_id: string | null
               license_holder_id: string | null
               licensee_id: string | null
+              parent_complaint_id: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -15497,6 +15535,13 @@ export type Database = {
         }
         Returns: string
       }
+      cleanup_orphaned_complaint_evidence: {
+        Args: { _older_than?: string }
+        Returns: {
+          deleted_evidence_id: string
+          file_upload_id: string
+        }[]
+      }
       clone_validation_rule: {
         Args: { _new_name: string; _rule_id: string }
         Returns: string
@@ -15554,6 +15599,10 @@ export type Database = {
       }
       conduct_entity_profile_summary: {
         Args: { _entity_id: string }
+        Returns: Json
+      }
+      confirm_complaint_duplicate: {
+        Args: { _notes?: string; _pair_id: string; _parent_id: string }
         Returns: Json
       }
       copy_review_step_permissions: {
@@ -15698,6 +15747,14 @@ export type Database = {
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       detect_complaint_duplicates: {
         Args: { _complaint_id?: string; _window_days?: number }
+        Returns: Json
+      }
+      dismiss_complaint_duplicate: {
+        Args: { _pair_id: string; _reason?: string }
+        Returns: Json
+      }
+      dismiss_complaint_escalation: {
+        Args: { _case_id: string; _reason?: string }
         Returns: Json
       }
       duplicate_hub_stats: { Args: never; Returns: Json }
@@ -16306,6 +16363,16 @@ export type Database = {
         Args: { _context?: string; _results: Json; _return_id: string }
         Returns: string
       }
+      manual_escalate_complaint: {
+        Args: {
+          _complaint_id: string
+          _notes?: string
+          _rule_key: string
+          _severity?: string
+          _target_tier?: string
+        }
+        Returns: string
+      }
       mark_application_in_progress: {
         Args: { _application_id: string }
         Returns: Json
@@ -16561,6 +16628,7 @@ export type Database = {
               investigator_id: string | null
               license_holder_id: string | null
               licensee_id: string | null
+              parent_complaint_id: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -16628,6 +16696,7 @@ export type Database = {
               investigator_id: string | null
               license_holder_id: string | null
               licensee_id: string | null
+              parent_complaint_id: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -16890,6 +16959,7 @@ export type Database = {
               investigator_id: string | null
               license_holder_id: string | null
               licensee_id: string | null
+              parent_complaint_id: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -16953,6 +17023,7 @@ export type Database = {
               investigator_id: string | null
               license_holder_id: string | null
               licensee_id: string | null
+              parent_complaint_id: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
