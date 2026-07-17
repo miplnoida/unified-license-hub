@@ -2133,6 +2133,48 @@ export type Database = {
           },
         ]
       }
+      complaint_status_catalogue: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_open: boolean
+          is_terminal: boolean
+          label: string
+          public_description: string | null
+          public_label: string
+          sort_order: number
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_open?: boolean
+          is_terminal?: boolean
+          label: string
+          public_description?: string | null
+          public_label: string
+          sort_order?: number
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_open?: boolean
+          is_terminal?: boolean
+          label?: string
+          public_description?: string | null
+          public_label?: string
+          sort_order?: number
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: []
+      }
       complaint_types: {
         Row: {
           created_at: string
@@ -15774,6 +15816,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      finalize_complaint_with_attachments: {
+        Args: { p_complaint_id: string; p_file_upload_ids: string[] }
+        Returns: Json
+      }
       fp_regulator_visible: {
         Args: { _row_regulator_id: string }
         Returns: boolean
@@ -16007,6 +16053,10 @@ export type Database = {
           resolved_sector_id: string
           sector_id: string
         }[]
+      }
+      get_public_complaint_tracking: {
+        Args: { p_email?: string; p_reference: string }
+        Returns: Json
       }
       get_registration_reviewer_remarks: {
         Args: { _registration_id: string }
