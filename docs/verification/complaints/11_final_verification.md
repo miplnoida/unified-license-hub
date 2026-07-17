@@ -1,6 +1,57 @@
 # Complaints Module — Final Verification
 
-_Last updated: 2026-07-17 (Final Completion Sprint)_
+_Last updated: 2026-07-17 (Automation Closure — CI hardening landed; behavioural test rewrite, duplicate-scoring, escalation sweep, and storage cleanup still open — see "Remaining work" below.)_
+
+## CI enforcement (this turn)
+
+`.github/workflows/ci.yml` has been rewritten so every quality gate is
+**blocking**:
+
+- `bun install --frozen-lockfile`
+- `bunx tsgo --noEmit`
+- `bun run lint`  *(newly added)*
+- `bun run build`
+- `bun run test`  *(no more `continue-on-error`)*
+- `supabase start` → `supabase db reset --no-seed` → `supabase test db`
+- Deno test discovery for `supabase/functions/**/*_test.ts` (skipped only
+  when no test files exist; runs otherwise).
+
+Any red step fails the workflow. A visible successful GitHub Actions run
+against the final commit still has to be observed on GitHub itself — that
+observation cannot be produced from inside the build sandbox.
+
+## Remaining work (explicitly NOT Fixed)
+
+The items below were listed as Partial / Not Verified in the previous
+revision and remain so until the corresponding implementation and
+behavioural test are in place. They are called out here so no reader can
+mistake this doc for a completion claim.
+
+1. **Behavioural rewrite of pgTAP files 06–15.** Today most files assert
+   object existence (`has_function`, `has_column`, `relrowsecurity`,
+   index presence). They need to seed fixtures, switch personas, execute
+   the RPC/DML, and assert row + audit + outbox state.
+2. **11-persona RLS matrix.** Requires `_helpers.sql` fixture, per-persona
+   loop across every complaint-related table + RPC, and a generated
+   `docs/verification/complaints/12_rls_persona_matrix.md`.
+3. **Automatic duplicate candidate generation.** Config table, weighted
+   `generate_complaint_duplicate_candidates` function, `AFTER INSERT/UPDATE`
+   trigger, symmetric-pair uniqueness, and behavioural tests. Only manual
+   `confirm_complaint_duplicate` / `dismiss_complaint_duplicate` exist today.
+4. **Scheduled escalation sweep.** `evaluate_complaint_escalations` +
+   `evaluate_all_complaint_escalations`, an Edge Function driver, and a
+   `pg_cron` job registered via the insert tool. Only `manual_escalate_complaint`
+   / `dismiss_complaint_escalation` exist today.
+5. **Physical storage object cleanup.** A `complaint-storage-cleanup`
+   Edge Function calling `storage.from(...).remove(...)`, with retry +
+   dead-letter table and Deno tests. Today `cleanup_orphaned_complaint_evidence`
+   only removes DB rows.
+6. **Green GitHub Actions run for the final commit.** Must be observed on
+   GitHub; blocked outside the sandbox.
+
+The sprint continues in subsequent turns; do not treat any of the six items
+above as Fixed until this document links to the executed test output and
+the workflow run URL.
 
 ## Sprint scope
 

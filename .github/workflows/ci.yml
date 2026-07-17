@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,15 +16,16 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Typecheck
         run: bunx tsgo --noEmit
+      - name: Lint
+        run: bun run lint
       - name: Build
         run: bun run build
-      - name: Test
+      - name: Frontend tests
         run: bun run test
-        continue-on-error: true
 
   db-tests:
     runs-on: ubuntu-latest
-    needs: build
+    needs: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -36,3 +37,11 @@ jobs:
         run: supabase db reset --no-seed
       - name: Run complaints pgTAP suite
         run: supabase test db
+      - name: Edge Function tests
+        run: |
+          if compgen -G "supabase/functions/**/*_test.ts" > /dev/null || \
+             compgen -G "supabase/functions/**/*.test.ts" > /dev/null; then
+            deno test --allow-net --allow-env supabase/functions/
+          else
+            echo "No edge-function tests found; skipping."
+          fi
