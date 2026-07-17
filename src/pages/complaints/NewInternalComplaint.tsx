@@ -31,6 +31,8 @@ export default function NewInternalComplaint() {
   const create = useCreateInternalComplaint();
   const { user } = useAuth();
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dirty, setDirty] = useState(false);
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
@@ -39,6 +41,11 @@ export default function NewInternalComplaint() {
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
+
+  const updateForm = (patch: Record<string, unknown>) => {
+    setForm((prev: any) => ({ ...prev, ...patch }));
+    setDirty(true);
+  };
 
   const { data: refs } = useQuery({
     queryKey: ['internal-complaint-refs'],
@@ -54,18 +61,43 @@ export default function NewInternalComplaint() {
     },
   });
 
+  const cancel = () => {
+    if (dirty && !window.confirm('Discard this complaint? Unsaved changes will be lost.')) return;
+    navigate('/complaints');
+  };
+
   const submit = async () => {
-    if (!form.subject.trim() || !form.description.trim()) {
-      toast.error('Subject and description are required'); return;
-    }
-    const created = await create.mutateAsync({
+    if (create.isPending) return; // duplicate-submit guard
+    setErrors({});
+
+    // Structural validation via shared Zod schema. Field-specific messages
+    // are shown inline; we still coerce empty-string UUIDs to null for the
+    // backend contract.
+    const candidate = {
       ...form,
       licensee_id: form.licensee_id || null,
       complaint_type_id: form.complaint_type_id || null,
       conduct_risk_category_id: form.conduct_risk_category_id || null,
       product_id: form.product_id || null,
       channel_id: form.channel_id || null,
-    });
+      customer_type: form.customer_type || null,
+      email: form.email?.trim() ? form.email.trim() : undefined,
+      vulnerability_notes: form.vulnerability_notes || undefined,
+    };
+
+    const parsed = internalComplaintSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path.join('.') || '_form';
+        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      toast.error('Please correct the highlighted fields.');
+      return;
+    }
+
+    const created = await create.mutateAsync(parsed.data as any);
     if (attachments.length && user?.id && created?.id) {
       const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
       if (r.failed.length) {
@@ -74,6 +106,7 @@ export default function NewInternalComplaint() {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
     }
+    setDirty(false);
     navigate(`/complaints/${created.id}`);
   };
 
