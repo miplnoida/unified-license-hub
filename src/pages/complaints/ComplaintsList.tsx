@@ -568,13 +568,16 @@ export default function ComplaintsList() {
               {isInternal && (
                 <>
                   <div className="flex items-center gap-2 text-sm">
-                    <Switch id="demo-mode" checked={demoMode} onCheckedChange={(v) => {
+                    <Switch id="expand-evidence" checked={demoMode} onCheckedChange={(v) => {
                       setDemoMode(v);
+                      // Only expand the currently paginated rows — avoids an
+                      // unbounded fan-out of evidence queries on large lists.
                       if (v) setExpandedRows(new Set(filtered.map(f => f.id)));
                       else setExpandedRows(new Set());
                     }} />
-                    <Label htmlFor="demo-mode" className="cursor-pointer">Demo evidence view</Label>
+                    <Label htmlFor="expand-evidence" className="cursor-pointer">Expand evidence summaries</Label>
                   </div>
+
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
                   </Button>
