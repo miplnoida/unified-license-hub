@@ -44,6 +44,7 @@ export const publicRoutes = (
     <Route path="/registry/licensees/:id" element={<PublicLicenseeDetail />} />
     <Route path="/registry/enforcement" element={<PublicEnforcement />} />
     <Route path="/declaration/:token" element={<DeclarationLanding />} />
+    <Route path="/track/complaint" element={<PublicComplaintTracking />} />
     <Route path="*" element={<NotFound />} />
   </>
 );
