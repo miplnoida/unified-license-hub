@@ -37,11 +37,25 @@ jobs:
         run: supabase db reset --no-seed
       - name: Run complaints pgTAP suite
         run: supabase test db
-      - name: Edge Function tests
+
+      - name: Assert required edge-function tests exist
         run: |
-          if compgen -G "supabase/functions/**/*_test.ts" > /dev/null || \
-             compgen -G "supabase/functions/**/*.test.ts" > /dev/null; then
-            deno test --allow-net --allow-env supabase/functions/
-          else
-            echo "No edge-function tests found; skipping."
-          fi
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/functions/complaint-escalation-sweep/index_test.ts \
+            supabase/functions/complaint-storage-cleanup/index_test.ts; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required edge-function test missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Edge Function tests
+        run: deno test --allow-net --allow-env supabase/functions/
