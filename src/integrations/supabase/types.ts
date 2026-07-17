@@ -1793,6 +1793,45 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_duplicate_scoring_config: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          min_score: number
+          time_window_days: number
+          updated_at: string
+          weight_description_trgm: number
+          weight_email: number
+          weight_licensee: number
+          weight_subject_trgm: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_score?: number
+          time_window_days?: number
+          updated_at?: string
+          weight_description_trgm?: number
+          weight_email?: number
+          weight_licensee?: number
+          weight_subject_trgm?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_score?: number
+          time_window_days?: number
+          updated_at?: string
+          weight_description_trgm?: number
+          weight_email?: number
+          weight_licensee?: number
+          weight_subject_trgm?: number
+        }
+        Relationships: []
+      }
       complaint_escalation_cases: {
         Row: {
           assigned_to: string | null
@@ -15883,6 +15922,10 @@ export type Database = {
       }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
+      generate_complaint_duplicate_candidates: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
