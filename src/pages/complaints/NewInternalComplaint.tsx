@@ -34,6 +34,14 @@ export default function NewInternalComplaint() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
+  // Idempotency key stable across retries of the same form submission.
+  const [idempotencyKey] = useState(() =>
+    (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
+      ? (crypto as any).randomUUID()
+      : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const [submitting, setSubmitting] = useState(false);
+
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
