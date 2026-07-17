@@ -1793,6 +1793,45 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_duplicate_scoring_config: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          min_score: number
+          time_window_days: number
+          updated_at: string
+          weight_description_trgm: number
+          weight_email: number
+          weight_licensee: number
+          weight_subject_trgm: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_score?: number
+          time_window_days?: number
+          updated_at?: string
+          weight_description_trgm?: number
+          weight_email?: number
+          weight_licensee?: number
+          weight_subject_trgm?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          min_score?: number
+          time_window_days?: number
+          updated_at?: string
+          weight_description_trgm?: number
+          weight_email?: number
+          weight_licensee?: number
+          weight_subject_trgm?: number
+        }
+        Relationships: []
+      }
       complaint_escalation_cases: {
         Row: {
           assigned_to: string | null
@@ -2178,6 +2217,42 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           variant?: string
+        }
+        Relationships: []
+      }
+      complaint_storage_cleanup_deadletter: {
+        Row: {
+          attempts: number
+          bucket_name: string | null
+          created_at: string
+          evidence_id: string | null
+          file_path: string | null
+          file_upload_id: string | null
+          id: string
+          last_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          bucket_name?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          last_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          bucket_name?: string | null
+          created_at?: string
+          evidence_id?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          last_error?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -15538,7 +15613,9 @@ export type Database = {
       cleanup_orphaned_complaint_evidence: {
         Args: { _older_than?: string }
         Returns: {
+          bucket_name: string
           deleted_evidence_id: string
+          file_path: string
           file_upload_id: string
         }[]
       }
@@ -15767,6 +15844,17 @@ export type Database = {
         }[]
       }
       escalation_hub_stats: { Args: never; Returns: Json }
+      evaluate_all_complaint_escalations: {
+        Args: never
+        Returns: {
+          escalated: number
+          scanned: number
+        }[]
+      }
+      evaluate_complaint_escalations: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
       evaluate_return_validations: {
         Args: { _form_data?: Json; _return_id: string }
         Returns: Json
@@ -15883,6 +15971,10 @@ export type Database = {
       }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
+      generate_complaint_duplicate_candidates: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
