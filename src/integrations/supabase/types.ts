@@ -15806,6 +15806,17 @@ export type Database = {
         }[]
       }
       escalation_hub_stats: { Args: never; Returns: Json }
+      evaluate_all_complaint_escalations: {
+        Args: never
+        Returns: {
+          escalated: number
+          scanned: number
+        }[]
+      }
+      evaluate_complaint_escalations: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
       evaluate_return_validations: {
         Args: { _form_data?: Json; _return_id: string }
         Returns: Json
