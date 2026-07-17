@@ -39,12 +39,7 @@ import { VulnerabilityReviewBanner } from '@/components/complaints/Vulnerability
 // <WorkflowActionPanel>. Notification dispatch is owned by
 // `execute_complaint_workflow_action` → notification_outbox — never React.
 
-const STATUS_META: Record<string, { label: string; variant: any }> = {
-  submitted: { label: 'Submitted', variant: 'default' },
-  under_investigation: { label: 'Under Investigation', variant: 'outline' },
-  resolved: { label: 'Resolved', variant: 'default' },
-  closed: { label: 'Closed', variant: 'secondary' },
-};
+import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   low: { label: 'Low', variant: 'outline' },
@@ -52,6 +47,7 @@ const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   high: { label: 'High', variant: 'default' },
   critical: { label: 'Critical', variant: 'destructive' },
 };
+
 
 export default function ComplaintDetail() {
   const { id } = useParams<{ id: string }>();
@@ -220,31 +216,49 @@ export default function ComplaintDetail() {
   // which handles state transition, audit log, and notification-outbox rows.
 
   const licenseeSearchQ = useQuery({
-    queryKey: ['licensee_search_for_complaint', licSearch],
+    // Regulator-scoped, server-side search across name AND license_number.
+    // Previously limited to first 20 rows and filtered locally, which hid
+    // matches beyond page 1. We now use two targeted server queries and
+    // merge — no client-side truncation of the result set.
+    queryKey: ['licensee_search_for_complaint', licSearch, complaint?.regulator_id],
     enabled: licPickerOpen,
     queryFn: async () => {
       const term = licSearch.trim();
-      let q = supabase
+      const pageSize = 50;
+
+      const nameQ = (supabase as any)
         .from('licensees')
-        .select('id, name, license_id, licenses:license_id(license_number)')
+        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
         .order('name')
-        .limit(20);
-      if (term) q = q.ilike('name', `%${term}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      const rows = (data ?? []).map((l: any) => ({
-        id: l.id,
-        name: l.name,
-        license_number: l.licenses?.license_number ?? null,
-      }));
-      return term
-        ? rows.filter(r =>
-            r.name?.toLowerCase().includes(term.toLowerCase()) ||
-            r.license_number?.toLowerCase().includes(term.toLowerCase()),
-          )
-        : rows;
+        .limit(pageSize);
+      if (term) nameQ.ilike('name', `%${term}%`);
+      if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
+
+      const numberQ = term
+        ? (supabase as any)
+            .from('licensees')
+            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
+            .ilike('licenses.license_number', `%${term}%`)
+            .limit(pageSize)
+        : null;
+      if (numberQ && complaint?.regulator_id) numberQ.eq('regulator_id', complaint.regulator_id);
+
+      const [nameRes, numberRes] = await Promise.all([nameQ, numberQ ?? Promise.resolve({ data: [], error: null } as any)]);
+      if (nameRes.error) throw nameRes.error;
+      if (numberRes.error) throw numberRes.error;
+      const seen = new Set<string>();
+      const merged = [...(nameRes.data ?? []), ...((numberRes.data as any[]) ?? [])]
+        .filter((l: any) => (seen.has(l.id) ? false : (seen.add(l.id), true)))
+        .map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          license_number: l.licenses?.license_number ?? null,
+        }));
+      return merged;
     },
   });
+
+
 
   const linkedLicenseeQ = useQuery({
     queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
@@ -285,8 +299,8 @@ export default function ComplaintDetail() {
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
   if (!complaint) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Complaint not found.</div></DashboardLayout>;
+  const statusMeta = { label: complaintStatusLabel(complaint.status), variant: complaintStatusVariant(complaint.status) };
 
-  const statusMeta = STATUS_META[complaint.status] || { label: complaint.status, variant: 'outline' };
   const sevMeta = SEVERITY_META[complaint.severity] || { label: complaint.severity, variant: 'outline' };
   const slaDays = complaint.sla_days || complaintType?.sla_days || 30;
   const _openDays = Math.floor((Date.now() - new Date(complaint.created_at).getTime()) / (1000 * 60 * 60 * 24));

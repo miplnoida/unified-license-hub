@@ -1,25 +1,45 @@
 /**
- * Canonical complaint creation hook (Phase 1).
+ * Canonical complaint creation hook.
  *
- * Wraps the new `create_complaint(variant, payload)` RPC so every intake
- * surface — public portal, licensee portal, internal officer, staff intake —
- * goes through a single code path. Field-level validation errors from the
- * database arrive in `error.details` as a JSON array of
- * `{ code, field, message }` objects and are surfaced verbatim to the UI.
+ * Wraps two RPCs so every intake surface goes through one code path:
+ *  - `create_complaint(variant, payload)` — no attachments
+ *  - `create_complaint_with_attachments(variant, payload, staged_ids, idempotency_key)`
+ *    — atomic creation + staged upload linkage. On any failure the entire
+ *    transaction rolls back, so a complaint never exists without its
+ *    intended evidence.
  *
- * The hook is intentionally thin: schema-level structural validation still
- * lives in `src/lib/complaintSchemas.ts` and runs client-side before we
- * ever hit the RPC. This hook is the single mutation entry point.
+ * Field-level validation errors from the database arrive in `error.details`
+ * as a JSON array of `{ code, field, message }` objects and are surfaced
+ * verbatim to the UI. Structural (Zod) validation still runs client-side
+ * before we hit the RPC.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/platform/logger';
 
-export type ComplaintVariant = 'public' | 'licensee' | 'internal' | 'staff';
+export type ComplaintVariant =
+  | 'public'
+  | 'anonymous'
+  | 'licensee'
+  | 'internal'
+  | 'referral'
+  | 'whistleblower'
+  | 'staff';
+
+/** Variants understood by the DB RPC. Others are mapped down. */
+function normaliseVariant(v: ComplaintVariant): 'public' | 'licensee' | 'internal' | 'staff' {
+  if (v === 'anonymous') return 'public';
+  if (v === 'referral' || v === 'whistleblower') return 'internal';
+  return v;
+}
 
 export interface CreateComplaintInput {
   variant: ComplaintVariant;
   payload: Record<string, unknown>;
+  /** Optional staged upload IDs to link atomically. */
+  stagedUploadIds?: string[];
+  /** Idempotency key so retries don't create a second complaint. */
+  idempotencyKey?: string;
 }
 
 export interface CreateComplaintResult {
@@ -27,6 +47,7 @@ export interface CreateComplaintResult {
   complaint_number: string;
   workflow_instance_id: string | null;
   complaint: Record<string, unknown>;
+  idempotent?: boolean;
 }
 
 export interface ComplaintFieldError {
@@ -60,14 +81,35 @@ function parseFieldErrors(details: unknown): ComplaintFieldError[] | null {
 export async function createComplaint(
   input: CreateComplaintInput,
 ): Promise<CreateComplaintResult> {
+  const variant = normaliseVariant(input.variant);
+  const hasAttachments = !!(input.stagedUploadIds && input.stagedUploadIds.length);
+  const hasIdempotency = !!input.idempotencyKey;
+
+  // Use the atomic combined RPC whenever we have attachments OR an
+  // idempotency key. Otherwise fall through to the legacy RPC to keep
+  // existing tests / callers unaffected.
+  if (hasAttachments || hasIdempotency) {
+    const { data, error } = await supabase.rpc('create_complaint_with_attachments' as any, {
+      _variant: variant,
+      _payload: input.payload as any,
+      _staged_upload_ids: input.stagedUploadIds ?? [],
+      _idempotency_key: input.idempotencyKey ?? null,
+    } as any);
+    if (error) {
+      const parsed = parseFieldErrors((error as any).details);
+      if (parsed) throw new ComplaintValidationError(parsed);
+      logger.error(error as Error, { feature: 'complaints', op: 'create_complaint_with_attachments' });
+      throw error;
+    }
+    return data as unknown as CreateComplaintResult;
+  }
+
   const { data, error } = await supabase.rpc('create_complaint', {
-    _variant: input.variant,
+    _variant: variant,
     _payload: input.payload as any,
   } as any);
 
   if (error) {
-    // Structured validation errors come through the DETAIL field of the
-    // Postgres error, which supabase-js surfaces as `error.details`.
     const parsed = parseFieldErrors((error as any).details);
     if (parsed) throw new ComplaintValidationError(parsed);
     logger.error(error as Error, { feature: 'complaints', op: 'create_complaint' });

@@ -34,6 +34,14 @@ export default function NewInternalComplaint() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
+  // Idempotency key stable across retries of the same form submission.
+  const [idempotencyKey] = useState(() =>
+    (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
+      ? (crypto as any).randomUUID()
+      : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  const [submitting, setSubmitting] = useState(false);
+
 
   const [form, setForm] = useState<any>({
     subject: '', description: '',
@@ -67,7 +75,7 @@ export default function NewInternalComplaint() {
   };
 
   const submit = async () => {
-    if (create.isPending) return; // duplicate-submit guard
+    if (create.isPending || submitting) return; // duplicate-submit guard
     setErrors({});
 
     // Structural validation via shared Zod schema. Field-specific messages
@@ -97,18 +105,51 @@ export default function NewInternalComplaint() {
       return;
     }
 
-    const created = await create.mutateAsync(parsed.data as any);
-    if (attachments.length && user?.id && created?.id) {
-      const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
-      if (r.failed.length) {
-        toast.warning(`Complaint recorded. ${r.failed.length} attachment(s) failed to upload.`);
-      } else if (r.uploaded) {
-        toast.success(`${r.uploaded} attachment(s) uploaded`);
+    // Explicit error recovery: any failure below must
+    //  * reset pending/submitting state,
+    //  * keep the form dirty (user must decide),
+    //  * NOT navigate,
+    //  * surface a single toast (mutation-level toasts are suppressed).
+    setSubmitting(true);
+    let created: any = null;
+    try {
+      created = await create.mutateAsync({
+        ...(parsed.data as any),
+        _idempotency_key: idempotencyKey,
+      } as any);
+      if (!created?.id) throw new Error('Complaint creation returned no id');
+
+      if (attachments.length && user?.id) {
+        const r = await attachStagedFilesToComplaint(attachments, created.id, user.id);
+        if (r.failed.length) {
+          toast.warning(`Complaint recorded. ${r.failed.length} attachment(s) failed to upload.`);
+        } else if (r.uploaded) {
+          toast.success(`${r.uploaded} attachment(s) uploaded`);
+        }
       }
+
+      setDirty(false);
+      navigate(`/complaints/${created.id}`);
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to record complaint. Please retry.';
+      const created401 = err?.status === 401 || /jwt|not authenticated/i.test(msg);
+      const created403 = err?.status === 403 || /permission|forbidden/i.test(msg);
+      if (created401) {
+        toast.error('Your session has expired. Please sign in again.');
+      } else if (created403) {
+        toast.error('You do not have permission to record this complaint.');
+      } else if (err?.name === 'ComplaintValidationError') {
+        toast.error('Some fields failed server validation. Please review and retry.');
+      } else {
+        toast.error(msg);
+      }
+      // Retain form + attachments; retry uses the same idempotency key so a
+      // partial-then-successful RPC will not create a duplicate complaint.
+    } finally {
+      setSubmitting(false);
     }
-    setDirty(false);
-    navigate(`/complaints/${created.id}`);
   };
+
 
   return (
     <DashboardLayout>
@@ -212,11 +253,11 @@ export default function NewInternalComplaint() {
               </div>
             </div>
 
-            <ComplaintAttachmentsField files={attachments} onChange={(files) => { setAttachments(files); setDirty(true); }} disabled={create.isPending} />
+            <ComplaintAttachmentsField files={attachments} onChange={(files) => { setAttachments(files); setDirty(true); }} disabled={create.isPending || submitting} />
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={cancel} disabled={create.isPending}>Cancel</Button>
-              <Button onClick={submit} disabled={create.isPending}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
+              <Button variant="outline" onClick={cancel} disabled={create.isPending || submitting}>Cancel</Button>
+              <Button onClick={submit} disabled={create.isPending || submitting}>{create.isPending || submitting ? 'Recording…' : 'Record complaint'}</Button>
             </div>
           </CardContent>
         </Card>
