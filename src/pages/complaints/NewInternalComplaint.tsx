@@ -253,11 +253,11 @@ export default function NewInternalComplaint() {
               </div>
             </div>
 
-            <ComplaintAttachmentsField files={attachments} onChange={(files) => { setAttachments(files); setDirty(true); }} disabled={create.isPending} />
+            <ComplaintAttachmentsField files={attachments} onChange={(files) => { setAttachments(files); setDirty(true); }} disabled={create.isPending || submitting} />
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={cancel} disabled={create.isPending}>Cancel</Button>
-              <Button onClick={submit} disabled={create.isPending}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
+              <Button variant="outline" onClick={cancel} disabled={create.isPending || submitting}>Cancel</Button>
+              <Button onClick={submit} disabled={create.isPending || submitting}>{create.isPending ? 'Recording…' : 'Record complaint'}</Button>
             </div>
           </CardContent>
         </Card>
