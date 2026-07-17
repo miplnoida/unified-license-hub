@@ -133,7 +133,7 @@ export default function NewInternalComplaint() {
                 <Label>Severity</Label>
                 <Select value={form.severity} onValueChange={v => setForm({ ...form, severity: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITY.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
