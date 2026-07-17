@@ -130,10 +130,12 @@ export default function NewInternalComplaint() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Regulated entity</Label>
-                <Select value={form.licensee_id} onValueChange={v => updateForm({ licensee_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
-                  <SelectContent>{(refs?.licensees ?? []).map((l: any) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <LicenseePicker
+                  value={form.licensee_id || null}
+                  onChange={(id) => updateForm({ licensee_id: id ?? '' })}
+                  ariaInvalid={!!errors.licensee_id}
+                />
+                {errors.licensee_id && <p className="mt-1 text-xs text-red-600">{errors.licensee_id}</p>}
               </div>
               <div>
                 <Label>Intake source</Label>
