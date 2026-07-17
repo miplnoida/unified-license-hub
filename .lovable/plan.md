@@ -1,87 +1,108 @@
-# Complaints Module — Completion Plan (Phases 3–8)
+# Complaints Module — Final Completion Plan (Phases 5–8)
 
-I have to be honest with you before we start: the scope you listed is roughly 2–4 weeks of engineering work for a senior team (16 backend items, 15 SQL test suites, 17 frontend test suites, CI overhaul, RLS persona matrix across 11 personas, concurrent-worker proofs). I cannot compress that into a single agent turn, and I will not pretend otherwise. What I *can* do is execute it in tightly-scoped, verifiable increments — each with runnable evidence — without pausing for verbal approval between them. Every migration still requires your one-click approval in the Lovable UI (that is a platform constraint, not a choice I control), but I will not stop to *ask* between them.
+Baseline: Phases 1–4 complete (canonical `create_complaint` RPC, intake rules, vulnerability tri-state, paginated regulator-scoped `search_licensees`, guardrail tests honest).
 
-I am also required by the system to produce a plan before I start editing. This is that plan. Approve it and I will begin executing immediately and continue through all phases in sequence.
+Remaining work delivered in one continuous run, no approval gates between commits.
 
-## Phase 3 — Licensee Search Hardening
+## Phase 5 — Canonical Intake Completion & Attachment Atomicity
 
-**Backend (one migration)**
-- Rewrite `search_licensees(_q, _limit, _offset)`:
-  - Assert `auth.uid() IS NOT NULL` → raise `insufficient_privilege`.
-  - Resolve caller's regulator scope via `profiles.regulator_id` + `user_roles` + `entity_user_access`.
-  - Filter `licensees` to the caller's regulator(s); reject with structured error when scope is empty.
-  - `total_count` uses the same predicate as the row query.
-- Add `pg_trgm` index on `licensees.name` if missing (for >500-row perf).
+**Database**
+- Extend `public.create_complaint` to: strip client-provided severity/priority for public/licensee sources, enforce intake rules server-side, generate complaint number, insert workflow instance + first `approval_step_actions` row, enqueue notifications via `notification_outbox`, write `audit_logs`, all in one transaction with `EXCEPTION` rollback and structured error codes.
+- New RPC `public.finalize_complaint_with_attachments(complaint_id, staged_upload_ids[])`:
+  - Verifies caller owns each `file_uploads` row and regulator matches complaint.
+  - Inserts `complaint_evidence` rows, updates `file_uploads.linked_entity_*`.
+  - Rolls back on any failure; returns per-file success/error map.
+- Cron job `cleanup_orphan_complaint_uploads()` — removes staged uploads older than 24h with no `complaint_evidence` link.
 
 **Frontend**
-- `LicenseePicker`: real pagination via `useInfiniteQuery`, offset tracking, dedupe by id, reset on query change, "Load more" + end-of-results state, "Showing N of M".
-- Error taxonomy: map Postgres codes to `no_results | permission_denied | auth_expired | network | rpc_error | shape_error`; render category-specific copy + retry; log raw error via `logger.error`, never render it.
+- Route every creation path (`NewInternalComplaint`, licensee submit, public submit edge fn) through `useCreateComplaint` + `finalize_complaint_with_attachments`. Delete direct `complaint_evidence` inserts in `src/lib/complaintAttachments.ts` — replace with RPC call.
+- Show per-file retry UI on partial attachment failure.
 
-**Tests**
-- `src/test/licenseePicker.test.tsx`: pagination, reset-on-search, each error category, empty state, loading-more, selected-label load.
+## Phase 6 — Canonical Status Catalogue & Workflow Enforcement
 
-## Phase 4 — Vulnerability Migration Remediation
+**Database**
+- Table `public.complaint_status_catalogue` (code, label, description, public_label, public_description, is_terminal, sort_order, variant).
+- Seed with the 6 statuses in `src/lib/complaintStatus.ts`.
+- FK `complaints.status → complaint_status_catalogue.code`.
+- Harden `execute_complaint_workflow_action`: validate instance version (optimistic lock), current step, action availability, assignee, role, regulator; reject with typed error codes; write audit + enqueue notifications atomically.
+- Revoke direct `UPDATE complaints.status` from `authenticated` role — force workflow RPC path.
 
-- Drop the `(not recorded)` backfill. Introduce `complaints.vulnerability_review_state` enum: `not_applicable | needs_remediation | confirmed`.
-- Migration flips legacy rows with `vulnerability_indicator=true AND notes IS NULL` to `needs_remediation` and leaves notes NULL.
-- Trigger updated: `confirmed` requires category or notes; `needs_remediation` blocks next lifecycle action until an authorised role clears it; `not_applicable` requires both null.
-- UI: banner on complaint detail for `needs_remediation` with a "Complete remediation" action gated by permission.
+**Frontend**
+- Replace `src/lib/complaintStatus.ts` label/variant maps with a `useComplaintStatusCatalogue` hook backed by the table (cached via TanStack).
+- All complaint list/detail/timeline components read from the hook.
 
-## Phase 5 — Canonical Intake Completion + External Field Lock-Down
+## Phase 7 — Duplicate Management & Escalation Engine
 
-- Extend `create_complaint(_variant, _payload)`:
-  - Always strip `severity`, `priority`, `sla_*`, `escalation_level` from public/licensee/anonymous variants (server-side, even if present).
-  - Enforce `complaint_intake_rules` per (regulator, intake_source, active window): required-fields matrix (type, category, licensee, product, channel, email, vulnerability, attachment, anonymous-allowed).
-  - Regulator scope stamped from caller context, not payload.
-  - Atomic: complaint + workflow_instance + audit_log + notification_outbox + attachment link inside a single txn; on any failure, raise and roll back.
-- Delete/deprecate any remaining direct-insert paths in the client (grep + remove).
-- Public Edge Function `submit-public-complaint` re-validated against shared Zod + calls the RPC.
+**Database**
+- Complete `generate_complaint_duplicate_candidates(complaint_id)` — trigram similarity across subject/description + licensee/complainant match; upserts `complaint_duplicate_pairs`.
+- RPCs: `review_duplicate_pair`, `merge_duplicate_complaints`, `dismiss_duplicate_pair`, `link_related_complaint`. All regulator-scoped, audited, notification-enqueued.
+- Escalation engine `evaluate_complaint_escalations()` (cron every 15 min): age, SLA breach, severity, harm score, repeat-volume rules from `complaint_escalation_rules`; opens `complaint_escalation_cases`, notifies supervisors, optionally links to enforcement.
+- Manual escalation RPC `escalate_complaint_manual(complaint_id, reason, target_role)`.
 
-## Phase 6 — Attachment Atomicity
+**Frontend**
+- Duplicate management page: paginated candidate list, filters, review/merge/dismiss actions, regulator-scoped counts (same query as list).
+- Escalation dashboard tab in ConductDashboard: open cases, supervisor review action, enforcement link.
 
-- New RPC `link_complaint_attachments(_complaint_id, _upload_ids[])`:
-  - Verifies each upload belongs to caller, is unlinked, within regulator scope, size/type valid.
-  - Inserts `complaint_evidence` rows; on failure, raises.
-- `create_complaint` accepts `pending_upload_ids` and calls linker inside the same txn.
-- Orphan cleanup job: cron RPC `cleanup_orphan_uploads()` removes uploads > 24h old with no link.
-- Frontend: `attachStagedFilesToComplaint` becomes a fallback-only recovery path; primary flow is atomic via RPC.
+## Phase 8 — Public Tracking, Notifications, RLS
 
-## Phase 7 — Canonical Status Catalogue + Workflow Bypass Removal
+**Database**
+- RPC `get_public_complaint_tracking(reference_number, verification_token)`:
+  - Rate-limited via `security_event_logs` (10 attempts / 15 min / IP).
+  - Returns only public labels/descriptions from status catalogue, public workflow milestones, no assignee names, no internal notes.
+  - Redacts vulnerability/complainant PII beyond what submitter provided.
+- Notification outbox hardening verification: idempotency keys, `FOR UPDATE SKIP LOCKED` (already in `claim_notification_outbox`), retry counter, dead-letter status, `reap_stuck_notification_outbox` cron.
+- RLS matrix audit — one migration adjusting policies where 11-persona test uncovers gaps. Personas: anonymous, complainant (via token), licensee primary, licensee secondary, PPOC, complaint officer, investigator, supervisor, enforcement, regulator admin, cross-regulator user, unauthorised authenticated.
 
-- Table `complaint_status_catalogue` (code, internal_label, public_label, description, badge_variant, terminal, public_visible, sort_order) seeded from `complaintStatus.ts`.
-- `complaintStatus.ts` regenerated from catalogue via a typed loader hook `useComplaintStatusCatalogue`.
-- Audit every RPC/trigger: revoke EXECUTE on any generic transition function from `authenticated`; keep only `execute_complaint_workflow_action`.
-- Concurrency: switch action RPC's optimistic token to `workflow_instances.updated_at`, `SELECT … FOR UPDATE`, structured `stale_state` error, no tolerance windows.
+**Frontend**
+- `/track/:reference` public route using the new RPC, no internal fields shown.
+- Complaint tracking timeline (internal + licensee) driven by status catalogue + workflow instance.
 
-## Phase 8 — Duplicates, Escalations, Public Tracking, Outbox, RLS
+## Testing
 
-- **Duplicates**: real scoring RPC `detect_complaint_duplicates(_complaint_id)` using trigram on subject/description + exact match on licensee/email/phone/reference; regulator-scoped; identical predicate in count + list RPCs; dismiss/confirm actions write audit + notifications.
-- **Escalations**: cron-driven `evaluate_complaint_escalations()` covering age/SLA/severity/vulnerability/harm/volume/manual; writes to `complaint_escalation_cases` + workflow action.
-- **Public tracking**: `get_public_complaint_tracking(_reference, _token)` with rate limit (via `otp_verifications`), server-side event filter (`public_visible`), redacted assignee/notes, brute-force lockout.
-- **Outbox**: verify existing `claim_notification_outbox` / `reap_stuck_notification_outbox` under two concurrent workers; add idempotency key `(event_id, channel, recipient)` unique index; exponential backoff column; DLQ retry RPC.
-- **RLS persona matrix**: 11 personas × (SELECT/INSERT/UPDATE/DELETE/RPC/attachment/duplicate/escalation/tracking/audit/notification) in `supabase/tests/complaints/14_rls_personas.sql`.
+**SQL suite** at `supabase/tests/complaints/`:
+- `01_intake.sql`, `02_intake_rules.sql`, `03_workflow.sql`, `04_workflow_concurrency.sql`, `05_authorisation.sql`, `06_attachments.sql`, `07_duplicates.sql`, `08_escalation.sql`, `09_notifications.sql`, `10_public_tracking.sql`, `11_rls_matrix.sql`, `12_audit_integrity.sql`.
+- Each proves both success and failure paths, including bypass attempts.
+- Runnable via `supabase db reset && supabase test db`.
 
-## SQL & Frontend Test Suites
-
-Create all 15 SQL files under `supabase/tests/complaints/` and all 17 frontend tests under `src/test/complaints/` per your list. Tests raise on failure — no swallowed errors.
+**Frontend Vitest** additions:
+- `complaintIntakeFlow.test.tsx`, `attachmentRecovery.test.tsx`, `workflowActions.test.tsx`, `duplicateBanner.test.tsx`, `escalationBanner.test.tsx`, `trackingTimeline.test.tsx`, `vulnerabilityReview.test.tsx`, `statusCatalogue.test.ts`, `publicTracking.test.tsx`.
 
 ## CI
 
-Extend `.github/workflows/ci.yml`:
-- install → tsc → lint → build → vitest
-- Boot Supabase locally via `supabase/setup-cli` action → `supabase db reset` → run `supabase/tests/complaints/*.sql` via `psql` → run Edge Function tests → security + dependency scan → linter.
-- Upload artifacts (test output, migration log) on both success and failure.
+- Extend `.github/workflows/ci.yml` with jobs: `supabase db reset`, `supabase test db` for complaints suite, edge function tests. Fail on any red.
 
-## Evidence
+## Evidence Documents
 
-Update all 11 files under `docs/verification/complaints/` with commit hashes, command output (truncated with pointers to CI artifacts), and per-item final classification (Fixed / Partially Fixed / Failed / Not Verified) with justification.
+Author under `docs/verification/complaints/`:
+- `04_phase3_attachments_status.md`
+- `05_phase4_workflow.md`
+- `06_phase5_duplicates.md`
+- `07_phase6_escalations.md`
+- `08_phase7_public_tracking.md`
+- `09_phase8_notifications_rls.md`
+- `10_test_results.md` (full SQL + Vitest output)
+- `11_final_verification.md` — baseline commit, final commit, all migrations/RPCs/edge fns/policies changed, CI run URL, remaining risks, classification (Fixed / Partially Fixed / Failed / Not Verified / Not Reproducible) for every original audit item.
 
-## Honest Limits
+## Technical Details
 
-- I cannot bypass Lovable's per-migration approval click. I will queue them one after another with no chat pause.
-- I cannot run `supabase db reset` inside this sandbox against your managed Cloud DB; that command belongs in CI against an ephemeral Postgres. I will wire it into CI and rely on CI to prove it green.
-- Concurrent-worker and two-session concurrency proofs run inside SQL tests using `pg_background` / `dblink` — I'll use `dblink` since it's stock.
-- If any single item cannot be Fixed under the strict rule (implementation + migration + DB object + frontend + behavioural test + SQL test + RLS test + runtime demo + CI green + no bypass), I will mark it `Partially Fixed` with the exact missing criterion and stop lying about it.
+```text
+Migration order:
+  1. status catalogue table + seed + FK
+  2. create_complaint rewrite + finalize_complaint_with_attachments
+  3. execute_complaint_workflow_action hardening + revoke direct status update
+  4. duplicate + escalation RPCs + cron
+  5. get_public_complaint_tracking + rate limit
+  6. RLS matrix adjustments
+  7. orphan cleanup cron + outbox reaper schedule
+```
 
-Approve this plan and I will start Phase 3 immediately and continue through Phase 8 + tests + CI + evidence in the same task, without further planning pauses.
+Structured error envelope for all new RPCs:
+```json
+{ "error_code": "COMPLAINT_INTAKE_RULE_VIOLATION", "field": "complaint_type_id", "message": "..." }
+```
+
+Concurrency: all workflow RPCs take `expected_instance_updated_at`; return `WORKFLOW_STALE` on mismatch.
+
+## Blocker Policy
+
+If a blocker cannot be resolved in-repo (e.g. Supabase test runner unavailable in CI image), Phase-11 doc records exact blocker, affected files, evidence needed. Every other requirement continues.
