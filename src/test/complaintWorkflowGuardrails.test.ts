@@ -7,15 +7,33 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
+/**
+ * Run ripgrep and return matching lines.
+ *
+ * Honest exit-code handling:
+ *   0  -> matches were found; return them
+ *   1  -> no matches; return []
+ *   2+ -> ripgrep or shell error (missing binary, invalid path, unreadable
+ *         file, etc.). We MUST NOT treat that as "no matches" — that would
+ *         let real regressions slip through silently. Throw so the test fails
+ *         loudly with the underlying stderr.
+ */
 function rg(pattern: string, path = 'src'): string[] {
   try {
     const out = execSync(`rg --no-heading -n ${JSON.stringify(pattern)} ${path}`, {
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
     return out.trim().split('\n').filter(Boolean);
-  } catch {
-    return [];
+  } catch (err: unknown) {
+    const e = err as { status?: number; stderr?: Buffer | string; message?: string };
+    // ripgrep exit code 1 means "no matches" — a legitimate empty result.
+    if (e && e.status === 1) return [];
+    const stderr =
+      typeof e?.stderr === 'string' ? e.stderr : e?.stderr?.toString?.() ?? '';
+    throw new Error(
+      `ripgrep failed (exit=${e?.status ?? 'n/a'}) for pattern ${JSON.stringify(pattern)} in ${path}: ${stderr || e?.message || 'unknown error'}`,
+    );
   }
 }
 
