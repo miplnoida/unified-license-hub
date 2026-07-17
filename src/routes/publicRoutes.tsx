@@ -17,6 +17,7 @@ const PublicLicensees = lazy(() => import('@/pages/public/PublicLicensees'));
 const PublicLicenseeDetail = lazy(() => import('@/pages/public/PublicLicenseeDetail'));
 const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
+const PublicComplaintTracking = lazy(() => import('@/pages/PublicComplaintTracking'));
 
 export const publicRoutes = (
   <>
