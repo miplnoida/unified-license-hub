@@ -16728,6 +16728,7 @@ export type Database = {
         Returns: {
           id: string
           name: string
+          regulator_id: string
           sector_id: string
           sector_name: string
           status: string
@@ -16774,6 +16775,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       simulate_escalation_rule: {
         Args: { _criterion: string; _thresholds: Json }
         Returns: Json
