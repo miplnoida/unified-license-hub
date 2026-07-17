@@ -18,7 +18,8 @@ type OrphanRow = {
 };
 
 async function deleteWithRetry(
-  admin: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  admin: any,
   bucket: string,
   path: string,
   maxAttempts = 3,
