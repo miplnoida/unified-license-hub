@@ -2306,6 +2306,7 @@ export type Database = {
           enforcement_action_id: string | null
           findings: string | null
           id: string
+          idempotency_key: string | null
           intake_source: string | null
           internal_created_by: string | null
           investigation_notes: string | null
@@ -2361,6 +2362,7 @@ export type Database = {
           enforcement_action_id?: string | null
           findings?: string | null
           id?: string
+          idempotency_key?: string | null
           intake_source?: string | null
           internal_created_by?: string | null
           investigation_notes?: string | null
@@ -2416,6 +2418,7 @@ export type Database = {
           enforcement_action_id?: string | null
           findings?: string | null
           id?: string
+          idempotency_key?: string | null
           intake_source?: string | null
           internal_created_by?: string | null
           investigation_notes?: string | null
@@ -15455,6 +15458,7 @@ export type Database = {
               enforcement_action_id: string | null
               findings: string | null
               id: string
+              idempotency_key: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -15705,6 +15709,15 @@ export type Database = {
       create_complaint:
         | { Args: { _payload: Json }; Returns: Json }
         | { Args: { _payload: Json; _variant: string }; Returns: Json }
+      create_complaint_with_attachments: {
+        Args: {
+          _idempotency_key?: string
+          _payload: Json
+          _staged_upload_ids?: string[]
+          _variant: string
+        }
+        Returns: Json
+      }
       create_document_version: {
         Args: {
           _action?: string
@@ -15852,6 +15865,14 @@ export type Database = {
         }[]
       }
       evaluate_complaint_escalations: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
+      evaluate_complaint_escalations_v2: {
+        Args: { _complaint_id: string }
+        Returns: number
+      }
+      evaluate_complaint_vulnerability_escalations: {
         Args: { _complaint_id: string }
         Returns: number
       }
@@ -16346,6 +16367,13 @@ export type Database = {
         Args: { _complaint_id: string; _licensee_id: string }
         Returns: undefined
       }
+      list_complaint_assignment_teams: {
+        Args: { _regulator_id?: string }
+        Returns: {
+          complaint_count: number
+          team: string
+        }[]
+      }
       list_complaints: {
         Args: {
           _filters?: Json
@@ -16714,6 +16742,7 @@ export type Database = {
               enforcement_action_id: string | null
               findings: string | null
               id: string
+              idempotency_key: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -16782,6 +16811,7 @@ export type Database = {
               enforcement_action_id: string | null
               findings: string | null
               id: string
+              idempotency_key: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -17045,6 +17075,7 @@ export type Database = {
               enforcement_action_id: string | null
               findings: string | null
               id: string
+              idempotency_key: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -17109,6 +17140,7 @@ export type Database = {
               enforcement_action_id: string | null
               findings: string | null
               id: string
+              idempotency_key: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
