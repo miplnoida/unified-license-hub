@@ -39,12 +39,7 @@ import { VulnerabilityReviewBanner } from '@/components/complaints/Vulnerability
 // <WorkflowActionPanel>. Notification dispatch is owned by
 // `execute_complaint_workflow_action` → notification_outbox — never React.
 
-const STATUS_META: Record<string, { label: string; variant: any }> = {
-  submitted: { label: 'Submitted', variant: 'default' },
-  under_investigation: { label: 'Under Investigation', variant: 'outline' },
-  resolved: { label: 'Resolved', variant: 'default' },
-  closed: { label: 'Closed', variant: 'secondary' },
-};
+import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   low: { label: 'Low', variant: 'outline' },
@@ -52,6 +47,7 @@ const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   high: { label: 'High', variant: 'default' },
   critical: { label: 'Critical', variant: 'destructive' },
 };
+
 
 export default function ComplaintDetail() {
   const { id } = useParams<{ id: string }>();
