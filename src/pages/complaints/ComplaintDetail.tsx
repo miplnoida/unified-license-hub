@@ -33,6 +33,7 @@ import { CollaborativeReview } from '@/components/collab-review/CollaborativeRev
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
+import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
