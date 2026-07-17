@@ -216,31 +216,49 @@ export default function ComplaintDetail() {
   // which handles state transition, audit log, and notification-outbox rows.
 
   const licenseeSearchQ = useQuery({
-    queryKey: ['licensee_search_for_complaint', licSearch],
+    // Regulator-scoped, server-side search across name AND license_number.
+    // Previously limited to first 20 rows and filtered locally, which hid
+    // matches beyond page 1. We now use two targeted server queries and
+    // merge — no client-side truncation of the result set.
+    queryKey: ['licensee_search_for_complaint', licSearch, complaint?.regulator_id],
     enabled: licPickerOpen,
     queryFn: async () => {
       const term = licSearch.trim();
-      let q = supabase
+      const pageSize = 50;
+
+      const nameQ = supabase
         .from('licensees')
-        .select('id, name, license_id, licenses:license_id(license_number)')
+        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
         .order('name')
-        .limit(20);
-      if (term) q = q.ilike('name', `%${term}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      const rows = (data ?? []).map((l: any) => ({
-        id: l.id,
-        name: l.name,
-        license_number: l.licenses?.license_number ?? null,
-      }));
-      return term
-        ? rows.filter(r =>
-            r.name?.toLowerCase().includes(term.toLowerCase()) ||
-            r.license_number?.toLowerCase().includes(term.toLowerCase()),
-          )
-        : rows;
+        .limit(pageSize);
+      if (term) nameQ.ilike('name', `%${term}%`);
+      if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
+
+      const numberQ = term
+        ? supabase
+            .from('licensees')
+            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
+            .ilike('licenses.license_number', `%${term}%`)
+            .limit(pageSize)
+        : null;
+      if (numberQ && complaint?.regulator_id) numberQ.eq('regulator_id', complaint.regulator_id);
+
+      const [nameRes, numberRes] = await Promise.all([nameQ, numberQ ?? Promise.resolve({ data: [], error: null } as any)]);
+      if (nameRes.error) throw nameRes.error;
+      if (numberRes.error) throw numberRes.error;
+      const seen = new Set<string>();
+      const merged = [...(nameRes.data ?? []), ...((numberRes.data as any[]) ?? [])]
+        .filter((l: any) => (seen.has(l.id) ? false : (seen.add(l.id), true)))
+        .map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          license_number: l.licenses?.license_number ?? null,
+        }));
+      return merged;
     },
   });
+
+
 
   const linkedLicenseeQ = useQuery({
     queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
