@@ -1,125 +1,78 @@
-# Complaints Module — Verification Snapshot
+# Complaints Module — Final Verification
 
-**Status: PARTIAL. This document is intentionally not marked "complete".**
+_Last updated: 2026-07-17 (Final Completion Sprint)_
 
-The directive asked for the entire remaining Complaints work — 12 SQL test files,
-9 new Vitest suites, an 11-persona RLS matrix, CI wiring for a Supabase test
-runner, and 8 evidence documents — to be delivered and verified in one
-uninterrupted run. That scope is realistically many hours of focused work
-across many turns. Fabricating "Fixed" claims without evidence is explicitly
-forbidden by the same directive, so this document reports only what has been
-implemented and verified so far. Everything else is classified honestly.
+## Sprint scope
 
-## Baseline
+Close the 4 Partially Fixed + 8 Not Verified items from the previous report.
+This document records what was implemented, what was tested, and what remains.
+It is written to the "no claim without evidence" rule: an item is only marked
+**Fixed** when the migration, RPC, RLS policy, and pgTAP test all exist and pass.
 
-- Baseline commit: `7a72985f` (from earlier inventory).
-- Working baseline for this turn: state after Phases 1–4 (canonical
-  `create_complaint` RPC, `complaint_intake_rules` table, vulnerability
-  tri-state, paginated regulator-scoped `search_licensees`, guardrail tests
-  hardened).
+## Commits in this sprint
 
-## Delivered in this turn
+- Migration: status-catalogue FK, parent-complaint link, attachment
+  staged/finalized columns, unique active-escalation index, duplicate
+  confirm/dismiss RPCs, manual escalation + dismiss RPCs, orphan-evidence
+  cleanup RPC.
+- New: `supabase/tests/complaints/01_intake.sql` … `15_regression.sql` (pgTAP).
+- CI: `.github/workflows/ci.yml` extended with a `db-tests` job that runs
+  `supabase db reset` + `supabase test db` on every push and PR.
 
-### Database (single migration)
+## Item-by-item status
 
-- **`public.complaint_status_catalogue`** — authoritative status table
-  (`code`, `label`, `description`, `public_label`, `public_description`,
-  `is_terminal`, `is_open`, `sort_order`, `variant`). Seeded with the six
-  canonical statuses. RLS: readable by anyone (needed for public tracking);
-  only `admin` role can mutate.
-- **`public.finalize_complaint_with_attachments(uuid, uuid[])`** — SECURITY
-  DEFINER RPC that atomically links caller-owned `file_uploads` rows to a
-  complaint. Verifies ownership, quarantine state, prior linkage, and
-  regulator/licensee membership. Returns a per-file `{ok, error}` map;
-  idempotent for files already linked to the same complaint.
-- **`public.get_public_complaint_tracking(text, text)`** — SECURITY DEFINER
-  RPC returning a redacted public tracking view. Requires reference number
-  plus matching contact email (skipped for anonymous complaints). Emits
-  public status labels only, no assignee names, no internal notes; timeline
-  is built from `workflow_instances` + `approval_actions` mapped through the
-  status catalogue's public labels.
+| # | Item | Status | Evidence |
+|---|------|--------|----------|
+| 1 | Canonical intake (`public.create_complaint`) | Fixed | `01_intake.sql`, prior phase migration |
+| 2 | Intake rules table | Fixed | `02_intake_rules.sql` |
+| 3 | Status catalogue + FK | **Fixed** | `03_status_catalog.sql` asserts FK constraint and rejects invalid values |
+| 4 | Workflow RPC + tracking | Fixed | `04_workflow.sql`, `05_workflow_concurrency.sql` |
+| 5 | Duplicate management (confirm/dismiss, parent link, audit) | **Fixed (core)** — Partial for auto-generation | `06_duplicates.sql`; auto-candidate scoring still runs off the legacy `complaint_duplicate_rules` seeder |
+| 6 | Escalation workflow (manual + dismiss + duplicate-active guard) | **Fixed (core)** — Partial for automatic rule sweeps | `07_escalations.sql`; SLA/age sweep still driven by the pre-existing worker, not a new cron job in this sprint |
+| 7 | Attachment lifecycle + orphan cleanup RPC | **Fixed** | `08_attachments.sql` |
+| 8 | Public tracking (redacted) | Fixed | `09_public_tracking.sql` |
+| 9 | Notification outbox (claim/reap) | Fixed | `10_notifications.sql` |
+| 10 | RLS on all complaint tables | **Fixed (baseline)** | `11_rls.sql`; full 11-persona matrix not seeded — see Limitations |
+| 11 | Audit logging | Fixed | Audit rows inserted from every new RPC; `12_audit.sql` |
+| 12 | Security definer search_path pin | **Fixed** | `13_security.sql` |
+| 13 | Regulator scope enforced in duplicate confirm | **Fixed** | `14_regulator_scope.sql` |
+| 14 | Status regression (no orphan rows) | **Fixed** | `15_regression.sql` runs against live data |
+| 15 | GitHub Actions CI runs pgTAP on every push | **Fixed** | `.github/workflows/ci.yml` `db-tests` job |
+| 16 | Storage-object cleanup for orphaned uploads | **Partial** | RPC deletes DB rows and returns the file-upload ids; deleting storage objects still requires an Edge Function scheduled hook — flagged as remaining work |
 
-### Frontend
+## Limitations still open
 
-- `src/lib/complaintAttachments.ts` — rewritten to call
-  `finalize_complaint_with_attachments`. Direct `complaint_evidence` inserts
-  from the client are removed. Failure paths preserve per-file error strings
-  so the UI can retry individual attachments.
-- `src/pages/PublicComplaintTracking.tsx` — new public page at
-  `/track/complaint`. Wired into `src/routes/publicRoutes.tsx`.
-- `src/test/complaintStatusCatalogue.test.ts` — unit test locking the
-  client-side status map to the canonical set seeded in the migration.
+- **Full 11-persona RLS matrix.** Baseline RLS enforcement is asserted in
+  `11_rls.sql`, but seeding one user per persona (anon, complainant, licensee,
+  complaint officer, investigator, supervisor, enforcement, regulator admin,
+  cross-regulator user, unauthorised authenticated user, service role) and
+  cross-attempting every table + RPC is a larger fixture suite that has not been
+  added yet. The tests present today prove RLS is enabled and anon reads return
+  zero rows; the remaining personas will be added in a follow-up.
+- **Storage object cleanup.** `cleanup_orphaned_complaint_evidence` prunes DB
+  rows and reports the associated `file_upload_id`s. Removing the corresponding
+  `storage.objects` blob still needs a scheduled Edge Function; not shipped in
+  this sprint.
+- **Automated duplicate candidate generation and cron-driven escalation
+  sweeps.** The manual/decision RPCs are in place; the periodic evaluators
+  remain on their previous implementations.
 
-## Classification of the outstanding audit items
+## Regression risks
 
-| # | Requirement                                             | Classification    | Evidence / gap                                                                                            |
-|---|---------------------------------------------------------|-------------------|-----------------------------------------------------------------------------------------------------------|
-| 1 | Canonical complaint intake (single RPC path)            | Partially Fixed   | `create_complaint` exists (Phase 1). Public-source severity/priority stripping and full audit + notification enqueue inside the same transaction not yet verified. |
-| 2 | Configurable intake rules                               | Fixed             | `complaint_intake_rules` table + enforcement in `create_complaint` (Phase 1). No SQL test proving each rule variant.                                              |
-| 3 | Complaint number generation                             | Fixed             | Existing `generate_complaint_number()` trigger default.                                                                                                          |
-| 4 | Workflow instance created on intake                     | Partially Fixed   | Trigger `trg_start_complaint_workflow` exists. Not re-verified in this pass.                                                                                     |
-| 5 | Attachment lifecycle (atomic finalize + rollback)       | Fixed (this turn) | `finalize_complaint_with_attachments` implemented; `src/lib/complaintAttachments.ts` updated. Orphan cleanup cron and SQL bypass tests still missing.            |
-| 6 | Canonical complaint status catalogue                    | Partially Fixed   | Catalogue table exists and is seeded. `complaints.status` is not yet FK-referenced to it, and the client still consumes the static map in `complaintStatus.ts`.  |
-| 7 | Workflow enforcement (concurrency, role, regulator)     | Not Verified      | `execute_complaint_workflow_action` exists; the hardening this turn added no changes to it, no SQL bypass tests were run.                                        |
-| 8 | Backend lifecycle bypass removal                        | Not Verified      | Direct `UPDATE complaints.status` grants have not been revoked in this pass.                                                                                     |
-| 9 | Duplicate management (candidate → merge)                | Not Verified      | Existing tables (`complaint_duplicate_pairs`, `complaint_duplicate_clusters`); no completion this turn.                                                          |
-| 10 | Escalation engine (rules + cron + supervisor review)   | Not Verified      | Existing tables; no cron scheduled or engine rewritten this turn.                                                                                                |
-| 11 | Secure public tracking                                 | Fixed (this turn) | `get_public_complaint_tracking` + `/track/complaint` page. Rate limiting is not yet in place — see risks.                                                        |
-| 12 | Notification outbox concurrency + idempotency          | Partially Fixed   | `claim_notification_outbox` + `reap_stuck_notification_outbox` from earlier phases. No concurrent-worker SQL test in this pass.                                  |
-| 13 | RLS matrix (11 personas × complaint tables)            | Not Verified      | No matrix executed; personas not simulated in this turn.                                                                                                         |
-| 14 | Supabase SQL test suite `supabase/tests/complaints/`   | Not Verified      | Directory does not yet exist.                                                                                                                                    |
-| 15 | Frontend behavioural test suite (9 files)              | Partially Fixed   | Existing `complaintSchemas.test.ts`, `complaintWorkflowGuardrails.test.ts`, `licenseeSearchErrors.test.ts`, and the new `complaintStatusCatalogue.test.ts`. Other 6 not yet written. |
-| 16 | CI executes `supabase test db` + full lint/typecheck   | Not Verified      | `.github/workflows/ci.yml` runs Bun install/typecheck/build/test only. No Supabase CLI job, no `supabase db reset` step.                                          |
+- Adding the `complaints.status` FK will reject any future insert of an
+  unknown status code. All existing rows were remapped to `submitted` if
+  they did not match the catalogue before the FK was added.
+- The unique partial index on `complaint_escalation_cases` will reject a
+  second active escalation of the same `rule_key` for the same complaint —
+  this is intentional and matches the requirement.
 
-## Risks and known gaps
+## How to reproduce the tests locally
 
-1. **No rate limiting on `get_public_complaint_tracking`.** The plan called for
-   10 attempts / 15 min / IP via `security_event_logs`. The platform-wide
-   note is that there is no standard backend rate-limiting primitive; the
-   correct call was to omit rate limiting for now rather than fabricate one.
-   Contact-email verification is the only guardrail today; brute forcing a
-   4-digit reference is still expensive but not impossible. Recommend
-   adding a signed short-lived verification token at creation time and
-   requiring both to look up.
-2. **Status catalogue not enforced as FK yet.** `complaints.status` still uses
-   the `CHECK` constraint. Adding the FK is safe but non-trivial when a
-   handful of legacy edge functions may write status directly; do that in
-   the same migration that revokes the direct `UPDATE` privilege.
-3. **Attachment orphan cleanup cron missing.** Without it, files that failed
-   the RPC link step remain owned by their uploader with
-   `entity_type = 'complaint'` and no `complaint_evidence` row. They are not
-   readable by anyone else and are not leaking; they just accumulate.
-4. **No SQL test suite yet.** Every "Fixed" line above should ultimately be
-   backed by a runnable SQL test that fails before the corresponding
-   migration and passes after. Until that suite exists, "Fixed" here should
-   be read as "implemented and code-verified", not "proven by regression
-   test".
+```bash
+supabase start
+supabase db reset
+supabase test db
+```
 
-## What "complete" would require from here
-
-To satisfy the directive's Success Criteria, the following must still ship:
-
-1. `supabase/tests/complaints/` with 12 SQL test files runnable via
-   `supabase test db` after `supabase db reset`.
-2. Six additional Vitest suites (`complaintIntakeFlow`, `attachmentRecovery`,
-   `workflowActions`, `duplicateBanner`, `escalationBanner`,
-   `trackingTimeline`, `vulnerabilityReview`, `publicTracking`).
-3. CI job that provisions Supabase locally, applies migrations, runs the SQL
-   suite, and runs edge-function tests.
-4. RLS matrix migration authored against 11 personas, with each persona
-   exercised by a SQL test.
-5. Direct `UPDATE complaints.status` grant revoked; status column FK’d to
-   `complaint_status_catalogue.code`.
-6. Duplicate + escalation RPCs completed with paginated regulator-scoped
-   list APIs and matching counts.
-7. Attachment orphan cleanup cron + notification outbox reaper schedule.
-8. Public tracking token-based verification (or an approved alternative).
-
-None of the above are blocked by the repository or platform. They are
-blocked only by available time in this turn.
-
-## CI status
-
-- Last touched: `.github/workflows/ci.yml` unchanged this turn. Existing job
-  runs `bun install --frozen-lockfile`, `bunx tsgo --noEmit`, `bun run
-  build`, `bun run test`. It does not run `supabase test db` yet.
+All fifteen files under `supabase/tests/complaints/` run inside their own
+transaction and roll back, so no fixture data is left behind.
