@@ -1,117 +1,103 @@
+# Complaints Automation Closure — Sequential Sprint (a → b → c)
 
-# Complaints Module — Final Automation & Verification Closure
+Each phase lands as its own migration + code + behavioural test, verified before moving to the next. No phase is marked Fixed until its test passes and `docs/verification/complaints/11_final_verification.md` is updated with evidence.
 
-Goal: turn every "Partial / Not Verified" row in `docs/verification/complaints/11_final_verification.md` into behaviourally-tested "Fixed" — no smoke tests, no `continue-on-error`, no manual-only workflows.
+---
 
-## 1. Behavioural pgTAP rewrite
+## Phase (a) — Automatic Duplicate Candidate Generation
 
-Rewrite each file below so it seeds fixtures, sets `role` / `request.jwt.claim.sub`, executes the RPC or DML, asserts row state + audit + outbox, then `ROLLBACK`. `has_function` / `has_column` stay only as supporting checks.
+**Goal:** New/updated complaints automatically produce weighted duplicate candidate pairs, replacing the current manual-only flow.
 
-Target files:
-- `06_duplicates.sql` — confirm/dismiss RPCs actually link `parent_complaint_id`, write `audit_logs`, enqueue `notification_outbox`, reject cross-regulator.
-- `07_escalations.sql` — `manual_escalate_complaint` creates one `complaint_escalation_cases` row, blocks a second same-kind active row via `uq_escalation_active_kind`, dismiss transitions status.
-- `08_attachments.sql` — end-to-end: seed `file_uploads` → `finalize_complaint_with_attachments` → `complaint_evidence.finalized_at` set → ownership + regulator mismatch rejected → `cleanup_orphaned_complaint_evidence` deletes stale, keeps linked.
-- `09_public_tracking.sql` — real complaint + non-existent number: assert redaction (no assignee / no internal notes) and status label from catalogue.
-- `10_notifications.sql` — insert outbox row, `claim_notification_outbox` marks in-flight (SKIP LOCKED), second claim returns nothing, `reap_stuck_notification_outbox` requeues.
-- `12_audit.sql` — verify every complaint RPC emits an `audit_logs` row with correct action + actor.
-- `14_regulator_scope.sql` — attempt confirm/dismiss/escalate/finalize across regulator boundary; all reject.
-- `15_regression.sql` — keep FK check + add: no orphan `complaint_evidence`, no `complaint_escalation_cases` violating unique-active-kind, every complaint has an `approval_workflow_versions` snapshot.
+### Database
+- New table `public.complaint_duplicate_scoring_config` (single active row): weights for `complainant_email`, `complainant_phone`, `licensee_id`, `subject_trigram`, `description_trigram`, `time_window_days`, `min_score`. GRANTs + RLS (admin write, authenticated read).
+- Function `public.generate_complaint_duplicate_candidates(_complaint_id uuid)` — `SECURITY DEFINER`, `search_path=public`:
+  - Loads active config.
+  - Finds candidates within the same regulator + time window.
+  - Computes weighted score (exact matches on email/phone/licensee; `pg_trgm` similarity on subject/description).
+  - Upserts into `complaint_duplicate_pairs` using a **symmetric key** (`least(a,b), greatest(a,b)`) so pair uniqueness holds regardless of insert order. Adds partial unique index `uq_duplicate_pair_symmetric` for pending rows.
+  - Skips pairs already `confirmed`/`dismissed`/`merged`.
+- Trigger `trg_complaints_generate_duplicates` `AFTER INSERT OR UPDATE OF complainant_email, complainant_phone, licensee_id, subject, description ON public.complaints` → calls the generator.
 
-## 2. Full 11-persona RLS matrix
+### Tests (`supabase/tests/complaints/06_duplicates.sql` — rewritten behavioural)
+- Seed regulator + two complaints sharing email → assert a `pending` pair with score ≥ threshold.
+- Same complainant, different regulator → assert no pair created (regulator scope).
+- Outside time window → no pair.
+- Re-insert same pair (order flipped) → symmetric uniqueness holds (still one row).
+- Confirming pair sets `parent_complaint_id`; re-running generator does not resurrect it.
 
-New file `supabase/tests/complaints/11_rls.sql` (replaces smoke test) + shared helper `supabase/tests/complaints/_helpers.sql` that seeds:
+### Frontend
+- `src/pages/complaints/duplicates/` list already reads `complaint_duplicate_pairs` — verify it renders newly generated rows (no code change expected beyond query refresh).
 
-- 2 regulators, 2 licensees per regulator
-- 1 user each: anon, complainant A, complainant B, licensee-primary, licensee-secondary, intake officer, investigator, supervisor, enforcement officer, regulator admin, cross-regulator admin, unauthorised auth user
+### Verification
+Update `11_final_verification.md`: item 3 → Fixed with test file + migration reference.
 
-Matrix loop asserts SELECT/INSERT/UPDATE/DELETE + each RPC (`create_complaint`, workflow action, confirm/dismiss duplicate, manual/dismiss escalate, finalize attachments, cleanup, public tracking) on `complaints`, `complaint_evidence`, `complaint_duplicate_pairs/clusters`, `complaint_escalation_cases`, `complaint_status_catalogue`, `workflow_instances`, `notification_outbox`, `audit_logs`, `file_uploads`.
+---
 
-Emit results into a temp table; `COPY` summarised allow/deny grid into `docs/verification/complaints/12_rls_persona_matrix.md` via a small `scripts/emit-rls-matrix.mjs` runner that executes the SQL and formats the markdown table from the captured output.
+## Phase (b) — Scheduled Escalation Sweep
 
-## 3. Automatic duplicate candidate generation
+**Goal:** Time/age/SLA-based escalation cases open automatically without a user action.
 
-New migration:
+### Database
+- Function `public.evaluate_complaint_escalations(_complaint_id uuid)` — evaluates every enabled row in `complaint_escalation_rules` against one complaint; opens a `complaint_escalation_cases` row (respecting `uq_escalation_active_kind`), writes audit + notification outbox rows.
+- Function `public.evaluate_all_complaint_escalations()` — loops active complaints, calls the per-complaint evaluator, returns summary counts.
+- Both `SECURITY DEFINER`, `search_path=public`.
 
-- Table `complaint_duplicate_config` (regulator_id nullable for global default) with weights: subject_similarity, description_similarity, same_licensee, email_match, phone_match, external_ref_match; thresholds `min_score`, `auto_high_confidence`; `lookback_days`, `max_candidates`, `excluded_statuses text[]`, `enabled`, effective dates.
-- Function `public.generate_complaint_duplicate_candidates(_complaint_id uuid)` (SECURITY DEFINER, `search_path=public`): reads config, uses `pg_trgm` similarity on subject/description, exact match on email/phone/external_ref/licensee, scoped to same regulator, honours `excluded_statuses` and `lookback_days`, upserts into `complaint_duplicate_pairs` with `score_components jsonb` (skips pairs currently `dismissed`), enqueues review notification when `score >= auto_high_confidence`, writes audit row. Symmetric-pair guard via `LEAST/GREATEST` ordered ids + unique index.
-- Trigger `AFTER INSERT OR UPDATE OF subject, description, complainant_email, complainant_phone, external_reference, licensee_id ON complaints` → calls the generator.
-- Idempotency: unique `(complaint_a, complaint_b)` with ordered pair.
+### Edge Function
+- `supabase/functions/complaint-escalation-sweep/index.ts` — service-role client, calls `evaluate_all_complaint_escalations()`, returns HTTP 200 summary (matches existing `sla-escalation-sweep` pattern).
+- Deno test `index_test.ts` — mocks Supabase client, asserts RPC invoked, error path returns 200 with `ok:false`.
 
-Behavioural tests (`06_duplicates.sql` extension or new `16_duplicate_generation.sql`): similar/dissimilar pairs, licensee weighting, exact email/reference boosts, cross-regulator isolation, dismissed persistence, threshold config change, idempotent re-run.
+### Cron
+- Via `supabase--insert` (not migration, per project rules): `cron.schedule('complaint-escalation-sweep', '*/15 * * * *', $$ select net.http_post(...) $$)` targeting the deployed function URL with anon key header.
 
-## 4. Scheduled escalation sweep
+### Tests (`supabase/tests/complaints/07_escalations.sql` — rewritten behavioural)
+- Seed complaint older than rule threshold → evaluator opens case with correct tier.
+- Duplicate call → unique-active-kind index blocks second row.
+- Dismiss case → evaluator can reopen after dismissal.
+- Non-matching complaint → no case.
 
-New migration:
+### Verification
+Update `11_final_verification.md`: item 4 → Fixed with function + test + cron reference.
 
-- `public.evaluate_complaint_escalations(_complaint_id uuid)` — evaluates all rules (SLA breach via `approval_actions.sla_deadline`, age vs config, severity=critical, vulnerability flag, harm level, repeat count against licensee in window, unresolved duplicate cluster, manual). Reads `complaint_escalation_rules` (already present). Skips resolved/closed, disabled rules, outside effective dates. Uses `uq_escalation_active_kind` to avoid duplicates. Writes audit + outbox; supports enforcement referral by inserting `enforcement_case_events` row.
-- `public.evaluate_all_complaint_escalations(_batch_size int)` — loops with SAVEPOINT per complaint so one failure does not abort; resumable via a `last_processed_id` cursor stored in `complaint_escalation_log`.
+---
 
-Scheduling: extend the existing `sla-escalation-sweep` Edge Function (or new `complaint-escalation-sweep`) that calls `evaluate_all_complaint_escalations`; register in `pg_cron` every 15 min via `supabase--insert` (not migration, since it contains function URL + anon key per project rules).
+## Phase (c) — Physical Storage Object Cleanup
 
-Behavioural tests `17_escalation_sweep.sql`: overdue → escalated, non-overdue → not, vulnerability rule fires, repeat-volume rule fires, duplicate active rejected, disabled rule ignored, cross-regulator ignored, audit + outbox rows present, second run idempotent.
+**Goal:** Orphaned `complaint_evidence` blobs are removed from Storage, not just DB rows.
 
-## 5. Physical storage cleanup
+### Database
+- Extend `cleanup_orphaned_complaint_evidence` to return `(file_upload_id uuid, storage_bucket text, storage_path text)` so the worker can delete objects.
+- New table `public.complaint_storage_cleanup_deadletter` (id, file_upload_id, bucket, path, attempts, last_error, created_at). GRANTs + RLS (service_role only).
 
-New Edge Function `supabase/functions/complaint-storage-cleanup/index.ts`:
+### Edge Function
+- `supabase/functions/complaint-storage-cleanup/index.ts`:
+  - Calls the cleanup RPC (default interval 24h).
+  - For each returned row, `storage.from(bucket).remove([path])`.
+  - Retry up to 3 attempts in-loop with backoff; on final failure insert into deadletter table.
+  - Returns HTTP 200 summary.
+- Deno test `index_test.ts` — mocks storage client; asserts remove called per row, deadletter insert on failure, 200 response on error.
 
-1. `select ... for update skip locked` a batch of `complaint_evidence` / `file_uploads` rows where `staged_at < now() - interval` AND `finalized_at IS NULL` AND no linkage.
-2. For each: `storage.from('secure-documents').remove([path])`, on success delete DB row, on failure increment `cleanup_attempts`, on N failures move to a `file_upload_dead_letter` table.
-3. Emit audit + return `{deleted, failed, dead_lettered}`.
+### Cron
+- `supabase--insert` scheduling daily at 02:00.
 
-Migration adds `cleanup_attempts int default 0`, `last_cleanup_error text` on `file_uploads` and creates `file_upload_dead_letter`. RPC `cleanup_orphaned_complaint_evidence` becomes admin-only (`has_role(auth.uid(),'admin')`), returns claim IDs consumed by the Edge Function only.
+### Tests (`supabase/tests/complaints/08_attachments.sql` — extended behavioural)
+- Insert staged evidence older than interval, never finalised → RPC returns row, deletes DB record.
+- Finalised evidence within interval → RPC leaves it alone.
+- Deadletter table exists, RLS restricts to service_role.
 
-`pg_cron` job invokes the function daily; registered via `supabase--insert` in the same step as §4.
+### Verification
+Update `11_final_verification.md`: items 5 (and residual 1 for these three files) → Fixed.
 
-Deno tests `supabase/functions/complaint-storage-cleanup/index.test.ts`: stale removed (mock storage), linked preserved, recent preserved, storage failure → row retained + attempt++, retry succeeds, concurrent claim (double invocation) processes each row once, non-admin caller → 403.
+---
 
-## 6. Blocking CI
+## Sequencing & Guardrails
 
-Rewrite `.github/workflows/ci.yml`:
+1. Execute phases strictly in order. Do not start (b) until (a)'s migration is approved and tests are green in `supabase test db`. Same gate between (b) and (c).
+2. Each phase: migration first (via `supabase--migration`), wait for approval, then code + tests, then verification doc update.
+3. Item 2 (11-persona RLS matrix) and item 6 (observed green Actions run) remain out of scope for this sprint — they will be called out as still-open in the verification doc so nothing is misrepresented.
+4. No `continue-on-error`; CI stays blocking as previously hardened.
 
-```yaml
-jobs:
-  frontend:
-    steps:
-      - bun install --frozen-lockfile
-      - bunx tsgo --noEmit
-      - bun run lint
-      - bun run build
-      - bun run test            # remove continue-on-error
-  db:
-    needs: frontend
-    steps:
-      - supabase start
-      - supabase db reset --no-seed
-      - supabase test db
-      - deno test supabase/functions --allow-net --allow-env
-      - node scripts/emit-rls-matrix.mjs   # writes matrix doc, fails on deny/allow mismatch
-      - bun audit --production || true     # advisory
-```
-
-All `continue-on-error` removed. Package script `"lint"` added if missing.
-
-## 7. Evidence capture
-
-Run locally (or record CI run URL) and update `docs/verification/complaints/11_final_verification.md` with:
-
-- final commit SHA
-- GitHub Actions run URL + conclusion
-- exact frontend + pgTAP + Deno test totals
-- persona matrix summary (link to `12_rls_persona_matrix.md`)
-- duplicate generation, escalation sweep, storage cleanup outcomes
-- any external blocker (e.g. `pg_cron` availability on hosted project) with the precise manual step required
-
-Reclassify Fixed only where an executed test proves behaviour.
-
-## Technical details (implementer notes)
-
-- Enable extensions `pg_trgm`, `pg_cron`, `pg_net` (idempotent `CREATE EXTENSION IF NOT EXISTS`).
-- All new SECURITY DEFINER functions pin `set search_path = public`.
-- GRANTs: `authenticated` for user-facing RPCs, `service_role` only for cleanup + sweep + generator; no `anon` on any new object except `get_public_complaint_tracking` (already granted).
-- Unique ordered-pair index: `create unique index on complaint_duplicate_pairs (least(complaint_a_id,complaint_b_id), greatest(complaint_a_id,complaint_b_id))`.
-- pgTAP persona switching via `set local role authenticated; set local "request.jwt.claim.sub" = '<uuid>'` inside each subtest.
-- Storage cleanup uses `LOVABLE_BROWSER_*` env only in tests? No — use Deno test with mocked `supabase.storage`.
-- pg_cron jobs registered via `supabase--insert` (contains project-specific URL + anon key, must not be in a shared migration).
-
-## Out of scope
-Non-complaints modules, UI redesigns, new complaint features beyond what tests require.
+## Technical Notes
+- Symmetric duplicate uniqueness: `CREATE UNIQUE INDEX uq_duplicate_pair_symmetric ON complaint_duplicate_pairs (least(complaint_a_id, complaint_b_id), greatest(complaint_a_id, complaint_b_id)) WHERE status = 'pending';`
+- `pg_trgm` extension already enabled (used by `search_licensees`); reuse `similarity()`.
+- Edge functions follow existing pattern: `npm:@supabase/supabase-js@2/cors`, service-role client, HTTP 200 error bodies.
+- Cron uses `supabase--insert` (not migration) because URLs/anon keys are project-specific.
