@@ -226,7 +226,7 @@ export default function ComplaintDetail() {
       const term = licSearch.trim();
       const pageSize = 50;
 
-      const nameQ = supabase
+      const nameQ = (supabase as any)
         .from('licensees')
         .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
         .order('name')
