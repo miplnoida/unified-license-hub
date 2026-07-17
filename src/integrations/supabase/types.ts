@@ -2029,6 +2029,50 @@ export type Database = {
           },
         ]
       }
+      complaint_intake_rules: {
+        Row: {
+          allow_anonymous: boolean
+          created_at: string
+          id: string
+          max_attachments: number
+          notes: string | null
+          regulator_id: string | null
+          required_fields: string[]
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          allow_anonymous?: boolean
+          created_at?: string
+          id?: string
+          max_attachments?: number
+          notes?: string | null
+          regulator_id?: string | null
+          required_fields?: string[]
+          updated_at?: string
+          variant: string
+        }
+        Update: {
+          allow_anonymous?: boolean
+          created_at?: string
+          id?: string
+          max_attachments?: number
+          notes?: string | null
+          regulator_id?: string | null
+          required_fields?: string[]
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_intake_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_investigation_tasks: {
         Row: {
           complaint_id: string
@@ -15473,7 +15517,9 @@ export type Database = {
         }
         Returns: string
       }
-      create_complaint: { Args: { _payload: Json }; Returns: Json }
+      create_complaint:
+        | { Args: { _payload: Json }; Returns: Json }
+        | { Args: { _payload: Json; _variant: string }; Returns: Json }
       create_document_version: {
         Args: {
           _action?: string
