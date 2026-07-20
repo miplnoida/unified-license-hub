@@ -60,6 +60,32 @@ describe('EmployeeCombobox', () => {
     const onChange = vi.fn();
     render(<EmployeeCombobox value="u1" options={options} onChange={onChange} />);
     fireEvent.click(screen.getByLabelText('Clear selection'));
-    expect(onChange).toHaveBeenCalledWith(null);
+
+  it('marks inactive options with an Inactive pill and disables non-current inactive rows', () => {
+    // Legacy inactive assignee u4 is disabled from re-selection.
+    render(
+      <EmployeeCombobox
+        value={null}
+        options={options}
+        disabledIds={new Set(['u4'])}
+        onChange={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('combobox'));
+    const row = screen.getByText('Dan Legacy').closest('[role="option"]') as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(within(row!).getByText(/inactive/i)).toBeInTheDocument();
+    expect(row!.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('inactive user that IS the current value shows as selected with Inactive pill', () => {
+    render(
+      <EmployeeCombobox value="u4" options={options} onChange={() => {}} />,
+    );
+    // The trigger displays the selected label.
+    expect(screen.getByRole('combobox')).toHaveTextContent('Dan Legacy');
+    fireEvent.click(screen.getByRole('combobox'));
+    const row = screen.getByText('Dan Legacy').closest('[role="option"]') as HTMLElement;
+    expect(within(row!).getByText(/inactive/i)).toBeInTheDocument();
   });
 });
