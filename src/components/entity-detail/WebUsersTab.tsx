@@ -278,7 +278,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
 
   return (
     <div className="space-y-4">
-      <PrimaryUserCard entityId={entityId} entityName={entityName} />
+      <PrimaryUserCard entityId={entityId} entityName={entityName} refreshKey={primaryRefreshKey} />
       <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
