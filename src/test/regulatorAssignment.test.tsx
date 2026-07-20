@@ -60,6 +60,10 @@ describe('EmployeeCombobox', () => {
     const onChange = vi.fn();
     render(<EmployeeCombobox value="u1" options={options} onChange={onChange} />);
     fireEvent.click(screen.getByLabelText('Clear selection'));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+
+
 
   it('marks inactive options with an Inactive pill and disables non-current inactive rows', () => {
     // Legacy inactive assignee u4 is disabled from re-selection.
