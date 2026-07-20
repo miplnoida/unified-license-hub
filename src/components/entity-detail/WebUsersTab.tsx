@@ -291,14 +291,21 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search users..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          PPOC Mappings show additional licensees a user is authorized to act on. Manage them in Admin → PPOC Mapping.
+        </p>
         {filtered.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground"><Users2 className="h-10 w-10 mx-auto mb-3 opacity-30" /><p>No web users linked to this entity.</p></div>
         ) : (
+          <TooltipProvider delayDuration={200}>
           <Table>
-            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>PPOC Mappings</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filtered.map(u => {
                 const isActive = u.status === 'active';
+                const mappings = userMappings[u.id] || [];
+                const visible = mappings.slice(0, 2);
+                const overflow = mappings.slice(2);
                 const actions: RowAction[] = [
                   { label: 'View', icon: Eye, onClick: () => setViewUser(u) },
                   { label: 'Edit', icon: Pencil, onClick: () => openEdit(u) },
@@ -312,6 +319,37 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
                     <TableCell>{u.email}</TableCell>
                     <TableCell className="capitalize">{u.user_type}</TableCell>
                     <TableCell><Badge variant="outline" className={isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}>{u.status}</Badge></TableCell>
+                    <TableCell>
+                      {mappings.length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1 max-w-[320px]">
+                          {visible.map(m => (
+                            <Badge key={m.licenseeId} variant="outline" className="text-xs font-normal">
+                              {m.licenseeName}
+                              {m.sectorCount > 0 ? ` (${m.sectorCount} sector${m.sectorCount === 1 ? '' : 's'})` : ''}
+                            </Badge>
+                          ))}
+                          {overflow.length > 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="text-xs cursor-default">+{overflow.length} more</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <ul className="space-y-0.5 text-xs">
+                                  {overflow.map(m => (
+                                    <li key={m.licenseeId}>
+                                      {m.licenseeName}
+                                      {m.sectorCount > 0 ? ` (${m.sectorCount} sector${m.sectorCount === 1 ? '' : 's'})` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <RowActionsMenu actions={actions} label="Manage user" dropdownModal={false} />
                     </TableCell>
@@ -320,6 +358,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
               })}
             </TableBody>
           </Table>
+          </TooltipProvider>
         )}
       </CardContent>
 
