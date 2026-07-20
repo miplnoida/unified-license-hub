@@ -287,7 +287,14 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     regulator_officer_id: entity.regulator_officer_id || '',
     alternate_regulator_id: entity.alternate_regulator_id || '',
   });
-  const { data: internalUsers = [] } = useInternalUsers();
+  const legacyRegulatorIds = [
+    entity.lead_regulator_id,
+    entity.regulator_officer_id,
+    entity.alternate_regulator_id,
+  ].filter((v): v is string => typeof v === 'string' && !!v);
+  const { data: internalUsers = [] } = useInternalUsers(undefined, {
+    alwaysIncludeIds: legacyRegulatorIds,
+  });
   const [saving, setSaving] = useState(false);
   const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [registration, setRegistration] = useState<any>(null);
