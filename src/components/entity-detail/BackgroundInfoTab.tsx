@@ -440,6 +440,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const employeeOptions = internalUsers.map(u => ({
     id: u.id,
     label: u.full_name || u.email || u.id,
+    sublabel: u.full_name && u.email ? u.email : null,
   }));
   const employeeName = (id?: string | null) => {
     if (!id) return '—';
@@ -451,20 +452,16 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       (['lead_regulator_id', 'regulator_officer_id', 'alternate_regulator_id'] as const)
         .filter(k => k !== key)
         .map(k => form[k])
-        .filter(v => v && v !== 'none')
+        .filter((v): v is string => !!v && v !== 'none')
     );
     return (
-      <Select value={form[key] || 'none'} onValueChange={v => handleChange(key, v)}>
-        <SelectTrigger><SelectValue placeholder="Not assigned" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Not assigned</SelectItem>
-          {employeeOptions.map(opt => (
-            <SelectItem key={opt.id} value={opt.id} disabled={otherSelected.has(opt.id)}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <EmployeeCombobox
+        testId={`regulator-${key}`}
+        value={form[key] && form[key] !== 'none' ? form[key] : null}
+        options={employeeOptions}
+        disabledIds={otherSelected}
+        onChange={(id) => handleChange(key, id || 'none')}
+      />
     );
   };
 
