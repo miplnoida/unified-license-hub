@@ -16,6 +16,7 @@ export interface EmployeeOption {
   id: string;
   label: string;
   sublabel?: string | null;
+  inactive?: boolean;
 }
 
 interface EmployeeComboboxProps {
