@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip, ShieldCheck } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
+import { EmployeeCombobox } from '@/components/entity-detail/EmployeeCombobox';
 
 interface BackgroundInfoTabProps {
   entity: any;
