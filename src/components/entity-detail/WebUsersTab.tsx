@@ -26,6 +26,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [primaryRefreshKey, setPrimaryRefreshKey] = useState(0);
 
   const [title, setTitle] = useState('Mr.');
   const [firstName, setFirstName] = useState('');
