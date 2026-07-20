@@ -287,7 +287,14 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     regulator_officer_id: entity.regulator_officer_id || '',
     alternate_regulator_id: entity.alternate_regulator_id || '',
   });
-  const { data: internalUsers = [] } = useInternalUsers();
+  const legacyRegulatorIds = [
+    entity.lead_regulator_id,
+    entity.regulator_officer_id,
+    entity.alternate_regulator_id,
+  ].filter((v): v is string => typeof v === 'string' && !!v);
+  const { data: internalUsers = [] } = useInternalUsers(undefined, {
+    alwaysIncludeIds: legacyRegulatorIds,
+  });
   const [saving, setSaving] = useState(false);
   const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [registration, setRegistration] = useState<any>(null);
@@ -442,11 +449,13 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     id: u.id,
     label: u.full_name || u.email || u.id,
     sublabel: u.full_name && u.email ? u.email : null,
+    inactive: !u.is_active,
   }));
   const employeeName = (id?: string | null) => {
     if (!id) return '—';
     const found = internalUsers.find(u => u.id === id);
-    return found?.full_name || found?.email || id;
+    const label = found?.full_name || found?.email || id;
+    return found && !found.is_active ? `${label} (Inactive)` : label;
   };
   const renderRegulatorSelect = (key: 'lead_regulator_id' | 'regulator_officer_id' | 'alternate_regulator_id') => {
     const otherSelected = new Set(
@@ -455,12 +464,19 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
         .map(k => form[k])
         .filter((v): v is string => !!v && v !== 'none')
     );
+    // Prevent re-selecting inactive employees (legacy assignees stay visible
+    // as the current label, but cannot be picked for a different slot).
+    const currentValue = form[key] && form[key] !== 'none' ? form[key] : null;
+    const inactiveNotCurrent = new Set(
+      employeeOptions.filter(o => o.inactive && o.id !== currentValue).map(o => o.id),
+    );
+    const disabledIds = new Set<string>([...otherSelected, ...inactiveNotCurrent]);
     return (
       <EmployeeCombobox
         testId={`regulator-${key}`}
-        value={form[key] && form[key] !== 'none' ? form[key] : null}
+        value={currentValue}
         options={employeeOptions}
-        disabledIds={otherSelected}
+        disabledIds={disabledIds}
         onChange={(id) => handleChange(key, id || 'none')}
       />
     );
