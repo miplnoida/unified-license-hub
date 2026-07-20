@@ -89,7 +89,7 @@ describe('EmployeeCombobox', () => {
     // The trigger displays the selected label.
     expect(screen.getByRole('combobox')).toHaveTextContent('Dan Legacy');
     fireEvent.click(screen.getByRole('combobox'));
-    const row = screen.getByText('Dan Legacy').closest('[role="option"]') as HTMLElement;
+    const row = screen.getAllByText('Dan Legacy').map(el => el.closest('[role="option"]')).find(Boolean) as HTMLElement;
     expect(within(row!).getByText(/inactive/i)).toBeInTheDocument();
   });
 });
