@@ -25,7 +25,7 @@ interface ProfileLite {
   licensee_id?: string | null;
 }
 
-export default function PrimaryUserCard({ entityId, entityName }: Props) {
+export default function PrimaryUserCard({ entityId, entityName, refreshKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState<ProfileLite | null>(null);
   const [open, setOpen] = useState(false);
