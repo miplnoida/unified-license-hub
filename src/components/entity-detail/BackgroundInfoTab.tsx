@@ -8,8 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip } from 'lucide-react';
+import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip, ShieldCheck } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
+import { useInternalUsers } from '@/hooks/useInternalUsers';
 
 interface BackgroundInfoTabProps {
   entity: any;
@@ -281,7 +282,11 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     sector_id: entity.sector_id || '',
     sub_sector_id: entity.sub_sector_id || '',
     category_id: entity.category_id || '',
+    lead_regulator_id: entity.lead_regulator_id || '',
+    regulator_officer_id: entity.regulator_officer_id || '',
+    alternate_regulator_id: entity.alternate_regulator_id || '',
   });
+  const { data: internalUsers = [] } = useInternalUsers();
   const [saving, setSaving] = useState(false);
   const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [registration, setRegistration] = useState<any>(null);
@@ -403,6 +408,13 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       toast.error('Entity name already exists');
       return;
     }
+    const regs = [form.lead_regulator_id, form.regulator_officer_id, form.alternate_regulator_id]
+      .map(v => (v && v !== 'none' ? v : null))
+      .filter(Boolean) as string[];
+    if (new Set(regs).size !== regs.length) {
+      toast.error('The same employee cannot be assigned to more than one regulator role.');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('licensees').update({
       name: form.name,
@@ -410,7 +422,10 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       sector_id: form.sector_id || null,
       sub_sector_id: form.sub_sector_id || null,
       category_id: form.category_id || null,
-    }).eq('id', entity.id);
+      lead_regulator_id: form.lead_regulator_id && form.lead_regulator_id !== 'none' ? form.lead_regulator_id : null,
+      regulator_officer_id: form.regulator_officer_id && form.regulator_officer_id !== 'none' ? form.regulator_officer_id : null,
+      alternate_regulator_id: form.alternate_regulator_id && form.alternate_regulator_id !== 'none' ? form.alternate_regulator_id : null,
+    } as any).eq('id', entity.id);
 
     if (error) {
       toast.error('Failed to save: ' + error.message);
@@ -420,6 +435,37 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       onUpdate();
     }
     setSaving(false);
+  };
+
+  const employeeOptions = internalUsers.map(u => ({
+    id: u.id,
+    label: u.full_name || u.email || u.id,
+  }));
+  const employeeName = (id?: string | null) => {
+    if (!id) return '—';
+    const found = internalUsers.find(u => u.id === id);
+    return found?.full_name || found?.email || id;
+  };
+  const renderRegulatorSelect = (key: 'lead_regulator_id' | 'regulator_officer_id' | 'alternate_regulator_id') => {
+    const otherSelected = new Set(
+      (['lead_regulator_id', 'regulator_officer_id', 'alternate_regulator_id'] as const)
+        .filter(k => k !== key)
+        .map(k => form[k])
+        .filter(v => v && v !== 'none')
+    );
+    return (
+      <Select value={form[key] || 'none'} onValueChange={v => handleChange(key, v)}>
+        <SelectTrigger><SelectValue placeholder="Not assigned" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Not assigned</SelectItem>
+          {employeeOptions.map(opt => (
+            <SelectItem key={opt.id} value={opt.id} disabled={otherSelected.has(opt.id)}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   };
 
   const sectorList = Object.entries(sectors).sort((a, b) => a[1].localeCompare(b[1]));
@@ -603,6 +649,38 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Regulatory Oversight
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Assign internal employees responsible for supervising this entity. Assignments control who can view submitted returns for this entity. All three fields are optional and the same employee cannot be assigned to more than one role.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Lead Regulator</Label>
+              {renderRegulatorSelect('lead_regulator_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.lead_regulator_id)}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Regulator</Label>
+              {renderRegulatorSelect('regulator_officer_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.regulator_officer_id)}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Alternate Regulator</Label>
+              {renderRegulatorSelect('alternate_regulator_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.alternate_regulator_id)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>

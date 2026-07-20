@@ -7783,13 +7783,16 @@ export type Database = {
       }
       licensees: {
         Row: {
+          alternate_regulator_id: string | null
           applicant_id: string | null
           assigned_supervisor_id: string | null
           category_id: string | null
           created_at: string
           id: string
+          lead_regulator_id: string | null
           license_id: string | null
           name: string
+          regulator_officer_id: string | null
           sector_id: string | null
           status: string
           sub_sector_id: string | null
@@ -7797,13 +7800,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alternate_regulator_id?: string | null
           applicant_id?: string | null
           assigned_supervisor_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
+          lead_regulator_id?: string | null
           license_id?: string | null
           name: string
+          regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -7811,13 +7817,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alternate_regulator_id?: string | null
           applicant_id?: string | null
           assigned_supervisor_id?: string | null
           category_id?: string | null
           created_at?: string
           id?: string
+          lead_regulator_id?: string | null
           license_id?: string | null
           name?: string
+          regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -15539,6 +15548,10 @@ export type Database = {
       }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_entity_returns: {
+        Args: { _licensee_id: string; _user_id: string }
         Returns: boolean
       }
       can_view_return_filed: {

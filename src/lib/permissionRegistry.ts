@@ -15,7 +15,7 @@
 import type { PermissionModule } from '@/lib/permissionModules';
 import { mainNavSections, type NavItem } from '@/config/navigation';
 
-export type PermissionAction = 'view' | 'create' | 'edit' | 'approve' | 'reject';
+export type PermissionAction = 'view' | 'create' | 'edit' | 'approve' | 'reject' | 'view_all_entities';
 
 export interface ModuleRegistryEntry {
   module: PermissionModule;
@@ -35,6 +35,7 @@ export const ACTION_LABELS: Record<PermissionAction, string> = {
   edit: 'Edit',
   approve: 'Approve',
   reject: 'Reject',
+  view_all_entities: 'View All Entity Returns',
 };
 
 export const ACTION_DESCRIPTIONS: Record<PermissionAction, string> = {
@@ -43,6 +44,7 @@ export const ACTION_DESCRIPTIONS: Record<PermissionAction, string> = {
   edit: 'Modify existing records in this module.',
   approve: 'Approve / accept records in this module.',
   reject: 'Reject / deny records in this module.',
+  view_all_entities: 'Bypass entity regulator assignment and view submitted returns for all entities.',
 };
 
 /**
@@ -72,7 +74,7 @@ export const MODULE_REGISTRY: Record<PermissionModule, Omit<ModuleRegistryEntry,
     module: 'returns_management',
     label: 'Returns Management',
     description: 'Configure and review periodic regulatory returns.',
-    actions: ['view', 'create', 'edit', 'approve'],
+    actions: ['view', 'create', 'edit', 'approve', 'view_all_entities'],
   },
   complaint_management: {
     module: 'complaint_management',
