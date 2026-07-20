@@ -57,7 +57,7 @@ export default function PrimaryUserCard({ entityId, entityName, refreshKey }: Pr
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [entityId]);
+  useEffect(() => { load(); }, [entityId, refreshKey]);
 
   const openDialog = async () => {
     setSelectedUserId('');
