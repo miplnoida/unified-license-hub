@@ -1,49 +1,63 @@
+# Fix: Regulator sees all returns instead of only mapped entities
 
-## Goal
+## Root cause (verified)
 
-Reverse one earlier rule: an internal user assigned as Lead Regulator / Regulator / Alternate Regulator on an entity must be able to see that entity's **submitted** returns from the Returns menu, even if their role (e.g. `license_analyst`) lacks `returns_management.view`. Super admin and `returns_management.view_all_entities` continue to bypass. All other existing rules (drafts hidden from assignees, external users, PPOC, creator, workflow approvers, ownership) stay untouched.
+`returns_filed` has multiple SELECT policies, and Postgres RLS OR's them. The intended gate is `Internal staff view returns for assigned entities` which calls `can_view_entity_returns(uid, entity_id, workflow_status, status)` — this correctly requires super_admin, `returns_management.view_all_entities`, or an active `lead/regulator_officer/alternate_regulator_id` assignment on `licensees` for a submitted-lifecycle return.
 
-## Backend
+However, another SELECT policy exists:
 
-New migration redefines both overloads of `public.can_view_entity_returns`:
+```
+external_returns_filed_select_capability_gate:
+  auth.uid() IS NOT NULL
+  AND (
+    NOT has_external_role(auth.uid())
+    OR external_can_access_return_filed_values(..., 'can_view_status')
+    OR external_can_access_return_filed_values(..., 'can_submit_returns')
+  )
+```
 
-- Remove the `user_has_permission(_user_id,'returns_management','view')` gate on the assignment branch.
-- Assignment branch: user is Lead/Regulator/Alternate on the licensee AND (for the 4-arg overload) the return is in a submitted lifecycle status (`SUB`, `submitted`, `under_review`, `approved`, `validated`, `accepted`, `rejected`, `resubmission_requested`, `VAL`, `TBR`, `REJ`).
-- Bypass branch unchanged: `super_admin` OR `returns_management.view_all_entities`.
+`has_external_role` only returns true for applicant / pre_licensee / licensee_primary / licensee_secondary. Every internal user (analyst, license_analyst, supervisor, etc.) satisfies `NOT has_external_role(...)`, so this policy grants SELECT on **every row** of `returns_filed`, bypassing the entity-assignment gate. That is why a mapped `license_analyst` sees all returns.
 
-Because every RLS policy (`returns_filed`, `return_form_data`, `return_documents`, `return_upload_attempts`, `return_consolidated_analysis`), `can_view_return_filed`, and the `return-uploads` storage policy already delegate to this helper, no other SQL changes are required. Existing external-user / PPOC / creator / approver policies remain intact.
+## Fix
 
-## Frontend
+Rewrite `external_returns_filed_select_capability_gate` so it is a capability gate for **external users only**, and does not grant blanket access to internal users. Internal access continues to flow through `Internal staff view returns for assigned entities` (assignment + submitted lifecycle) and `Return creator can view own return`.
 
-1. `src/hooks/usePermissions.ts` — add an `assignedLicenseeIds` fetch (from `licensees` where the user is one of the three regulator columns). Expose:
-   - `hasAnyEntityAssignment: boolean`
-   - update `hasModuleAccess('returns_management')` and `canAccessPath` for `/admin/returns*` and `/entity/returns*` list/detail routes to return `true` when the user has at least one assignment, even without the module permission. Other modules unchanged.
+### Migration
 
-2. `src/components/layout/Sidebar.tsx` — no code change needed; it reads `hasModuleAccess`, which now returns true for assigned users.
+```sql
+DROP POLICY IF EXISTS external_returns_filed_select_capability_gate ON public.returns_filed;
 
-3. Route guards on returns list/detail pages: rely on the same hook, so an assigned analyst can open the queue and detail pages. Backend RLS still filters rows to only their assigned entities' submitted returns, so the list will show exactly those entities.
+CREATE POLICY external_returns_filed_select_capability_gate
+ON public.returns_filed
+FOR SELECT
+USING (
+  auth.uid() IS NOT NULL
+  AND has_external_role(auth.uid())
+  AND (
+    external_can_access_return_filed_values(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_view_status')
+    OR external_can_access_return_filed_values(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_submit_returns')
+  )
+);
+```
 
-4. Returns queue page: no query change required — RLS narrows results. Confirm the page renders gracefully with a small result set (already handles empty state).
+Result:
+- Super admins / `view_all_entities` holders: unchanged (allowed by internal-staff policy).
+- Assigned internal regulators (incl. `license_analyst`): only returns for their mapped entities in submitted lifecycle (via `can_view_entity_returns`).
+- Unassigned internal users without base permission: no rows (matches intent).
+- External roles (applicant / licensee_*): unchanged — still gated by capabilities.
+- PPOC users: unchanged (separate PPOC SELECT policy).
+- Creators of a return: unchanged (own-return policy).
 
-## Tests
+## Verification
 
-- Extend `supabase/tests/regulator_access/01_can_view_entity_returns.sql`:
-  - Mapped user WITHOUT base view perm + submitted → **true** (was previously asserted false; flip).
-  - Mapped user WITHOUT base view perm + draft → **false** (unchanged).
-  - Unmapped user without base perm → false (unchanged).
-  - view_all bypass + draft → true (unchanged).
-- Extend `src/test/regulatorAssignment.test.tsx`:
-  - Sidebar/permissions hook: user with no `returns_management` permission but with an entity assignment → `hasModuleAccess('returns_management') === true`.
-  - Same user with no assignment → `false`.
+1. Re-run existing pgTAP suite `supabase/tests/regulator_access/01_can_view_entity_returns.sql`.
+2. Add pgTAP cases:
+   - `license_analyst` mapped to entity A: sees only A's submitted returns; 0 rows from entity B.
+   - Same user, draft/TEMP return on entity A: not visible.
+   - Internal user with no assignment and no `view_all_entities`: 0 rows.
+   - External licensee_primary: still sees own entity's returns.
+3. Live smoke: log in as the affected regulator, open `/admin/returns/queue`, confirm only mapped entity's submitted returns appear.
 
 ## Out of scope
 
-- Admin config pages under `/admin/returns/{types,configurations,cutoff,due-dates,late-fees,...}` remain permission-gated; assignment does not unlock configuration screens.
-- Draft visibility for assigned regulators stays denied.
-- Reports/exports continue to run through the same helpers, so they inherit the new behavior automatically; no separate policy edits.
-
-## Technical notes
-
-- Migration: single `CREATE OR REPLACE FUNCTION` for both overloads, `SECURITY DEFINER`, `SET search_path = public`.
-- Submitted-status list kept identical to the existing 4-arg overload to avoid drift.
-- Assignment lookup in the hook is cached (`staleTime: 60_000`) alongside existing permission query.
+No frontend changes. `usePermissions` assignment-based menu unlock stays as-is — the list is now correctly filtered server-side.
