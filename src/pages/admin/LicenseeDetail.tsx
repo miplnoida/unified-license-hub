@@ -177,8 +177,6 @@ export default function LicenseeDetail() {
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'audit', label: 'Audit', icon: Gavel },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
-    { id: 'returns', label: 'Returns', icon: FileText },
-    { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
     ...(hasReinsurance ? [{ id: 'reinsurance', label: 'Reinsurance', icon: Umbrella }] : []),
   ];
 
@@ -290,13 +288,6 @@ export default function LicenseeDetail() {
               {loadedTabs.has('web-users') && <WebUsersTab entityId={id!} entityName={displayName || licensee.name} />}
             </TabsContent>
 
-            <TabsContent value="returns" className="mt-6">
-              {loadedTabs.has('returns') && <ReturnsTab entityId={id!} licenseId={licensee.license_id} />}
-            </TabsContent>
-
-            <TabsContent value="inspections" className="mt-6">
-              {loadedTabs.has('inspections') && <InspectionsTab entityId={id!} />}
-            </TabsContent>
 
             {hasReinsurance && (
               <TabsContent value="reinsurance" className="mt-6">
