@@ -72,7 +72,7 @@ export const MODULE_REGISTRY: Record<PermissionModule, Omit<ModuleRegistryEntry,
     module: 'returns_management',
     label: 'Returns Management',
     description: 'Configure and review periodic regulatory returns.',
-    actions: ['view', 'create', 'edit', 'approve'],
+    actions: ['view', 'create', 'edit', 'approve', 'view_all_entities'],
   },
   complaint_management: {
     module: 'complaint_management',
