@@ -653,6 +653,38 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Regulatory Oversight
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Assign internal employees responsible for supervising this entity. Assignments control who can view submitted returns for this entity. All three fields are optional and the same employee cannot be assigned to more than one role.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Lead Regulator</Label>
+              {renderRegulatorSelect('lead_regulator_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.lead_regulator_id)}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Regulator</Label>
+              {renderRegulatorSelect('regulator_officer_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.regulator_officer_id)}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Alternate Regulator</Label>
+              {renderRegulatorSelect('alternate_regulator_id')}
+              <p className="text-xs text-muted-foreground">Current: {employeeName(entity.alternate_regulator_id)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
             <User className="h-5 w-5 text-primary" />
             Registration Details
           </CardTitle>
