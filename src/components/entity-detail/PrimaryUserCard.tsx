@@ -14,6 +14,7 @@ import Swal from 'sweetalert2';
 interface Props {
   entityId: string;
   entityName?: string;
+  refreshKey?: number;
 }
 
 interface ProfileLite {
@@ -24,7 +25,7 @@ interface ProfileLite {
   licensee_id?: string | null;
 }
 
-export default function PrimaryUserCard({ entityId, entityName }: Props) {
+export default function PrimaryUserCard({ entityId, entityName, refreshKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState<ProfileLite | null>(null);
   const [open, setOpen] = useState(false);
@@ -56,7 +57,7 @@ export default function PrimaryUserCard({ entityId, entityName }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [entityId]);
+  useEffect(() => { load(); }, [entityId, refreshKey]);
 
   const openDialog = async () => {
     setSelectedUserId('');

@@ -26,6 +26,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [primaryRefreshKey, setPrimaryRefreshKey] = useState(0);
 
   const [title, setTitle] = useState('Mr.');
   const [firstName, setFirstName] = useState('');
@@ -163,6 +164,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         resetForm();
         setOpen(false);
         await loadUsers();
+        setPrimaryRefreshKey(k => k + 1);
       }
     } catch (e: any) {
       toast.error(e.message || 'Unexpected error');
@@ -276,7 +278,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
 
   return (
     <div className="space-y-4">
-      <PrimaryUserCard entityId={entityId} entityName={entityName} />
+      <PrimaryUserCard entityId={entityId} entityName={entityName} refreshKey={primaryRefreshKey} />
       <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
