@@ -76,32 +76,76 @@ export function useUserDynamicPermissions() {
     staleTime: 60_000,
   });
 
+  // Entity assignments (Lead / Regulator / Alternate Regulator). A user
+  // assigned to any entity gets Returns module access even without the base
+  // returns_management.view permission. Backend RLS still restricts rows to
+  // that entity's submitted returns only.
+  const { data: assignmentData } = useQuery({
+    queryKey: ['user-entity-assignments', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from('licensees')
+        .select('id')
+        .or(
+          `lead_regulator_id.eq.${user!.id},regulator_officer_id.eq.${user!.id},alternate_regulator_id.eq.${user!.id}`,
+        );
+      return { assignedLicenseeIds: (rows || []).map((r: any) => r.id) };
+    },
+    staleTime: 60_000,
+  });
+
   const roleIds = data?.roleIds ?? [];
   const permissions = data?.permissions ?? [];
   const hasDynamicRole = data?.hasDynamicRole ?? false;
+  const assignedLicenseeIds = assignmentData?.assignedLicenseeIds ?? [];
+  const hasAnyEntityAssignment = assignedLicenseeIds.length > 0;
 
   const isSuperAdmin = user?.role === 'super_admin';
   const enforceDynamic = !isSuperAdmin && hasDynamicRole;
+
+  // Modules a mapped regulator can reach purely via entity assignment
+  // (no base permission required). Admin/config paths are NOT included.
+  const isAssignmentUnlockedModule = (moduleKey: string): boolean =>
+    moduleKey === 'returns_management' && hasAnyEntityAssignment;
 
   const hasPermission = (module: string, action: string): boolean => {
     if (isSuperAdmin) return true;
     if (!enforceDynamic) return true;
     const moduleKey = normalizeModule(module);
     const actionKey = normalizeAction(action);
-    return permissions.some(p => p.module === moduleKey && p.name === actionKey);
+    if (permissions.some(p => p.module === moduleKey && p.name === actionKey)) return true;
+    // Assignment implicitly grants base "view" for returns_management so
+    // the UI can mirror backend RLS.
+    if (actionKey === 'view' && isAssignmentUnlockedModule(moduleKey)) return true;
+    return false;
   };
 
   const hasModuleAccess = (module: string): boolean => {
     if (isSuperAdmin) return true;
     if (!enforceDynamic) return true;
     const moduleKey = normalizeModule(module);
-    return permissions.some(p => p.module === moduleKey);
+    if (permissions.some(p => p.module === moduleKey)) return true;
+    if (isAssignmentUnlockedModule(moduleKey)) return true;
+    return false;
   };
 
   const hasAnyModuleAccess = (): boolean => {
     if (isSuperAdmin) return true;
     if (!enforceDynamic) return false;
-    return permissions.length > 0;
+    if (permissions.length > 0) return true;
+    return hasAnyEntityAssignment;
+  };
+
+  // Returns routes reachable by assignment-only users. Excludes admin config
+  // routes (types/configurations/cutoff/due-dates/late-fees/etc).
+  const isAssignmentAllowedReturnsPath = (pathname: string): boolean => {
+    if (!hasAnyEntityAssignment) return false;
+    if (pathname.startsWith('/entity/returns')) return true;
+    if (pathname === '/admin/returns' || pathname === '/admin/returns/queue') return true;
+    if (pathname.startsWith('/admin/returns/queue/')) return true;
+    if (pathname.startsWith('/admin/returns/view')) return true;
+    return false;
   };
 
   const canAccessPath = (pathname: string): boolean => {
@@ -109,12 +153,16 @@ export function useUserDynamicPermissions() {
     if (!enforceDynamic) return true;
     const mod = getModuleForPath(pathname);
     if (!mod) return true; // unmapped route => not gated by dynamic perms
-    return hasModuleAccess(mod);
+    if (permissions.some(p => p.module === normalizeModule(mod))) return true;
+    if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
+    return false;
   };
 
   return {
     roleIds,
     permissions,
+    assignedLicenseeIds,
+    hasAnyEntityAssignment,
     hasPermission,
     hasModuleAccess,
     hasAnyModuleAccess,
