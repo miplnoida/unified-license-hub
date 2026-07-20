@@ -177,8 +177,6 @@ export default function LicenseeDetail() {
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'audit', label: 'Audit', icon: Gavel },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
-    { id: 'returns', label: 'Returns', icon: FileText },
-    { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
     ...(hasReinsurance ? [{ id: 'reinsurance', label: 'Reinsurance', icon: Umbrella }] : []),
   ];
 
