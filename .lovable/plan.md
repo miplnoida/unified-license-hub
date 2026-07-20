@@ -1,107 +1,109 @@
-## Goal
+## Scope
 
-Close the gaps in the existing Regulator Assignment + Return Access implementation. Do not redesign — fix these specific issues:
+Close the three specific gaps left in the existing regulator-assignment / return-access implementation. No redesign, no new permission keys, no duplicate logic.
 
-1. Replace `Select` dropdowns with searchable comboboxes.
-2. Filter dropdown source to *active* internal employees only.
-3. Restrict "assigned regulator" visibility to submitted-status returns.
-4. Extend the same access rule to storage-object downloads and any missing paths.
-5. Add automated tests covering the required matrix.
-
-Everything else in the previous migration (`can_view_entity_returns`, columns, permission action, audit trigger, RLS on `returns_filed` / `return_form_data` / `return_documents` / `return_upload_attempts` / `return_consolidated_analysis`, distinct CHECK constraint) is already in place and is preserved unchanged.
+Base permission key already registered and used elsewhere: **`returns_management.view`**. Bypass permission (already registered): **`returns_management.view_all_entities`**.
 
 ## Verified current state
 
-- `licensees.lead_regulator_id / regulator_officer_id / alternate_regulator_id` columns + CHECK for distinctness — present.
-- Permission action `returns_management.view_all_entities` — present in DB and `permissionRegistry.ts`.
-- `public.can_view_entity_returns(uuid, uuid)` — present; short-circuits on super_admin and `view_all_entities`.
-- RLS SELECT policies on the five return tables using `can_view_entity_returns` — present. No pre-existing broader "internal staff read all returns" policy remains, so the new policy is the effective gate for internal users (verified via `pg_policies`).
-- Audit trigger `trg_audit_licensee_regulator_assignments` — present.
-- `BackgroundInfoTab.tsx` already renders the three fields with disabled-option duplicate prevention using `useInternalUsers()`.
-- `useInternalUsers` currently returns anyone with a row in `user_roles` — it does NOT filter by `profiles.is_active`/`status`, so deactivated employees still appear.
-- `can_view_entity_returns` does not filter by return status — an assigned regulator can currently see drafts too.
+- `public.can_view_entity_returns(uuid, uuid, text, text)` (migration `20260720095919_…`) already gates on super_admin, `view_all_entities`, entity assignment, and submitted-lifecycle statuses. **It does NOT currently require the base `returns_management.view` permission for assigned regulators** — this is the security gap the user is calling out.
+- The 2-arg overload `can_view_entity_returns(uuid, uuid)` from `20260720091329_…` is still present and used by `can_view_return_filed`'s fallback branches and by the earlier `licensees`-level policies. It has the same missing base-permission check.
+- `can_view_return_filed` (redefined in `20260720095919_…`) delegates to the 4-arg overload and preserves creator / PPOC / entity-user / external branches — those stay untouched.
+- RLS SELECT policies on `returns_filed`, `return_form_data`, `return_documents`, `return_upload_attempts`, `return_consolidated_analysis` already pass status into the 4-arg function — they inherit the fix automatically once the function is patched.
+- Storage read policy for the returns bucket already routes through `can_view_entity_returns` with status — also inherits the fix.
+- `useInternalUsers.ts` currently treats `null`/blank `profiles.status` as active (comment: "Treat null/empty status as active for legacy rows"). User wants explicit `active` only, but legacy assignees already saved on an entity must still render in read-only view.
+- `BackgroundInfoTab.tsx` builds combobox options solely from `useInternalUsers()` output — a legacy assignee who is now inactive would disappear from the label display, showing a raw UUID or "Not assigned".
+- No pgTAP suite exists yet under `supabase/tests/regulator_access/`. Vitest suite `src/test/regulatorAssignment.test.tsx` covers the combobox UI only.
 
 ## Changes
 
-### 1. Active-employee filter (hook)
+### 1. DB: enforce base `returns_management.view` for assigned regulators
 
-Update `src/hooks/useInternalUsers.ts` to also read `profiles.is_active` (or the equivalent status column — will inspect `profiles` schema first) and drop any user whose profile is inactive/deactivated. Keep the existing external-role exclusion. Add an `activeOnly` option defaulting to `true` for backward safety.
+Single new migration that redefines both overloads of `can_view_entity_returns`:
 
-### 2. Searchable comboboxes (UI)
+- `can_view_entity_returns(_user_id uuid, _licensee_id uuid, _workflow_status text, _status text)`:
+  1. Short-circuit `true` for `super_admin`.
+  2. Short-circuit `true` for `user_has_permission(_user_id, 'returns_management', 'view_all_entities')`.
+  3. Otherwise require **both**:
+     - `user_has_permission(_user_id, 'returns_management', 'view')` AND
+     - assignment as lead/regulator/alternate on `licensees` AND
+     - submitted-lifecycle status (same list as today).
+  4. Any missing condition → `false`.
+- `can_view_entity_returns(_user_id uuid, _licensee_id uuid)` (2-arg overload, used by non-return contexts like the `licensees`-level policy): same rules minus the status gate — still requires base `view` perm for the assignment branch. Super-admin and `view_all_entities` still bypass.
 
-In `src/components/entity-detail/BackgroundInfoTab.tsx`, replace `renderRegulatorSelect` with a new small internal component built on the existing shadcn `Command` + `Popover` primitives (already used elsewhere in the app — will reuse the pattern from `LicenseeSwitcher` / employee approver pickers). Behaviour:
+Nothing else in the function signatures changes, so all existing callers (RLS policies, `can_view_return_filed`, storage policy, RPCs) inherit the fix without edits.
 
-- Type-to-search over name + email.
-- Shows only active internal employees (from updated hook).
-- Options already assigned to another of the three fields are visually disabled and non-selectable (keeps existing FE duplicate prevention).
-- Includes a "Clear / Not assigned" action.
-- Keyboard accessible, same width/label styling as siblings.
+Also re-verify and, if needed, patch these SECURITY DEFINER paths to route through the updated helper (grep list to run in migration prep, patch only if they bypass RLS on returns):
+- `can_view_return_filed` — already delegates, no change needed.
+- Any `get_*return*` / `search_returns*` / analytics RPC that currently reads `returns_filed` with `SECURITY DEFINER`. If found bypassing RLS, add an explicit `can_view_entity_returns(...)` guard using the return's `entity_id`, `workflow_status`, `status`.
 
-No change to save payload shape — still writes the three `*_id` columns; DB CHECK constraint continues to enforce distinctness on the server.
+Preserve verbatim: super-admin branch, `view_all_entities` branch, creator, PPOC, `entity_user_access`, external-portal, and workflow-approver clauses in every touched policy.
 
-### 3. Submitted-status gating (DB)
+### 2. Frontend: tighten active-employee filter, preserve legacy assignees
 
-New migration:
+`src/hooks/useInternalUsers.ts`:
 
-- Redefine `public.can_view_entity_returns(_user_id, _licensee_id, _workflow_status text default null, _status text default null)` — overload-safe by adding a second function signature so existing callers keep compiling. Logic:
-  - super_admin → true.
-  - `view_all_entities` permission → true (any status).
-  - Otherwise: assigned to entity as lead/regulator/alternate AND the return is in a *submitted lifecycle* status (`SUB`, `submitted`, `under_review`, `approved`, `rejected`, `resubmission_required`, `SIGN_OFF`, etc. — final list drawn from `adminReturnFilters.ts` submitted statuses so UI and DB agree). NULL status is treated as non-submitted (denied) for the assignment path.
-- Update the RLS SELECT policies on `returns_filed`, `return_form_data`, `return_documents`, `return_upload_attempts`, `return_consolidated_analysis` to pass the return's `workflow_status` (and `status` where relevant) into the function. Preserve every other clause (creator, PPOC, entity user access, external capability gates).
-- Keep the old 2-arg function for callers that pass a plain licensee id from non-return contexts (e.g. future licensee-scoped screens); it continues to return true only for super_admin / view_all_entities / assigned — used for `licensees`-level checks, not return rows.
+- Change filter to require `profiles.status === 'active'` (case-insensitive). Drop the "treat null/blank as active" fallback. `activeOnly` option stays with default `true`.
+- Add optional parameter `alwaysIncludeIds?: string[]`. When provided, users whose id is in that set are returned even if inactive, but each such row is annotated with `is_active: false` so the UI can render them read-only.
+- Extend `InternalUser` type with `is_active: boolean` (derived from status).
 
-### 4. Storage downloads
+`src/components/entity-detail/BackgroundInfoTab.tsx`:
 
-Add a storage RLS policy update for the returns attachments bucket (bucket name resolved from `20260713144043_*` migration). Read policy: allow when
-`(owner-based existing clauses) OR EXISTS (return_documents rd JOIN returns_filed rf ON rf.id = rd.return_id WHERE rd.storage_path = name AND can_view_entity_returns(auth.uid(), rf.entity_id, rf.workflow_status, rf.status))`. Preserve all existing allow-clauses (owner, PPOC, external capability).
+- Pass the currently-persisted `lead_regulator_id`, `regulator_officer_id`, `alternate_regulator_id` (whichever are non-null) as `alwaysIncludeIds` to `useInternalUsers`, so legacy inactive assignees resolve to a human-readable name.
+- In the `EmployeeCombobox` options list, mark legacy inactive users (option.is_active === false) as disabled for new selection but still selectable-as-current (i.e. shown as the selected label). A small "Inactive" pill next to the sublabel makes state obvious. Clearing the field is allowed; re-selecting an inactive user is not.
+- View-mode display (read-only) shows the resolved name plus the "Inactive" pill when applicable.
 
-### 5. Server-side RPCs / secured queries
+No change to the save payload or DB CHECK — three-field distinctness is still enforced by the existing constraint.
 
-Audit and, where needed, patch RPCs that read returns bypassing RLS (SECURITY DEFINER) so they call `can_view_entity_returns` before returning rows. Targets to inspect:
+### 3. Tests
 
-- `can_view_return_filed` — already delegates to `can_view_entity_returns`; update it to also pass status.
-- Any `get_*_return*` / `search_returns_*` / analytics RPCs — will grep `SECURITY DEFINER` + `returns_filed` and add the same guard.
+**pgTAP (`supabase/tests/regulator_access/01_visibility.sql`)** — added and wired into CI's existing pgTAP job:
 
-Report the exact list in the completion summary.
+- Setup: super_admin, unmapped internal user, mapped internal user WITHOUT `returns_management.view`, mapped internal user WITH `returns_management.view`, user with `view_all_entities`, external licensee user, PPOC user, creator; one licensee, one draft return, one submitted return, one attachment row + storage object.
+- Assertions:
+  1. Mapped + base view perm + submitted return → visible in `returns_filed`, `return_form_data`, `return_documents`, `return_upload_attempts`, `return_consolidated_analysis`.
+  2. Mapped + base view perm + draft return → denied on all five tables.
+  3. Mapped WITHOUT base view perm + submitted return → denied.
+  4. Unmapped internal user → denied.
+  5. `view_all_entities` grantee → sees all submitted returns, still denied on drafts (documenting current behaviour; state explicitly if we choose to allow drafts here — plan choice: keep drafts denied since existing helper does not gate view_all_entities on status; will confirm in the test comment and match current behaviour).
+  6. Super admin → sees drafts and submitted.
+  7. Storage read for the attachment path: denied for unmapped, allowed for mapped+base view+submitted, denied for mapped on draft.
+  8. `can_view_return_filed` returns matching booleans for each persona.
+  9. Regression: creator still sees own draft; PPOC still sees mapped licensee's returns; external licensee user still sees own entity's returns; workflow approver path unaffected.
+  10. Audit trigger: updating any of the three assignment columns writes a row to `audit_logs`.
 
-### 6. Frontend
+**Vitest (`src/test/regulatorAssignment.test.tsx` — extend existing)**:
 
-- `useReturnsManagement`, `ViewReturns`, `ReturnDetail`, dashboards, reports, exports: no code change needed for restriction (RLS enforces), but confirm no `service_role` / definer path is used for lists. Any `.rpc(...)` or edge function that fetches returns will be inspected and patched to respect the same rule.
-- Update return export edge functions (if any) to filter via the same helper.
+- New tests using a mocked `useInternalUsers`:
+  - Inactive employee absent from the picker when `alwaysIncludeIds` doesn't include them.
+  - Legacy inactive assignee: appears as selected label with an "Inactive" indicator and its combobox row is disabled.
+  - Selecting a different active user then re-opening: inactive user still visible only if still persisted.
+- Combobox filter / duplicate-prevention / clear tests remain.
 
-### 7. Tests
+Run `bunx vitest run` and the pgTAP job locally / in CI; block completion until both pass.
 
-Add:
+## Direct URL / RPC / report / export paths
 
-- **SQL (pgTAP under `supabase/tests/regulator_access/`)**:
-  - Active employee filter (deactivated user hidden).
-  - Duplicate prevention CHECK rejects same id in two columns.
-  - Mapped user + base `returns_management.view` → sees submitted return.
-  - Mapped user without base view perm → still sees via RLS (RLS is the gate) but UI hidden; DB test asserts row visible only when both `can_view_entity_returns` returns true AND permission gate in application layer applies — documented.
-  - Unmapped internal user → 0 rows.
-  - `view_all_entities` grantee → sees all submitted returns.
-  - Draft return denied to assigned regulator.
-  - Submitted return allowed to assigned regulator.
-  - Attachment read denied for unmapped, allowed for mapped (submitted only).
-  - Existing external / PPOC / creator access still works (regression).
-  - Audit log row inserted on assignment change.
-- **Vitest (`src/test/regulatorAssignment.test.tsx`)**:
-  - Combobox filters by search input.
-  - Deactivated employee absent from options.
-  - Selecting an employee in one field disables them in the others.
-  - Clearing a field restores availability elsewhere.
+All these read through `returns_filed` (or its child tables) via the client with RLS on, or via `can_view_return_filed` inside SECURITY DEFINER functions. Since both overloads of `can_view_entity_returns` are the single choke point and their signatures don't change, every path is fixed by the migration:
 
-Run `vitest run` and the pgTAP suite in CI (existing workflow already runs both).
-
-## Technical details
-
-- Files touched (frontend): `src/hooks/useInternalUsers.ts`, `src/components/entity-detail/BackgroundInfoTab.tsx`, new `src/components/entity-detail/EmployeeCombobox.tsx`, `src/test/regulatorAssignment.test.tsx`.
-- DB migration: single new migration that (a) drops+recreates `can_view_entity_returns` with status args, (b) replaces the five RLS policies to pass status, (c) updates `can_view_return_filed`, (d) updates the returns storage read policy, (e) adds pgTAP test file.
-- Submitted statuses source of truth: `ADMIN_RETURN_VISIBLE_STATUSES` in `adminReturnFilters.ts`; the migration will hard-code the same list to avoid client<->DB drift and add a note pointing to the TS file.
-- No change to super_admin, PPOC, `entity_user_access`, external portal, or creator paths — every existing OR-clause is preserved verbatim in the replacement policies.
+- Return list / detail views (`useReturnsManagement`, `ReturnDetail`, admin queue) — RLS.
+- Attachments listing + storage download — RLS + storage policy.
+- Upload history, consolidated analysis — RLS.
+- Search / dashboards / reports / exports (Recharts, CSV) — all go through the same tables or `can_view_return_filed`.
+- Direct URLs — same RLS enforcement.
 
 ## Out of scope
 
-- No redesign of employee/permission model.
-- No new permission modules beyond the already-created `view_all_entities`.
-- No change to write/update policies on returns.
+- No new permission modules/actions.
+- No changes to write policies on returns.
+- No refactor of the combobox or the assignment UI beyond the inactive-annotation change.
+- No changes to super-admin, `view_all_entities`, PPOC, creator, external-user, workflow-approver logic.
+
+## Deliverables in the completion summary
+
+- Files changed (frontend + migration path).
+- Functions/policies updated (`can_view_entity_returns` 2-arg and 4-arg; downstream RLS unchanged in text, refreshed only if signatures shifted).
+- Permission key used: `returns_management.view` (base), `returns_management.view_all_entities` (bypass).
+- Return statuses treated as submitted (unchanged list).
+- Tests added (paths + count) and pass/fail results from `vitest run` and pgTAP.
+- Any limitations (e.g. `view_all_entities` currently NOT gated on submitted status — flagged as by-design bypass).
