@@ -131,13 +131,13 @@ SELECT ok(
   'assigned regulator with base view perm sees submitted returns'
 );
 
--- 5. Mapped user WITH base view perm + draft -> false
+-- 5. Mapped user + draft -> true (assignment grants access to all statuses)
 SELECT ok(
-  NOT public.can_view_entity_returns(
+  public.can_view_entity_returns(
     '33333333-3333-3333-3333-333333333333'::uuid,
     '99999999-9999-9999-9999-999999999999'::uuid,
     'WIP','draft'),
-  'assigned regulator cannot see draft returns'
+  'assigned regulator can see draft returns for mapped entity'
 );
 
 -- 6. Mapped user WITHOUT base view perm + submitted -> false (gap being closed)
