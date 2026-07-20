@@ -108,7 +108,10 @@ export function EmployeeCombobox({
                         <span className="text-xs text-muted-foreground">{opt.sublabel}</span>
                       )}
                     </div>
-                    {isDisabled && (
+                    {opt.inactive && (
+                      <span className="ml-auto text-[10px] uppercase text-muted-foreground">Inactive</span>
+                    )}
+                    {isDisabled && !opt.inactive && (
                       <span className="ml-auto text-[10px] uppercase text-muted-foreground">Assigned</span>
                     )}
                   </CommandItem>
