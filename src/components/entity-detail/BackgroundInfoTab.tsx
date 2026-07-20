@@ -8,8 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip } from 'lucide-react';
+import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip, ShieldCheck } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
+import { useInternalUsers } from '@/hooks/useInternalUsers';
 
 interface BackgroundInfoTabProps {
   entity: any;
