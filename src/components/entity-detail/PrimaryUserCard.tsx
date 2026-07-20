@@ -14,6 +14,7 @@ import Swal from 'sweetalert2';
 interface Props {
   entityId: string;
   entityName?: string;
+  refreshKey?: number;
 }
 
 interface ProfileLite {
