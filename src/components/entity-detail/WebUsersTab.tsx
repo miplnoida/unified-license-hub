@@ -13,6 +13,7 @@ import PrimaryUserCard from './PrimaryUserCard';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import RowActionsMenu, { type RowAction } from '@/components/common/RowActionsMenu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WebUsersTabProps {
   entityId: string;
