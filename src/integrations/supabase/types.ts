@@ -15550,10 +15550,17 @@ export type Database = {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
       }
-      can_view_entity_returns: {
-        Args: { _licensee_id: string; _user_id: string }
-        Returns: boolean
-      }
+      can_view_entity_returns:
+        | { Args: { _licensee_id: string; _user_id: string }; Returns: boolean }
+        | {
+            Args: {
+              _licensee_id: string
+              _status: string
+              _user_id: string
+              _workflow_status: string
+            }
+            Returns: boolean
+          }
       can_view_return_filed: {
         Args: { _return_id: string; _user_id: string }
         Returns: boolean
