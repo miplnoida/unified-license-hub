@@ -164,6 +164,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         resetForm();
         setOpen(false);
         await loadUsers();
+        setPrimaryRefreshKey(k => k + 1);
       }
     } catch (e: any) {
       toast.error(e.message || 'Unexpected error');
