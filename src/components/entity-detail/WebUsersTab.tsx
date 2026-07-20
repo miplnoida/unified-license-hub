@@ -55,10 +55,56 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
     setTimeout(clear, 300);
   };
 
+  type MappingSummary = { licenseeId: string; licenseeName: string; sectorCount: number };
+  const [userMappings, setUserMappings] = useState<Record<string, MappingSummary[]>>({});
+
   const loadUsers = async () => {
     const { data } = await supabase.from('profiles').select('*').eq('licensee_id', entityId).order('full_name');
-    setUsers(data || []);
+    const list = data || [];
+    setUsers(list);
     setLoading(false);
+
+    // Load PPOC mappings for the listed users (read-only enrichment).
+    const userIds = list.map((u: any) => u.id).filter(Boolean);
+    if (userIds.length === 0) { setUserMappings({}); return; }
+    try {
+      const { data: maps } = await supabase
+        .from('ppoc_entity_mappings' as any)
+        .select('id, ppoc_user_id, licensee_id, is_active')
+        .in('ppoc_user_id', userIds)
+        .eq('is_active', true);
+      const mappingRows = ((maps || []) as any[]).filter(m => m.licensee_id !== entityId);
+      const mappingIds = mappingRows.map(m => m.id);
+      const licIds = [...new Set(mappingRows.map(m => m.licensee_id).filter(Boolean))];
+      const [{ data: sectorRows }, { data: licRows }] = await Promise.all([
+        mappingIds.length
+          ? supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds)
+          : Promise.resolve({ data: [] as any[] }),
+        licIds.length
+          ? supabase.from('licensees').select('id, name').in('id', licIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const sectorCountByMapping: Record<string, number> = {};
+      ((sectorRows || []) as any[]).forEach(r => {
+        sectorCountByMapping[r.mapping_id] = (sectorCountByMapping[r.mapping_id] || 0) + 1;
+      });
+      const licNameById: Record<string, string> = Object.fromEntries(
+        ((licRows || []) as any[]).map(l => [l.id, l.name])
+      );
+      const byUser: Record<string, MappingSummary[]> = {};
+      mappingRows.forEach(m => {
+        const entry: MappingSummary = {
+          licenseeId: m.licensee_id,
+          licenseeName: licNameById[m.licensee_id] || '—',
+          sectorCount: sectorCountByMapping[m.id] || 0,
+        };
+        (byUser[m.ppoc_user_id] ||= []).push(entry);
+      });
+      setUserMappings(byUser);
+    } catch (e) {
+      // RLS or transient error — keep the tab functional without mappings.
+      setUserMappings({});
+    }
   };
 
   useEffect(() => { loadUsers(); }, [entityId]);
