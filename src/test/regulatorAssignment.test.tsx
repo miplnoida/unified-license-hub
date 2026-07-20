@@ -17,6 +17,7 @@ const options: EmployeeOption[] = [
   { id: 'u1', label: 'Alice Analyst', sublabel: 'alice@x.io' },
   { id: 'u2', label: 'Bob Officer', sublabel: 'bob@x.io' },
   { id: 'u3', label: 'Carla Supervisor', sublabel: 'carla@x.io' },
+  { id: 'u4', label: 'Dan Legacy', sublabel: 'dan@x.io', inactive: true },
 ];
 
 describe('EmployeeCombobox', () => {
