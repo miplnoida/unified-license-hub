@@ -1,63 +1,31 @@
-# Fix: Regulator sees all returns instead of only mapped entities
+## Problem
+Mapped regulators (Lead/Officer/Alternate) currently only see returns whose `status`/`workflow_status` is in the submitted lifecycle. The user wants them to see **all statuses** (drafts, in-progress, submitted, accepted, rejected, resubmission-requested) for their mapped entities.
 
-## Root cause (verified)
-
-`returns_filed` has multiple SELECT policies, and Postgres RLS OR's them. The intended gate is `Internal staff view returns for assigned entities` which calls `can_view_entity_returns(uid, entity_id, workflow_status, status)` — this correctly requires super_admin, `returns_management.view_all_entities`, or an active `lead/regulator_officer/alternate_regulator_id` assignment on `licensees` for a submitted-lifecycle return.
-
-However, another SELECT policy exists:
-
-```
-external_returns_filed_select_capability_gate:
-  auth.uid() IS NOT NULL
-  AND (
-    NOT has_external_role(auth.uid())
-    OR external_can_access_return_filed_values(..., 'can_view_status')
-    OR external_can_access_return_filed_values(..., 'can_submit_returns')
-  )
-```
-
-`has_external_role` only returns true for applicant / pre_licensee / licensee_primary / licensee_secondary. Every internal user (analyst, license_analyst, supervisor, etc.) satisfies `NOT has_external_role(...)`, so this policy grants SELECT on **every row** of `returns_filed`, bypassing the entity-assignment gate. That is why a mapped `license_analyst` sees all returns.
+This gate lives in the 4-arg `public.can_view_entity_returns(_user_id, _licensee_id, _workflow_status, _status)` — the assignment branch returns `false` unless the status is in the "submitted lifecycle" allow-list. The 2-arg overload already permits without a status check.
 
 ## Fix
 
-Rewrite `external_returns_filed_select_capability_gate` so it is a capability gate for **external users only**, and does not grant blanket access to internal users. Internal access continues to flow through `Internal staff view returns for assigned entities` (assignment + submitted lifecycle) and `Return creator can view own return`.
+Single migration that redefines the 4-arg function so the assigned-regulator branch returns `true` regardless of `_workflow_status`/`_status`. Behaviour for other personas is unchanged:
 
-### Migration
+- `NULL` user or licensee → `false`
+- `super_admin` → `true`
+- `returns_management.view_all_entities` → `true`
+- Assigned as `lead_regulator_id` / `regulator_officer_id` / `alternate_regulator_id` → `true` (any status)
+- Otherwise → `false`
 
-```sql
-DROP POLICY IF EXISTS external_returns_filed_select_capability_gate ON public.returns_filed;
+The status parameters remain in the signature (RLS policies and other callers pass them) but are ignored. This keeps every existing policy on `returns_filed`, `return_form_data`, `return_documents`, and storage intact — no policy rewrites needed.
 
-CREATE POLICY external_returns_filed_select_capability_gate
-ON public.returns_filed
-FOR SELECT
-USING (
-  auth.uid() IS NOT NULL
-  AND has_external_role(auth.uid())
-  AND (
-    external_can_access_return_filed_values(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_view_status')
-    OR external_can_access_return_filed_values(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_submit_returns')
-  )
-);
-```
+## Ripple updates
 
-Result:
-- Super admins / `view_all_entities` holders: unchanged (allowed by internal-staff policy).
-- Assigned internal regulators (incl. `license_analyst`): only returns for their mapped entities in submitted lifecycle (via `can_view_entity_returns`).
-- Unassigned internal users without base permission: no rows (matches intent).
-- External roles (applicant / licensee_*): unchanged — still gated by capabilities.
-- PPOC users: unchanged (separate PPOC SELECT policy).
-- Creators of a return: unchanged (own-return policy).
-
-## Verification
-
-1. Re-run existing pgTAP suite `supabase/tests/regulator_access/01_can_view_entity_returns.sql`.
-2. Add pgTAP cases:
-   - `license_analyst` mapped to entity A: sees only A's submitted returns; 0 rows from entity B.
-   - Same user, draft/TEMP return on entity A: not visible.
-   - Internal user with no assignment and no `view_all_entities`: 0 rows.
-   - External licensee_primary: still sees own entity's returns.
-3. Live smoke: log in as the affected regulator, open `/admin/returns/queue`, confirm only mapped entity's submitted returns appear.
+1. **pgTAP suite** `supabase/tests/regulator_access/01_can_view_entity_returns.sql` — assertion #5 currently expects mapped user + `WIP/draft` → `false`. Flip it to expect `true` and refresh the test description.
+2. **Vitest** `src/test/regulatorAssignment.test.tsx` — if it asserts the draft-hidden behavior for mapped regulators, update those expectations to match the new rule. (Verify during build; adjust only affected cases.)
+3. **Admin visibility filters** (`src/lib/adminReturnFilters.ts`, `EntityReturnsDashboard`, list pages) — no changes. They already hide `draft/pending/not_submitted/in_progress` from admin views; that's an admin-view-only filter and unrelated to the RLS gate the user is complaining about. If we discover the licensee/regulator "Returns" list applies the admin filter to mapped regulators, we'll revisit — but scope this plan to the DB gate first.
 
 ## Out of scope
+- No change to `usePermissions.ts` assignment bypass (already correct).
+- No change to `view_all_entities` semantics.
+- No storage-policy edits (they call the same helper, so they inherit the fix).
 
-No frontend changes. `usePermissions` assignment-based menu unlock stays as-is — the list is now correctly filtered server-side.
+## Verification
+- Run vitest + pgTAP.
+- Manually: as the mapped `license_analyst`, open Returns list — drafts/WIP/TBR rows for mapped entity should now appear; other entities should stay hidden.
