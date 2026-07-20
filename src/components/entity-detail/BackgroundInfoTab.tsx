@@ -282,7 +282,11 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     sector_id: entity.sector_id || '',
     sub_sector_id: entity.sub_sector_id || '',
     category_id: entity.category_id || '',
+    lead_regulator_id: entity.lead_regulator_id || '',
+    regulator_officer_id: entity.regulator_officer_id || '',
+    alternate_regulator_id: entity.alternate_regulator_id || '',
   });
+  const { data: internalUsers = [] } = useInternalUsers();
   const [saving, setSaving] = useState(false);
   const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [registration, setRegistration] = useState<any>(null);
