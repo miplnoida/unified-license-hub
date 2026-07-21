@@ -1,0 +1,382 @@
+_assert_complaint_fresh	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_assert_review_action	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_prevent_form_version_delete_if_used	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_resolve_application_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_resolve_application_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_resolve_effective_regulator	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+accept_review_suggestion	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+activate_form_version_as_current	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+add_review_comment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+admin_override_form_version_assignment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+application_ids_for_licensee	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+apply_application_guard	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+apply_complaint_type_sla	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+archive_prudential_ratio	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+archive_prudential_threshold	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+archive_validation_rule	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+assert_role_permission_dependencies	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+assert_role_permission_view_retained	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+assign_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+assign_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+assign_primary_user	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+audit_document_reason	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+audit_document_review_status	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+audit_licensee_regulator_assignments	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+audit_step_assignee_label	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+auto_seed_supervisory_plan	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+auto_seed_supervisory_plan_from_license	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+bootstrap_supervisory_profile	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+build_workflow_snapshot	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_access_review_entity	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_current_user_access_licensee	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_review_action	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_user_access_licensee	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_view_application_legal_notes	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_view_entity_returns	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_view_entity_returns	t	t	t	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+can_view_return_filed	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+cancel_application	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+check_applicant_name_exists	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+check_approval_blocked	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+check_coordination_gates	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+check_decision_gates	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+check_primary_user_email_exists	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+claim_notification_outbox	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+classify_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+cleanup_orphaned_complaint_evidence	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+clone_validation_rule	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+close_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+close_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+complaints_analytics	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+complaints_dashboard_counts	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+complete_or_get_application_payment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+complete_vulnerability_review	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+conduct_entity_audit_history	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+conduct_entity_profile_summary	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+confirm_complaint_duplicate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+coord_case_seed_owner	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+coord_check_clearance	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+coord_escalation_lifecycle	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+copy_review_step_permissions	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_approval_workflow_with_steps	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_audit_log	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_complaint	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_complaint	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_complaint_with_attachments	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_document_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_document_version_metadata	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_notification	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_or_get_application_payment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+create_review_suggestion	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+current_workflow_step_for	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+decide_duplicate_pair	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+decide_escalation_case	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+decide_return_edit_request	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+delete_ppoc_mapping	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+detect_complaint_duplicates	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+dismiss_complaint_duplicate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+dismiss_complaint_escalation	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+duplicate_hub_stats	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_application_decision_gate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_complaint_closure_gate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_coordination_case_closure	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_enforcement_closure_gate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_fp_determination_gate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_license_decision_gate	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+enforce_review_approval_block	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+escalate_complaint_to_enforcement	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+escalation_hub_stats	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_all_complaint_escalations	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_complaint_escalations	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_complaint_escalations_v2	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_complaint_vulnerability_escalations	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_return_validations	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+evaluate_stress_indicators_for_return	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+execute_complaint_workflow_action	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+expire_delegation_rules	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_application	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_application_values	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_complaint_values	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_compliance_return	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_compliance_return_values	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_document_ref	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_license	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_payment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_payment_values	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_return_filed	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_access_return_filed_values	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_can_upload_document_ref	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+external_user_entity_ids	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+finalize_complaint_with_attachments	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_check_assessment_transition	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_check_committee_vote	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_check_determination_finalize	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_check_determination_immutable	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_condition_lifecycle	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_pin_pq_form_on_insert	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_regulator_visible	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_user_regulator_id	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_application_number	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_complaint_duplicate_candidates	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_complaint_number	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_license_number	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_receipt_number	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_registration_reference	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+generate_return_unique_id	t		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_application_actions	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_application_list_stats	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_complaint_available_actions	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_complaint_current_assignees	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_complaint_tracking	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_declaration_invitation_public	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_form_version_usage_counts	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_fp_declaration_form_public	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_fp_determination_audit_log	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_in_flight_renewals	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_my_ppoc_mapped_entities	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_public_complaint_tracking	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_registration_reviewer_remarks	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_return_revisions	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_review_role_display	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_user_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+handle_new_user	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_any_internal_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_any_permission	t	t	t	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_complaint_perm	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_decision_gate_override	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_external_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_legal_access	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_permission	t	t	t	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_portal_capability	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+has_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+import_return_form_data	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_assignment_only_regulator	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_collab_admin	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_coordination_participant	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_doc_staff	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_eligible_ppoc_user	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_fp_staff	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_internal_staff	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_internal_staff_user	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_legal_compliance_user	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_primary_user_of	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+is_super_admin	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+license_ids_for_licensee	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+license_recipients_for_holder	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+licensee_ids_for_license	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+link_complaint_licensee	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+list_complaint_assignment_teams	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+list_complaints	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+list_duplicate_clusters	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_application_triage_change	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_compliance_audit	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_compliance_audit_as_actor	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_conduct_evidence_access	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_coordination_case_change	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_coordination_flag_change	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_document_batch_action	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_restricted_legal_note_denial	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_rule_override	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_security_event	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_security_event_as_actor	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_self_audit	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+log_validation_run	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+manual_escalate_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+mark_application_in_progress	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+mark_expired_licenses	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+mark_prudential_actions_overdue	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+notification_recipients_for_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+peer_ratio_snapshot	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+pending_duplicate_count	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+pending_escalation_count	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+perform_final_workflow_approval	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+perform_manual_application_approval	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+perform_registration_workflow_transition	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+perform_return_workflow_transition	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+perform_workflow_transition	t	t	f	postgres=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+pin_workflow_instance_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+portal_application_entity_ids	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+portal_license_entity_ids	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+ppoc_accessible_license_ids	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+ppoc_mapped_licensee_ids	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prevent_direct_application_workflow_mutation	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prevent_duplicate_active_application	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prevent_new_application_when_active_exists	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+provision_application_entity	t	t	f	postgres=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prudential_appendonly_guard	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prudential_dashboard_metrics	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prudential_entity_audit_history	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prudential_sector_risk_distribution	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+publish_prudential_ratio	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+publish_prudential_threshold	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+publish_validation_rule	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+publish_workflow_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reap_stuck_notification_outbox	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+recompute_return_ratios	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+record_return_breach	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+record_return_ratio	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reject_application_action	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reject_review_suggestion	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reorder_approval_steps	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+repair_application_workflow	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+request_legal_notes_access	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+request_resubmission_for_application	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+request_return_edit	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reset_application_for_provisioning	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+reset_system_role_permissions	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_actor_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_application_form_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_complaint	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_effective_threshold	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_license_action_form	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_registration_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_return_form_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_return_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resolve_review_comment	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resubmit_return	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+resume_registration_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+retry_complaint_triage	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+retry_dead_notification_outbox	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+rfi_pause_sla	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+rollback_prudential_ratio	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+rollback_prudential_threshold	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+rollback_validation_rule	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+run_complaint_escalation_sweep	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+save_ppoc_mapping	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+search_licensees	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+seed_external_portal_defaults	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_complaint_repeat_count	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_review_comment_blocking	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+simulate_escalation_rule	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+snapshot_return_revision	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+stamp_approval_action_version	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+start_complaint_investigation	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+start_complaint_investigation	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+start_complaint_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+start_registration_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+start_return_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+submit_application	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+submit_declaration_by_token	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+submit_declaration_form	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+sync_user_roles_from_dynamic	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_applications_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_approval_actions_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_auto_compliance_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_documents_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_file_uploads_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_legal_notes_audit_unauthorized_insert	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_license_issued_seed_plan	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_payment_receipts_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_payments_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_prevent_audit_mutation	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_registration_after_insert_start_workflow	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_return_comment_added_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_seed_dynamic_role_on_user_roles	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_workflow_instances_audit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+toggle_ppoc_mapping_status	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+transition_complaint_status	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+trg_complaints_generate_duplicates_fn	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+trg_snapshot_return_on_submit	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+update_complaint_severity	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+update_complaint_severity	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_can_access_document_object	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_can_act_on_workflow_step	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_can_upload_document_object	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_has_entity_assignment	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_has_permission	t	t	t	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+user_licensee_id	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+validate_approval_step_role	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+verify_declaration_identity	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+workflow_diagnostic_for_application	t	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+write_audit	t	t	f	postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_fp_sdr_touch	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_fp_ser_touch	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_fp_touch_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_touch_application_form_versions_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_touch_conduct_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_touch_coordination_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_touch_intake_rules	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+_touch_return_form_versions_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+audit_logs_prevent_mutation	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+classify_ratio_risk	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+complaint_sla_status	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+conduct_action_overdue_alert	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+fp_finding_apply_confidence_bands	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_application_list_page	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_application_list_page	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_my_licenses_page	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+get_permission_dependencies	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+gin_extract_query_trgm	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gin_extract_value_trgm	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gin_trgm_consistent	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gin_trgm_triconsistent	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_compress	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_consistent	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_decompress	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_distance	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_in	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_options	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_out	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_penalty	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_picksplit	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_same	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+gtrgm_union	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+latest_return_analysis	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+mc_set_updated_at	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+monitoring_result_risk_feedback	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+normalize_review_step_permissions	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+notif_event_configs_touch_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+permission_has_dependency	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+prevent_audit_mutation	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+return_status_is_submitted_lifecycle	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+safe_uuid	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_application_ai_assessments_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_limit	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+set_payment_remarks_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_updated_at	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+set_updated_at_laf_configs	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+show_limit	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+show_trgm	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+similarity	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+similarity_dist	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+similarity_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+strict_word_similarity	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+strict_word_similarity_commutator_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+strict_word_similarity_dist_commutator_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+strict_word_similarity_dist_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+strict_word_similarity_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+tg_aan_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_cal_block_mutation	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_cal_enforce_insert	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_document_groups_set_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_prevent_rule_override_mutation	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_return_edit_requests_updated_at	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_sel_block_mutation	f		f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_set_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_set_updated_at_legal_notes	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_set_updated_at_sla	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_touch_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+tg_validate_working_days	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+thematic_action_sync_ledger	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+thematic_reviews_code_default	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+thematic_reviews_status_guard	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_epa_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_eua_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_licensee_dim_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_updated_at_column	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+touch_workflow_templates_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+trg_complaints_block_progress_when_needs_remediation	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+trg_complaints_vulnerability_consistency	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+update_inspection_findings_updated_at	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+update_updated_at_column	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+validate_approval_workflow_entity_type	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+validate_form_version_effective_dates	f	t	f	=X/postgres|postgres=X/postgres|anon=X/postgres|authenticated=X/postgres|service_role=X/postgres|sandbox_exec_sndfttzqmbkmkcnrvpfn=X/postgres|sandbox_exec=X/postgres
+word_similarity	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+word_similarity_commutator_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+word_similarity_dist_commutator_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+word_similarity_dist_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin
+word_similarity_op	f		f	=X/supabase_admin|supabase_admin=X/supabase_admin|postgres=X/supabase_admin|anon=X/supabase_admin|authenticated=X/supabase_admin|service_role=X/supabase_admin

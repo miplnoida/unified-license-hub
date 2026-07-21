@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildCoverage, classifyCoverage, type CoverageRow, type CatalogEntry } from '../src/lib/rbac/coverage';
+import { buildCoverage, classifyCoverage, type CoverageRow, type CatalogEntry } from '../src/lib/rbac/coverageScanner';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

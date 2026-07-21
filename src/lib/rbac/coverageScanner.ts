@@ -1,51 +1,28 @@
 /**
- * Permission Coverage scanner.
- *
- * Walks source files + SQL migrations to determine where every catalogued
- * (module, action) permission is actually enforced. Produces a matrix used by:
- *   - `scripts/generate-permission-coverage.ts` (writes docs/rbac/*)
- *   - `src/pages/admin/PermissionCoverageReport.tsx`
- *   - `src/test/rbac/permissionCoverage.test.ts` (coverage floor)
- *
- * A permission is ORPHANED when it appears in no surface below.
+ * Node-only Permission Coverage scanner. Walks source files + SQL migrations
+ * and returns a `CoverageMatrix`. Types + the pure `classifyCoverage`
+ * classifier live in `./coverageTypes` so UI code can consume them without
+ * pulling in `node:fs` / `node:path`.
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import type {
+  CatalogEntry,
+  CoverageMatrix,
+  CoverageRow,
+  SurfaceKey,
+  SurfaceReference,
+} from './coverageTypes';
 
-export type SurfaceKey =
-  | 'menu'
-  | 'route'
-  | 'button'
-  | 'rls'
-  | 'rpc'
-  | 'storage'
-  | 'report';
-
-export interface SurfaceReference {
-  file: string;
-  line: number;
-  detail?: string;
-}
-
-export interface CoverageRow {
-  module: string;
-  action: string;
-  menu: SurfaceReference[];
-  route: SurfaceReference[];
-  button: SurfaceReference[];
-  rls: SurfaceReference[];
-  rpc: SurfaceReference[];
-  storage: SurfaceReference[];
-  report: SurfaceReference[];
-  orphaned: boolean;
-}
-
-export interface CoverageMatrix {
-  generatedAt: string;
-  rows: CoverageRow[];
-  orphanedCount: number;
-}
+export type {
+  CatalogEntry,
+  CoverageMatrix,
+  CoverageRow,
+  SurfaceKey,
+  SurfaceReference,
+} from './coverageTypes';
+export { classifyCoverage } from './coverageTypes';
 
 // ---------------------------------------------------------------------------
 // FS helpers
@@ -92,24 +69,38 @@ function lineOf(text: string, idx: number): number {
   return l;
 }
 
+function relTo(root: string, file: string): string {
+  const rr = resolve(root);
+  const ff = resolve(file);
+  if (ff.startsWith(rr + '/')) return ff.slice(rr.length + 1);
+  return file;
+}
+
 // ---------------------------------------------------------------------------
 // Frontend scanners
 // ---------------------------------------------------------------------------
 
-/** Menu references — every `module: '<key>'` entry in navigation config. */
-function scanMenu(root: string, register: (m: string, a: string, ref: SurfaceReference) => void) {
+function scanMenu(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference) => void,
+) {
   const file = join(root, 'src/config/navigation.tsx');
   const text = readOr(file);
   if (!text) return;
   const re = /module\s*:\s*['"]([a-z0-9_]+)['"]/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    register(m[1], 'view', { file: 'src/config/navigation.tsx', line: lineOf(text, m.index) });
+    register(m[1], 'view', {
+      file: 'src/config/navigation.tsx',
+      line: lineOf(text, m.index),
+    });
   }
 }
 
-/** Route references — every `<M module="…">` / `<ModuleRoute module="…">` guard. */
-function scanRoutes(root: string, register: (m: string, a: string, ref: SurfaceReference) => void) {
+function scanRoutes(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference) => void,
+) {
   const files = walk(join(root, 'src/routes'), ['.tsx', '.ts']);
   const re = /<(?:M|ModuleRoute)\s+module\s*=\s*["']([a-z0-9_]+)["']/g;
   for (const file of files) {
@@ -121,8 +112,10 @@ function scanRoutes(root: string, register: (m: string, a: string, ref: SurfaceR
   }
 }
 
-/** Button references — PermissionGate / GuardedButton / data-rbac markers. */
-function scanButtons(root: string, register: (m: string, a: string, ref: SurfaceReference) => void) {
+function scanButtons(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference) => void,
+) {
   const files = [
     ...walk(join(root, 'src/pages'), ['.tsx', '.ts']),
     ...walk(join(root, 'src/components'), ['.tsx', '.ts']),
@@ -144,18 +137,18 @@ function scanButtons(root: string, register: (m: string, a: string, ref: Surface
   }
 }
 
-/** Report references — reportDefinitions entries and every file under src/pages/reports. */
-function scanReports(root: string, register: (m: string, a: string, ref: SurfaceReference) => void) {
+function scanReports(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference) => void,
+) {
   const files = walk(join(root, 'src/pages/reports'), ['.ts', '.tsx']);
   for (const file of files) {
     const text = readOr(file);
-    // Every report page implicitly consumes report_management.view.
     register('report_management', 'view', {
       file: relTo(root, file),
       line: 1,
       detail: 'implicit — file under src/pages/reports',
     });
-    // Explicit gate markers, if any.
     const re = /data-rbac\s*=\s*["']([a-z0-9_]+)\.([a-z0-9_]+)["']/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
@@ -173,21 +166,14 @@ interface SqlContext {
   detail: string;
 }
 
-/**
- * Determine what the SQL statement enclosing `pos` is: an RLS policy on
- * storage.objects (storage), an RLS policy on any other table (rls), or a
- * function body (rpc).
- */
 function classifySqlContext(text: string, pos: number): SqlContext {
   const before = text.slice(Math.max(0, pos - 2000), pos);
-  // Walk backwards for the nearest CREATE POLICY / CREATE FUNCTION.
   const lastPolicy = before.lastIndexOf('CREATE POLICY');
   const lastFn = Math.max(
     before.lastIndexOf('CREATE FUNCTION'),
     before.lastIndexOf('CREATE OR REPLACE FUNCTION'),
   );
   if (lastPolicy > lastFn) {
-    // Look forward from `CREATE POLICY` for the ON clause.
     const onIdx = before.indexOf(' ON ', lastPolicy);
     const on = onIdx >= 0 ? before.slice(onIdx, onIdx + 60) : '';
     if (/storage\.objects/i.test(on)) {
@@ -198,71 +184,41 @@ function classifySqlContext(text: string, pos: number): SqlContext {
   return { kind: 'rpc', detail: 'function body' };
 }
 
-function scanSql(root: string, register: (m: string, a: string, ref: SurfaceReference) => void) {
-  const files = walk(join(root, 'supabase/migrations'), ['.sql']);
-  const re = /has_permission\s*\(\s*[^,]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi;
-  for (const file of files) {
-    const text = readOr(file);
-    let m: RegExpExecArray | null;
-    re.lastIndex = 0;
-    while ((m = re.exec(text)) !== null) {
-      const ctx = classifySqlContext(text, m.index);
-      const ref: SurfaceReference = {
-        file: relTo(root, file),
-        line: lineOf(text, m.index),
-        detail: ctx.detail,
-      };
-      // Send to the right surface bucket.
-      const module = m[1];
-      const action = m[2];
-      // Register under the semantic surface. Callers merge into a matrix
-      // keyed by (module, action, surface); nothing else to do here.
-      // We stash the surface on `detail` — the register callback below
-      // dispatches by SurfaceKey using this helper:
-      registerSurface(register, ctx.kind, module, action, ref);
-    }
-  }
-}
-
-function registerSurface(
-  register: (m: string, a: string, ref: SurfaceReference) => void,
-  _kind: SurfaceKey,
-  m: string,
-  a: string,
-  ref: SurfaceReference,
-) {
-  // The outer register variant used by scanSql needs to remember the surface;
-  // we return through a wrapper set up in build().
-  (register as unknown as (
+function scanSql(
+  root: string,
+  registerWithKind: (
     m: string,
     a: string,
     ref: SurfaceReference,
     kind: SurfaceKey,
-  ) => void)(m, a, ref, _kind);
-}
-
-function relTo(root: string, file: string): string {
-  const rr = resolve(root);
-  const ff = resolve(file);
-  if (ff.startsWith(rr + '/')) return ff.slice(rr.length + 1);
-  return file;
+  ) => void,
+) {
+  const files = walk(join(root, 'supabase/migrations'), ['.sql']);
+  const re = /has_permission\s*\(\s*[^,]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi;
+  for (const file of files) {
+    const text = readOr(file);
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const ctx = classifySqlContext(text, m.index);
+      registerWithKind(
+        m[1],
+        m[2],
+        { file: relTo(root, file), line: lineOf(text, m.index), detail: ctx.detail },
+        ctx.kind,
+      );
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export interface CatalogEntry {
-  module: string;
-  name: string;
-  enforced: boolean;
-}
-
 export function buildCoverage(
   projectRoot: string,
   catalog: readonly CatalogEntry[],
 ): CoverageMatrix {
-  // Initialise one row per catalogued permission.
   const rows = new Map<string, CoverageRow>();
   const key = (m: string, a: string) => `${m}.${a}`;
   const emptyRow = (module: string, action: string): CoverageRow => ({
@@ -281,12 +237,7 @@ export function buildCoverage(
     rows.set(key(c.module, c.name), emptyRow(c.module, c.name));
   }
 
-  const register = (
-    m: string,
-    a: string,
-    ref: SurfaceReference,
-    kind: SurfaceKey = 'button',
-  ) => {
+  const register = (m: string, a: string, ref: SurfaceReference, kind: SurfaceKey) => {
     const k = key(m, a);
     let row = rows.get(k);
     if (!row) {
@@ -297,7 +248,6 @@ export function buildCoverage(
     row.orphaned = false;
   };
 
-  // Frontend surfaces know their kind statically.
   const regKind =
     (kind: SurfaceKey) => (m: string, a: string, ref: SurfaceReference) =>
       register(m, a, ref, kind);
@@ -306,16 +256,8 @@ export function buildCoverage(
   scanRoutes(projectRoot, regKind('route'));
   scanButtons(projectRoot, regKind('button'));
   scanReports(projectRoot, regKind('report'));
+  scanSql(projectRoot, register);
 
-  // SQL scanner determines its own kind (rls/rpc/storage) and calls the
-  // 4-arg register directly.
-  scanSql(projectRoot, register as unknown as (
-    m: string,
-    a: string,
-    ref: SurfaceReference,
-  ) => void);
-
-  // Recompute orphaned flag after all scans.
   const finalRows = [...rows.values()].map((r) => ({
     ...r,
     orphaned:
@@ -337,16 +279,4 @@ export function buildCoverage(
     rows: finalRows,
     orphanedCount: finalRows.filter((r) => r.orphaned).length,
   };
-}
-
-/** Classify a row's coverage state for UI badges. */
-export function classifyCoverage(
-  row: Pick<CoverageRow, 'menu' | 'route' | 'button' | 'rls' | 'rpc' | 'storage' | 'report' | 'orphaned'>,
-): 'orphaned' | 'ui-only' | 'backend-only' | 'enforced' {
-  if (row.orphaned) return 'orphaned';
-  const hasBackend = row.rls.length + row.rpc.length + row.storage.length > 0;
-  const hasUi = row.menu.length + row.route.length + row.button.length + row.report.length > 0;
-  if (hasBackend && hasUi) return 'enforced';
-  if (hasBackend) return 'backend-only';
-  return 'ui-only';
 }
