@@ -379,6 +379,18 @@ export default function RoleManagement() {
   };
 
   const handleSave = async () => {
+    // Client-side mirror of the DB triggers — refuse to submit if the user
+    // lacks the exact action they're about to perform. Backend enforces the
+    // same rule via trg_roles_mutation_guard + trg_role_permissions_mutation_guard.
+    if (editingRole) {
+      if (!canEdit) { toast.error('You do not have permission to edit roles.'); return; }
+    } else {
+      if (!canCreate) { toast.error('You do not have permission to create roles.'); return; }
+    }
+    if (!canAssign) {
+      toast.error('You do not have permission to assign role permissions.');
+      return;
+    }
     const name = formName.trim();
     if (!name) { toast.error('Please enter a role name'); return; }
     const dupe = roles.find(r => r.name.trim().toLowerCase() === name.toLowerCase() && r.id !== editingRole?.id);
@@ -412,6 +424,7 @@ export default function RoleManagement() {
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
+    if (!canDelete) { toast.error('You do not have permission to delete roles.'); return; }
     await deleteRole.mutateAsync(deleteConfirm.id);
     if (selectedRole?.id === deleteConfirm.id) setSelectedRole(null);
     setDeleteConfirm(null);
