@@ -566,7 +566,7 @@ export default function RoleManagement() {
                                   </TableCell>
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                     <RowActionsMenu dropdownModal={false} actions={[
-                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
+                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any), hidden: !canEdit },
                                       {
                                         label: 'Reset to defaults',
                                         icon: Shield,
@@ -575,10 +575,10 @@ export default function RoleManagement() {
                                             resetSystemRole.mutate(role.name);
                                           }
                                         },
-                                        hidden: !role.is_system,
+                                        hidden: !role.is_system || !canReset,
                                         separator: true,
                                       },
-                                      { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
+                                      { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system || !canDelete, separator: true },
                                     ]} />
                                   </TableCell>
                                 </TableRow>
