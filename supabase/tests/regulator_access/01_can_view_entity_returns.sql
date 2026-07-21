@@ -211,12 +211,13 @@ SELECT ok(
   '2-arg overload allows mapped user with base view perm'
 );
 
--- 11. 2-arg overload: mapped w/o view perm -> false
+-- 11. 2-arg overload: assignment-only user -> true (status-agnostic; callers
+-- that want lifecycle filtering must use the 4-arg overload)
 SELECT ok(
-  NOT public.can_view_entity_returns(
+  public.can_view_entity_returns(
     '44444444-4444-4444-4444-444444444444'::uuid,
     '99999999-9999-9999-9999-999999999999'::uuid),
-  '2-arg overload denies mapped user without base view perm'
+  '2-arg overload grants assignment-only user (lifecycle enforced elsewhere)'
 );
 
 -- 12. 2-arg overload: view_all bypass -> true
