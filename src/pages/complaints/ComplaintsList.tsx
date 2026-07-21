@@ -943,10 +943,10 @@ export default function ComplaintsList() {
                                 <DropdownMenuItem onClick={() => nav(`/complaints/${c.id}`)}>
                                   <Eye className="h-4 w-4 mr-2" />Open detail
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => reprintAck(c)}>
+                                <DropdownMenuItem data-rbac="complaint_management.view" onClick={() => reprintAck(c)}>
                                   <Printer className="h-4 w-4 mr-2" />Reprint acknowledgement
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => retryTriage(c)}>
+                                <DropdownMenuItem data-rbac="complaint_management.edit" onClick={() => retryTriage(c)}>
                                   <RefreshCw className="h-4 w-4 mr-2" />Run / retry triage
                                 </DropdownMenuItem>
                               </DropdownMenuContent>

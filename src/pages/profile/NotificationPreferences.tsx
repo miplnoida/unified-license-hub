@@ -193,7 +193,7 @@ export default function NotificationPreferences() {
           {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
           Send test digest
         </Button>
-        <Button onClick={save} disabled={saving}>
+        <Button data-rbac="user_management.edit" onClick={save} disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
           Save preferences
         </Button>

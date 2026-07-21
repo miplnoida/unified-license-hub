@@ -105,8 +105,8 @@ export default function PostLicense() {
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
-                <Button variant="outline">Save as Draft</Button>
-                <Button>Submit Request <ArrowRight className="h-4 w-4 ml-2" /></Button>
+                <Button data-rbac="application_management.edit" variant="outline">Save as Draft</Button>
+                <Button data-rbac="application_management.edit">Submit Request <ArrowRight className="h-4 w-4 ml-2" /></Button>
               </div>
             </CardContent>
           </Card>

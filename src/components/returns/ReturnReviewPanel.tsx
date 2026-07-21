@@ -184,7 +184,7 @@ export function ReturnReviewPanel({
             </p>
           )}
           <div className="mt-3 flex justify-end">
-            <Button
+            <Button data-rbac="returns_management.edit"
               onClick={onAcknowledge}
               disabled={!acknowledged || loading || disabled}
             >

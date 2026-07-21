@@ -81,7 +81,7 @@ export default function InvestigationDetail() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
-              <Button onClick={saveStatus} disabled={update.isPending} className="w-full">Save</Button>
+              <Button data-rbac="market_conduct.edit" onClick={saveStatus} disabled={update.isPending} className="w-full">Save</Button>
             </CardContent>
           </Card>
         </div>
