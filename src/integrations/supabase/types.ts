@@ -8937,6 +8937,7 @@ export type Database = {
           action_id: string | null
           created_at: string
           description: string | null
+          enforced: boolean
           id: string
           module: string
           name: string
@@ -8945,6 +8946,7 @@ export type Database = {
           action_id?: string | null
           created_at?: string
           description?: string | null
+          enforced?: boolean
           id?: string
           module: string
           name: string
@@ -8953,6 +8955,7 @@ export type Database = {
           action_id?: string | null
           created_at?: string
           description?: string | null
+          enforced?: boolean
           id?: string
           module?: string
           name?: string
@@ -16244,6 +16247,13 @@ export type Database = {
           sector_id: string
         }[]
       }
+      get_permission_dependencies: {
+        Args: never
+        Returns: {
+          action: string
+          requires: string
+        }[]
+      }
       get_public_complaint_tracking: {
         Args: { p_email?: string; p_reference: string }
         Returns: Json
@@ -16589,6 +16599,7 @@ export type Database = {
         }
         Returns: Json
       }
+      permission_has_dependency: { Args: { _action: string }; Returns: boolean }
       portal_application_entity_ids: {
         Args: { _application_id: string }
         Returns: string[]
