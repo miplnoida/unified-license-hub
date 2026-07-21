@@ -1379,7 +1379,7 @@ export default function ApplicationDetail() {
               return (
                 <>
                   <div className="flex gap-2">
-                    <Button
+                    <Button data-rbac="application_management.create"
                       onClick={() => {
                         if (needsForms) {
                           setActiveTab('form');

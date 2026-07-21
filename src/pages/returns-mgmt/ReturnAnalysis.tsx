@@ -136,7 +136,7 @@ export default function ReturnAnalysis() {
               <Button variant="outline" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4 mr-1" />Back</Button>
               {selected?.id && <HistoryButton entityType="return_analysis" entityId={selected.id} title="Return analysis history" />}
               {!selected?.id && id && <HistoryButton entityType="return_filed" entityId={id} title="Return history" />}
-              <Button onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>
+              <Button data-rbac="report_management.view" onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>
                 {regenerate.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Regenerate
               </Button>
@@ -152,7 +152,7 @@ export default function ReturnAnalysis() {
           <Card>
             <CardContent className="py-12 text-center space-y-3">
               <p className="text-sm text-muted-foreground">No analysis has been generated for this return yet.</p>
-              <Button onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>
+              <Button data-rbac="report_management.view" onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>
                 {regenerate.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 Generate Analysis
               </Button>

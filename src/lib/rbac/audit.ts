@@ -86,6 +86,18 @@ const PUBLIC_ALLOW_LABELS = new Set(
     'back to queue', '← back to queue', '← queue',
     'go to my applications', 'return to dashboard', 'track application',
     'review entered data', 'open', 'open return', 'open licensee',
+    // Slice 22: benign navigation, pagination, and framework controls
+    'previous slide', 'next slide',
+    'try again', 'reload page',
+    'load', 'load more', 'more filters', 'filters',
+    'today', 'calendar', 'preview', 'trace',
+    'mark all read', 'continue to next section',
+    'verify & continue', 'resend code', 'cancel and sign out',
+    'send verification code', 'resend code',
+    'verify identity', 'proceed to application',
+    'register now', 'existing user? login',
+    'browse files', 'replace', 'request new link',
+    'case', 'send test digest', 'test rule',
   ].map((s) => s.toLowerCase()),
 );
 
@@ -98,7 +110,14 @@ const PUBLIC_ALLOW_PATTERNS: RegExp[] = [
   /^track\b/i,
   /^return to\b/i,
   /^copy\b/i,
+  /^load more\b/i,
+  /^resend\b/i,
+  /^try again\b/i,
+  /\bmark all read\b/i,
+  /^\+ add another\b/i,
+  /^add another\b/i,
 ];
+
 
 const SKIP_FILES = new Set([
   'components/auth/GuardedButton.tsx',
@@ -287,8 +306,47 @@ export function scanFile(file: string): ActionSite[] {
       reason: explicit ? 'data-rbac' : (isPublic ? 'public-allow' : ''),
     });
   }
+  // 4. <ContextMenuItem ...>Label</ContextMenuItem> — treat like Button
+  const cmiRx = /<ContextMenuItem\b/g;
+  while ((m = cmiRx.exec(text))) {
+    const idx = m.index;
+    const gt = findOpeningTagEnd(text, idx);
+    if (gt < 0) continue;
+    const close = text.indexOf('</ContextMenuItem', gt);
+    if (close < 0) continue;
+    const inner = text.slice(gt + 1, close);
+    const label = inner
+      .replace(/\{[^{}]*\}/g, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80);
+    if (!label) continue;
+    const line = text.slice(0, idx).split('\n').length;
+    const tag = text.slice(idx, gt);
+    const explicit = /data-rbac\s*=/.test(tag);
+    const rbacMatch = tag.match(/data-rbac\s*=\s*"([^"]+)"/);
+    let module: string | null = null;
+    let action: string | null = null;
+    if (rbacMatch) {
+      const [mod, act] = rbacMatch[1].split('.');
+      module = mod || null; action = act || null;
+    }
+    const lowered = label.toLowerCase();
+    const isPublic =
+      PUBLIC_ALLOW_LABELS.has(lowered) ||
+      PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
+    sites.push({
+      file: rel, line, page, button: label,
+      category: categorize(label),
+      module, action,
+      protected: explicit || isPublic,
+      reason: explicit ? 'data-rbac' : (isPublic ? 'public-allow' : ''),
+    });
+  }
   return sites;
 }
+
 
 export function scanRepo(): ActionSite[] {
   const files: string[] = [];

@@ -266,7 +266,7 @@ export default function FpScheduler() {
           backHref="/fit-and-proper"
           backLabel="Register"
           actions={
-            <Button size="sm" onClick={runScheduler} disabled={schedulerLoading}>
+            <Button data-rbac="fit_and_proper.configure" size="sm" onClick={runScheduler} disabled={schedulerLoading}>
               {schedulerLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (

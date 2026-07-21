@@ -99,7 +99,7 @@ export default function ReinsuranceTab({ entityId }: { entityId: string }) {
             </div>
             <div className="space-y-2"><Label>Status</Label><Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="expired">Expired</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
+          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button data-rbac="licensee_management.edit" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

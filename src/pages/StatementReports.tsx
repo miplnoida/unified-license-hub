@@ -24,7 +24,7 @@ export default function StatementReports() {
         <PageHeader
           title="Statement Reports"
           description="Generate and download official regulatory statements."
-          actions={<Button><Download className="h-4 w-4 mr-2" />Generate Statement</Button>}
+          actions={<Button data-rbac="report_management.view"><Download className="h-4 w-4 mr-2" />Generate Statement</Button>}
         />
 
         <Card className="animate-slide-up delay-100">
@@ -70,7 +70,7 @@ export default function StatementReports() {
                 <div className="flex items-center gap-3">
                   <Badge variant={stmt.status === 'ready' ? 'approved' : 'pending' as any} className="capitalize">{stmt.status}</Badge>
                   {stmt.status === 'ready' && (
-                    <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-1" />PDF</Button>
+                    <Button data-rbac="report_management.export" variant="outline" size="sm"><Download className="h-4 w-4 mr-1" />PDF</Button>
                   )}
                 </div>
               </div>

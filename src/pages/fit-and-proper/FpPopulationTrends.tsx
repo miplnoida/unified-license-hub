@@ -139,7 +139,7 @@ export default function FpPopulationTrends() {
           backHref="/fit-and-proper"
           backLabel="Register"
           actions={
-            <Button size="sm" variant="outline" onClick={runScheduler}>
+            <Button data-rbac="fit_and_proper.configure" size="sm" variant="outline" onClick={runScheduler}>
               <PlayCircle className="h-4 w-4 mr-2" /> Run cycle scheduler now
             </Button>
           }

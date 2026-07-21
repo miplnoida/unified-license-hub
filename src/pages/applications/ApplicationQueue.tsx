@@ -537,7 +537,7 @@ export default function ApplicationQueue() {
             </div>
             <div className="flex gap-2">
               {canManage && (
-                <Button
+                <Button data-rbac="applications.edit"
                   onClick={() => setBulkOpen(true)}
                   disabled={selected.size === 0}
                   variant="default"

@@ -102,7 +102,7 @@ export default function ReturnConfiguration() {
           description="Configure compliance return schedules scoped to the active regulator."
           actions={
             <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) resetForm(); }}>
-              <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.configure"><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Return Configuration</DialogTitle></DialogHeader>
                 <div className="space-y-4">

@@ -322,7 +322,7 @@ export default function DelegationRules() {
             <div className="flex justify-end">
               <Dialog open={delegateDialogOpen} onOpenChange={(o) => { setDelegateDialogOpen(o); if (!o) resetDelegateForm(); }}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
+                  <Button data-rbac="delegation.create" onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                   <DialogHeader>

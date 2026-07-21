@@ -95,7 +95,7 @@ export default function EnforcementTab({ entityId }: { entityId: string }) {
             <div className="space-y-2"><Label>Penalty Amount</Label><Input type="number" value={form.penalty_amount} onChange={e => setForm(f => ({ ...f, penalty_amount: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
           </div>
-          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
+          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button data-rbac="licensee_management.edit" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

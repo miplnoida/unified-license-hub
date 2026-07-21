@@ -360,7 +360,7 @@ function OtpVerificationSection({
                   {otpVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify'}
                 </Button>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={handleSendOtp} disabled={cooldown > 0 || otpSending}>
+              <Button data-rbac="registration_management.create" type="button" variant="ghost" size="sm" onClick={handleSendOtp} disabled={cooldown > 0 || otpSending}>
                 <RefreshCw className="h-3 w-3 mr-1" />
                 {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
               </Button>

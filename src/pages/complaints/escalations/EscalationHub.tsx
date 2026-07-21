@@ -67,7 +67,7 @@ export default function EscalationHub() {
         title="Complaint Auto-Escalation"
         description="Automatically escalate complaints based on consumer harm, age, institution risk, volume, and recurrence."
         actions={
-          <Button onClick={() => sweep.mutate()} disabled={sweep.isPending}>
+          <Button data-rbac="complaints.configure" onClick={() => sweep.mutate()} disabled={sweep.isPending}>
             {sweep.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
             Run sweep now
           </Button>

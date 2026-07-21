@@ -203,7 +203,7 @@ export default function NewThematicReview() {
           {step < 3 ? (
             <Button disabled={!canNext()} onClick={() => setStep(s => s + 1)}>Next <ChevronRight className="h-4 w-4 ml-1" /></Button>
           ) : (
-            <Button onClick={commit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Create Review</Button>
+            <Button data-rbac="prudential.create" onClick={commit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Create Review</Button>
           )}
         </div>
       </div>

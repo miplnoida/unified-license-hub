@@ -134,7 +134,7 @@ export default function ConductActions() {
                   <TableCell><Badge variant={a.status === 'overdue' ? 'destructive' : a.status === 'completed' ? 'default' : 'outline'}>{a.status}</Badge></TableCell>
                   <TableCell className="text-right">
                     {a.status !== 'completed' && a.status !== 'waived' && (
-                      <Button size="sm" variant="outline" onClick={() => complete(a)}>Complete</Button>
+                      <Button data-rbac="market_conduct.edit" size="sm" variant="outline" onClick={() => complete(a)}>Complete</Button>
                     )}
                   </TableCell>
                 </TableRow>
