@@ -1,81 +1,72 @@
-## Slice 3 — Returns RLS + storage lockdown
+## Scope
 
-Scope: `returns_filed` + 15 return_* data child tables + `return-uploads` storage. Config/admin tables (return_configs, return_types, return_templates, return_cutoff_config, return_due_dates, return_form_versions, return_notification_templates, return_validation_rule[_versions], return_config_forms, return_configurations, return_template_downloads) remain deferred to Phase 4 per the RBAC change log.
+Close the remaining RBAC gaps identified in `docs/rbac/audit-2026-07-21/` and the completion criteria above. Work proceeds in reviewable slices but continues until every item is addressed. No documentation-only or coverage-only changes; every claim is backed by an executed test.
 
-### 1. Canonical helpers (new SECURITY DEFINER, `search_path=public`, `STABLE`)
+## Slices (executed sequentially, each with migration + code + tests)
 
-- `public.can_read_return_filed(_user_id uuid, _return_id uuid) → boolean`
-  Composes, in order: `is_super_admin` → `has_permission('returns_management','view_all_entities')` → `user_has_entity_assignment(_user, r.entity_id)` (mapped regulator, any status) → licensee membership (`profiles.licensee_id ∈ {entity_id, on_behalf_of_licensee_id}`) → PPOC (`ppoc_mapped_licensee_ids`) → external capability (`external_can_access_return_filed(_user, id, 'can_view_status' | 'can_submit_returns')`) → creator (`r.created_by = _user`).
-- `public.can_read_return_filed_row(_user_id, _entity_id, _on_behalf uuid, _created_by uuid, _return_id uuid) → boolean`
-  Value-form used inside `returns_filed` policies to avoid self-referencing subselects.
-- `public.can_mutate_return_filed(_user_id uuid, _return_id uuid) → boolean`
-  Owner during editable lifecycle (`workflow_status IN TEMP/WIP/TBR`) + `has_permission('returns_management','edit')` + super_admin + external `can_submit_returns`. Never grants mutate to assignment-only regulators.
+### Slice 12 — Return Queue assignment-only lifecycle lockdown
+- Reintroduce `SUBMITTED_LIFECYCLE_STATUSES` as the single canonical source in `src/lib/returnLifecycle.ts` and mirror it in a new SQL function `public.return_status_is_submitted_lifecycle(text)`.
+- Update `public.can_view_entity_returns` and `public.can_read_return_filed` so **assignment-only** users get returns ONLY when status is in the submitted lifecycle; internal users with `returns_management.view` retain full access.
+- Update Return Queue list query, Return Detail loader, dashboard counters, attachments RLS, storage policies (`return-uploads`), reports/exports edge functions to apply the same filter for assignment-only.
+- Remove any "Due Soon" tile/filter visibility for assignment-only via `usePermissions.ts` gate.
+- Ensure assignment alone never grants export/download/upload/edit/approve/workflow — those keep exact-permission checks.
+- Tests: extend `supabase/tests/regulator_access/01_can_view_entity_returns.sql` with pre-submission denial cases; add `src/test/rbac/returnQueueAssignmentOnly.test.tsx`; add Deno test on the returns export function.
 
-Everything routes through `has_permission` — no `has_role` calls remain in the new policies.
+### Slice 13 — Enforcement / Inspection scope tightening
+- Rewrite `can_read_enforcement`, `can_read_inspection` helpers so assignment alone is NEVER sufficient. Required read rule: `super_admin OR view_all_entities OR (exact view perm AND assignment)`.
+- Write rule for create/edit/delete/workflow_action: `exact action perm AND assignment` (or `view_all_entities` for global roles where documented).
+- Update RLS on `enforcement_actions`, `enforcement_case_events`, `inspections`, `inspection_findings`.
+- Extend `supabase/tests/rbac/120_enforcement_inspection_rls.sql` with the six required cases (assignment-only denied, view-only cross-entity denied, correct combo allowed, view_all allowed, super_admin allowed, create without assignment denied).
 
-### 2. `returns_filed` policy rewrite
+### Slice 14 — Critical RPC hardening + map
+- Enumerate SECURITY DEFINER RPCs touching mutations/approvals/assignments/exports/notifications. For each: pin `search_path = public`, `REVOKE EXECUTE FROM PUBLIC`, `GRANT` narrowly, call `has_permission` + scope check, raise `SQLSTATE 42501` on denial, use `auth.uid()`.
+- Regenerate `docs/rbac/rpc-permission-map.tsv` with the required columns (function, module, action, scope_type, security_definer, safe_search_path, public_execute_revoked, permission_guarded, tested).
+- Add pgTAP `supabase/tests/rbac/130_critical_rpcs.sql` with authorized + unauthorized assertions per RPC.
 
-Drop all 11 existing policies; replace with:
+### Slice 15 — Remaining RLS modules
+Batch by cluster, one migration per cluster, each with a pgTAP file:
+1. **Complaints** cluster (`complaints`, `complaint_evidence`, `complaint_correspondence`, `complaint_investigation_tasks`, `complaint_escalation_cases`, `complaint_duplicate_*`, `complaint_intake_rules`, `complaint_status_catalogue`, `complaint_types`) — `140_complaints_rls.sql`.
+2. **Market Conduct** (`conduct_*` tables) — `150_conduct_rls.sql`.
+3. **Reports/Exports** (`report_definitions`, `reports`, `report_logs`, `report_schedules`, `report_run_*`, `audit_export_jobs`, `return_consolidated_analysis`) — `160_reports_rls.sql`.
+4. **Security & Ops** (`audit_logs`, `security_event_logs`, `notification_outbox`, `notification_dispatch_log`, `notification_digest_log`, `site_settings`) — `170_security_ops_rls.sql`.
+5. **Registration / Fees / Payments / Refunds / Correspondence / Master data / remaining workflow tables** — `180_misc_rls.sql`.
+- Pattern for every table: drop `USING (true)` on sensitive tables; require exact permission + scope; preserve applicant / entity user / PPOC / assigned regulator / workflow assignee / service-role paths.
 
-- **SELECT** `returns_filed_read` → `can_read_return_filed_row(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, id)`
-- **INSERT** `returns_filed_insert` → creator = `auth.uid()` AND ( licensee-owner OR PPOC OR external-submit OR `has_permission('returns_management','create')` )
-- **UPDATE** `returns_filed_update` → `can_mutate_return_filed(auth.uid(), id)`; `WITH CHECK` re-asserts same
-- **DELETE** `returns_filed_delete` → `is_super_admin` OR `has_permission('returns_management','delete')`
+### Slice 16 — Storage authorization
+- Explicit SELECT/INSERT/UPDATE/DELETE policies on: `return-uploads`, `application-documents`, `complaint-evidence`, `fp-evidence`, `secure-documents`, `payment-documents`, `certificates`, `audit-exports`, `report-exports`.
+- Rule: `exact permission AND path→record scope resolution`.
+- Update signed-URL edge functions (`storage-signed-url`, etc.) to enforce JWT + permission + record scope; refuse 403 out-of-scope.
+- pgTAP `supabase/tests/rbac/190_storage_policies.sql` + Deno tests per function.
 
-Assignment-only regulators cannot mutate or insert; SELECT works for all statuses on mapped entities (matches the user's earlier correction).
+### Slice 17 — Edge Function full-coverage tests
+- For every high-risk user-facing function: 5 tests (missing JWT / invalid JWT / missing permission / wrong scope / success).
+- Verify guard runs BEFORE service-role client creation (lint via `scripts/verify-edge-authz.mjs` extended check).
+- Regenerate `docs/rbac/edge-function-permission-map.tsv` with all required columns.
 
-### 3. Child data tables (15) — uniform pattern
+### Slice 18 — Frontend action & route protection sweep
+- Replace unprotected action buttons across Applications, Returns, Complaints, Licensing, Licensees, Registration, F&P, Prudential, Market Conduct, Enforcement, Inspections, Reports, Workflows, Users, Roles, Settings, Notifications, Audit, Fees/Payments with `GuardedButton` or `PermissionGate`.
+- Handlers re-check `hasPermission` before mutation.
+- Protect routes: `/admin`, `/preview/:versionId`, `/notifications`, `/settings`, `/users`, `/reports`, `/workflows`, `/admin/roles`, `/admin/permission-coverage`.
+- Router: unknown internal routes → `<AccessDenied />`.
+- Admin Hub tiles each gated; KPI queries only fire when user has view permission.
+- Extend `src/test/routeCoverage.test.ts` to fail on any unmapped internal route; add persona Vitest suites in `src/test/rbac/personas/`.
 
-| Table | SELECT | INSERT/UPDATE | DELETE |
-|---|---|---|---|
-| return_form_data | `can_read_return_filed(uid, return_id)` | `can_mutate_return_filed(uid, return_id)` | mutate + super_admin |
-| return_documents | same | mutate + `document_management.upload` for insert | mutate + `document_management.delete` |
-| return_comments | same | `can_read_return_filed` + `performed_by = uid` | mutate |
-| return_audit_log | same | `performed_by = uid` AND `can_read_return_filed` (append-only) | denied |
-| return_data_revisions | same | mutate + `created_by = uid` | super_admin |
-| return_calculated_ratios | same | `has_permission('returns_management','edit')` (system-populated) | super_admin |
-| return_consolidated_analysis | `can_read_return_filed` OR `report_management.view` | `has_permission('returns_management','edit')` | super_admin |
-| return_edit_requests | `can_read_return_filed` OR `has_permission('returns_management','workflow_action')` | requester = uid OR workflow_action | workflow_action |
-| return_requests | same | workflow_action | workflow_action |
-| return_notifications_log | `can_read_return_filed` | system/service-role only | denied |
-| return_threshold_breaches | `can_read_return_filed` OR `report_management.view` | `edit` | super_admin |
-| return_upload_attempts | `can_read_return_filed` OR uploader | `uploaded_by = uid` AND `can_mutate_return_filed` for return-scoped rows; entity-scoped rows require `edit` | super_admin |
-| return_upload_imports | uploader OR `edit` | uploader | uploader OR super_admin |
-| return_validation_run_log | `can_read_return_filed` | `edit` | super_admin |
+### Slice 19 — Orphan triage + coverage scanner accuracy
+- Classify every catalogued permission (fully/partially/UI-only/backend-only/marker-only/missing-scope/untested/orphan/deprecated/external/service-only/duplicate).
+- Remove or `enforced=false` + `deprecated=true` on orphans; block them from Role Management UI + `assert_role_permission_dependencies` trigger.
+- Upgrade `src/lib/rbac/coverageScanner.ts` to distinguish `real_ui_guard` vs `audit_marker_only`, `guard_imported` vs `guard_called`, `route_mapping` vs `route_guard`, `rls_with_scope` vs `rls_without_scope`, and require test presence.
+- Regenerate `permission-coverage.{json,csv,md}` with new classifications and before/after counts in `docs/rbac/change-log.md`.
 
-`GRANT SELECT, INSERT, UPDATE, DELETE … TO authenticated` and `GRANT ALL … TO service_role` re-asserted on each. `anon` grants dropped — none of these are public.
+### Slice 20 — CI gates & final verification
+- Extend `.github/workflows/ci.yml` and add scripts to fail on: unmapped internal routes, unguarded high-risk actions, edge functions lacking real auth, critical RPCs without guards, unsafe SD `search_path`, `PUBLIC` execute on sensitive fns, orphan permissions, marker-counted-as-enforced rows, broad `authenticated USING (true)` policies, missing required RBAC tests.
+- Execute and capture output of: `bun run build:dev`, `bunx tsgo --noEmit`, `bunx eslint .`, `bunx vitest run src/test/rbac`, `supabase test db`, `deno test supabase/functions`, `bunx tsx scripts/generate-permission-coverage.ts`, `node scripts/verify-edge-authz.mjs`, and Supabase migration validation.
 
-### 4. Storage — `return-uploads` bucket
+## Final report format
+Commit SHA · files changed · migrations · fixes by area · orphan before/after · coverage before/after · commands with real pass/fail · CI status · any remaining limitations explicitly listed.
 
-Replace the three existing policies with authorized versions:
-
-- **read**: object-name matches a `return_upload_attempts.storage_path` or `return_documents.file_path` whose parent return passes `can_read_return_filed`; OR uploader is the object owner; OR super_admin; OR `returns_management.view_all_entities`.
-- **write (INSERT)**: `owner = auth.uid()` AND caller passes `can_mutate_return_filed` for the referenced return (path prefix parsed via `split_part(name,'/',1)::uuid` when the path encodes the return id) OR `has_permission('returns_management','edit')`.
-- **delete**: object owner AND `can_mutate_return_filed`, OR super_admin.
-
-All storage policies use the canonical helpers — no `has_role`.
-
-### 5. pgTAP suite — `supabase/tests/rbac/40_returns_data_rls.sql`
-
-Five personas seeded in a transaction:
-1. super_admin
-2. staff_with_view_all (`returns_management.view_all_entities`)
-3. assignment_only_regulator (mapped to licensee A only)
-4. licensee_primary_user (licensee A)
-5. unrelated_authenticated (no rights)
-
-Coverage per table (~60 assertions total): SELECT allowed/denied, INSERT allowed/denied, UPDATE allowed/denied, DELETE allowed/denied per persona. Explicit assertions:
-- assignment-only regulator can SELECT return_form_data across all workflow statuses (TEMP/WIP/SUB/APR) for licensee A;
-- assignment-only regulator **cannot** UPDATE or INSERT anything;
-- assignment-only regulator sees nothing for licensee B.
-
-### 6. Frontend impact
-
-No frontend changes. All existing hooks/screens continue to work because policy semantics are preserved (creators, licensees, PPOC, external capability, view-all, mapped regulator) — only the underlying gate consolidates onto `has_permission` + canonical helpers.
-
-### Deliverables
-
-- `supabase/migrations/*_slice_3_returns_rls.sql`
-- `supabase/tests/rbac/40_returns_data_rls.sql`
-- `docs/rbac/change-log.md` — new Slice 3 section listing every dropped/created policy
-- `docs/rbac/policy-inventory.md` — refreshed rows for the 16 tables + storage
+## Technical notes
+- All new SQL helpers: `SECURITY DEFINER`, `STABLE`, `SET search_path = public`, `REVOKE EXECUTE FROM PUBLIC`, granted only to `authenticated` / `service_role` as required.
+- New public tables: full GRANT block + RLS + policies in the same migration.
+- No blanket `authenticated USING (true)` on sensitive tables — always joined to permission + scope.
+- Assignment-only never synthesizes `returns_management.view`; it is expressed via a dedicated `hasAssignmentReturnQueueAccess` flag on the client and via helper functions server-side.
+- Every migration paired with a pgTAP file; every UI change paired with a Vitest file.
