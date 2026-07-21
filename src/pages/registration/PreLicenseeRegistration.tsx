@@ -1364,7 +1364,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               )}
             </Button>
           ) : steps[currentStep]?.type === 'review' ? null : (
-            <Button onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
+            <Button data-rbac="registration_management.create" onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
               {submitting ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
               ) : (

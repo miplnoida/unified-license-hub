@@ -862,7 +862,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
         id={`file-${field.fieldName}`}
         disabled={readOnly || uploading}
       />
-      <Button
+      <Button data-rbac="registration_management.create"
         type="button"
         variant="outline"
         className={`w-full ${error ? 'border-destructive' : ''}`}

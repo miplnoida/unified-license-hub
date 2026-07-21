@@ -2054,7 +2054,7 @@ export default function NewApplication() {
               <Button variant="outline" onClick={() => void goToStep('selection')}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
-              <Button
+              <Button data-rbac="application_management.create"
                 onClick={handleProceedFromForms}
                 disabled={!allFormsCompleted}
               >
