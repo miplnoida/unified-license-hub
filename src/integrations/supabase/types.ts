@@ -15565,8 +15565,16 @@ export type Database = {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
       }
+      can_mutate_application: {
+        Args: { _application_id: string; _user: string }
+        Returns: boolean
+      }
       can_mutate_return_filed: {
         Args: { _return_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_read_application: {
+        Args: { _application_id: string; _user: string }
         Returns: boolean
       }
       can_read_return_filed: {
