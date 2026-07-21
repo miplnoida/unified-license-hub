@@ -140,13 +140,40 @@ SELECT ok(
   'assigned regulator can see draft returns for mapped entity'
 );
 
--- 6. Mapped user WITHOUT base view perm + submitted -> false (gap being closed)
+-- 6. Assignment-only regulator + submitted -> true (lifecycle allow)
+SELECT ok(
+  public.can_view_entity_returns(
+    '44444444-4444-4444-4444-444444444444'::uuid,
+    '99999999-9999-9999-9999-999999999999'::uuid,
+    'SUB','submitted'),
+  'assignment-only regulator sees submitted returns for mapped entity'
+);
+
+-- 6a. Assignment-only regulator + draft -> false (pre-submission block)
 SELECT ok(
   NOT public.can_view_entity_returns(
     '44444444-4444-4444-4444-444444444444'::uuid,
     '99999999-9999-9999-9999-999999999999'::uuid,
-    'SUB','submitted'),
-  'assigned regulator without base view perm is denied'
+    'WIP','draft'),
+  'assignment-only regulator blocked from draft returns'
+);
+
+-- 6b. Assignment-only regulator + TEMP -> false
+SELECT ok(
+  NOT public.can_view_entity_returns(
+    '44444444-4444-4444-4444-444444444444'::uuid,
+    '99999999-9999-9999-9999-999999999999'::uuid,
+    'TEMP','TEMP'),
+  'assignment-only regulator blocked from TEMP returns'
+);
+
+-- 6c. Assignment-only regulator + pending_submission -> false
+SELECT ok(
+  NOT public.can_view_entity_returns(
+    '44444444-4444-4444-4444-444444444444'::uuid,
+    '99999999-9999-9999-9999-999999999999'::uuid,
+    '','pending_submission'),
+  'assignment-only regulator blocked from pending_submission returns'
 );
 
 -- 7. Unmapped internal user with base view perm -> false
