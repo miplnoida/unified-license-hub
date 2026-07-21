@@ -1,0 +1,10 @@
+rpc	module	action	notes
+has_permission	-	-	Authority function. SECURITY DEFINER, pinned search_path.
+can_view_entity_returns	returns_management	view	Composes has_permission + user_has_entity_assignment.
+user_has_entity_assignment	-	-	Assignment lookup helper. No permission gate — used by other gates.
+is_assignment_only_regulator	-	-	Classifier used by scope enforcement.
+claim_notification_outbox	notification_management	dispatch	Worker RPC; service-role only via authz helper.
+reap_stuck_notification_outbox	notification_management	dispatch	Worker RPC.
+create_complaint	complaint_management	create	SECURITY DEFINER intake.
+finalize_complaint_with_attachments	complaint_management	create	Atomic finalize.
+search_licensees	license_management	view	Server-side scoped licensee search.
