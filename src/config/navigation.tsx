@@ -65,6 +65,7 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
+      { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
     ],
   },
   {
