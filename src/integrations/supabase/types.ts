@@ -9963,6 +9963,33 @@ export type Database = {
           },
         ]
       }
+      rbac_module_scopes: {
+        Row: {
+          created_at: string
+          help: string | null
+          label: string
+          module: string
+          scope: string
+          selector: string | null
+        }
+        Insert: {
+          created_at?: string
+          help?: string | null
+          label: string
+          module: string
+          scope: string
+          selector?: string | null
+        }
+        Update: {
+          created_at?: string
+          help?: string | null
+          label?: string
+          module?: string
+          scope?: string
+          selector?: string | null
+        }
+        Relationships: []
+      }
       refunds: {
         Row: {
           amount: number
@@ -16856,6 +16883,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rbac_save_role: { Args: { _payload: Json }; Returns: Json }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
       record_return_breach: {
@@ -17198,6 +17226,10 @@ export type Database = {
         Args: { _status: string }
         Returns: boolean
       }
+      role_scope_for: {
+        Args: { _module: string; _role_id: string }
+        Returns: Json
+      }
       rollback_prudential_ratio: {
         Args: { _ratio_id: string; _to_version: number }
         Returns: number
@@ -17490,6 +17522,10 @@ export type Database = {
         Returns: boolean
       }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
+      user_scope_for: {
+        Args: { _module: string; _user_id: string }
+        Returns: Json
+      }
       verify_declaration_identity: {
         Args: { p_dob: string; p_last4id: string; p_token: string }
         Returns: {
