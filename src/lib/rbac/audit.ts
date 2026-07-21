@@ -86,6 +86,18 @@ const PUBLIC_ALLOW_LABELS = new Set(
     'back to queue', '← back to queue', '← queue',
     'go to my applications', 'return to dashboard', 'track application',
     'review entered data', 'open', 'open return', 'open licensee',
+    // Slice 22: benign navigation, pagination, and framework controls
+    'previous slide', 'next slide',
+    'try again', 'reload page',
+    'load', 'load more', 'more filters', 'filters',
+    'today', 'calendar', 'preview', 'trace',
+    'mark all read', 'continue to next section',
+    'verify & continue', 'resend code', 'cancel and sign out',
+    'send verification code', 'resend code',
+    'verify identity', 'proceed to application',
+    'register now', 'existing user? login',
+    'browse files', 'replace', 'request new link',
+    'case', 'send test digest', 'test rule',
   ].map((s) => s.toLowerCase()),
 );
 
@@ -98,7 +110,14 @@ const PUBLIC_ALLOW_PATTERNS: RegExp[] = [
   /^track\b/i,
   /^return to\b/i,
   /^copy\b/i,
+  /^load more\b/i,
+  /^resend\b/i,
+  /^try again\b/i,
+  /\bmark all read\b/i,
+  /^\+ add another\b/i,
+  /^add another\b/i,
 ];
+
 
 const SKIP_FILES = new Set([
   'components/auth/GuardedButton.tsx',
