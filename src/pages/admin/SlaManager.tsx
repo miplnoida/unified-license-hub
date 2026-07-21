@@ -594,7 +594,7 @@ function CalendarTab() {
                   <Label>Public Holidays</Label>
                   <div>
                     <input id="hcsv" type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.currentTarget.value = ''; }} />
-                    <Button variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
+                    <Button data-rbac="settings.import" variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
                       <Upload className="h-4 w-4 mr-2" /> Import CSV
                     </Button>
                   </div>

@@ -228,7 +228,7 @@ export default function MasterDataManagement() {
                       <Button variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
                       </Button>
-                      <Button variant="outline" onClick={() => setImportOpen(true)}>
+                      <Button data-rbac="master_data_management.import" variant="outline" onClick={() => setImportOpen(true)}>
                         <Upload className="h-4 w-4 mr-2" />Import Excel
                       </Button>
                       <Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>

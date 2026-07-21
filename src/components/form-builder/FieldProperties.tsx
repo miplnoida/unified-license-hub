@@ -705,7 +705,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
         {onDeleteField && (
           <>
             <Separator className="my-4" />
-            <Button variant="destructive" size="sm" className="w-full" onClick={onDeleteField}>
+            <Button data-rbac="form_management.edit" variant="destructive" size="sm" className="w-full" onClick={onDeleteField}>
               <Trash2 className="h-4 w-4 mr-2" />
               Remove Field
             </Button>

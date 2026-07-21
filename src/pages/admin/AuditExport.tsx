@@ -111,7 +111,7 @@ export default function AuditExport() {
             <Input value={moduleFilter} onChange={e => setModuleFilter(e.target.value)} placeholder="e.g. applications" />
           </div>
           <div className="flex items-end">
-            <Button onClick={() => run.mutate()} disabled={run.isPending} className="w-full">
+            <Button data-rbac="audit_management.export" onClick={() => run.mutate()} disabled={run.isPending} className="w-full">
               {run.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
               Run export
             </Button>

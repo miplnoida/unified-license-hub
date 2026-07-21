@@ -372,7 +372,7 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
                   </>
                 )}
                 {resolved && (
-                  <Button size="sm" variant="ghost" onClick={() => openRestore(f)}>
+                  <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => openRestore(f)}>
                     <ShieldAlert className="h-4 w-4 mr-1" /> Reopen
                   </Button>
                 )}

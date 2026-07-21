@@ -151,7 +151,7 @@ export default function ConductEntityProfile() {
           </TabsContent>
           <TabsContent value="actions">
             <div className="flex justify-end mb-2">
-              <Button size="sm" onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
+              <Button data-rbac="conduct_management.create" size="sm" onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
             </div>
             <IssueActionDialog
               open={issueOpen}

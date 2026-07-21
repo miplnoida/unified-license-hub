@@ -1359,7 +1359,7 @@ export default function ApplicationsList() {
                   {compareMode ? 'Comparing' : 'Compare'}
                 </Button>
               )}
-              <Button variant="outline" size="sm" className="ml-auto" disabled={exporting} onClick={exportFilteredCsv}>
+              <Button data-rbac="application_management.export" variant="outline" size="sm" className="ml-auto" disabled={exporting} onClick={exportFilteredCsv}>
                 {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                 Export CSV
               </Button>

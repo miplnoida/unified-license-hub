@@ -187,7 +187,7 @@ export function ApplicationUploadPanel({ formName, sections, disabled }: Props) 
                       {(pickedFile.size / 1024).toFixed(1)} KB · {pickedFile.type || 'unknown type'}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setPickedFile(null)}>
+                  <Button data-rbac="application_management.edit" variant="ghost" size="sm" onClick={() => setPickedFile(null)}>
                     <X className="h-3.5 w-3.5 mr-1" /> Remove
                   </Button>
                 </div>

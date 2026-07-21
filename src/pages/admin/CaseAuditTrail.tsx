@@ -124,7 +124,7 @@ export default function CaseAuditTrail() {
               <CardTitle className="text-base">Related entities</CardTitle>
               <p className="text-xs text-muted-foreground">Automatically discovered via foreign-key joins.</p>
             </div>
-            <Button size="sm" onClick={exportJson} disabled={events.length === 0}>
+            <Button data-rbac="audit_management.export" size="sm" onClick={exportJson} disabled={events.length === 0}>
               <Download className="h-3 w-3 mr-1" />Export JSON
             </Button>
           </CardHeader>

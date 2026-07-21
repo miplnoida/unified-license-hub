@@ -2044,7 +2044,7 @@ export default function NewApplication() {
                   description="Review the data you have entered so far. You can continue editing forms before proceeding."
                 />
                 <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setShowInlineReview(false)}>Close Review</Button>
+                  <Button data-rbac="application_management.edit" variant="outline" onClick={() => setShowInlineReview(false)}>Close Review</Button>
                 </div>
               </div>
             )}

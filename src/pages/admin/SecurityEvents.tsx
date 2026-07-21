@@ -147,7 +147,7 @@ export default function SecurityEvents() {
               {isFetching ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
               Refresh
             </Button>
-            <Button size="sm" onClick={exportCsv} disabled={data.length === 0}>
+            <Button data-rbac="audit_management.export" size="sm" onClick={exportCsv} disabled={data.length === 0}>
               <Download className="h-3 w-3 mr-1" />Export CSV
             </Button>
             <div className="ml-auto flex flex-wrap gap-1 text-xs">

@@ -144,7 +144,7 @@ export default function ApprovedLicensees() {
           title="Approved Licensees"
           description="All approved pre-license applications with issued license numbers"
           actions={
-            <Button variant="outline" size="sm">
+            <Button data-rbac="licensee_management.export" variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />Export
             </Button>
           }

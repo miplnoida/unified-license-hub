@@ -57,8 +57,8 @@ export default function DataManagementSettings() {
               <Switch defaultChecked />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline"><Download className="h-4 w-4 mr-2" />Export Database</Button>
-              <Button variant="outline"><Download className="h-4 w-4 mr-2" />Export Audit Logs</Button>
+              <Button data-rbac="settings.export" variant="outline"><Download className="h-4 w-4 mr-2" />Export Database</Button>
+              <Button data-rbac="settings.export" variant="outline"><Download className="h-4 w-4 mr-2" />Export Audit Logs</Button>
             </div>
           </CardContent>
         </Card>

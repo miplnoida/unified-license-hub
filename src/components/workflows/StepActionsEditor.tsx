@@ -636,7 +636,7 @@ function DigitalSignatureBlock({
                 >
                   <Download className="h-3 w-3 mr-1" /> Download
                 </Button>
-                <Button
+                <Button data-rbac="workflow_management.edit"
                   type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive"
                   onClick={handleRemove}
                 >

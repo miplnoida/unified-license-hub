@@ -306,7 +306,7 @@ export default function FpScheduler() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between py-4">
             <CardTitle className="text-base">Upcoming cycle assessments (next 60 days)</CardTitle>
-            <Button
+            <Button data-rbac="fit_and_proper.export"
               size="sm"
               variant="outline"
               onClick={() => exportUpcomingCsv(upcomingRoles)}

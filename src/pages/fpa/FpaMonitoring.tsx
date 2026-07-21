@@ -760,7 +760,7 @@ export default function FpaMonitoring() {
                     )}
                   </CardTitle>
                   {!auditError && (auditLogs ?? []).length > 0 && (
-                    <Button
+                    <Button data-rbac="fit_and_proper.export"
                       size="sm"
                       variant="outline"
                       className="h-8 gap-1.5 text-xs"

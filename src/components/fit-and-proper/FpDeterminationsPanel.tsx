@@ -351,7 +351,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                         ))}</SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={() => assign.mutate()} disabled={assign.isPending || !assignCommitteeId}>Assign</Button>
+                    <Button data-rbac="fit_and_proper.edit" onClick={() => assign.mutate()} disabled={assign.isPending || !assignCommitteeId}>Assign</Button>
                   </div>
                 </>
               ) : (

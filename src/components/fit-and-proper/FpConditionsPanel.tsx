@@ -261,7 +261,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                   </div>
                   <div className="flex gap-1">
                     {isOpen && <Button size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
-                    {!isOpen && <Button size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
+                    {!isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
                   </div>
                 </div>
                 {reopenFor === c.id && (
@@ -269,7 +269,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                     <Textarea rows={2} placeholder="Reason for reopening (required)" value={reopenNote} onChange={(e) => setReopenNote(e.target.value)} />
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setReopenFor(null)}>Cancel</Button>
-                      <Button
+                      <Button data-rbac="fit_and_proper.edit"
                         size="sm"
                         onClick={() => reopen.mutate({ id: c.id, reason: reopenNote })}
                         disabled={reopen.isPending || reopenNote.trim().length < 5}

@@ -316,7 +316,7 @@ export function FpAppealsPanel({ individualId }: Props) {
                           <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}</SelectContent>
                       </Select>
-                      <Button size="sm" disabled={!committeePick[a.id] || assignAppealCommittee.isPending}
+                      <Button data-rbac="fit_and_proper.edit" size="sm" disabled={!committeePick[a.id] || assignAppealCommittee.isPending}
                         onClick={() => assignAppealCommittee.mutate({ appealId: a.id, committeeId: committeePick[a.id] })}>
                         Assign
                       </Button>

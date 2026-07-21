@@ -343,7 +343,7 @@ function ImageBlock(props: {
               {props.hasFile ? 'Replace' : 'Upload'}
             </Button>
             {props.hasFile && (
-              <Button type="button" variant="ghost" size="sm" onClick={props.onRemove}>
+              <Button data-rbac="settings.edit" type="button" variant="ghost" size="sm" onClick={props.onRemove}>
                 <Trash2 className="h-4 w-4 mr-2" />Remove
               </Button>
             )}

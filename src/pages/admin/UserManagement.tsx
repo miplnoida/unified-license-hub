@@ -604,7 +604,7 @@ export default function UserManagement() {
                         <Upload className="h-4 w-4 mr-2" /> Choose Image
                       </Button>
                       {pendingAvatarPreview && (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => { setPendingAvatarFile(null); setPendingAvatarPreview(''); }}>
+                        <Button data-rbac="user_management.delete" type="button" variant="ghost" size="sm" onClick={() => { setPendingAvatarFile(null); setPendingAvatarPreview(''); }}>
                           Remove
                         </Button>
                       )}
@@ -809,7 +809,7 @@ export default function UserManagement() {
                       <Upload className="h-4 w-4 mr-2" />{uploadingAvatar ? 'Uploading...' : 'Change Photo'}
                     </Button>
                     {profileForm.avatar_url && (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setProfileForm(p => ({ ...p, avatar_url: '' }))}>
+                      <Button data-rbac="user_management.delete" type="button" variant="ghost" size="sm" onClick={() => setProfileForm(p => ({ ...p, avatar_url: '' }))}>
                         Remove
                       </Button>
                     )}

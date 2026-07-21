@@ -80,8 +80,8 @@ export default function ConductActions() {
         <PageHeader title="Conduct Action Ledger"
           description="Unified ledger of remediation, restitution and follow-up actions across complaints, thematic reviews, monitoring and enforcement."
           actions={<div className="flex gap-2">
-            <Button onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
-            <Button variant="outline" onClick={exportCsv}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
+            <Button data-rbac="conduct_management.create" onClick={() => setIssueOpen(true)}><Plus className="h-4 w-4 mr-1" /> Issue action</Button>
+            <Button data-rbac="conduct_management.export" variant="outline" onClick={exportCsv}><Download className="h-4 w-4 mr-1" /> Export CSV</Button>
           </div>}
         />
         <IssueActionDialog open={issueOpen} onOpenChange={setIssueOpen} defaultSourceModule="other" onCreated={load} />

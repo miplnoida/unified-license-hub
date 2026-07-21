@@ -557,7 +557,7 @@ export default function ComplianceReturns() {
                 {penalties.length === 0 ? (
                   <div className="text-center py-6">
                     <p className="text-muted-foreground mb-3">No penalty fees configured yet.</p>
-                    <Button variant="outline" onClick={() => navigate('/admin/fees')}>Configure Penalties</Button>
+                    <Button data-rbac="compliance_management.edit" variant="outline" onClick={() => navigate('/admin/fees')}>Configure Penalties</Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
