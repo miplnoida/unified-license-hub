@@ -85,7 +85,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
-  const { hasModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
+  const { hasModuleAccess, hasAnyModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -171,7 +171,12 @@ export function Sidebar() {
         }
       }
       if (item.children?.length) return item.children.some(isItemVisible);
-      return effectiveVisible;
+      // Module-less internal items (e.g. Dashboard) must still be gated so
+      // assignment-only regulators and unpermissioned internal users don't see
+      // them. External users keep visibility via their audience.
+      if (portalContext.isLicensee || portalContext.isPreLicensee) return effectiveVisible;
+      if (!userIsInternal) return effectiveVisible;
+      return effectiveVisible && hasAnyModuleAccess();
     }
     if (!effectiveVisible) return false;
     return true;
