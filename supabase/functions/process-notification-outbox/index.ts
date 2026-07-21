@@ -11,6 +11,7 @@
 
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,9 @@ const MAX_ATTEMPTS = 6;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
   const workerId = crypto.randomUUID();
 

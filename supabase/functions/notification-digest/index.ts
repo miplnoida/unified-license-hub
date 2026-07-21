@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -183,6 +184,9 @@ async function sendDigestFor(userId: string, prefs: any) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const userId: string | undefined = body.user_id;

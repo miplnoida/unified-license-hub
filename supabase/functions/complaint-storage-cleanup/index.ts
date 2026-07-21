@@ -3,6 +3,7 @@
 // Failed storage deletions are recorded in complaint_storage_cleanup_deadletter.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
 
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   const startedAt = Date.now();
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

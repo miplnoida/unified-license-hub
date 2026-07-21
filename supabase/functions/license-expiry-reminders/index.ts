@@ -13,6 +13,7 @@
 // Returns 200 with a summary; never throws to caller.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,6 +81,9 @@ function dateOnly(iso: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   const summary: Record<string, any> = { scanned: 0, dispatched: 0, skipped: 0, errors: 0, by_window: {} as Record<string, number> };
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
