@@ -613,7 +613,7 @@ export default function PostLicenseApplicationForms() {
 
             {allFormsCompleted && !showReview && (
               <div className="flex justify-end pt-4 border-t gap-2">
-                <Button
+                <Button data-rbac="application_management.edit"
                   size="lg"
                   variant="outline"
                   onClick={() => setShowReview(true)}

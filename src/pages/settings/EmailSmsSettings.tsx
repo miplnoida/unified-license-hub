@@ -140,7 +140,7 @@ export default function EmailSmsSettings() {
               <Button variant="outline" onClick={() => navigate('/settings')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
-              <Button onClick={handleSave} disabled={saveMutation.isPending}>
+              <Button data-rbac="settings.edit" onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Save Changes
               </Button>

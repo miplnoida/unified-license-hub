@@ -25,7 +25,7 @@ export default function PaymentSettings() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-              <Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+              <Button data-rbac="settings.edit"><Save className="h-4 w-4 mr-2" />Save Changes</Button>
             </div>
           }
         />

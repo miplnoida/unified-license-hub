@@ -64,7 +64,7 @@ export function EscalationRulesAdmin() {
           <h3 className="text-base font-semibold">Escalation Rules</h3>
           <p className="text-xs text-muted-foreground">Configure the automatic criteria that route complaints to the right tier.</p>
         </div>
-        <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
+        <Button data-rbac="complaint_management.edit" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {rules.map((r, i) => (

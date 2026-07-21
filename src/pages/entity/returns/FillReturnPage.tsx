@@ -911,7 +911,7 @@ export default function FillReturnPage() {
                 </Button>
               )}
               {tabIndex === tabs.length - 1 && (
-                <Button variant="outline" onClick={async () => { if (await handleSave(true)) setActiveTab('__review__'); }} disabled={saving}>
+                <Button data-rbac="returns_management.edit" variant="outline" onClick={async () => { if (await handleSave(true)) setActiveTab('__review__'); }} disabled={saving}>
                   Review &amp; Submit<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
