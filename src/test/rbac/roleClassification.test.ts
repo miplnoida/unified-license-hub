@@ -38,12 +38,13 @@ describe('classifyRole', () => {
     expect(c.perModule[0].level).toBe('contributor');
   });
 
-  it('view+review+approve+reject classifies as approver', () => {
+  it('full approver mix classifies as approver', () => {
     const catalog = [
       ...CATALOG,
       p('a7', 'application_management', 'review'),
     ];
-    const c = classifyRole(['a1', 'a5', 'a6', 'a7'], catalog);
+    // approver is cumulative: view + create + edit + review + approve + reject
+    const c = classifyRole(['a1', 'a2', 'a3', 'a5', 'a6', 'a7'], catalog);
     expect(c.category).toBe('approver');
   });
 
