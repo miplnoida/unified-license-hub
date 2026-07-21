@@ -66,13 +66,29 @@ describe('RBAC action coverage', () => {
     expect(gaps.length, 'destructive/mutating buttons without PermissionGate/GuardedButton/data-rbac').toBe(0);
   });
 
-  it('overall coverage stays at or above the Slice 17 baseline', () => {
+  it('destructive/export categories keep 100% coverage (Slice 19 floor)', () => {
+    // These categories must never regress below 100% — they represent the
+    // highest-risk business actions.
+    const HARD_FLOORS = ['Delete', 'Approve', 'Reject', 'Assign', 'Escalate', 'Publish', 'Archive', 'Export', 'Import', 'Issue', 'Reopen'];
+    for (const cat of HARD_FLOORS) {
+      const inCat = sites.filter((s) => s.category === cat);
+      if (inCat.length === 0) continue;
+      const unprot = inCat.filter((s) => !s.protected);
+      expect(
+        unprot.length,
+        `${cat} floor breached: ${unprot.map((u) => `${u.file}:${u.line} "${u.button}"`).join(', ')}`,
+      ).toBe(0);
+    }
+  });
+
+  it('overall coverage stays at or above the Slice 19 baseline', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Slice 18: expanded scanner navigation allow-list, skipped rbac wrapper
-    // source files, and annotated ~90 more mutation buttons. Floor: 55%.
-    const BASELINE = 55;
+    // Slice 19: annotated ~90 more mutation buttons across applications,
+    // prudential, fit-and-proper, entity-detail, and dashboard modules,
+    // and locked per-category floors on destructive actions. Floor: 75%.
+    const BASELINE = 75;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
