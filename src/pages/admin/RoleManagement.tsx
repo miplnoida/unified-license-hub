@@ -491,12 +491,14 @@ export default function RoleManagement() {
           <Tabs defaultValue="roles" className="w-full">
             <TabsList>
               <TabsTrigger value="roles">Roles</TabsTrigger>
-              <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
+              {canViewCatalog && <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>}
             </TabsList>
 
-            <TabsContent value="catalog" className="pt-6">
-              <PermissionCatalogTab />
-            </TabsContent>
+            {canViewCatalog && (
+              <TabsContent value="catalog" className="pt-6">
+                <PermissionCatalogTab canManage={canManageCatalog} />
+              </TabsContent>
+            )}
 
             <TabsContent value="roles" className="pt-6 space-y-6">
               <div className="flex items-center justify-between gap-3 flex-wrap">
