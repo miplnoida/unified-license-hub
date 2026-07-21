@@ -76,10 +76,10 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
           </Badge>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={openPreviewInNewTab}>
+          <Button data-rbac="form_management.view" variant="outline" size="sm" onClick={openPreviewInNewTab}>
             <Eye className="h-3.5 w-3.5 mr-1" /> Preview
           </Button>
-          <Button size="sm" onClick={addStep}>
+          <Button data-rbac="form_management.edit" size="sm" onClick={addStep}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
           </Button>
         </div>
@@ -89,7 +89,7 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground mb-3">No steps yet. Add a step to start building.</p>
-            <Button variant="outline" onClick={addStep}>
+            <Button data-rbac="form_management.edit" variant="outline" onClick={addStep}>
               <Plus className="h-4 w-4 mr-2" /> Add First Step
             </Button>
           </CardContent>
@@ -137,7 +137,7 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
                 </button>
               </div>
             ))}
-            <Button variant="outline" size="sm" className="w-full mt-2" onClick={addStep}>
+            <Button data-rbac="form_management.edit" variant="outline" size="sm" className="w-full mt-2" onClick={addStep}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
             </Button>
           </div>

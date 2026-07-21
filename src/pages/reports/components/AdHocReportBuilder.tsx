@@ -333,10 +333,10 @@ export function AdHocReportBuilder({ onPreview }: Props) {
             <Button variant="outline" onClick={handlePreview} disabled={busy !== null}>
               <Eye className="h-4 w-4 mr-2" />{busy === 'preview' ? 'Loading…' : 'Preview'}
             </Button>
-            <Button variant="outline" onClick={() => setTemplateDialog(true)}>
+            <Button data-rbac="report_management.view" variant="outline" onClick={() => setTemplateDialog(true)}>
               <Save className="h-4 w-4 mr-2" />Save Template
             </Button>
-            <Button onClick={handleGenerate} disabled={busy !== null}>
+            <Button data-rbac="report_management.view" onClick={handleGenerate} disabled={busy !== null}>
               <Play className="h-4 w-4 mr-2" />{busy === 'generate' ? 'Generating…' : 'Generate Report'}
             </Button>
           </div>
@@ -360,7 +360,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                     <p className="text-xs text-muted-foreground">{t.source} · {t.visibility}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => loadTemplate(t)}>
+                    <Button data-rbac="report_management.view" size="sm" variant="outline" onClick={() => loadTemplate(t)}>
                       <BookmarkPlus className="h-3 w-3 mr-1" />Load
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(t.id)}>
@@ -383,7 +383,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
           <div className="space-y-3">
             <Label>Template name</Label>
             <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g. Monthly Applications" />
-            <Button className="w-full" onClick={handleSaveTemplate}>Save</Button>
+            <Button data-rbac="report_management.view" className="w-full" onClick={handleSaveTemplate}>Save</Button>
           </div>
         </DialogContent>
       </Dialog>

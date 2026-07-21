@@ -324,10 +324,10 @@ export default function BreachInbox() {
                             <HistoryButton entityType="prudential_breach" entityId={b.id} title="Breach history" variant="ghost" />
                             {!closed && (
                               <>
-                                <Button size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
+                                <Button data-rbac="supervision.edit" size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
                                   <ShieldCheck className="h-3 w-3 mr-1" /> Ack
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
+                                <Button data-rbac="supervision.approve" size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
                                   <Gavel className="h-3 w-3 mr-1" /> Escalate
                                 </Button>
                               </>
@@ -364,7 +364,7 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAckTarget(null)}>Cancel</Button>
-            <Button onClick={() => {
+            <Button data-rbac="supervision.edit" onClick={() => {
               if (!ackTarget) return;
               const highRisk = ackTarget.level === 'critical' || ackTarget.level === 'high';
               if (highRisk) {
@@ -425,7 +425,7 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEscTarget(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending}>
+            <Button data-rbac="supervision.approve" variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending}>
               {escalate.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Create enforcement case
             </Button>

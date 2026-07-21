@@ -578,10 +578,10 @@ export default function ComplaintsList() {
                     <Label htmlFor="expand-evidence" className="cursor-pointer">Expand evidence summaries</Label>
                   </div>
 
-                  <Button variant="outline" size="sm" asChild>
+                  <Button data-rbac="complaint_management.view" variant="outline" size="sm" asChild>
                     <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
                   </Button>
-                  <Button size="sm" asChild>
+                  <Button data-rbac="complaint_management.create" size="sm" asChild>
                     <Link to="/complaints/new"><PlusCircle className="h-4 w-4 mr-2" />New Complaint</Link>
                   </Button>
                 </>
@@ -589,7 +589,7 @@ export default function ComplaintsList() {
               {!isInternal && (
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
+                    <Button data-rbac="complaint_management.create"><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Submit a Complaint</DialogTitle></DialogHeader>

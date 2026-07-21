@@ -410,7 +410,7 @@ export default function RegistrationFormBuilder() {
               <Settings2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium">No registration configurations</h3>
               <p className="text-muted-foreground mt-2">Create your first dynamic registration form configuration.</p>
-              <Button onClick={openCreate} className="mt-4">
+              <Button data-rbac="form_management.create" onClick={openCreate} className="mt-4">
                 <Plus className="h-4 w-4 mr-2" /> Create Configuration
               </Button>
             </CardContent>
@@ -620,7 +620,7 @@ export default function RegistrationFormBuilder() {
                       </Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addDocType}>
+                  <Button data-rbac="form_management.edit" variant="outline" size="sm" onClick={addDocType}>
                     <Plus className="h-4 w-4 mr-1" /> Add Document Type
                   </Button>
                 </CardContent>
@@ -656,7 +656,7 @@ export default function RegistrationFormBuilder() {
                       </Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addDeclaration}>
+                  <Button data-rbac="form_management.edit" variant="outline" size="sm" onClick={addDeclaration}>
                     <Plus className="h-4 w-4 mr-1" /> Add Declaration
                   </Button>
                 </CardContent>
@@ -665,10 +665,10 @@ export default function RegistrationFormBuilder() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button variant="outline" onClick={openPreview}>
+              <Button data-rbac="form_management.view" variant="outline" onClick={openPreview}>
                 <Eye className="h-4 w-4 mr-1" /> Preview
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button data-rbac="form_management.edit" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>

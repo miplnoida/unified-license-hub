@@ -339,13 +339,13 @@ export default function FitAndProperIndividualDetail() {
                   Roles link this individual to regulated entities. Adding a role enables role-change / material-change initiation.
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
+                  <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
                     {runningCycle ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
                     Run cycle scheduler
                   </Button>
                   <Dialog open={addRoleOpen} onOpenChange={setAddRoleOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Add role</Button>
+                      <Button data-rbac="fit_and_proper.create" size="sm"><Plus className="h-4 w-4 mr-2" /> Add role</Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader><DialogTitle>Add role linkage</DialogTitle></DialogHeader>
@@ -393,7 +393,7 @@ export default function FitAndProperIndividualDetail() {
                       </div>
                       <DialogFooter>
                         <Button variant="ghost" onClick={() => setAddRoleOpen(false)}>Cancel</Button>
-                        <Button onClick={() => addRole.mutate()} disabled={addRole.isPending}>
+                        <Button data-rbac="fit_and_proper.create" onClick={() => addRole.mutate()} disabled={addRole.isPending}>
                           {addRole.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save role
                         </Button>
                       </DialogFooter>
@@ -432,7 +432,7 @@ export default function FitAndProperIndividualDetail() {
                           Next due: {r.next_reassessment_due || '—'}
                           {r.last_reassessment_at && <> · Last: {new Date(r.last_reassessment_at).toLocaleDateString()}</>}
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => saveCycle(r.id)} disabled={editVal === undefined}>
+                        <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={() => saveCycle(r.id)} disabled={editVal === undefined}>
                           <Save className="h-4 w-4 mr-1" /> Save
                         </Button>
                       </div>

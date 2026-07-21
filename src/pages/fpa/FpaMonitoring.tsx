@@ -326,7 +326,7 @@ function EventRow({ event, onAcknowledge }: EventRowProps) {
               {relativeTime(event.raised_at)}
             </span>
             {!isAcknowledged && (
-              <Button
+              <Button data-rbac="fit_and_proper.edit"
                 size="sm"
                 variant="outline"
                 className="h-7 px-2.5 text-xs gap-1.5"
@@ -553,7 +553,7 @@ export default function FpaMonitoring() {
           title="Monitoring & Audit"
           description="Ongoing monitoring events and full compliance audit trail — FPA-015"
           actions={
-            <Button
+            <Button data-rbac="fit_and_proper.create"
               size="sm"
               className="gap-2"
               onClick={() => setTriggerOpen(true)}
@@ -957,7 +957,7 @@ export default function FpaMonitoring() {
             <Button variant="ghost" onClick={() => setTriggerOpen(false)}>
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.create"
               disabled={!canTrigger || triggerMutation.isPending}
               onClick={() => triggerMutation.mutate()}
             >
@@ -1017,7 +1017,7 @@ export default function FpaMonitoring() {
             <Button variant="ghost" onClick={() => { setAckTarget(null); setAckNote(''); }}>
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               className="gap-2"
               disabled={ackMutation.isPending}
               onClick={() => {

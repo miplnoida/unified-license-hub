@@ -293,7 +293,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     <p className="text-[11px] text-muted-foreground">Add multiple bindings with different events, recipients, templates, and enabled states.</p>
                   </div>
                   {!readOnly && (
-                    <Button
+                    <Button data-rbac="workflow_management.edit"
                       size="sm"
                       variant="outline"
                       className="h-8 text-xs"
@@ -364,7 +364,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                               </span>
                             </div>
                             {!readOnly && !isEditingRow && (
-                              <Button
+                              <Button data-rbac="workflow_management.edit"
                                 size="sm"
                                 variant="outline"
                                 className="h-8 text-xs"
@@ -541,7 +541,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 >
                                   Cancel
                                 </Button>
-                                <Button
+                                <Button data-rbac="workflow_management.edit"
                                   size="sm"
                                   className="h-8 text-xs"
                                   disabled={upsert.isPending}
@@ -752,7 +752,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                             >
                               Cancel
                             </Button>
-                            <Button
+                            <Button data-rbac="workflow_management.edit"
                               size="sm"
                               className="h-8 text-xs"
                               disabled={upsert.isPending || !!draft.recipient_config_error}

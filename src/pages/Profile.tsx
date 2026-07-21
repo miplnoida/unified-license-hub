@@ -272,7 +272,7 @@ export default function Profile() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Personal Information</CardTitle>
-                <Button size="sm" onClick={handleSaveProfile} disabled={savingProfile}>
+                <Button data-rbac="user_management.edit" size="sm" onClick={handleSaveProfile} disabled={savingProfile}>
                   {savingProfile ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Save Changes
                 </Button>
@@ -290,7 +290,7 @@ export default function Profile() {
                     <h3 className="text-lg font-semibold">{user?.fullName}</h3>
                     <Badge variant="secondary" className="capitalize mt-1">{user?.role}</Badge>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                    <Button variant="outline" size="sm" className="ml-3" onClick={handleAvatarPick} disabled={uploadingAvatar}>
+                    <Button data-rbac="user_management.edit" variant="outline" size="sm" className="ml-3" onClick={handleAvatarPick} disabled={uploadingAvatar}>
                       {uploadingAvatar ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
                       Change Photo
                     </Button>
@@ -373,7 +373,7 @@ export default function Profile() {
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div><p className="font-medium">Active Sessions</p><p className="text-sm text-muted-foreground">Manage devices signed in to your account</p></div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>Manage</Button>
+                  <Button data-rbac="user_management.edit" variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>Manage</Button>
                 </div>
               </CardContent>
             </Card>
@@ -458,7 +458,7 @@ export default function Profile() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSessionsOpen(false)}>Close</Button>
-            <Button variant="destructive" onClick={handleSignOutAll} disabled={signingOutAll}>
+            <Button data-rbac="user_management.edit" variant="destructive" onClick={handleSignOutAll} disabled={signingOutAll}>
               {signingOutAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Sign out of all other sessions
             </Button>
           </DialogFooter>
