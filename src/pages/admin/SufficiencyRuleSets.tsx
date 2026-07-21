@@ -149,7 +149,7 @@ export default function SufficiencyRuleSets() {
                 <div className="flex items-end gap-2"><Checkbox checked={editing.is_active} onCheckedChange={(v) => setEditing({ ...editing, is_active: !!v })} /><Label>Active</Label></div>
               </div>
             </div>
-            <DialogFooter><Button data-rbac="application_management.edit" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={save}>Save</Button></DialogFooter>
+            <DialogFooter><Button data-rbac="application_management.edit" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button data-rbac="application_management.configure" onClick={save}>Save</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 

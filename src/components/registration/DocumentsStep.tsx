@@ -251,7 +251,7 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Button type="button" size="sm" variant="outline" onClick={() => openSignedUrl(existingDoc)}><Eye className="h-4 w-4 mr-1" />View</Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => openSignedUrl(existingDoc, true)}><Download className="h-4 w-4 mr-1" />Download</Button>
+                <Button data-rbac="registration_management.view" type="button" size="sm" variant="outline" onClick={() => openSignedUrl(existingDoc, true)}><Download className="h-4 w-4 mr-1" />Download</Button>
                 <Button type="button" size="sm" variant="outline" onClick={handleReplace}><RefreshCw className="h-4 w-4 mr-1" />Replace</Button>
                 <Button data-rbac="registration_management.edit" type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleRemove(existingDoc)}><Trash2 className="h-4 w-4 mr-1" />Remove</Button>
               </div>

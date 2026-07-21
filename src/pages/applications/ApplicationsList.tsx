@@ -838,7 +838,7 @@ export default function ApplicationsList() {
               ) : (
                 <Popover>
                   <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
-                    <Button
+                    <Button data-rbac="application_management.view"
                       variant="outline"
                       size="sm"
                       className="h-7 px-2 gap-1.5 text-[11px] font-normal"

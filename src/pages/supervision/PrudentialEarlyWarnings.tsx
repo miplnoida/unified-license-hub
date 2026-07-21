@@ -132,7 +132,7 @@ export default function PrudentialEarlyWarnings() {
         description="Deteriorating ratios and repeat threshold breaches surfaced before they become formal enforcement events."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => runRecompute.mutate()} disabled={runRecompute.isPending}>
+            <Button data-rbac="prudential.edit" variant="outline" size="sm" onClick={() => runRecompute.mutate()} disabled={runRecompute.isPending}>
               {runRecompute.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
               Recompute
             </Button>
