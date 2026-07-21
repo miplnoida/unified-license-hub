@@ -16297,6 +16297,10 @@ export type Database = {
       }
       has_external_role: { Args: { _user_id: string }; Returns: boolean }
       has_legal_access: { Args: { _user_id: string }; Returns: boolean }
+      has_permission: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: boolean
+      }
       has_portal_capability: {
         Args: {
           _area: Database["public"]["Enums"]["portal_area"]
@@ -16981,6 +16985,10 @@ export type Database = {
       retry_dead_notification_outbox: {
         Args: { _ids: string[] }
         Returns: number
+      }
+      return_status_is_submitted_lifecycle: {
+        Args: { _status: string }
+        Returns: boolean
       }
       rollback_prudential_ratio: {
         Args: { _ratio_id: string; _to_version: number }
