@@ -236,8 +236,8 @@ function ModuleRow({
   nested?: boolean;
   selected: boolean;
   onSelect: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onAddChild?: () => void;
   children?: React.ReactNode;
 }) {
@@ -257,8 +257,10 @@ function ModuleRow({
               <Plus className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}><Edit className="h-3.5 w-3.5" /></Button>
-          {!m.is_system && (
+          {onEdit && (
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}><Edit className="h-3.5 w-3.5" /></Button>
+          )}
+          {onDelete && !m.is_system && (
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
           )}
         </div>
