@@ -8847,6 +8847,27 @@ export type Database = {
           },
         ]
       }
+      permission_dependent_actions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permission_module_routes: {
         Row: {
           created_at: string
@@ -16435,6 +16456,7 @@ export type Database = {
         Returns: Json
       }
       list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
+      list_permission_dependent_actions: { Args: never; Returns: string[] }
       log_compliance_audit: {
         Args: {
           _action_type: Database["public"]["Enums"]["compliance_audit_action"]
