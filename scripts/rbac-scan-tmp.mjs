@@ -1,0 +1,15 @@
+import { scanRepo, summarize } from '../src/lib/rbac/audit.ts';
+const sites = scanRepo();
+const { total, protectedCount, byCategory } = summarize(sites);
+console.log(`Total: ${protectedCount}/${total} = ${(protectedCount/total*100).toFixed(1)}%`);
+const cats = [...byCategory.entries()].sort((a,b)=>b[1].total-a[1].total);
+for (const [k,v] of cats) console.log(`${k}: ${v.protected}/${v.total} = ${(v.protected/v.total*100).toFixed(0)}%`);
+const gaps = sites.filter(s => !s.protected);
+const byFile = {};
+for (const g of gaps) byFile[g.file] = (byFile[g.file]||0)+1;
+const top = Object.entries(byFile).sort((a,b)=>b[1]-a[1]).slice(0,30);
+console.log('\nTop unprotected files:');
+for (const [f,n] of top) console.log(`  ${n}  ${f}`);
+console.log('\nUnprotected Save/Create/Workflow examples:');
+const targeted = gaps.filter(g => ['Save','Create','Workflow','Upload','Edit','Download'].includes(g.category)).slice(0,50);
+for (const g of targeted) console.log(`  [${g.category}] ${g.file}:${g.line} "${g.button}"`);
