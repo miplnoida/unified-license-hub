@@ -12,9 +12,12 @@
  *   - docs/rbac/permission-coverage.json
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildCoverage, classifyCoverage, type CoverageRow, type CatalogEntry } from '../src/lib/rbac/coverage';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..');
 const OUT = join(ROOT, 'docs/rbac');
 mkdirSync(OUT, { recursive: true });
