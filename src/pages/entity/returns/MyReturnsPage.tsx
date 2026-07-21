@@ -41,7 +41,7 @@ export default function MyReturnsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader title="My Returns" description="View and manage your compliance returns"
-          actions={<Button onClick={() => navigate('/entity/returns/new')}><PlusCircle className="h-4 w-4 mr-2" />Create New Return</Button>}
+          actions={<Button data-rbac="returns_management.create" onClick={() => navigate('/entity/returns/new')}><PlusCircle className="h-4 w-4 mr-2" />Create New Return</Button>}
         />
 
         <Tabs value={tab} onValueChange={setTab}>

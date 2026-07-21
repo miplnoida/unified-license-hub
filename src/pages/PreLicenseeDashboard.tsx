@@ -124,7 +124,7 @@ export default function PreLicenseeDashboard() {
         <div className="card-elevated">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 border-b">
             <h2 className="text-lg font-semibold text-foreground">My Applications</h2>
-            <Button onClick={() => navigate('/pre-license/new')}>
+            <Button data-rbac="applications.create" onClick={() => navigate('/pre-license/new')}>
               <PlusCircle className="h-4 w-4 mr-2" />
               New Application
             </Button>

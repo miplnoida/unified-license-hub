@@ -23,7 +23,7 @@ export default function EntityReturnsDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader title="Returns Dashboard" description="Overview of your compliance returns"
-          actions={<Button onClick={() => navigate('/entity/returns/new')}><PlusCircle className="h-4 w-4 mr-2" />File New Return</Button>}
+          actions={<Button data-rbac="returns_management.create" onClick={() => navigate('/entity/returns/new')}><PlusCircle className="h-4 w-4 mr-2" />File New Return</Button>}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">

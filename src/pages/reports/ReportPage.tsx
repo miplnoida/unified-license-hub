@@ -73,7 +73,7 @@ export default function ReportPage() {
           title={config.title}
           description={config.description}
           actions={
-            <Button>
+            <Button data-rbac="report_management.view">
               <Download className="h-4 w-4 mr-2" />
               Generate Report
             </Button>

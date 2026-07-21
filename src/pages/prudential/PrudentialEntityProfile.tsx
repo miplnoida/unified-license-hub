@@ -490,7 +490,7 @@ export default function PrudentialEntityProfile() {
                           description: `Breach detected on ${metric} (value ${val}, threshold ${b.threshold_value}).`,
                         })}>Create action</Button>
                         {['critical','high','red','breach'].includes(sev) && (
-                          <Button size="sm" variant="ghost" onClick={() => setCreateEscalation({
+                          <Button data-rbac="prudential.edit" size="sm" variant="ghost" onClick={() => setCreateEscalation({
                             entity_id: e.id, related_type: 'return', related_id: b.return_id,
                             escalation_type: 'immediate_risk', reason: `${sev} breach on ${metric}`,
                           })}>Escalate</Button>

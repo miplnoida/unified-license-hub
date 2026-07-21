@@ -152,7 +152,7 @@ export default function ApiKeys() {
                     </TableCell>
                     <TableCell className="text-right">
                       {!k.revoked && (
-                        <Button size="sm" variant="ghost" onClick={() => revoke.mutate(k.id)}>
+                        <Button data-rbac="user_management.edit" size="sm" variant="ghost" onClick={() => revoke.mutate(k.id)}>
                           <ShieldOff className="h-3 w-3 mr-1" />Revoke
                         </Button>
                       )}
