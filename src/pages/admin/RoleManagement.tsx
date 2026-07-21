@@ -358,6 +358,8 @@ export default function RoleManagement() {
 
   /** Apply a quick template — sets role type and prefills permission ids. */
   const applyTemplate = (tplKey: string) => {
+    if (!canAssign) { toast.error('You do not have permission to assign role permissions.'); return; }
+
     if (!tplKey || tplKey === 'none') return;
     const tpl = QUICK_TEMPLATES.find(t => t.key === tplKey);
     if (!tpl) return;
