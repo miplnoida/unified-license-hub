@@ -606,7 +606,7 @@ export default function FpaSectorRules() {
           title="Sector Decision Rules"
           description="Sector-specific Fit & Proper criteria and decision logic — FPA-010"
           actions={
-            <Button onClick={() => setAddOpen(true)}>
+            <Button data-rbac="fit_and_proper.create" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Rule
             </Button>
@@ -753,7 +753,7 @@ export default function FpaSectorRules() {
                                 : '—'}
                             </TableCell>
                             <TableCell onClick={(e) => e.stopPropagation()}>
-                              <Button
+                              <Button data-rbac="fit_and_proper.edit"
                                 size="sm"
                                 variant="ghost"
                                 className="gap-1.5 h-7 px-2"

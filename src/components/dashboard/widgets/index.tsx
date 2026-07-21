@@ -241,7 +241,7 @@ function NewApplicationWidget({ widget }: RendererProps) {
                 <p className="text-sm text-muted-foreground mt-0.5">{widget.description}</p>
               </div>
             </div>
-            <Button size="sm" className="pointer-events-none">Start Application</Button>
+            <Button data-rbac="application_management.edit" size="sm" className="pointer-events-none">Start Application</Button>
           </div>
         </CardContent>
       </Card>

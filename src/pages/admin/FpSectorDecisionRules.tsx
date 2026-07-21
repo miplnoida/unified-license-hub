@@ -180,7 +180,7 @@ export default function FpSectorDecisionRules() {
       <PageHeader
         title="F&P Sector Decision Rules"
         description="Sector-specific Fit & Proper criteria and rationale templates. Rules cascade from most-specific (sub-sector + role) to least."
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />New rule</Button>}
+        actions={<Button data-rbac="fit_and_proper.create" onClick={openNew}><Plus className="h-4 w-4 mr-2" />New rule</Button>}
       />
 
       <Card>
@@ -297,7 +297,7 @@ export default function FpSectorDecisionRules() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            <Button data-rbac="fit_and_proper.edit" onClick={() => save.mutate()} disabled={save.isPending}>
               {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save
             </Button>
           </DialogFooter>

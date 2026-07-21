@@ -199,7 +199,7 @@ export default function FpaFindingDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Findings Console
           </Button>
-          <Button size="sm" onClick={() => navigate(`/fpa/manual-tasks/${id}`)}>
+          <Button data-rbac="fit_and_proper.edit" size="sm" onClick={() => navigate(`/fpa/manual-tasks/${id}`)}>
             <ClipboardList className="h-4 w-4 mr-1.5" />
             Manage in Review Queue
           </Button>

@@ -282,7 +282,7 @@ export function PaymentVerificationDialog({
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Cancel
               </Button>
-              <Button onClick={handleVerify} disabled={loading}>
+              <Button data-rbac="application_management.edit" onClick={handleVerify} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
                 Received & Verify
               </Button>

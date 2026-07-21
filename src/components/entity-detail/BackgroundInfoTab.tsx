@@ -757,7 +757,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving}>
+        <Button data-rbac="license_management.edit" onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
           Save Changes
         </Button>

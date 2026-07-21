@@ -74,7 +74,7 @@ export function ApplicationCard({
             <ArrowRight className="h-4 w-4" />
           </Button>
           {onReview && application.status === 'submitted' && (
-            <Button variant="default" size="sm" onClick={onReview}>
+            <Button data-rbac="application_management.edit" variant="default" size="sm" onClick={onReview}>
               Review
             </Button>
           )}

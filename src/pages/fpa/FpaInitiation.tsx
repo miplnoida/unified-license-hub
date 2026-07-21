@@ -964,7 +964,7 @@ export default function FpaInitiation() {
             <DialogFooter>
               {!declSubmitted ? (
                 <>
-                  <Button variant="ghost" onClick={() => setDeclDialogOpen(false)}>
+                  <Button data-rbac="fit_and_proper.edit" variant="ghost" onClick={() => setDeclDialogOpen(false)}>
                     Skip for now
                   </Button>
                   <Button data-rbac="fit_and_proper.edit"

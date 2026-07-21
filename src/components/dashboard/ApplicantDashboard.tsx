@@ -120,7 +120,7 @@ export function ApplicantDashboard() {
             </div>
           </div>
           {canStartApplication && (
-            <Button asChild size="sm">
+            <Button data-rbac="application_management.create" asChild size="sm">
               <Link to={newApplicationPath}>
                 <PlusCircle className="h-4 w-4 mr-1.5" /> New application
               </Link>

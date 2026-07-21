@@ -174,7 +174,7 @@ export function LegalComplianceNotesSection({
               </Select>
             </div>
 
-            <Button onClick={submit} disabled={createNote.isPending}>
+            <Button data-rbac="application_management.edit" onClick={submit} disabled={createNote.isPending}>
               {createNote.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Save Legal Note
             </Button>

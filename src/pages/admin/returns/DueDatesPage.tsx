@@ -129,8 +129,8 @@ export default function DueDatesPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={generatePreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
-                  {preview.length > 0 && <Button onClick={generateDueDates} disabled={generating}><Sparkles className="h-4 w-4 mr-2" />{generating ? 'Generating...' : `Generate ${preview.length} Due Dates`}</Button>}
+                  <Button data-rbac="returns_management.edit" variant="outline" onClick={generatePreview}><Eye className="h-4 w-4 mr-2" />Preview</Button>
+                  {preview.length > 0 && <Button data-rbac="returns_management.edit" onClick={generateDueDates} disabled={generating}><Sparkles className="h-4 w-4 mr-2" />{generating ? 'Generating...' : `Generate ${preview.length} Due Dates`}</Button>}
                 </div>
                 {preview.length > 0 && (
                   <div className="max-h-[400px] overflow-auto border rounded-md">

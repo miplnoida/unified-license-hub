@@ -207,7 +207,7 @@ export default function ManageWebUsers() {
         <PageHeader
           title="Licensee Web Users"
           description="Create and manage Primary and Secondary web users for licensee entities. Users are linked to a specific licensee."
-          actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Web User</Button>}
+          actions={<Button data-rbac="user_management.create" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Web User</Button>}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">

@@ -110,7 +110,7 @@ export default function FpScreeningConfigs() {
           backLabel="Admin"
           actions={
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(EMPTY); } }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> New rule</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="fit_and_proper.create"><Plus className="h-4 w-4 mr-2" /> New rule</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit rule' : 'New screening rule'}</DialogTitle></DialogHeader>
                 <div className="space-y-3">
@@ -139,7 +139,7 @@ export default function FpScreeningConfigs() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={() => save.mutate()} disabled={save.isPending}>
+                  <Button data-rbac="fit_and_proper.edit" onClick={() => save.mutate()} disabled={save.isPending}>
                     {save.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save
                   </Button>
                 </DialogFooter>

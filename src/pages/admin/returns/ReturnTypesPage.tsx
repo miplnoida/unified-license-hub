@@ -43,7 +43,7 @@ export default function ReturnTypesPage() {
         <PageHeader title="Return Types" description="Manage return frequency types (Annual, Quarterly, Monthly, etc.)"
           actions={
             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
-              <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Return Type</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Return Type</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Return Type</DialogTitle></DialogHeader>
                 <div className="space-y-4">

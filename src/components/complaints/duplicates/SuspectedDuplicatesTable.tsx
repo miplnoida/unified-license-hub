@@ -86,7 +86,7 @@ export function SuspectedDuplicatesTable() {
                 <TableCell><Badge variant="outline" className={`capitalize ${statusTone[p.status]}`}>{p.status}</Badge></TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
+                    <Button data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
                       <Eye className="h-4 w-4 mr-1" />Compare
                     </Button>
                     {p.status === 'pending' && (

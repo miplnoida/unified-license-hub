@@ -200,7 +200,7 @@ export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onComplete
               <Button variant="ghost" size="sm" onClick={() => setSelectedKey(null)} disabled={execMut.isPending}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={() => execMut.mutate()} disabled={execMut.isPending}>
+              <Button data-rbac="complaint_management.edit" size="sm" onClick={() => execMut.mutate()} disabled={execMut.isPending}>
                 {execMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Confirm: {selected.label}
               </Button>

@@ -494,7 +494,7 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold">Conditional Logic</Label>
-            <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={addCondition}>
+            <Button data-rbac="form_management.create" variant="outline" size="sm" className="h-6 text-[10px]" onClick={addCondition}>
               <Plus className="h-3 w-3 mr-0.5" /> Add Rule
             </Button>
           </div>

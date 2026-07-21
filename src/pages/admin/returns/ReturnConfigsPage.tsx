@@ -62,7 +62,7 @@ export default function ReturnConfigsPage() {
       <div className="space-y-6">
         <PageHeader title="Return Configurations" description="Link existing forms to return schedules"
           actions={
-            <Button onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button>
+            <Button data-rbac="returns_management.create" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button>
           }
         />
 

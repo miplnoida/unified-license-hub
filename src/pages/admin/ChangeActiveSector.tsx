@@ -64,7 +64,7 @@ export default function ChangeActiveSector() {
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={!selectedId || availableSectors.length === 0}>
+              <Button data-rbac="settings.edit" onClick={handleSave} disabled={!selectedId || availableSectors.length === 0}>
                 Save Sector
               </Button>
             </div>

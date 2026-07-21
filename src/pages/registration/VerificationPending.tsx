@@ -31,7 +31,7 @@ export default function VerificationPending() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button variant="outline" asChild>
+            <Button data-rbac="registration_management.edit" variant="outline" asChild>
               <Link to="/registration/success">
                 Simulate Verification
               </Link>

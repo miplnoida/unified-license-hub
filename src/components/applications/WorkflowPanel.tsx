@@ -981,7 +981,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         );
       })}
       {canAddRemark && noWorkflowActions && (
-        <Button
+        <Button data-rbac="application_management.create"
           variant="outline"
           size="sm"
           onClick={handleAddRemark}

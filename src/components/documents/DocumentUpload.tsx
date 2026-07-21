@@ -109,7 +109,7 @@ export function DocumentUpload({ entityType, entityId, onUploaded }: DocumentUpl
         </Button>
 
         {stagedFiles.length > 0 && (
-          <Button size="sm" onClick={handleUploadAll} disabled={uploading}>
+          <Button data-rbac="settings.edit" size="sm" onClick={handleUploadAll} disabled={uploading}>
             {uploading ? (
               <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading {stagedFiles.length} file{stagedFiles.length > 1 ? 's' : ''}...</>
             ) : (

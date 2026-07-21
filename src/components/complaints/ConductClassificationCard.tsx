@@ -145,7 +145,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
           {complaint.triage_source && (
             <Badge variant="outline" className="capitalize">Triage: {complaint.triage_source}</Badge>
           )}
-          <Button variant="outline" size="sm" onClick={runAutoTriage} disabled={autoRunning}>
+          <Button data-rbac="complaint_management.edit" variant="outline" size="sm" onClick={runAutoTriage} disabled={autoRunning}>
             {autoRunning ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-triage
           </Button>
         </div>

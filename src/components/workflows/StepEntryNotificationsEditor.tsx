@@ -139,7 +139,7 @@ export function StepEntryNotificationsEditor({ stepId }: Props) {
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
           <BellRing className="h-3.5 w-3.5" /> Step Entry Notifications
         </Label>
-        <Button type="button" size="sm" variant="outline" onClick={startNew} disabled={editingId === 'new'}>
+        <Button data-rbac="workflow_management.edit" type="button" size="sm" variant="outline" onClick={startNew} disabled={editingId === 'new'}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Add
         </Button>
       </div>

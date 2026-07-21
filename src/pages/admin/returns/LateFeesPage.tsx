@@ -53,7 +53,7 @@ export default function LateFeesPage() {
         <PageHeader title="Late Fees Configuration" description="Manage penalty structures for late return submissions"
           actions={
             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
-              <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee Structure</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Fee Structure</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Late Fee Structure</DialogTitle></DialogHeader>
                 <div className="space-y-4">
@@ -163,7 +163,7 @@ function PenaltyTiersDialog({ structureId, open, onOpenChange }: { structureId: 
             <div className="space-y-1"><Label className="text-xs">From</Label><Input type="number" value={daysFrom} onChange={e => setDaysFrom(e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">To</Label><Input type="number" value={daysTo} onChange={e => setDaysTo(e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Penalty %</Label><Input type="number" value={penalty} onChange={e => setPenalty(e.target.value)} /></div>
-            <Button onClick={handleAdd} disabled={create.isPending} size="sm"><PlusCircle className="h-4 w-4 mr-1" />Add</Button>
+            <Button data-rbac="returns_management.edit" onClick={handleAdd} disabled={create.isPending} size="sm"><PlusCircle className="h-4 w-4 mr-1" />Add</Button>
           </div>
         </div>
       </DialogContent>

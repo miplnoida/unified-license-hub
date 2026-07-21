@@ -484,7 +484,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setEditUser(null); clearStuckPointerEvents(); }} disabled={savingEdit}>Cancel</Button>
-            <Button onClick={saveEdit} disabled={savingEdit}>
+            <Button data-rbac="license_management.edit" onClick={saveEdit} disabled={savingEdit}>
               {savingEdit && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Save Changes
             </Button>
