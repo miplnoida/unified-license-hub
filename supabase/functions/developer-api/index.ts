@@ -1,6 +1,8 @@
 // Public developer API. Auth via `X-API-Key: <prefix>.<secret>`.
 // Read-only endpoints backed by the public registry data.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { markPublicFunction } from "../_shared/publicFunction.ts";
+markPublicFunction('External API-key authenticated developer endpoint');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

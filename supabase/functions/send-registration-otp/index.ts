@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { markPublicFunction } from "../_shared/publicFunction.ts";
+markPublicFunction('Public OTP dispatch for registration flow');
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
