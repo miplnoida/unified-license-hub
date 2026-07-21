@@ -1,0 +1,30 @@
+Admins delete branding assets	DELETE	{authenticated}	
+Admins manage certificate-assets	ALL	{authenticated}	f
+Admins update branding assets	UPDATE	{authenticated}	
+Admins upload branding assets	INSERT	{authenticated}	
+Allow anon read registration uploads	SELECT	{anon}	
+Allow anon registration uploads	INSERT	{anon}	
+Anyone can read branding assets	SELECT	{public}	
+Authenticated read registration uploads	SELECT	{authenticated}	
+Authenticated registration uploads	INSERT	{authenticated}	
+Authenticated users upload to secure-documents	INSERT	{authenticated}	
+Avatars are publicly readable	SELECT	{public}	
+Documents bucket: entity-aware read	SELECT	{authenticated}	
+Documents bucket: owner or admin delete	DELETE	{authenticated}	
+Documents bucket: path-scoped upload	INSERT	{authenticated}	
+Internal FP staff delete fp-evidence	DELETE	{authenticated}	
+Internal FP staff read fp-evidence	SELECT	{authenticated}	
+Internal FP staff upload fp-evidence	INSERT	{authenticated}	
+Users can delete own avatar	DELETE	{authenticated}	
+Users can update own avatar	UPDATE	{authenticated}	
+Users can upload own avatar	INSERT	{authenticated}	
+Users delete own payment docs	DELETE	{authenticated}	
+Users delete own secure-documents	DELETE	{authenticated}	
+Users read own secure-documents	SELECT	{public}	
+Users upload payment docs to own folder	INSERT	{authenticated}	
+Users view own payment docs	SELECT	{authenticated}	
+license_certificates holder read	SELECT	{authenticated}	
+license_certificates internal read	SELECT	{authenticated}	
+return_uploads_owner_delete	DELETE	{authenticated}	
+return_uploads_owner_read	SELECT	{authenticated}	t
+return_uploads_owner_write	INSERT	{authenticated}	

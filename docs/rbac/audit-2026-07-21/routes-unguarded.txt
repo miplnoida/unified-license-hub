@@ -1,0 +1,42 @@
+src/routes/dashboardRoutes.tsx:143:    <Route path="/dashboard" element={<P><Dashboard /></P>} />
+src/routes/dashboardRoutes.tsx:145:    <Route path="/applications" element={<EP area="licensing" capability="can_view_status"><ApplicationsList /></EP>} />
+src/routes/dashboardRoutes.tsx:146:    <Route path="/applications/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />
+src/routes/dashboardRoutes.tsx:147:    <Route path="/applications/:id/continue" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><NewApplication /></EP>} />
+src/routes/dashboardRoutes.tsx:149:    <Route path="/applications/:id" element={<EP area="licensing" capability={["can_view_status", "can_respond_rfi"]}><ApplicationDetail /></EP>} />
+src/routes/dashboardRoutes.tsx:150:    <Route path="/applications/:applicationId/forms" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><ApplicationForms /></EP>} />
+src/routes/dashboardRoutes.tsx:152:    <Route path="/pre-license/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />
+src/routes/dashboardRoutes.tsx:153:    <Route path="/post-license/new" element={<EP area="licensing" capability="can_submit"><NewPostLicenseApplication /></EP>} />
+src/routes/dashboardRoutes.tsx:154:    <Route path="/post-licensee/applications/:applicationId/forms" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><PostLicenseApplicationForms /></EP>} />
+src/routes/dashboardRoutes.tsx:156:    <Route path="/licenses" element={<EP area="licensing" capability="can_view_status"><LicensesList /></EP>} />
+src/routes/dashboardRoutes.tsx:157:    <Route path="/licenses/:id" element={<EP area="licensing" capability="can_view_status"><LicenseDetail /></EP>} />
+src/routes/dashboardRoutes.tsx:163:    <Route path="/compliance/returns" element={<EP area="returns" capability="can_view_status"><ComplianceReturns /></EP>} />
+src/routes/dashboardRoutes.tsx:164:    <Route path="/compliance/returns/submit" element={<EP area="returns" capability="can_submit_returns"><ReturnSubmission /></EP>} />
+src/routes/dashboardRoutes.tsx:166:    <Route path="/payments" element={<EP area="licensing" capability="can_view_status"><PaymentHistory /></EP>} />
+src/routes/dashboardRoutes.tsx:167:    <Route path="/payments/:id" element={<EP area="licensing" capability="can_view_status"><PaymentDetail /></EP>} />
+src/routes/dashboardRoutes.tsx:168:    <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
+src/routes/dashboardRoutes.tsx:175:    <Route path="/documents" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
+src/routes/dashboardRoutes.tsx:176:    <Route path="/notifications" element={<P><NotificationCenter /></P>} />
+src/routes/dashboardRoutes.tsx:181:    <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
+src/routes/dashboardRoutes.tsx:183:    <Route path="/profile" element={<P><Profile /></P>} />
+src/routes/dashboardRoutes.tsx:184:    <Route path="/change-password" element={<P><ChangePassword /></P>} />
+src/routes/dashboardRoutes.tsx:185:    <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
+src/routes/dashboardRoutes.tsx:186:    <Route path="/change-sector" element={<EP area="licensing" capability="can_view_status"><ChangeActiveSector /></EP>} />
+src/routes/dashboardRoutes.tsx:187:    <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
+src/routes/publicRoutes.tsx:24:    <Route path="/" element={<Index />} />
+src/routes/publicRoutes.tsx:25:    <Route path="/login" element={<Login />} />
+src/routes/publicRoutes.tsx:28:    <Route path="/register" element={<Register />} />
+src/routes/publicRoutes.tsx:31:    <Route path="/registration/success" element={<RegistrationSuccess />} />
+src/routes/publicRoutes.tsx:34:    <Route path="/registration/portal" element={<P><RegistrationPortal /></P>} />
+src/routes/publicRoutes.tsx:35:    <Route path="/registration/portal/form/:formId" element={<P><UpdateRegistrationRedirect /></P>} />
+src/routes/publicRoutes.tsx:37:    <Route path="/update-registration-form" element={<P><PreLicenseeRegistration mode="update" /></P>} />
+src/routes/publicRoutes.tsx:38:    <Route path="/update-registration-form/:registrationId" element={<P><UpdateRegistrationRedirect /></P>} />
+src/routes/publicRoutes.tsx:39:    <Route path="/registration/update/:registrationId" element={<P><PreLicenseeRegistration mode="update" /></P>} />
+src/routes/publicRoutes.tsx:40:    <Route path="/forgot-password" element={<ForgotPassword />} />
+src/routes/publicRoutes.tsx:41:    <Route path="/reset-password" element={<ResetPassword />} />
+src/routes/publicRoutes.tsx:42:    <Route path="/registry" element={<PublicRegistry />} />
+src/routes/publicRoutes.tsx:43:    <Route path="/registry/licensees" element={<PublicLicensees />} />
+src/routes/publicRoutes.tsx:44:    <Route path="/registry/licensees/:id" element={<PublicLicenseeDetail />} />
+src/routes/publicRoutes.tsx:45:    <Route path="/registry/enforcement" element={<PublicEnforcement />} />
+src/routes/publicRoutes.tsx:46:    <Route path="/declaration/:token" element={<DeclarationLanding />} />
+src/routes/publicRoutes.tsx:47:    <Route path="/track/complaint" element={<PublicComplaintTracking />} />
+src/routes/publicRoutes.tsx:48:    <Route path="*" element={<NotFound />} />
