@@ -70,9 +70,9 @@ describe('RBAC action coverage', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Slice 17: 59 destructive buttons annotated; overall floor set to 30%.
-    // Ratchet upward as coverage grows.
-    const BASELINE = 30;
+    // Slice 18: expanded scanner navigation allow-list, skipped rbac wrapper
+    // source files, and annotated ~90 more mutation buttons. Floor: 55%.
+    const BASELINE = 55;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
