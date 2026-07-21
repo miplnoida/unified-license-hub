@@ -849,6 +849,7 @@ export default function RoleManagement() {
                             <Checkbox
                               className="mt-1"
                               checked={allChecked}
+                              disabled={!canAssign}
                               ref={el => { if (el) (el as any).indeterminate = someChecked; }}
                               onCheckedChange={() => (allChecked ? clearAll() : selectAll())}
                             />
@@ -857,10 +858,10 @@ export default function RoleManagement() {
                                 <span className="text-sm font-semibold">{g.moduleLabel}</span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[11px] text-muted-foreground">{summary}</span>
-                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={selectAll}>
+                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={selectAll} disabled={!canAssign}>
                                     Select all
                                   </Button>
-                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={clearAll}>
+                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={clearAll} disabled={!canAssign}>
                                     Clear
                                   </Button>
                                 </div>
@@ -873,11 +874,12 @@ export default function RoleManagement() {
                                 <Checkbox
                                   id={`perm-${permission.id}`}
                                   checked={formPerms.includes(permission.id)}
+                                  disabled={!canAssign}
                                   onCheckedChange={() => togglePerm(permission.id)}
                                 />
                                 <label
                                   htmlFor={`perm-${permission.id}`}
-                                  className="text-sm cursor-pointer"
+                                  className={`text-sm ${canAssign ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
                                 >
                                   {label}
                                 </label>
@@ -888,6 +890,7 @@ export default function RoleManagement() {
                       );
                     });
                   })()}
+
 
                   {/* Quiet legacy permissions section — only shown if role already has some. */}
                   {editOrphanPerms.some(p => formPerms.includes(p.id)) && (
