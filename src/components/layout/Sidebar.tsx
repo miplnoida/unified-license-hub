@@ -85,7 +85,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
-  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
+  const { hasModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -148,15 +148,26 @@ export function Sidebar() {
     // seeing admin-panel screens even when they share a module key.
     const userIsInternal = INTERNAL_ROLES.includes(user.role);
     if (enforceDynamic) {
+      // Narrow assignment-only exception: allow the Return Queue entry
+      // (and only the queue entry) when the user is assigned to at least
+      // one licensee but lacks the base returns_management.view permission.
+      const itemIsAssignmentQueue =
+        !!item.href
+        && (getModuleForPath(item.href) === 'returns_management')
+        && isAssignmentAllowedReturnsPath(item.href);
       if (item.module) {
         if (isInternalOnlyItem && !userIsInternal) return false;
-        return hasModuleAccess(item.module);
+        if (hasModuleAccess(item.module)) return true;
+        if (item.module === 'returns_management' && itemIsAssignmentQueue && hasAssignmentReturnQueueAccess) return true;
+        return false;
       }
       if (item.href) {
         const mappedModule = getModuleForPath(item.href);
         if (mappedModule) {
           if (isInternalOnlyItem && !userIsInternal) return false;
-          return hasModuleAccess(mappedModule);
+          if (hasModuleAccess(mappedModule)) return true;
+          if (mappedModule === 'returns_management' && itemIsAssignmentQueue && hasAssignmentReturnQueueAccess) return true;
+          return false;
         }
       }
       if (item.children?.length) return item.children.some(isItemVisible);

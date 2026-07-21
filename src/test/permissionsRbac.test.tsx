@@ -71,11 +71,15 @@ describe('RBAC — unified permission hook', () => {
     expect(result.current.canAccessPath('/admin/does-not-exist')).toBe(true);
   });
 
-  it('legacy admin role bypasses even without a dynamic role', async () => {
+  it('static admin without a dynamic role is denied by default (bypass removed)', async () => {
     mockAuthUser.current = { id: 'a1', role: 'admin' };
     const { result } = await renderPerms();
-    expect(result.current.hasPermission('returns_management', 'export')).toBe(true);
-    expect(result.current.hasModuleAccess('license_management')).toBe(true);
+    // Post-hardening: only super_admin bypasses. Existing admins are
+    // migrated to a "Legacy Admin" dynamic role via migration; the frontend
+    // no longer treats the static admin role as an implicit bypass.
+    expect(result.current.hasPermission('returns_management', 'export')).toBe(false);
+    expect(result.current.hasModuleAccess('license_management')).toBe(false);
+    expect(result.current.canAccessPath('/admin/licensees')).toBe(false);
   });
 
   it('unmapped internal user (analyst) is denied by default', async () => {
@@ -123,17 +127,23 @@ describe('RBAC — unified permission hook', () => {
     expect(result.current.canAccessPath('/profile')).toBe(true);
   });
 
-  describe('assignment-only regulator exception', () => {
+  describe('assignment-only regulator exception (separate capability)', () => {
     beforeEach(() => {
       mockAuthUser.current = { id: 'reg1', role: 'license_analyst' };
       supabaseState.licensees = [{ id: 'lic-1' }];
     });
 
-    it('unlocks Return Queue view + list route without base permission', async () => {
+    it('exposes a dedicated capability flag; does NOT synthesize hasPermission/hasModuleAccess', async () => {
       const { result } = await renderPerms();
       expect(result.current.hasAnyEntityAssignment).toBe(true);
-      expect(result.current.hasModuleAccess('returns_management')).toBe(true);
-      expect(result.current.hasPermission('returns_management', 'view')).toBe(true);
+      expect(result.current.hasAssignmentReturnQueueAccess).toBe(true);
+      // Critical: assignment must NOT masquerade as returns_management.view.
+      expect(result.current.hasPermission('returns_management', 'view')).toBe(false);
+      expect(result.current.hasModuleAccess('returns_management')).toBe(false);
+    });
+
+    it('canAccessPath unlocks Return Queue paths via the assignment exception', async () => {
+      const { result } = await renderPerms();
       expect(result.current.canAccessPath('/admin/returns')).toBe(true);
       expect(result.current.canAccessPath('/admin/returns/queue')).toBe(true);
       expect(result.current.canAccessPath('/admin/returns/queue/abc-123')).toBe(true);
@@ -154,6 +164,7 @@ describe('RBAC — unified permission hook', () => {
         '/admin/returns/thresholds',
         '/admin/returns/ratios',
         '/admin/returns/analytics',
+        '/admin/returns/dashboard',
       ];
       for (const p of denied) {
         expect(result.current.canAccessPath(p)).toBe(false);
@@ -167,6 +178,19 @@ describe('RBAC — unified permission hook', () => {
       expect(result.current.hasPermission('returns_management', 'approve')).toBe(false);
       expect(result.current.hasPermission('returns_management', 'download')).toBe(false);
       expect(result.current.hasPermission('returns_management', 'configure')).toBe(false);
+    });
+
+    it('canViewAssignedReturn requires mapped licensee AND submitted lifecycle', async () => {
+      const { result } = await renderPerms();
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: 'submitted' })).toBe(true);
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: 'under_review' })).toBe(true);
+      // Pre-submission statuses denied.
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: 'draft' })).toBe(false);
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: 'wip' })).toBe(false);
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: 'temp' })).toBe(false);
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'lic-1', status: null })).toBe(false);
+      // Unmapped licensee denied even when status is submitted.
+      expect(result.current.canViewAssignedReturn({ licenseeId: 'other-lic', status: 'submitted' })).toBe(false);
     });
 
     it('does not unlock any other module', async () => {

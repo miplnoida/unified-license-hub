@@ -52,7 +52,14 @@ export function ModuleRoute({
   allowedRoles?: AppRole[];
 }) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
-  const { hasPermission, hasModuleAccess, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
+  const location = useLocation();
+  const {
+    hasPermission,
+    isBypassRole,
+    hasAssignmentReturnQueueAccess,
+    isAssignmentAllowedReturnsPath,
+    isLoading: permsLoading,
+  } = useUserDynamicPermissions();
 
   if (loading) return <AuthLoadingScreen />;
   if (!session) return <Navigate to="/" replace />;
@@ -62,30 +69,32 @@ export function ModuleRoute({
       ? <Navigate to="/login?mfa=required" replace />
       : <AuthLoadingScreen />;
   }
-
-  // Wait for permissions to resolve before deciding
   if (permsLoading) return <AuthLoadingScreen />;
 
-  // Dynamic-role users: view permission gates route access. Legacy path
-  // guarded by hasModuleAccess is preserved for bypass roles (super_admin /
-  // admin) since both helpers short-circuit true for them.
-  if (enforceDynamic) {
-    // Require the module's `view` action — not just "any permission on module".
-    if (!hasPermission(module, 'view') && !hasModuleAccess(module)) return <AccessDenied />;
-    const audienceIsInternalOnly = allowedRoles.length > 0
-      && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
-    if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
-      return <AccessDenied />;
-    }
-    return <>{children}</>;
-  }
+  // super_admin bypasses.
+  if (isBypassRole) return <>{children}</>;
 
-  // Legacy enforcement: fall back to the static role list.
-  if (!allowedRoles.includes(user.role)) {
+  // Internal-audience routes remain internal-only.
+  const audienceIsInternalOnly = allowedRoles.length > 0
+    && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
+  if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
     return <AccessDenied />;
   }
 
-  return <>{children}</>;
+  // Standard path: module `view` permission.
+  if (hasPermission(module, 'view')) return <>{children}</>;
+
+  // Narrow assignment-only exception — Return Queue only, gated on the
+  // ACTUAL pathname (not merely module identity).
+  if (
+    module === 'returns_management'
+    && hasAssignmentReturnQueueAccess
+    && isAssignmentAllowedReturnsPath(location.pathname)
+  ) {
+    return <>{children}</>;
+  }
+
+  return <AccessDenied />;
 }
 
 /** Admin-only route guard. Restricts to super_admin and admin. */
