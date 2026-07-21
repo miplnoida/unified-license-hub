@@ -81,14 +81,14 @@ describe('RBAC action coverage', () => {
     }
   });
 
-  it('overall coverage stays at or above the Slice 19 baseline', () => {
+  it('overall coverage stays at or above the Slice 20 baseline', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Slice 19: annotated ~90 more mutation buttons across applications,
-    // prudential, fit-and-proper, entity-detail, and dashboard modules,
-    // and locked per-category floors on destructive actions. Floor: 75%.
-    const BASELINE = 75;
+    // Slice 20: batch-annotated ~106 additional mutation buttons across
+    // admin, applications, entity-detail, workflows, payments, correspondence,
+    // fit-and-proper, coordination, and compliance modules. Overall now ~90%.
+    const BASELINE = 85;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
