@@ -123,9 +123,8 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/master-data', 'settings'],
   ['/admin/masters', 'settings'],
   ['/admin/regulators', 'settings'],
-
-  // Admin hub itself — visible to anyone with at least one admin module
-  ['/admin', 'settings'],
+  // NOTE: no generic ['/admin', 'settings'] catch-all. Unknown /admin/* paths
+  // are treated as protected-but-unmapped and denied by canAccessPath.
 ];
 
 /** Resolve the required module for a given path, or null if unmapped. */
@@ -136,4 +135,28 @@ export function getModuleForPath(pathname: string): PermissionModule | null {
     }
   }
   return null;
+}
+
+/**
+ * Path prefixes that constitute the internal / admin surface. An unmapped
+ * path under one of these prefixes is denied by default rather than allowed.
+ */
+export const PROTECTED_INTERNAL_PATH_PREFIXES = [
+  '/admin',
+  '/settings',
+  '/workflows',
+  '/delegation-rules',
+  '/reports',
+  '/analytics',
+  '/fit-and-proper',
+  '/conduct',
+  '/coordination',
+  '/prudential',
+  '/supervision',
+] as const;
+
+export function isProtectedInternalPath(pathname: string): boolean {
+  return PROTECTED_INTERNAL_PATH_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  );
 }
