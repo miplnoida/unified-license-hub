@@ -1,0 +1,607 @@
+[
+  {
+    "module": "application_management",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "reject",
+    "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "submit",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "upload_documents",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "view_status",
+    "enforced": true
+  },
+  {
+    "module": "complaint_type",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "complaint_type",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "complaint_type",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "coordination",
+    "name": "admin",
+    "enforced": true
+  },
+  {
+    "module": "coordination",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "coordination",
+    "name": "delete",
+    "enforced": true
+  },
+  {
+    "module": "coordination",
+    "name": "update",
+    "enforced": true
+  },
+  {
+    "module": "coordination",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "executive_oversight",
+    "name": "drill_into_cases",
+    "enforced": true
+  },
+  {
+    "module": "executive_oversight",
+    "name": "receive_ai_insights",
+    "enforced": true
+  },
+  {
+    "module": "executive_oversight",
+    "name": "view_all_dashboards",
+    "enforced": true
+  },
+  {
+    "module": "executive_oversight",
+    "name": "view_all_reports",
+    "enforced": true
+  },
+  {
+    "module": "executive_oversight",
+    "name": "view_cross_module_audit",
+    "enforced": true
+  },
+  {
+    "module": "fee_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "fee_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "fee_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "admin",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "delete",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "submit",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "update",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "upload_documents",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view_status",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_committee",
+    "name": "cast_weighted_vote",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_committee",
+    "name": "provide_rationale",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_committee",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_initiation",
+    "name": "initiate_assessment",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_initiation",
+    "name": "manage_initiation_types",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_initiation",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "issue_determination",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "manage_conditions_monitoring",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "manage_screening",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "record_adverse_findings",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "run_ai_analysis",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "form_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "form_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "form_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "manage_license_actions",
+    "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "add_legal_notes",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "conditional_approve",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "flag_concern",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "issue_digital_license",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "override_ai_recommendation",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "recommend_conditions",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "reject",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "respond_rfi",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "sign_enforcement_order",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "submit",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "upload_documents",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "licensing",
+    "name": "view_status",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "initiate_investigation",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "initiate_thematic_review",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "issue_enforcement_action",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "manage_complaints",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "manage_monitoring_rules",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "run_conduct_analytics",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "access_investigation_workspace",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "conduct_interviews",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "manage_evidence_repository",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "prepare_investigation_report",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "prudential_payment_systems",
+    "name": "conduct_pfmi_assessment",
+    "enforced": true
+  },
+  {
+    "module": "prudential_payment_systems",
+    "name": "manage_payment_workflow",
+    "enforced": true
+  },
+  {
+    "module": "prudential_payment_systems",
+    "name": "oversee_msb",
+    "enforced": true
+  },
+  {
+    "module": "prudential_payment_systems",
+    "name": "supervise_fmi",
+    "enforced": true
+  },
+  {
+    "module": "prudential_payment_systems",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "conduct_onsite_examination",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "initiate_supervisory_action",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "manage_remediation",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "record_camels_assessment",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "review_returns",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "run_analytics",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "set_ewi_rules",
+    "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "registration_management",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "registration_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "registration_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "registration_management",
+    "name": "reject",
+    "enforced": true
+  },
+  {
+    "module": "registration_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "report_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "report_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "respond_rfi",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "submit",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "upload_documents",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "view_all_entities",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "view_status",
+    "enforced": true
+  },
+  {
+    "module": "role_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "role_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "role_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "settings",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "settings",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "user_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "user_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "user_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "workflow_management",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "workflow_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "workflow_management",
+    "name": "view",
+    "enforced": true
+  }
+]
