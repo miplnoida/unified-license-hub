@@ -222,6 +222,60 @@ unassociated). Covers helper composition, applicant editable-status
 boundary, view-only-cannot-mutate invariant, policy presence, no legacy
 `has_role` clauses on the seven child tables, and zero anon grants.
 
+## Slice 6 — Licenses & Licensees lifecycle lockdown (shipped)
+
+Migration: `supabase/migrations/*_slice_6_licenses_licensees_rls.sql`
+
+**Permission catalog** — added:
+- `license_management.{view_all_entities, workflow_action, delete, manage_config, manage_certificates, manage_conditions}`
+- `licensee_management.{view, create, edit, delete, view_all_entities, manage_products_channels, manage_pre_license}`
+
+**Canonical helpers** (SECURITY DEFINER, STABLE, `search_path = public`;
+`EXECUTE` revoked from PUBLIC, granted to `authenticated, service_role`):
+
+- `public.can_read_license(_user, _license_id)` — composes super_admin,
+  `view_all_entities`, internal `view`, holder ownership, licensee
+  membership (`user_licensee_id` / `license_ids_for_licensee`), PPOC
+  mapping, and `external_can_access_license(..., 'can_view_status')`.
+- `public.can_mutate_license(_user, _license_id)` — super_admin, `edit`,
+  or `workflow_action`.
+- `public.can_read_licensee(_user, _licensee_id)` — composes super_admin,
+  `view_all_entities`, internal `view`, own profile linkage
+  (`profiles.licensee_id`), active PPOC mapping, and assigned
+  regulator/supervisor (`lead_regulator_id`, `regulator_officer_id`,
+  `alternate_regulator_id`, `assigned_supervisor_id`).
+- `public.can_mutate_licensee(_user, _licensee_id)` — super_admin or `edit`.
+
+**Policy rewrites** — 10 tables, every legacy multi-role `has_role()`
+block replaced with helper composition:
+
+- `licenses` (5 → 4: read/insert/update/delete)
+- `license_actions` (3 → 2, INSERT enforces `actor_id = auth.uid()` with
+  `workflow_action`/`manage_license_actions`)
+- `license_renewals` (3 → 3, INSERT enforces `initiated_by = auth.uid()`;
+  licensee stakeholders retained via `entity_user_access`)
+- `license_conditions` (2 → 2, writes gated by `manage_conditions`)
+- `license_certificates` (1 → 2, writes gated by `manage_certificates`)
+- `license_certificate_signatures` (2 → 1, no authenticated INSERT policy —
+  service_role only, so no user session can forge signatures)
+- `licensees` (4 → 4)
+- `licensee_products` (2 → 2, writes gated by `manage_products_channels`)
+- `licensee_channels` (2 → 2, writes gated by `manage_products_channels`)
+- `pre_license_users` (5 → 4, self read/write retained; admin writes
+  gated by `manage_pre_license`)
+
+**Grants** — anon revoked, authenticated CRUD, service_role ALL
+reasserted on all 10 tables.
+
+pgTAP: `supabase/tests/rbac/70_licenses_licensees_rls.sql` — 28 assertions
+across seven personas (super_admin, view/edit-permission staff, holder,
+assigned lead_regulator, unassociated, licensee viewer). Covers catalog
+registration, helper composition, holder/regulator/PPOC pathways,
+view-only-cannot-mutate invariant on both entities, assigned-regulator
+is read-only, zero legacy `has_role` on any of the 10 tables, and zero
+anon grants.
+
+
 
 
 
