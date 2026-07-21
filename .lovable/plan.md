@@ -1,72 +1,101 @@
-## Scope
+# Roles & Permissions — Business-Facing Simplification
 
-Close the remaining RBAC gaps identified in `docs/rbac/audit-2026-07-21/` and the completion criteria above. Work proceeds in reviewable slices but continues until every item is addressed. No documentation-only or coverage-only changes; every claim is backed by an executed test.
+This plan reshapes the **UI** of Role Management around business language (module access levels, record scope, sensitive privileges) while keeping the backend permission catalog, RLS, RPCs, Edge Functions and storage policies exactly as granular as they are today. Backend enforcement is deny-by-default and stays authoritative. The scope is large — I've broken it into ordered slices so each is verifiable before moving on.
 
-## Slices (executed sequentially, each with migration + code + tests)
+## Guiding principles
 
-### Slice 12 — Return Queue assignment-only lifecycle lockdown
-- Reintroduce `SUBMITTED_LIFECYCLE_STATUSES` as the single canonical source in `src/lib/returnLifecycle.ts` and mirror it in a new SQL function `public.return_status_is_submitted_lifecycle(text)`.
-- Update `public.can_view_entity_returns` and `public.can_read_return_filed` so **assignment-only** users get returns ONLY when status is in the submitted lifecycle; internal users with `returns_management.view` retain full access.
-- Update Return Queue list query, Return Detail loader, dashboard counters, attachments RLS, storage policies (`return-uploads`), reports/exports edge functions to apply the same filter for assignment-only.
-- Remove any "Due Soon" tile/filter visibility for assignment-only via `usePermissions.ts` gate.
-- Ensure assignment alone never grants export/download/upload/edit/approve/workflow — those keep exact-permission checks.
-- Tests: extend `supabase/tests/regulator_access/01_can_view_entity_returns.sql` with pre-submission denial cases; add `src/test/rbac/returnQueueAssignmentOnly.test.tsx`; add Deno test on the returns export function.
+- **UI simplifies, backend does not weaken.** Every business selection maps to real granular permission keys already enforced in RLS/RPCs/Edge/Storage. Nothing is granted "just to make it work".
+- **Deny-by-default preserved.** No module access → no menu, route, data, action. Access levels never imply sensitive privileges.
+- **One source of truth.** A single `accessLevelMap` file drives: preset expansion, reverse classification of existing roles, and the plain-language summary.
+- **Backend stays.** No changes to RLS/RPC/Edge/storage authorization logic. Only the row a role writes into `role_permissions` changes shape (still granular keys).
 
-### Slice 13 — Enforcement / Inspection scope tightening
-- Rewrite `can_read_enforcement`, `can_read_inspection` helpers so assignment alone is NEVER sufficient. Required read rule: `super_admin OR view_all_entities OR (exact view perm AND assignment)`.
-- Write rule for create/edit/delete/workflow_action: `exact action perm AND assignment` (or `view_all_entities` for global roles where documented).
-- Update RLS on `enforcement_actions`, `enforcement_case_events`, `inspections`, `inspection_findings`.
-- Extend `supabase/tests/rbac/120_enforcement_inspection_rls.sql` with the six required cases (assignment-only denied, view-only cross-entity denied, correct combo allowed, view_all allowed, super_admin allowed, create without assignment denied).
+## Slices
 
-### Slice 14 — Critical RPC hardening + map
-- Enumerate SECURITY DEFINER RPCs touching mutations/approvals/assignments/exports/notifications. For each: pin `search_path = public`, `REVOKE EXECUTE FROM PUBLIC`, `GRANT` narrowly, call `has_permission` + scope check, raise `SQLSTATE 42501` on denial, use `auth.uid()`.
-- Regenerate `docs/rbac/rpc-permission-map.tsv` with the required columns (function, module, action, scope_type, security_definer, safe_search_path, public_execute_revoked, permission_guarded, tested).
-- Add pgTAP `supabase/tests/rbac/130_critical_rpcs.sql` with authorized + unauthorized assertions per RPC.
+### S1 — Access-level mapping (source of truth)
+- Create `src/lib/rbac/accessLevels.ts` defining:
+  - `AccessLevel = 'none' | 'view' | 'contributor' | 'reviewer' | 'approver' | 'manager'`
+  - Per-module supported levels and level→permission-keys mapping, built on the existing `MODULE_REGISTRY` and enforced permission catalog (`permissions.enforced = true` only).
+  - `expandLevel(module, level): PermissionKey[]`
+  - `classifyRole(permissionKeys[]): { module, level, custom }` — reverse map for existing roles; if the set doesn't match any level exactly, mark **Custom** and preserve raw keys.
+  - Sensitive-privilege registry (delete, publish, override workflow, manage users/roles, configure workflows, bulk actions, view-all-entities, export confidential, issue/suspend/revoke, access audit).
+  - Record-scope options per module (own / assigned / team / department / regulator / sectors / all) — UI-only labels resolving to existing scope columns (`user_dynamic_roles`, entity assignments, `view_all_entities` flag). No new scope semantics are invented; only options that already have backend enforcement are exposed.
+- Business labels for every permission (`View forms`, `Create forms`, …) in `src/lib/rbac/permissionLabels.ts`.
 
-### Slice 15 — Remaining RLS modules
-Batch by cluster, one migration per cluster, each with a pgTAP file:
-1. **Complaints** cluster (`complaints`, `complaint_evidence`, `complaint_correspondence`, `complaint_investigation_tasks`, `complaint_escalation_cases`, `complaint_duplicate_*`, `complaint_intake_rules`, `complaint_status_catalogue`, `complaint_types`) — `140_complaints_rls.sql`.
-2. **Market Conduct** (`conduct_*` tables) — `150_conduct_rls.sql`.
-3. **Reports/Exports** (`report_definitions`, `reports`, `report_logs`, `report_schedules`, `report_run_*`, `audit_export_jobs`, `return_consolidated_analysis`) — `160_reports_rls.sql`.
-4. **Security & Ops** (`audit_logs`, `security_event_logs`, `notification_outbox`, `notification_dispatch_log`, `notification_digest_log`, `site_settings`) — `170_security_ops_rls.sql`.
-5. **Registration / Fees / Payments / Refunds / Correspondence / Master data / remaining workflow tables** — `180_misc_rls.sql`.
-- Pattern for every table: drop `USING (true)` on sensitive tables; require exact permission + scope; preserve applicant / entity user / PPOC / assigned regulator / workflow assignee / service-role paths.
+### S2 — Redesigned Role editor UI
+Replace the current matrix in `src/pages/admin/RoleManagement.tsx` with a stepped/tabbed editor:
+1. **Role details** — name, description, role type (Operational / Reviewer / Approver / Supervisor / Administrator / Read Only / Custom), active toggle. Role type only *prefills*.
+2. **Module access** — grouped cards per business module (Dashboard, Applications, Licensing, Registration, Form Management, Complaints, Returns, F&P, Prudential, Market Conduct, Enforcement, Inspections, Reports, Workflows, Notifications, Users, Roles, Settings, Audit Logs, Fees & Payments). Each card shows only the levels meaningful for that module. Business-friendly action labels appear beneath the selected level so the admin sees exactly what the role can do.
+3. **Record scope** — per-module scope selector, only where backend supports it (Complaints, Returns, Licensing, Enforcement, Inspections, F&P, Prudential, Market Conduct).
+4. **Sensitive privileges** — separate section with warning styling; nothing here is auto-granted by a level, even Manager.
+5. **Review & summary** — plain-language "This role can / cannot" list, generated from the actual expanded permission set + scope + sensitive privileges (no misleading summaries).
+6. **Advanced permissions** (collapsed, super-admin only) — raw permission checkboxes with technical keys shown as secondary text, with a warning when they diverge from the selected level.
 
-### Slice 16 — Storage authorization
-- Explicit SELECT/INSERT/UPDATE/DELETE policies on: `return-uploads`, `application-documents`, `complaint-evidence`, `fp-evidence`, `secure-documents`, `payment-documents`, `certificates`, `audit-exports`, `report-exports`.
-- Rule: `exact permission AND path→record scope resolution`.
-- Update signed-URL edge functions (`storage-signed-url`, etc.) to enforce JWT + permission + record scope; refuse 403 out-of-scope.
-- pgTAP `supabase/tests/rbac/190_storage_policies.sql` + Deno tests per function.
+Existing dependency auto-fix (edit⇒view, etc.) stays and runs on the expanded key set before save. No dependency errors surface to the business user — resolution is silent, with a plain-language notice.
 
-### Slice 17 — Edge Function full-coverage tests
-- For every high-risk user-facing function: 5 tests (missing JWT / invalid JWT / missing permission / wrong scope / success).
-- Verify guard runs BEFORE service-role client creation (lint via `scripts/verify-edge-authz.mjs` extended check).
-- Regenerate `docs/rbac/edge-function-permission-map.tsv` with all required columns.
+### S3 — Templates (non-locking)
+Add optional templates (Read-Only User, Licensing Officer/Reviewer/Approver, Complaints Officer/Supervisor, Returns Reviewer, Prudential Analyst, Market Conduct Analyst, Enforcement Officer, Inspector, Auditor, System Administrator, Custom). Selecting a template pre-populates access levels and scope; the admin can still change anything.
 
-### Slice 18 — Frontend action & route protection sweep
-- Replace unprotected action buttons across Applications, Returns, Complaints, Licensing, Licensees, Registration, F&P, Prudential, Market Conduct, Enforcement, Inspections, Reports, Workflows, Users, Roles, Settings, Notifications, Audit, Fees/Payments with `GuardedButton` or `PermissionGate`.
-- Handlers re-check `hasPermission` before mutation.
-- Protect routes: `/admin`, `/preview/:versionId`, `/notifications`, `/settings`, `/users`, `/reports`, `/workflows`, `/admin/roles`, `/admin/permission-coverage`.
-- Router: unknown internal routes → `<AccessDenied />`.
-- Admin Hub tiles each gated; KPI queries only fire when user has view permission.
-- Extend `src/test/routeCoverage.test.ts` to fail on any unmapped internal route; add persona Vitest suites in `src/test/rbac/personas/`.
+### S4 — Hide developer-facing tools from business navigation
+- Remove from normal admin nav: Permission Coverage report page, RPC map link, RLS/storage/edge coverage links, Orphan Permission report, raw catalog view.
+- Move `/admin/permission-coverage` and related dashboards behind a super-admin-only "System Diagnostics" area (route + sidebar entry gated by `is_super_admin`). Coverage scripts, CI, and docs remain untouched.
+- Verify `docs/rbac/*` links, sidebar entries in `src/config/navigation.tsx`, and any dashboard cards linking to these reports.
 
-### Slice 19 — Orphan triage + coverage scanner accuracy
-- Classify every catalogued permission (fully/partially/UI-only/backend-only/marker-only/missing-scope/untested/orphan/deprecated/external/service-only/duplicate).
-- Remove or `enforced=false` + `deprecated=true` on orphans; block them from Role Management UI + `assert_role_permission_dependencies` trigger.
-- Upgrade `src/lib/rbac/coverageScanner.ts` to distinguish `real_ui_guard` vs `audit_marker_only`, `guard_imported` vs `guard_called`, `route_mapping` vs `route_guard`, `rls_with_scope` vs `rls_without_scope`, and require test presence.
-- Regenerate `permission-coverage.{json,csv,md}` with new classifications and before/after counts in `docs/rbac/change-log.md`.
+### S5 — Existing role migration (data + UI)
+- SQL migration: for each existing role, read its `role_permissions`, run the classifier logic in a PL/pgSQL function that mirrors S1 (or emit a JSON summary consumed by a one-shot backfill Edge Function using service role) and populate two new columns on `roles`:
+  - `role_type text` (nullable)
+  - `access_summary jsonb` — `{module: {level, scope, sensitive: []}}` — used for display; **granular `role_permissions` rows remain authoritative**.
+- Roles whose keys don't match any level cleanly are stored with `access_summary.<module>.level = 'custom'` and their raw keys remain visible under Advanced Permissions. **No permission is added or removed** — access is preserved exactly.
+- Migration report table `role_migration_log` records classification per role for admin review.
 
-### Slice 20 — CI gates & final verification
-- Extend `.github/workflows/ci.yml` and add scripts to fail on: unmapped internal routes, unguarded high-risk actions, edge functions lacking real auth, critical RPCs without guards, unsafe SD `search_path`, `PUBLIC` execute on sensitive fns, orphan permissions, marker-counted-as-enforced rows, broad `authenticated USING (true)` policies, missing required RBAC tests.
-- Execute and capture output of: `bun run build:dev`, `bunx tsgo --noEmit`, `bunx eslint .`, `bunx vitest run src/test/rbac`, `supabase test db`, `deno test supabase/functions`, `bunx tsx scripts/generate-permission-coverage.ts`, `node scripts/verify-edge-authz.mjs`, and Supabase migration validation.
+### S6 — Backend safety net (no functional change, only guardrails)
+- No new RLS/RPC/Edge/storage logic. Reconfirm that the existing `role_permissions` dependency trigger, orphan trigger, and `has_permission` continue to gate everything. Any keys the new UI writes are already in the enforced catalog — the trigger will reject stray keys, which is the desired invariant.
+- Add a pgTAP test asserting: for every access level of every module, expanding it yields only `permissions.enforced = true` keys.
 
-## Final report format
-Commit SHA · files changed · migrations · fixes by area · orphan before/after · coverage before/after · commands with real pass/fail · CI status · any remaining limitations explicitly listed.
+### S7 — Frontend enforcement audit (no scope change, verification only)
+Because the request insists menus/routes/buttons/data all follow permissions, run the existing coverage scanner and confirm the new mapping produces the same or stricter guards. Nothing to build here beyond fixing any regression the S2 refactor introduces in `RoleManagement.tsx` itself (its own action buttons must remain gated by `role_management.edit/create/delete`).
 
-## Technical notes
-- All new SQL helpers: `SECURITY DEFINER`, `STABLE`, `SET search_path = public`, `REVOKE EXECUTE FROM PUBLIC`, granted only to `authenticated` / `service_role` as required.
-- New public tables: full GRANT block + RLS + policies in the same migration.
-- No blanket `authenticated USING (true)` on sensitive tables — always joined to permission + scope.
-- Assignment-only never synthesizes `returns_management.view`; it is expressed via a dedicated `hasAssignmentReturnQueueAccess` flag on the client and via helper functions server-side.
-- Every migration paired with a pgTAP file; every UI change paired with a Vitest file.
+### S8 — Tests
+- Vitest:
+  - `accessLevels.test.ts` — round-trip: expand(level) → classify() returns same level; sensitive privileges never included in Manager expansion unless declared.
+  - `roleEditor.test.tsx` — selecting Contributor for Form Management writes exactly `form_management.view/create/edit`; Sensitive Privileges section is the only path to `delete`/`publish`.
+  - `roleMigration.test.ts` — fixtures of representative existing roles classify without access drift; ambiguous set → Custom.
+- pgTAP: level→enforced-keys assertion (S6).
+- Manual scenarios documented in `docs/rbac/business-role-scenarios.md` covering the four scenarios in the spec (Form View-Only, Form Contributor, Complaints View-Only+Assigned, Licensing Approver+Assigned).
+
+### S9 — Documentation
+- New `docs/rbac/business-roles.md` — screenshots + how access levels, scope, sensitive privileges relate.
+- Update `docs/rbac/README.md` to point business users at the new page and developers at the still-existing coverage scripts.
+
+## Out of scope (explicitly)
+
+- No changes to RLS policies, RPC signatures, Edge Function authz, storage policies, `has_permission`, `can_view_entity_returns`, or any assignment-only logic. These already enforce the model the spec demands; the UI change does not need them altered.
+- No new "role testing" feature.
+- No changes to how record scope is stored server-side beyond exposing existing scope columns under friendlier labels.
+
+## Technical details
+
+**Files added**
+- `src/lib/rbac/accessLevels.ts`, `permissionLabels.ts`, `scopeOptions.ts`, `sensitivePrivileges.ts`, `roleTemplates.ts`
+- `src/pages/admin/role-management/` — `RoleEditor.tsx`, `ModuleAccessCard.tsx`, `RecordScopePanel.tsx`, `SensitivePrivilegesPanel.tsx`, `RoleSummary.tsx`, `AdvancedPermissionsPanel.tsx`, `TemplatePicker.tsx`
+- `docs/rbac/business-roles.md`, `docs/rbac/business-role-scenarios.md`
+- Vitest + pgTAP tests as listed
+
+**Files modified**
+- `src/pages/admin/RoleManagement.tsx` — swap matrix for `RoleEditor`; keep list/clone/status flows
+- `src/config/navigation.tsx` — move diagnostics under super-admin group
+- `src/routes/adminRoutes.tsx` — gate coverage/diagnostics routes to `is_super_admin`
+
+**Migrations**
+- `roles.role_type text`, `roles.access_summary jsonb`
+- `role_migration_log` table
+- Backfill statement classifying every existing role via a `plpgsql` function that mirrors `accessLevels.ts` (kept in sync via a generator script) — **no `role_permissions` rows inserted or deleted**; only descriptive columns populated
+- pgTAP test file `supabase/tests/rbac/20_access_levels.sql`
+
+**Risks / mitigations**
+- *Level ↔ granular mismatch drift* → single generator script `scripts/generate-access-level-sql.ts` derives the PL/pgSQL classifier from `accessLevels.ts`; CI runs it and fails on diff.
+- *Silent access change during migration* → migration is **description-only**; `role_permissions` untouched. Any UI change to a role writes fresh granular keys through the same dependency + orphan triggers.
+- *Business users hitting "Custom" wall* → the editor renders Custom roles read-only in the level view with a clear "This role uses advanced permissions — open Advanced to edit" affordance.
+
+## Verification checklist (per completion requirements)
+
+Before declaring done: build, `tsgo`, `vitest run`, pgTAP suite, and manual walkthrough of the four spec scenarios (Form View-Only, Form Contributor, Complaints View-Only+Assigned, Licensing Approver+Assigned) using existing seeded users. Report will list commit SHA, files changed, migrations, screens updated, diagnostics moved, level mappings, scope options, sensitive privileges list, roles migrated (with counts of Custom), and verification results.

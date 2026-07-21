@@ -65,7 +65,10 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
-      { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
+      // Permission Coverage is a developer-facing diagnostic. Gated to
+      // super_admin only so business administrators aren't exposed to the
+      // raw enforcement matrix; developers still access it via URL/CI docs.
+      { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'], module: 'role_management' },
     ],
   },
   {

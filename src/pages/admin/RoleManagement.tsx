@@ -38,6 +38,16 @@ import {
 } from '@/hooks/usePermissionCatalog';
 import PermissionCatalogTab from './PermissionCatalogTab';
 import { useCan } from '@/hooks/useCan';
+import {
+  ACCESS_LEVEL_LABELS,
+  ACCESS_LEVEL_DESCRIPTIONS,
+  SENSITIVE_ACTION_NAMES,
+  classifyModuleSelection,
+  expandLevelActionNames,
+  meaningfulLevelsForModule,
+  sensitiveActionLabel,
+  type AccessLevel,
+} from '@/lib/rbac/accessLevels';
 
 /** Strip developer-style "Module N - " prefixes. */
 const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
@@ -833,11 +843,47 @@ export default function RoleManagement() {
                       );
                     }
                     return cards.map(({ g, filtered }) => {
+                      // Split filtered actions into regular vs sensitive privileges.
+                      // Sensitive privileges are NEVER granted implicitly by any
+                      // access-level preset — admins must tick them deliberately.
+                      const regularActions = filtered.filter(a => !SENSITIVE_ACTION_NAMES.has(a.permission.name.toLowerCase()));
+                      const sensitiveActions = filtered.filter(a => SENSITIVE_ACTION_NAMES.has(a.permission.name.toLowerCase()));
                       const allChecked = filtered.every(a => formPerms.includes(a.permission.id));
                       const someChecked = filtered.some(a => formPerms.includes(a.permission.id)) && !allChecked;
                       const selectedCount = filtered.filter(a => formPerms.includes(a.permission.id)).length;
+
+                      // Classify the CURRENT selection for this module into a
+                      // business-friendly Access Level so the dropdown reflects
+                      // what the admin has actually configured.
+                      const availableRegularNames = regularActions.map(a => a.permission.name);
+                      const selectedRegularNames = regularActions
+                        .filter(a => formPerms.includes(a.permission.id))
+                        .map(a => a.permission.name);
+                      const classified = classifyModuleSelection(selectedRegularNames, availableRegularNames);
+                      const currentLevel: AccessLevel | 'custom' = classified.level;
+                      const availableLevels = meaningfulLevelsForModule(availableRegularNames);
+                      const sensitiveSelectedCount = sensitiveActions.filter(a => formPerms.includes(a.permission.id)).length;
+
+                      const applyLevel = (level: AccessLevel) => {
+                        if (!canAssign) return;
+                        const wanted = new Set(expandLevelActionNames(level));
+                        // Ids for regular actions this module actually offers.
+                        const regularIds = new Set(regularActions.map(a => a.permission.id));
+                        const idsToAdd = regularActions
+                          .filter(a => wanted.has(a.permission.name.toLowerCase()))
+                          .map(a => a.permission.id);
+                        setFormPerms(prev => {
+                          // Remove ALL current regular perms for this module, then add the wanted set.
+                          // Sensitive privileges are preserved untouched.
+                          const kept = prev.filter(id => !regularIds.has(id));
+                          const next = [...kept, ...idsToAdd];
+                          const { resolvedIds } = resolveDependencies(next, permissions);
+                          return [...new Set(resolvedIds)];
+                        });
+                      };
+
                       const selectAll = () => {
-                        const ids = filtered.map(a => a.permission.id);
+                        const ids = regularActions.map(a => a.permission.id);
                         setFormPerms(prev => [...new Set([...prev, ...ids])]);
                       };
                       const clearAll = () => {
@@ -845,9 +891,9 @@ export default function RoleManagement() {
                         setFormPerms(prev => prev.filter(id => !ids.has(id)));
                       };
                       const summary =
-                        selectedCount === 0 ? 'No permissions selected'
-                        : selectedCount === filtered.length ? 'All permissions selected'
-                        : `${selectedCount} permission${selectedCount === 1 ? '' : 's'} selected`;
+                        selectedCount === 0 ? 'No access'
+                        : selectedCount === filtered.length ? 'Full access'
+                        : `${selectedCount} of ${filtered.length} selected`;
 
                       return (
                         <Card key={g.moduleKey} className="overflow-hidden">
@@ -861,37 +907,103 @@ export default function RoleManagement() {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <span className="text-sm font-semibold">{g.moduleLabel}</span>
+                                <div>
+                                  <span className="text-sm font-semibold">{g.moduleLabel}</span>
+                                  {g.description && (
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">{g.description}</p>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[11px] text-muted-foreground">{summary}</span>
-                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={selectAll} disabled={!canAssign}>
-                                    Select all
-                                  </Button>
-                                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={clearAll} disabled={!canAssign}>
-                                    Clear
-                                  </Button>
                                 </div>
                               </div>
+                              {/* Business-facing access-level preset */}
+                              {availableLevels.length > 1 && (
+                                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                  <Label className="text-[11px] text-muted-foreground">Access level</Label>
+                                  <Select
+                                    value={currentLevel === 'custom' ? 'custom' : currentLevel}
+                                    onValueChange={(v) => {
+                                      if (v === 'custom') return; // custom is display-only
+                                      applyLevel(v as AccessLevel);
+                                    }}
+                                    disabled={!canAssign}
+                                  >
+                                    <SelectTrigger className="h-7 w-44 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableLevels.map(lvl => (
+                                        <SelectItem key={lvl} value={lvl}>
+                                          {ACCESS_LEVEL_LABELS[lvl]}
+                                        </SelectItem>
+                                      ))}
+                                      {currentLevel === 'custom' && (
+                                        <SelectItem value="custom">Custom</SelectItem>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {currentLevel === 'custom'
+                                      ? 'Fine-tuned selection — does not match a standard level.'
+                                      : ACCESS_LEVEL_DESCRIPTIONS[currentLevel as AccessLevel]}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-                            {filtered.map(({ permission, label }) => (
-                              <div key={permission.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`perm-${permission.id}`}
-                                  checked={formPerms.includes(permission.id)}
-                                  disabled={!canAssign}
-                                  onCheckedChange={() => togglePerm(permission.id)}
-                                />
-                                <label
-                                  htmlFor={`perm-${permission.id}`}
-                                  className={`text-sm ${canAssign ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
-                                >
-                                  {label}
-                                </label>
+                          {regularActions.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+                              {regularActions.map(({ permission, label }) => (
+                                <div key={permission.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`perm-${permission.id}`}
+                                    checked={formPerms.includes(permission.id)}
+                                    disabled={!canAssign}
+                                    onCheckedChange={() => togglePerm(permission.id)}
+                                  />
+                                  <label
+                                    htmlFor={`perm-${permission.id}`}
+                                    className={`text-sm ${canAssign ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                  >
+                                    {label}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {sensitiveActions.length > 0 && (
+                            <div className="border-t bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                                <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                                  Sensitive privileges
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  Not included by any access level — tick deliberately.
+                                  {sensitiveSelectedCount > 0 && ` (${sensitiveSelectedCount} enabled)`}
+                                </span>
                               </div>
-                            ))}
-                          </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {sensitiveActions.map(({ permission }) => (
+                                  <div key={permission.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`perm-${permission.id}`}
+                                      checked={formPerms.includes(permission.id)}
+                                      disabled={!canAssign}
+                                      onCheckedChange={() => togglePerm(permission.id)}
+                                    />
+                                    <label
+                                      htmlFor={`perm-${permission.id}`}
+                                      className={`text-sm ${canAssign ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                    >
+                                      {sensitiveActionLabel(permission.name)}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </Card>
                       );
                     });
