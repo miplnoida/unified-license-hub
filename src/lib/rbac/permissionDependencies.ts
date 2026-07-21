@@ -8,6 +8,7 @@
  */
 export const DEPENDENT_ACTIONS = [
   'edit',
+  'update',
   'create',
   'delete',
   'approve',
@@ -20,12 +21,23 @@ export const DEPENDENT_ACTIONS = [
   'archive',
   'restore',
   'assign',
+  'reassign',
   'bulk',
+  'bulk_update',
+  'bulk_delete',
   'configure',
   'status_change',
   'workflow_action',
   'dispatch',
   'execute',
+  'close',
+  'reopen',
+  'resolve',
+  'escalate',
+  'issue',
+  'revoke',
+  'suspend',
+  'renew',
 ] as const;
 
 export type DependentAction = (typeof DEPENDENT_ACTIONS)[number];

@@ -37,6 +37,7 @@ import {
   useCatalogModules, useCatalogActions,
 } from '@/hooks/usePermissionCatalog';
 import PermissionCatalogTab from './PermissionCatalogTab';
+import { useCan } from '@/hooks/useCan';
 
 /** Strip developer-style "Module N - " prefixes. */
 const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
@@ -140,6 +141,13 @@ export default function RoleManagement() {
   const [formPerms, setFormPerms] = useState<string[]>([]);
   const [permSearch, setPermSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
+
+  // Exact action gates — the same permissions the DB triggers enforce.
+  const canCreate = useCan('role_management', 'create');
+  const canEdit = useCan('role_management', 'edit');
+  const canDelete = useCan('role_management', 'delete');
+  const canReset = useCan('role_management', 'reset');
+  const canAssign = useCan('role_management', 'assign_permissions');
 
   // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
   // Radix can leave `pointer-events: none` on <body> and orphaned closed overlays in the
@@ -371,6 +379,18 @@ export default function RoleManagement() {
   };
 
   const handleSave = async () => {
+    // Client-side mirror of the DB triggers — refuse to submit if the user
+    // lacks the exact action they're about to perform. Backend enforces the
+    // same rule via trg_roles_mutation_guard + trg_role_permissions_mutation_guard.
+    if (editingRole) {
+      if (!canEdit) { toast.error('You do not have permission to edit roles.'); return; }
+    } else {
+      if (!canCreate) { toast.error('You do not have permission to create roles.'); return; }
+    }
+    if (!canAssign) {
+      toast.error('You do not have permission to assign role permissions.');
+      return;
+    }
     const name = formName.trim();
     if (!name) { toast.error('Please enter a role name'); return; }
     const dupe = roles.find(r => r.name.trim().toLowerCase() === name.toLowerCase() && r.id !== editingRole?.id);
@@ -404,6 +424,7 @@ export default function RoleManagement() {
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
+    if (!canDelete) { toast.error('You do not have permission to delete roles.'); return; }
     await deleteRole.mutateAsync(deleteConfirm.id);
     if (selectedRole?.id === deleteConfirm.id) setSelectedRole(null);
     setDeleteConfirm(null);
@@ -480,9 +501,11 @@ export default function RoleManagement() {
                   <Input placeholder="Search roles..." value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                 </div>
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-2" />Create Role
-                </Button>
+                {canCreate && (
+                  <Button onClick={openCreateDialog} data-rbac="role_management.create">
+                    <Plus className="h-4 w-4 mr-2" />Create Role
+                  </Button>
+                )}
               </div>
 
               <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
@@ -556,7 +579,7 @@ export default function RoleManagement() {
                                   </TableCell>
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                     <RowActionsMenu dropdownModal={false} actions={[
-                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
+                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any), hidden: !canEdit },
                                       {
                                         label: 'Reset to defaults',
                                         icon: Shield,
@@ -565,10 +588,10 @@ export default function RoleManagement() {
                                             resetSystemRole.mutate(role.name);
                                           }
                                         },
-                                        hidden: !role.is_system,
+                                        hidden: !role.is_system || !canReset,
                                         separator: true,
                                       },
-                                      { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
+                                      { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system || !canDelete, separator: true },
                                     ]} />
                                   </TableCell>
                                 </TableRow>

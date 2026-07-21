@@ -1,91 +1,85 @@
-# RBAC Hardening — Critical & High-Risk Implementation
+# Roles & Permissions — Full Enforcement Completion
 
-Scope: land the highest-priority items from `docs/rbac/audit-2026-07-21/` end-to-end in code, migrations, and tests. Explicitly out of scope this pass: rewriting all 249 tables and 294 functions — I'll list the remaining lower-priority items in the completion report rather than attempt them in one unsafe migration.
+This is a large, multi-layer hardening effort. I'll land it in sequenced slices so each slice is reviewable, testable, and reversible. Every slice ships production code + migrations + tests (no doc-only turns).
 
-## 1. Shared Edge Function auth guard
-- Extend existing `supabase/functions/_shared/authz.ts` with optional scope checks (`licenseeId`, `entityId`, `returnId`, `recordId`) resolved server-side against `licensees`, `returns_filed`, entity-assignment helpers — never trust caller-supplied user IDs.
-- Wire `requireUserPermission(...)` into high-risk edge functions:
-  - Exports/reports: `audit-export`, `generate-report`, `export-*`, `consolidated-*`
-  - AI: `ai-*` analysis, `rfi-suggestions`, prudential/conduct analyzers
-  - Email/notify: `dispatch-notification-event`, `send-*`
-  - Return + application actions: return processing, approval, rejection, complaint action functions, decision generation
-- Add `docs/rbac/edge-function-permission-map.tsv` with columns `function, module, action, scope, implemented`.
+## Slice 1 — Catalog triage & Role Management self-protection
+- Classify all 123 permissions (query DB + scanner) into: implemented / partial / orphan / deprecated / external / service. Write result to `permissions.classification` (new column) via migration; deprecated rows get `enforced=false` and are filtered out of Role Management's assignable list.
+- Add missing role-management sub-permissions: `role_management.{create,edit,delete,reset,assign_permissions,view_coverage}` (migration + catalog.json).
+- Wrap every action in `src/pages/admin/RoleManagement.tsx` and `PermissionCoverageReport.tsx` with `PermissionGate` / `GuardedButton` using the exact action.
+- Add a `role_management_mutation_guard` trigger on `roles` and `role_permissions` that calls `has_permission(auth.uid(), 'role_management', <action>)` for INSERT/UPDATE/DELETE (service_role bypass). Guarantees backend enforces the same action as UI.
+- pgTAP: direct SQL insert without `role_management.create` fails 42501; view-only user cannot edit/delete/reset.
+- Vitest: view-only user sees list but no Create/Edit/Delete/Reset buttons.
 
-## 2. SECURITY DEFINER hardening
-- Migration `ALTER FUNCTION … SET search_path = public` for remaining unpinned definer functions (already covered 6 in Slice 1; sweep the rest of the flagged list from audit 08).
-- `REVOKE EXECUTE … FROM PUBLIC` on definer functions that shouldn't be publicly callable; `GRANT EXECUTE` to `authenticated`/`service_role` as needed.
-- pgTAP test `supabase/tests/rbac/20_definer_search_path.sql` (already exists) — extend to also fail on PUBLIC-executable definers without documented exception.
+## Slice 2 — Dependency enforcement completion
+- Extend `DEPENDENT_ACTIONS` in `permissionDependencies.ts` with the full list (add `update, reassign, close, reopen, resolve, escalate, issue, revoke, suspend, renew, bulk_update, bulk_delete`).
+- Update DB trigger `assert_role_permission_dependencies` to read from a new `permission_dependencies` table (source of truth) rather than a hardcoded list, seeded from the same catalog.
+- Add BEFORE DELETE trigger on `role_permissions` that blocks removing `view` while any dependent action remains for that role+module.
+- Repair migration: for every existing role holding a dependent action without `view`, insert the missing `view` row.
+- Ensure quick-templates in `RoleManagement.tsx` route through `resolveDependencies()`.
+- Tests: pgTAP (insert/update/delete matrix); Vitest (template + toggle + save flows).
 
-## 3. Critical RPC permission guards
-- Add `IF NOT public.has_permission(auth.uid(), '<module>', '<action>') THEN RAISE EXCEPTION … USING ERRCODE='42501'` to critical RPCs across returns, applications, complaints, licensees, licenses, reports, users, roles, settings, audit, notifications.
-- Keep narrower scope checks (entity mapping, ownership, workflow task, status, confidentiality) — compose `permission AND scope`.
-- Use precise actions (`approve`, `reject`, `export`, `assign`, `configure`, `status_change`, `workflow_action`, `dispatch`, `execute`) — not blanket `edit`.
-- Deliverable: `docs/rbac/rpc-permission-map.tsv`.
+## Slice 3 — `_shared/authz.ts` hardening + scope model
+- Rewrite `supabase/functions/_shared/authz.ts`:
+  - `requireAuth(req)` — Bearer required, JWT verified via `getClaims`, returns `{ userId, claims, supabase }`.
+  - `requireUserPermission({ req, module, action, scope? })` — module/action required (no optional bypass for business fns).
+  - `AuthzScope` typed discriminated union: `return | application | complaint | licensee | document | assessment | report | workflow_task`.
+  - Per-scope resolver querying the correct table + `user_has_entity_assignment` / ownership / workflow assignee / PPOC / external-portal checks.
+  - Deny by default; explicit `{ allow: 'global' }` opt-out required.
+- Remove unused/unimplemented scope keys (`recordId`, etc.).
+- Deno tests: 401 (no/invalid token), 403 (missing perm), 403 (perm but wrong scope), 200 (perm+scope).
 
-## 4. Critical RLS policies
-- Replace broad `USING (true)` / role-only policies on the highest-risk tables with `has_permission(...) AND scope`:
-  - Returns family: `returns_filed`, `return_form_data`, `return_documents`, `return_comments`, `return_audit_log`, `return_edit_requests`, `return_upload_attempts`, `return_upload_imports`, ratios/analysis
-  - Applications family: `applications`, `documents` (app-linked), review/decision/RFI/comment/attachment tables
-  - Complaints family: complaints + parties/documents/comments/assignments/decisions
-  - Licensing: `licensees`, `licenses`, `license_actions`, license documents, entity/regulator mappings
-  - Sensitive admin: `audit_logs`, `security_event_logs`, `notification_outbox`, `roles`, `permissions`, `role_permissions`, `user_roles`, `user_dynamic_roles`
-- Preserve applicant/licensee ownership carve-outs.
-- Deliverable: `docs/rbac/table-permission-map.tsv`.
+## Slice 4 — Edge Function sweep
+Refactor every high-risk function to use the new helper, in this order (batched by domain):
+1. Reports/exports: `generate-report`, `audit-export`, any csv/excel/pdf functions.
+2. AI: consolidated-analysis, prudential-analysis, market-conduct-analysis, fpa-analysis, rfi-auto-suggestions.
+3. Notifications/email: notification-dispatch, email-send, sla-escalation.
+4. Application decisions, complaint actions, return processing/validation/document ops.
+5. Licensing certificate generation, workflow actions.
 
-## 5. Return Queue assignment-only lockdown
-- Canonical status allow-list in one place (`src/lib/returnLifecycle.ts`) mirrored in SQL helper `is_post_submission_status(text)`. Explicit deny for `TEMP`, `WIP`, `draft`, `incomplete`, `pending_submission`, `due_soon`, `null`.
-- Update Return Queue query, filters, detail route, RLS predicates, RPCs, attachments, dashboards, reports, and exports to consult the shared list.
-- Hide Due Soon filter + pre-submission counters + admin sub-menus from assignment-only regulators; sidebar already gated — extend to the page-level filter bar.
+Each: `requireUserPermission` before service client creation, protected reads/writes, signed-URL generation, AI calls. Update `docs/rbac/edge-function-permission-map.tsv` from actual code (not aspirational). Deno test per function covering the 5 outcomes.
 
-## 6. Return Queue button gates
-- `src/pages/returns-mgmt/ViewReturns.tsx` and detail/action components:
-  - Export → `PermissionGate module="returns_management" action="export"`
-  - Download → `action="download"`
-  - Approve/Reject/Reopen/Status change/Workflow/Upload/Bulk → exact actions
-- Backend export/download endpoints re-check the same permission (defense in depth).
+## Slice 5 — RPC authorization
+- Add `has_permission` gate at top of every business-sensitive `SECURITY DEFINER` RPC (returns raise `insufficient_privilege`/42501).
+- Revoke `EXECUTE ... FROM PUBLIC`; grant to `authenticated` (or `service_role` only for worker RPCs).
+- Ensure pinned `search_path = public` on all.
+- Generate `docs/rbac/rpc-permission-map.tsv` from a pgTAP-verified query, not by hand.
+- pgTAP: unauthorized caller → 42501; authorized → success; PUBLIC has no execute; search_path pinned.
 
-## 7. High-risk action button gates across app
-- Wrap approve/reject/assign/export/finalize/RFI/decision buttons in Returns, Applications, Complaints, Users/Roles, Reports, Settings with `PermissionGate` or `GuardedButton`.
-- Add `data-rbac="module.action"` markers for the scanner only — real enforcement stays in the gate + backend.
-- Target: materially above the current 4.7% action-coverage floor; scanner allow-list untouched except for genuine non-business controls (cancel, close, pagination, sort).
+## Slice 6 — RLS rewrite (highest-sensitivity first)
+Order: `roles`, `permissions`, `role_permissions`, `user_dynamic_roles`, `user_roles`, `profiles` admin fields, `audit_logs`, `security_event_logs`, `notification_outbox`, `applications`, `returns_filed`, `return_form_data`, `complaints`, `complaint_evidence`, `licensees`, `licenses`, `reports`, `report_logs`, `site_settings`, `workflow_instances`.
 
-## 8. Route gap fixes
-- Add explicit guards to internal routes currently unguarded (`/admin`, `/preview/:versionId`, `/notifications`, and others in `routes-unguarded.txt`) using `ModuleRoute` with the correct module (e.g. `admin_dashboard.view` for admin hub, per-tile gates on KPIs).
-- KPI queries gated by permission (don't fetch then hide).
-- Public/external routes moved to an explicit reviewed allow-list; route-coverage test fails on any unclassified protected route.
+Pattern per table: drop broad `USING (true)`; replace with `is_super_admin(uid) OR (has_permission(uid, module, action) AND <scope predicate>) OR <legitimate independent path>` where the legitimate path covers applicant ownership / PPOC / entity portal / workflow assignee / assignment-only-regulator (only where explicitly allowed).
 
-## 9. Role Management dependencies + orphans
-- UI (`RoleManagement.tsx`) + backend `assert_role_permission_dependencies` trigger already exist for dependent-action → view rule; extend list to cover: `create, edit, delete, approve, reject, assign, export, download, upload, bulk, configure, status_change, workflow_action, dispatch, execute`.
-- Auto-select `view`, block deselecting `view` while dependents remain, block save + surface validation. Backend trigger enforces same rule so direct API cannot bypass.
-- Orphan permissions: wire real enforcement where feasible in this pass; otherwise flag `enforced=false` in `permissions` and filter them out of assignable options in the UI.
+`docs/rbac/table-permission-map.tsv` generated from `pg_policies` post-migration. pgTAP persona matrix per table.
 
-## 10. Storage policy hardening
-- Explicit `SELECT/INSERT/UPDATE/DELETE` policies on `documents`, `secure-documents`, `fp-evidence`, `return-uploads`, `payment-documents`, `license-certificates`, `certificate-assets`, `audit-exports`.
-- Pattern: `has_permission(auth.uid(), '<module>', '<action>') AND <scope>`; return-uploads scope = mapped entity + submitted status; audit-exports = explicit export permission + owner; deny drafts.
+## Slice 7 — Return Queue assignment-only isolation
+- Remove any code path that treats assignment-only regulators as holding `returns_management.view`.
+- Add `is_post_submission_status(text)` SQL helper; use it everywhere the queue filters rows (RLS, RPC, edge, storage, `ViewReturns.tsx`, ratios/reports).
+- Hide Due Soon / Drafts / WIP / TEMP / analytics / ratios / return-configuration UI when `isAssignmentOnly`.
+- Storage: signed-URL edge functions require `returns_management.download` OR assignment-only-with-view exception ONLY for the specific mapped, submitted return.
+- Vitest + pgTAP + Deno persona suite.
 
-## 11. Automated tests
-- Frontend (vitest/RTL): Sidebar, ModuleRoute, Return Queue, Return detail, Export button, Role Management, AdminHub, Reports — across 11 personas listed in the request. Return Queue assertions match the spec (queue visible, config hidden, mapped submitted visible, drafts/Due Soon/export hidden, etc.).
-- pgTAP: extend `supabase/tests/rbac/` with cases for `has_permission`, admin non-bypass, Legacy Admin dynamic role, definer search-path, RPC rejection, assignment scope, draft/WIP/TEMP denial, applications, complaints, audit-log/notification-outbox restriction, storage policies.
-- Deno tests: for every hardened edge function — missing token 401, invalid token 401, unauthorized 403, authorized success, out-of-scope 403.
+## Slice 8 — Storage policy hardening
+Rewrite policies on private buckets (`documents`, `secure-documents`, `return-uploads`, `fp-evidence`, `complaint-evidence`, `application-documents`, `payment-documents`, `certificates`, `audit-exports`) to `has_permission(uid, module, action) AND <scope>`. Signed-URL-issuing edge functions call `requireUserPermission` with matching action (`download`/`upload`). pgTAP + Deno tests.
 
-## 12. Coverage gates in CI
-- Update `src/test/rbac/*` coverage tests: fail on unsafe definer search paths, unguarded high-risk edge functions, unguarded critical RPCs, assignment-only Return Queue leaks, unguarded internal routes, high-risk action regressions. Baseline ratcheted above 4.7% without loosening scanner allow-list.
+## Slice 9 — Frontend action sweep
+Automated: extend the RBAC scanner to (a) require `<PermissionGate>`/`GuardedButton` for real protection and (b) treat `data-rbac` as marker only. Fail CI when a business-action button lacks a real guard. Then wrap remaining unprotected actions module-by-module until scanner reports 100% coverage.
 
-## 13. Verification commands to run at the end
-```text
-bun run build:dev
-bunx vitest run src/test/rbac
-supabase test db
-deno test supabase/functions
-```
-Plus typecheck, lint, migration validation, and the three coverage scans. Real output reported; any unavailable command stated explicitly.
+## Slice 10 — Menu & route completion
+- `ROUTE_MODULE_MAP` audit; every internal route mapped or explicitly on the allow-list.
+- Route coverage test fails on unmapped internal route.
+- Sidebar: parents auto-hide when no visible child; assignment-only synthesis check.
 
-## 14. Completion report
-Will include: files changed, edge functions protected, migrations, RPCs/RLS/storage policies replaced, permissions added or deprecated, before/after coverage numbers, test files added and pass/fail, plus an explicit list of remaining lower-priority tables/RPCs/buttons/permissions carried into the next slice. Program will not be labelled complete while any Critical/High finding remains.
+## Slice 11 — Coverage methodology + final report
+- Rewrite `coverageScanner.ts` to distinguish `real_ui_guard` vs `audit_marker_only` and per-layer guard types; report classes: fully / ui-only / backend-only / partial / marker-only / orphan / deprecated.
+- Regenerate coverage artifacts only after all prior slices land.
+- Final report: commit SHA, files changed per slice, orphan before/after, edge/RPC/RLS/storage/route/button counts, test results, CI status, remaining limitations.
 
 ## Technical notes
-- Reuse the existing `_shared/authz.ts`; do not fork.
-- Single canonical lifecycle status source: `src/lib/returnLifecycle.ts` + matching SQL function; import both sides from there.
-- All new RLS composes `permission AND scope`, never `OR`, except the applicant-owns-own-application persona carve-out.
-- Storage policies live in migrations, not the dashboard.
-- No service-role bypass in edge functions before JWT + permission checks succeed.
+- Every slice ends with `bun test`, `tsgo`, `supabase--linter`, pgTAP for touched suites, and Deno test for touched functions.
+- Migrations are additive + reversible where possible; RLS changes ship with a `SET LOCAL role authenticated` pgTAP persona check before merging.
+- No behavior change to unrelated modules; scope predicates preserve existing legitimate access (applicant, PPOC, entity portal, workflow assignee).
+- Where a permission has no realistic surface, it is marked `deprecated` (not silently deleted) and hidden from Role Management.
+
+## Delivery cadence
+I'll implement Slices 1-2 in the first build turn (self-protection + dependency completion — smallest blast radius, unlocks the rest), then request approval to continue. Each subsequent turn lands 1-2 slices with tests green before moving on.
