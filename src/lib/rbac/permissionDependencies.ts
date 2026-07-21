@@ -20,6 +20,12 @@ export const DEPENDENT_ACTIONS = [
   'archive',
   'restore',
   'assign',
+  'bulk',
+  'configure',
+  'status_change',
+  'workflow_action',
+  'dispatch',
+  'execute',
 ] as const;
 
 export type DependentAction = (typeof DEPENDENT_ACTIONS)[number];
