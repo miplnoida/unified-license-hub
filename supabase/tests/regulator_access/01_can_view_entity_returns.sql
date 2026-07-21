@@ -9,7 +9,7 @@
 --
 -- Return statuses exercised: submitted (status='submitted') and draft ('draft').
 BEGIN;
-SELECT plan(14);
+SELECT plan(18);
 
 -- ---------- Fixtures ----------
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, aud, role)
