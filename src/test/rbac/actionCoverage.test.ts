@@ -52,15 +52,28 @@ describe('RBAC action coverage', () => {
   });
 
 
-  it('overall coverage stays at or above the baseline', () => {
+  it('no destructive/mutating action buttons are unguarded (Slice 17 floor)', () => {
+    const CRITICAL = new Set([
+      'Delete', 'Approve', 'Reject', 'Assign', 'Escalate', 'Publish',
+      'Archive', 'Configure', 'Bulk', 'Resubmit', 'Issue', 'Reopen',
+      'Close', 'Import', 'Export',
+    ]);
+    const gaps = sites.filter((s) => !s.protected && CRITICAL.has(s.category));
+    if (gaps.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('[rbac-audit] critical unguarded:', gaps.map((g) => `${g.file}:${g.line} ${g.category} "${g.button}"`));
+    }
+    expect(gaps.length, 'destructive/mutating buttons without PermissionGate/GuardedButton/data-rbac').toBe(0);
+  });
+
+  it('overall coverage stays at or above the Slice 17 baseline', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Baseline established at introduction. Ratchet upward as coverage grows.
-    // Store as a soft floor: any drop breaks the build.
-    const BASELINE = 0; // seeded at 0 so this run establishes it; see docs/rbac/action-audit.md for the current number.
+    // Slice 17: 59 destructive buttons annotated; overall floor set to 30%.
+    // Ratchet upward as coverage grows.
+    const BASELINE = 30;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
-    // Emit for visibility in CI logs.
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
   });
