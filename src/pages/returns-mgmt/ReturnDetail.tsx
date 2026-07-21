@@ -713,56 +713,63 @@ export default function ReturnDetail() {
                 />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={decideEditRequest.isPending}
-                  onClick={async () => {
-                    const confirm = await Swal.fire({
-                      title: 'Allow licensee to edit?',
-                      text: 'The return will be reopened for the licensee to correct and resubmit.',
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonText: 'Allow Edit',
-                      confirmButtonColor: '#16a34a',
-                    });
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'allowed', comment: editDecisionComment, returnId: id! });
-                      setEditDecisionComment('');
-                    } catch { /* toast handled */ }
-                  }}
-                >
-                  {decideEditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                  Allow Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive/10"
-                  disabled={decideEditRequest.isPending}
-                  onClick={async () => {
-                    if (!editDecisionComment.trim()) {
-                      toast.error('Please provide a reason for denying the request.');
-                      return;
-                    }
-                    const confirm = await Swal.fire({
-                      title: 'Deny edit request?',
-                      text: 'The licensee will be notified. The return status is unchanged.',
-                      icon: 'warning',
-                      showCancelButton: true,
-                      confirmButtonText: 'Deny Request',
-                      confirmButtonColor: '#dc2626',
-                    });
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
-                      setEditDecisionComment('');
-                    } catch { /* toast handled */ }
-                  }}
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Deny Request
-                </Button>
+                <PermissionGate module="returns_management" action="approve">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={decideEditRequest.isPending}
+                    data-rbac="returns_management.approve"
+                    onClick={async () => {
+                      const confirm = await Swal.fire({
+                        title: 'Allow licensee to edit?',
+                        text: 'The return will be reopened for the licensee to correct and resubmit.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Allow Edit',
+                        confirmButtonColor: '#16a34a',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'allowed', comment: editDecisionComment, returnId: id! });
+                        setEditDecisionComment('');
+                      } catch { /* toast handled */ }
+                    }}
+                  >
+                    {decideEditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Allow Edit
+                  </Button>
+                </PermissionGate>
+                <PermissionGate module="returns_management" action="reject">
+                  <Button
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
+                    disabled={decideEditRequest.isPending}
+                    data-rbac="returns_management.reject"
+                    onClick={async () => {
+                      if (!editDecisionComment.trim()) {
+                        toast.error('Please provide a reason for denying the request.');
+                        return;
+                      }
+                      const confirm = await Swal.fire({
+                        title: 'Deny edit request?',
+                        text: 'The licensee will be notified. The return status is unchanged.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Deny Request',
+                        confirmButtonColor: '#dc2626',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
+                        setEditDecisionComment('');
+                      } catch { /* toast handled */ }
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Deny Request
+                  </Button>
+                </PermissionGate>
               </div>
+
             </CardContent>
           </Card>
         )}
