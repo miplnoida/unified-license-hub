@@ -177,5 +177,51 @@ each new write policy, verification that no legacy `has_role()` clause
 survives on the 12 tables, and grant assertions (anon = 0 rows,
 authenticated SELECT on all 12).
 
+## Slice 5 — Applications & RFI table lockdown (shipped)
+
+Migration: `supabase/migrations/*_slice_5_applications_rls.sql`
+
+**Permission catalog** — added `application_management.view_all_entities`,
+`.workflow_action`, `.delete`, `.manage_config` (existing view/create/edit/
+approve/reject retained).
+
+**Canonical helpers** (SECURITY DEFINER, STABLE, `search_path = public`;
+`EXECUTE` revoked from PUBLIC, granted to `authenticated, service_role`):
+
+- `public.can_read_application(_user, _application_id)` composes
+  super_admin, `view_all_entities`, applicant, internal `view`,
+  licensee membership (`application_ids_for_licensee`), PPOC mapping,
+  and `external_can_access_application(..., 'can_view')`.
+- `public.can_mutate_application(_user, _application_id)` composes
+  super_admin, `edit`, `workflow_action`, applicant on editable statuses
+  (draft/in_progress/resubmission_*/query_raised/returned_for_correction/
+  info_requested), and external submit/respond capabilities.
+
+**Policy rewrites** — 8 tables, every legacy multi-role `has_role()` block
+replaced with helper composition:
+
+- `applications` (8 policies → 4: read/insert/update/delete)
+- `application_ai_assessments` (1 → 2, internal read + permissioned write)
+- `application_form_versions` (1 → 2)
+- `application_rfis` (2 → 2)
+- `application_rfi_items` (2 → 2)
+- `application_rfi_responses` (2 → 2, WITH CHECK enforces `submitted_by=auth.uid()`)
+- `application_rfi_auto_rules` (2 → 2, read gated to non-external)
+- `license_action_form_configs` (2 → 2)
+
+`application_legal_notes` intentionally left as-is: it uses
+`has_legal_access()` (not the legacy admin/supervisor pattern) and is the
+canonical legal-scope helper.
+
+**Grants** — anon revoked, authenticated CRUD, service_role ALL
+reasserted on all 8 tables.
+
+pgTAP: `supabase/tests/rbac/60_applications_rls.sql` — 22 assertions
+across five personas (super_admin, view-only staff, edit staff, applicant,
+unassociated). Covers helper composition, applicant editable-status
+boundary, view-only-cannot-mutate invariant, policy presence, no legacy
+`has_role` clauses on the seven child tables, and zero anon grants.
+
+
 
 
