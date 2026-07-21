@@ -401,7 +401,7 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
             <Textarea value={rationale} onChange={(e) => setRationale(e.target.value)} rows={3} placeholder="Basis for the determination" />
           </div>
           <div className="flex justify-end">
-            <Button size="sm" onClick={issueDetermination} disabled={issuing || !rationale.trim()}>
+            <Button size="sm" data-rbac="license_management.approve" onClick={issueDetermination} disabled={issuing || !rationale.trim()}>
               {issuing && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
               Issue determination
             </Button>

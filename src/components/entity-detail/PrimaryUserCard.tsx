@@ -194,7 +194,7 @@ export default function PrimaryUserCard({ entityId, entityName, refreshKey }: Pr
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleAssign} disabled={submitting || !selectedUserId}>
+            <Button data-rbac="licensee_management.edit" onClick={handleAssign} disabled={submitting || !selectedUserId}>
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Assign as Primary User
             </Button>

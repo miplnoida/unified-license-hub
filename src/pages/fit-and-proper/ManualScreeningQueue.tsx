@@ -316,7 +316,7 @@ export default function ManualScreeningQueue() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               {task.status === 'UNASSIGNED' && (
-                                <Button
+                                <Button data-rbac="fit_and_proper.edit"
                                   size="sm"
                                   variant="outline"
                                   className="text-xs"

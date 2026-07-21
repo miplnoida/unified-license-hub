@@ -162,7 +162,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                     {(step.repeatLabel || step.title)} {i + 1}
                   </h4>
                   {i > 0 && !readOnly && (
-                    <Button
+                    <Button data-rbac="registration_management.edit"
                       type="button"
                       variant="ghost"
                       size="sm"
@@ -843,7 +843,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
           <AttachmentDisplay value={value} />
         )}
         {!readOnly && (
-          <Button type="button" variant="ghost" size="sm" onClick={handleRemove} className="h-7 text-xs text-destructive hover:text-destructive">
+          <Button data-rbac="registration_management.edit" type="button" variant="ghost" size="sm" onClick={handleRemove} className="h-7 text-xs text-destructive hover:text-destructive">
             <X className="h-3 w-3 mr-1" /> Remove
           </Button>
         )}

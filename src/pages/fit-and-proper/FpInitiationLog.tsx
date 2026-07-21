@@ -186,7 +186,7 @@ export default function FpInitiationLog() {
           backHref="/fit-and-proper"
           backLabel="Register"
           actions={
-            <Button size="sm" variant="outline" onClick={() => exportCsv(filtered)}>
+            <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={() => exportCsv(filtered)}>
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>

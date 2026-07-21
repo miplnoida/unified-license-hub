@@ -352,7 +352,7 @@ export default function FormManagement() {
           actions={
             <div className="flex items-center gap-2">
               {activeTab === 'returns' && canEditForms && (
-                <Button
+                <Button data-rbac="form_management.import"
                   variant="outline"
                   onClick={() => navigate(`/admin/forms/create?type=returns&import=excel`)}
                   title="Import a workbook (.xlsx, .xlsm, .xls). Each sheet becomes a return form with formulas preserved."
@@ -453,7 +453,7 @@ export default function FormManagement() {
                         )}
                       </span>
                       {canEditForms && (
-                        <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
+                        <Button data-rbac="form_management.publish" size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
                           {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                           Publish Selected
                         </Button>
@@ -470,7 +470,7 @@ export default function FormManagement() {
                         </Button>
                       )}
                       {canEditForms && (
-                        <Button
+                        <Button data-rbac="form_management.delete"
                           size="sm"
                           variant="destructive"
                           onClick={handleBulkDelete}

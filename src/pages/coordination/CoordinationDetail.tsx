@@ -290,7 +290,7 @@ export default function CoordinationDetail() {
               {isOwner && caseRow.status !== 'closed' && (
                 <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">Close Case</Button>
+                    <Button data-rbac="coordination.edit" variant="outline" size="sm">Close Case</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Close Coordination Case</DialogTitle></DialogHeader>
@@ -321,7 +321,7 @@ export default function CoordinationDetail() {
                     </div>
                     <DialogFooter>
                       <Button variant="ghost" onClick={() => setCloseOpen(false)}>Cancel</Button>
-                      <Button
+                      <Button data-rbac="coordination.edit"
                         onClick={() => closeCase.mutate()}
                         disabled={closeCase.isPending || closeRationale.trim().length < 10}
                       >

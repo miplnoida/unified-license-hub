@@ -331,12 +331,12 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
               {s.status === 'pending' && !isSyntheticId(s.id) && (
                 <div className="flex gap-1">
                   {collab.perms.can_accept && (
-                    <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
+                    <Button size="sm" variant="outline" data-rbac="returns_management.approve" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
                       <Check className="h-3 w-3 mr-1" />Accept
                     </Button>
                   )}
                   {collab.perms.can_reject && (
-                    <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: false })}>
+                    <Button size="sm" variant="outline" data-rbac="returns_management.reject" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: false })}>
                       <X className="h-3 w-3 mr-1" />Reject
                     </Button>
                   )}
@@ -418,17 +418,17 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                     </Button>
                   )}
                   {collab.perms.can_resolve && c.status === 'open' && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
                       <Check className="h-3 w-3 mr-1" />Resolve
                     </Button>
                   )}
                   {collab.perms.can_resolve && c.status === 'resolved' && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
                       <RotateCcw className="h-3 w-3 mr-1" />Reopen
                     </Button>
                   )}
                   {collab.perms.can_mark_blocking && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
                       <AlertTriangle className="h-3 w-3 mr-1" />{c.is_blocking ? 'Unblock' : 'Blocking'}
                     </Button>
                   )}

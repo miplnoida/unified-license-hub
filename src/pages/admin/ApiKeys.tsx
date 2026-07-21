@@ -94,7 +94,7 @@ export default function ApiKeys() {
       <PageHeader
         title="Developer API Keys"
         description="Issue read-only API keys for external systems to consume the public registry."
-        actions={<Button onClick={() => { setIssuedKey(null); setOpen(true); }}><Plus className="h-4 w-4 mr-2" />Issue key</Button>}
+        actions={<Button data-rbac="settings.edit" onClick={() => { setIssuedKey(null); setOpen(true); }}><Plus className="h-4 w-4 mr-2" />Issue key</Button>}
       />
 
       <Card>
@@ -232,7 +232,7 @@ export default function ApiKeys() {
           <DialogFooter>
             {issuedKey
               ? <Button onClick={() => { setIssuedKey(null); setOpen(false); }}>Done</Button>
-              : <Button onClick={() => create.mutate()} disabled={create.isPending}>
+              : <Button data-rbac="settings.edit" onClick={() => create.mutate()} disabled={create.isPending}>
                   {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Issue key
                 </Button>}
           </DialogFooter>

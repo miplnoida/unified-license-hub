@@ -304,7 +304,7 @@ export default function FitAndProperIndividualDetail() {
           actions={
             <div className="flex items-center gap-2">
               <Badge variant="outline">{person.status}</Badge>
-              <Button size="sm" variant="outline" onClick={exportAuditHistory}>
+              <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={exportAuditHistory}>
                 <Download className="h-4 w-4 mr-2" /> Export history
               </Button>
               <HistoryButton entityType="fp_individual" entityId={person.id} title={`Individual history — ${person.full_name}`} />

@@ -640,15 +640,15 @@ function AnalystDecisionBar({
         </div>
         {!mode && (
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => startMode('accepted')}>
+            <Button size="sm" variant="secondary" data-rbac="application_management.approve" onClick={() => startMode('accepted')}>
               <ThumbsUp className="h-4 w-4 mr-1" />
               Accept
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => startMode('overridden')}>
+            <Button size="sm" variant="destructive" data-rbac="application_management.reject" onClick={() => startMode('overridden')}>
               <ThumbsDown className="h-4 w-4 mr-1" />
               Override
             </Button>
-            <Button size="sm" variant="outline" onClick={() => startMode('escalated')}>
+            <Button size="sm" variant="outline" data-rbac="application_management.escalate" onClick={() => startMode('escalated')}>
               <ShieldAlert className="h-4 w-4 mr-1" />
               Escalate
             </Button>
@@ -748,10 +748,10 @@ function AIRoutingDecisionActions({
   return (
     <>
       <div className="flex items-center gap-2 pt-1 border-t">
-        <Button size="sm" variant="secondary" disabled={saving} onClick={() => persistDecision('accepted')}>
+        <Button size="sm" variant="secondary" data-rbac="application_management.approve" disabled={saving} onClick={() => persistDecision('accepted')}>
           <ThumbsUp className="h-3.5 w-3.5 mr-1" /> Accept AI routing
         </Button>
-        <Button size="sm" variant="outline" disabled={saving} onClick={() => setOverrideOpen(true)}>
+        <Button size="sm" variant="outline" data-rbac="application_management.edit" disabled={saving} onClick={() => setOverrideOpen(true)}>
           <ThumbsDown className="h-3.5 w-3.5 mr-1" /> Override with reason
         </Button>
       </div>

@@ -325,7 +325,7 @@ export default function ComplianceAuditLogs() {
                   <Button onClick={loadAll} disabled={loading}>
                     {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Apply Filters
                   </Button>
-                  <Button variant="outline" onClick={() => exportCsv('all')}>
+                  <Button data-rbac="compliance_management.export" variant="outline" onClick={() => exportCsv('all')}>
                     <Download className="h-4 w-4 mr-2" /> Export CSV
                   </Button>
                 </div>
@@ -414,7 +414,7 @@ export default function ComplianceAuditLogs() {
                 <Button onClick={() => loadCase()} disabled={caseLoading || !caseObjectId.trim()}>
                   {caseLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Trace
                 </Button>
-                <Button variant="outline" onClick={() => exportCsv('case')} disabled={caseRows.length === 0}>
+                <Button data-rbac="compliance_management.export" variant="outline" onClick={() => exportCsv('case')} disabled={caseRows.length === 0}>
                   <Download className="h-4 w-4 mr-2" /> Export CSV
                 </Button>
               </CardContent>
@@ -492,7 +492,7 @@ export default function ComplianceAuditLogs() {
                         <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" onClick={() => exportCsv('security')}>
+                  <Button data-rbac="compliance_management.export" variant="outline" onClick={() => exportCsv('security')}>
                     <Download className="h-4 w-4 mr-2" /> Export CSV
                   </Button>
                 </div>
@@ -532,7 +532,7 @@ export default function ComplianceAuditLogs() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">Exports Log</CardTitle>
-                <Button variant="outline" onClick={() => exportCsv('exports')}>
+                <Button data-rbac="compliance_management.export" variant="outline" onClick={() => exportCsv('exports')}>
                   <Download className="h-4 w-4 mr-2" /> Export CSV
                 </Button>
               </CardHeader>

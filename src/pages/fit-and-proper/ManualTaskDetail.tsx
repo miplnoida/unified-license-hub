@@ -609,7 +609,7 @@ export default function ManualTaskDetail() {
 
                 {/* Assign to me */}
                 {task.status === 'UNASSIGNED' && (
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     size="sm"
                     variant="outline"
                     className="w-full"

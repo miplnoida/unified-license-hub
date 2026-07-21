@@ -178,7 +178,7 @@ export function IssueActionDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={createAction.isPending}>Cancel</Button>
-          <Button onClick={() => createAction.mutate()} disabled={createAction.isPending}>
+          <Button data-rbac="conduct_management.create" onClick={() => createAction.mutate()} disabled={createAction.isPending}>
             {createAction.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
             Issue action
           </Button>

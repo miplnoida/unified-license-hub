@@ -282,7 +282,7 @@ export function MasterDataImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>Cancel</Button>
-          <Button onClick={handleImport} disabled={!canImport || importing}>
+          <Button data-rbac="master_data_management.import" onClick={handleImport} disabled={!canImport || importing}>
             {importing ? 'Importing...' : `Import ${validRows.length} row(s)`}
           </Button>
         </DialogFooter>
