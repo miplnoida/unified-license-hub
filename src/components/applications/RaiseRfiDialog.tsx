@@ -337,7 +337,7 @@ export function RaiseRfiDialog({
                     <Sparkles className="h-4 w-4 text-primary" />
                     Suggested items ({suggestions.length})
                   </div>
-                  <Button
+                  <Button data-rbac="application_management.edit"
                     type="button"
                     variant="outline"
                     size="sm"
@@ -383,7 +383,7 @@ export function RaiseRfiDialog({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Items ({items.length})</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Button data-rbac="application_management.edit" type="button" variant="outline" size="sm" onClick={addItem}>
                   <Plus className="mr-1 h-3 w-3" /> Add item
                 </Button>
               </div>
@@ -452,7 +452,7 @@ export function RaiseRfiDialog({
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={submit} disabled={!canSave}>
+            <Button data-rbac="application_management.edit" onClick={submit} disabled={!canSave}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Raise RFI
             </Button>

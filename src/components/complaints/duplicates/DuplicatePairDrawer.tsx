@@ -62,13 +62,13 @@ export function DuplicatePairDrawer({
           <Separator />
 
           <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="outline" onClick={() => mock('Marked as not a duplicate')}>
+            <Button data-rbac="complaint_management.edit" variant="outline" onClick={() => mock('Marked as not a duplicate')}>
               <XCircle className="h-4 w-4 mr-2" />Dismiss
             </Button>
-            <Button variant="outline" onClick={() => mock('Complaints linked for shared investigation')}>
+            <Button data-rbac="complaint_management.edit" variant="outline" onClick={() => mock('Complaints linked for shared investigation')}>
               <Link2 className="h-4 w-4 mr-2" />Link
             </Button>
-            <Button onClick={() => mock('Complaints merged into primary case')}>
+            <Button data-rbac="complaint_management.edit" onClick={() => mock('Complaints merged into primary case')}>
               <GitMerge className="h-4 w-4 mr-2" />Merge into Primary
             </Button>
           </div>

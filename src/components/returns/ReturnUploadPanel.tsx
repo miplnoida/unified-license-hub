@@ -295,11 +295,11 @@ export function ReturnUploadPanel({
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => downloadTemplate('xlsx')}
+          <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => downloadTemplate('xlsx')}
             disabled={loadingSpecs || specs.length === 0}>
             <FileSpreadsheet className="h-4 w-4 mr-2" /> Download XLSX Template
           </Button>
-          <Button variant="outline" size="sm" onClick={() => downloadTemplate('xml')}
+          <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => downloadTemplate('xml')}
             disabled={loadingSpecs || specs.length === 0}>
             <FileCode2 className="h-4 w-4 mr-2" /> Download XML Template
           </Button>
@@ -357,7 +357,7 @@ export function ReturnUploadPanel({
                     : <AlertTriangle className="h-4 w-4 text-destructive" />}
                   {parsedNonEmptyRows} value{parsedNonEmptyRows === 1 ? '' : 's'} ready to import
                 </div>
-                <Button variant="ghost" size="sm" onClick={resetSelection}>
+                <Button data-rbac="returns_management.edit" variant="ghost" size="sm" onClick={resetSelection}>
                   <X className="h-3.5 w-3.5 mr-1" />Discard
                 </Button>
               </div>

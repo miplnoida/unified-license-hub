@@ -84,7 +84,7 @@ export default function ProductsChannelsTab({ entityId }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Products offered</CardTitle>
-          <Button size="sm" onClick={() => startAdd('product')}><Plus className="h-4 w-4 mr-2" /> Add product</Button>
+          <Button data-rbac="licensee_management.edit" size="sm" onClick={() => startAdd('product')}><Plus className="h-4 w-4 mr-2" /> Add product</Button>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
@@ -114,7 +114,7 @@ export default function ProductsChannelsTab({ entityId }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Distribution channels</CardTitle>
-          <Button size="sm" onClick={() => startAdd('channel')}><Plus className="h-4 w-4 mr-2" /> Add channel</Button>
+          <Button data-rbac="licensee_management.edit" size="sm" onClick={() => startAdd('channel')}><Plus className="h-4 w-4 mr-2" /> Add channel</Button>
         </CardHeader>
         <CardContent>
           {channels.length === 0 ? (
@@ -165,7 +165,7 @@ export default function ProductsChannelsTab({ entityId }: Props) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAddKind(null)}>Cancel</Button>
-            <Button onClick={submit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save</Button>
+            <Button data-rbac="licensee_management.edit" onClick={submit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

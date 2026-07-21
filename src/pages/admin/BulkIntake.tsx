@@ -182,7 +182,7 @@ export default function BulkIntake() {
           backHref="/admin"
           backLabel="Back to Admin"
           actions={
-            <Button variant="outline" onClick={downloadTemplate}>
+            <Button data-rbac="application_management.import" variant="outline" onClick={downloadTemplate}>
               <Download className="h-4 w-4 mr-2" /> CSV Template
             </Button>
           }
@@ -227,11 +227,11 @@ export default function BulkIntake() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">2. Preview — {parsed.rows.length} rows</CardTitle>
               <div className="flex gap-2">
-                <Button onClick={validate} disabled={!workflowKey || validating || parsed.rows.length === 0} variant="outline">
+                <Button data-rbac="application_management.import" onClick={validate} disabled={!workflowKey || validating || parsed.rows.length === 0} variant="outline">
                   {validating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   <Upload className="h-4 w-4 mr-2" /> Validate
                 </Button>
-                <Button
+                <Button data-rbac="application_management.import"
                   onClick={commit}
                   disabled={!preview || errorCount > 0 || committing}
                 >

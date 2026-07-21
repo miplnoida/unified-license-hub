@@ -207,7 +207,7 @@ export default function MasterDataManagement() {
 
           <TabsContent value="types">
             <DataTableShell columns={typeColumns} data={types} searchPlaceholder="Search types..."
-              actions={<Button onClick={openAddType}><Plus className="h-4 w-4 mr-2" />Add Type</Button>} />
+              actions={<Button data-rbac="settings.edit" onClick={openAddType}><Plus className="h-4 w-4 mr-2" />Add Type</Button>} />
           </TabsContent>
 
           <TabsContent value="items">
@@ -225,13 +225,13 @@ export default function MasterDataManagement() {
                 <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Search items..."
                   actions={
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
+                      <Button data-rbac="settings.export" variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
                       </Button>
                       <Button data-rbac="master_data_management.import" variant="outline" onClick={() => setImportOpen(true)}>
                         <Upload className="h-4 w-4 mr-2" />Import Excel
                       </Button>
-                      <Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>
+                      <Button data-rbac="settings.edit" onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>
                     </div>
                   } />
               ) : (

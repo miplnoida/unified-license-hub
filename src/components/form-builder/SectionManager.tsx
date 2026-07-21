@@ -181,7 +181,7 @@ export function SectionManager({
           <h3 className="text-sm font-semibold text-foreground">Form Sections</h3>
           <Badge variant="secondary" className="text-xs">{sections.length} sections · {totalFields} fields</Badge>
         </div>
-        <Button size="sm" variant="outline" onClick={handleAddSection}>
+        <Button data-rbac="form_management.edit" size="sm" variant="outline" onClick={handleAddSection}>
           <Plus className="h-3.5 w-3.5 mr-1" />
           Add Section
         </Button>
@@ -191,7 +191,7 @@ export function SectionManager({
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <p className="text-sm text-muted-foreground mb-3">No sections yet. Add a section to start building your form.</p>
-            <Button variant="outline" onClick={handleAddSection}>
+            <Button data-rbac="form_management.edit" variant="outline" onClick={handleAddSection}>
               <Plus className="h-4 w-4 mr-2" />
               Add First Section
             </Button>
@@ -379,7 +379,7 @@ export function SectionManager({
                 <div className="flex items-center gap-2 pt-1">
                   <span className="text-[11px] text-muted-foreground">Add row:</span>
                   {([1, 2, 3, 4] as const).map(c => (
-                    <Button key={c} variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => handleAddRow(section.id, c)}>
+                    <Button data-rbac="form_management.edit" key={c} variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => handleAddRow(section.id, c)}>
                       <Plus className="h-3 w-3 mr-1" /> {c} col
                     </Button>
                   ))}
