@@ -90,9 +90,11 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
               <CardTitle className="text-base flex items-center gap-2"><FolderTree className="h-4 w-4" /> Modules</CardTitle>
               <CardDescription>Top-level modules and their sub-modules</CardDescription>
             </div>
-            <Button size="sm" variant="outline" onClick={() => openCreateModule(null)}>
-              <Plus className="h-4 w-4 mr-1" />Module
-            </Button>
+            {canManage && (
+              <Button size="sm" variant="outline" onClick={() => openCreateModule(null)}>
+                <Plus className="h-4 w-4 mr-1" />Module
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-2">
             {rootModules.map(m => (
