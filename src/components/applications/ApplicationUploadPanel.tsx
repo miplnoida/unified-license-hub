@@ -202,7 +202,7 @@ export function ApplicationUploadPanel({ formName, sections, disabled }: Props) 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span>
-                      <Button size="sm" disabled>
+                      <Button size="sm" data-rbac="application_management.import" disabled>
                         <Download className="h-4 w-4 mr-2 rotate-180" /> Import into application
                       </Button>
                     </span>
