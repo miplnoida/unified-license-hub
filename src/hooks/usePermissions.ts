@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { getModuleForPath, PermissionModule } from '@/lib/permissionModules';
+import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/lib/permissionModules';
+import { INTERNAL_ROLES } from '@/types/platform';
 
 type UserPermission = {
   id?: string;
@@ -14,15 +15,19 @@ const normalizeModule = (value?: string | null) => normalizeKey(value).replace(/
 const normalizeAction = normalizeKey;
 
 /**
- * Hook to check if the current user has a specific permission.
- * Fetches the user's role permissions from the DB and provides a check function.
+ * Unified RBAC hook.
  *
  * Enforcement model:
- * - super_admin always has access (bypass).
- * - If the user's `system_role` is 'admin' but they are mapped to a *dynamic role*
- *   in the `roles` table, then the dynamic role's permissions become the source
- *   of truth (sidebar + route access).
- * - Users with no dynamic role mapping (legacy admins) keep full access.
+ * - `super_admin` → full bypass.
+ * - `admin` (legacy system role) → bypass. Any other identity must carry an
+ *   explicit dynamic role; there is no "no mapping = allow" fallback for
+ *   other internal roles.
+ * - Menus/routes require the module's `view` action (see `hasModuleAccess`).
+ * - Actions require their exact permission (`hasPermission(module, action)`).
+ * - Unknown *protected* routes are denied by default; unmapped non-protected
+ *   routes (public/utility paths) remain accessible.
+ * - Assignment-only regulators (Lead / Regulator / Alternate Regulator on
+ *   `licensees`) get a narrow read-only exception for the Return Queue.
  */
 export function useUserDynamicPermissions() {
   const { user } = useAuth();
@@ -77,9 +82,9 @@ export function useUserDynamicPermissions() {
   });
 
   // Entity assignments (Lead / Regulator / Alternate Regulator). A user
-  // assigned to any entity gets Returns module access even without the base
-  // returns_management.view permission. Backend RLS still restricts rows to
-  // that entity's submitted returns only.
+  // assigned to any entity gets a narrow Return Queue exception even without
+  // the base returns_management.view permission. Backend RLS still enforces
+  // per-row visibility.
   const { data: assignmentData } = useQuery({
     queryKey: ['user-entity-assignments', user?.id],
     enabled: !!user,
@@ -102,58 +107,89 @@ export function useUserDynamicPermissions() {
   const hasAnyEntityAssignment = assignedLicenseeIds.length > 0;
 
   const isSuperAdmin = user?.role === 'super_admin';
-  const enforceDynamic = !isSuperAdmin && hasDynamicRole;
+  // Legacy admin fallback: only true `admin` role bypasses. Every other
+  // internal role must be mapped to a dynamic role — no more blanket allow.
+  const isLegacyAdmin = user?.role === 'admin';
+  const isBypassRole = isSuperAdmin || isLegacyAdmin;
+  const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
+  // enforceDynamic is preserved for legacy call sites but is now always true
+  // when the user is not a bypass role — dynamic perms are the source of truth.
+  const enforceDynamic = !isBypassRole;
 
-  // Modules a mapped regulator can reach purely via entity assignment
-  // (no base permission required). Admin/config paths are NOT included.
+  // Modules unlocked purely via entity assignment (narrow read-only exception).
   const isAssignmentUnlockedModule = (moduleKey: string): boolean =>
     moduleKey === 'returns_management' && hasAnyEntityAssignment;
 
   const hasPermission = (module: string, action: string): boolean => {
-    if (isSuperAdmin) return true;
-    if (!enforceDynamic) return true;
+    if (isBypassRole) return true;
     const moduleKey = normalizeModule(module);
     const actionKey = normalizeAction(action);
     if (permissions.some(p => p.module === moduleKey && p.name === actionKey)) return true;
-    // Assignment implicitly grants base "view" for returns_management so
-    // the UI can mirror backend RLS.
+    // Assignment implicitly grants ONLY `view` on returns_management —
+    // never create/edit/approve/reject/export/download/upload/configure.
     if (actionKey === 'view' && isAssignmentUnlockedModule(moduleKey)) return true;
     return false;
   };
 
+  /**
+   * Module access = "can see menu / open landing route". View-gated:
+   * a user with only `edit` (and no `view`) must NOT see the menu.
+   */
   const hasModuleAccess = (module: string): boolean => {
-    if (isSuperAdmin) return true;
-    if (!enforceDynamic) return true;
+    if (isBypassRole) return true;
     const moduleKey = normalizeModule(module);
-    if (permissions.some(p => p.module === moduleKey)) return true;
+    if (permissions.some(p => p.module === moduleKey && p.name === 'view')) return true;
     if (isAssignmentUnlockedModule(moduleKey)) return true;
     return false;
   };
 
   const hasAnyModuleAccess = (): boolean => {
-    if (isSuperAdmin) return true;
-    if (!enforceDynamic) return false;
-    if (permissions.length > 0) return true;
+    if (isBypassRole) return true;
+    if (permissions.some(p => p.name === 'view')) return true;
     return hasAnyEntityAssignment;
   };
 
-  // Returns routes reachable by assignment-only users. Excludes admin config
-  // routes (types/configurations/cutoff/due-dates/late-fees/etc).
+  /**
+   * Returns admin routes an assignment-only regulator may open. Explicitly
+   * excludes every Returns configuration/analytics page.
+   */
   const isAssignmentAllowedReturnsPath = (pathname: string): boolean => {
     if (!hasAnyEntityAssignment) return false;
+    // Explicit config/admin exclusions — assignment must never unlock these.
+    const denyPrefixes = [
+      '/admin/returns/config',
+      '/admin/return-config',
+      '/admin/returns/types',
+      '/admin/returns/cutoff',
+      '/admin/returns/due-dates',
+      '/admin/returns/late-fees',
+      '/admin/returns/notifications',
+      '/admin/returns/schedule',
+      '/admin/returns/validations',
+      '/admin/returns/thresholds',
+      '/admin/returns/ratios',
+      '/admin/returns/analytics',
+    ];
+    if (denyPrefixes.some((p) => pathname === p || pathname.startsWith(p + '/'))) return false;
+
     if (pathname.startsWith('/entity/returns')) return true;
     if (pathname === '/admin/returns' || pathname === '/admin/returns/queue') return true;
     if (pathname.startsWith('/admin/returns/queue/')) return true;
     if (pathname.startsWith('/admin/returns/view')) return true;
+    if (pathname.startsWith('/admin/returns/')) return false; // any other returns admin path
     return false;
   };
 
   const canAccessPath = (pathname: string): boolean => {
-    if (isSuperAdmin) return true;
-    if (!enforceDynamic) return true;
+    if (isBypassRole) return true;
     const mod = getModuleForPath(pathname);
-    if (!mod) return true; // unmapped route => not gated by dynamic perms
-    if (permissions.some(p => p.module === normalizeModule(mod))) return true;
+    if (!mod) {
+      // Unmapped path: deny only if it lives under a protected internal prefix.
+      if (isProtectedInternalPath(pathname)) return false;
+      return true;
+    }
+    // Route access requires the module's `view` permission.
+    if (permissions.some(p => p.module === normalizeModule(mod) && p.name === 'view')) return true;
     if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
     return false;
   };
@@ -168,6 +204,8 @@ export function useUserDynamicPermissions() {
     hasAnyModuleAccess,
     canAccessPath,
     enforceDynamic,
+    isBypassRole,
+    isInternal,
     isLoading,
   };
 }
