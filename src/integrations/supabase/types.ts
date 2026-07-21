@@ -15435,6 +15435,10 @@ export type Database = {
         Args: { _rule_id: string }
         Returns: undefined
       }
+      assert_role_management_action: {
+        Args: { _action: string }
+        Returns: undefined
+      }
       assign_complaint:
         | {
             Args: {
