@@ -15569,6 +15569,10 @@ export type Database = {
         Args: { _application_id: string; _user: string }
         Returns: boolean
       }
+      can_mutate_compliance_return: {
+        Args: { _return_id: string; _user: string }
+        Returns: boolean
+      }
       can_mutate_license: {
         Args: { _license_id: string; _user: string }
         Returns: boolean
@@ -15583,6 +15587,10 @@ export type Database = {
       }
       can_read_application: {
         Args: { _application_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_compliance_return: {
+        Args: { _return_id: string; _user: string }
         Returns: boolean
       }
       can_read_license: {
