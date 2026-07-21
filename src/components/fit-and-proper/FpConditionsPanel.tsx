@@ -184,7 +184,7 @@ export function FpConditionsPanel({ individualId }: Props) {
           <span>Conditions</span>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" disabled={!currentDet}><Plus className="h-4 w-4 mr-2" /> Add condition</Button>
+              <Button data-rbac="fit_and_proper.edit" size="sm" disabled={!currentDet}><Plus className="h-4 w-4 mr-2" /> Add condition</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add condition</DialogTitle></DialogHeader>
@@ -225,7 +225,7 @@ export function FpConditionsPanel({ individualId }: Props) {
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => add.mutate()} disabled={add.isPending}>
+                <Button data-rbac="fit_and_proper.edit" onClick={() => add.mutate()} disabled={add.isPending}>
                   {add.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save
                 </Button>
               </DialogFooter>
@@ -260,7 +260,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                     {c.satisfaction_note && <div className="text-xs italic mt-1">Note: {c.satisfaction_note}</div>}
                   </div>
                   <div className="flex gap-1">
-                    {isOpen && <Button size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
+                    {isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
                     {!isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
                   </div>
                 </div>
@@ -284,7 +284,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                     <Textarea rows={2} placeholder="Evidence / note" value={satNote} onChange={(e) => setSatNote(e.target.value)} />
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setSatisfyFor(null)}>Cancel</Button>
-                      <Button size="sm" variant="outline" onClick={() => {
+                      <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={() => {
                         setPending({
                           ruleKey: 'fit_and_proper.condition.waiver',
                           title: 'Waive condition',
@@ -301,7 +301,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                           apply: async () => { await satisfy.mutateAsync({ id: c.id, waive: true }); },
                         });
                       }} disabled={satisfy.isPending}>Waive</Button>
-                      <Button size="sm" onClick={() => {
+                      <Button data-rbac="fit_and_proper.edit" size="sm" onClick={() => {
                         const needsEvidence = c.evidence_type && c.evidence_type !== 'none';
                         if (needsEvidence && satNote.trim().length < 5) {
                           setPending({

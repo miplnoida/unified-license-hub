@@ -744,11 +744,11 @@ export default function LicenseDetail() {
                         <Button data-rbac="license_management.edit" variant="outline" onClick={() => openAction('suspension')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
                         <Button data-rbac="license_management.delete" variant="destructive" onClick={() => openAction('revocation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
                         {pendingRenewalAppId ? (
-                          <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
+                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                           </Button>
                         ) : inProgressRenewalAppId ? (
-                          <Button variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                           </Button>
                         ) : (
@@ -767,11 +767,11 @@ export default function LicenseDetail() {
                     )}
                     {license.status === 'expired' && (
                       pendingRenewalAppId ? (
-                        <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
+                        <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                           <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                         </Button>
                       ) : inProgressRenewalAppId ? (
-                        <Button variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                        <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
                           <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                         </Button>
                       ) : (
@@ -802,11 +802,11 @@ export default function LicenseDetail() {
                     </p>
                     <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
                     {pendingRenewalAppId ? (
-                      <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
+                      <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                         <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                       </Button>
                     ) : inProgressRenewalAppId ? (
-                      <Button onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                      <Button data-rbac="license_management.view" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
                         <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                       </Button>
                     ) : (

@@ -1217,11 +1217,11 @@ export default function ApplicationDetail() {
                     />
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Button onClick={handleAllowEdit} disabled={processing}>
+                    <Button data-rbac="application_management.edit" onClick={handleAllowEdit} disabled={processing}>
                       {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                       Allow Edit
                     </Button>
-                    <Button variant="destructive" onClick={handleDenyEdit} disabled={processing}>
+                    <Button data-rbac="application_management.edit" variant="destructive" onClick={handleDenyEdit} disabled={processing}>
                       <XCircle className="h-4 w-4 mr-2" />Deny Edit
                     </Button>
                   </div>
@@ -1500,7 +1500,7 @@ export default function ApplicationDetail() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
+                      <Button data-rbac="application_management.edit" variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
                         <Edit className="h-4 w-4 mr-2" />Request Edit
                       </Button>
                       <Button variant="destructive" onClick={handleCancel} disabled={processing}>

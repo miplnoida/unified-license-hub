@@ -391,7 +391,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                         </SelectContent>
                       </Select>
                       <Textarea rows={1} placeholder="Justification (optional)" value={voteNote} onChange={(e) => setVoteNote(e.target.value)} />
-                      <Button onClick={() => castVote.mutate()} disabled={castVote.isPending}>Vote</Button>
+                      <Button data-rbac="fit_and_proper.edit" onClick={() => castVote.mutate()} disabled={castVote.isPending}>Vote</Button>
                     </div>
                   </div>
                 )}
@@ -443,7 +443,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                     <div className="text-sm">Quorum reached — proposed outcome: <Badge variant="outline" className={OUTCOME_META[outcome].className}>{OUTCOME_META[outcome].label}</Badge></div>
                     <Textarea rows={3} placeholder={sectorRule && !criteriaEval.passed ? 'Rationale (min 10 chars) — must justify overriding sector rule' : 'Determination rationale (min 10 chars)…'} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                     <div className="flex justify-end">
-                      <Button onClick={() => finalize.mutate()} disabled={finalize.isPending || rationale.trim().length < 10}>
+                      <Button data-rbac="fit_and_proper.edit" onClick={() => finalize.mutate()} disabled={finalize.isPending || rationale.trim().length < 10}>
                         {finalize.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         Finalize determination
                       </Button>
@@ -477,7 +477,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
                 <div className="mt-1 text-xs">{d.rationale}</div>
                 {d.supersedes_id && <div className="text-xs text-muted-foreground mt-1">Supersedes {String(d.supersedes_id).slice(0, 8)}…</div>}
                 {d.outcome === 'conditional' && (
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     size="sm"
                     variant="outline"
                     className="mt-2"
@@ -508,7 +508,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
             <Button variant="ghost" onClick={() => setConditionPromptDeterminationId(null)}>
               Not now
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               onClick={() => {
                 if (!conditionPromptDeterminationId) return;
                 navigate(`/fpa/conditions?open=1&individual_id=${individualId}&determination_id=${conditionPromptDeterminationId}`);

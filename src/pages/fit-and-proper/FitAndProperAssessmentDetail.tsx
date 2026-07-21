@@ -501,7 +501,7 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
               </div>
             </div>
           ))}
-          {isDraft && <Button size="sm" variant="outline" onClick={addEmployment}><Plus className="h-4 w-4 mr-2" /> Add employment</Button>}
+          {isDraft && <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={addEmployment}><Plus className="h-4 w-4 mr-2" /> Add employment</Button>}
         </CardContent>
       </Card>
 
@@ -517,7 +517,7 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
               <div>{isDraft && <Button size="sm" variant="ghost" onClick={() => removeQualification(i)}><Trash2 className="h-4 w-4" /></Button>}</div>
             </div>
           ))}
-          {isDraft && <Button size="sm" variant="outline" onClick={addQualification}><Plus className="h-4 w-4 mr-2" /> Add qualification</Button>}
+          {isDraft && <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={addQualification}><Plus className="h-4 w-4 mr-2" /> Add qualification</Button>}
         </CardContent>
       </Card>
 
@@ -544,10 +544,10 @@ function LegacyDeclarationView({ assessment, isDraft, onSaved }: { assessment: a
 
       {isDraft && (
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button data-rbac="fit_and_proper.edit" variant="outline" onClick={() => save.mutate()} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Save draft
           </Button>
-          <Button onClick={() => submit.mutate()} disabled={submit.isPending || !decl.confirmation}>
+          <Button data-rbac="fit_and_proper.edit" onClick={() => submit.mutate()} disabled={submit.isPending || !decl.confirmation}>
             {submit.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />} Submit declaration
           </Button>
         </div>

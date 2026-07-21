@@ -407,28 +407,28 @@ export function ExecutiveSupervisoryDashboard() {
           <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/supervision/breaches">Breach Inbox</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/enforcement">Enforcement Queue</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/supervision/risk">Risk Heatmap</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/supervision/plans">Supervisory Plans</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/inspections">Inspections</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/prudential/actions">Prudential Actions</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/conduct/alerts">Conduct Alerts</Link>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/complaints/analytics">Complaints Analytics</Link>
           </Button>
         </CardContent>

@@ -1237,7 +1237,7 @@ export default function ApplicationsList() {
               showApplicationTypeChooser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button>
+                    <Button data-rbac="application_management.create">
                       <PlusCircle className="h-4 w-4 mr-2" />New Application
                       <ChevronDown className="h-4 w-4 ml-2" />
                     </Button>
@@ -1252,7 +1252,7 @@ export default function ApplicationsList() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => navigate(newApplicationPath)}>
+                <Button data-rbac="application_management.create" onClick={() => navigate(newApplicationPath)}>
                   <PlusCircle className="h-4 w-4 mr-2" />New Application
                 </Button>
               )
@@ -1387,7 +1387,7 @@ export default function ApplicationsList() {
                   );
                 })}
                 <div className="flex-1" />
-                <Button
+                <Button data-rbac="application_management.view"
                   size="sm"
                   variant="default"
                   disabled={selectedForCompare.length !== 2}

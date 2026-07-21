@@ -513,7 +513,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                 Blocking comment
               </label>
             ) : <span />}
-            <Button size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
+            <Button data-rbac="returns_management.edit" size="sm" onClick={submitComment} disabled={!draft.trim() || !roleGateOk || collab.addComment.isPending}>Add comment</Button>
           </div>
           {!roleGateOk && (
             <p className="text-[11px] text-muted-foreground">Preparing your reviewer role…</p>
@@ -550,7 +550,7 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                 ? 'Preparing your reviewer role…'
                 : suggType === 'insert' ? 'Insertion is added at your cursor position.' : 'Select the original text first.'}
             </span>
-            <Button size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
+            <Button data-rbac="returns_management.edit" size="sm" onClick={submitSuggestion} disabled={!roleGateOk || collab.addSuggestion.isPending}>Suggest</Button>
           </div>
         </div>
       )}

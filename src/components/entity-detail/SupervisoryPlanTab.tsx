@@ -128,7 +128,7 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
         <CardContent className="py-12 text-center space-y-4">
           <ShieldIcon />
           <p className="text-muted-foreground">No supervisory plan exists yet for this licensee.</p>
-          <Button onClick={bootstrap}><Plus className="h-4 w-4 mr-1" />Generate Initial Supervisory Profile</Button>
+          <Button data-rbac="prudential_supervision.edit" onClick={bootstrap}><Plus className="h-4 w-4 mr-1" />Generate Initial Supervisory Profile</Button>
         </CardContent>
       </Card>
     );
@@ -167,7 +167,7 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
           <CardTitle className="text-base">Time-Bound Corrective Actions</CardTitle>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" />Add Action</Button>
+              <Button data-rbac="prudential_supervision.edit" size="sm"><Plus className="h-4 w-4 mr-1" />Add Action</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add Corrective Action</DialogTitle></DialogHeader>
@@ -181,7 +181,7 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAddOpen(false)} disabled={submitting}>Cancel</Button>
-                <Button onClick={addAction} disabled={submitting || !newTitle || !newDue}>
+                <Button data-rbac="prudential_supervision.edit" onClick={addAction} disabled={submitting || !newTitle || !newDue}>
                   {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Add
                 </Button>
               </DialogFooter>
@@ -226,7 +226,7 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
                       <TableCell className="text-xs capitalize text-muted-foreground">{a.source}</TableCell>
                       <TableCell className="text-right">
                         {a.status !== 'completed' && (
-                          <Button size="sm" variant="outline" onClick={() => markComplete(a)}>Mark complete</Button>
+                          <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => markComplete(a)}>Mark complete</Button>
                         )}
                       </TableCell>
                     </TableRow>

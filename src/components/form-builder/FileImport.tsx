@@ -1914,7 +1914,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
                 <Button variant="outline" size="sm" onClick={() => { setOpen(false); resetState(); }}>Cancel</Button>
 
                 {step === 'select_sheets' && multiResult && onMultiSheetImport && (
-                  <Button size="sm" onClick={() => setStep('preview')} disabled={selectedSheets.length === 0}>
+                  <Button data-rbac="form_management.create" size="sm" onClick={() => setStep('preview')} disabled={selectedSheets.length === 0}>
                     Preview {selectedSheets.length} Sheet(s) <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 )}
@@ -1936,7 +1936,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
                 )}
 
                 {step === 'preview' && multiResult && !legacyPreview && onMultiSheetImport && (
-                  <Button size="sm" onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
+                  <Button data-rbac="form_management.create" size="sm" onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
                     <Layers className="h-4 w-4 mr-1" /> Create {selectedSheets.length} Form(s)
                   </Button>
                 )}
@@ -2191,7 +2191,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
 
               {/* Step 2 → Step 3 */}
               {step === 'select_sheets' && multiResult && onMultiSheetImport && (
-                <Button
+                <Button data-rbac="form_management.create"
                   onClick={() => setStep('preview')}
                   disabled={selectedSheets.length === 0}
                 >
@@ -2217,7 +2217,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
 
               {/* Step 3 → confirm multi-sheet */}
               {step === 'preview' && multiResult && !legacyPreview && onMultiSheetImport && (
-                <Button onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
+                <Button data-rbac="form_management.create" onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
                   <Layers className="h-4 w-4 mr-1" /> Create {selectedSheets.length} Form(s)
                 </Button>
               )}

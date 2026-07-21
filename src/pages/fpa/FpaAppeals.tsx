@@ -611,7 +611,7 @@ export default function FpaAppeals() {
           title="Appeals"
           description="Fit & Proper appeal management with license impact tracking — FPA-014"
           actions={
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               size="sm"
               onClick={() => setShowFileDialog(true)}
               className="gap-1.5"
@@ -787,7 +787,7 @@ export default function FpaAppeals() {
                                 >
                                   <div className="flex items-center justify-end gap-1.5">
                                     {st === 'submitted' && (
-                                      <Button
+                                      <Button data-rbac="fit_and_proper.edit"
                                         size="sm"
                                         variant="outline"
                                         className="h-7 px-2 text-xs"
@@ -801,7 +801,7 @@ export default function FpaAppeals() {
                                       </Button>
                                     )}
                                     {st === 'under_review' && (
-                                      <Button
+                                      <Button data-rbac="fit_and_proper.edit"
                                         size="sm"
                                         variant="default"
                                         className="h-7 px-2 text-xs"
@@ -1016,7 +1016,7 @@ export default function FpaAppeals() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               disabled={!fileGrounds.trim() || !fileIndividualId || !fileDeterminationId || fileAppealMutation.isPending}
               onClick={() => fileAppealMutation.mutate()}
             >
@@ -1116,7 +1116,7 @@ export default function FpaAppeals() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               disabled={!decisionValue || decisionRationale.trim().length < 10 || recordDecisionMutation.isPending}
               onClick={() => recordDecisionMutation.mutate()}
             >
