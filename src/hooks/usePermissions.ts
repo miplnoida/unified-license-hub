@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/lib/permissionModules';
 import { INTERNAL_ROLES } from '@/types/platform';
+import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
 
 type UserPermission = {
   id?: string;
@@ -17,17 +18,19 @@ const normalizeAction = normalizeKey;
 /**
  * Unified RBAC hook.
  *
- * Enforcement model:
- * - `super_admin` → full bypass.
- * - `admin` (legacy system role) → bypass. Any other identity must carry an
- *   explicit dynamic role; there is no "no mapping = allow" fallback for
- *   other internal roles.
- * - Menus/routes require the module's `view` action (see `hasModuleAccess`).
+ * Enforcement model (post-hardening):
+ * - `super_admin` → full bypass, and ONLY super_admin bypasses.
+ * - Static `admin` role no longer implicitly bypasses. Existing admins are
+ *   migrated to an explicit "Legacy Admin" dynamic role (see migration).
+ * - Every other internal user must carry an explicit dynamic role.
+ * - Menus / routes require the module's `view` action.
  * - Actions require their exact permission (`hasPermission(module, action)`).
- * - Unknown *protected* routes are denied by default; unmapped non-protected
- *   routes (public/utility paths) remain accessible.
+ * - Unknown *protected* routes are denied by default.
  * - Assignment-only regulators (Lead / Regulator / Alternate Regulator on
- *   `licensees`) get a narrow read-only exception for the Return Queue.
+ *   `licensees`) get a NARROW, separate capability — never a synthetic
+ *   `returns_management.view`. Consult `hasAssignmentReturnQueueAccess`,
+ *   `isAssignmentAllowedReturnsPath`, and `canViewAssignedReturn` for that
+ *   path — do NOT rely on `hasPermission` / `hasModuleAccess` for it.
  */
 export function useUserDynamicPermissions() {
   const { user } = useAuth();
@@ -81,10 +84,6 @@ export function useUserDynamicPermissions() {
     staleTime: 60_000,
   });
 
-  // Entity assignments (Lead / Regulator / Alternate Regulator). A user
-  // assigned to any entity gets a narrow Return Queue exception even without
-  // the base returns_management.view permission. Backend RLS still enforces
-  // per-row visibility.
   const { data: assignmentData } = useQuery({
     queryKey: ['user-entity-assignments', user?.id],
     enabled: !!user,
@@ -107,55 +106,59 @@ export function useUserDynamicPermissions() {
   const hasAnyEntityAssignment = assignedLicenseeIds.length > 0;
 
   const isSuperAdmin = user?.role === 'super_admin';
-  // Legacy admin fallback: only true `admin` role bypasses. Every other
-  // internal role must be mapped to a dynamic role — no more blanket allow.
-  const isLegacyAdmin = user?.role === 'admin';
-  const isBypassRole = isSuperAdmin || isLegacyAdmin;
+  // Bypass is now super_admin only. Static `admin` must have a dynamic role
+  // (Legacy Admin) provisioned by migration — no implicit bypass.
+  const isBypassRole = isSuperAdmin;
   const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
-  // enforceDynamic is preserved for legacy call sites but is now always true
-  // when the user is not a bypass role — dynamic perms are the source of truth.
+  // Legacy flag kept for callers that still branch on it; always true when
+  // the user is not a bypass role since dynamic perms are the source of truth.
   const enforceDynamic = !isBypassRole;
 
-  // Modules unlocked purely via entity assignment (narrow read-only exception).
-  const isAssignmentUnlockedModule = (moduleKey: string): boolean =>
-    moduleKey === 'returns_management' && hasAnyEntityAssignment;
-
+  /**
+   * Strict catalog match. Assignment does NOT synthesize any permission —
+   * assignment-only Return Queue access is a separate capability, see
+   * `hasAssignmentReturnQueueAccess` / `canViewAssignedReturn`.
+   */
   const hasPermission = (module: string, action: string): boolean => {
     if (isBypassRole) return true;
     const moduleKey = normalizeModule(module);
     const actionKey = normalizeAction(action);
-    if (permissions.some(p => p.module === moduleKey && p.name === actionKey)) return true;
-    // Assignment implicitly grants ONLY `view` on returns_management —
-    // never create/edit/approve/reject/export/download/upload/configure.
-    if (actionKey === 'view' && isAssignmentUnlockedModule(moduleKey)) return true;
-    return false;
+    return permissions.some(p => p.module === moduleKey && p.name === actionKey);
   };
 
   /**
    * Module access = "can see menu / open landing route". View-gated:
    * a user with only `edit` (and no `view`) must NOT see the menu.
+   * Assignment does NOT unlock module access — sidebar/route consumers that
+   * need the narrow Return Queue exception must additionally consult
+   * `hasAssignmentReturnQueueAccess`.
    */
   const hasModuleAccess = (module: string): boolean => {
     if (isBypassRole) return true;
     const moduleKey = normalizeModule(module);
-    if (permissions.some(p => p.module === moduleKey && p.name === 'view')) return true;
-    if (isAssignmentUnlockedModule(moduleKey)) return true;
-    return false;
+    return permissions.some(p => p.module === moduleKey && p.name === 'view');
   };
 
   const hasAnyModuleAccess = (): boolean => {
     if (isBypassRole) return true;
     if (permissions.some(p => p.name === 'view')) return true;
-    return hasAnyEntityAssignment;
+    // A pure assignment-only regulator still has *some* access surface
+    // (the Return Queue) — report that here so the dashboard doesn't
+    // treat them as fully locked out.
+    return hasAssignmentReturnQueueAccess;
   };
 
+  // ─── Assignment-only capability (separate from RBAC) ────────────────────
+
+  const hasAssignmentReturnQueueAccess: boolean =
+    !!isInternal && hasAnyEntityAssignment;
+
   /**
-   * Returns admin routes an assignment-only regulator may open. Explicitly
-   * excludes every Returns configuration/analytics page.
+   * The narrow allow-list of Returns routes an assignment-only regulator may
+   * open. Explicit deny for every configuration / analytics page.
    */
   const isAssignmentAllowedReturnsPath = (pathname: string): boolean => {
-    if (!hasAnyEntityAssignment) return false;
-    // Explicit config/admin exclusions — assignment must never unlock these.
+    if (!hasAssignmentReturnQueueAccess) return false;
     const denyPrefixes = [
       '/admin/returns/config',
       '/admin/return-config',
@@ -169,6 +172,7 @@ export function useUserDynamicPermissions() {
       '/admin/returns/thresholds',
       '/admin/returns/ratios',
       '/admin/returns/analytics',
+      '/admin/returns/dashboard',
     ];
     if (denyPrefixes.some((p) => pathname === p || pathname.startsWith(p + '/'))) return false;
 
@@ -180,15 +184,27 @@ export function useUserDynamicPermissions() {
     return false;
   };
 
+  /**
+   * Row-level check for a single return. Assignment-only regulators may view
+   * a return iff (a) the licensee is in their assignment set AND (b) the
+   * status is on the submitted-lifecycle allow-list. Users with the base
+   * `returns_management.view` permission still go through backend RLS
+   * (`can_view_return_filed`) — this helper is UI-side belt-and-braces.
+   */
+  const canViewAssignedReturn = (input: { licenseeId?: string | null; status?: string | null }): boolean => {
+    if (isBypassRole) return true;
+    if (!input?.licenseeId) return false;
+    if (!assignedLicenseeIds.includes(input.licenseeId)) return false;
+    return isSubmittedLifecycle(input.status);
+  };
+
   const canAccessPath = (pathname: string): boolean => {
     if (isBypassRole) return true;
     const mod = getModuleForPath(pathname);
     if (!mod) {
-      // Unmapped path: deny only if it lives under a protected internal prefix.
       if (isProtectedInternalPath(pathname)) return false;
       return true;
     }
-    // Route access requires the module's `view` permission.
     if (permissions.some(p => p.module === normalizeModule(mod) && p.name === 'view')) return true;
     if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
     return false;
@@ -199,10 +215,13 @@ export function useUserDynamicPermissions() {
     permissions,
     assignedLicenseeIds,
     hasAnyEntityAssignment,
+    hasAssignmentReturnQueueAccess,
     hasPermission,
     hasModuleAccess,
     hasAnyModuleAccess,
     canAccessPath,
+    canViewAssignedReturn,
+    isAssignmentAllowedReturnsPath,
     enforceDynamic,
     isBypassRole,
     isInternal,
