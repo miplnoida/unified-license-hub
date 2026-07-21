@@ -60,4 +60,39 @@ SELECT ok(
     WHERE table_schema='public' AND table_name='inspections' AND grantee='anon'),
   'anon has no grants on inspections');
 
+-- Slice 13: assignment-alone must NOT grant read on enforcement/inspection.
+-- Seed a licensee + assignment for a synthetic user with zero permissions.
+INSERT INTO public.licensees (id, licensee_name, lead_regulator_id)
+VALUES (
+  '77777777-7777-7777-7777-777777777777',
+  'Slice13 Test Licensee',
+  '55555555-5555-5555-5555-555555555555'
+)
+ON CONFLICT (id) DO UPDATE
+SET lead_regulator_id = EXCLUDED.lead_regulator_id;
+
+SELECT ok(
+  public.user_has_entity_assignment(
+    '55555555-5555-5555-5555-555555555555'::uuid,
+    '77777777-7777-7777-7777-777777777777'::uuid),
+  'seed: user is assigned to entity');
+
+SELECT ok(
+  NOT public.can_read_enforcement(
+    '55555555-5555-5555-5555-555555555555'::uuid,
+    '77777777-7777-7777-7777-777777777777'::uuid),
+  'Slice 13: assignment alone does NOT grant enforcement read');
+
+SELECT ok(
+  NOT public.can_read_inspection(
+    '55555555-5555-5555-5555-555555555555'::uuid,
+    '77777777-7777-7777-7777-777777777777'::uuid),
+  'Slice 13: assignment alone does NOT grant inspection read');
+
+SELECT ok(
+  NOT public.can_act_on_enforcement(
+    '55555555-5555-5555-5555-555555555555'::uuid, 'edit'),
+  'Slice 13: assignment alone does NOT grant enforcement edit');
+
 ROLLBACK;
+
