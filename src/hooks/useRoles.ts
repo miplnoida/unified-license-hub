@@ -111,6 +111,19 @@ export function useAllRolePermissions() {
   });
 }
 
+/**
+ * Transactional role writes. Delegates entirely to `public.rbac_save_role`
+ * so role attributes, scope_config, and role_permissions either commit
+ * together or roll back together. Server-side validators enforce name
+ * required, valid scope options, and view-dependency rules — the client
+ * never sees a half-saved role.
+ */
+async function callSaveRole(payload: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc('rbac_save_role' as any, { _payload: payload as any });
+  if (error) throw error;
+  return data as { id: string };
+}
+
 export function useCreateRole() {
   const qc = useQueryClient();
   return useMutation({
@@ -121,27 +134,18 @@ export function useCreateRole() {
       access_summary?: Record<string, unknown>; scope_config?: RoleScopeConfig;
       permissionIds: string[];
     }) => {
-      const { data: role, error } = await supabase
-        .from('roles' as any)
-        .insert({
-          name: input.name, description: input.description,
-          system_role: input.system_role, role_type: input.role_type,
-          dashboard_tier: input.dashboard_tier ?? 'operational', is_system: false,
-          role_category: input.role_category ?? null,
-          status: input.status ?? 'active',
-          access_summary: input.access_summary ?? {},
-          scope_config: input.scope_config ?? {},
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      if (input.permissionIds.length > 0) {
-        const rows = input.permissionIds.map(pid => ({ role_id: (role as any).id, permission_id: pid }));
-        const { error: rpErr } = await supabase.from('role_permissions' as any).insert(rows);
-        if (rpErr) throw rpErr;
-      }
-      return role;
+      return callSaveRole({
+        name: input.name,
+        description: input.description,
+        system_role: input.system_role,
+        role_type: input.role_type,
+        dashboard_tier: input.dashboard_tier ?? 'operational',
+        role_category: input.role_category ?? null,
+        status: input.status ?? 'active',
+        access_summary: input.access_summary ?? {},
+        scope_config: input.scope_config ?? {},
+        permission_ids: input.permissionIds,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
@@ -162,32 +166,25 @@ export function useUpdateRole() {
       access_summary?: Record<string, unknown>; scope_config?: RoleScopeConfig;
       permissionIds: string[];
     }) => {
-      const patch: Record<string, unknown> = {
-        name: input.name, description: input.description,
-        system_role: input.system_role, role_type: input.role_type,
+      return callSaveRole({
+        id: input.id,
+        name: input.name,
+        description: input.description,
+        system_role: input.system_role,
+        role_type: input.role_type,
         dashboard_tier: input.dashboard_tier ?? 'operational',
-        updated_at: new Date().toISOString(),
-      };
-      if (input.role_category !== undefined) patch.role_category = input.role_category;
-      if (input.status !== undefined) patch.status = input.status;
-      if (input.access_summary !== undefined) patch.access_summary = input.access_summary;
-      if (input.scope_config !== undefined) patch.scope_config = input.scope_config;
-
-      const { error } = await supabase.from('roles' as any).update(patch).eq('id', input.id);
-      if (error) throw error;
-
-      // Replace permissions
-      await supabase.from('role_permissions' as any).delete().eq('role_id', input.id);
-      if (input.permissionIds.length > 0) {
-        const rows = input.permissionIds.map(pid => ({ role_id: input.id, permission_id: pid }));
-        const { error: rpErr } = await supabase.from('role_permissions' as any).insert(rows);
-        if (rpErr) throw rpErr;
-      }
+        role_category: input.role_category ?? null,
+        status: input.status ?? 'active',
+        access_summary: input.access_summary ?? {},
+        scope_config: input.scope_config ?? {},
+        permission_ids: input.permissionIds,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
       qc.invalidateQueries({ queryKey: ['all-role-permissions'] });
       qc.invalidateQueries({ queryKey: ['role-permissions'] });
+      qc.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Role updated successfully');
     },
     onError: (e: any) => toast.error(e.message || 'Failed to update role'),
