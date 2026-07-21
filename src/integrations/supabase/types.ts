@@ -8936,6 +8936,7 @@ export type Database = {
         Row: {
           action_id: string | null
           created_at: string
+          deprecated: boolean
           description: string | null
           enforced: boolean
           id: string
@@ -8945,6 +8946,7 @@ export type Database = {
         Insert: {
           action_id?: string | null
           created_at?: string
+          deprecated?: boolean
           description?: string | null
           enforced?: boolean
           id?: string
@@ -8954,6 +8956,7 @@ export type Database = {
         Update: {
           action_id?: string | null
           created_at?: string
+          deprecated?: boolean
           description?: string | null
           enforced?: boolean
           id?: string

@@ -114,25 +114,35 @@ function scanRoutes(
 
 function scanButtons(
   root: string,
-  register: (m: string, a: string, ref: SurfaceReference) => void,
+  register: (m: string, a: string, ref: SurfaceReference, kind: SurfaceKey) => void,
 ) {
   const files = [
     ...walk(join(root, 'src/pages'), ['.tsx', '.ts']),
     ...walk(join(root, 'src/components'), ['.tsx', '.ts']),
   ];
-  const patterns: RegExp[] = [
+  const gatePatterns: RegExp[] = [
     /<PermissionGate\s+module\s*=\s*["']([a-z0-9_]+)["']\s+action\s*=\s*["']([a-z0-9_]+)["']/g,
     /<GuardedButton[^>]+module\s*=\s*["']([a-z0-9_]+)["'][^>]+action\s*=\s*["']([a-z0-9_]+)["']/g,
-    /data-rbac\s*=\s*["']([a-z0-9_]+)\.([a-z0-9_]+)["']/g,
   ];
+  const markerPattern = /data-rbac\s*=\s*["']([a-z0-9_]+)\.([a-z0-9_]+)["']/g;
   for (const file of files) {
     const text = readOr(file);
-    for (const re of patterns) {
+    for (const re of gatePatterns) {
       re.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = re.exec(text)) !== null) {
-        register(m[1], m[2], { file: relTo(root, file), line: lineOf(text, m.index) });
+        register(m[1], m[2], { file: relTo(root, file), line: lineOf(text, m.index) }, 'button');
       }
+    }
+    markerPattern.lastIndex = 0;
+    let mm: RegExpExecArray | null;
+    while ((mm = markerPattern.exec(text)) !== null) {
+      register(
+        mm[1],
+        mm[2],
+        { file: relTo(root, file), line: lineOf(text, mm.index), detail: 'data-rbac marker (audit signal only)' },
+        'marker',
+      );
     }
   }
 }
@@ -227,6 +237,7 @@ export function buildCoverage(
     menu: [],
     route: [],
     button: [],
+    marker: [],
     rls: [],
     rpc: [],
     storage: [],
@@ -245,7 +256,8 @@ export function buildCoverage(
       rows.set(k, row);
     }
     row[kind].push(ref);
-    row.orphaned = false;
+    // Markers alone do NOT satisfy orphan-status — a real surface must exist.
+    if (kind !== 'marker') row.orphaned = false;
   };
 
   const regKind =
@@ -254,7 +266,7 @@ export function buildCoverage(
 
   scanMenu(projectRoot, regKind('menu'));
   scanRoutes(projectRoot, regKind('route'));
-  scanButtons(projectRoot, regKind('button'));
+  scanButtons(projectRoot, register);
   scanReports(projectRoot, regKind('report'));
   scanSql(projectRoot, register);
 
@@ -269,6 +281,7 @@ export function buildCoverage(
       r.storage.length === 0 &&
       r.report.length === 0,
   }));
+
 
   finalRows.sort((a, b) =>
     a.module === b.module ? a.action.localeCompare(b.action) : a.module.localeCompare(b.module),
