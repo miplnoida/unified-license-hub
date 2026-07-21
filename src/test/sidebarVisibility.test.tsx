@@ -254,6 +254,12 @@ describe('Sidebar persona audit', () => {
   it('External licensee_primary — sees licensee menus, no internal panels', () => {
     state.user = { id: 'lp', role: 'licensee_primary' };
     state.portal = { loading: false, isLicensee: true, isPreLicensee: false, isInternal: false };
+    // Licensee portal users hold `.view` on their operational modules via
+    // their dynamic role — mirror that so audience-scoped items resolve.
+    state.permsByModule = {
+      application_management: ['view'],
+      complaint_management: ['view'],
+    };
     renderSidebar();
 
     expect(has('Dashboard')).toBe(true);
