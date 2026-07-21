@@ -28,9 +28,25 @@ const raw = coverageJson as unknown as CoverageMatrix | null;
 const EMPTY_MATRIX: CoverageMatrix = { generatedAt: '', rows: [], orphanedCount: 0 };
 
 export default function PermissionCoverageReport() {
+  const canViewCoverage = useCan('role_management', 'view_coverage');
   const matrix = (raw ?? EMPTY_MATRIX) as CoverageMatrix;
   const [q, setQ] = useState('');
   const [only, setOnly] = useState<'all' | 'orphaned' | 'ui-only' | 'backend-only' | 'enforced'>('all');
+
+  if (!canViewCoverage) {
+    return (
+      <DashboardLayout>
+        <Alert variant="destructive" className="max-w-2xl">
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Access denied</AlertTitle>
+          <AlertDescription>
+            You need the <code>role_management.view_coverage</code> permission to view the
+            Permission Coverage report. Ask an administrator to grant it on your role.
+          </AlertDescription>
+        </Alert>
+      </DashboardLayout>
+    );
+  }
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
