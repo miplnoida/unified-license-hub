@@ -38,6 +38,16 @@ import {
 } from '@/hooks/usePermissionCatalog';
 import PermissionCatalogTab from './PermissionCatalogTab';
 import { useCan } from '@/hooks/useCan';
+import {
+  ACCESS_LEVEL_LABELS,
+  ACCESS_LEVEL_DESCRIPTIONS,
+  SENSITIVE_ACTION_NAMES,
+  classifyModuleSelection,
+  expandLevelActionNames,
+  meaningfulLevelsForModule,
+  sensitiveActionLabel,
+  type AccessLevel,
+} from '@/lib/rbac/accessLevels';
 
 /** Strip developer-style "Module N - " prefixes. */
 const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
