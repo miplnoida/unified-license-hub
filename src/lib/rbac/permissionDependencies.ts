@@ -1,8 +1,12 @@
 /**
- * Static permission dependency map — kept in one place so client and server
- * share one rule set. The server enforces the same map via the
- * `assert_role_permission_dependencies` trigger installed by migration
- * `role_permission_dependency_trigger`.
+ * Permission dependency map. The authoritative source is
+ * `public.permission_dependent_actions` in the database; the server enforces
+ * it through the `assert_role_permission_dependencies` trigger and
+ * `public.permission_has_dependency(action)`.
+ *
+ * This TypeScript constant is the offline fallback used by the UI when the
+ * DB is unreachable. It is regenerated from the table by
+ * `scripts/sync-permission-dependencies.ts` — keep them in lock-step.
  *
  * Rule: every action listed here requires `view` on the same module.
  */
