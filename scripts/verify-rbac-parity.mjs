@@ -21,11 +21,10 @@ import { join, relative } from 'node:path';
 const ROOT = process.cwd();
 const catalog = JSON.parse(readFileSync(join(ROOT, 'src/lib/rbac/catalog.json'), 'utf8'));
 
-const catalogueModules = new Set(catalog.modules?.map(m => m.key) ?? []);
-const cataloguePairs = new Set();
-for (const m of catalog.modules ?? []) {
-  for (const a of m.actions ?? []) cataloguePairs.add(`${m.key}.${a.key}`);
-}
+// Catalogue shape is a flat array of {module, name, enforced}.
+const catalogueModules = new Set(catalog.map(e => e.module));
+const cataloguePairs = new Set(catalog.map(e => `${e.module}.${e.name}`));
+
 
 /** Walk src/, return files matching predicate. */
 function* walk(dir) {
