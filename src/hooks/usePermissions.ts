@@ -213,12 +213,21 @@ export function useUserDynamicPermissions() {
     return false;
   };
 
+  /**
+   * True when the user has NO dynamic role permissions at all but IS mapped
+   * as a regulator on at least one licensee. Such users may only view mapped
+   * returns — every business action button/menu must be hidden for them.
+   */
+  const isAssignmentOnly: boolean =
+    !isBypassRole && !hasDynamicRole && hasAnyEntityAssignment;
+
   return {
     roleIds,
     permissions,
     assignedLicenseeIds,
     hasAnyEntityAssignment,
     hasAssignmentReturnQueueAccess,
+    isAssignmentOnly,
     hasPermission,
     hasModuleAccess,
     hasAnyModuleAccess,
@@ -231,5 +240,6 @@ export function useUserDynamicPermissions() {
     isLoading,
   };
 }
+
 
 export type { PermissionModule };
