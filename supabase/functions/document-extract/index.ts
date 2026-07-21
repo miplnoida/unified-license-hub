@@ -12,6 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { logIntegration } from "../_shared/integration-log.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const PRESET_PROMPTS: Record<string, string> = {
   generic:
@@ -47,6 +48,9 @@ function extractJson(text: string): any {
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
+
+  const __authzGate = await requireUserPermission(req, "document_management", "upload");
+  if (!__authzGate.ok) return __authzGate.response;
   const cors = buildCorsHeaders(req);
 
   try {

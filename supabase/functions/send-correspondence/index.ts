@@ -21,6 +21,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
@@ -49,6 +50,9 @@ async function loadSource(admin: any, source_type: string, source_id: string) {
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
+
+  const __authzGate = await requireUserPermission(req, "correspondence_management", "dispatch");
+  if (!__authzGate.ok) return __authzGate.response;
   const cors = buildCorsHeaders(req);
 
   try {

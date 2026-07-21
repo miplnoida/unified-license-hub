@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 /**
  * Authenticated wrapper around perform_return_workflow_transition.
@@ -29,6 +30,9 @@ function errorResponse(req: Request, status: number, error: string, code: string
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
+
+  const __authzGate = await requireUserPermission(req, "returns_management", "workflow_action");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse(req, 401, "Missing authorization header", "UNAUTHORIZED");
