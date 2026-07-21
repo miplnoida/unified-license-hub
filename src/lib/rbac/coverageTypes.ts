@@ -12,6 +12,7 @@ export type SurfaceKey =
   | 'menu'
   | 'route'
   | 'button'
+  | 'marker'
   | 'rls'
   | 'rpc'
   | 'storage'
@@ -29,6 +30,8 @@ export interface CoverageRow {
   menu: SurfaceReference[];
   route: SurfaceReference[];
   button: SurfaceReference[];
+  /** `data-rbac="module.action"` markers — audit signal only, NOT a real gate. */
+  marker: SurfaceReference[];
   rls: SurfaceReference[];
   rpc: SurfaceReference[];
   storage: SurfaceReference[];
@@ -48,11 +51,11 @@ export interface CatalogEntry {
   enforced: boolean;
 }
 
-/** Classify a row's coverage state for UI badges. */
+/** Classify a row's coverage state for UI badges. Markers alone never satisfy a surface. */
 export function classifyCoverage(
   row: Pick<
     CoverageRow,
-    'menu' | 'route' | 'button' | 'rls' | 'rpc' | 'storage' | 'report' | 'orphaned'
+    'menu' | 'route' | 'button' | 'marker' | 'rls' | 'rpc' | 'storage' | 'report' | 'orphaned'
   >,
 ): 'orphaned' | 'ui-only' | 'backend-only' | 'enforced' {
   if (row.orphaned) return 'orphaned';
@@ -63,3 +66,4 @@ export function classifyCoverage(
   if (hasBackend) return 'backend-only';
   return 'ui-only';
 }
+
