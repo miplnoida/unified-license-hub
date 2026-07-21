@@ -169,11 +169,19 @@ export const PROTECTED_INTERNAL_PATH_PREFIXES = [
   '/delegation-rules',
   '/reports',
   '/analytics',
+  '/executive',
+  '/alerts',
+  '/inspections',
+  '/enforcement',
+  '/billing',
   '/fit-and-proper',
+  '/fpa',
   '/conduct',
   '/coordination',
   '/prudential',
   '/supervision',
+  '/correspondence',
+  '/returns-management',
 ] as const;
 
 export function isProtectedInternalPath(pathname: string): boolean {
