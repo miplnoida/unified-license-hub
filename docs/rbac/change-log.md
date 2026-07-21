@@ -417,3 +417,69 @@ reasserted on all 11 tables.
 pgTAP: `supabase/tests/rbac/100_prudential_rls.sql` — 20 assertions
 covering helper presence and semantics, permission registration, policy
 shape per table, RLS enablement, and grant hardening.
+
+## Slice 10 — Fit & Proper RBAC
+
+**Permissions added** (module `fit_and_proper`): `view`, `create`,
+`edit`, `delete`, `view_all_entities`, `manage_config`,
+`workflow_action`. Registered in both `permission_actions` and
+`permissions` (enforced=true).
+
+**New helpers** (`SECURITY DEFINER`, `STABLE`, `search_path=public`):
+
+- `can_manage_fp_config(_user)` — super_admin OR `manage_config`.
+- `can_act_on_fp(_user)` — super_admin OR `workflow_action` / `edit` /
+  `create`.
+- `can_read_fp_licensee(_user, _licensee_id)` — super_admin OR
+  `view_all_entities` OR (`view` AND assignment/entity_user_access on
+  the licensee).
+- `can_read_fp_individual(_user, _individual_id)` — super_admin OR
+  `view_all_entities` OR the individual themself (`fp_individuals.user_id`)
+  OR (`view` AND assignment on any role licensee).
+- `can_read_fp_assessment(_user, _assessment_id)` — super_admin OR
+  `view_all_entities` OR creator/submitter OR (`view` AND assignment on
+  the assessment's licensee).
+
+**Config/reference tables** (5 — read=authenticated, write=`can_manage_fp_config`):
+`fp_screening_configs`, `fp_screening_execution_rules`,
+`fp_sector_decision_rules`, `fp_committees`, `fp_committee_members`.
+
+**Top-level entity tables**:
+
+- `fp_individuals` (4 policies) — individual can read/update their own
+  record; officers see individuals attached to their assigned licensees;
+  `view_all_entities` unlocks all; INSERT pins `created_by` and either
+  `can_act_on_fp` or self-registration; DELETE requires `delete` perm.
+- `fp_individual_roles` (4 policies) — licensee-scoped read via
+  `can_read_fp_licensee`; INSERT pins `created_by`, requires
+  `can_act_on_fp`, and enforces assignment on target licensee.
+- `fp_assessments` (4 policies) — read via `can_read_fp_assessment`;
+  INSERT pins `created_by`, requires `can_act_on_fp` + assignment;
+  update/delete gated on `edit`/`workflow_action`/`delete`.
+
+**Assessment/individual child tables** (2 policies each — read via
+parent helper, write gated on `edit`/`workflow_action`):
+`fp_determinations`, `fp_appeals`, `fp_findings`, `fp_conditions`,
+`fp_screening_runs`, `fp_monitoring_events`.
+
+**Task-scoped**:
+
+- `fp_manual_screening_tasks` (2 policies) — additionally readable/
+  writable by `assigned_to`.
+- `fp_task_evidence` (2 policies) — read via parent task; write pins
+  `uploaded_by = auth.uid()` and requires the writer to own the task or
+  hold `edit`/super_admin.
+
+**Committee governance**:
+
+- `fp_committee_votes` (3 policies — read/insert/update) — visible to
+  committee members, `view_all_entities`, or super_admin; each member
+  can only cast/update their own active vote.
+
+**Grants** — anon revoked; authenticated CRUD and service_role ALL
+reasserted on all 17 tables.
+
+pgTAP: `supabase/tests/rbac/110_fit_and_proper_rls.sql` — 22 assertions
+covering helper presence and semantics, permission registration, per-
+table policy shape, absence of legacy `has_role()`, RLS enablement, and
+grant hardening.
