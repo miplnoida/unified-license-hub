@@ -1,6 +1,6 @@
 -- pgTAP: Slice 11 — Enforcement & Inspection RBAC
 BEGIN;
-SELECT plan(20);
+SELECT plan(24);
 
 -- Helpers exist with pinned search_path
 SELECT has_function('public','can_read_enforcement', ARRAY['uuid','uuid']);
