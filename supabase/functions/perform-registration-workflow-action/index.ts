@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 /**
  * Thin authentication wrapper around perform_registration_workflow_transition.
@@ -39,6 +40,9 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+
+  const __authzGate = await requireUserPermission(req, "registration_management", "workflow_action");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse(req, 401, "Missing authorization header", "UNAUTHORIZED");

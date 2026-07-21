@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.16";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,9 @@ interface SmtpConfig {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+
+  const __authzGate = await requireUserPermission(req, "notification_management", "configure");
+  if (!__authzGate.ok) return __authzGate.response;
   }
 
   const json = (body: unknown, status = 200) =>

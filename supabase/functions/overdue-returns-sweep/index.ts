@@ -4,6 +4,7 @@
 // Intended to be called on a schedule (e.g. daily via pg_cron + pg_net).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,9 @@ const cors = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

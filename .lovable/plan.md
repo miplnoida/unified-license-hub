@@ -1,109 +1,120 @@
+# Slice 2 — Edge Function Authorization Coverage
 
-# Enterprise RBAC Completion — Sliced Execution Plan
+## Current state (verified this turn)
 
-I'm currently in plan mode and can't edit files until you approve this plan. Approving switches me to build mode so I can implement Slice 1 immediately, then continue slice-by-slice.
+- `supabase/functions/_shared/authz.ts` exists and exposes `requireUserPermission(module, action, scope?)`.
+- Of 59 functions, only **2** actually use it today: `audit-export` and `generate-report`.
+- 32 functions call `getClaims()` inline (authenticated but not `has_permission`-gated).
+- 16 functions have no JWT check at all — mix of legitimate schedulers, public endpoints, and gaps that must be closed.
+- `docs/rbac/edge-function-permission-map.tsv` only documents the 2 already-migrated functions.
 
-## Ground rules (apply to every slice)
+## Goals
 
-- One slice per turn, each self-contained: code + migration + tests + verification + rollback safety.
-- No documentation-only turns.
-- Every migration that creates/alters a public table includes GRANTs and RLS.
-- Every unauthorized mutation path returns SQLSTATE `42501`.
-- All tests actually executed (Vitest, pgTAP, tsgo, build) with output captured before I claim a slice complete.
-- Nothing rewritten wholesale (249 tables / 294 functions) in one migration — prioritized lists only.
+One authoritative authz path per function, aligned with the module.action catalog from Slice 1. Never trust caller-supplied user ids; always resolve identity from the JWT the shared helper validates.
 
-## Slice ordering (locked)
+## Scope of this slice
 
-1. Role Management verification + unified dependency source
-2. Application action protection (PermissionGate + backend parity)
-3. Route protection audit
-4. Edge Function `requireUserPermission` sweep + scope types
-5. RPC hardening (business-critical list)
-6. RLS on prioritized tables
-7. Storage bucket policies
-8. Return Queue assignment-only finalization
-9. Coverage scanner accuracy (surface separation)
-10. Orphan permission triage (wire / deprecate / remove)
-11. Full automated verification run
+Full migration of every user-invoked function + a formal worker-token guard for schedulers + full documentation. Deno test coverage focuses on the 6 highest-risk mutating functions (adding tests for all 59 would balloon the slice).
 
----
+## Work items
 
-## Slice 1 — Role Management verification + unified dependencies (this turn after approval)
+### 1. Classify every function (authoritative table)
 
-### 1a. Single source of truth for dependencies
+Publish `docs/rbac/edge-function-permission-map.tsv` with one row per function and one of these auth kinds:
+- `user` → `requireUserPermission(module, action[, scope])`
+- `worker` → requires `x-worker-token` matching `WORKER_INVOKE_TOKEN` secret **or** cron `Authorization: Bearer <service_role>`
+- `public` → explicitly public (documented reason, e.g., OTP request, public registry)
+- `api_key` → developer-API key auth (unchanged)
 
-- Create `supabase/migrations/<ts>_rbac_dependency_source.sql`:
-  - `CREATE TABLE public.permission_dependent_actions(action text primary key)` seeded from the current TS list (`edit, update, create, delete, approve, reject, export, download, upload, import, publish, archive, restore, assign, reassign, bulk, bulk_update, bulk_delete, configure, status_change, workflow_action, dispatch, execute, close, reopen, resolve, escalate, issue, revoke, suspend, renew`).
-  - GRANT SELECT to `anon, authenticated`; ALL to `service_role`. RLS enabled, read-only policy for authenticated.
-  - Rewrite `assert_role_permission_dependencies` trigger to read from this table (no hardcoded array in SQL).
-- Regenerate `src/lib/rbac/permissionDependencies.ts` to fetch the list from Supabase at module load with a static fallback constant kept in sync via a codegen script `scripts/sync-permission-dependencies.ts`. The script reads the table and rewrites the `DEPENDENT_ACTIONS` constant; CI check fails if drift is detected.
-- Update `src/test/rbac/permissionDependencies.test.ts` to assert the constant matches the DB seed via a snapshot fixture.
+### 2. Migrate user-invoked functions to `requireUserPermission`
 
-### 1b. Role Management SQL-level enforcement audit
+Function → module.action (representative selection):
 
-Add pgTAP file `supabase/tests/rbac/30_role_management_authz.sql` covering, per persona (anon, authenticated non-admin, dynamic-role-with/without `role_management.*`, super_admin, service_role):
+| Function | module | action | scope |
+|---|---|---|---|
+| add-application-remark | application_management | edit | recordId → applications |
+| approve-pre-licensee | registration_management | approve | recordId |
+| bulk-intake | complaint_management | create | — |
+| create-web-user / list-web-users / manage-web-user / toggle-user-status | user_management | create/view/edit | licenseeId |
+| document-extract | document_management | upload | — |
+| dispatch-license-certificate | license_management | dispatch | recordId |
+| evaluate-application-sufficiency | application_management | edit | recordId |
+| evaluate-return-prudential | returns_management | view | returnId |
+| fp-ai-media-ingest / fp-cycle-scheduler / fp-monitoring-sweep / fp-screening-run | fit_and_proper | configure / execute | — |
+| generate-application-ai-assessment | application_management | view | recordId |
+| generate-dashboard-insights | report_management | view | — |
+| generate-license-certificate | license_management | issue | recordId |
+| generate-return-analysis | returns_management | view | returnId |
+| get-licensee-registration | registration_management | view | licenseeId |
+| manage-api-key | integration_management | configure | — |
+| notification-retry / notification-status | notification_management | view / dispatch | — |
+| perform-license-action | license_management | workflow_action | recordId |
+| perform-registration-workflow-action | registration_management | workflow_action | recordId |
+| perform-return-workflow-action | returns_management | workflow_action | returnId |
+| perform-workflow-action | application_management | workflow_action | recordId |
+| resubmit-return | returns_management | edit | returnId |
+| run-scheduled-reports | report_management | execute | — |
+| send-correspondence | correspondence_management | dispatch | — |
+| sign-license-certificate | license_management | issue | recordId |
+| test-smtp-email | notification_management | configure | — |
+| verify-and-submit | application_management | submit | recordId |
 
-- `roles` INSERT / UPDATE / DELETE
-- `role_permissions` INSERT / DELETE
-- `user_dynamic_roles` INSERT / UPDATE / DELETE
-- `permission_modules` / `permission_actions` / `permissions` mutations
-- `reset_system_role_permissions` RPC (success, unknown role, non-system role, deprecated-permission preservation, dependency preservation, bypass-flag cleanup post-rollback)
+Each callsite replaces the ad-hoc `getClaims()` block with:
+```ts
+const gate = await requireUserPermission(req, MODULE, ACTION, scope);
+if (!gate.ok) return gate.response;
+const { userId, adminClient } = gate;
+```
+Callers that already resolve `userId` from claims stop trusting body-supplied ids; ownership is re-derived from the JWT.
 
-Every unauthorized case asserts `SQLSTATE 42501`. Bypass flag test wraps the reset in a rolled-back transaction and then re-attempts an unauthorized mutation to prove the flag doesn't leak.
+### 3. Worker-token guard for schedulers
 
-Fix any policy/trigger gap the tests expose (expected: tighten `roles` INSERT/UPDATE/DELETE policies to require `has_permission(auth.uid(), 'role_management', <action>)`, same for `role_permissions`, `user_dynamic_roles`, catalog tables). Migration: `<ts>_role_management_authz_hardening.sql`.
+Add `supabase/functions/_shared/workerAuth.ts` exporting `requireWorkerInvocation(req)`:
+- Accepts `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (cron path), **or**
+- `x-worker-token` matching `WORKER_INVOKE_TOKEN` secret (manual sweep runs)
+- Returns 401 otherwise.
 
-### 1c. Read/write separation for Permission Catalog
+Apply to: `complaint-escalation-sweep`, `complaint-storage-cleanup`, `dispatch-notification-event`, `evaluate-conduct-monitoring`, `evaluate-prudential-early-warnings`, `license-expiry-reminders`, `notification-digest`, `notification-failure-sweep`, `overdue-action-sweep`, `overdue-returns-sweep`, `process-notification-outbox`, `process-queue`, `rfi-near-due-sweep`, `risk-score-recompute`, `sla-escalation-sweep`, `send-notification`, `prudential-monitoring-sweep`.
 
-- Ensure `PermissionCatalogTab` requires `role_management.view_catalog` to render and `role_management.manage_catalog` to mutate. Migration already registered these; verify seeding and add to Legacy Admin defaults if missing.
-- Add DB-level guard on `permissions` mutations mirroring the existing module/action guard.
+Request `WORKER_INVOKE_TOKEN` via `add_secret` at the start of build mode.
 
-### 1d. Vitest additions
+### 4. Public functions — explicit allow-list
 
-`src/test/rbac/roleManagement.authz.test.tsx`:
-- Renders `RoleManagement` under personas (super_admin, legacy admin with all role_management perms, admin with only view, dynamic role without role_management, external user).
-- Asserts Create/Edit/Delete/Reset/Assign controls are enabled/disabled correctly.
-- Asserts `applyTemplate` short-circuits without `assign_permissions`.
-- Asserts catalog tab hidden without `view_catalog`.
+Add a header comment + shared `markPublicFunction(reason)` no-op documenting intent for: `public-registry`, `register-pre-licensee`, `send-registration-otp`, `verify-registration-otp`, `developer-api`. No behavioural change.
 
-### 1e. Verification commands run before completing the slice
+### 5. Deno tests for the top-6 highest-risk functions
 
-- `bunx tsgo --noEmit`
-- `bunx vitest run src/test/rbac src/test/permissionsRbac.test.tsx`
-- `supabase test db` (pgTAP) on new files
-- Build
+Add `*_test.ts` (Deno convention) covering **401 (no bearer), 403 (wrong permission), 200 (mapped permission)** for:
+1. `perform-workflow-action`
+2. `perform-return-workflow-action`
+3. `perform-license-action`
+4. `approve-pre-licensee`
+5. `verify-and-submit`
+6. `create-web-user`
 
-Slice 1 done only when all above pass with captured output.
+Tests mock `adminClient.rpc('has_permission', …)` via env-injected supabase test project. All tests use the pattern in `<useful-context>edge-function-testing`.
 
----
+### 6. Documentation
 
-## Slices 2–11 — one turn each, same structure
+- Rewrite `docs/rbac/edge-function-permission-map.tsv` with the full 59-row table (function, kind, module, action, scope, notes).
+- Add `docs/rbac/edge-function-authorization.md` explaining the four kinds and the worker-token mechanism.
+- Append a change-log entry under `docs/rbac/change-log.md`.
 
-Each will be re-issued as its own plan once the previous slice lands, but the intended scope is:
+## Out of scope for this slice
 
-- **S2 Actions**: audit `src/pages/**` and `src/components/**` for buttons/menu items that trigger mutations; wrap with `PermissionGate` / replace `<Button>` with `GuardedButton`; parity check against backend permission for each. Produce `docs/rbac/button-coverage.tsv`.
-- **S3 Routes**: enumerate `src/routes/**` + `src/App.tsx`; every non-public route wrapped in `ModuleRoute`; add catch-all `<AccessDenied>` for unknown internal routes; extend `src/test/routeCoverage.test.ts`.
-- **S4 Edge Functions**: sweep `supabase/functions/*/index.ts`; ensure `requireUserPermission` precedes any privileged work; introduce `AuthzScope` variants `application|return|complaint|licensee|entity|workflow|report|document|assessment` and prune unused; add tests via `supabase--curl_edge_functions` per function.
-- **S5 RPCs**: pick top ~30 business-critical SECURITY DEFINER functions (workflow transitions, complaint intake, license issuance, return submit, notification dispatch, exports); add `has_permission` check, `SET search_path = public`, `REVOKE ... FROM PUBLIC`, explicit GRANTs; log in `docs/rbac/rpc-permission-map.tsv`; pgTAP.
-- **S6 RLS**: prioritized tables (roles, permissions, role_permissions, user_dynamic_roles, applications, complaints, returns_filed, licenses, reports, audit_logs, notification_outbox, site_settings, workflow_templates/instances/approval_steps). Every policy = permission gate + scope predicate; kill `USING(true)` on these; pgTAP per table.
-- **S7 Storage**: policies on `application-documents`, `return-documents`, `complaint-evidence`, `fp-evidence`, `license-certificates`, `audit-exports` — permission + ownership on all verbs and signed-URL generation path.
-- **S8 Return Queue**: finalize assignment-only via `hasAssignmentReturnQueueAccess`; ensure no `returns_management.view` leak; single lifecycle allow-list in `src/lib/returnLifecycle.ts` mirrored by `public.return_lifecycle_visible_statuses()` SQL function used by RLS, RPCs, Edge Functions, reports.
-- **S9 Coverage scanner**: expand `SurfaceKey` to include `scope` and `test`; `classifyCoverage` returns "Fully Enforced" only when UI + backend + scope + test all present; `data-rbac` remains `marker`, never contributes.
-- **S10 Orphans**: SQL report enumerating `permissions` rows with no coverage; for each: wire, deprecate (`deprecated=true`), or delete duplicate. Before/after counts in `docs/rbac/orphan-permissions.md`.
-- **S11 Verification**: run build, tsgo, ESLint, Vitest, pgTAP suite, edge-function tests; publish results in `docs/rbac/audit-2026-07-21/12_final_verification.md`.
+- Rewriting RLS on 249 tables (Slice 3+).
+- Locking down SECURITY DEFINER function search paths beyond the ones already touched.
+- Storage policy overhaul (later slice).
+- Vitest coverage for every user-invoked function (only top-6 in this slice).
 
----
+## Verification
 
-## Rollback safety
+- `bunx vitest run` remains green.
+- `supabase--test_edge_functions` runs the 6 new Deno test files, all pass.
+- Grep sweep: every function in `supabase/functions/*/index.ts` matches one of `requireUserPermission`, `requireWorkerInvocation`, or `markPublicFunction`; the audit fails CI otherwise (add a lightweight `scripts/verify-edge-authz.mjs`).
 
-Every migration has an `-- ROLLBACK` comment block at the bottom describing the compensating SQL, so operators can revert without guessing. No destructive column drops in slices 1–4.
+## Rollout / risk
 
-## Technical notes
-
-- The unified dependency table pattern lets the trigger read live data while TS keeps a build-time constant for offline dev; the codegen script prevents drift.
-- Reset-bypass test uses `BEGIN; SET LOCAL rbac.bypass = 'on'; ... ROLLBACK;` then a fresh transaction to prove flag scoping is transactional.
-- pgTAP personas use `SET LOCAL role authenticated; SET LOCAL request.jwt.claims = '{"sub":"..."}'` and pre-seeded `user_dynamic_roles` rows.
-
----
-
-Approve to start Slice 1. I will stop after Slice 1 lands with verification output and re-plan Slice 2.
+- Migration is per-function; no shared runtime state changes.
+- If a caller was silently relying on unauthenticated access, it will now receive 401/403 — that's the intended enforcement. All internal callers already send `Authorization: Bearer <session>` via `supabase.functions.invoke`.
+- Worker cron jobs already run with service-role bearer, so the worker guard accepts them without config change; the extra `WORKER_INVOKE_TOKEN` is only needed for on-demand manual invocations.

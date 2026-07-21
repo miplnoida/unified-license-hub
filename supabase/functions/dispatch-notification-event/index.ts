@@ -21,6 +21,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
 import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -549,6 +550,9 @@ async function resolveRecipients(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   const summary: Record<string, any> = { sent: 0, skipped: 0, failed: 0, recipients: 0 };
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

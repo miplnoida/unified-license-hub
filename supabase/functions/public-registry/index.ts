@@ -8,6 +8,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { markPublicFunction } from "../_shared/publicFunction.ts";
+markPublicFunction('Public read of published licensees / registrations');
 
 const SAFE_LICENSE_FIELDS =
   "id, license_number, license_type, status, issue_date, expiry_date, licensee_id";

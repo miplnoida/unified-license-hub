@@ -3,6 +3,7 @@
 // the report definition slug; never uses a slug as a table name.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
+import { requireUserPermission } from "../_shared/authz.ts";
   corsHeaders, executeQuery, persistRun, resolveScheduleSource,
 } from '../_shared/report-generator.ts';
 
@@ -21,6 +22,9 @@ function nextRunAt(freq: Freq, from = new Date()): Date {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+
+  const __authzGate = await requireUserPermission(req, "report_management", "execute");
+  if (!__authzGate.ok) return __authzGate.response;
   let scheduleId: string | null = null;
   if (req.method === 'POST') {
     const body = await req.json().catch(() => ({}));

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +85,9 @@ async function fetchBestApplicationForApplicant(admin: ReturnType<typeof createC
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+
+  const __authzGate = await requireUserPermission(req, "registration_management", "view");
+  if (!__authzGate.ok) return __authzGate.response;
   }
 
   try {

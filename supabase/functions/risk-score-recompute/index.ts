@@ -2,6 +2,7 @@
 // Aggregates supervisory signals per licensee and writes a composite score/band.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 
 interface Weights {
   prudential_breaches: number;
@@ -39,6 +40,9 @@ function band(score: number, t: BandThresholds): string {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) return __workerGate.response;
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,

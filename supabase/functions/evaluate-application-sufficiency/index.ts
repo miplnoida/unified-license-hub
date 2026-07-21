@@ -1,5 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireUserPermission } from "../_shared/authz.ts";
 
 interface Body {
   application_id: string;
@@ -14,6 +15,9 @@ function pickPath(obj: any, path: string): any {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const __authzGate = await requireUserPermission(req, "application_management", "edit");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

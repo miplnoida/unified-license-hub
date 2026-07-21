@@ -7,6 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logIntegration } from "../_shared/integration-log.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -111,6 +112,9 @@ function pickRecommendations(ratios: RatioInput[], m: Map<string, BreachInput>) 
 // -------- HTTP handler ----------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  const __authzGate = await requireUserPermission(req, "returns_management", "view");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const auth = req.headers.get("authorization");
     if (!auth) return json({ error: "Missing authorization" }, 401);

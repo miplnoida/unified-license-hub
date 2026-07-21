@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 /**
  * Licensee-side: resubmit a return after an edit request.
@@ -15,6 +16,9 @@ function jsonResponse(req: Request, status: number, body: Record<string, unknown
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
+
+  const __authzGate = await requireUserPermission(req, "returns_management", "edit");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return jsonResponse(req, 401, { error: "Missing authorization header", code: "UNAUTHORIZED" });

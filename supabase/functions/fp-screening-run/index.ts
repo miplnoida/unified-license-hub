@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
+import { requireUserPermission } from "../_shared/authz.ts";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -65,6 +66,9 @@ async function callAdverseMediaAI(fullName: string, nationality: string | null):
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const __authzGate = await requireUserPermission(req, "fit_and_proper", "execute");
+  if (!__authzGate.ok) return __authzGate.response;
   const started = Date.now();
 
   const supa = createClient(

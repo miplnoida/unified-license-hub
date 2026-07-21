@@ -14,6 +14,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const SIGNING_ROLES = new Set([
   "super_admin", "admin", "supervisor",
@@ -54,6 +55,9 @@ Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+
+  const __authzGate = await requireUserPermission(req, "license_management", "issue");
+  if (!__authzGate.ok) return __authzGate.response;
   if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
 
   const secret = Deno.env.get("LICENSE_SIGNING_SECRET");

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
+import { requireUserPermission } from "../_shared/authz.ts";
 
 // Produces 3-5 narrative bullet insights + top 3 recommended actions for the
 // Executive Dashboard. Reads current cross-module metrics, feeds them to the
@@ -26,6 +27,9 @@ async function safeCount(supa: any, table: string, filter?: (q: any) => any) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+
+  const __authzGate = await requireUserPermission(req, "report_management", "view");
+  if (!__authzGate.ok) return __authzGate.response;
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
