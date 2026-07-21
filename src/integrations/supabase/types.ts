@@ -15565,6 +15565,24 @@ export type Database = {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
       }
+      can_mutate_return_filed: {
+        Args: { _return_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_read_return_filed: {
+        Args: { _return_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_read_return_filed_row: {
+        Args: {
+          _created_by: string
+          _entity_id: string
+          _on_behalf_of_licensee_id: string
+          _return_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_review_action: {
         Args: { _action: string; _role_id: string; _step_id: string }
         Returns: boolean
