@@ -1,0 +1,11 @@
+import { scanRepo, summarize } from '../src/lib/rbac/audit.ts';
+const s = scanRepo();
+const sum = summarize(s);
+console.log('total', sum.total, 'prot', sum.protectedCount, 'pct', (sum.protectedCount/sum.total*100).toFixed(2));
+const unprot = s.filter(x=>!x.protected);
+const byCat = {};
+for (const u of unprot) byCat[u.category] = (byCat[u.category]||0)+1;
+console.log('unprot by cat', byCat);
+const byFile = {};
+for (const u of unprot) byFile[u.file] = (byFile[u.file]||0)+1;
+console.log('top files:', Object.entries(byFile).sort((a,b)=>b[1]-a[1]).slice(0,25));
