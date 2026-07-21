@@ -249,6 +249,44 @@ export function scanFile(file: string): ActionSite[] {
       protected: true, reason: 'GuardedButton',
     });
   }
+  // 3. <DropdownMenuItem ...>Label</DropdownMenuItem> — treat like Button
+  const dmiRx = /<DropdownMenuItem\b/g;
+  while ((m = dmiRx.exec(text))) {
+    const idx = m.index;
+    const gt = findOpeningTagEnd(text, idx);
+    if (gt < 0) continue;
+    const close = text.indexOf('</DropdownMenuItem', gt);
+    if (close < 0) continue;
+    const inner = text.slice(gt + 1, close);
+    const label = inner
+      .replace(/\{[^{}]*\}/g, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80);
+    if (!label) continue;
+    const line = text.slice(0, idx).split('\n').length;
+    const tag = text.slice(idx, gt);
+    const explicit = /data-rbac\s*=/.test(tag);
+    const rbacMatch = tag.match(/data-rbac\s*=\s*"([^"]+)"/);
+    let module: string | null = null;
+    let action: string | null = null;
+    if (rbacMatch) {
+      const [mod, act] = rbacMatch[1].split('.');
+      module = mod || null; action = act || null;
+    }
+    const lowered = label.toLowerCase();
+    const isPublic =
+      PUBLIC_ALLOW_LABELS.has(lowered) ||
+      PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
+    sites.push({
+      file: rel, line, page, button: label,
+      category: categorize(label),
+      module, action,
+      protected: explicit || isPublic,
+      reason: explicit ? 'data-rbac' : (isPublic ? 'public-allow' : ''),
+    });
+  }
   return sites;
 }
 
