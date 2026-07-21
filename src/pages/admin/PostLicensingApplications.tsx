@@ -111,7 +111,7 @@ export default function PostLicensingApplications() {
             data={apps.filter(a => a.status !== 'Draft')}
             searchPlaceholder="Search applications..."
             actions={
-              <Button size="sm" onClick={() => navigate('/post-license/new')}>
+              <Button data-rbac="form_management.create" size="sm" onClick={() => navigate('/post-license/new')}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 New Application
               </Button>
@@ -152,7 +152,7 @@ export default function PostLicensingApplications() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewApp(null)}>Cancel</Button>
-            <Button onClick={handleUpdate}>Update</Button>
+            <Button data-rbac="form_management.edit" onClick={handleUpdate}>Update</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

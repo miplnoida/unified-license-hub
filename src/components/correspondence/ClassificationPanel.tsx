@@ -51,7 +51,7 @@ export function ClassificationPanel({
       <div className="flex items-center gap-2">
         <Badge variant="outline">Original: {category}</Badge>
         <Badge variant="outline">Priority: {priority}</Badge>
-        <Button size="sm" variant="secondary" className="ml-auto">Save override</Button>
+        <Button data-rbac="settings.edit" size="sm" variant="secondary" className="ml-auto">Save override</Button>
       </div>
     </div>
   );

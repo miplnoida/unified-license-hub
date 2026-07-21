@@ -192,7 +192,7 @@ export default function RfiAutoRules() {
             against its form data — matches are offered one-click for inclusion.
           </p>
         </div>
-        <Button onClick={() => setEditing(emptyRule())}>
+        <Button data-rbac="application_management.create" onClick={() => setEditing(emptyRule())}>
           <Plus className="mr-2 h-4 w-4" /> New rule
         </Button>
       </div>
@@ -533,7 +533,7 @@ export default function RfiAutoRules() {
             <Button variant="outline" onClick={() => setEditing(null)}>
               Cancel
             </Button>
-            <Button onClick={saveRule}>Save rule</Button>
+            <Button data-rbac="application_management.edit" onClick={saveRule}>Save rule</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

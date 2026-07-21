@@ -178,7 +178,7 @@ export function BatchDocumentUpload({
             className="hidden"
             onChange={(e) => addFiles(e.target.files)}
           />
-          <Button
+          <Button data-rbac="settings.create"
             variant="outline"
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -186,7 +186,7 @@ export function BatchDocumentUpload({
           >
             <Plus className="mr-2 h-4 w-4" /> Add files
           </Button>
-          <Button type="button" onClick={uploadAll} disabled={!canUpload || uploading}>
+          <Button data-rbac="settings.edit" type="button" onClick={uploadAll} disabled={!canUpload || uploading}>
             {uploading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

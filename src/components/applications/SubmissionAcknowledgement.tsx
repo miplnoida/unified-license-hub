@@ -98,7 +98,7 @@ export function SubmissionAcknowledgement({
               </Link>
             </Button>
           )}
-          <Button variant="outline" className="flex-1" onClick={handleDownload}>
+          <Button data-rbac="application_management.view" variant="outline" className="flex-1" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>

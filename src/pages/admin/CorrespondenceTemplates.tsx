@@ -112,7 +112,7 @@ export default function CorrespondenceTemplates() {
           </div>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditing({ ...EMPTY })}>
+              <Button data-rbac="settings.create" onClick={() => setEditing({ ...EMPTY })}>
                 <Plus className="h-4 w-4 mr-1" /> New template
               </Button>
             </DialogTrigger>
@@ -186,7 +186,7 @@ export default function CorrespondenceTemplates() {
               )}
               <DialogFooter>
                 <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>Cancel</Button>
-                <Button onClick={() => editing && save.mutate(editing)} disabled={save.isPending}>
+                <Button data-rbac="settings.edit" onClick={() => editing && save.mutate(editing)} disabled={save.isPending}>
                   {save.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                   Save
                 </Button>

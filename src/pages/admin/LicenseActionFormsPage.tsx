@@ -129,7 +129,7 @@ export default function LicenseActionFormsPage() {
         <PageHeader
           title="License Action Forms"
           description="Map internal forms to license actions (Suspend, Revoke, Cancel, Reinstate)."
-          actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" />New Mapping</Button>}
+          actions={<Button data-rbac="license_management.create" onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-1" />New Mapping</Button>}
         />
 
         <Card>
@@ -326,7 +326,7 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={submit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button>
+          <Button data-rbac="license_management.edit" onClick={submit} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

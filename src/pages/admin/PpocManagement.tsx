@@ -334,7 +334,7 @@ export default function PpocManagement() {
           title="PPOC Entity Mappings"
           description="A user becomes a Principal Point of Contact (PPOC) only after being explicitly mapped to a licensee entity and one or more sectors here. Primary Users already have direct access to their own entity — a PPOC mapping is only needed to grant a user PPOC rights for additional or different entities/sectors."
           actions={
-            <Button onClick={openCreate}>
+            <Button data-rbac="user_management.create" onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
             </Button>
           }

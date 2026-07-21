@@ -128,7 +128,7 @@ export default function PostLicenseForms() {
           title="Post-License Forms"
           description="Manage all post-license service form templates."
           actions={
-            <Button onClick={() => navigate('/admin/forms/create?type=post_license')}>
+            <Button data-rbac="form_management.create" onClick={() => navigate('/admin/forms/create?type=post_license')}>
               <PlusCircle className="h-4 w-4 mr-2" />Add Post-License Form
             </Button>
           }

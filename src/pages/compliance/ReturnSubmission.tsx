@@ -819,7 +819,7 @@ export default function ReturnSubmission() {
                   <XCircle className="h-4 w-4" />
                   Cancel
                 </Button>
-                <Button
+                <Button data-rbac="returns_management.create"
                   onClick={handleCreate}
                   disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!selectedLicenseeId || !selectedLicenseId))}
                   className="gap-2"

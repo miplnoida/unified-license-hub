@@ -361,7 +361,7 @@ export default function FpaIndividuals() {
           actions={
             <Dialog open={open} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
-                <Button>
+                <Button data-rbac="fit_and_proper.create">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Individual
                 </Button>

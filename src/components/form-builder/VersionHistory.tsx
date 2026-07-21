@@ -385,7 +385,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
             )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setScheduleVersion(null)}>Cancel</Button>
-              <Button
+              <Button data-rbac="form_management.edit"
                 onClick={saveSchedule}
                 disabled={updateSchedule.isPending || (!!scheduleFrom && !!scheduleUntil && scheduleUntil < scheduleFrom)}
               >

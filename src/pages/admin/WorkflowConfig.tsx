@@ -63,7 +63,7 @@ export default function WorkflowConfig() {
         <PageHeader
           title="Workflow Configuration"
           description="Design and manage configurable workflows for applications and returns."
-          actions={<Button><Plus className="h-4 w-4 mr-2" />New Workflow</Button>}
+          actions={<Button data-rbac="workflow_management.create"><Plus className="h-4 w-4 mr-2" />New Workflow</Button>}
         />
 
         <Tabs defaultValue="diagram" className="animate-slide-up delay-100">
@@ -108,7 +108,7 @@ export default function WorkflowConfig() {
                       <CardTitle className="text-lg">{selectedWorkflow.name}</CardTitle>
                       <CardDescription>State transition diagram</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm"><Edit className="h-4 w-4 mr-2" />Edit</Button>
+                    <Button data-rbac="workflow_management.edit" variant="outline" size="sm"><Edit className="h-4 w-4 mr-2" />Edit</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

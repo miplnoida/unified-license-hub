@@ -114,7 +114,7 @@ export default function CoordinationList() {
           actions={
             <Dialog open={creating} onOpenChange={setCreating}>
               <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4 mr-2" /> New Case</Button>
+                <Button data-rbac="coordination.create"><Plus className="h-4 w-4 mr-2" /> New Case</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -159,7 +159,7 @@ export default function CoordinationList() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
-                  <Button onClick={() => create.mutate()} disabled={create.isPending}>
+                  <Button data-rbac="coordination.create" onClick={() => create.mutate()} disabled={create.isPending}>
                     {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Create
                   </Button>

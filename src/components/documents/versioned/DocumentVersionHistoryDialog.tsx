@@ -110,7 +110,7 @@ export function DocumentVersionHistoryDialog({
                           )}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => handleDownload(v)}>
+                      <Button data-rbac="settings.view" variant="outline" size="sm" onClick={() => handleDownload(v)}>
                         <Download className="h-4 w-4 mr-1" />
                         Download
                       </Button>

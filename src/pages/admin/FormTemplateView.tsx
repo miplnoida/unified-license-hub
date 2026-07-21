@@ -88,7 +88,7 @@ export default function FormTemplateView() {
                 </Button>
               )}
               {canEdit && (
-                <Button
+                <Button data-rbac="form_management.edit"
                   onClick={() =>
                     navigate(`/admin/forms/create?type=${template.form_type}&id=${template.id}`)
                   }

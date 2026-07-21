@@ -143,7 +143,7 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
             <DollarSign className="h-4 w-4" /> Fee Breakdown
           </CardTitle>
           {editable && !showForm && (
-            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            <Button data-rbac="application_management.create" size="sm" variant="outline" onClick={() => setShowForm(true)}>
               <PlusCircle className="h-4 w-4 mr-2" /> Add Fee
             </Button>
           )}

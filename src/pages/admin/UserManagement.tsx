@@ -512,7 +512,7 @@ export default function UserManagement() {
           title="Employee Management"
           description="Manage internal/admin/regulator employee accounts, profiles, roles, and access. (Primary Users for licensee entities are managed from the Entity detail page.)"
           actions={
-            <Button onClick={openCreate}>
+            <Button data-rbac="user_management.create" onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Create Employee
             </Button>
           }

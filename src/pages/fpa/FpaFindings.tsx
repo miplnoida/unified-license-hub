@@ -760,7 +760,7 @@ export default function FpaFindings() {
                                           Manage
                                         </Button>
                                         {canEscalate ? (
-                                          <Button
+                                          <Button data-rbac="fit_and_proper.edit"
                                             size="sm"
                                             variant="destructive"
                                             className="h-7 px-2 text-xs"
@@ -853,7 +853,7 @@ export default function FpaFindings() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               variant="destructive"
               disabled={!escalateNote.trim() || escalateMutation.isPending}
               onClick={() => {

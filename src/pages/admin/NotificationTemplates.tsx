@@ -251,7 +251,7 @@ export default function NotificationTemplates() {
         <PageHeader
           title="Notification Templates"
           description="Manage email, SMS, and in-app notification templates for all system events."
-          actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Template</Button>}
+          actions={<Button data-rbac="notification_management.create" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />New Template</Button>}
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">

@@ -132,7 +132,7 @@ export function EscalationsTab({
         {canParticipate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><ArrowUp className="h-4 w-4 mr-2" /> Raise Escalation</Button>
+              <Button data-rbac="coordination.edit" size="sm"><ArrowUp className="h-4 w-4 mr-2" /> Raise Escalation</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Raise Escalation</DialogTitle></DialogHeader>

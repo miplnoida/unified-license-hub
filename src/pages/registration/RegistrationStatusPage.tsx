@@ -81,7 +81,7 @@ export default function RegistrationStatusPage() {
               )}
 
               {category === 'correction' && (
-                <Button asChild className="w-full">
+                <Button data-rbac="registration_management.edit" asChild className="w-full">
                   {/* Resubmission must open the update portal so existing
                       registration data and uploaded documents are prefilled.
                       Never link to `/register` (blank new registration). */}

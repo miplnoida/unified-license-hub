@@ -118,7 +118,7 @@ export function DocumentGroupList({ entityType, entityId, documentTypeOptions, r
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button variant="outline" size="sm" onClick={() => handleDownloadCurrent(g)}>
+                <Button data-rbac="settings.view" variant="outline" size="sm" onClick={() => handleDownloadCurrent(g)}>
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </Button>

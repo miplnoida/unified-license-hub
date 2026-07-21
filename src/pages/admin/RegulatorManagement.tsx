@@ -197,7 +197,7 @@ export default function RegulatorManagement() {
           columns={columns}
           data={regulators}
           searchPlaceholder="Search regulators..."
-          actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Regulator</Button>}
+          actions={<Button data-rbac="user_management.create" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Regulator</Button>}
         />
 
         {selectedRegulator && (

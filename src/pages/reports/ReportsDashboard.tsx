@@ -41,7 +41,7 @@ export default function ReportsDashboard() {
               <Button variant="outline" onClick={() => { setTab('schedules'); setScheduleDialogOpen(true); }}>
                 <Mail className="h-4 w-4 mr-2" />Schedule Report
               </Button>
-              <Button onClick={() => setTab('builder')}>
+              <Button data-rbac="report_management.create" onClick={() => setTab('builder')}>
                 <Plus className="h-4 w-4 mr-2" />New Report
               </Button>
             </div>

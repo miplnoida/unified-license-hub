@@ -147,7 +147,7 @@ export function PaymentRemarksThread({ paymentId, isAdminView, draft, onDraftCha
             className="min-h-[100px]"
           />
           <div className="flex justify-end">
-            <Button size="sm" onClick={handleAdd} disabled={adding || !newRemark.trim()}>
+            <Button data-rbac="fee_management.create" size="sm" onClick={handleAdd} disabled={adding || !newRemark.trim()}>
               {adding ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
               Add Remark
             </Button>
@@ -193,7 +193,7 @@ export function PaymentRemarksThread({ paymentId, isAdminView, draft, onDraftCha
                     <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditValue(''); }} disabled={savingEdit}>
                       <X className="h-3.5 w-3.5 mr-1" /> Cancel
                     </Button>
-                    <Button size="sm" onClick={() => handleSaveEdit(r.id)} disabled={savingEdit || !editValue.trim()}>
+                    <Button data-rbac="fee_management.edit" size="sm" onClick={() => handleSaveEdit(r.id)} disabled={savingEdit || !editValue.trim()}>
                       {savingEdit ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                       Save
                     </Button>

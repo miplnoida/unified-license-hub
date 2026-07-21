@@ -278,7 +278,7 @@ export default function ComplianceReturns() {
                         {ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : ret.status === 'overdue' ? 'Fill Now' : 'Fill Form'}
                       </Button>
                       {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
-                        <Button size="sm" onClick={() => handleSubmit(ret.id)}>
+                        <Button data-rbac="returns_management.edit" size="sm" onClick={() => handleSubmit(ret.id)}>
                           <Send className="h-3 w-3 mr-1" />Submit
                         </Button>
                       )}
@@ -322,7 +322,7 @@ export default function ComplianceReturns() {
           description={isInternal ? 'Monitor compliance returns, track penalties, and review submissions' : isPpoc ? 'Submit and track returns on behalf of the selected licensee' : 'Submit and track your periodic compliance returns'}
           actions={
             !isInternal ? (
-              <Button
+              <Button data-rbac="returns_management.create"
                 onClick={() => navigate('/compliance/returns/submit')}
                 disabled={isPpoc && !activeLicenseeId}
                 title={isPpoc && !activeLicenseeId ? 'Select a licensee first' : undefined}

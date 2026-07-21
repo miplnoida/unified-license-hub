@@ -141,7 +141,7 @@ export function PaymentAttachments({ paymentId, readOnly = false }: Props) {
               onChange={handleUpload}
               disabled={uploading}
             />
-            <Button variant="outline" size="sm" asChild disabled={uploading}>
+            <Button data-rbac="fee_management.edit" variant="outline" size="sm" asChild disabled={uploading}>
               <span>
                 {uploading ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : <Upload className="h-3 w-3 mr-1.5" />}
                 Upload Proof

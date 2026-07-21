@@ -29,7 +29,7 @@ export default function RoutingRulesAdmin() {
           description="Configurable business rules for automatic classification and routing. Manual overrides are always available on each case."
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />New rule</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="settings.create"><Plus className="h-4 w-4 mr-2" />New rule</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>New routing rule</DialogTitle></DialogHeader>
                 <div className="space-y-3">
@@ -72,7 +72,7 @@ export default function RoutingRulesAdmin() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={() => setOpen(false)}>Save rule</Button>
+                  <Button data-rbac="settings.edit" onClick={() => setOpen(false)}>Save rule</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

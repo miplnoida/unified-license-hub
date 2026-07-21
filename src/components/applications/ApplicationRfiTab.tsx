@@ -517,7 +517,7 @@ function RfiItemRow({
             />
           )}
           <div className="flex justify-end">
-            <Button size="sm" onClick={submit} disabled={saving}>
+            <Button data-rbac="application_management.edit" size="sm" onClick={submit} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
               Submit response
             </Button>

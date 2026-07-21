@@ -47,7 +47,7 @@ export default function CutoffConfigPage() {
         <PageHeader title="Cutoff Configuration" description="Configure how many days after period end a return is due"
           actions={
             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
-              <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Cutoff</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Cutoff</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Cutoff Configuration</DialogTitle></DialogHeader>
                 <div className="space-y-4">

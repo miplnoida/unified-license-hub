@@ -100,7 +100,7 @@ export default function SufficiencyRules() {
         <PageHeader
           title="Sufficiency Rules"
           description="Reusable rules that automate application sufficiency review."
-          actions={<Button onClick={startNew}><Plus className="mr-2 h-4 w-4" />New Rule</Button>}
+          actions={<Button data-rbac="application_management.create" onClick={startNew}><Plus className="mr-2 h-4 w-4" />New Rule</Button>}
         />
         <Card>
           <CardContent className="pt-6">
@@ -200,7 +200,7 @@ export default function SufficiencyRules() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={save}>Save</Button>
+              <Button data-rbac="application_management.edit" onClick={save}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

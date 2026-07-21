@@ -128,7 +128,7 @@ export default function PreLicenseForms() {
           title="Pre-License Forms"
           description="Manage all pre-license application form templates."
           actions={
-            <Button onClick={() => navigate('/admin/forms/create?type=pre_license')}>
+            <Button data-rbac="form_management.create" onClick={() => navigate('/admin/forms/create?type=pre_license')}>
               <PlusCircle className="h-4 w-4 mr-2" />Add Pre-License Form
             </Button>
           }

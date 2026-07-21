@@ -260,7 +260,7 @@ export function FpAssessmentsPanel({ individualId }: Props) {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={closeDialog}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={create.isPending}>
+              <Button data-rbac="fit_and_proper.create" onClick={() => create.mutate()} disabled={create.isPending}>
                 {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Create draft
               </Button>
             </DialogFooter>

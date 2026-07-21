@@ -53,7 +53,7 @@ export default function LateFeesPage() {
         <PageHeader title="Late Fees Configuration" description="Manage penalty structures for late return submissions"
           actions={
             <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) reset(); }}>
-              <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee Structure</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Fee Structure</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Late Fee Structure</DialogTitle></DialogHeader>
                 <div className="space-y-4">

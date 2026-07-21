@@ -62,7 +62,7 @@ export function DetectionRulesPanel() {
           <CardTitle className="text-base">Detection Rules</CardTitle>
           <CardDescription>Signals used to identify duplicates. Weights guide the similarity score.</CardDescription>
         </div>
-        <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
+        <Button data-rbac="complaint_management.edit" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {rules.map(rule => (
