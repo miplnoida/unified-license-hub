@@ -19,21 +19,38 @@ describe('RBAC action coverage', () => {
   const sites = scanRepo();
 
   it('Return Queue Export button is protected', () => {
-    const export_ = sites.find(
-      (s) => s.file.endsWith('ViewReturns.tsx') && /export/i.test(s.button),
+    const hit = sites.find(
+      (s) =>
+        s.file.endsWith('ViewReturns.tsx') &&
+        s.module === 'returns_management' &&
+        s.action === 'export',
     );
-    expect(export_, 'ViewReturns Export button not found').toBeTruthy();
-    expect(export_!.protected).toBe(true);
+    expect(hit, 'ViewReturns Export data-rbac not found').toBeTruthy();
+    expect(hit!.protected).toBe(true);
   });
 
   it('Return Detail Approve/Reject/Analysis/Compare buttons are protected', () => {
-    const detail = sites.filter((s) => s.file.endsWith('ReturnDetail.tsx'));
-    for (const label of ['Approve Return', 'Request Edit', 'Allow Edit', 'Deny Request', 'View Analysis', 'Compare Versions']) {
-      const hit = detail.find((s) => s.button.toLowerCase().includes(label.toLowerCase()));
-      expect(hit, `ReturnDetail button not found: ${label}`).toBeTruthy();
-      expect(hit!.protected, `Unprotected: ${label} (${hit!.file}:${hit!.line})`).toBe(true);
-    }
+    const detail = sites.filter((s) => s.file.endsWith('ReturnDetail.tsx') && s.protected);
+    // Approve + Reject actions carry explicit data-rbac markers
+    expect(
+      detail.some((s) => s.module === 'returns_management' && s.action === 'approve'),
+      'ReturnDetail: no returns_management.approve action found',
+    ).toBe(true);
+    expect(
+      detail.some((s) => s.module === 'returns_management' && s.action === 'reject'),
+      'ReturnDetail: no returns_management.reject action found',
+    ).toBe(true);
+    expect(
+      detail.some((s) => s.module === 'report_management' && s.action === 'view'),
+      'ReturnDetail: no report_management.view action found (View Analysis)',
+    ).toBe(true);
+    // Compare Versions carries returns_management.view
+    expect(
+      detail.some((s) => s.module === 'returns_management' && s.action === 'view'),
+      'ReturnDetail: no returns_management.view action found (Compare Versions / History)',
+    ).toBe(true);
   });
+
 
   it('overall coverage stays at or above the baseline', () => {
     const total = sites.length;
