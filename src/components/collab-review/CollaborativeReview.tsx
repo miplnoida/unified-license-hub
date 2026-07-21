@@ -418,17 +418,17 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
                     </Button>
                   )}
                   {collab.perms.can_resolve && c.status === 'open' && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: true })}>
                       <Check className="h-3 w-3 mr-1" />Resolve
                     </Button>
                   )}
                   {collab.perms.can_resolve && c.status === 'resolved' && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.resolveComment.mutate({ id: c.id, resolved: false })}>
                       <RotateCcw className="h-3 w-3 mr-1" />Reopen
                     </Button>
                   )}
                   {collab.perms.can_mark_blocking && (
-                    <Button size="sm" variant="ghost" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
+                    <Button size="sm" variant="ghost" data-rbac="returns_management.edit" onClick={() => collab.setBlocking.mutate({ id: c.id, blocking: !c.is_blocking })}>
                       <AlertTriangle className="h-3 w-3 mr-1" />{c.is_blocking ? 'Unblock' : 'Blocking'}
                     </Button>
                   )}
