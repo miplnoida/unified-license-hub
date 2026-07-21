@@ -102,10 +102,35 @@ function categorize(label: string): string {
   return 'Action';
 }
 
+// Locate the `>` that closes the opening tag starting at buttonIdx, ignoring
+// any `>` inside JSX attribute expressions (`{...}`, including `=>` in arrow
+// handlers) and inside quoted strings.
+function findOpeningTagEnd(text: string, buttonIdx: number): number {
+  let i = buttonIdx;
+  let depth = 0;
+  let quote: string | null = null;
+  const N = text.length;
+  while (i < N) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === quote && text[i - 1] !== '\\') quote = null;
+    } else if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+    } else if (ch === '{') {
+      depth += 1;
+    } else if (ch === '}') {
+      if (depth > 0) depth -= 1;
+    } else if (ch === '>' && depth === 0) {
+      return i;
+    }
+    i += 1;
+  }
+  return -1;
+}
+
 // Find the innermost enclosing <Button ...>...</Button> label near a line.
 function extractLabel(text: string, startIdx: number): string {
-  // find end of opening tag `>`
-  const gt = text.indexOf('>', startIdx);
+  const gt = findOpeningTagEnd(text, startIdx);
   if (gt < 0) return '';
   const close = text.indexOf('</Button', gt);
   if (close < 0) return '';
@@ -118,6 +143,7 @@ function extractLabel(text: string, startIdx: number): string {
     .trim();
   return plain.slice(0, 80);
 }
+
 
 function findWrappingGate(text: string, buttonIdx: number): string | '' {
   // Look backwards up to 800 chars for an unclosed <PermissionGate ...> or
