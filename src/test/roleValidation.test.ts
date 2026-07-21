@@ -28,8 +28,8 @@ describe('roleValidation.validateRolePermissions', () => {
     const issues = validateRolePermissions(['v-app', 'p-app'], catalog);
     expect(issues.some(i => i.code === 'missing_edit_for_publish')).toBe(true);
   });
-  it('flags export on read_only category', () => {
-    const issues = validateRolePermissions(['v-app', 'x-app'], catalog, { category: 'read_only' });
+  it('flags publish on read_only category as sensitive', () => {
+    const issues = validateRolePermissions(['v-app', 'e-app', 'p-app'], catalog, { category: 'read_only' });
     expect(issues.some(i => i.code === 'sensitive_without_manager')).toBe(true);
   });
 });
