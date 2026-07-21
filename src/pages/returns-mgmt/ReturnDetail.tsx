@@ -48,6 +48,8 @@ import { useReturnRevisions, snapshotReturnRevision, pickEditBaseline } from '@/
 import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevisionCompareDialog';
 import { GitCompareArrows } from 'lucide-react';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
+import { PermissionGate } from '@/components/auth/PermissionGate';
+
 
 function formatCellValue(value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -607,23 +609,29 @@ export default function ReturnDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} data-rbac="returns_management.view">
               <History className="h-4 w-4 mr-1" /> History
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCompareOpen(true)}
-              disabled={revisionsLoading || !canCompareVersions}
-              title={compareVersionsTitle}
-            >
-              {revisionsLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <GitCompareArrows className="h-4 w-4 mr-1" />} Compare Versions
-              {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
-              View Analysis
-            </Button>
+            <PermissionGate module="returns_management" action="view">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompareOpen(true)}
+                disabled={revisionsLoading || !canCompareVersions}
+                title={compareVersionsTitle}
+                data-rbac="returns_management.view"
+              >
+                {revisionsLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <GitCompareArrows className="h-4 w-4 mr-1" />} Compare Versions
+                {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
+              </Button>
+            </PermissionGate>
+            <PermissionGate module="report_management" action="view">
+              <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)} data-rbac="report_management.view">
+                View Analysis
+              </Button>
+            </PermissionGate>
           </div>
+
         </div>
         <div className="bg-card border rounded-lg p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
