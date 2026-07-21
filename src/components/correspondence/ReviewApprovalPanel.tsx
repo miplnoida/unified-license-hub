@@ -31,8 +31,8 @@ export function ReviewApprovalPanel() {
       </div>
 
       <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" size="sm"><XCircle className="h-4 w-4 mr-1" />Reject</Button>
-        <Button size="sm"><CheckCircle2 className="h-4 w-4 mr-1" />Approve response</Button>
+        <Button variant="outline" size="sm" data-rbac="correspondence_management.reject"><XCircle className="h-4 w-4 mr-1" />Reject</Button>
+        <Button size="sm" data-rbac="correspondence_management.approve"><CheckCircle2 className="h-4 w-4 mr-1" />Approve response</Button>
       </div>
     </div>
   );
