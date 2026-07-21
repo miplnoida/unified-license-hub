@@ -1,106 +1,151 @@
-## Objective
+# Backend RBAC Hardening — has_permission Everywhere
 
-Achieve 100% action-level RBAC coverage across the entire app. Every business action button/menu/handler must be gated by `PermissionGate` or a `hasPermission(module, action)` check. Assignment-only regulators must be restricted to viewing submitted mapped returns only — every other action on the Return Queue must be hidden for them.
+Frontend gates are cosmetic. This plan makes the database the authorization boundary: every read, write, storage access, RPC, view, report, and export is authorized by one helper — `public.has_permission(user, module, action)` — and assignment-only regulators are strictly scoped to submitted-lifecycle returns on their mapped entities.
 
-## Approach
+## Guiding principles
 
-Treat this as an audit-first, fix-second sprint with automated enforcement so the coverage cannot regress.
+- **Single source of truth.** All backend authorization decisions call `public.has_permission(auth.uid(), module, action)`. `user_has_permission` is preserved only as a thin alias so existing policies keep working during rollout.
+- **Super admin bypass, nothing else.** Only `super_admin` (dynamic role) bypasses. Static-`admin` and legacy code paths do not.
+- **Deny by default.** Every table has RLS enabled with explicit policies. No `USING (true)` and no `TO public` on business tables.
+- **Assignment ≠ permission.** Assignment-only regulators (mapped as `lead_regulator_id` / `regulator_officer_id` / `alternate_regulator_id` on `licensees`, with zero dynamic-role permissions) get one narrow capability: read submitted-lifecycle returns and their strictly co-owned artifacts for mapped entities. Nothing else. Never drafts, WIP, TEMP, due-soon, unassigned entities, or admin configuration.
+- **No frontend-only fixes.** UI hiding is defense-in-depth, never the gate.
 
-### Phase 1 — Discovery & Inventory (read-only)
+## Canonical helpers (add / consolidate)
 
-1. Enumerate every page under `src/pages/**` and every feature component under `src/components/**` that renders an action.
-2. For each file, extract candidate action elements:
-   - `<Button>`, `<DropdownMenuItem>`, `<ContextMenuItem>`, `<MenuItem>`, icon buttons, and `onClick` handlers on links/rows.
-   - Form `onSubmit` handlers that call Supabase RPCs, edge functions, or `.insert/.update/.delete/.upsert`.
-   - Export/print/download utilities (`jsPDF`, `xlsx`, `papaparse`, `window.print`, `saveAs`, storage `createSignedUrl` on download paths).
-   - Email/notification triggers (`resend`, `send-email` edge fn, `notifications.insert`).
-3. Classify each action into the canonical taxonomy (Create, Edit, Delete, Approve, Reject, Assign, Export, Download, Upload, Import, Bulk Update, Bulk Delete, Workflow, Status Change, Archive, Restore, Escalate, Issue, Publish, Close, Reopen, Resubmit, Configure, Generate Report, AI Analysis, Consolidated Report, PDF, Excel, CSV, Print, Email, Notification).
-4. Map each action to `(module, action)` using `src/lib/permissionModules.ts`. Extend the module/action registry where the current taxonomy is missing an entry (e.g. `returns_management.export`, `returns_management.download`, `returns_management.bulk_update`, `complaints.escalate`, `licenses.issue`, `reports.ai_analysis`, `reports.consolidated`, `*.print`, `*.email`).
-5. Emit the audit inventory to `docs/rbac/action-audit.csv` and a human-readable `docs/rbac/action-audit.md` with columns: Page, Button, Module, Action, Protected (Yes/No), File, Line.
+- `public.has_permission(uuid, text, text)` — already exists. Keep as the sole entry point. Add `SET search_path = public` and `STABLE`.
+- `public.has_any_permission(uuid, text[])` — accepts `{module.action, ...}`; returns true if any match. Used for OR-style policies.
+- `public.is_super_admin(uuid)` — thin wrapper for readability.
+- `public.is_assignment_only_regulator(uuid)` — true when the user has ≥1 entity assignment and zero dynamic-role permissions.
+- `public.user_has_entity_assignment(uuid, uuid)` — true when user is Lead / Officer / Alternate for the given licensee.
+- `public.return_status_is_submitted_lifecycle(text)` — already exists; reuse.
+- `public.can_view_entity_returns(uuid, uuid, text)` — already exists; refactor to compose the helpers above so semantics live in one place.
 
-### Phase 2 — Canonical Guarding Primitives
+All helpers: `SECURITY DEFINER`, `STABLE`, `SET search_path = public`, execute granted only to `authenticated` and `service_role`.
 
-1. Confirm `PermissionGate` supports:
-   - `module`, `action`, optional `fallback`, optional `disableInsteadOfHide`.
-2. Add small helpers if missing:
-   - `useCan(module, action)` thin wrapper over `hasPermission`.
-   - `<GuardedButton module action ...>` convenience wrapper that returns `null` when not permitted (used for action buttons in tables/toolbars).
-3. Ensure server-side `has_permission(uid, module, action)` exists for every action key used on the client (extend the SQL function/enum data as needed). No new business logic — only authorization.
-
-### Phase 3 — Systematic Wrapping (per module)
-
-For every page identified in Phase 1, wrap each action in `PermissionGate`/`GuardedButton` and guard the handler entry point with an early `hasPermission` check (defense in depth). Modules to sweep, in order:
-
-1. Returns (list, detail, queue, config, types, attachments, reviews, edit-requests, imports, exports, reconciliation, workflow).
-2. Registrations & Applications (new, review, approve/reject, resubmit, export, print).
-3. Licenses (issue, renew, revoke, print certificate, export).
-4. Complaints (create, assign, escalate, close, reopen, attachments, bulk actions, reports).
-5. Inspections & FPA (if present in module map).
-6. Correspondence (inbox, records, routing config, send/email).
-7. Entities / Licensee Detail (web users create/edit/delete, PPOC map/unmap, background info edit, regulator assignment).
-8. Admin utilities (Employee Management, Role & Permissions, Regulator Management, Master Data, Form Builder incl. publish/archive/restore, Fee & Payment config, Site Settings, Branding, Notifications templates).
-9. Reports & Analytics (generate, export CSV/Excel/PDF, AI Analysis, Consolidated Report, Print, Email).
-10. Storage-touching flows (Upload, Download, Signed URL fetches, bulk import).
-
-For each: no visual change beyond hiding disallowed controls; handlers unchanged in behavior.
-
-### Phase 4 — Return Queue Hard-Lockdown for Assignment-Only Regulators
-
-1. In `src/hooks/usePermissions.ts`, add an explicit `isAssignmentOnly` boolean (true when the user has no dynamic-role permissions but has `hasAnyEntityAssignment`).
-2. Return Queue list & detail: when `isAssignmentOnly` is true, force-hide every action control regardless of module.action grants:
-   - Export, Download (file & attachments), Approve, Reject, Edit, Workflow panel, Status change, Delete, Configuration, Bulk selection UI, Reports, Analytics tabs.
-   - Only "View" and read-only tabs remain visible.
-3. Enforce the same rule server-side: extend `has_permission` so that assignment-only users resolve `false` for every action except an implicit `returns_management.view` scoped through `can_view_entity_returns`.
-4. Storage policies: block download signed URLs for assignment-only regulators (already partially enforced — verify by test).
-
-### Phase 5 — Automated Coverage Enforcement
-
-1. New Vitest suite `src/test/actionCoverage.test.ts`:
-   - Static scan of `src/pages/**` and `src/components/**` for `<Button`, `onClick`, `<DropdownMenuItem`, `onSubmit`.
-   - Fail if an action element is not inside a `PermissionGate` / `GuardedButton` / marked with an `data-rbac="view-only"` allow-list token.
-   - Maintain a small explicit allow-list for genuinely public actions (login, logout, theme toggle, close-dialog).
-2. New Vitest suite `src/test/returnQueueAssignmentOnly.test.tsx`:
-   - Render Return Queue list & detail as an assignment-only persona and assert none of the forbidden controls are in the DOM.
-3. Extend `src/test/permissionsRbac.test.tsx` with per-action matrix cases for each new `(module, action)` key introduced.
-4. pgTAP additions under `supabase/tests/rbac/` verifying `has_permission` returns false for assignment-only users on every non-view action, and that RLS blocks their writes to `returns_filed`, `return_form_data`, attachments, workflow tables.
-
-### Phase 6 — Report Deliverable
-
-Produce `docs/rbac/action-audit.md` (and `.csv`) covering every action found, with columns exactly:
+## Policy pattern (applied uniformly)
 
 ```text
-Page | Button | Permission (module.action) | Protected (Yes/No) | File | Line
+SELECT policy:
+  public.is_super_admin(auth.uid())
+  OR public.has_permission(auth.uid(), '<module>', 'view')
+  OR (<narrow assignment branch, only where explicitly allowed>)
+
+INSERT/UPDATE/DELETE policies:
+  public.is_super_admin(auth.uid())
+  OR public.has_permission(auth.uid(), '<module>', '<create|edit|delete|approve|...>')
 ```
 
-Include a summary section with total actions, protected count, and a per-module breakdown. Target: 100% Protected=Yes at completion. Any exceptions (e.g. Logout) listed explicitly in an "Intentional public actions" table.
+The assignment branch is added **only** to a fixed allow-list of tables (below). Every other table denies assignment-only regulators outright because `has_permission` returns false for them.
 
-## Technical Details
+## Scope — modules and tables covered
 
-- No business logic changes — only authorization wrappers, permission registry additions, and tests.
-- New/updated files (high level):
-  - `src/lib/permissionModules.ts` — extend action taxonomy.
-  - `src/components/auth/PermissionGate.tsx` + new `GuardedButton.tsx`.
-  - `src/hooks/usePermissions.ts` — add `isAssignmentOnly`.
-  - Every page/component in inventory — wrap actions.
-  - `supabase/migrations/*_rbac_action_coverage.sql` — extend `has_permission`, tighten policies where write actions leak.
-  - `src/test/actionCoverage.test.ts`, `src/test/returnQueueAssignmentOnly.test.tsx`, extended `permissionsRbac.test.tsx`.
-  - `supabase/tests/rbac/*.sql` — pgTAP action-level assertions.
-  - `docs/rbac/action-audit.md`, `docs/rbac/action-audit.csv`.
+Grouped by module. Each group gets: RLS rewrite, RPC/function guard, storage policy rewrite, pgTAP suite.
 
-## Acceptance Criteria
+- **Returns** — `returns_filed`, `return_form_data`, `return_documents`, `return_comments`, `return_audit_log`, `return_data_revisions`, `return_edit_requests`, `return_calculated_ratios`, `return_consolidated_analysis`, `return_threshold_breaches`, `return_upload_attempts`, `return_upload_imports`, `return_template_downloads`, `return_validation_run_log`. Assignment branch permitted **only** when the parent `returns_filed.status` is submitted-lifecycle AND user is mapped on the licensee.
+- **Admin / Configuration** — `return_configs`, `return_configurations`, `return_types`, `return_cutoff_config`, `return_templates`, `return_config_forms`, `return_validation_rules`, `return_validation_rule_versions`, `return_notification_templates`, `late_fee_structures`, `late_fee_penalty_tiers`, `sla_configurations`, `sla_escalation_tiers`, `sla_process_team_leads`, `business_calendar_*`, `report_*` configuration tables, `notification_*` config, `permission_*`, `roles`, `permissions`, `role_permissions`, `master_data_*`, `regulators`, `sectors`, `sub_sectors`, `categories`. Assignment branch: **never**. Only permission-based access.
+- **Applications / Registrations / Licenses / Complaints / Compliance / Prudential / Conduct / Enforcement / Inspections / Correspondence / Coordination / Fit & Proper / Fees & Payments / Refunds / Audit Logs / Reports** — each rewritten to the pattern above. Assignment-only regulators denied outright.
+- **Storage (buckets)** — every bucket policy is rewritten to require the same `has_permission(module, action)` check for read/write. Return attachment bucket adds the parent-status + assignment gate.
+- **Reports / Exports** — `report_run_files`, `report_run_rows`, `report_logs`, `audit_export_jobs`. Read requires `report_management.view`; export/download requires `report_management.export`. Assignment-only regulators denied.
+- **Search / AI / Consolidated** — `application_ai_assessments`, `return_consolidated_analysis`. Read requires the parent module's `.view`, plus assignment gate for returns. Write requires `.ai_analysis` or `.consolidated`.
 
-1. Every action element in `src/pages/**` and `src/components/**` is either inside a `PermissionGate`/`GuardedButton` or on the documented public allow-list.
-2. `docs/rbac/action-audit.md` shows 100% coverage.
-3. Assignment-only regulator persona test finds zero forbidden controls in Return Queue.
-4. All Vitest suites pass, including the new static coverage scan.
-5. pgTAP RBAC suites pass, confirming server-side parity.
-6. No changes to existing business flows or UI beyond hiding/disabling unauthorized actions.
+## Assignment-only regulator — the exact allow-list
 
-## Clarifying Question
+Read-only, entity-scoped, submitted-lifecycle only:
 
-Given the sheer surface area (likely 300–600 action sites), do you want this delivered as:
+- `returns_filed` — where `licensee_id` in assignments AND `return_status_is_submitted_lifecycle(status)`.
+- `return_form_data`, `return_documents`, `return_comments`, `return_audit_log`, `return_data_revisions`, `return_calculated_ratios`, `return_consolidated_analysis`, `return_threshold_breaches` — same, joined via `return_id → returns_filed`.
+- Storage: `return-attachments/{return_id}/*` — signed-URL read only when the return above matches.
 
-- **(A) One massive PR** covering all modules in a single build turn, or
-- **(B) Phased by module** (Returns → Registrations → Licenses → Complaints → Correspondence → Entities → Admin → Reports), each phase committing with its slice of the audit report and tests?
+Everything else: **denied**. Explicitly enumerated denials in pgTAP:
 
-I recommend **(B)** to keep review tractable and let the audit report grow module by module with green tests at each step. Confirm A or B before I begin implementation.
+- Drafts, WIP, TEMP, due-soon, or any non-submitted status.
+- Unassigned entities.
+- Admin/configuration tables and views.
+- Any write on any table.
+- Any RPC that mutates.
+- Report exports, CSV/Excel/PDF endpoints.
+
+## Edge functions and RPCs
+
+Every SECURITY DEFINER function that mutates or reads privileged data:
+
+1. Re-derive `auth.uid()` inside the function; ignore any `user_id` argument.
+2. Call `public.has_permission` for the exact `(module, action)` the operation represents; fall through only when it also passes the assignment gate for returns.
+3. Return `raise exception 'not_authorized'` on failure — no silent no-ops.
+
+Edge functions using `service_role` (storage cleanup, escalation sweep, notification dispatch) validate the caller's JWT and their permission via `has_permission` before performing any privileged action. Cron-triggered jobs run with a service identity and skip the check, but only touch queue/log tables that are locked down from user access.
+
+## Views and materialized views
+
+- Every view/MV recreated with `WITH (security_invoker = on)` so it inherits the caller's RLS.
+- Any view exposing sensitive columns is paired with a base-table policy that denies direct SELECT.
+- Reporting MVs used by dashboards are wrapped by a `SECURITY DEFINER` RPC that checks `has_permission(<module>, 'view')` before returning rows.
+
+## pgTAP coverage
+
+New suites under `supabase/tests/rbac/`:
+
+```text
+00_helpers.sql               -- has_permission, is_super_admin, is_assignment_only_regulator
+01_returns_rls.sql           -- 40+ assertions across personas × operations
+02_returns_storage.sql       -- signed URL + object read/write matrix
+03_admin_config_rls.sql      -- configuration tables never readable by non-permissioned users
+04_reports_and_exports.sql   -- run rows, run files, audit_export_jobs
+05_ai_and_consolidated.sql   -- application_ai_assessments, return_consolidated_analysis
+06_rpc_authorization.sql     -- every mutating RPC rejects unauthorized callers
+07_assignment_only.sql       -- exhaustive negative matrix for the assignment-only persona
+08_super_admin_bypass.sql    -- one positive test per module
+09_module_matrix.sql         -- applications / registrations / licenses / complaints / compliance / prudential / conduct / enforcement / inspections / correspondence / fit-proper / fees / refunds / audit
+```
+
+Personas seeded per suite: `super_admin`, `legacy_admin` (dynamic role), `analyst_returns`, `analyst_complaints`, `reviewer`, `assignment_only_regulator`, `external_licensee_primary`, `external_licensee_secondary`, `pre_license_user`, `anon`.
+
+Each suite: verifies both positive (allowed) and negative (blocked) paths for SELECT/INSERT/UPDATE/DELETE, plus explicit denial for the drafts / WIP / TEMP / unassigned / admin cases the requirement calls out.
+
+CI: `.github/workflows/ci.yml` runs the pgTAP suite via `supabase db test` against an ephemeral local instance. Fail closed on any regression.
+
+## Documentation
+
+- `docs/rbac/backend-authorization.md` — helper contract, policy pattern, assignment-only allow-list, denial matrix.
+- `docs/rbac/policy-inventory.md` — auto-generated from `pg_policies`; one row per policy with module, action, table, and pgTAP test file linked.
+- `docs/rbac/assignment-only-matrix.md` — explicit table showing what an assignment-only regulator can and cannot see.
+- `docs/rbac/change-log.md` — every policy this plan replaces, before/after, with migration filename.
+
+## Rollout — phased migrations
+
+Each phase is one migration + one pgTAP suite + one docs section. No phase merges until its tests pass.
+
+1. **Helpers + tests infrastructure.** Add `has_any_permission`, `is_super_admin`, `is_assignment_only_regulator`, refactor `can_view_entity_returns`. Add `00_helpers.sql`.
+2. **Returns core.** Rewrite policies on `returns_filed` and every child return_* table using the canonical pattern. `01_returns_rls.sql`, `07_assignment_only.sql`.
+3. **Return storage + attachments.** Rewrite storage.objects policies for `return-attachments`; add object-scoped assignment/status gate. `02_returns_storage.sql`.
+4. **Admin/config lockdown.** Rewrite policies on every configuration table listed above; deny assignment-only outright. `03_admin_config_rls.sql`.
+5. **Reports / exports / AI / consolidated.** Rewrite `report_*`, `audit_export_jobs`, `application_ai_assessments`, `return_consolidated_analysis`. `04_reports_and_exports.sql`, `05_ai_and_consolidated.sql`.
+6. **RPCs + edge functions.** Add `has_permission` guards at the top of every mutating RPC; verify JWT + permission in each edge function. `06_rpc_authorization.sql`.
+7. **Remaining modules.** Applications, registrations, licenses, complaints, compliance, prudential, conduct, enforcement, inspections, correspondence, fit & proper, fees, payments, refunds, audit_logs. `09_module_matrix.sql`.
+8. **Views / MVs.** Recreate with `security_invoker = on`; wrap dashboard MVs behind RPCs. Add coverage to the relevant suites.
+9. **Cleanup.** Remove superseded permissive policies. Run `supabase--linter`; fix every finding. Regenerate `docs/rbac/policy-inventory.md`.
+
+## Verification (per phase)
+
+- pgTAP suite green.
+- `supabase--linter` clean for touched tables.
+- Manual query as each persona confirming: allowed rows return, blocked rows raise or return zero, writes rejected with `not_authorized`.
+- For assignment-only regulator specifically: seed one draft and one submitted return on a mapped entity plus one submitted return on an unmapped entity; assert only the mapped submitted return is visible everywhere (list, detail, storage signed URL, RPC, dashboard, export endpoint).
+
+## Non-goals
+
+- No changes to business logic, UI flows, workflow transitions, or notification content.
+- No new permissions catalog entries unless a policy needs an action that does not yet exist; those are listed explicitly in the phase migration.
+- Frontend guard changes are limited to swapping any lingering `user_has_permission` frontend references to the canonical helper and adding tests — no visible UI change.
+
+## Deliverables checklist
+
+- [ ] Helper set consolidated, granted, `SET search_path = public`.
+- [ ] Every table in scope has RLS enabled with policies that call `has_permission` (or the assignment gate where allowed).
+- [ ] Every storage bucket policy rewritten.
+- [ ] Every mutating RPC + edge function guards on `has_permission`.
+- [ ] Views / MVs use `security_invoker = on` or are wrapped by permission-checked RPCs.
+- [ ] pgTAP suites 00–09 exist and pass in CI.
+- [ ] `docs/rbac/*` updated: contract, inventory, assignment-only matrix, change log.
+- [ ] `supabase--linter` clean.
+- [ ] Assignment-only regulator negative matrix (drafts / WIP / TEMP / unassigned / admin / exports / writes) verified by pgTAP.
