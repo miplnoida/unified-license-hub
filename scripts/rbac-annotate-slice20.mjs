@@ -71,7 +71,7 @@ const SKIP_FILE_RX = [
 const sites = scanRepo();
 const gaps = sites.filter(s => !s.protected);
 
-const CATS = new Set(['Create','Edit','Delete','Save','Approve','Reject','Assign','Export','Download','Upload','Import','Bulk','Workflow','Escalate','Archive','Publish','Configure','Issue','Reopen','Resubmit','Submit']);
+const CATS = new Set(['Create','Edit','Delete','Save','Approve','Reject','Assign','Export','Download','Upload','Import','Bulk','Workflow','Escalate','Archive','Publish','Configure','Issue','Reopen','Resubmit','Submit','Action']);
 const target = gaps.filter(g => CATS.has(g.category) && !SKIP_FILE_RX.some(rx => rx.test(g.file)));
 
 // Group by file, sort by line desc so line numbers stay stable during rewrite
