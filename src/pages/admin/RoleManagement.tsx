@@ -379,11 +379,20 @@ export default function RoleManagement() {
       toast.error('Please select at least one permission so this role can do something');
       return;
     }
+    // Final safeguard — auto-add prerequisite `view` permissions so the
+    // server-side dependency trigger never rejects the save.
+    const { resolvedIds, violations, addedPermissionIds } = resolveDependencies(
+      [...new Set(formPerms)],
+      permissions,
+    );
+    if (violations.length > 0 && addedPermissionIds.length > 0) {
+      toast.info(`Auto-enabled View for ${violations.length} module${violations.length > 1 ? 's' : ''} to satisfy prerequisites.`);
+    }
     const payload = {
       name, description: formDesc, system_role: 'analyst',
       role_type: formRoleType,
       dashboard_tier: formRoleType === 'internal' ? formDashboardTier : 'operational' as DashboardTier,
-      permissionIds: [...new Set(formPerms)],
+      permissionIds: resolvedIds,
     };
     if (editingRole) {
       await updateRole.mutateAsync({ id: editingRole.id, ...payload });
