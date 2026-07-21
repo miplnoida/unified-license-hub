@@ -17,6 +17,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { logComplianceAudit } from "../_shared/audit.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const FN_VERSION = "triage.v3";
 const SYSTEM_ACTOR = "00000000-0000-0000-0000-000000000000";
@@ -116,6 +117,9 @@ async function sha1Hex(s: string): Promise<string> {
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
+
+  const __authzGate = await requireUserPermission(req, "complaint_management", "workflow_action");
+  if (!__authzGate.ok) return __authzGate.response;
   const cors = buildCorsHeaders(req);
 
   const supabase = createClient(
