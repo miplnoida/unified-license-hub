@@ -275,6 +275,52 @@ view-only-cannot-mutate invariant on both entities, assigned-regulator
 is read-only, zero legacy `has_role` on any of the 10 tables, and zero
 anon grants.
 
+## Slice 7 — Compliance Returns lifecycle lockdown (shipped)
+
+Migration: `supabase/migrations/*_slice_7_compliance_returns_rls.sql`
+
+**Permission catalog** — added `compliance_management.{view, create, edit,
+delete, view_all_entities, workflow_action, manage_config, respond,
+view_audit_logs}`.
+
+**Canonical helpers** (SECURITY DEFINER, STABLE, `search_path = public`;
+`EXECUTE` revoked from PUBLIC, granted to `authenticated, service_role`):
+
+- `public.can_read_compliance_return(_user, _return_id)` — composes
+  super_admin, `view_all_entities`, internal `view`, submitter ownership,
+  PPOC mapping (`ppoc_mapped_licensee_ids` / `ppoc_accessible_license_ids`),
+  and `external_can_access_compliance_return(..., can_view_status|
+  can_submit_returns)`.
+- `public.can_mutate_compliance_return(_user, _return_id)` — composes
+  super_admin, `edit`, `workflow_action`, submitter on editable statuses
+  (`draft` / `pending` / `resubmission_requested` / `rejected`), and
+  external `can_submit_returns`.
+
+**Policy rewrites** — 2 tables, every legacy multi-role `has_role()` block
+replaced with helper/permission composition:
+
+- `compliance_returns` (9 → 4: read/insert/update/delete). INSERT enforces
+  `submitter_id = auth.uid()` plus one of: super_admin, `create`, PPOC
+  mapping (licensee + accessible license), or external capability gate.
+  UPDATE also re-checks external capability on WITH CHECK values so an
+  external writer cannot re-target another licensee/license/submitter.
+- `compliance_audit_logs` (2 → 1: read only). Read gated by super_admin,
+  `view_audit_logs`, or `view_all_entities`; external roles explicitly
+  denied. No authenticated write policy exists — audit entries are
+  service-role-only, so no user session can forge them.
+
+**Grants** — anon revoked, authenticated CRUD, service_role ALL reasserted
+on both tables.
+
+pgTAP: `supabase/tests/rbac/80_compliance_returns_rls.sql` — 20 assertions
+across six personas (super_admin, view-only staff, edit staff, submitter,
+audit-log reader, unassociated). Covers catalog registration, helper
+composition, submitter editable-status boundary (draft mutable,
+approved locked), view-only-cannot-mutate invariant, zero legacy
+`has_role`, zero anon grants, and no authenticated write policy on
+`compliance_audit_logs`.
+
+
 
 
 
