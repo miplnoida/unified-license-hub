@@ -1,0 +1,2711 @@
+{
+  "generatedAt": "2026-07-21T06:16:04.057Z",
+  "rows": [
+    {
+      "module": "application_management",
+      "action": "approve",
+      "menu": [],
+      "route": [],
+      "button": [
+        {
+          "file": "src/components/auth/PermissionGate.tsx",
+          "line": 24
+        }
+      ],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "application_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "application_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "application_management",
+      "action": "reject",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "application_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 83
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 111
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 118
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 119
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 120
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 148
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 203
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 204
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 205
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "complaint_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_management",
+      "action": "submit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_management",
+      "action": "upload_documents",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 117
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 118
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 119
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 169
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 170
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 171
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 172
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 226
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "complaint_management",
+      "action": "view_status",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_type",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_type",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "complaint_type",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 120
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 110
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "coordination",
+      "action": "admin",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "coordination",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "coordination",
+      "action": "delete",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "coordination",
+      "action": "update",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "coordination",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 184
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 188
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 189
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "executive_oversight",
+      "action": "drill_into_cases",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "executive_oversight",
+      "action": "receive_ai_insights",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_all_dashboards",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_all_reports",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_cross_module_audit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fee_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fee_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fee_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 233
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 96
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 201
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "admin",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "delete",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "submit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "update",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "upload_documents",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 138
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 140
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 142
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 143
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 147
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 149
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 150
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 151
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 155
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 157
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 158
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 162
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 164
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 165
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 166
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 167
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 168
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 172
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 174
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 175
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 176
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 190
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 191
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 192
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 193
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 194
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 195
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 196
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 197
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 198
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 238
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 239
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 240
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 241
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 242
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 243
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 244
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 245
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 246
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 247
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 248
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 249
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 250
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 251
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 252
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 253
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 254
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "view_status",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_committee",
+      "action": "cast_weighted_vote",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_committee",
+      "action": "provide_rationale",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_committee",
+      "action": "view",
+      "menu": [],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 122
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "fit_and_proper_initiation",
+      "action": "initiate_assessment",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_initiation",
+      "action": "manage_initiation_types",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_initiation",
+      "action": "view",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "issue_determination",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "manage_conditions_monitoring",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "manage_screening",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "record_adverse_findings",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "run_ai_analysis",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "view",
+      "menu": [],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 121
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 123
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "form_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "form_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "form_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 216
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 217
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 82
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 86
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 87
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 112
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 113
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "license_management",
+      "action": "approve",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "license_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "license_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "license_management",
+      "action": "manage_license_actions",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "license_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 54
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 84
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 85
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 99
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 100
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 111
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 114
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 117
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 132
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 133
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 134
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 199
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 200
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "licensing",
+      "action": "add_legal_notes",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "approve",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "conditional_approve",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "flag_concern",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "issue_digital_license",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "override_ai_recommendation",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "recommend_conditions",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "reject",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "respond_rfi",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "sign_enforcement_order",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "submit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "upload_documents",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "view",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "licensing",
+      "action": "view_status",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "initiate_investigation",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "initiate_thematic_review",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "issue_enforcement_action",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "manage_complaints",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "manage_monitoring_rules",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "run_conduct_analytics",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 121
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 122
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 123
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 124
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 125
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 126
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 127
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 128
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 129
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 130
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 129
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 130
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 131
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 215
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 216
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 217
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 218
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 219
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 220
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 221
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 222
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 223
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 224
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 225
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "access_investigation_workspace",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "conduct_interviews",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "manage_evidence_repository",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "prepare_investigation_report",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "view",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "conduct_pfmi_assessment",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "manage_payment_workflow",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "oversee_msb",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "supervise_fmi",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "view",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "conduct_onsite_examination",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "initiate_supervisory_action",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "manage_remediation",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "record_camels_assessment",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "review_returns",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "run_analytics",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "set_ewi_rules",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 190
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 197
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 198
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 199
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 200
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 201
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 202
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 229
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 230
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 231
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 232
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 233
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 234
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 235
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 236
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 237
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "registration_management",
+      "action": "approve",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "registration_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "registration_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "registration_management",
+      "action": "reject",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "registration_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 86
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 115
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 116
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "report_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "report_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 248
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 249
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 177
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 178
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 179
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 208
+        }
+      ],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 628
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 629
+        }
+      ],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [
+        {
+          "file": "src/pages/reports/ReportPage.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/ReportsDashboard.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/AdHocReportBuilder.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportFilters.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportHistory.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportLibrary.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportPreviewDialog.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportSchedules.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/ReportsOverview.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/filters/BasicFallbackFilters.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/filters/DynamicReportFilters.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/widgets/ChartWidget.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/widgets/KpiWidget.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/components/widgets/ReportWidgetRenderer.tsx",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/hooks/useReportMetadata.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/hooks/useReportMetrics.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/hooks/useReportSchedules.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/hooks/useReports.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/hooks/useWidgetData.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/lib/columnLabels.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/reportDefinitions.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/services/exportService.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/services/reportFilterOptionsService.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/services/reportMetadataService.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/services/reportService.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        },
+        {
+          "file": "src/pages/reports/types.ts",
+          "line": 1,
+          "detail": "implicit — file under src/pages/reports"
+        }
+      ],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "approve",
+      "menu": [],
+      "route": [],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 716
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 853
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 720
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 855
+        }
+      ],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "returns_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "returns_management",
+      "action": "export",
+      "menu": [],
+      "route": [],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ViewReturns.tsx",
+          "line": 268
+        },
+        {
+          "file": "src/pages/returns-mgmt/ViewReturns.tsx",
+          "line": 273
+        }
+      ],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "reject",
+      "menu": [],
+      "route": [],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 741
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 863
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 746
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 865
+        }
+      ],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "respond_rfi",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "returns_management",
+      "action": "submit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "returns_management",
+      "action": "upload_documents",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "returns_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 93
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 95
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 96
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 97
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 98
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 99
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 100
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 103
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 191
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 192
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 193
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 194
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 195
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 196
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 97
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 126
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 140
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 141
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 142
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 143
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 144
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 145
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 146
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 147
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 148
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 149
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 150
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 151
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 152
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 153
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 154
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 159
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 160
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 161
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 202
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 206
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 207
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 209
+        }
+      ],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 615
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 612
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 622
+        }
+      ],
+      "rls": [],
+      "rpc": [
+        {
+          "file": "supabase/migrations/20260720105028_a04adec4-3f16-439e-b7bd-c7f411193e0c.sql",
+          "line": 36,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720105028_a04adec4-3f16-439e-b7bd-c7f411193e0c.sql",
+          "line": 95,
+          "detail": "function body"
+        }
+      ],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "view_all_entities",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [
+        {
+          "file": "supabase/migrations/20260720095919_51ddfd1e-df7a-4cb3-b3f7-86f142211f23.sql",
+          "line": 128,
+          "detail": "RLS policy"
+        }
+      ],
+      "rpc": [
+        {
+          "file": "supabase/migrations/20260720091329_a46a13ca-f072-4db6-bd1c-984c611c08cb.sql",
+          "line": 52,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720095919_51ddfd1e-df7a-4cb3-b3f7-86f142211f23.sql",
+          "line": 23,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720105028_a04adec4-3f16-439e-b7bd-c7f411193e0c.sql",
+          "line": 31,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720105028_a04adec4-3f16-439e-b7bd-c7f411193e0c.sql",
+          "line": 91,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720115835_d81a239f-a19f-4f1a-a220-48f90e3eed72.sql",
+          "line": 31,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720115835_d81a239f-a19f-4f1a-a220-48f90e3eed72.sql",
+          "line": 84,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260720121628_c5d61cee-e7e6-4885-9f45-112a700d735d.sql",
+          "line": 16,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260721060408_d89cea7e-35ef-40d2-b766-b34234a99258.sql",
+          "line": 163,
+          "detail": "function body"
+        }
+      ],
+      "storage": [
+        {
+          "file": "supabase/migrations/20260720095919_51ddfd1e-df7a-4cb3-b3f7-86f142211f23.sql",
+          "line": 208,
+          "detail": "storage.objects policy"
+        }
+      ],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "returns_management",
+      "action": "view_status",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "role_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "role_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "role_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 67
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 68
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 103
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 104
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "settings",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "settings",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 53
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 55
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 56
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 57
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 58
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 224
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 226
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 227
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 228
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 229
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 232
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 239
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 240
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 241
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 242
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 90
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 91
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 92
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 93
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 95
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 98
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 106
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 107
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 108
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 109
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 124
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 125
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 128
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 210
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 211
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 212
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 213
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 214
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 255
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 256
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 257
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 258
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 259
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 260
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "user_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "user_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "user_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 66
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 101
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 102
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    },
+    {
+      "module": "workflow_management",
+      "action": "create",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "workflow_management",
+      "action": "edit",
+      "menu": [],
+      "route": [],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": true
+    },
+    {
+      "module": "workflow_management",
+      "action": "view",
+      "menu": [
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 208
+        },
+        {
+          "file": "src/config/navigation.tsx",
+          "line": 210
+        }
+      ],
+      "route": [
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 173
+        },
+        {
+          "file": "src/routes/dashboardRoutes.tsx",
+          "line": 174
+        }
+      ],
+      "button": [],
+      "rls": [],
+      "rpc": [],
+      "storage": [],
+      "report": [],
+      "orphaned": false
+    }
+  ],
+  "orphanedCount": 99
+}

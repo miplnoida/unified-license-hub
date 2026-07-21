@@ -20,6 +20,7 @@ const LicenseeDetailPage = lazy(() => import('@/pages/admin/LicenseeDetail'));
 const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
 const ManageWebUsers = lazy(() => import('@/pages/admin/ManageWebUsers'));
 const RoleManagement = lazy(() => import('@/pages/admin/RoleManagement'));
+const PermissionCoverageReport = lazy(() => import('@/pages/admin/PermissionCoverageReport'));
 const AuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
 const ComplianceAuditLogs = lazy(() => import('@/pages/admin/ComplianceAuditLogs'));
 const IntegrationLogs = lazy(() => import('@/pages/admin/IntegrationLogs'));
@@ -100,6 +101,8 @@ export const adminRoutes = (
     <Route path="/admin/users" element={<M module="user_management"><UserManagement /></M>} />
     <Route path="/admin/web-users" element={<M module="user_management"><ManageWebUsers /></M>} />
     <Route path="/admin/roles" element={<M module="role_management"><RoleManagement /></M>} />
+    <Route path="/admin/permission-coverage" element={<M module="role_management"><PermissionCoverageReport /></M>} />
+
     <Route path="/admin/audit-logs" element={<M module="settings"><AuditLogs /></M>} />
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />
     <Route path="/admin/integration-logs" element={<M module="settings"><IntegrationLogs /></M>} />

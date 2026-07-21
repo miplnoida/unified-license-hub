@@ -62,6 +62,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/web-users', 'user_management'],
   ['/admin/employees', 'user_management'],
   ['/admin/roles', 'role_management'],
+  ['/admin/permission-coverage', 'role_management'],
 
   // ─── Licenses / licensees ──────────────────────────────────────────────
   ['/admin/licensees', 'license_management'],
