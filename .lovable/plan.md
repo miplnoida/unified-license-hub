@@ -1,80 +1,109 @@
-## Slice: Role Management & Permission Catalog — End-to-End Hardening
 
-Scope is strictly Role Management + Permission Catalog. No catalog-wide orphan cleanup, no 249-table RLS sweep, no 294-function RPC sweep.
+# Enterprise RBAC Completion — Sliced Execution Plan
 
-### 1. Migration (single new file under `supabase/migrations/`)
+I'm currently in plan mode and can't edit files until you approve this plan. Approving switches me to build mode so I can implement Slice 1 immediately, then continue slice-by-slice.
 
-**Catalog & flags**
-- Ensure the nine `role_management.*` permissions exist in `public.permissions` with `enforced = true`:
-  `view, create, edit, delete, reset, assign_permissions, view_catalog, manage_catalog, view_coverage`.
-- Add `deprecated boolean NOT NULL DEFAULT false` to `public.permissions` (if missing).
-- Extend orphaned-permission trigger on `public.role_permissions` to also reject `deprecated = true`.
+## Ground rules (apply to every slice)
 
-**Dependency table + trigger**
-- Table `public.permission_dependent_actions(action text primary key)` seeded from `DEPENDENT_ACTIONS`.
-- Rewrite `assert_role_permission_dependencies` (BEFORE INSERT + BEFORE DELETE) to read that table so client and DB share one source of truth.
-- Data repair: for every existing `role_permissions` row whose action is dependent and whose role is missing `<module>.view`, insert the view row (idempotent).
+- One slice per turn, each self-contained: code + migration + tests + verification + rollback safety.
+- No documentation-only turns.
+- Every migration that creates/alters a public table includes GRANTs and RLS.
+- Every unauthorized mutation path returns SQLSTATE `42501`.
+- All tests actually executed (Vitest, pgTAP, tsgo, build) with output captured before I claim a slice complete.
+- Nothing rewritten wholesale (249 tables / 294 functions) in one migration — prioritized lists only.
 
-**Backend enforcement helpers**
-- `public.assert_role_management_action(_action text)` — raises SQLSTATE `42501` unless caller is `service_role`, `super_admin`, or has `has_permission(auth.uid(), 'role_management', _action)`.
+## Slice ordering (locked)
 
-**Triggers (all bypass service_role + super_admin)**
-- `roles`: BEFORE INSERT → `create`; BEFORE UPDATE → `edit`; BEFORE DELETE → `delete`.
-- `role_permissions`: BEFORE INSERT/DELETE → `assign_permissions` (runs before existing dependency/orphaned checks).
-- `permissions`: BEFORE INSERT/UPDATE/DELETE → `manage_catalog`.
-- `permission_modules` / `permission_actions`: BEFORE INSERT/UPDATE/DELETE → `manage_catalog`.
-- `user_dynamic_roles`: BEFORE INSERT/DELETE → `assign_permissions`.
+1. Role Management verification + unified dependency source
+2. Application action protection (PermissionGate + backend parity)
+3. Route protection audit
+4. Edge Function `requireUserPermission` sweep + scope types
+5. RPC hardening (business-critical list)
+6. RLS on prioritized tables
+7. Storage bucket policies
+8. Return Queue assignment-only finalization
+9. Coverage scanner accuracy (surface separation)
+10. Orphan permission triage (wire / deprecate / remove)
+11. Full automated verification run
 
-**RPC hardening**
-- `public.reset_system_role_permissions(text)` — first statement calls `assert_role_management_action('reset')`; keep existing logic; `SECURITY DEFINER` with pinned `search_path = public`.
+---
 
-### 2. Frontend
+## Slice 1 — Role Management verification + unified dependencies (this turn after approval)
 
-**`src/pages/admin/RoleManagement.tsx`**
-- Add `canViewCatalog`, `canManageCatalog`, `canViewCoverage` via `useCan`.
-- Hide "Permission Catalog" tab unless `canViewCatalog`; hide catalog Create/Edit/Delete controls unless `canManageCatalog`.
-- When `!canAssign`: disable every checkbox in the permission matrix, disable "Select all in module" / "Clear module" / "Copy from role" quick templates, and short-circuit `applyTemplate` with a toast.
-- `handleReset` already gated by `canReset`; ensure the row action is hidden without it.
-- `handleSave` runs `resolveDependencies` before submit; if `!canAssign`, submit only role metadata (no permission diff writes).
+### 1a. Single source of truth for dependencies
 
-**`src/pages/admin/PermissionCoverageReport.tsx`** — already gated by `role_management.view_coverage`; verify.
+- Create `supabase/migrations/<ts>_rbac_dependency_source.sql`:
+  - `CREATE TABLE public.permission_dependent_actions(action text primary key)` seeded from the current TS list (`edit, update, create, delete, approve, reject, export, download, upload, import, publish, archive, restore, assign, reassign, bulk, bulk_update, bulk_delete, configure, status_change, workflow_action, dispatch, execute, close, reopen, resolve, escalate, issue, revoke, suspend, renew`).
+  - GRANT SELECT to `anon, authenticated`; ALL to `service_role`. RLS enabled, read-only policy for authenticated.
+  - Rewrite `assert_role_permission_dependencies` trigger to read from this table (no hardcoded array in SQL).
+- Regenerate `src/lib/rbac/permissionDependencies.ts` to fetch the list from Supabase at module load with a static fallback constant kept in sync via a codegen script `scripts/sync-permission-dependencies.ts`. The script reads the table and rewrites the `DEPENDENT_ACTIONS` constant; CI check fails if drift is detected.
+- Update `src/test/rbac/permissionDependencies.test.ts` to assert the constant matches the DB seed via a snapshot fixture.
 
-**`src/routes/adminRoutes.tsx`** — ensure `/admin/roles` requires `role_management.view` and `/admin/permission-coverage` requires `role_management.view_coverage` via `<M module=… action=…>`.
+### 1b. Role Management SQL-level enforcement audit
 
-### 3. Tests
+Add pgTAP file `supabase/tests/rbac/30_role_management_authz.sql` covering, per persona (anon, authenticated non-admin, dynamic-role-with/without `role_management.*`, super_admin, service_role):
 
-**Vitest — `src/test/rbac/roleManagementUi.test.tsx`** (new)
-- Personas: super_admin, view-only, edit-no-assign, catalog-viewer, catalog-manager, coverage-viewer, no-role.
-- Assert visibility/disabled state of: Create button, row Edit/Delete/Reset, permission checkboxes, Select-all/Clear buttons, Catalog tab, Catalog mutation buttons, Coverage page.
+- `roles` INSERT / UPDATE / DELETE
+- `role_permissions` INSERT / DELETE
+- `user_dynamic_roles` INSERT / UPDATE / DELETE
+- `permission_modules` / `permission_actions` / `permissions` mutations
+- `reset_system_role_permissions` RPC (success, unknown role, non-system role, deprecated-permission preservation, dependency preservation, bypass-flag cleanup post-rollback)
 
-**Vitest — extend `src/test/rbac/permissionDependencies.test.ts`**
-- `applyTemplate` never returns a selection that violates dependencies.
+Every unauthorized case asserts `SQLSTATE 42501`. Bypass flag test wraps the reset in a rolled-back transaction and then re-attempts an unauthorized mutation to prove the flag doesn't leak.
 
-**pgTAP — `supabase/tests/rbac/11_role_management_authz.sql`** (new)
-- As unauthorized user: `INSERT/UPDATE/DELETE` on `roles`, `role_permissions`, `permissions`, `permission_modules`, `permission_actions`, `user_dynamic_roles`, plus `SELECT reset_system_role_permissions(...)` — each expects SQLSTATE `42501`.
-- As user with only `role_management.view`: same expectations.
-- As `service_role` and as `super_admin`: mutations succeed.
+Fix any policy/trigger gap the tests expose (expected: tighten `roles` INSERT/UPDATE/DELETE policies to require `has_permission(auth.uid(), 'role_management', <action>)`, same for `role_permissions`, `user_dynamic_roles`, catalog tables). Migration: `<ts>_role_management_authz_hardening.sql`.
 
-**pgTAP — extend `supabase/tests/rbac/10_permission_dependencies.sql`**
-- Inserting dependent action without view → fails.
-- Inserting dependent action after view exists → succeeds.
-- Deleting view while dependent action remains → fails.
-- Deleting dependent then view → succeeds.
+### 1c. Read/write separation for Permission Catalog
 
-### 4. Verification commands to run and report
+- Ensure `PermissionCatalogTab` requires `role_management.view_catalog` to render and `role_management.manage_catalog` to mutate. Migration already registered these; verify seeding and add to Legacy Admin defaults if missing.
+- Add DB-level guard on `permissions` mutations mirroring the existing module/action guard.
+
+### 1d. Vitest additions
+
+`src/test/rbac/roleManagement.authz.test.tsx`:
+- Renders `RoleManagement` under personas (super_admin, legacy admin with all role_management perms, admin with only view, dynamic role without role_management, external user).
+- Asserts Create/Edit/Delete/Reset/Assign controls are enabled/disabled correctly.
+- Asserts `applyTemplate` short-circuits without `assign_permissions`.
+- Asserts catalog tab hidden without `view_catalog`.
+
+### 1e. Verification commands run before completing the slice
 
 - `bunx tsgo --noEmit`
-- `bun run lint` (or eslint on changed files)
-- `bunx vitest run src/test/rbac/`
-- pgTAP: `supabase/tests/rbac/10_*.sql`, `11_*.sql` via project runner
-- `bunx tsx scripts/generate-permission-coverage.ts` — confirm the 9 role_management permissions are Enforced.
+- `bunx vitest run src/test/rbac src/test/permissionsRbac.test.tsx`
+- `supabase test db` (pgTAP) on new files
+- Build
 
-### Final report format
+Slice 1 done only when all above pass with captured output.
 
-Files changed · migration name · permissions enforced · tests added · commands run with pass/fail · limitations explicitly outside this slice (RLS on 249 tables, 294 SD RPCs, storage rewrite, orphan triage catalog-wide, action sweep across all pages).
+---
 
-### Explicitly out of scope this turn
+## Slices 2–11 — one turn each, same structure
 
-- Any RLS/RPC/storage work outside the tables and functions listed above.
-- Marking non-role-management orphans deprecated.
-- Sweeping `<PermissionGate>` across unrelated pages.
+Each will be re-issued as its own plan once the previous slice lands, but the intended scope is:
+
+- **S2 Actions**: audit `src/pages/**` and `src/components/**` for buttons/menu items that trigger mutations; wrap with `PermissionGate` / replace `<Button>` with `GuardedButton`; parity check against backend permission for each. Produce `docs/rbac/button-coverage.tsv`.
+- **S3 Routes**: enumerate `src/routes/**` + `src/App.tsx`; every non-public route wrapped in `ModuleRoute`; add catch-all `<AccessDenied>` for unknown internal routes; extend `src/test/routeCoverage.test.ts`.
+- **S4 Edge Functions**: sweep `supabase/functions/*/index.ts`; ensure `requireUserPermission` precedes any privileged work; introduce `AuthzScope` variants `application|return|complaint|licensee|entity|workflow|report|document|assessment` and prune unused; add tests via `supabase--curl_edge_functions` per function.
+- **S5 RPCs**: pick top ~30 business-critical SECURITY DEFINER functions (workflow transitions, complaint intake, license issuance, return submit, notification dispatch, exports); add `has_permission` check, `SET search_path = public`, `REVOKE ... FROM PUBLIC`, explicit GRANTs; log in `docs/rbac/rpc-permission-map.tsv`; pgTAP.
+- **S6 RLS**: prioritized tables (roles, permissions, role_permissions, user_dynamic_roles, applications, complaints, returns_filed, licenses, reports, audit_logs, notification_outbox, site_settings, workflow_templates/instances/approval_steps). Every policy = permission gate + scope predicate; kill `USING(true)` on these; pgTAP per table.
+- **S7 Storage**: policies on `application-documents`, `return-documents`, `complaint-evidence`, `fp-evidence`, `license-certificates`, `audit-exports` — permission + ownership on all verbs and signed-URL generation path.
+- **S8 Return Queue**: finalize assignment-only via `hasAssignmentReturnQueueAccess`; ensure no `returns_management.view` leak; single lifecycle allow-list in `src/lib/returnLifecycle.ts` mirrored by `public.return_lifecycle_visible_statuses()` SQL function used by RLS, RPCs, Edge Functions, reports.
+- **S9 Coverage scanner**: expand `SurfaceKey` to include `scope` and `test`; `classifyCoverage` returns "Fully Enforced" only when UI + backend + scope + test all present; `data-rbac` remains `marker`, never contributes.
+- **S10 Orphans**: SQL report enumerating `permissions` rows with no coverage; for each: wire, deprecate (`deprecated=true`), or delete duplicate. Before/after counts in `docs/rbac/orphan-permissions.md`.
+- **S11 Verification**: run build, tsgo, ESLint, Vitest, pgTAP suite, edge-function tests; publish results in `docs/rbac/audit-2026-07-21/12_final_verification.md`.
+
+---
+
+## Rollback safety
+
+Every migration has an `-- ROLLBACK` comment block at the bottom describing the compensating SQL, so operators can revert without guessing. No destructive column drops in slices 1–4.
+
+## Technical notes
+
+- The unified dependency table pattern lets the trigger read live data while TS keeps a build-time constant for offline dev; the codegen script prevents drift.
+- Reset-bypass test uses `BEGIN; SET LOCAL rbac.bypass = 'on'; ... ROLLBACK;` then a fresh transaction to prove flag scoping is transactional.
+- pgTAP personas use `SET LOCAL role authenticated; SET LOCAL request.jwt.claims = '{"sub":"..."}'` and pre-seeded `user_dynamic_roles` rows.
+
+---
+
+Approve to start Slice 1. I will stop after Slice 1 lands with verification output and re-plan Slice 2.
