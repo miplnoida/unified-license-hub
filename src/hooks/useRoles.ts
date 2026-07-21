@@ -4,6 +4,16 @@ import { toast } from 'sonner';
 
 export type RoleType = 'internal' | 'external';
 export type DashboardTier = 'operational' | 'executive';
+export type RoleStatus = 'active' | 'inactive';
+export type RoleCategory =
+  | 'operational' | 'reviewer' | 'approver' | 'supervisor'
+  | 'administrator' | 'read_only' | 'custom';
+
+/** JSON blob persisted at roles.scope_config. Free-form per module. */
+export type RoleScopeConfig = Record<
+  string,
+  { scope?: 'all' | 'assigned' | 'sector' | 'department' | 'own'; sectors?: string[]; departments?: string[]; notes?: string }
+>;
 
 export interface DynamicRole {
   id: string;
@@ -13,9 +23,14 @@ export interface DynamicRole {
   is_system: boolean;
   role_type: RoleType;
   dashboard_tier: DashboardTier;
+  role_category: RoleCategory | null;
+  status: RoleStatus;
+  access_summary: Record<string, unknown>;
+  scope_config: RoleScopeConfig;
   created_at: string;
   updated_at: string;
 }
+
 
 export interface Permission {
   id: string;
@@ -88,13 +103,23 @@ export function useAllRolePermissions() {
 export function useCreateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description: string; system_role: string; role_type: RoleType; dashboard_tier?: DashboardTier; permissionIds: string[] }) => {
+    mutationFn: async (input: {
+      name: string; description: string; system_role: string;
+      role_type: RoleType; dashboard_tier?: DashboardTier;
+      role_category?: RoleCategory | null; status?: RoleStatus;
+      access_summary?: Record<string, unknown>; scope_config?: RoleScopeConfig;
+      permissionIds: string[];
+    }) => {
       const { data: role, error } = await supabase
         .from('roles' as any)
         .insert({
           name: input.name, description: input.description,
           system_role: input.system_role, role_type: input.role_type,
           dashboard_tier: input.dashboard_tier ?? 'operational', is_system: false,
+          role_category: input.role_category ?? null,
+          status: input.status ?? 'active',
+          access_summary: input.access_summary ?? {},
+          scope_config: input.scope_config ?? {},
         })
         .select()
         .single();
@@ -119,16 +144,25 @@ export function useCreateRole() {
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; name: string; description: string; system_role: string; role_type: RoleType; dashboard_tier?: DashboardTier; permissionIds: string[] }) => {
-      const { error } = await supabase
-        .from('roles' as any)
-        .update({
-          name: input.name, description: input.description,
-          system_role: input.system_role, role_type: input.role_type,
-          dashboard_tier: input.dashboard_tier ?? 'operational',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', input.id);
+    mutationFn: async (input: {
+      id: string; name: string; description: string; system_role: string;
+      role_type: RoleType; dashboard_tier?: DashboardTier;
+      role_category?: RoleCategory | null; status?: RoleStatus;
+      access_summary?: Record<string, unknown>; scope_config?: RoleScopeConfig;
+      permissionIds: string[];
+    }) => {
+      const patch: Record<string, unknown> = {
+        name: input.name, description: input.description,
+        system_role: input.system_role, role_type: input.role_type,
+        dashboard_tier: input.dashboard_tier ?? 'operational',
+        updated_at: new Date().toISOString(),
+      };
+      if (input.role_category !== undefined) patch.role_category = input.role_category;
+      if (input.status !== undefined) patch.status = input.status;
+      if (input.access_summary !== undefined) patch.access_summary = input.access_summary;
+      if (input.scope_config !== undefined) patch.scope_config = input.scope_config;
+
+      const { error } = await supabase.from('roles' as any).update(patch).eq('id', input.id);
       if (error) throw error;
 
       // Replace permissions
@@ -164,6 +198,7 @@ export function useDeleteRole() {
     onError: (e: any) => toast.error(e.message || 'Failed to delete role'),
   });
 }
+
 
 /**
  * Reset a system role's permissions back to the curated default matrix

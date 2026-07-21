@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import {
   useRoles, usePermissions, useAllRolePermissions, useRoleUserCounts,
   useCreateRole, useUpdateRole, useDeleteRole, useResetSystemRole,
-  DynamicRole, Permission, RoleType, DashboardTier,
+  DynamicRole, Permission, RoleType, DashboardTier, RoleStatus, RoleScopeConfig,
 } from '@/hooks/useRoles';
 import { resolveDependencies, permissionHasDependency } from '@/lib/rbac/permissionDependencies';
 import {
@@ -48,6 +48,11 @@ import {
   sensitiveActionLabel,
   type AccessLevel,
 } from '@/lib/rbac/accessLevels';
+import { classifyRole, ROLE_CATEGORY_LABELS } from '@/lib/rbac/roleClassification';
+import { buildRoleSummary } from '@/lib/rbac/roleSummary';
+import { RecordScopePanel } from '@/components/rbac/RecordScopePanel';
+import { RoleMigrationRunnerDialog } from '@/components/rbac/RoleMigrationRunnerDialog';
+
 
 /** Strip developer-style "Module N - " prefixes. */
 const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
@@ -148,9 +153,13 @@ export default function RoleManagement() {
   const [formDesc, setFormDesc] = useState('');
   const [formRoleType, setFormRoleType] = useState<RoleType>('internal');
   const [formDashboardTier, setFormDashboardTier] = useState<DashboardTier>('operational');
+  const [formStatus, setFormStatus] = useState<RoleStatus>('active');
+  const [formScope, setFormScope] = useState<RoleScopeConfig>({});
   const [formPerms, setFormPerms] = useState<string[]>([]);
   const [permSearch, setPermSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
+  const [migrationOpen, setMigrationOpen] = useState(false);
+
 
   // Exact action gates — the same permissions the DB triggers enforce.
   const canCreate = useCan('role_management', 'create');
@@ -322,6 +331,8 @@ export default function RoleManagement() {
     setFormName(''); setFormDesc(''); setFormPerms([]);
     setFormRoleType('internal');
     setFormDashboardTier('operational');
+    setFormStatus('active');
+    setFormScope({});
     setPermSearch('');
     setDialogOpen(true);
   };
@@ -333,7 +344,10 @@ export default function RoleManagement() {
     setFormDesc(role.description || '');
     setFormRoleType((role.role_type || 'internal') as RoleType);
     setFormDashboardTier((role.dashboard_tier || 'operational') as DashboardTier);
+    setFormStatus(((role as DynamicRole).status || 'active') as RoleStatus);
+    setFormScope(((role as DynamicRole).scope_config ?? {}) as RoleScopeConfig);
     setFormPerms(getPermIdsForRole(role.id));
+
     setPermSearch('');
     setDialogOpen(true);
   };
@@ -422,12 +436,26 @@ export default function RoleManagement() {
     if (violations.length > 0 && addedPermissionIds.length > 0) {
       toast.info(`Auto-enabled View for ${violations.length} module${violations.length > 1 ? 's' : ''} to satisfy prerequisites.`);
     }
+    // Auto-classify and generate a plain-language "Can / Cannot" summary
+    // so the persisted metadata always tracks the current permission set.
+    const classification = classifyRole(resolvedIds, permissions);
+    const summary = buildRoleSummary(resolvedIds, permissions);
     const payload = {
       name, description: formDesc, system_role: 'analyst',
       role_type: formRoleType,
       dashboard_tier: formRoleType === 'internal' ? formDashboardTier : 'operational' as DashboardTier,
+      status: formStatus,
+      role_category: classification.category,
+      scope_config: formScope,
+      access_summary: {
+        can: summary.can,
+        cannot: summary.cannot,
+        perModule: classification.perModule,
+        sensitive: classification.sensitive,
+      },
       permissionIds: resolvedIds,
     };
+
     if (editingRole) {
       await updateRole.mutateAsync({ id: editingRole.id, ...payload });
     } else {
@@ -517,11 +545,19 @@ export default function RoleManagement() {
                   <Input placeholder="Search roles..." value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                 </div>
-                {canCreate && (
-                  <Button onClick={openCreateDialog} data-rbac="role_management.create">
-                    <Plus className="h-4 w-4 mr-2" />Create Role
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {canEdit && (
+                    <Button variant="outline" onClick={() => setMigrationOpen(true)}>
+                      <Sparkles className="h-4 w-4 mr-2" />Classify existing roles
+                    </Button>
+                  )}
+                  {canCreate && (
+                    <Button onClick={openCreateDialog} data-rbac="role_management.create">
+                      <Plus className="h-4 w-4 mr-2" />Create Role
+                    </Button>
+                  )}
+                </div>
+
               </div>
 
               <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
@@ -778,7 +814,28 @@ export default function RoleManagement() {
                     <p className="text-[11px] text-muted-foreground">{DASHBOARD_TIER_HELP[formDashboardTier]}</p>
                   </div>
                 )}
+                <div className="space-y-2">
+
+                  <Label>Status</Label>
+                  <Select
+                    value={formStatus}
+                    onValueChange={(v) => setFormStatus(v as RoleStatus)}
+                    disabled={!!editingRole?.is_system}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    {formStatus === 'active'
+                      ? 'Available to assign to users.'
+                      : 'Hidden from new assignments; existing users keep access.'}
+                  </p>
+                </div>
               </div>
+
               {formDesc.length > 80 && (
                 <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} />
               )}
@@ -1032,7 +1089,21 @@ export default function RoleManagement() {
                       </div>
                     </details>
                   )}
+
+                  {/* Record scope — narrows *which records* the role can see per module. */}
+                  <RecordScopePanel
+                    moduleKeys={Array.from(new Set(
+                      editGroups
+                        .filter(g => g.actions.some(a => formPerms.includes(a.permission.id)))
+                        .map(g => g.moduleKey)
+                    ))}
+                    moduleLabels={Object.fromEntries(editGroups.map(g => [g.moduleKey, g.moduleLabel]))}
+                    value={formScope}
+                    onChange={setFormScope}
+                    disabled={!canAssign}
+                  />
                 </div>
+
 
                 {/* Live role summary */}
                 <div>
@@ -1118,7 +1189,10 @@ export default function RoleManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <RoleMigrationRunnerDialog open={migrationOpen} onOpenChange={setMigrationOpen} />
       </TooltipProvider>
+
     </DashboardLayout>
   );
 }
