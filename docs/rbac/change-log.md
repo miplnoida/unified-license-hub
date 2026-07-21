@@ -136,4 +136,46 @@ Config/admin tables (`return_configs`, `return_types`, `return_templates`,
 `return_config_forms`, `return_configurations`, `return_template_downloads`)
 remain deferred to Phase 4.
 
+## Slice 4 — Returns config/admin table lockdown (shipped)
+
+Migration: `supabase/migrations/*_slice_4_returns_config_rls.sql`
+
+**Permission catalog** — registered `returns_management.manage_config`
+(single write authority for every Return configuration surface).
+
+**Policy rewrites** — 12 config/admin tables. Legacy `has_role('admin' |
+'super_admin' | 'supervisor')` policies dropped and replaced with the
+canonical pattern:
+
+- Reads: open to `authenticated` (needed to render forms, resolve types,
+  and display deadlines).
+- Writes: `is_super_admin(auth.uid()) OR has_permission(auth.uid(),
+  'returns_management','manage_config')`.
+
+Tables covered:
+
+- `return_configs`, `return_configurations`, `return_config_forms`
+- `return_types`, `return_templates`
+- `return_cutoff_config`, `return_notification_templates`
+- `return_validation_rules`, `return_validation_rule_versions`
+  (append-only INSERT for permissioned users; read open)
+- `return_due_dates`
+- `return_form_versions` (SELECT via `can_read_return_filed(return_id)`
+  so mapping visibility inherits from the parent return; writes gated by
+  `manage_config`)
+- `return_template_downloads` (INSERT-self on `downloaded_by`; SELECT
+  for owner OR super_admin OR `view_all_entities` / `manage_config`)
+
+**Grants** — every table: `REVOKE ALL ... FROM anon`,
+`GRANT SELECT/INSERT/UPDATE/DELETE ... TO authenticated`,
+`GRANT ALL ... TO service_role`.
+
+pgTAP: `supabase/tests/rbac/50_returns_config_rls.sql` — 20 assertions
+covering catalog registration, `has_permission` composition for three
+personas (super_admin, config manager, plain authenticated), presence of
+each new write policy, verification that no legacy `has_role()` clause
+survives on the 12 tables, and grant assertions (anon = 0 rows,
+authenticated SELECT on all 12).
+
+
 
