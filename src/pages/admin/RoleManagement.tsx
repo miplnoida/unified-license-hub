@@ -148,6 +148,8 @@ export default function RoleManagement() {
   const canDelete = useCan('role_management', 'delete');
   const canReset = useCan('role_management', 'reset');
   const canAssign = useCan('role_management', 'assign_permissions');
+  const canViewCatalog = useCan('role_management', 'view_catalog');
+  const canManageCatalog = useCan('role_management', 'manage_catalog');
 
   // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
   // Radix can leave `pointer-events: none` on <body> and orphaned closed overlays in the
@@ -489,12 +491,14 @@ export default function RoleManagement() {
           <Tabs defaultValue="roles" className="w-full">
             <TabsList>
               <TabsTrigger value="roles">Roles</TabsTrigger>
-              <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
+              {canViewCatalog && <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>}
             </TabsList>
 
-            <TabsContent value="catalog" className="pt-6">
-              <PermissionCatalogTab />
-            </TabsContent>
+            {canViewCatalog && (
+              <TabsContent value="catalog" className="pt-6">
+                <PermissionCatalogTab canManage={canManageCatalog} />
+              </TabsContent>
+            )}
 
             <TabsContent value="roles" className="pt-6 space-y-6">
               <div className="flex items-center justify-between gap-3 flex-wrap">

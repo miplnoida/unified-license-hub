@@ -16766,6 +16766,10 @@ export type Database = {
         Args: { p_role_name: string }
         Returns: number
       }
+      reset_system_role_permissions_guarded: {
+        Args: { p_role_name: string }
+        Returns: number
+      }
       resolve_actor_role: { Args: { _user_id: string }; Returns: string }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
