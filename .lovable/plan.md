@@ -1,82 +1,127 @@
-## 0. Fix the build regression first (blocking)
+## Scope & reality check
 
-`src/pages/admin/PermissionCoverageReport.tsx` imports `classifyCoverage` from `src/lib/rbac/coverage.ts`, which also imports `node:fs` / `node:path`. Vite tries to bundle those Node built-ins for the browser and Rollup fails with `"readdirSync" is not exported by "__vite-browser-external"`.
+The audit in `docs/rbac/audit-2026-07-21/` covers **249 tables, 294 SECURITY DEFINER functions, 8 storage buckets, dozens of edge functions, ~2,000+ action buttons, and 99 orphan permissions**. Implementing all of Phases A–I to the "completion criteria" (95% action coverage, every RPC guarded, every RLS policy migrated, every bucket policy rewritten, full pgTAP + frontend + edge-function test suites, CI thresholds) is a multi-sprint program — the audit itself estimates **3 sprints just for Critical + High** and defers the rest.
 
-Split `coverage.ts` into two files so browser code never pulls in Node built-ins:
+I can't credibly land all of it in a single turn without cutting corners that would produce exactly the "reports without real fixes" outcome you told me not to deliver. So this plan proposes a **sequenced execution across multiple turns**, with the first turn attacking the highest-severity, highest-leverage items end-to-end (code + migration + tests), and each subsequent turn taking the next slice with the same standard.
 
-- `src/lib/rbac/coverageTypes.ts` — pure types (`SurfaceKey`, `SurfaceReference`, `CoverageRow`, `CoverageMatrix`, `CatalogEntry`) and the pure classifier `classifyCoverage()`. **No Node imports.** Consumed by `PermissionCoverageReport.tsx` and any UI code.
-- `src/lib/rbac/coverageScanner.ts` — the FS-walking scanner (`buildCoverage()`), imports `node:fs` / `node:path`. Re-exports types from `coverageTypes` for convenience. Consumed by `scripts/generate-permission-coverage.ts` and `src/test/rbac/permissionCoverage.test.ts`.
+Please confirm the sequencing (or tell me to reorder / compress / expand a slice) before I start building.
 
-Update all three consumers to import from the correct file. Re-run `bun run build:dev` and confirm it passes before starting the audit.
+---
 
-## 1. Audit scope and evidence method
+## Execution slices
 
-Every finding is grounded in an actual scan — no assumptions. All scans are additive; no functionality is modified unless a security gap is found (and each such change is listed under "Fix status: fixed" with the migration or file).
+### Slice 1 — Critical backend lockdown (Phase A, Findings 3, 11, 21; parts of 4/5)
+Highest blast-radius, smallest surface. Fully shippable in one turn.
 
-Data sources used for evidence:
+1. **A1 — `search_path` fix** for the 6 flagged SECURITY DEFINER functions.
+   - Migration: `ALTER FUNCTION … SET search_path = public` for each.
+   - pgTAP guard test that fails CI when any `public` SECURITY DEFINER function lacks `search_path=` in `proconfig` (extends the existing complaints `13_security.sql` pattern to all schemas).
+2. **A3 — Edge-function JWT + permission guard** on every Lovable-managed function under `supabase/functions/*` that currently uses the service-role client without validation.
+   - Shared helper `supabase/functions/_shared/authz.ts` exporting `requireUserPermission(req, module, action)` that: rejects missing/invalid JWT (401), calls `has_permission` via anon client with the caller's JWT, returns 403 on deny, returns `{ userId, claims }` on allow.
+   - Wire it into export/report/PDF/AI/dispatch/document/return-processing/application-decision/complaint-action/regulatory-analysis functions (concrete list assembled from `supabase/functions/` at build time).
+   - Per-function Deno tests: 401 missing, 401 invalid, 403 unauthorized, 200 authorized, 403 out-of-scope entity (for the ones that take an entity id).
+3. **Breakglass log** (Finding 21): trigger on `is_super_admin_by_email` hits into `security_event_logs`.
+4. **Storage bucket audit-exports** (Finding 5): add explicit SELECT policy requiring `audit_management.export` + service_role write; document the dispatch path in `docs/rbac/audit-2026-07-21/07_storage_policies.md`.
 
-- Filesystem scanners (`buildCoverage` from step 0) enumerating menu, route, button, RLS, RPC, storage, and report references per (module, action).
-- Live DB queries via `supabase--read_query` for: catalogued permissions, `role_permissions` grants, `pg_policies` per table, `pg_proc` for RPC bodies, storage.objects policies, and RLS-enabled table list.
-- `supabase--linter` for platform-detected issues (missing RLS, permissive policies, exposed columns).
-- Route map (`src/lib/permissionModules.ts` `ROUTE_MODULE_MAP`) + static walk of `src/routes/**` to detect any protected route missing a guard.
-- Menu config walk (`src/config/navigation.tsx`) to detect menu entries with no `module` key or pointing at an unmapped route.
-- Button walk across `src/pages/**` + `src/components/**` looking for action verbs (Approve/Reject/Delete/Export/Download/Upload/Import/Publish/Archive/Restore/Assign/Escalate/Close/Reopen/Resubmit/Configure/Send/Generate/Print/Email) whose surrounding JSX has no `PermissionGate`, `GuardedButton`, or `data-rbac` marker.
+Exit criteria for Slice 1: linter clean on `search_path`, all edge-function tests green, `10_findings.md` items 3, 5, 11, 21 flipped to `DONE` with commit refs.
 
-## 2. Audits performed
+---
 
-For each area below, the audit produces the listed report. Findings are recorded in a single `docs/rbac/audit-2026-07-21/findings.csv` with columns: `severity, area, file, line, permission, reason, impact, recommendation, fix_status`. Severities: Critical / High / Medium / Low / Info.
+### Slice 2 — RPC permission guards, top 5 modules (Phase A2, Finding 2)
+Applications, Complaints, Returns, Licensees, Licenses.
 
-Areas scanned:
+- Introspect `pg_proc` for every SECURITY DEFINER function whose name matches those domains.
+- For each, classify `(module, action)` from a checked-in mapping table `docs/rbac/rpc-permission-map.tsv` (source-controlled, reviewable).
+- Add the standard guard block at top; preserve existing ownership/entity/workflow checks below it.
+- `REVOKE EXECUTE … FROM PUBLIC; GRANT EXECUTE … TO authenticated;` per function.
+- pgTAP: for each guarded RPC, 3 assertions (unauth → 42501, wrong-permission → 42501, correct-permission → success). Batched via a helper.
+- Coverage test that fails CI when a `SECURITY DEFINER` function in `public` for those 5 modules lacks a `has_permission(` call in its body.
 
-1. **Menus** — every `src/config/navigation.tsx` item; flag missing `module`, unmapped `href`, or `module` referencing an orphaned permission.
-2. **Routes** — every `<Route>` in `src/routes/**`; flag any protected route lacking `<M>` / `<ModuleRoute>` / `<PortalRoute>`; cross-check `ROUTE_MODULE_MAP`.
-3. **Buttons** — action-verb heuristic; flag unguarded destructive/mutating actions and Return Queue actions visible to assignment-only regulators.
-4. **PermissionGate / hook usage** — flag pages that read from a table but never call `useCan` or gate destructive actions.
-5. **Role Management** — verify dependency + orphaned triggers cannot be bypassed; verify catalog snapshot in `src/lib/rbac/catalog.json` matches the live `permissions` table.
-6. **RLS** — every table under `public.*`; flag: RLS disabled, no policies, `USING (true)` on write policies, policies without `has_permission()` on sensitive tables (Returns, Complaints, Applications, Licensing, FP, Prudential, Market Conduct, TwinPeaks, Users, Roles, Forms, Fees, Settings).
-7. **RPCs** — every SECURITY DEFINER function; flag: no `has_permission()` check, no `search_path` pin, unfiltered `SELECT *`, callable by `anon` without intent.
-8. **Storage** — every policy on `storage.objects`; flag: buckets with no policy, policies not scoped via `has_permission()` for privileged buckets.
-9. **Reports / Dashboards** — `src/pages/reports/**` + `src/pages/dashboards/**`; flag consolidated reports and AI-analysis exports lacking gates.
-10. **Search / Exports / Downloads / Uploads** — every file with `csv`, `xlsx`, `pdf`, `download`, `export`, `upload`, `import` in name or content; flag unguarded triggers.
-11. **Workflow / Comments / Attachments** — approval action panels, review markup, and file link RPCs; flag missing action gates.
-12. **Return Queue lockdown** — verify assignment-only regulators see only submitted-status mapped entities and no admin actions (existing `returnQueueAssignmentOnly.test.tsx` must still pass; add cases if gaps are found).
-13. **Per-module deep dives** — Complaints, Applications, Licensing, Fit & Proper, Prudential, Market Conduct, Twin Peaks, Users, Roles, Forms, Fees, Settings. For each: enumerate menu → route → page → mutating actions → tables/RPCs touched → RLS + RPC coverage.
+---
 
-## 3. Reports produced
+### Slice 3 — RPC guards, remaining modules (Phase A2 finish)
+Fit & Proper, Prudential, Market Conduct, Coordination, Users, Roles, Forms, Workflows, Fees, Settings, Reports, Audit, Notifications. Same mechanics as Slice 2. Raises RPC/catalog coverage from 4/294 toward ≥ 90%.
 
-Written to `docs/rbac/audit-2026-07-21/`:
+---
 
-1. `01-permission-coverage-matrix.md` — regenerate via existing generator; embed here.
-2. `02-route-coverage.md` — one row per protected route; guarded Y/N, module, file:line.
-3. `03-menu-coverage.md` — one row per menu item; module, matches route map Y/N.
-4. `04-button-coverage.md` — action verbs found; guarded Y/N; module.action expected; file:line.
-5. `05-backend-authorization.md` — summary of `has_permission()` usage across RLS + RPC + storage.
-6. `06-rls-coverage.md` — per table: RLS enabled, policy count, uses `has_permission` Y/N, weakest policy.
-7. `07-storage-policy.md` — per bucket / per policy row: role, USING/WITH CHECK, uses `has_permission` Y/N.
-8. `08-rpc-security.md` — per SECURITY DEFINER function: search_path pinned Y/N, permission check Y/N, callable roles.
-9. `09-orphan-permissions.md` — regenerate from coverage matrix; list of `enforced=true` permissions with zero surfaces.
-10. `10-final-security-score.md` — weighted score (RLS 30 / RPC 20 / Storage 15 / Routes 10 / Buttons 15 / Menus 5 / Tests 5) plus explicit list of open Critical/High findings blocking a 100% claim.
+### Slice 4 — RLS catalog migration, top 5 modules (Phase B, Finding 1)
+- Build the checked-in mapping `docs/rbac/table-permission-map.tsv` (table, module, read/create/edit/delete/special actions).
+- Rewrite policies for `applications`, `complaints`, `returns_filed`, `licensees`, `licenses` and their tightly-coupled children (rfis, evidence, remarks, attachments, etc.) so `USING`/`WITH CHECK` compose `has_permission()` **AND** existing ownership/assignment/entity scope. No policy weakened.
+- pgTAP persona matrix per module (super_admin, legacy admin dynamic role, module-view-only, module-edit-only, approver, assignment-only regulator, external applicant, PPOC, unrelated user) × (SELECT/INSERT/UPDATE/DELETE).
 
-The score explicitly refuses to claim 100% unless: zero Critical findings, zero High findings, `permissionCoverage.test.ts` + `permissionDependencies.test.ts` + `routeCoverage.test.ts` + `sidebarVisibility.test.tsx` + `returnQueueAssignmentOnly.test.tsx` all pass, and `bun run build:dev` succeeds.
+---
 
-## 4. Fix policy
+### Slice 5 — RLS catalog migration, remaining modules + sensitive tables (Phase B, B3, Finding 12)
+- Same mechanics for the rest.
+- Explicitly harden `audit_logs`, `security_event_logs`, `notification_outbox` (service-only writes, `audit_management.view`/`security_management.view` reads), user/session data, evidence, prudential/conduct/twin-peaks findings.
+- Register any new permissions (`audit_management.view`, `security_management.view`) in the catalog first.
 
-- **Critical** (missing RLS on user data, unauthenticated write RPCs, storage bucket world-readable): fix in this turn via migration.
-- **High** (unguarded destructive button on privileged route, RPC with SECURITY DEFINER but no permission check): fix in this turn.
-- **Medium / Low / Info**: recorded in the findings CSV with recommendation and left for the user to prioritise; **no functionality changes**.
+---
 
-Every applied fix appears in `findings.csv` with `fix_status = fixed` and points to its migration or diff. Findings not touched are `fix_status = open`.
+### Slice 6 — Storage policy rewrite (Phase C, Finding 4)
+- Rewrite policies on `documents`, `secure-documents`, `fp-evidence`, `return-uploads`, `payment-documents`, `license-certificates`, `certificate-assets` so each `SELECT/INSERT/UPDATE/DELETE` requires the correct `(module, action)` **AND** record scope.
+- Return-uploads specifically enforces `is_assignment_only_regulator` → mapped entity + submitted lifecycle only.
+- Storage pgTAP + Deno integration tests for each bucket × each op × each persona.
 
-## 5. Deliverables
+---
 
-- Build passes (`bun run build:dev`).
-- All existing RBAC tests still pass (`bunx vitest run src/test/rbac`).
-- 10 reports under `docs/rbac/audit-2026-07-21/`.
-- `findings.csv` with every issue, severity, file, reason, impact, recommendation, fix status.
-- Short executive summary at the top of `10-final-security-score.md` with the honest score and the list of remaining Critical/High items (if any).
+### Slice 7 — Route enforcement completion (Phase E, Findings 6, 7)
+- Add `admin_dashboard.view` permission to the catalog.
+- Wrap `/admin`, `/preview/:versionId`, `/notifications`, and every entry in `routes-unguarded.txt` with `<M module="…">` (or a documented public-route allow-list).
+- AdminHub: gate every tile and KPI with `<PermissionGate>`; KPI fetches short-circuit when permission denied.
+- Extend `src/test/routeCoverage.test.ts` to fail when a route file adds a new `<Route path=` that isn't in the public allow-list or wrapped in `<M>/<S>/<A>/<PortalRoute>`.
 
-## Technical details
+---
 
-- Scanner split is a pure refactor of `src/lib/rbac/coverage.ts` — no behaviour change, only two files where there was one.
-- SQL introspection queries are read-only. If Critical/High DB fixes are needed, they land as a single migration named `20260721_rbac_audit_hardening.sql` following the standard grant/RLS/policy ordering.
-- The audit does not modify menu labels, route paths, or user-visible business logic beyond adding missing guards on already-existing buttons.
+### Slice 8 — Action-button coverage push (Phase D)
+Goal: raise coverage from 4.7% → ≥ 95% on **business** actions (audit script already excludes cosmetic buttons; refine its exclusion list as needed).
+- Sweep by module in order: Returns, Applications, Complaints, Licensees/Licenses, Registration, Fit & Proper, Prudential, Market Conduct, Coordination, Reports, Forms, Workflows, Fees, Settings, Users, Roles, Audit, Notifications.
+- Wrap each action with `<PermissionGate>` or convert to `<GuardedButton>`; add `data-rbac="module.action"` for the scanner.
+- Return Queue lockdown for assignment-only regulators (export/download/upload/edit/approve/reject/reopen/status/workflow/config/bulk/analytics/global counts/draft/WIP/due-soon filters hidden and RPC-denied).
+- Raise `MIN_PROTECTED_RATIO` in `actionCoverage.test.ts` incrementally (25 → 60 → 95) as each module lands, so CI never goes red mid-slice.
+
+---
+
+### Slice 9 — Reports, exports, indirect reads (Phase F, Finding 14)
+- Add `report_management.view`, `report_management.export`, `ai_management.execute`, `notification_management.dispatch`, `audit_management.view` to the catalog (if not already).
+- Add `required_permission_module` / `required_permission_action` columns to `report_sources` (and `report_source_columns` where needed).
+- Report runner (edge function + client) validates permission for every underlying source before returning rows; export endpoints require `.export`.
+- pgTAP + Deno tests: user with view-of-restricted-table denied can't read it via a report either.
+
+---
+
+### Slice 10 — Role Management completion (Phase G) + orphan resolution (Phase H, Finding 20)
+- Role Management: dependency triggers already exist; add server-side re-validation on save, and UI: auto-enable view when dependent action toggled; block disabling view while dependents selected; explicit banner listing dependencies.
+- Permission Coverage panel in Role Management row detail: shows Menu/Route/Button/RLS/RPC/Storage/EdgeFn status per permission, sourced from the coverage matrix JSON.
+- Walk all 99 orphans: wire, deprecate (soft-delete + hide from assignment UI), or register in the catalog + external-portal capabilities (Finding 20).
+- Emit before/after orphan count in `docs/rbac/permission-coverage.md`.
+
+---
+
+### Slice 11 — CI thresholds + final verification (Phase I completion + Findings 8, 9, 10, 13, 15, 16, 17)
+- Fold in remaining High/Medium button-level gaps (Approve/Reject/Reopen RPC guards for Returns/Applications/Complaints — already covered by Slice 2/3; UI-side gates from Slice 8; Export/Download/Print gates from Slice 8/9; Bulk toolbars; master-data writes; settings save buttons; correspondence dispatch; AI/consolidated triggers).
+- Enable strict CI thresholds:
+  - `actionCoverage.test.ts` MIN_PROTECTED_RATIO = 0.95
+  - `routeCoverage.test.ts` = zero unguarded internal routes
+  - permission-coverage report = zero unexplained orphans
+  - pgTAP search_path guard, RPC guard coverage, RLS coverage, storage coverage — all failing on regression
+- Final report per your "Required final report" template: commits, files, migrations, functions, policies, buckets, edge functions, routes, buttons, roles, orphan count Δ, coverage Δs (action/route/RLS/RPC/storage), test commands and outputs, CI status, remaining limitations.
+
+---
+
+## What I need from you before I start
+
+1. **Confirm the sequencing** above, or reorder (e.g. do you want the frontend button push and RPC guards interleaved per module instead of horizontal-by-layer? Horizontal-by-layer is safer for CI stability; vertical-by-module gives visible module-complete milestones sooner.).
+2. **Confirm scope of "business action"** for the 95% target — the current audit script's exclusion list (icon-only toggles, close-dialog, cancel, tab switches, sort headers, pagination, help, copy-to-clipboard, theme toggle, etc.) is what I'll use; say if you want a stricter or looser definition.
+3. **Confirm you accept multi-turn delivery.** Each slice will be a self-contained turn with green CI, tests, and a slice-completion report. I will not claim overall completion until Slice 11 lands.
+4. **New permissions to register in the catalog** (`admin_dashboard.view`, `audit_management.view`, `security_management.view`, `report_management.export`, `ai_management.execute`, `notification_management.dispatch`) — OK to add, or do you want to review names first?
+
+Once you confirm, I'll begin with **Slice 1** in the next turn.
+
+## Technical notes
+
+- Edge-function shared authz helper will live in `supabase/functions/_shared/authz.ts` and be imported via relative path (Deno-friendly, no import map changes).
+- All migrations will be single files per slice, following the standard GRANT → RLS → POLICY order and never touching `auth`/`storage`/`realtime`/`supabase_functions`/`vault` schemas.
+- pgTAP files added under `supabase/tests/rbac/` and `supabase/tests/<module>/`, wired into existing CI runner.
+- Frontend tests added under `src/test/rbac/` alongside existing persona tests.
+- The Node-only scanner in `src/lib/rbac/coverageScanner.ts` remains the single source of truth for the coverage matrix; UI reads the pre-generated JSON artifact.
