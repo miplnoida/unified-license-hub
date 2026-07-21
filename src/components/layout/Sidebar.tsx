@@ -85,7 +85,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
-  const { hasModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
+  const { hasModuleAccess, hasAnyModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
 

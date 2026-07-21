@@ -1,103 +1,80 @@
-## RBAC Phase 2 — Unified Authorization Model
+## Goal
 
-Continuation of the hardening already in place. Frontend hook + backend `has_permission()` are now strict; this phase fixes the remaining gaps: route coverage, view-only menu gating, an authoritative route map, tests that fail on drift, and a small cleanup of implicit permission sources.
+Audit every sidebar item, close the gaps where menu visibility drifts from `module.view`, and lock the rules with per-persona UI tests. **No business logic changes** — only navigation config, sidebar visibility predicate, and tests.
 
-### 1. Permission source cleanup (`src/hooks/usePermissions.ts`)
+## Findings from audit
 
-- Keep the exact public API listed by the user:
-  - `hasPermission(module, action)`
-  - `hasModuleAccess(module)` — always view-gated
-  - `canAccessPath(pathname)`
-  - `hasAssignmentReturnQueueAccess` (already a boolean capability — keep as-is; assignment never synthesizes a permission)
-  - `canViewAssignedReturn({ licenseeId, status })`
-- Remove `hasAnyModuleAccess`'s "any `view` permission OR any assignment" fallback that some dashboard code may rely on to render a landing page — replace with `hasModuleAccess` checks at call sites.
-- Remove the `enforceDynamic` flag entirely (it always equals `!isBypassRole` and is a legacy branch that invites regressions).
-- Only `super_admin` bypasses. No other implicit source.
+Verified against `src/config/navigation.tsx`, `src/components/layout/Sidebar.tsx`, `src/hooks/usePermissions.ts`, and `src/lib/permissionModules.ts`.
 
-### 2. Route map — single source of truth (`src/lib/permissionModules.ts`)
+### Rule violations found
 
-Rebuild `ROUTE_MODULE_MAP` so every protected internal route (from `src/routes/adminRoutes.tsx`, `dashboardRoutes.tsx`, `settingsRoutes.tsx`, `fpaRoutes.tsx`, `returnsRoutes.tsx`) is covered. Currently unmapped protected paths that must be added:
+| # | Rule | Item(s) | Current behavior |
+|---|------|---------|------------------|
+| 1 | Assignment-only regulator: show ONLY Return Queue | **Dashboard** | Currently visible — item has no `module`, `roles=ALL_ROLES` includes `analyst`, and the `enforceDynamic` branch falls back to `effectiveVisible=true` for module-less items. |
+| 2 | Menu visible only if `module.view` | Dashboard (all internal users) | Ungated by module → shows regardless of permissions. Rule requires it be hidden for assignment-only users. |
+| 3 | Menu module key must match the route's `<M module="…">` | **Correspondence** section (Dashboard / Inbox / Records) | Menu uses `module: 'report_management'`; routes now require `settings`. A `report_management`-only user sees the menu but hits Access Denied. |
+| 4 | Menu module key must match route guard | **Prudential Supervision** section items pointing at `/admin/returns/prudential/*` and `/admin/returns/{validations,notifications/*}` | Correct in nav (`returns_management`) and map (`returns_management`). Verified — no change needed. |
+| 5 | No orphan / empty parent menus | Fit & Proper children-only groups | Sidebar already hides parents with zero visible children (line 234-235, 307-308). No change needed. |
+| 6 | No duplicates | — | None found. |
+| 7 | No hidden routes exposed via nav | — | None found. |
 
-| Path prefix | Module |
+Everything else (Returns Admin group hidden for assignment-only, Administration hidden, action-only permissions not opening menus, external audience gating) already works correctly.
+
+## Changes
+
+### 1. `src/components/layout/Sidebar.tsx` — tighten `isItemVisible`
+
+Remove the "module-less item falls back to `effectiveVisible`" branch that lets assignment-only users see Dashboard (and any future ungated internal item).
+
+New rule for internal items with no `module` and no mapped `href`:
+- External users (licensee / pre-licensee) with matching audience → visible.
+- Internal users → visible only if `hasAnyModuleAccess()` is true.
+- Assignment-only regulators (`hasAssignmentReturnQueueAccess && !hasAnyModuleAccess`) → hidden.
+
+This makes Dashboard automatically hidden for assignment-only regulators, matching the audit rule, without touching route guards or business logic.
+
+### 2. `src/config/navigation.tsx` — fix module mismatches
+
+- Correspondence Dashboard / Inbox / Records: `module: 'report_management'` → `module: 'settings'` to match the routes and `ROUTE_MODULE_MAP`.
+
+No other module keys change.
+
+### 3. `src/test/sidebarVisibility.test.tsx` — new persona test suite
+
+Render `<Sidebar />` under `MemoryRouter` with a mocked auth + permissions hook and assert exact visible/hidden menu labels for each persona.
+
+Personas covered:
+
+| Persona | Setup |
 |---|---|
-| `/admin/api-keys` | `settings` |
-| `/admin/audit-export` | `settings` |
-| `/admin/security-events` | `settings` |
-| `/admin/correspondence-routing` | `settings` |
-| `/admin/correspondence-templates` | `settings` |
-| `/admin/document-intelligence` | `settings` |
-| `/admin/conduct/monitoring-rules` | `market_conduct` |
-| `/admin/overrides` | `settings` |
-| `/admin/case-audit` | `settings` |
-| `/admin/rfi-auto-rules` | `application_management` |
-| `/admin/supervisory-plan-templates` | `application_management` |
-| `/admin/applications/bulk-intake` | `application_management` |
-| `/admin/sufficiency-rules`, `/admin/sufficiency-rule-sets`, `/admin/decision-options` | `license_management` |
-| `/admin/integration-logs` | `settings` |
-| `/alerts` | `report_management` |
-| `/executive` | `report_management` |
-| `/billing/penalties` | `fee_management` |
-| `/documents` | `application_management` |
-| `/correspondence*` | `application_management` |
-| `/enforcement*` | `market_conduct` |
-| `/inspections*` | `market_conduct` |
-| `/supervision/breaches`, `/supervision/plans`, `/supervision/risk`, `/supervision/early-warnings` | `prudential_supervision` |
-| `/supervision/thematic-reviews` | `market_conduct` (already there — verify) |
-| `/prudential/*` (all sub-paths) | `prudential_supervision` (verify existing entry covers) |
-| `/fpa/*` (all sub-paths) | `fit_and_proper` |
-| `/fit-and-proper/*` | `fit_and_proper` |
-| `/conduct/*` sub-paths | `market_conduct` |
-| `/coordination/*` | `coordination` |
-| `/forms/:formId`, `/preview/:versionId` | `form_management` |
-| `/returns-management*` | `returns_management` |
+| **Super Admin** | `role: super_admin` → `isBypassRole=true` |
+| **Legacy Admin** | `role: admin` + dynamic role granting `.view` on every known module |
+| **Admin (static, no dynamic role)** | `role: admin`, no dynamic role — expects deny (post-hardening) |
+| **Analyst — view-only on returns** | `analyst` + `returns_management.view` |
+| **Reviewer — view-only on complaints** | analyst-like + `complaint_management.view` |
+| **Supervisor — view on returns + market_conduct** | multi-module view |
+| **Assignment-only regulator** | `analyst`, no permissions, has licensee assignment → sees ONLY "Returns Queue" |
+| **Edit-only user** | `returns_management.edit` (no view) → sees no returns menu |
+| **View-only user** (already covered by Analyst) | same as Analyst |
+| **External licensee_primary** | sees My Licenses / My Returns / Payments / Complaints; no admin section |
 
-Order the array most-specific-first. De-duplicate any overlapping prefixes.
+For each persona the test asserts (a) the expected labels appear, (b) forbidden labels do NOT appear, and (c) no parent group renders with zero visible children.
 
-Add `PROTECTED_INTERNAL_PATH_PREFIXES` entries for prefixes not yet listed: `/alerts`, `/executive`, `/billing`, `/documents`, `/correspondence`, `/enforcement`, `/inspections`, `/returns-management`, `/forms`, `/preview`, `/applications/queue`.
+The assignment-only case explicitly asserts every label in the audit's "Hide" list is absent: Return Types, Configurations, Cutoff, Due Dates, Late Fees, Schedule, Notifications, Analytics, Ratios, Thresholds, Dashboard, Administration.
 
-`getModuleForPath` and `canAccessPath` stay unchanged — the fix is data, not logic.
+## Files touched
 
-### 3. Route guards (`src/routes/*.tsx`, `src/components/auth/RouteGuards.tsx`)
+- `src/components/layout/Sidebar.tsx` — visibility predicate (≈10 lines)
+- `src/config/navigation.tsx` — 3 module-key corrections in Correspondence section
+- `src/test/sidebarVisibility.test.tsx` — new (persona matrix, ~250 lines)
 
-- `ModuleRoute` already checks `hasPermission(module, 'view')` + the narrow assignment allow-list. No logic change; keep as the sole internal-route guard.
-- Sweep the four route files so every internal `<Route>` is wrapped in `ModuleRoute` with a `module` that matches its entry in `ROUTE_MODULE_MAP`. Any route currently using `AdminRoute` without a module (e.g. `/admin`) stays on `AdminRoute` (audience-only landing).
-- Menus visible only when `hasModuleAccess(module)` is true — audit `src/components/layout/Sidebar.tsx` and remove any branch that reads `hasPermission(module, 'create'|'edit'|'approve'|'reject')` to decide visibility. Menu = `view` only.
+## Out of scope
 
-### 4. Tests (`src/test/permissionsRbac.test.tsx` + new `src/test/routeCoverage.test.ts`)
+- Route guards, RLS, RPCs, storage — untouched.
+- Adding new pages, changing groupings, renaming labels.
+- Redirecting assignment-only users' landing page.
 
-- New test file scans `src/routes/*.tsx` for every `path="…"`, ignores public paths, dynamic segments (`:id`) collapsed to prefix, and asserts each remaining path resolves via `getModuleForPath` OR is on an explicit `PUBLIC_ROUTES` allow-list. Fails on drift.
-- Existing RBAC test additions:
-  - View-only user for module X can see menu X; user with only `edit` cannot.
-  - Unknown protected path (`/admin/does-not-exist`) → denied.
-  - Assignment-only user: can hit `/admin/returns/queue` but not `/admin/returns/types`, `/admin/return-config`, `/admin/returns/prudential/*`, or any non-returns admin path.
-  - `super_admin` passes all above.
+## Verification
 
-### 5. Out of scope this phase
-
-- Backend `has_permission()` + `can_view_entity_returns` already aligned in previous migrations. No SQL in this phase unless a route audit exposes a mismatch.
-- Storage policies, `PermissionGate` button audit, and RLS re-verification stay for Phase 3 as the user directed ("Do not continue to Phase 2 until every protected route is correctly mapped" — this plan IS the route-mapping phase).
-
-### Deliverables at the end
-
-- Files changed: `src/lib/permissionModules.ts`, `src/hooks/usePermissions.ts`, `src/components/layout/Sidebar.tsx` (visibility-only), `src/routes/*.tsx` (only where a `ModuleRoute`/module is missing), `src/test/permissionsRbac.test.tsx`, `src/test/routeCoverage.test.ts` (new).
-- Generated route report printed by the new test on failure: mapped / missing / duplicate.
-- Architecture diagram:
-
-```text
-        ┌──────────────┐
-        │   super_admin│──── bypass ────┐
-        └──────────────┘                │
-                                        ▼
-User ─► user_dynamic_roles ─► role_permissions ─► permissions(module, action)
-                                        │
-                ┌───────────────────────┼───────────────────────┐
-                ▼                       ▼                       ▼
-      hasPermission(m,a)      hasModuleAccess(m)         canAccessPath(p)
-       (button gate)           (menu / landing)          (route guard)
-                                        │
-                                        │  narrow, path-scoped exception
-                                        ▼
-                       hasAssignmentReturnQueueAccess
-                          + canViewAssignedReturn(row)
-                       (only /admin/returns/queue* + /entity/returns*)
-```
+- `bunx vitest run` — full suite must stay green.
+- New `sidebarVisibility.test.tsx` provides the test-evidence artifact per persona in lieu of screenshots (test output enumerates the visible menu for each persona).
