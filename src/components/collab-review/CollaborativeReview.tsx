@@ -331,12 +331,12 @@ export function CollaborativeReview({ entityType, entityId, fields }: Props) {
               {s.status === 'pending' && !isSyntheticId(s.id) && (
                 <div className="flex gap-1">
                   {collab.perms.can_accept && (
-                    <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
+                    <Button size="sm" variant="outline" data-rbac="returns_management.approve" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: true })}>
                       <Check className="h-3 w-3 mr-1" />Accept
                     </Button>
                   )}
                   {collab.perms.can_reject && (
-                    <Button size="sm" variant="outline" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: false })}>
+                    <Button size="sm" variant="outline" data-rbac="returns_management.reject" onClick={() => collab.decideSuggestion.mutate({ id: s.id, accept: false })}>
                       <X className="h-3 w-3 mr-1" />Reject
                     </Button>
                   )}
