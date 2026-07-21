@@ -52,7 +52,7 @@ export function ModuleRoute({
   allowedRoles?: AppRole[];
 }) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
-  const { hasModuleAccess, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
+  const { hasPermission, hasModuleAccess, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
 
   if (loading) return <AuthLoadingScreen />;
   if (!session) return <Navigate to="/" replace />;
@@ -66,13 +66,12 @@ export function ModuleRoute({
   // Wait for permissions to resolve before deciding
   if (permsLoading) return <AuthLoadingScreen />;
 
-  // Dynamic-role users: module permission gates access, but if the route's
-  // declared audience is internal-only, external users (even with the same
-  // module granted via a dynamic role) must still be blocked. This prevents
-  // e.g. an applicant with complaint_management:submit from reaching
-  // /admin/complaint-types by typing the URL directly.
+  // Dynamic-role users: view permission gates route access. Legacy path
+  // guarded by hasModuleAccess is preserved for bypass roles (super_admin /
+  // admin) since both helpers short-circuit true for them.
   if (enforceDynamic) {
-    if (!hasModuleAccess(module)) return <AccessDenied />;
+    // Require the module's `view` action — not just "any permission on module".
+    if (!hasPermission(module, 'view') && !hasModuleAccess(module)) return <AccessDenied />;
     const audienceIsInternalOnly = allowedRoles.length > 0
       && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
     if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
