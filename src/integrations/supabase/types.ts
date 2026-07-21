@@ -13134,6 +13134,53 @@ export type Database = {
         }
         Relationships: []
       }
+      role_migration_log: {
+        Row: {
+          classified_category: string | null
+          created_at: string
+          custom_reason: string | null
+          id: string
+          is_custom: boolean
+          matched_template: string | null
+          per_module_levels: Json
+          role_id: string
+          run_by: string | null
+          sensitive_actions: Json
+        }
+        Insert: {
+          classified_category?: string | null
+          created_at?: string
+          custom_reason?: string | null
+          id?: string
+          is_custom?: boolean
+          matched_template?: string | null
+          per_module_levels?: Json
+          role_id: string
+          run_by?: string | null
+          sensitive_actions?: Json
+        }
+        Update: {
+          classified_category?: string | null
+          created_at?: string
+          custom_reason?: string | null
+          id?: string
+          is_custom?: boolean
+          matched_template?: string | null
+          per_module_levels?: Json
+          role_id?: string
+          run_by?: string | null
+          sensitive_actions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_migration_log_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -13172,35 +13219,47 @@ export type Database = {
       }
       roles: {
         Row: {
+          access_summary: Json
           created_at: string
           dashboard_tier: string
           description: string | null
           id: string
           is_system: boolean
           name: string
+          role_category: string | null
           role_type: string
+          scope_config: Json
+          status: string
           system_role: string
           updated_at: string
         }
         Insert: {
+          access_summary?: Json
           created_at?: string
           dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
           name: string
+          role_category?: string | null
           role_type?: string
+          scope_config?: Json
+          status?: string
           system_role?: string
           updated_at?: string
         }
         Update: {
+          access_summary?: Json
           created_at?: string
           dashboard_tier?: string
           description?: string | null
           id?: string
           is_system?: boolean
           name?: string
+          role_category?: string | null
           role_type?: string
+          scope_config?: Json
+          status?: string
           system_role?: string
           updated_at?: string
         }
