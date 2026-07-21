@@ -39,6 +39,11 @@ export const KNOWN_PERMISSION_MODULES = [
   'market_conduct_investigation',
   'coordination',
   'prudential_supervision',
+  'admin_dashboard',
+  'notification_management',
+  'audit_management',
+  'security_management',
+  'ai_management',
 ] as const;
 
 /**

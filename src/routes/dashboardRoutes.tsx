@@ -182,7 +182,7 @@ export const dashboardRoutes = (
 
     <Route path="/profile" element={<P><Profile /></P>} />
     <Route path="/change-password" element={<P><ChangePassword /></P>} />
-    <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
+    <Route path="/preview/:versionId" element={<M module="form_management"><FormPreview /></M>} />
     <Route path="/change-sector" element={<EP area="licensing" capability="can_view_status"><ChangeActiveSector /></EP>} />
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="coordination"><CoordinationList /></M>} />

@@ -1,0 +1,4 @@
+function	module	action	scope	notes
+audit-export	audit_management	export	self-folder	Signed URLs restricted to caller's userId prefix.
+generate-report	report_management	view	-	Preview mode. Export mode additionally requires report_management.export.
+generate-report (source=report_logs)	audit_management	view	-	Escalated check when the source references audit logs.

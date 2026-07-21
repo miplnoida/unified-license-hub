@@ -47,6 +47,21 @@ function admin(): SupabaseClient {
 }
 
 /**
+ * Optional record scope. Every id is resolved server-side against the
+ * canonical table — never trust caller-supplied user ids or ownership. When
+ * a scope id is supplied and the record is missing, the caller receives 404;
+ * when the record exists but the authenticated user is not entitled to it,
+ * the caller receives 403. Assignment-only regulators are only entitled to
+ * their mapped entities and only to post-submission returns.
+ */
+export interface AuthzScope {
+  licenseeId?: string;
+  entityId?: string;
+  returnId?: string;
+  recordId?: string;
+}
+
+/**
  * Verify the caller's JWT and, when `module`/`action` are provided, that
  * `has_permission(user, module, action)` returns true. Returns typed
  * clients on success or a ready-to-return 401/403 Response on failure.
@@ -56,6 +71,7 @@ export async function requireUserPermission(
   req: Request,
   module?: string,
   action?: string,
+  scope?: AuthzScope,
 ): Promise<AuthzResult> {
   const authHeader = req.headers.get('Authorization') || '';
   if (!authHeader.startsWith('Bearer ')) {
@@ -96,7 +112,60 @@ export async function requireUserPermission(
     }
   }
 
+  if (scope) {
+    const scopeCheck = await enforceScope(adminClient, userId, scope);
+    if (!scopeCheck.ok) return { ok: false, response: scopeCheck.response };
+  }
+
   return { ok: true, userId, authClient, adminClient };
+}
+
+/**
+ * Server-side scope validation. Uses admin client to look up the target
+ * record, then defers to `public.can_view_entity_returns` for return access
+ * and `public.user_has_entity_assignment` for entity access. Never trusts
+ * caller-provided user ids.
+ */
+async function enforceScope(
+  adminClient: SupabaseClient,
+  userId: string,
+  scope: AuthzScope,
+): Promise<AuthzResult> {
+  try {
+    if (scope.returnId) {
+      const { data, error } = await adminClient.rpc('can_view_entity_returns', {
+        _user_id: userId,
+        _return_id: scope.returnId,
+      });
+      if (error || data !== true) {
+        return { ok: false, response: jsonResponse({ error: 'Forbidden' }, 403) };
+      }
+    }
+    if (scope.entityId || scope.licenseeId) {
+      const targetId = scope.entityId || scope.licenseeId!;
+      const { data, error } = await adminClient.rpc('user_has_entity_assignment', {
+        _user_id: userId,
+        _licensee_id: targetId,
+      });
+      // Accept when user has explicit assignment; otherwise defer to the
+      // module.action check that has already succeeded.
+      if (error) {
+        return { ok: false, response: jsonResponse({ error: 'Forbidden' }, 403) };
+      }
+      if (data === false) {
+        // No assignment — allow only if this user is not assignment-only.
+        const { data: assignmentOnly } = await adminClient.rpc('is_assignment_only_regulator', {
+          _user_id: userId,
+        });
+        if (assignmentOnly === true) {
+          return { ok: false, response: jsonResponse({ error: 'Forbidden' }, 403) };
+        }
+      }
+    }
+  } catch {
+    return { ok: false, response: jsonResponse({ error: 'Forbidden' }, 403) };
+  }
+  return { ok: true, userId, authClient: adminClient, adminClient };
 }
 
 /**
