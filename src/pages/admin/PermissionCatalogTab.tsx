@@ -27,7 +27,7 @@ const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
  * Catalog tab — admin-managed Modules → Sub-modules → Actions.
  * Route mapping is developer-owned and intentionally not exposed here.
  */
-export default function PermissionCatalogTab() {
+export default function PermissionCatalogTab({ canManage = false }: { canManage?: boolean }) {
   const { data: modules = [] } = useCatalogModules();
   const { data: actions = [] } = useCatalogActions();
 
