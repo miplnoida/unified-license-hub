@@ -81,16 +81,25 @@ describe('RBAC action coverage', () => {
     }
   });
 
-  it('overall coverage stays at or above the Slice 20 baseline', () => {
+  it('overall coverage stays at or above the Slice 21 baseline', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Slice 20: batch-annotated ~106 additional mutation buttons across
-    // admin, applications, entity-detail, workflows, payments, correspondence,
-    // fit-and-proper, coordination, and compliance modules. Overall now ~90%.
-    const BASELINE = 85;
+    // Slice 21: extended scanner to <DropdownMenuItem>, swept Save/Submit
+    // categories, and annotated remaining mutating dropdown items. Overall
+    // now ~92%. Submit is at 100%, Save at 93%.
+    const BASELINE = 88;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
+  });
+
+  it('Submit category holds at 100% (Slice 21 floor)', () => {
+    const inCat = sites.filter((s) => s.category === 'Submit');
+    const unprot = inCat.filter((s) => !s.protected);
+    expect(
+      unprot.length,
+      `Submit floor breached: ${unprot.map((u) => `${u.file}:${u.line} "${u.button}"`).join(', ')}`,
+    ).toBe(0);
   });
 });
