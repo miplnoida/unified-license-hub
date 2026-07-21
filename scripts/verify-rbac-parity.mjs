@@ -27,15 +27,17 @@ const cataloguePairs = new Set(catalog.map(e => `${e.module}.${e.name}`));
 
 
 /** Walk src/, return files matching predicate. */
+/** Walk src/, return files matching predicate. */
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
     const p = join(dir, name);
     const st = statSync(p);
     if (st.isDirectory()) yield* walk(p);
-    else if (/\.(t|j)sx?$/.test(name)) yield p;
+    else if (/\.(t|j)sx?$/.test(name) && !/\.test\.(t|j)sx?$/.test(name) && !p.includes(`${'/'}test${'/'}`)) yield p;
   }
 }
+
 
 const usedPairs = new Set();
 const usedModules = new Set();
