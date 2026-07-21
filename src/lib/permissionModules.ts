@@ -46,83 +46,104 @@ export const KNOWN_PERMISSION_MODULES = [
  * Order matters: more specific prefixes come first.
  */
 const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
-  // Form management
+  // ─── Forms ─────────────────────────────────────────────────────────────
   ['/admin/forms', 'form_management'],
   ['/admin/registration-forms', 'form_management'],
 
-  // Application management (admin queue)
+  // ─── Applications ──────────────────────────────────────────────────────
   ['/applications/queue', 'application_management'],
+  ['/admin/applications/bulk-intake', 'application_management'],
+  ['/admin/rfi-auto-rules', 'application_management'],
+  ['/admin/supervisory-plan-templates', 'application_management'],
+  ['/inspections', 'application_management'],
 
-  // User & role
+  // ─── User & role ───────────────────────────────────────────────────────
   ['/admin/users', 'user_management'],
   ['/admin/web-users', 'user_management'],
   ['/admin/employees', 'user_management'],
-  
   ['/admin/roles', 'role_management'],
 
-  // Licenses / licensees
+  // ─── Licenses / licensees ──────────────────────────────────────────────
   ['/admin/licensees', 'license_management'],
   ['/admin/approved-licensees', 'license_management'],
   ['/admin/ppoc-mappings', 'license_management'],
+  ['/admin/license-action-forms', 'license_management'],
+  ['/admin/sufficiency-rules', 'license_management'],
+  ['/admin/sufficiency-rule-sets', 'license_management'],
+  ['/admin/decision-options', 'license_management'],
+  ['/enforcement', 'license_management'],
 
-  // Registration review (dedicated module so it can be granted independently)
+  // ─── Registration review ───────────────────────────────────────────────
   ['/admin/registration-review', 'registration_management'],
 
-  // Returns
-  ['/admin/returns', 'returns_management'],
+  // ─── Returns (specific prefixes BEFORE the /admin/returns catch-all) ───
   ['/admin/return-config', 'returns_management'],
+  ['/admin/returns', 'returns_management'],
+  ['/returns-management', 'returns_management'],
+  ['/supervision/early-warnings', 'returns_management'],
+  ['/supervision/breaches', 'returns_management'],
+  ['/supervision/plans', 'returns_management'],
+  ['/supervision/risk', 'returns_management'],
+  ['/alerts', 'returns_management'],
 
-  // Fees
+  // ─── Fees / payments / billing ─────────────────────────────────────────
   ['/admin/fees', 'fee_management'],
+  ['/billing', 'fee_management'],
+  ['/payments', 'application_management'],
 
-  // Workflows
+  // ─── Workflows ─────────────────────────────────────────────────────────
   ['/workflows', 'workflow_management'],
   ['/delegation-rules', 'workflow_management'],
-  
 
-  // Complaints
+  // ─── Complaints ────────────────────────────────────────────────────────
   ['/admin/complaint-types', 'complaint_type'],
   ['/complaints', 'complaint_management'],
 
-  // Reports
+  // ─── Reports / analytics / executive ───────────────────────────────────
   ['/reports', 'report_management'],
   ['/analytics', 'report_management'],
+  ['/executive', 'report_management'],
 
-  // Fit & Proper
-  ['/fit-and-proper', 'fit_and_proper'],
+  // ─── Fit & Proper (specific admin sub-modules first) ───────────────────
   ['/admin/fp-screening-configs', 'fit_and_proper_screening'],
-  ['/admin/fp-committees', 'fit_and_proper_committee'],
   ['/admin/fp-sector-rules', 'fit_and_proper_screening'],
+  ['/admin/fp-committees', 'fit_and_proper_committee'],
+  ['/fit-and-proper', 'fit_and_proper'],
+  ['/fpa', 'fit_and_proper'],
 
-  // Twin Peaks Coordination
+  // ─── Coordination ──────────────────────────────────────────────────────
   ['/coordination', 'coordination'],
 
-  // Market Conduct & Thematic Reviews
-  ['/conduct', 'market_conduct'],
+  // ─── Market Conduct & Thematic Reviews ─────────────────────────────────
   ['/supervision/thematic-reviews', 'market_conduct'],
   ['/admin/conduct', 'market_conduct'],
+  ['/conduct', 'market_conduct'],
 
-  // Prudential Supervision (must come before generic /admin fallback)
-  ['/prudential', 'prudential_supervision'],
+  // ─── Prudential Supervision ────────────────────────────────────────────
   ['/admin/prudential-taxonomy', 'prudential_supervision'],
+  ['/prudential', 'prudential_supervision'],
 
-  // License action forms (sidebar module = license_management)
-  ['/admin/license-action-forms', 'license_management'],
-
-  // Payments (sidebar module = application_management)
-  ['/payments', 'application_management'],
-
-  // Licensee sector switcher
+  // ─── Licensee sector switcher ──────────────────────────────────────────
   ['/change-sector', 'license_management'],
 
-  // Settings + audit + notifications + master data
+  // ─── Settings / audit / master data / correspondence / admin utilities ─
   ['/settings', 'settings'],
   ['/admin/audit-logs', 'settings'],
   ['/admin/compliance-audit-logs', 'settings'],
+  ['/admin/integration-logs', 'settings'],
   ['/admin/notification-templates', 'settings'],
   ['/admin/master-data', 'settings'],
   ['/admin/masters', 'settings'],
   ['/admin/regulators', 'settings'],
+  ['/admin/overrides', 'settings'],
+  ['/admin/case-audit', 'settings'],
+  ['/admin/api-keys', 'settings'],
+  ['/admin/audit-export', 'settings'],
+  ['/admin/security-events', 'settings'],
+  ['/admin/document-intelligence', 'settings'],
+  ['/admin/correspondence-templates', 'settings'],
+  ['/admin/correspondence-routing', 'settings'],
+  ['/correspondence', 'settings'],
   // NOTE: no generic ['/admin', 'settings'] catch-all. Unknown /admin/* paths
   // are treated as protected-but-unmapped and denied by canAccessPath.
 ];
@@ -148,11 +169,19 @@ export const PROTECTED_INTERNAL_PATH_PREFIXES = [
   '/delegation-rules',
   '/reports',
   '/analytics',
+  '/executive',
+  '/alerts',
+  '/inspections',
+  '/enforcement',
+  '/billing',
   '/fit-and-proper',
+  '/fpa',
   '/conduct',
   '/coordination',
   '/prudential',
   '/supervision',
+  '/correspondence',
+  '/returns-management',
 ] as const;
 
 export function isProtectedInternalPath(pathname: string): boolean {

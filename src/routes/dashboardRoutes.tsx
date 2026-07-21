@@ -252,11 +252,12 @@ export const dashboardRoutes = (
     <Route path="/fpa/conditions" element={<M module="fit_and_proper"><FpaConditions /></M>} />
     <Route path="/fpa/appeals" element={<M module="fit_and_proper"><FpaAppeals /></M>} />
     <Route path="/fpa/monitoring" element={<M module="fit_and_proper"><FpaMonitoring /></M>} />
-    <Route path="/correspondence" element={<CorrespondenceDashboard />} />
-    <Route path="/correspondence/dashboard" element={<CorrespondenceDashboard />} />
-    <Route path="/correspondence/inbox" element={<CorrespondenceInbox />} />
-    <Route path="/correspondence/records" element={<CorrespondenceRecords />} />
-    <Route path="/correspondence/:id" element={<CorrespondenceDetail />} />
-    <Route path="/admin/correspondence-routing" element={<CorrespondenceRoutingRules />} />
+    <Route path="/correspondence" element={<M module="settings"><CorrespondenceDashboard /></M>} />
+    <Route path="/correspondence/dashboard" element={<M module="settings"><CorrespondenceDashboard /></M>} />
+    <Route path="/correspondence/inbox" element={<M module="settings"><CorrespondenceInbox /></M>} />
+    <Route path="/correspondence/records" element={<M module="settings"><CorrespondenceRecords /></M>} />
+    <Route path="/correspondence/:id" element={<M module="settings"><CorrespondenceDetail /></M>} />
+    <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
+
   </>
 );
