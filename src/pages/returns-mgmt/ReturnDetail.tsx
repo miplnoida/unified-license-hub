@@ -850,21 +850,28 @@ export default function ReturnDetail() {
                           disabled={!!submitting} />
                       </div>
                       <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button onClick={handleApprove} disabled={!!submitting}
-                          className="bg-green-600 hover:bg-green-700">
-                          {submitting === 'approve'
-                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            : <CheckCircle className="h-4 w-4 mr-2" />}
-                          Approve Return
-                        </Button>
-                        <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
-                          className="border-amber-500 text-amber-700 hover:bg-amber-50">
-                          {submitting === 'request_edit'
-                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            : <AlertTriangle className="h-4 w-4 mr-2" />}
-                          Request Edit
-                        </Button>
+                        <PermissionGate module="returns_management" action="approve">
+                          <Button onClick={handleApprove} disabled={!!submitting}
+                            data-rbac="returns_management.approve"
+                            className="bg-green-600 hover:bg-green-700">
+                            {submitting === 'approve'
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              : <CheckCircle className="h-4 w-4 mr-2" />}
+                            Approve Return
+                          </Button>
+                        </PermissionGate>
+                        <PermissionGate module="returns_management" action="reject">
+                          <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
+                            data-rbac="returns_management.reject"
+                            className="border-amber-500 text-amber-700 hover:bg-amber-50">
+                            {submitting === 'request_edit'
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              : <AlertTriangle className="h-4 w-4 mr-2" />}
+                            Request Edit
+                          </Button>
+                        </PermissionGate>
                       </div>
+
                     </div>
                   ) : isApproved ? (
                     <Alert className="border-green-500 bg-green-50">
