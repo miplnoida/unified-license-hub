@@ -1,9 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { requireUserPermission } from "../_shared/authz.ts";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+
+  const __authzGate = await requireUserPermission(req, "integration_management", "configure");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {

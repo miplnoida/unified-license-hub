@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +27,9 @@ interface RowResult {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+
+  const __authzGate = await requireUserPermission(req, "complaint_management", "create");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,

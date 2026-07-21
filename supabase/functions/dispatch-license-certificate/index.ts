@@ -10,6 +10,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const DISPATCH_ROLES = new Set([
   "super_admin", "admin", "supervisor", "licensing_officer",
@@ -25,6 +26,9 @@ function json(req: Request, status: number, body: Record<string, unknown>) {
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+
+  const __authzGate = await requireUserPermission(req, "license_management", "dispatch");
+  if (!__authzGate.ok) return __authzGate.response;
   if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");

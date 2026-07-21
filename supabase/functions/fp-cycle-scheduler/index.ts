@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { requireUserPermission } from "../_shared/authz.ts";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -11,6 +12,9 @@ type Any = any;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+
+  const __authzGate = await requireUserPermission(req, "fit_and_proper", "execute");
+  if (!__authzGate.ok) return __authzGate.response;
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,

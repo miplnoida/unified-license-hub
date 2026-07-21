@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { logComplianceAudit, logSecurityEvent } from "../_shared/audit.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 /**
  * Server-side license action executor for suspend / revoke / cancel / reinstate
@@ -46,6 +47,9 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+
+  const __authzGate = await requireUserPermission(req, "license_management", "workflow_action");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return jsonResponse(req, 200, { error: "Missing authorization header", code: "UNAUTHORIZED" });

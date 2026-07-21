@@ -18,6 +18,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, degrees, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 function json(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -321,6 +322,9 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+
+  const __authzGate = await requireUserPermission(req, "license_management", "issue");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

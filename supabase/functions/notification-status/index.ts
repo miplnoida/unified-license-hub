@@ -8,6 +8,7 @@
 // Never returns secret values — booleans only.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,9 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const __authzGate = await requireUserPermission(req, "notification_management", "view");
+  if (!__authzGate.ok) return __authzGate.response;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
