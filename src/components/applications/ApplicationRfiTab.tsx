@@ -283,7 +283,7 @@ function RfiCard({
                   rows={2}
                 />
                 <div className="flex justify-end">
-                  <Button size="sm" variant="outline" onClick={onClose} disabled={closingBusy}>
+                  <Button size="sm" variant="outline" data-rbac="application_management.close" onClick={onClose} disabled={closingBusy}>
                     {closingBusy && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                     Close RFI & resume SLA
                   </Button>
