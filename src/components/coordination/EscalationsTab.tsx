@@ -170,7 +170,7 @@ export function EscalationsTab({
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => raise.mutate()} disabled={raise.isPending || form.reason.trim().length < 10}>
+                <Button data-rbac="coordination.edit" onClick={() => raise.mutate()} disabled={raise.isPending || form.reason.trim().length < 10}>
                   {raise.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Raise
                 </Button>
               </DialogFooter>
@@ -219,18 +219,18 @@ export function EscalationsTab({
               {canAct && (e.status === 'open' || e.status === 'in_review') && (
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
                   {e.status === 'open' && (
-                    <Button size="sm" variant="outline" onClick={() => update.mutate({
+                    <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => update.mutate({
                       id: e.id, patch: { status: 'in_review' },
                       action: 'coordination.escalation.in_review',
                     })}>Mark under review</Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => { setActionFor({ id: e.id, mode: 'assign' }); setActionForm({ ...actionForm, assigned_to: e.assigned_to || 'none' }); }}>
+                  <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => { setActionFor({ id: e.id, mode: 'assign' }); setActionForm({ ...actionForm, assigned_to: e.assigned_to || 'none' }); }}>
                     Reassign
                   </Button>
-                  <Button size="sm" onClick={() => { setActionFor({ id: e.id, mode: 'resolve' }); setActionForm({ outcome: 'cleared', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
+                  <Button data-rbac="coordination.edit" size="sm" onClick={() => { setActionFor({ id: e.id, mode: 'resolve' }); setActionForm({ outcome: 'cleared', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
                     Resolve
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setActionFor({ id: e.id, mode: 'withdraw' }); setActionForm({ outcome: 'withdrawn', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
+                  <Button data-rbac="coordination.edit" size="sm" variant="ghost" onClick={() => { setActionFor({ id: e.id, mode: 'withdraw' }); setActionForm({ outcome: 'withdrawn', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
                     Withdraw
                   </Button>
                 </div>

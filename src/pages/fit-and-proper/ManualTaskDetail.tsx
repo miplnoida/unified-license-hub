@@ -453,7 +453,7 @@ export default function ManualTaskDetail() {
                       onChange={handleFileChange}
                       disabled={uploadEvidence.isPending}
                     />
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       variant="outline"
                       size="sm"
                       asChild
@@ -488,7 +488,7 @@ export default function ManualTaskDetail() {
                               : ''}
                           </p>
                         </div>
-                        <Button
+                        <Button data-rbac="fit_and_proper.view"
                           size="sm"
                           variant="outline"
                           onClick={() => handleDownload(ev.file_path)}
@@ -546,7 +546,7 @@ export default function ManualTaskDetail() {
                     </p>
                   )}
 
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     onClick={() => completeTask.mutate()}
                     disabled={completeTask.isPending || !selectedOutcome}
                     className="w-full sm:w-auto"
@@ -670,7 +670,7 @@ export default function ManualTaskDetail() {
                     disabled={isCompleted}
                   />
                   {!isCompleted && (
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       size="sm"
                       variant="outline"
                       className="w-full"
@@ -698,7 +698,7 @@ export default function ManualTaskDetail() {
                     placeholder="Internal reviewer notes…"
                   />
                   {!isCompleted && (
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       size="sm"
                       variant="outline"
                       className="w-full"

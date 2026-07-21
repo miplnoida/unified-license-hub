@@ -303,9 +303,9 @@ export default function SupervisoryPlansDashboard() {
           {selected.size > 0 && (
             <div className="flex flex-wrap gap-2 items-center rounded border bg-muted/40 p-2">
               <span className="text-sm">{selected.size} selected</span>
-              <Button size="sm" variant="outline" onClick={() => setBulkMode('reassign')}><UserCog className="h-3 w-3 mr-1" />Reassign</Button>
-              <Button size="sm" variant="outline" onClick={() => setBulkMode('extend')}><CalendarClock className="h-3 w-3 mr-1" />Extend due</Button>
-              <Button size="sm" variant="outline" onClick={() => setBulkMode('complete')}><CheckCircle2 className="h-3 w-3 mr-1" />Mark complete</Button>
+              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setBulkMode('reassign')}><UserCog className="h-3 w-3 mr-1" />Reassign</Button>
+              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setBulkMode('extend')}><CalendarClock className="h-3 w-3 mr-1" />Extend due</Button>
+              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setBulkMode('complete')}><CheckCircle2 className="h-3 w-3 mr-1" />Mark complete</Button>
               <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
             </div>
           )}
@@ -367,7 +367,7 @@ export default function SupervisoryPlansDashboard() {
                                     <div className="mt-1 flex gap-1 items-center flex-wrap">
                                       <HistoryButton entityType="supervisory_plan" entityId={plan.id} title="Supervisory plan history" variant="ghost" />
                                       {canSubmit && (
-                                        <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => submitForReview.mutate(plan.id)}>
+                                        <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" className="h-6 px-2" onClick={() => submitForReview.mutate(plan.id)}>
                                           Submit
                                         </Button>
                                       )}
@@ -403,7 +403,7 @@ export default function SupervisoryPlansDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={clearBulk}>Cancel</Button>
-            <Button onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
+            <Button data-rbac="prudential_supervision.edit" onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
               {runBulk.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Reassign
             </Button>
           </DialogFooter>
@@ -419,7 +419,7 @@ export default function SupervisoryPlansDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={clearBulk}>Cancel</Button>
-            <Button onClick={() => {
+            <Button data-rbac="prudential_supervision.edit" onClick={() => {
               const anyOverdue = Array.from(selected).some((id) => {
                 const cur = enriched.find((a: any) => a.id === id);
                 return cur && isOverdue(cur);
@@ -457,7 +457,7 @@ export default function SupervisoryPlansDashboard() {
           <div className="text-sm text-muted-foreground">This stamps completion time + user for each selected action.</div>
           <DialogFooter>
             <Button variant="outline" onClick={clearBulk}>Cancel</Button>
-            <Button onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
+            <Button data-rbac="prudential_supervision.edit" onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
               {runBulk.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Mark complete
             </Button>
           </DialogFooter>

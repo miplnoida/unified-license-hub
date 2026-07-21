@@ -188,7 +188,7 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">Advisory only</Badge>
             {assessment && assessment.status !== 'pending' && (
-              <Button size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
+              <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="ml-1">Regenerate</span>
               </Button>
@@ -206,7 +206,7 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
             <p className="text-sm text-muted-foreground">
               AI assessment has not been generated yet.
             </p>
-            <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Generate assessment
             </Button>
@@ -603,7 +603,7 @@ function AnalystDecisionBar({
         )}
         {currentUserId && (
           <div className="mt-2">
-            <Button
+            <Button data-rbac="application_management.edit"
               size="sm"
               variant="ghost"
               onClick={() => {
@@ -680,7 +680,7 @@ function AnalystDecisionBar({
             <Button size="sm" variant="ghost" onClick={cancel} disabled={saving}>
               Cancel
             </Button>
-            <Button size="sm" onClick={submit} disabled={saving}>
+            <Button data-rbac="application_management.edit" size="sm" onClick={submit} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Save {DECISION_LABEL[mode]?.toLowerCase() || mode}
             </Button>

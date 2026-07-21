@@ -626,7 +626,7 @@ export default function FpaCommittee() {
           actions={
             <Dialog open={newCommitteeOpen} onOpenChange={setNewCommitteeOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button data-rbac="fit_and_proper.create">
                   <Plus className="h-4 w-4 mr-2" />
                   New Committee
                 </Button>
@@ -689,7 +689,7 @@ export default function FpaCommittee() {
                   <Button variant="ghost" onClick={() => setNewCommitteeOpen(false)}>
                     Cancel
                   </Button>
-                  <Button
+                  <Button data-rbac="fit_and_proper.create"
                     onClick={() => createCommittee.mutate()}
                     disabled={createCommittee.isPending || !committeeForm.name.trim()}
                   >
@@ -768,7 +768,7 @@ export default function FpaCommittee() {
               <Button variant="ghost" onClick={() => setEditCommitteeOpen(false)}>
                 Cancel
               </Button>
-              <Button
+              <Button data-rbac="fit_and_proper.edit"
                 onClick={() => updateCommittee.mutate()}
                 disabled={updateCommittee.isPending || !editForm.name.trim()}
               >
@@ -886,7 +886,7 @@ export default function FpaCommittee() {
                           </Badge>
                         )}
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => setAddMemberOpen(true)}>
+                      <Button data-rbac="fit_and_proper.create" size="sm" variant="outline" onClick={() => setAddMemberOpen(true)}>
                         <Plus className="h-3.5 w-3.5 mr-1.5" />
                         Add Member
                       </Button>
@@ -957,7 +957,7 @@ export default function FpaCommittee() {
                         <Button variant="ghost" onClick={() => { setAddMemberOpen(false); setAddMemberForm(EMPTY_ADD_MEMBER_FORM); }}>
                           Cancel
                         </Button>
-                        <Button
+                        <Button data-rbac="fit_and_proper.create"
                           onClick={() => addMember.mutate()}
                           disabled={addMember.isPending || !addMemberForm.user_id || !addMemberForm.member_role}
                         >
@@ -1423,7 +1423,7 @@ export default function FpaCommittee() {
                           )}
                         </div>
 
-                        <Button
+                        <Button data-rbac="fit_and_proper.edit"
                           onClick={() => castVote.mutate()}
                           disabled={
                             castVote.isPending ||

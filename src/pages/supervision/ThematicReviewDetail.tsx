@@ -119,12 +119,12 @@ export default function ThematicReviewDetail() {
           actions={
             <div className="flex gap-2">
               {backwardStatus && review.status !== 'closed' && (
-                <Button variant="outline" size="sm" onClick={() => setTransition({ to: backwardStatus, needsOverride: true })}>
+                <Button data-rbac="prudential_supervision.edit" variant="outline" size="sm" onClick={() => setTransition({ to: backwardStatus, needsOverride: true })}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Move back
                 </Button>
               )}
               {forwardStatus && (
-                <Button size="sm" onClick={() => setTransition({ to: forwardStatus, needsOverride: false })}>
+                <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setTransition({ to: forwardStatus, needsOverride: false })}>
                   Advance → {STATUS_LABEL[forwardStatus]} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               )}
@@ -374,7 +374,7 @@ function EvidenceTab({ reviewId, rows, findings, onChange }: any) {
             <option value="">— None —</option>
             {findings.map((f: any) => <option key={f.id} value={f.id}>{f.title}</option>)}
           </select>
-          <Button onClick={add} disabled={saving} className="w-full">{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add evidence</Button>
+          <Button data-rbac="prudential_supervision.create" onClick={add} disabled={saving} className="w-full">{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add evidence</Button>
         </CardContent>
       </Card>
       <Card className="md:col-span-2">
@@ -455,7 +455,7 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
           </div>
           <div className="md:col-span-2"><Label>Detail</Label><Textarea rows={3} value={form.detail} onChange={e => setForm({ ...form, detail: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Root cause</Label><Textarea rows={2} value={form.root_cause} onChange={e => setForm({ ...form, root_cause: e.target.value })} /></div>
-          <div className="md:col-span-2"><Button onClick={add} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add finding</Button></div>
+          <div className="md:col-span-2"><Button data-rbac="prudential_supervision.create" onClick={add} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add finding</Button></div>
         </CardContent>
       </Card>
       <Card><CardContent className="p-0">
@@ -559,7 +559,7 @@ function ActionsTab({ reviewId, rows, findings, entities, onChange }: any) {
           </div>
           <div><Label>Due date</Label><Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-          <div className="md:col-span-2"><Button onClick={add} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add action</Button></div>
+          <div className="md:col-span-2"><Button data-rbac="prudential_supervision.create" onClick={add} disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Add action</Button></div>
         </CardContent>
       </Card>
       <Card><CardContent className="p-0">
@@ -581,8 +581,8 @@ function ActionsTab({ reviewId, rows, findings, entities, onChange }: any) {
                   <TableCell className="text-right space-x-1">
                     {a.status !== 'completed' && a.status !== 'waived' && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => complete(a)}>Complete</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setWaiveTarget(a)}><ShieldAlert className="h-3 w-3 mr-1" />Waive</Button>
+                        <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => complete(a)}>Complete</Button>
+                        <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => setWaiveTarget(a)}><ShieldAlert className="h-3 w-3 mr-1" />Waive</Button>
                       </>
                     )}
                   </TableCell>

@@ -640,7 +640,7 @@ export default function FpaInitiation() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       size="sm"
                       className={`gap-1.5 text-xs h-8 ${pathway.color.btn}`}
                       onClick={() => openDialog(pathway)}
@@ -812,7 +812,7 @@ export default function FpaInitiation() {
               <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button
+              <Button data-rbac="fit_and_proper.edit"
                 size="sm"
                 disabled={!canSubmit}
                 onClick={() => initiateMutation.mutate()}
@@ -967,7 +967,7 @@ export default function FpaInitiation() {
                   <Button variant="ghost" onClick={() => setDeclDialogOpen(false)}>
                     Skip for now
                   </Button>
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     onClick={() => requestDeclarationMutation.mutate()}
                     disabled={requestDeclarationMutation.isPending || !declVerifHash}
                   >
@@ -1129,7 +1129,7 @@ export default function FpaInitiation() {
                 Close
               </Button>
               {selectedAssessment && selectedAssessment.individual_id && canRequestDeclaration(selectedAssessment.status) && (
-                <Button
+                <Button data-rbac="fit_and_proper.edit"
                   size="sm"
                   className="gap-1.5"
                   onClick={() => {

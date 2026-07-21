@@ -761,7 +761,7 @@ export default function FpaManualTaskDetail() {
                     placeholder="Enter review observations, context, or justification..."
                   />
                 </div>
-                <Button
+                <Button data-rbac="fit_and_proper.edit"
                   size="sm"
                   variant="outline"
                   onClick={() => saveNotesMutation.mutate()}
@@ -784,7 +784,7 @@ export default function FpaManualTaskDetail() {
                 <CardContent>
                   <div className="flex flex-col sm:flex-row gap-3">
                     {/* Mark Cleared */}
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
                       onClick={() => setClearDialogOpen(true)}
                       disabled={markClearedMutation.isPending || confirmAdverseMutation.isPending}
@@ -794,7 +794,7 @@ export default function FpaManualTaskDetail() {
                     </Button>
 
                     {/* Confirm Adverse */}
-                    <Button
+                    <Button data-rbac="fit_and_proper.edit"
                       className="flex-1 bg-red-600 hover:bg-red-700 text-white gap-2"
                       onClick={() => setAdverseDialogOpen(true)}
                       disabled={markClearedMutation.isPending || confirmAdverseMutation.isPending}
@@ -1007,7 +1007,7 @@ export default function FpaManualTaskDetail() {
             <Button variant="ghost" onClick={() => setClearDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => markClearedMutation.mutate()}
               disabled={markClearedMutation.isPending}
@@ -1058,7 +1058,7 @@ export default function FpaManualTaskDetail() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => confirmAdverseMutation.mutate()}
               disabled={confirmAdverseMutation.isPending}

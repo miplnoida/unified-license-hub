@@ -277,7 +277,7 @@ export function FpAppealsPanel({ individualId }: Props) {
                 </div>
               )}
               <div className="flex justify-end">
-                <Button onClick={() => fileAppeal.mutate()} disabled={fileAppeal.isPending || grounds.trim().length < 20}>
+                <Button data-rbac="fit_and_proper.edit" onClick={() => fileAppeal.mutate()} disabled={fileAppeal.isPending || grounds.trim().length < 20}>
                   {fileAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   File appeal
                 </Button>
@@ -320,7 +320,7 @@ export function FpAppealsPanel({ individualId }: Props) {
                         onClick={() => assignAppealCommittee.mutate({ appealId: a.id, committeeId: committeePick[a.id] })}>
                         Assign
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
+                      <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
                     </div>
                   </div>
                 )}
@@ -346,8 +346,8 @@ export function FpAppealsPanel({ individualId }: Props) {
                       value={decisionNote[a.id] || ''}
                       onChange={(e) => setDecisionNote((p) => ({ ...p, [a.id]: e.target.value }))} />
                     <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
-                      <Button size="sm" disabled={decideAppeal.isPending}
+                      <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
+                      <Button data-rbac="fit_and_proper.edit" size="sm" disabled={decideAppeal.isPending}
                         onClick={() => {
                           const decision = decisionPick[a.id] || '';
                           const note = decisionNote[a.id] || '';

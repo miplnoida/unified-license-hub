@@ -227,7 +227,7 @@ export default function InspectionDetail() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Summary</CardTitle>
-            <Button size="sm" variant="outline" onClick={openEditInspection}><Pencil className="h-3 w-3 mr-1" />Edit</Button>
+            <Button data-rbac="market_conduct.edit" size="sm" variant="outline" onClick={openEditInspection}><Pencil className="h-3 w-3 mr-1" />Edit</Button>
           </CardHeader>
           <CardContent className="text-sm grid grid-cols-2 gap-3">
             <Field label="Status" value={<Badge className="capitalize">{inspection.status.replace('_', ' ')}</Badge>} />
@@ -261,7 +261,7 @@ export default function InspectionDetail() {
       <Card className="mt-4">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Findings ({findings?.length ?? 0})</CardTitle>
-          <Button size="sm" onClick={openNewFinding}><Plus className="h-3 w-3 mr-1" />Add finding</Button>
+          <Button data-rbac="market_conduct.edit" size="sm" onClick={openNewFinding}><Plus className="h-3 w-3 mr-1" />Add finding</Button>
         </CardHeader>
         <CardContent>
           {!findings || findings.length === 0 ? (
@@ -352,7 +352,7 @@ export default function InspectionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFindingOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveFinding.mutate()} disabled={saveFinding.isPending}>
+            <Button data-rbac="market_conduct.edit" onClick={() => saveFinding.mutate()} disabled={saveFinding.isPending}>
               {saveFinding.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Save
             </Button>
           </DialogFooter>
@@ -393,7 +393,7 @@ export default function InspectionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInspectionEditOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveInspection.mutate()} disabled={saveInspection.isPending}>
+            <Button data-rbac="market_conduct.edit" onClick={() => saveInspection.mutate()} disabled={saveInspection.isPending}>
               {saveInspection.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Save
             </Button>
           </DialogFooter>

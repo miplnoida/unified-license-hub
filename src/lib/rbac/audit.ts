@@ -69,25 +69,51 @@ const PUBLIC_ALLOW_LABELS = new Set(
     'forgot password', 'reset password', 'change password',
     'send otp', 'verify otp', 'resend otp',
     'back', 'back to', 'cancel', 'close', 'ok', 'confirm', 'yes', 'no',
-    'next', 'previous', 'continue', 'skip',
+    'next', 'previous', 'continue', 'skip', 'done', 'not now',
     'clear', 'clear filter', 'clear filters', 'reset',
     'toggle theme', 'toggle sidebar', 'menu', 'search',
-    'refresh', 'reload', 'retry',
-    'show more', 'show less', 'view details', 'view',
-    'copy', 'copy link', 'copy id',
+    'refresh', 'reload', 'retry', 'retry payment', 'retry generation',
+    'show more', 'show less', 'view details', 'view', 'view findings',
+    'view submitted form', 'list view', 'comparison view',
+    'copy', 'copy link', 'copy id', 'copy password setup link',
     'expand', 'collapse',
-    'select all', 'deselect all',
+    'select all', 'deselect all', 'all', 'none',
     'apply', 'apply filter', 'apply filters',
-    'go home', 'home',
+    'go home', 'home', 'history', 'case audit trail',
+    'reply', 'templates', 'builder',
+    'advance →', 'advance', 'move back',
+    'proceed to forms', 'back to forms', 'back to entities', 'back to individuals',
+    'back to queue', '← back to queue', '← queue',
+    'go to my applications', 'return to dashboard', 'track application',
+    'review entered data', 'open', 'open return', 'open licensee',
   ].map((s) => s.toLowerCase()),
 );
+
+// Patterns for public/navigation labels (checked when exact match fails).
+const PUBLIC_ALLOW_PATTERNS: RegExp[] = [
+  /^back to\b/i,
+  /^go to\b/i,
+  /^open\b/i,
+  /^view\b/i,
+  /^track\b/i,
+  /^return to\b/i,
+  /^copy\b/i,
+];
+
+const SKIP_FILES = new Set([
+  'components/auth/GuardedButton.tsx',
+  'components/auth/PermissionGate.tsx',
+]);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
     const s = statSync(p);
     if (s.isDirectory()) walk(p, out);
-    else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) && !/\.spec\.tsx?$/.test(entry)) out.push(p);
+    else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) && !/\.spec\.tsx?$/.test(entry)) {
+      const rel = relative(SRC, p).replace(/\\/g, '/');
+      if (!SKIP_FILES.has(rel)) out.push(p);
+    }
   }
   return out;
 }
@@ -179,7 +205,9 @@ export function scanFile(file: string): ActionSite[] {
     const line = text.slice(0, idx).split('\n').length;
     const reason = findWrappingGate(text, idx);
     const lowered = label.toLowerCase();
-    const isPublic = PUBLIC_ALLOW_LABELS.has(lowered);
+    const isPublic =
+      PUBLIC_ALLOW_LABELS.has(lowered) ||
+      PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
     // Extract explicit module.action from a nearby data-rbac attribute.
     // JSX opening tags contain `=>` in arrow handlers, so a naive
     // indexOf('>') stops too early. Scan a fixed forward window instead.

@@ -116,7 +116,7 @@ export default function BrandingSettingsPage() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button data-rbac="settings.edit" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Save Changes
               </Button>
@@ -160,7 +160,7 @@ export default function BrandingSettingsPage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+                  <Button data-rbac="settings.edit" variant="outline" size="sm" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
                     {uploadingLogo ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
                     Upload
                   </Button>
@@ -190,7 +190,7 @@ export default function BrandingSettingsPage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={uploadingFavicon} onClick={() => faviconInputRef.current?.click()}>
+                  <Button data-rbac="settings.edit" variant="outline" size="sm" disabled={uploadingFavicon} onClick={() => faviconInputRef.current?.click()}>
                     {uploadingFavicon ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
                     Upload
                   </Button>
@@ -219,7 +219,7 @@ export default function BrandingSettingsPage() {
                 <Button variant="ghost" size="icon" onClick={() => removeMenuItem(i)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={addMenuItem}><Plus className="h-4 w-4 mr-1" />Add Link</Button>
+            <Button data-rbac="settings.edit" variant="outline" size="sm" onClick={addMenuItem}><Plus className="h-4 w-4 mr-1" />Add Link</Button>
           </CardContent>
         </Card>
 
@@ -268,7 +268,7 @@ export default function BrandingSettingsPage() {
                   <Button variant="ghost" size="icon" onClick={() => removeFooterLink(i)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addFooterLink}><Plus className="h-4 w-4 mr-1" />Add Link</Button>
+              <Button data-rbac="settings.edit" variant="outline" size="sm" onClick={addFooterLink}><Plus className="h-4 w-4 mr-1" />Add Link</Button>
             </div>
 
             {/* Social Icons */}
@@ -294,7 +294,7 @@ export default function BrandingSettingsPage() {
                   <Button variant="ghost" size="icon" onClick={() => removeSocial(i)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addSocial}><Plus className="h-4 w-4 mr-1" />Add Social</Button>
+              <Button data-rbac="settings.edit" variant="outline" size="sm" onClick={addSocial}><Plus className="h-4 w-4 mr-1" />Add Social</Button>
             </div>
           </CardContent>
         </Card>

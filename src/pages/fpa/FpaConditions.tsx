@@ -543,7 +543,7 @@ export default function FpaConditions() {
           description="Conditional Fit &amp; Proper determinations with SLA breach monitoring — FPA-013"
           actions={
             <div className="flex items-center gap-2">
-              <Button
+              <Button data-rbac="fit_and_proper.edit"
                 size="sm"
                 variant="outline"
                 onClick={() => runSweepMutation.mutate()}
@@ -555,7 +555,7 @@ export default function FpaConditions() {
                   : <RefreshCw className="h-4 w-4 mr-1.5" />}
                 Run Sweep Now
               </Button>
-              <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Button data-rbac="fit_and_proper.create" size="sm" onClick={() => setAddOpen(true)}>
                 <Plus className="h-4 w-4 mr-1.5" />
                 Add Condition
               </Button>
@@ -825,7 +825,7 @@ export default function FpaConditions() {
                                 <div className="flex items-center justify-end gap-1.5">
                                   {cond.status === 'open' && (
                                     <>
-                                      <Button
+                                      <Button data-rbac="fit_and_proper.edit"
                                         size="sm"
                                         variant="outline"
                                         className="h-7 px-2 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
@@ -837,7 +837,7 @@ export default function FpaConditions() {
                                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                                         Mark Satisfied
                                       </Button>
-                                      <Button
+                                      <Button data-rbac="fit_and_proper.edit"
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 px-2 text-xs text-slate-600"
@@ -848,7 +848,7 @@ export default function FpaConditions() {
                                       >
                                         Waive
                                       </Button>
-                                      <Button
+                                      <Button data-rbac="fit_and_proper.edit"
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 px-2 text-xs text-slate-600"
@@ -935,7 +935,7 @@ export default function FpaConditions() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={satisfyMutation.isPending}
               onClick={() => {
@@ -999,7 +999,7 @@ export default function FpaConditions() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               variant="secondary"
               disabled={!waiveReason.trim() || waiveMutation.isPending}
               onClick={() => {
@@ -1238,7 +1238,7 @@ export default function FpaConditions() {
             >
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.create"
               disabled={
                 !addIndividualId ||
                 !addDeterminationId ||
