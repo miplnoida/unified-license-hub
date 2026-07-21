@@ -150,8 +150,11 @@ export function useUserDynamicPermissions() {
 
   // ─── Assignment-only capability (separate from RBAC) ────────────────────
 
-  const hasAssignmentReturnQueueAccess: boolean =
-    !!isInternal && hasAnyEntityAssignment;
+  // Assignment rows in `licensees` can only be populated by admins with
+  // internal employees — being an assignee is itself proof of internal
+  // status, so we don't require the auth `isInternal` flag here (the static
+  // INTERNAL_ROLES list doesn't include every legitimate analyst role).
+  const hasAssignmentReturnQueueAccess: boolean = hasAnyEntityAssignment;
 
   /**
    * The narrow allow-list of Returns routes an assignment-only regulator may
