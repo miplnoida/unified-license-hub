@@ -1,10 +1,30 @@
 rpc	module	action	notes
 has_permission	-	-	Authority function. SECURITY DEFINER, pinned search_path.
-can_view_entity_returns	returns_management	view	Composes has_permission + user_has_entity_assignment.
+can_view_entity_returns	returns_management	view	Composes has_permission + user_has_entity_assignment + submitted-lifecycle gate.
 user_has_entity_assignment	-	-	Assignment lookup helper. No permission gate — used by other gates.
 is_assignment_only_regulator	-	-	Classifier used by scope enforcement.
-claim_notification_outbox	notification_management	dispatch	Worker RPC; service-role only via authz helper.
-reap_stuck_notification_outbox	notification_management	dispatch	Worker RPC.
-create_complaint	complaint_management	create	SECURITY DEFINER intake.
-finalize_complaint_with_attachments	complaint_management	create	Atomic finalize.
+can_read_enforcement	enforcement_management	view	super_admin OR view_all_entities OR (view AND assignment). Assignment-alone denied.
+can_act_on_enforcement	enforcement_management	<action>	Action-scoped mutation gate (create/edit/delete/workflow_action).
+can_read_inspection	inspection_management	view	super_admin OR view_all_entities OR (view AND assignment). Assignment-alone denied.
+can_act_on_inspection	inspection_management	<action>	Action-scoped mutation gate.
+claim_notification_outbox	notification_management	dispatch	Worker RPC; anon + authenticated REVOKED. service-role only.
+reap_stuck_notification_outbox	notification_management	dispatch	Worker RPC; anon + authenticated REVOKED.
+cleanup_orphaned_complaint_evidence	complaint_management	admin	Worker RPC; anon + authenticated REVOKED.
+evaluate_all_complaint_escalations	complaint_management	escalate	Worker RPC; anon + authenticated REVOKED.
+create_complaint	complaint_management	create	SECURITY DEFINER intake. anon REVOKED; public path uses SD-owned insert.
+finalize_complaint_with_attachments	complaint_management	create	Atomic finalize. anon REVOKED.
 search_licensees	license_management	view	Server-side scoped licensee search.
+admin_override_form_version_assignment	application_management	edit	Slice 14 hardened — anon REVOKED. Internal has_permission check.
+assign_complaint	complaint_management	assign	Slice 14 hardened — anon REVOKED. Two overloads (uuid,uuid,timestamptz) and (uuid,uuid,text,text).
+assign_primary_user	license_management	edit	Slice 14 hardened — anon REVOKED.
+cancel_application	application_management	cancel	Slice 14 hardened — anon REVOKED.
+confirm_complaint_duplicate	complaint_management	manage_duplicates	Slice 14 hardened — anon REVOKED.
+dismiss_complaint_duplicate	complaint_management	manage_duplicates	Slice 14 hardened — anon REVOKED.
+decide_escalation_case	complaint_management	decide_escalation	Slice 14 hardened — anon REVOKED.
+dismiss_complaint_escalation	complaint_management	decide_escalation	Slice 14 hardened — anon REVOKED.
+delete_ppoc_mapping	license_management	edit	Slice 14 hardened — anon REVOKED.
+escalate_complaint_to_enforcement	complaint_management	escalate	Slice 14 hardened — anon REVOKED.
+evaluate_complaint_escalations	complaint_management	escalate	Slice 14 hardened — anon REVOKED.
+evaluate_complaint_escalations_v2	complaint_management	escalate	Slice 14 hardened — anon REVOKED. v2 replacement.
+execute_complaint_workflow_action	complaint_management	workflow_action	Slice 14 hardened — anon REVOKED. Central workflow dispatcher.
+manual_escalate_complaint	complaint_management	escalate	Slice 14 hardened — anon REVOKED.
