@@ -68,17 +68,15 @@ export function validateRolePermissions(
     }
   }
 
-  // 4. Dependency map (from catalog).
-  const selectedKeys = new Set(selected.map(p => `${p.module}.${p.name}`));
-  for (const [key, deps] of Object.entries(permissionDependencies)) {
-    if (!selectedKeys.has(key)) continue;
-    for (const dep of deps) {
-      if (!selectedKeys.has(dep)) {
-        issues.push({
-          code: 'dependency_violation',
-          message: `${key} depends on ${dep} — enable ${dep} as well.`,
-        });
-      }
+  // 4. Every action listed in DEPENDENT_ACTIONS requires View (already
+  //    covered by check #1). Use permissionHasDependency to flag anything
+  //    that slipped past normalization.
+  for (const p of selected) {
+    if (permissionHasDependency(p.name) && !modulesWithView.has(p.module)) {
+      issues.push({
+        code: 'dependency_violation',
+        message: `${p.name} on ${p.module.replace(/_/g, ' ')} depends on View.`,
+      });
     }
   }
 
@@ -87,7 +85,7 @@ export function validateRolePermissions(
   const nonSensitiveCategories = new Set(['read_only', 'operational', 'reviewer']);
   if (category && nonSensitiveCategories.has(category)) {
     for (const p of selected) {
-      if ((SENSITIVE_ACTIONS as readonly SensitiveAction[]).includes(p.name as SensitiveAction)) {
+      if (SENSITIVE_ACTION_NAMES.has(p.name)) {
         issues.push({
           code: 'sensitive_without_manager',
           message: `A ${category} role cannot hold the sensitive privilege "${p.name}" on ${p.module.replace(/_/g, ' ')}.`,
@@ -95,6 +93,7 @@ export function validateRolePermissions(
       }
     }
   }
+  void DEPENDENT_ACTIONS; // keep import for future granular checks
 
   return issues;
 }
