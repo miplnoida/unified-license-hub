@@ -154,9 +154,11 @@ export function scanFile(file: string): ActionSite[] {
     const reason = findWrappingGate(text, idx);
     const lowered = label.toLowerCase();
     const isPublic = PUBLIC_ALLOW_LABELS.has(lowered);
-    // Extract explicit module.action from data-rbac if present.
-    const tag = text.slice(idx, text.indexOf('>', idx));
-    const rbacMatch = tag.match(/data-rbac\s*=\s*"([^"]+)"/);
+    // Extract explicit module.action from a nearby data-rbac attribute.
+    // JSX opening tags contain `=>` in arrow handlers, so a naive
+    // indexOf('>') stops too early. Scan a fixed forward window instead.
+    const forward = text.slice(idx, idx + 1500);
+    const rbacMatch = forward.match(/data-rbac\s*=\s*"([^"]+)"/);
     let module: string | null = null;
     let action: string | null = null;
     if (rbacMatch) {
@@ -164,6 +166,7 @@ export function scanFile(file: string): ActionSite[] {
       module = mod || null;
       action = act || null;
     }
+
     sites.push({
       file: rel,
       line,
