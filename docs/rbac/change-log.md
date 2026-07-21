@@ -325,3 +325,52 @@ approved locked), view-only-cannot-mutate invariant, zero legacy
 
 
 
+
+## Slice 8 — Approval Workflow & Collaborative Review Lockdown
+
+**Permissions** — 4 new `workflow_management` actions registered:
+`delete`, `workflow_action`, `manage_config`, `view_all`.
+
+**Helpers** — 4 new SECURITY DEFINER helpers with pinned `search_path`:
+
+- `can_read_approval_config(_user)` — super_admin OR
+  `workflow_management.view` OR `workflow_management.manage_config`.
+- `can_mutate_approval_config(_user)` — super_admin OR `manage_config`.
+- `can_act_on_approval(_user)` — super_admin OR `workflow_action` OR
+  `manage_config`. Used to gate `approval_actions` inserts and
+  `workflow_instances` writes.
+- `can_read_workflow_instance(_user, _entity_id)` — super_admin OR
+  `view` OR `view_all` OR the applicant owns the source application.
+
+**Policy rewrites** — 16 tables, every legacy multi-role `has_role()`
+block replaced with helper composition:
+
+- Configuration surface (read = `can_read_approval_config`, write =
+  `can_mutate_approval_config`): `approval_workflows`,
+  `approval_workflow_versions`, `approval_workflow_types`,
+  `approval_steps`, `approval_step_actions`, `delegation_rules`,
+  `workflow_templates`, `approval_action_notifications`,
+  `approval_step_entry_notifications`.
+- `approval_actions` (4 policies): SELECT for own row / config readers
+  / actors; INSERT pins `actor_id = auth.uid()` and requires
+  `can_act_on_approval`; UPDATE gated by `manage_config`; DELETE
+  reserved for super_admin.
+- `workflow_instances` (2 policies): applicants can read their own
+  instance via `can_read_workflow_instance`; writes require
+  `can_act_on_approval` or `manage_config`.
+- Collaborative review (`review_comments`, `review_suggestions`):
+  entity-scoped visibility via `can_access_review_entity`; INSERT pins
+  `author_user_id = auth.uid()`; UPDATE/DELETE restricted to author or
+  collab admin.
+- `review_step_permissions`, `review_role_display_settings`,
+  `review_narrative_fields`: read open to authenticated (required for
+  render), writes gated by `is_collab_admin` (plus `manage_config` for
+  narrative fields).
+
+**Grants** — anon revoked, authenticated CRUD, service_role ALL
+reasserted on all 16 tables.
+
+pgTAP: `supabase/tests/rbac/90_approval_workflows_rls.sql` — 24
+assertions covering helper composition, applicant carve-out, per-table
+policy shape, absence of legacy `has_role()`, and new permission
+registration.

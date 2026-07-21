@@ -15561,6 +15561,7 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string; _user_id: string }
         Returns: boolean
       }
+      can_act_on_approval: { Args: { _user: string }; Returns: boolean }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -15569,6 +15570,7 @@ export type Database = {
         Args: { _application_id: string; _user: string }
         Returns: boolean
       }
+      can_mutate_approval_config: { Args: { _user: string }; Returns: boolean }
       can_mutate_compliance_return: {
         Args: { _return_id: string; _user: string }
         Returns: boolean
@@ -15589,6 +15591,7 @@ export type Database = {
         Args: { _application_id: string; _user: string }
         Returns: boolean
       }
+      can_read_approval_config: { Args: { _user: string }; Returns: boolean }
       can_read_compliance_return: {
         Args: { _return_id: string; _user: string }
         Returns: boolean
@@ -15613,6 +15616,10 @@ export type Database = {
           _return_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      can_read_workflow_instance: {
+        Args: { _entity_id: string; _user: string }
         Returns: boolean
       }
       can_review_action: {
