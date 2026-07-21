@@ -319,8 +319,34 @@ export default function RoleManagement() {
   };
 
   const togglePerm = (permId: string) => {
-    setFormPerms(prev => prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]);
+    const perm = permissions.find(p => p.id === permId);
+    setFormPerms(prev => {
+      const isSelected = prev.includes(permId);
+      // Turning OFF a `view` permission that other dependent actions rely on
+      // must be blocked, otherwise the server trigger will reject the save.
+      if (isSelected && perm && perm.name.trim().toLowerCase() === 'view') {
+        const stillDependent = prev
+          .filter(id => id !== permId)
+          .map(id => permissions.find(p => p.id === id))
+          .some(p => p && p.module === perm.module && permissionHasDependency(p.name));
+        if (stillDependent) {
+          toast.error(`Cannot remove View on ${perm.module} while Edit/Create/Delete/Approve/etc are selected. Uncheck the dependent actions first.`);
+          return prev;
+        }
+      }
+      const next = isSelected ? prev.filter(p => p !== permId) : [...prev, permId];
+      // Auto-add View when a dependent action is turned on.
+      if (!isSelected && perm && permissionHasDependency(perm.name)) {
+        const { addedPermissionIds, violations } = resolveDependencies(next, permissions);
+        if (violations.length > 0 && addedPermissionIds.length > 0) {
+          toast.info(`View on ${perm.module} auto-enabled — required by ${perm.name}.`);
+          return [...next, ...addedPermissionIds];
+        }
+      }
+      return next;
+    });
   };
+
 
   /** Apply a quick template — sets role type and prefills permission ids. */
   const applyTemplate = (tplKey: string) => {
