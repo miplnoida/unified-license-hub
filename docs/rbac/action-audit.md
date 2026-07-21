@@ -1,0 +1,1354 @@
+# RBAC Action Coverage Audit
+
+_Generated: 2026-07-21T05:57:05.025Z_
+
+**Total action sites scanned:** 1310
+**Protected:** 62
+**Coverage:** 4.7%
+
+Any row with **Protected = No** must be wrapped in `<PermissionGate module="..." action="...">` or replaced with `<GuardedButton module="..." action="...">` — or, if intentionally public (login, cancel, close, back, …), added to the allow-list in `scripts/rbac-audit.ts`.
+
+## By category
+
+| Category | Total | Protected | Coverage |
+|---|---:|---:|---:|
+| Action | 811 | 48 | 6% |
+| Create | 164 | 0 | 0% |
+| Save | 71 | 0 | 0% |
+| View | 67 | 9 | 13% |
+| Edit | 34 | 1 | 3% |
+| Delete | 24 | 0 | 0% |
+| Close | 20 | 2 | 10% |
+| Export | 20 | 0 | 0% |
+| Download | 17 | 0 | 0% |
+| Submit | 15 | 0 | 0% |
+| Upload | 12 | 0 | 0% |
+| Workflow | 9 | 0 | 0% |
+| Import | 8 | 0 | 0% |
+| Approve | 7 | 2 | 29% |
+| Issue | 5 | 0 | 0% |
+| Assign | 5 | 0 | 0% |
+| Reopen | 4 | 0 | 0% |
+| Print | 3 | 0 | 0% |
+| Notification | 3 | 0 | 0% |
+| Archive | 3 | 0 | 0% |
+| Email | 2 | 0 | 0% |
+| Reject | 2 | 0 | 0% |
+| Report | 2 | 0 | 0% |
+| Publish | 1 | 0 | 0% |
+| Configure | 1 | 0 | 0% |
+
+## Detail
+
+| Page | Button | Permission | Protected | File | Line |
+|---|---|---|---|---|---:|
+| components/admin/MasterDataImportDialog | downloadSampleExcel(entity)}> Download Sample Excel | — | No | src/components/admin/MasterDataImportDialog.tsx | 225 |
+| components/admin/MasterDataImportDialog | inputRef.current?.click()}> Choose Excel File | — | No | src/components/admin/MasterDataImportDialog.tsx | 228 |
+| components/admin/MasterDataImportDialog | onOpenChange(false)} disabled= >Cancel | — | No | src/components/admin/MasterDataImportDialog.tsx | 284 |
+| components/admin/MasterDataImportDialog | {importing ? 'Importing...' : `Import $ row(s)`} | — | No | src/components/admin/MasterDataImportDialog.tsx | 285 |
+| components/admin/MasterDataItemsImportDialog | downloadItemSampleExcel(typeName)}> Download Sample Excel | — | No | src/components/admin/MasterDataItemsImportDialog.tsx | 155 |
+| components/admin/MasterDataItemsImportDialog | inputRef.current?.click()}> Choose Excel File | — | No | src/components/admin/MasterDataItemsImportDialog.tsx | 158 |
+| components/admin/MasterDataItemsImportDialog | onOpenChange(false)} disabled= >Cancel | — | No | src/components/admin/MasterDataItemsImportDialog.tsx | 216 |
+| components/admin/MasterDataItemsImportDialog | {importing ? 'Importing...' : `Import $ row(s)`} | — | No | src/components/admin/MasterDataItemsImportDialog.tsx | 217 |
+| components/analytics/DashboardInsightsCard | Refresh | — | Yes | src/components/analytics/DashboardInsightsCard.tsx | 74 |
+| components/applications/ApplicationAiAssessmentPanel | Regenerate | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 191 |
+| components/applications/ApplicationAiAssessmentPanel | Generate assessment | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 209 |
+| components/applications/ApplicationAiAssessmentPanel | Retry generation | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 227 |
+| components/applications/ApplicationAiAssessmentPanel | { setMode(null); supabase .from('application_ai_assessments' as never) .update(  | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 606 |
+| components/applications/ApplicationAiAssessmentPanel | startMode('accepted')}> Accept | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 643 |
+| components/applications/ApplicationAiAssessmentPanel | startMode('overridden')}> Override | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 647 |
+| components/applications/ApplicationAiAssessmentPanel | startMode('escalated')}> Escalate | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 651 |
+| components/applications/ApplicationAiAssessmentPanel | Cancel | — | Yes | src/components/applications/ApplicationAiAssessmentPanel.tsx | 680 |
+| components/applications/ApplicationAiAssessmentPanel | Save | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 683 |
+| components/applications/ApplicationAiAssessmentPanel | persistDecision('accepted')}> Accept AI routing | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 751 |
+| components/applications/ApplicationAiAssessmentPanel | setOverrideOpen(true)}> Override with reason | — | No | src/components/applications/ApplicationAiAssessmentPanel.tsx | 754 |
+| components/applications/ApplicationRfiTab | Close RFI & resume SLA | — | No | src/components/applications/ApplicationRfiTab.tsx | 286 |
+| components/applications/ApplicationRfiTab | Submit response | — | No | src/components/applications/ApplicationRfiTab.tsx | 520 |
+| components/applications/ApplicationRfiTab | view(row)} disabled= title="View in new tab" > | — | No | src/components/applications/ApplicationRfiTab.tsx | 628 |
+| components/applications/ApplicationRfiTab | download(row)} disabled= title="Download" > | — | No | src/components/applications/ApplicationRfiTab.tsx | 640 |
+| components/applications/ApplicationUploadPanel | setCollapsed((c) => !c)}> | — | No | src/components/applications/ApplicationUploadPanel.tsx | 123 |
+| components/applications/ApplicationUploadPanel | Download Sample (Excel) | — | No | src/components/applications/ApplicationUploadPanel.tsx | 138 |
+| components/applications/ApplicationUploadPanel | Download Sample (XML) | — | No | src/components/applications/ApplicationUploadPanel.tsx | 141 |
+| components/applications/ApplicationUploadPanel | document.getElementById(inputId)?.click()} disabled= > Choose file | — | No | src/components/applications/ApplicationUploadPanel.tsx | 171 |
+| components/applications/ApplicationUploadPanel | setPickedFile(null)}> Remove | — | No | src/components/applications/ApplicationUploadPanel.tsx | 190 |
+| components/applications/ApplicationUploadPanel | Import into application | — | No | src/components/applications/ApplicationUploadPanel.tsx | 205 |
+| components/applications/ConfigurableDecisionActions | setSelected(opt)} > | — | No | src/components/applications/ConfigurableDecisionActions.tsx | 219 |
+| components/applications/ConfigurableDecisionActions | setSelected(null)} disabled= > Cancel | — | No | src/components/applications/ConfigurableDecisionActions.tsx | 273 |
+| components/applications/ConfigurableDecisionActions | attemptSubmit()} disabled= > Confirm | — | No | src/components/applications/ConfigurableDecisionActions.tsx | 276 |
+| components/applications/FeeComponentsPanel | setShowForm(true)}> Add Fee | — | No | src/components/applications/FeeComponentsPanel.tsx | 146 |
+| components/applications/FeeComponentsPanel | Cancel | — | Yes | src/components/applications/FeeComponentsPanel.tsx | 183 |
+| components/applications/FeeComponentsPanel | openEdit(c)}> | — | No | src/components/applications/FeeComponentsPanel.tsx | 244 |
+| components/applications/FeeComponentsPanel | handleDelete(c.id)}> | — | No | src/components/applications/FeeComponentsPanel.tsx | 245 |
+| components/applications/LegalComplianceNotesSection | Save Legal Note | — | No | src/components/applications/LegalComplianceNotesSection.tsx | 177 |
+| components/applications/LicenseConditionsPanel | Add condition | — | No | src/components/applications/LicenseConditionsPanel.tsx | 123 |
+| components/applications/LicenseConditionsPanel | setOpen(false)}>Cancel | — | No | src/components/applications/LicenseConditionsPanel.tsx | 163 |
+| components/applications/LicenseConditionsPanel | Add | — | No | src/components/applications/LicenseConditionsPanel.tsx | 164 |
+| components/applications/LicenseConditionsPanel | updateStatus(c.id, 'satisfied')} title="Mark satisfied"> | — | No | src/components/applications/LicenseConditionsPanel.tsx | 204 |
+| components/applications/LicenseConditionsPanel | remove(c.id)}> | — | No | src/components/applications/LicenseConditionsPanel.tsx | 208 |
+| components/applications/PaymentVerificationDialog | Cancel | — | Yes | src/components/applications/PaymentVerificationDialog.tsx | 281 |
+| components/applications/PaymentVerificationDialog | Received & Verify | — | No | src/components/applications/PaymentVerificationDialog.tsx | 285 |
+| components/applications/PaymentVerificationDialog | Close | — | Yes | src/components/applications/PaymentVerificationDialog.tsx | 291 |
+| components/applications/RaiseRfiDialog | setOpen(true)}> | — | No | src/components/applications/RaiseRfiDialog.tsx | 292 |
+| components/applications/RaiseRfiDialog | loadedRuleIds.has(s.ruleId))} > Add all | — | No | src/components/applications/RaiseRfiDialog.tsx | 340 |
+| components/applications/RaiseRfiDialog | applySuggestion(s)} disabled= > | — | No | src/components/applications/RaiseRfiDialog.tsx | 362 |
+| components/applications/RaiseRfiDialog | Add item | — | No | src/components/applications/RaiseRfiDialog.tsx | 386 |
+| components/applications/RaiseRfiDialog | removeItem(it.key)} disabled= > | — | No | src/components/applications/RaiseRfiDialog.tsx | 394 |
+| components/applications/RaiseRfiDialog | setOpen(false)} disabled= > Cancel | — | No | src/components/applications/RaiseRfiDialog.tsx | 452 |
+| components/applications/RaiseRfiDialog | Raise RFI | — | No | src/components/applications/RaiseRfiDialog.tsx | 455 |
+| components/applications/ReviewAcknowledgement | onEdit(sIdx)}> Edit Section | — | No | src/components/applications/ReviewAcknowledgement.tsx | 263 |
+| components/applications/SubmissionAcknowledgement | Return to Dashboard | — | No | src/components/applications/SubmissionAcknowledgement.tsx | 87 |
+| components/applications/SubmissionAcknowledgement | Track Application | — | No | src/components/applications/SubmissionAcknowledgement.tsx | 94 |
+| components/applications/SubmissionAcknowledgement | Download | — | No | src/components/applications/SubmissionAcknowledgement.tsx | 101 |
+| components/applications/SufficiencyPanel | setRfiOpen(true)}> Create RFI from Failed Rules ( ) | — | No | src/components/applications/SufficiencyPanel.tsx | 124 |
+| components/applications/SufficiencyPanel | setOverride( )}>Override | — | No | src/components/applications/SufficiencyPanel.tsx | 164 |
+| components/applications/SufficiencyPanel | setOverride( )}>Cancel | — | No | src/components/applications/SufficiencyPanel.tsx | 186 |
+| components/applications/SufficiencyPanel | Record Override | — | No | src/components/applications/SufficiencyPanel.tsx | 187 |
+| components/applications/TwinPeaksPanel | } > | — | No | src/components/applications/TwinPeaksPanel.tsx | 153 |
+| components/applications/TwinPeaksPanel | setEditRole(null)}>Cancel | — | No | src/components/applications/TwinPeaksPanel.tsx | 196 |
+| components/applications/TwinPeaksPanel | save.mutate()} disabled= > Save | — | No | src/components/applications/TwinPeaksPanel.tsx | 197 |
+| components/applications/TwinPeaksPanel | raise.mutate()} disabled= > Raise | — | No | src/components/applications/TwinPeaksPanel.tsx | 209 |
+| components/applications/TwinPeaksPanel | resolve.mutate( )}> Resolve | — | No | src/components/applications/TwinPeaksPanel.tsx | 231 |
+| components/applications/WorkflowActionPreviewDialog | resetBinding(b)} disabled= > Reset to template | — | No | src/components/applications/WorkflowActionPreviewDialog.tsx | 720 |
+| components/applications/WorkflowActionPreviewDialog | Clear | — | Yes | src/components/applications/WorkflowActionPreviewDialog.tsx | 760 |
+| components/applications/WorkflowActionPreviewDialog | sigFileInputRef.current?.click()} disabled= > Upload | — | No | src/components/applications/WorkflowActionPreviewDialog.tsx | 785 |
+| components/applications/WorkflowActionPreviewDialog | onOpenChange(false)} disabled= > Cancel | — | No | src/components/applications/WorkflowActionPreviewDialog.tsx | 826 |
+| components/applications/WorkflowActionPreviewDialog | Confirm &amp; Send | — | No | src/components/applications/WorkflowActionPreviewDialog.tsx | 829 |
+| components/applications/WorkflowPanel | handleAction(a.type, a.requireComments)} disabled= title= > | — | No | src/components/applications/WorkflowPanel.tsx | 965 |
+| components/applications/WorkflowPanel | Add Remark | — | No | src/components/applications/WorkflowPanel.tsx | 984 |
+| components/applications/WorkflowPanel | safeCopy(approvalResult.license_number!, 'License number copied')} > | — | No | src/components/applications/WorkflowPanel.tsx | 1295 |
+| components/applications/WorkflowPanel | safeCopy(approvalResult.web_user_email!, 'Email copied')} > | — | No | src/components/applications/WorkflowPanel.tsx | 1316 |
+| components/applications/WorkflowPanel | safeCopy(approvalResult.password_setup_url!, 'Setup link copied — share securely | — | No | src/components/applications/WorkflowPanel.tsx | 1328 |
+| components/audit/ChangeHistoryDrawer | Refresh | — | Yes | src/components/audit/ChangeHistoryDrawer.tsx | 234 |
+| components/audit/HistoryButton | setOpen(true)}> | — | No | src/components/audit/HistoryButton.tsx | 29 |
+| components/audit/OverrideJustificationDialog | onOpenChange(false)} disabled= > Cancel | — | No | src/components/audit/OverrideJustificationDialog.tsx | 78 |
+| components/audit/OverrideReasonDialog | onOpenChange(false)} disabled= > Cancel | — | No | src/components/audit/OverrideReasonDialog.tsx | 123 |
+| components/audit/ReturnHistoryDrawer | Refresh | — | Yes | src/components/audit/ReturnHistoryDrawer.tsx | 176 |
+| components/auth/GuardedButton | ONLY when the current * user holds ` . `. When denied, renders nothing (hide-by- | — | No | src/components/auth/GuardedButton.tsx | 6 |
+| components/auth/PermissionGate | Approve | — | Yes | src/components/auth/PermissionGate.tsx | 25 |
+| components/collab-review/CollaborativeReview | collab.decideSuggestion.mutate( )}> Accept | — | No | src/components/collab-review/CollaborativeReview.tsx | 334 |
+| components/collab-review/CollaborativeReview | collab.decideSuggestion.mutate( )}> Reject | — | No | src/components/collab-review/CollaborativeReview.tsx | 339 |
+| components/collab-review/CollaborativeReview | setReplyTo(replyTo === c.id ? null : c.id)}> Reply | — | No | src/components/collab-review/CollaborativeReview.tsx | 416 |
+| components/collab-review/CollaborativeReview | collab.resolveComment.mutate( )}> Resolve | — | No | src/components/collab-review/CollaborativeReview.tsx | 421 |
+| components/collab-review/CollaborativeReview | collab.resolveComment.mutate( )}> Reopen | — | No | src/components/collab-review/CollaborativeReview.tsx | 426 |
+| components/collab-review/CollaborativeReview | collab.setBlocking.mutate( )}> | — | No | src/components/collab-review/CollaborativeReview.tsx | 431 |
+| components/collab-review/CollaborativeReview | }>Cancel | — | No | src/components/collab-review/CollaborativeReview.tsx | 444 |
+| components/collab-review/CollaborativeReview | submitReply(c.id)} disabled= >Reply | — | No | src/components/collab-review/CollaborativeReview.tsx | 445 |
+| components/collab-review/CollaborativeReview | Add comment | — | No | src/components/collab-review/CollaborativeReview.tsx | 516 |
+| components/collab-review/CollaborativeReview | Suggest | — | No | src/components/collab-review/CollaborativeReview.tsx | 553 |
+| components/collab-review/CollaborativeReview | View comments | — | No | src/components/collab-review/CollaborativeReview.tsx | 576 |
+| components/collab-review/CollabReviewConfigTab | copyPerms.mutate(copyFromStepId)} > Copy permissions to this step | — | No | src/components/collab-review/CollabReviewConfigTab.tsx | 284 |
+| components/collab-review/CollabReviewConfigTab | grantDefaults(r.id)}>Grant defaults | — | No | src/components/collab-review/CollabReviewConfigTab.tsx | 338 |
+| components/collab-review/CollabReviewConfigTab | revoke(r.id)}>Revoke | — | No | src/components/collab-review/CollabReviewConfigTab.tsx | 339 |
+| components/common/RowActionsMenu | e.stopPropagation()} aria-label="Row actions" > | — | No | src/components/common/RowActionsMenu.tsx | 48 |
+| components/complaints/ComplaintAcknowledgement | onOpenChange(false)}> Close | — | No | src/components/complaints/ComplaintAcknowledgement.tsx | 201 |
+| components/complaints/ComplaintAcknowledgement | Print / Save as PDF | — | No | src/components/complaints/ComplaintAcknowledgement.tsx | 204 |
+| components/complaints/ComplaintAcknowledgement | onOpenChange(false)}> Close | — | No | src/components/complaints/ComplaintAcknowledgement.tsx | 285 |
+| components/complaints/ComplaintAcknowledgement | Print / Save as PDF | — | No | src/components/complaints/ComplaintAcknowledgement.tsx | 288 |
+| components/complaints/ComplaintAttachmentsField | remove(i)} disabled= > | — | No | src/components/complaints/ComplaintAttachmentsField.tsx | 74 |
+| components/complaints/ComplaintAttachmentsField | ref.current?.click()} disabled= > | — | No | src/components/complaints/ComplaintAttachmentsField.tsx | 82 |
+| components/complaints/ComplaintEvidenceRow | Reprint acknowledgement | — | No | src/components/complaints/ComplaintEvidenceRow.tsx | 69 |
+| components/complaints/ComplaintEvidenceRow | Retry auto-triage | — | No | src/components/complaints/ComplaintEvidenceRow.tsx | 70 |
+| components/complaints/ComplaintEvidenceRow | Open full detail & history | — | No | src/components/complaints/ComplaintEvidenceRow.tsx | 71 |
+| components/complaints/ComplaintInvestigationTab | addTask.mutate()} disabled= > | — | No | src/components/complaints/ComplaintInvestigationTab.tsx | 148 |
+| components/complaints/ComplaintInvestigationTab | setTaskStatus.mutate( )}>Start | — | No | src/components/complaints/ComplaintInvestigationTab.tsx | 180 |
+| components/complaints/ComplaintInvestigationTab | setTaskStatus.mutate( )}>Complete | — | No | src/components/complaints/ComplaintInvestigationTab.tsx | 182 |
+| components/complaints/ComplaintInvestigationTab | setTaskStatus.mutate( )}>Cancel | — | No | src/components/complaints/ComplaintInvestigationTab.tsx | 183 |
+| components/complaints/ComplaintInvestigationTab | addCorrespondence.mutate()} disabled= className="w-full"> | — | No | src/components/complaints/ComplaintInvestigationTab.tsx | 215 |
+| components/complaints/ConductClassificationCard | Auto-triage | — | No | src/components/complaints/ConductClassificationCard.tsx | 148 |
+| components/complaints/duplicates/ClusterGroupsPanel | refetch()}>Retry | — | No | src/components/complaints/duplicates/ClusterGroupsPanel.tsx | 52 |
+| components/complaints/duplicates/ClusterGroupsPanel | }> View complaints | — | No | src/components/complaints/duplicates/ClusterGroupsPanel.tsx | 68 |
+| components/complaints/duplicates/DetectionRulesPanel | save.mutate()} disabled= >Save changes | — | No | src/components/complaints/duplicates/DetectionRulesPanel.tsx | 65 |
+| components/complaints/duplicates/DuplicateAlertBanner | refetch()} disabled= > Retry | — | No | src/components/complaints/duplicates/DuplicateAlertBanner.tsx | 54 |
+| components/complaints/duplicates/DuplicatePairDrawer | mock('Marked as not a duplicate')}> Dismiss | — | No | src/components/complaints/duplicates/DuplicatePairDrawer.tsx | 65 |
+| components/complaints/duplicates/DuplicatePairDrawer | mock('Complaints linked for shared investigation')}> Link | — | No | src/components/complaints/duplicates/DuplicatePairDrawer.tsx | 68 |
+| components/complaints/duplicates/DuplicatePairDrawer | mock('Complaints merged into primary case')}> Merge into Primary | — | No | src/components/complaints/duplicates/DuplicatePairDrawer.tsx | 71 |
+| components/complaints/duplicates/SuspectedDuplicatesTable | setExpanded(expanded === p.id ? null : p.id)}> Compare | — | No | src/components/complaints/duplicates/SuspectedDuplicatesTable.tsx | 89 |
+| components/complaints/duplicates/SuspectedDuplicatesTable | decide.mutate( )}> | — | No | src/components/complaints/duplicates/SuspectedDuplicatesTable.tsx | 94 |
+| components/complaints/duplicates/SuspectedDuplicatesTable | decide.mutate( )}> | — | No | src/components/complaints/duplicates/SuspectedDuplicatesTable.tsx | 97 |
+| components/complaints/duplicates/SuspectedDuplicatesTable | decide.mutate( )}> | — | No | src/components/complaints/duplicates/SuspectedDuplicatesTable.tsx | 100 |
+| components/complaints/escalations/EscalationBanner | refetch()} disabled= > Retry | — | No | src/components/complaints/escalations/EscalationBanner.tsx | 51 |
+| components/complaints/LicenseePicker | query.refetch()} > Retry | — | No | src/components/complaints/LicenseePicker.tsx | 211 |
+| components/complaints/QueryErrorState | Retry | — | Yes | src/components/complaints/QueryErrorState.tsx | 41 |
+| components/complaints/QueryErrorState | Retry | — | Yes | src/components/complaints/QueryErrorState.tsx | 59 |
+| components/complaints/TriageHistoryCard | setOpen(false)}>Close | — | No | src/components/complaints/TriageHistoryCard.tsx | 145 |
+| components/complaints/VulnerabilityReviewBanner | setOpen(true)}> Complete review | — | No | src/components/complaints/VulnerabilityReviewBanner.tsx | 107 |
+| components/complaints/VulnerabilityReviewBanner | setOpen(false)} disabled= > Cancel | — | No | src/components/complaints/VulnerabilityReviewBanner.tsx | 174 |
+| components/complaints/WorkflowActionPanel | { setSelectedKey(a.action_key); setValues( ); setComments(""); }} > | — | No | src/components/complaints/WorkflowActionPanel.tsx | 163 |
+| components/complaints/WorkflowActionPanel | setSelectedKey(null)} disabled= > Cancel | — | No | src/components/complaints/WorkflowActionPanel.tsx | 200 |
+| components/complaints/WorkflowActionPanel | execMut.mutate()} disabled= > Confirm: | — | No | src/components/complaints/WorkflowActionPanel.tsx | 203 |
+| components/conduct/EvidenceRepositoryPanel | setOpen(true)}> Upload | — | No | src/components/conduct/EvidenceRepositoryPanel.tsx | 142 |
+| components/conduct/EvidenceRepositoryPanel | view(row)} disabled= > | — | No | src/components/conduct/EvidenceRepositoryPanel.tsx | 172 |
+| components/conduct/EvidenceRepositoryPanel | toggleRestriction(row)}> | — | No | src/components/conduct/EvidenceRepositoryPanel.tsx | 173 |
+| components/conduct/EvidenceRepositoryPanel | setFile(null)} type="button"> | — | No | src/components/conduct/EvidenceRepositoryPanel.tsx | 212 |
+| components/conduct/EvidenceRepositoryPanel | fileRef.current?.click()}> Select file | — | No | src/components/conduct/EvidenceRepositoryPanel.tsx | 217 |
+| components/conduct/IssueActionDialog | onOpenChange(false)} disabled= >Cancel | — | No | src/components/conduct/IssueActionDialog.tsx | 180 |
+| components/conduct/IssueActionDialog | createAction.mutate()} disabled= > Issue action | — | No | src/components/conduct/IssueActionDialog.tsx | 181 |
+| components/coordination/EscalationsTab | Raise Escalation | — | No | src/components/coordination/EscalationsTab.tsx | 135 |
+| components/coordination/EscalationsTab | setOpen(false)}>Cancel | — | No | src/components/coordination/EscalationsTab.tsx | 172 |
+| components/coordination/EscalationsTab | raise.mutate()} disabled= > Raise | — | No | src/components/coordination/EscalationsTab.tsx | 173 |
+| components/coordination/EscalationsTab | update.mutate({ id: e.id, patch: , action: 'coordination.escalation.in_review',  | — | No | src/components/coordination/EscalationsTab.tsx | 222 |
+| components/coordination/EscalationsTab | { setActionFor( ); setActionForm( ); }}> Reassign | — | No | src/components/coordination/EscalationsTab.tsx | 227 |
+| components/coordination/EscalationsTab | { setActionFor( ); setActionForm( ); }}> Resolve | — | No | src/components/coordination/EscalationsTab.tsx | 230 |
+| components/coordination/EscalationsTab | { setActionFor( ); setActionForm( ); }}> Withdraw | — | No | src/components/coordination/EscalationsTab.tsx | 233 |
+| components/coordination/EscalationsTab | setActionFor(null)}>Cancel | — | No | src/components/coordination/EscalationsTab.tsx | 290 |
+| components/coordination/EscalationsTab | { if (!actionFor) return; if (actionFor.mode === 'assign') { update.mutate({ id: | — | No | src/components/coordination/EscalationsTab.tsx | 291 |
+| components/correspondence/AssignmentPanel | Reassign | — | No | src/components/correspondence/AssignmentPanel.tsx | 41 |
+| components/correspondence/ClassificationPanel | Save override | — | No | src/components/correspondence/ClassificationPanel.tsx | 54 |
+| components/correspondence/IntakeForm | Capture correspondence | — | No | src/components/correspondence/IntakeForm.tsx | 16 |
+| components/correspondence/IntakeForm | setOpen(false)}>Cancel | — | No | src/components/correspondence/IntakeForm.tsx | 57 |
+| components/correspondence/IntakeForm | setOpen(false)}>Capture &amp; auto-route | — | No | src/components/correspondence/IntakeForm.tsx | 58 |
+| components/correspondence/ResponseComposer | Send response | — | No | src/components/correspondence/ResponseComposer.tsx | 51 |
+| components/correspondence/ReviewApprovalPanel | Reject | — | No | src/components/correspondence/ReviewApprovalPanel.tsx | 34 |
+| components/correspondence/ReviewApprovalPanel | Approve response | — | No | src/components/correspondence/ReviewApprovalPanel.tsx | 35 |
+| components/correspondence/SendCorrespondenceDialog | Send correspondence | — | No | src/components/correspondence/SendCorrespondenceDialog.tsx | 120 |
+| components/correspondence/SendCorrespondenceDialog | setOpen(false)}>Cancel | — | No | src/components/correspondence/SendCorrespondenceDialog.tsx | 185 |
+| components/correspondence/SendCorrespondenceDialog | send.mutate()} disabled= > Send | — | No | src/components/correspondence/SendCorrespondenceDialog.tsx | 186 |
+| components/dashboard/applicant/ActionRequiredList | Continue | — | Yes | src/components/dashboard/applicant/ActionRequiredList.tsx | 84 |
+| components/dashboard/applicant/RequiredFormsList | New | — | No | src/components/dashboard/applicant/RequiredFormsList.tsx | 55 |
+| components/dashboard/ApplicantDashboard | New application | — | No | src/components/dashboard/ApplicantDashboard.tsx | 123 |
+| components/dashboard/ApplicationCard | View Details | — | Yes | src/components/dashboard/ApplicationCard.tsx | 72 |
+| components/dashboard/ApplicationCard | Review | — | No | src/components/dashboard/ApplicationCard.tsx | 77 |
+| components/dashboard/cards/LicenseStatusList | Continue Renewal | — | No | src/components/dashboard/cards/LicenseStatusList.tsx | 162 |
+| components/dashboard/cards/LicenseStatusList | Renew | — | No | src/components/dashboard/cards/LicenseStatusList.tsx | 168 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Breach Inbox | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 410 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Enforcement Queue | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 413 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Risk Heatmap | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 416 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Supervisory Plans | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 419 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Inspections | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 422 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Prudential Actions | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 425 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Conduct Alerts | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 428 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Complaints Analytics | — | No | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 431 |
+| components/dashboard/LicenseeDashboard | Continue Renewal | — | No | src/components/dashboard/LicenseeDashboard.tsx | 185 |
+| components/dashboard/LicenseeDashboard | Renew | — | No | src/components/dashboard/LicenseeDashboard.tsx | 191 |
+| components/dashboard/LicenseExpiryBanner | navigate(`/licenses/$ ?action=renew`)} > Renew License | — | No | src/components/dashboard/LicenseExpiryBanner.tsx | 50 |
+| components/dashboard/ReturnCard | Final Submit | — | No | src/components/dashboard/ReturnCard.tsx | 106 |
+| components/dashboard/ReturnCard | Save Draft | — | No | src/components/dashboard/ReturnCard.tsx | 115 |
+| components/dashboard/widgets/index | Start Application | — | No | src/components/dashboard/widgets/index.tsx | 244 |
+| components/dashboard/widgets/index | View All | — | No | src/components/dashboard/widgets/index.tsx | 286 |
+| components/dashboard/widgets/index | View All | — | No | src/components/dashboard/widgets/index.tsx | 357 |
+| components/dashboard/widgets/index | Continue | — | Yes | src/components/dashboard/widgets/index.tsx | 389 |
+| components/documents/DocumentExtractionPanel | run.mutate()} disabled= > Extract | — | No | src/components/documents/DocumentExtractionPanel.tsx | 80 |
+| components/documents/DocumentList | handleDownload(doc)}> | — | No | src/components/documents/DocumentList.tsx | 96 |
+| components/documents/DocumentUpload | removeFile(idx)} disabled= > | — | No | src/components/documents/DocumentUpload.tsx | 92 |
+| components/documents/DocumentUpload | fileRef.current?.click()} disabled= > | — | No | src/components/documents/DocumentUpload.tsx | 101 |
+| components/documents/DocumentUpload | {uploading ? ( Uploading file ... ) : ( Upload file )} | — | No | src/components/documents/DocumentUpload.tsx | 112 |
+| components/documents/versioned/DocumentGroupList | handleDownloadCurrent(g)}> Download | — | No | src/components/documents/versioned/DocumentGroupList.tsx | 121 |
+| components/documents/versioned/DocumentGroupList | setHistoryGroup(g)}> History | — | No | src/components/documents/versioned/DocumentGroupList.tsx | 125 |
+| components/documents/versioned/DocumentVersionHistoryDialog | handleDownload(v)}> Download | — | No | src/components/documents/versioned/DocumentVersionHistoryDialog.tsx | 113 |
+| components/documents/versioned/VersionedDocumentUploader | removeAt(idx)} disabled= > | — | No | src/components/documents/versioned/VersionedDocumentUploader.tsx | 177 |
+| components/documents/versioned/VersionedDocumentUploader | fileRef.current?.click()} disabled= > | — | No | src/components/documents/versioned/VersionedDocumentUploader.tsx | 226 |
+| components/documents/versioned/VersionedDocumentUploader | {uploading ? ( Uploading… ) : ( Upload file )} | — | No | src/components/documents/versioned/VersionedDocumentUploader.tsx | 237 |
+| components/documents/versioned/VersionedDocumentUploader | Clear uploaded | — | No | src/components/documents/versioned/VersionedDocumentUploader.tsx | 254 |
+| components/entity-detail/BackgroundInfoTab | Save Changes | — | No | src/components/entity-detail/BackgroundInfoTab.tsx | 760 |
+| components/entity-detail/EmployeeCombobox | {selected && ( } className="rounded p-0.5 hover:bg-accent" > )} | — | No | src/components/entity-detail/EmployeeCombobox.tsx | 46 |
+| components/entity-detail/EnforcementTab | Add | — | No | src/components/entity-detail/EnforcementTab.tsx | 61 |
+| components/entity-detail/EnforcementTab | openEdit(r)}> | — | No | src/components/entity-detail/EnforcementTab.tsx | 78 |
+| components/entity-detail/EnforcementTab | handleDelete(r.id)}> | — | No | src/components/entity-detail/EnforcementTab.tsx | 79 |
+| components/entity-detail/EnforcementTab | setDialogOpen(false)}>Cancel | — | No | src/components/entity-detail/EnforcementTab.tsx | 98 |
+| components/entity-detail/EnforcementTab | Save | — | No | src/components/entity-detail/EnforcementTab.tsx | 98 |
+| components/entity-detail/InspectionsTab | Add | — | No | src/components/entity-detail/InspectionsTab.tsx | 53 |
+| components/entity-detail/InspectionsTab | openEdit(r)}> | — | No | src/components/entity-detail/InspectionsTab.tsx | 71 |
+| components/entity-detail/InspectionsTab | setDialogOpen(false)}>Cancel | — | No | src/components/entity-detail/InspectionsTab.tsx | 89 |
+| components/entity-detail/InspectionsTab | Save | — | No | src/components/entity-detail/InspectionsTab.tsx | 89 |
+| components/entity-detail/LicensesTab | navigate(`/licenses/$ `)}> View | — | No | src/components/entity-detail/LicensesTab.tsx | 74 |
+| components/entity-detail/LicensingAuditTab | Issue determination | — | No | src/components/entity-detail/LicensingAuditTab.tsx | 404 |
+| components/entity-detail/LicensingAuditTab | Generate risk profile | — | No | src/components/entity-detail/LicensingAuditTab.tsx | 464 |
+| components/entity-detail/LicensingAuditTab | Auto-create initial plan | — | No | src/components/entity-detail/LicensingAuditTab.tsx | 492 |
+| components/entity-detail/LicensingAuditTab | Open Supervisory Plan | — | No | src/components/entity-detail/LicensingAuditTab.tsx | 497 |
+| components/entity-detail/PrimaryUserCard | setOpen(false)} disabled= >Cancel | — | No | src/components/entity-detail/PrimaryUserCard.tsx | 196 |
+| components/entity-detail/PrimaryUserCard | Assign as Primary User | — | No | src/components/entity-detail/PrimaryUserCard.tsx | 197 |
+| components/entity-detail/ProductsChannelsTab | startAdd('product')}> Add product | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 87 |
+| components/entity-detail/ProductsChannelsTab | remove('product', r.id)}> | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 104 |
+| components/entity-detail/ProductsChannelsTab | startAdd('channel')}> Add channel | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 117 |
+| components/entity-detail/ProductsChannelsTab | remove('channel', r.id)}> | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 135 |
+| components/entity-detail/ProductsChannelsTab | setAddKind(null)}>Cancel | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 167 |
+| components/entity-detail/ProductsChannelsTab | Save | — | No | src/components/entity-detail/ProductsChannelsTab.tsx | 168 |
+| components/entity-detail/ReinsuranceTab | Add | — | No | src/components/entity-detail/ReinsuranceTab.tsx | 57 |
+| components/entity-detail/ReinsuranceTab | openEdit(r)}> | — | No | src/components/entity-detail/ReinsuranceTab.tsx | 76 |
+| components/entity-detail/ReinsuranceTab | handleDelete(r.id)}> | — | No | src/components/entity-detail/ReinsuranceTab.tsx | 77 |
+| components/entity-detail/ReinsuranceTab | setDialogOpen(false)}>Cancel | — | No | src/components/entity-detail/ReinsuranceTab.tsx | 102 |
+| components/entity-detail/ReinsuranceTab | Save | — | No | src/components/entity-detail/ReinsuranceTab.tsx | 102 |
+| components/entity-detail/RelationshipsTab | Add | — | No | src/components/entity-detail/RelationshipsTab.tsx | 105 |
+| components/entity-detail/RelationshipsTab | openEdit(r)}> | — | No | src/components/entity-detail/RelationshipsTab.tsx | 141 |
+| components/entity-detail/RelationshipsTab | handleDelete(r.id)}> | — | No | src/components/entity-detail/RelationshipsTab.tsx | 142 |
+| components/entity-detail/RelationshipsTab | setDialogOpen(false)}>Cancel | — | No | src/components/entity-detail/RelationshipsTab.tsx | 177 |
+| components/entity-detail/RelationshipsTab | Save | — | No | src/components/entity-detail/RelationshipsTab.tsx | 178 |
+| components/entity-detail/RiskRatingsTab | setDialogOpen(true)}> New Assessment | — | No | src/components/entity-detail/RiskRatingsTab.tsx | 83 |
+| components/entity-detail/RiskRatingsTab | setDialogOpen(false)}>Cancel | — | No | src/components/entity-detail/RiskRatingsTab.tsx | 116 |
+| components/entity-detail/RiskRatingsTab | Save | — | No | src/components/entity-detail/RiskRatingsTab.tsx | 116 |
+| components/entity-detail/SupervisoryPlanTab | Generate Initial Supervisory Profile | — | No | src/components/entity-detail/SupervisoryPlanTab.tsx | 131 |
+| components/entity-detail/SupervisoryPlanTab | Add Action | — | No | src/components/entity-detail/SupervisoryPlanTab.tsx | 170 |
+| components/entity-detail/SupervisoryPlanTab | setAddOpen(false)} disabled= >Cancel | — | No | src/components/entity-detail/SupervisoryPlanTab.tsx | 183 |
+| components/entity-detail/SupervisoryPlanTab | Add | — | No | src/components/entity-detail/SupervisoryPlanTab.tsx | 184 |
+| components/entity-detail/SupervisoryPlanTab | markComplete(a)}>Mark complete | — | No | src/components/entity-detail/SupervisoryPlanTab.tsx | 229 |
+| components/entity-detail/WebUsersTab | setOpen(true)}> | — | No | src/components/entity-detail/WebUsersTab.tsx | 286 |
+| components/entity-detail/WebUsersTab | } disabled= >Cancel | — | No | src/components/entity-detail/WebUsersTab.tsx | 410 |
+| components/entity-detail/WebUsersTab | }>Close | — | No | src/components/entity-detail/WebUsersTab.tsx | 445 |
+| components/entity-detail/WebUsersTab | } disabled= >Cancel | — | No | src/components/entity-detail/WebUsersTab.tsx | 486 |
+| components/entity-detail/WebUsersTab | Save Changes | — | No | src/components/entity-detail/WebUsersTab.tsx | 487 |
+| components/fit-and-proper/FpAppealsPanel | fileAppeal.mutate()} disabled= > File appeal | — | No | src/components/fit-and-proper/FpAppealsPanel.tsx | 280 |
+| components/fit-and-proper/FpAppealsPanel | assignAppealCommittee.mutate( )}> Assign | — | No | src/components/fit-and-proper/FpAppealsPanel.tsx | 319 |
+| components/fit-and-proper/FpAppealsPanel | withdrawAppeal.mutate(a.id)}>Withdraw | — | No | src/components/fit-and-proper/FpAppealsPanel.tsx | 323 |
+| components/fit-and-proper/FpAppealsPanel | withdrawAppeal.mutate(a.id)}>Withdraw | — | No | src/components/fit-and-proper/FpAppealsPanel.tsx | 349 |
+| components/fit-and-proper/FpAppealsPanel | { const decision = decisionPick[a.id] \|\| ''; const note = decisionNote[a.id] \|\|  | — | No | src/components/fit-and-proper/FpAppealsPanel.tsx | 350 |
+| components/fit-and-proper/FpAssessmentsPanel | Cancel | — | Yes | src/components/fit-and-proper/FpAssessmentsPanel.tsx | 262 |
+| components/fit-and-proper/FpAssessmentsPanel | create.mutate()} disabled= > Create draft | — | No | src/components/fit-and-proper/FpAssessmentsPanel.tsx | 263 |
+| components/fit-and-proper/FpAssessmentsPanel | Open | — | No | src/components/fit-and-proper/FpAssessmentsPanel.tsx | 298 |
+| components/fit-and-proper/FpConditionsPanel | Add condition | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 187 |
+| components/fit-and-proper/FpConditionsPanel | setOpen(false)}>Cancel | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 227 |
+| components/fit-and-proper/FpConditionsPanel | add.mutate()} disabled= > Save | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 228 |
+| components/fit-and-proper/FpConditionsPanel | }> Mark satisfied | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 263 |
+| components/fit-and-proper/FpConditionsPanel | }>Reopen | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 264 |
+| components/fit-and-proper/FpConditionsPanel | setReopenFor(null)}>Cancel | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 271 |
+| components/fit-and-proper/FpConditionsPanel | reopen.mutate( )} disabled= > Confirm reopen | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 272 |
+| components/fit-and-proper/FpConditionsPanel | setSatisfyFor(null)}>Cancel | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 286 |
+| components/fit-and-proper/FpConditionsPanel | { setPending({ ruleKey: 'fit_and_proper.condition.waiver', title: 'Waive conditi | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 287 |
+| components/fit-and-proper/FpConditionsPanel | { const needsEvidence = c.evidence_type && c.evidence_type !== 'none'; if (needs | — | No | src/components/fit-and-proper/FpConditionsPanel.tsx | 304 |
+| components/fit-and-proper/FpDeterminationsPanel | assign.mutate()} disabled= >Assign | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 354 |
+| components/fit-and-proper/FpDeterminationsPanel | castVote.mutate()} disabled= >Vote | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 394 |
+| components/fit-and-proper/FpDeterminationsPanel | finalize.mutate()} disabled= > Finalize determination | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 446 |
+| components/fit-and-proper/FpDeterminationsPanel | navigate(`/fpa/conditions?open=1&individual_id=$ &determination_id=$ `)} > Add C | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 480 |
+| components/fit-and-proper/FpDeterminationsPanel | setConditionPromptDeterminationId(null)}> Not now | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 508 |
+| components/fit-and-proper/FpDeterminationsPanel | { if (!conditionPromptDeterminationId) return; navigate(`/fpa/conditions?open=1& | — | No | src/components/fit-and-proper/FpDeterminationsPanel.tsx | 511 |
+| components/fit-and-proper/FpMonitoringPanel | Trigger recheck | — | No | src/components/fit-and-proper/FpMonitoringPanel.tsx | 97 |
+| components/fit-and-proper/FpMonitoringPanel | acknowledge.mutate(e.id)}>Acknowledge | — | No | src/components/fit-and-proper/FpMonitoringPanel.tsx | 125 |
+| components/fit-and-proper/FpScreeningPanel | AI media scan | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 264 |
+| components/fit-and-proper/FpScreeningPanel | Run screening | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 268 |
+| components/fit-and-proper/FpScreeningPanel | setResolving( )}> True positive | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 363 |
+| components/fit-and-proper/FpScreeningPanel | setResolving( )}> False positive | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 366 |
+| components/fit-and-proper/FpScreeningPanel | setResolving( )}> Needs review | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 369 |
+| components/fit-and-proper/FpScreeningPanel | openRestore(f)}> Reopen | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 375 |
+| components/fit-and-proper/FpScreeningPanel | }>Cancel | — | No | src/components/fit-and-proper/FpScreeningPanel.tsx | 420 |
+| components/fit-and-proper/FpScreeningPanel | Confirm | — | Yes | src/components/fit-and-proper/FpScreeningPanel.tsx | 421 |
+| components/form-builder/CompareReturnsPicker | onOpenChange(false)}>Cancel | — | No | src/components/form-builder/CompareReturnsPicker.tsx | 106 |
+| components/form-builder/FieldProperties | handleRemoveOption(i)}> | — | No | src/components/form-builder/FieldProperties.tsx | 302 |
+| components/form-builder/FieldProperties | Add Option | — | No | src/components/form-builder/FieldProperties.tsx | 307 |
+| components/form-builder/FieldProperties | removeTableColumn(i)}> | — | No | src/components/form-builder/FieldProperties.tsx | 354 |
+| components/form-builder/FieldProperties | Add Column | — | No | src/components/form-builder/FieldProperties.tsx | 462 |
+| components/form-builder/FieldProperties | Add Rule | — | No | src/components/form-builder/FieldProperties.tsx | 658 |
+| components/form-builder/FieldProperties | removeCondition(idx)}> | — | No | src/components/form-builder/FieldProperties.tsx | 673 |
+| components/form-builder/FieldProperties | Remove Field | — | No | src/components/form-builder/FieldProperties.tsx | 708 |
+| components/form-builder/FileImport | setExpanded(!expanded)}> | — | No | src/components/form-builder/FileImport.tsx | 1616 |
+| components/form-builder/FileImport | onDelete(field.id)}> | — | No | src/components/form-builder/FileImport.tsx | 1617 |
+| components/form-builder/FileImport | setOpen(true)}> | — | No | src/components/form-builder/FileImport.tsx | 1880 |
+| components/form-builder/FileImport | { if (step === 'preview' && multiResult && !legacyPreview) setStep('select_sheet | — | No | src/components/form-builder/FileImport.tsx | 1906 |
+| components/form-builder/FileImport | }>Cancel | — | No | src/components/form-builder/FileImport.tsx | 1914 |
+| components/form-builder/FileImport | setStep('preview')} disabled= > Preview Sheet(s) | — | No | src/components/form-builder/FileImport.tsx | 1917 |
+| components/form-builder/FileImport | { const allSections = selectedSheets.flatMap(s => s.sections); onImport(allSecti | — | No | src/components/form-builder/FileImport.tsx | 1923 |
+| components/form-builder/FileImport | Create Form(s) | — | No | src/components/form-builder/FileImport.tsx | 1939 |
+| components/form-builder/FileImport | a + s.fields.length, 0) === 0}> Import Field(s) | — | No | src/components/form-builder/FileImport.tsx | 1945 |
+| components/form-builder/FileImport | toggleAllSheets(true)}>Select All | — | No | src/components/form-builder/FileImport.tsx | 2022 |
+| components/form-builder/FileImport | toggleAllSheets(false)}>Deselect All | — | No | src/components/form-builder/FileImport.tsx | 2023 |
+| components/form-builder/FileImport | { if (step === 'preview' && multiResult && !legacyPreview) setStep('select_sheet | — | No | src/components/form-builder/FileImport.tsx | 2181 |
+| components/form-builder/FileImport | }>Cancel | — | No | src/components/form-builder/FileImport.tsx | 2190 |
+| components/form-builder/FileImport | setStep('preview')} disabled= > Preview Sheet(s) | — | No | src/components/form-builder/FileImport.tsx | 2194 |
+| components/form-builder/FileImport | { const allSections = selectedSheets.flatMap(s => s.sections); onImport(allSecti | — | No | src/components/form-builder/FileImport.tsx | 2204 |
+| components/form-builder/FileImport | Create Form(s) | — | No | src/components/form-builder/FileImport.tsx | 2220 |
+| components/form-builder/FileImport | a + s.fields.length, 0) === 0}> Import Field(s) | — | No | src/components/form-builder/FileImport.tsx | 2227 |
+| components/form-builder/SectionManager | Add Section | — | No | src/components/form-builder/SectionManager.tsx | 184 |
+| components/form-builder/SectionManager | Add First Section | — | No | src/components/form-builder/SectionManager.tsx | 194 |
+| components/form-builder/SectionManager | handleDuplicateSection(section.id)}> | — | No | src/components/form-builder/SectionManager.tsx | 274 |
+| components/form-builder/SectionManager | handleDeleteSection(section.id)}> | — | No | src/components/form-builder/SectionManager.tsx | 277 |
+| components/form-builder/SectionManager | handleDeleteRow(section.id, row.id)}> | — | No | src/components/form-builder/SectionManager.tsx | 310 |
+| components/form-builder/SectionManager | }> | — | No | src/components/form-builder/SectionManager.tsx | 365 |
+| components/form-builder/SectionManager | }> | — | No | src/components/form-builder/SectionManager.tsx | 368 |
+| components/form-builder/SectionManager | handleAddRow(section.id, c)}> col | — | No | src/components/form-builder/SectionManager.tsx | 382 |
+| components/form-builder/SubmissionCompareDialog | setOnlyDiffs(o => !o)}> | — | No | src/components/form-builder/SubmissionCompareDialog.tsx | 138 |
+| components/form-builder/VersionDiffViewer | setOpen(true)} disabled= > Compare | — | No | src/components/form-builder/VersionDiffViewer.tsx | 133 |
+| components/form-builder/VersionHistory | setOpen(true)}> History | — | No | src/components/form-builder/VersionHistory.tsx | 170 |
+| components/form-builder/VersionHistory | { const sections = (v.schema_snapshot \|\| []) as unknown as FormSection[]; setPre | — | No | src/components/form-builder/VersionHistory.tsx | 240 |
+| components/form-builder/VersionHistory | { const type = formType \|\| 'pre_license'; setOpen(false); navigate(`/admin/forms | — | No | src/components/form-builder/VersionHistory.tsx | 251 |
+| components/form-builder/VersionHistory | onActivateAsCurrent(v)} title="Set as current default" disabled= > | — | No | src/components/form-builder/VersionHistory.tsx | 264 |
+| components/form-builder/VersionHistory | { try { const count = await notifyVersionToLicensees(v.id); toast.success(count  | — | No | src/components/form-builder/VersionHistory.tsx | 275 |
+| components/form-builder/VersionHistory | openSchedule(v)} title="Schedule effective dates"> | — | No | src/components/form-builder/VersionHistory.tsx | 292 |
+| components/form-builder/VersionHistory | toggleActivation(v)} title= > | — | No | src/components/form-builder/VersionHistory.tsx | 297 |
+| components/form-builder/VersionHistory | setScheduleVersion(null)}>Cancel | — | No | src/components/form-builder/VersionHistory.tsx | 387 |
+| components/form-builder/VersionHistory | Save schedule | — | No | src/components/form-builder/VersionHistory.tsx | 388 |
+| components/form-renderer/FormRenderer | handleFilePreview(item)}> | — | No | src/components/form-renderer/FormRenderer.tsx | 999 |
+| components/form-renderer/FormRenderer | setHistoryGroup( )} > | — | No | src/components/form-renderer/FormRenderer.tsx | 1003 |
+| components/form-renderer/FormRenderer | handleMultiFileRemoveAt(field.fieldName, idx)}> | — | No | src/components/form-renderer/FormRenderer.tsx | 1014 |
+| components/form-renderer/FormRenderer | handleFilePreview(val)}> | — | No | src/components/form-renderer/FormRenderer.tsx | 1060 |
+| components/form-renderer/FormRenderer | setHistoryGroup( )} > | — | No | src/components/form-renderer/FormRenderer.tsx | 1064 |
+| components/form-renderer/FormRenderer | handleFileRemove(field.fieldName)}> | — | No | src/components/form-renderer/FormRenderer.tsx | 1075 |
+| components/form-renderer/FormRenderer | { if (cellVal.filePath) const newData = [...tableData]; newData[rowIdx] = ; onCh | — | No | src/components/form-renderer/FormRenderer.tsx | 1204 |
+| components/form-renderer/FormRenderer | document.getElementById(`file-$ `)?.click()} > Upload | — | No | src/components/form-renderer/FormRenderer.tsx | 1223 |
+| components/form-renderer/FormRenderer | { const newData = tableData.filter((_: any, i: number) => i !== rowIdx); onChang | — | No | src/components/form-renderer/FormRenderer.tsx | 1288 |
+| components/form-renderer/FormRenderer | onChange(field.fieldName, [...tableData, ])}> Add Row | — | No | src/components/form-renderer/FormRenderer.tsx | 1312 |
+| components/form-renderer/FormRenderer | removeRepeatableEntry(currentSection.id, entryIdx)}> | — | No | src/components/form-renderer/FormRenderer.tsx | 1581 |
+| components/form-renderer/FormRenderer | addRepeatableEntry(currentSection.id)}> Add Another Entry | — | No | src/components/form-renderer/FormRenderer.tsx | 1620 |
+| components/form-renderer/FormRenderer | Previous | — | Yes | src/components/form-renderer/FormRenderer.tsx | 1633 |
+| components/form-renderer/FormRenderer | Next | — | Yes | src/components/form-renderer/FormRenderer.tsx | 1643 |
+| components/form-renderer/FormRenderer | Submit | — | No | src/components/form-renderer/FormRenderer.tsx | 1648 |
+| components/fpa/AutoScreeningRulesTab | onOpenChange(false)} disabled= > Cancel | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 285 |
+| components/fpa/AutoScreeningRulesTab | onSave(form)} disabled= > | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 288 |
+| components/fpa/AutoScreeningRulesTab | setAddOpen(true)} className="shrink-0"> Add Rule | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 430 |
+| components/fpa/AutoScreeningRulesTab | setShowActiveOnly((v) => !v)} className="gap-1.5" > | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 443 |
+| components/fpa/AutoScreeningRulesTab | } > Clear filters | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 466 |
+| components/fpa/AutoScreeningRulesTab | openEdit(rule)} > Edit | — | No | src/components/fpa/AutoScreeningRulesTab.tsx | 545 |
+| components/landing/HeroSection | navigate('/register')}> Register Now | — | No | src/components/landing/HeroSection.tsx | 24 |
+| components/landing/HeroSection | navigate('/login')}> Existing User? Login | — | No | src/components/landing/HeroSection.tsx | 27 |
+| components/landing/LandingNav | navigate('/login')}> Login | — | No | src/components/landing/LandingNav.tsx | 45 |
+| components/landing/LandingNav | navigate('/register')}> Register | — | No | src/components/landing/LandingNav.tsx | 48 |
+| components/landing/LandingNav | navigate('/login')}> Login | — | No | src/components/landing/LandingNav.tsx | 68 |
+| components/landing/LandingNav | navigate('/register')}> Register | — | No | src/components/landing/LandingNav.tsx | 71 |
+| components/layout/Header | navigate('/notifications')}> {unreadCount > 0 && ( )} | — | No | src/components/layout/Header.tsx | 82 |
+| components/layout/Sidebar | setMobileOpen(true)} > | — | No | src/components/layout/Sidebar.tsx | 190 |
+| components/layout/Sidebar | setMobileOpen(false)} className="h-8 w-8 text-sidebar-foreground/60"> | — | No | src/components/layout/Sidebar.tsx | 220 |
+| components/layout/Sidebar | } className="h-8 w-8 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:te | — | No | src/components/layout/Sidebar.tsx | 284 |
+| components/licenses/LicenseActionDialog | onOpenChange(false)} disabled= >Cancel | — | No | src/components/licenses/LicenseActionDialog.tsx | 237 |
+| components/licenses/LicenseSignaturePanel | setSignOpen(true)}> | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 199 |
+| components/licenses/LicenseSignaturePanel | setDispatchOpen(true)}> Dispatch to Licensee | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 205 |
+| components/licenses/LicenseSignaturePanel | setSignOpen(false)} disabled= >Cancel | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 258 |
+| components/licenses/LicenseSignaturePanel | Sign | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 259 |
+| components/licenses/LicenseSignaturePanel | setDispatchOpen(false)} disabled= >Cancel | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 280 |
+| components/licenses/LicenseSignaturePanel | Dispatch | — | No | src/components/licenses/LicenseSignaturePanel.tsx | 281 |
+| components/payments/PaymentAttachments | Upload Proof | — | No | src/components/payments/PaymentAttachments.tsx | 144 |
+| components/payments/PaymentAttachments | handleDownload(att)} title="Download"> | — | No | src/components/payments/PaymentAttachments.tsx | 166 |
+| components/payments/PaymentAttachments | handleDownload(att)} title="Preview"> | — | No | src/components/payments/PaymentAttachments.tsx | 170 |
+| components/payments/PaymentAttachments | handleDelete(att)} title="Delete"> | — | No | src/components/payments/PaymentAttachments.tsx | 175 |
+| components/payments/PaymentRemarksThread | Add Remark | — | No | src/components/payments/PaymentRemarksThread.tsx | 150 |
+| components/payments/PaymentRemarksThread | handleStartEdit(r)}> | — | No | src/components/payments/PaymentRemarksThread.tsx | 180 |
+| components/payments/PaymentRemarksThread | handleDelete(r.id)}> | — | No | src/components/payments/PaymentRemarksThread.tsx | 183 |
+| components/payments/PaymentRemarksThread | } disabled= > Cancel | — | No | src/components/payments/PaymentRemarksThread.tsx | 193 |
+| components/payments/PaymentRemarksThread | handleSaveEdit(r.id)} disabled= > Save | — | No | src/components/payments/PaymentRemarksThread.tsx | 196 |
+| components/prudential/CreatePrudentialActionDialog | onOpenChange(false)}>Cancel | — | No | src/components/prudential/CreatePrudentialActionDialog.tsx | 106 |
+| components/prudential/CreatePrudentialEscalationDialog | onOpenChange(false)}>Cancel | — | No | src/components/prudential/CreatePrudentialEscalationDialog.tsx | 79 |
+| components/prudential/PrudentialEntityHistoryDrawer | Refresh | — | Yes | src/components/prudential/PrudentialEntityHistoryDrawer.tsx | 205 |
+| components/registration-builder/FieldEditor | Add Rule | — | No | src/components/registration-builder/FieldEditor.tsx | 497 |
+| components/registration-builder/FieldEditor | removeCondition(idx)}> | — | No | src/components/registration-builder/FieldEditor.tsx | 533 |
+| components/registration-builder/FormPreview | setCurrentStep(Math.max(0, currentStep - 1))} disabled= > Previous | — | No | src/components/registration-builder/FormPreview.tsx | 82 |
+| components/registration-builder/FormPreview | setCurrentStep(Math.min(schema.length - 1, currentStep + 1))} disabled= > Next | — | No | src/components/registration-builder/FormPreview.tsx | 85 |
+| components/registration-builder/FullRegistrationPreview | Send Code | — | No | src/components/registration-builder/FullRegistrationPreview.tsx | 153 |
+| components/registration-builder/FullRegistrationPreview | setCurrent(Math.max(0, current - 1))} disabled= > Previous | — | No | src/components/registration-builder/FullRegistrationPreview.tsx | 162 |
+| components/registration-builder/FullRegistrationPreview | setCurrent(Math.min(total - 1, current + 1))} disabled= > Next | — | No | src/components/registration-builder/FullRegistrationPreview.tsx | 168 |
+| components/registration-builder/RegistrationFormBuilderEditor | Preview | — | No | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 79 |
+| components/registration-builder/RegistrationFormBuilderEditor | Add Step | — | No | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 82 |
+| components/registration-builder/RegistrationFormBuilderEditor | Add First Step | — | No | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 92 |
+| components/registration-builder/RegistrationFormBuilderEditor | Add Step | — | No | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 140 |
+| components/registration-builder/StepEditor | moveRow(rowIdx, -1)} disabled= > | — | No | src/components/registration-builder/StepEditor.tsx | 253 |
+| components/registration-builder/StepEditor | moveRow(rowIdx, 1)} disabled= > | — | No | src/components/registration-builder/StepEditor.tsx | 256 |
+| components/registration-builder/StepEditor | deleteRow(row.id)}> | — | No | src/components/registration-builder/StepEditor.tsx | 259 |
+| components/registration/AttachmentDisplay | setHistoryOpen(true)} aria-label={`Version history for $ `} title="Version histo | — | No | src/components/registration/AttachmentDisplay.tsx | 238 |
+| components/registration/DeclarationsStep | 0}> Send Verification Code | — | No | src/components/registration/DeclarationsStep.tsx | 345 |
+| components/registration/DeclarationsStep | 0 \|\| otpSending}> {cooldown > 0 ? `Resend in $ s` : 'Resend Code'} | — | No | src/components/registration/DeclarationsStep.tsx | 363 |
+| components/registration/DocumentsStep | fileInputRef.current?.click()} disabled= > | — | No | src/components/registration/DocumentsStep.tsx | 220 |
+| components/registration/DocumentsStep | openSignedUrl(existingDoc)}> View | — | No | src/components/registration/DocumentsStep.tsx | 253 |
+| components/registration/DocumentsStep | openSignedUrl(existingDoc, true)}> Download | — | No | src/components/registration/DocumentsStep.tsx | 254 |
+| components/registration/DocumentsStep | Replace | — | No | src/components/registration/DocumentsStep.tsx | 255 |
+| components/registration/DocumentsStep | handleRemove(existingDoc)}> Remove | — | No | src/components/registration/DocumentsStep.tsx | 256 |
+| components/registration/DocumentsStep | handleRemove(doc)} className="text-destructive hover:text-destructive hover:bg-d | — | No | src/components/registration/DocumentsStep.tsx | 287 |
+| components/registration/RegistrationStepRenderer | { // Drop saved values for this entry, then decrement count. const baseNames = a | — | No | src/components/registration/RegistrationStepRenderer.tsx | 165 |
+| components/registration/RegistrationStepRenderer | setEntryCount(c => c + 1)} > + Add another | — | No | src/components/registration/RegistrationStepRenderer.tsx | 188 |
+| components/registration/RegistrationStepRenderer | Remove | — | No | src/components/registration/RegistrationStepRenderer.tsx | 846 |
+| components/registration/RegistrationStepRenderer | inputRef.current?.click()} disabled= > {uploading ? ( Uploading... ) : ( )} | — | No | src/components/registration/RegistrationStepRenderer.tsx | 865 |
+| components/returns/ReturnReviewPanel | onJumpToForm(formId)} > Go to form | — | No | src/components/returns/ReturnReviewPanel.tsx | 61 |
+| components/returns/ReturnReviewPanel | Acknowledge & Submit | — | No | src/components/returns/ReturnReviewPanel.tsx | 187 |
+| components/returns/ReturnRevisionCompareDialog | setOnlyDiffs(v => !v)}> | — | No | src/components/returns/ReturnRevisionCompareDialog.tsx | 126 |
+| components/returns/ReturnUploadPanel | downloadTemplate('xlsx')} disabled= > Download XLSX Template | — | No | src/components/returns/ReturnUploadPanel.tsx | 298 |
+| components/returns/ReturnUploadPanel | downloadTemplate('xml')} disabled= > Download XML Template | — | No | src/components/returns/ReturnUploadPanel.tsx | 302 |
+| components/returns/ReturnUploadPanel | document.getElementById('return-upload-input')?.click()} disabled= size="sm" > | — | No | src/components/returns/ReturnUploadPanel.tsx | 339 |
+| components/returns/ReturnUploadPanel | Discard | — | No | src/components/returns/ReturnUploadPanel.tsx | 360 |
+| components/returns/ReturnUploadPanel | 0 \|\| parseResult.rows.length === 0 \|\| parsedNonEmptyRows === 0 } > | — | No | src/components/returns/ReturnUploadPanel.tsx | 410 |
+| components/returns/ReturnWorkflowPanel | handleAction(a.type, a.requireComments)} disabled= title= > | — | No | src/components/returns/ReturnWorkflowPanel.tsx | 730 |
+| components/returns/ValidationResultPanel | onNavigateField(f.form_id, f.field_key)} > | — | No | src/components/returns/ValidationResultPanel.tsx | 30 |
+| components/shared/AccessDenied | Go to Dashboard | — | No | src/components/shared/AccessDenied.tsx | 31 |
+| components/shared/AttachmentList | handleView(att)} disabled= aria-label={`View $ `} title="View in new tab" > | — | No | src/components/shared/AttachmentList.tsx | 181 |
+| components/shared/AttachmentList | handleDownload(att)} disabled= aria-label={`Download $ `} title="Download" > | — | No | src/components/shared/AttachmentList.tsx | 192 |
+| components/shared/BatchDocumentUpload | inputRef.current?.click()} disabled= > Add files | — | No | src/components/shared/BatchDocumentUpload.tsx | 181 |
+| components/shared/BatchDocumentUpload | Upload {staged.length > 0 ? `($ )` : ''} | — | No | src/components/shared/BatchDocumentUpload.tsx | 189 |
+| components/shared/BatchDocumentUpload | remove(s.id)} disabled= > | — | No | src/components/shared/BatchDocumentUpload.tsx | 265 |
+| components/shared/DataTableShell | Export | — | No | src/components/shared/DataTableShell.tsx | 92 |
+| components/shared/DataTableShell | setPage(p => p - 1)}> | — | No | src/components/shared/DataTableShell.tsx | 143 |
+| components/shared/DataTableShell | = totalPages - 1} onClick= > | — | No | src/components/shared/DataTableShell.tsx | 149 |
+| components/shared/ErrorBoundary | Try again | — | No | src/components/shared/ErrorBoundary.tsx | 76 |
+| components/shared/ErrorBoundary | Reload page | — | No | src/components/shared/ErrorBoundary.tsx | 79 |
+| components/ui/carousel | Previous slide | — | No | src/components/ui/carousel.tsx | 173 |
+| components/ui/carousel | Next slide | — | No | src/components/ui/carousel.tsx | 201 |
+| components/ui/multi-select | {selected.length === 0 && ( )} {selectedLabels.map((label, i) => ( ))} | — | No | src/components/ui/multi-select.tsx | 66 |
+| components/ui/sidebar | } > Toggle Sidebar | — | No | src/components/ui/sidebar.tsx | 224 |
+| components/workflows/ActionNotificationsEditor | startEditing(action)} > Add Notification | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 296 |
+| components/workflows/ActionNotificationsEditor | startEditing(action, row)} > Edit | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 367 |
+| components/workflows/ActionNotificationsEditor | { if (isEditingRow) del.mutate(row.id); }} aria-label= > | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 377 |
+| components/workflows/ActionNotificationsEditor | cancelEditing(action, row.id)} > Cancel | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 536 |
+| components/workflows/ActionNotificationsEditor | saveDraft(action, row.id)} > Save | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 544 |
+| components/workflows/ActionNotificationsEditor | cancelEditing(action)} > Cancel | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 747 |
+| components/workflows/ActionNotificationsEditor | saveDraft(action)} > Save | — | No | src/components/workflows/ActionNotificationsEditor.tsx | 755 |
+| components/workflows/StepActionsEditor | Add Action | — | No | src/components/workflows/StepActionsEditor.tsx | 208 |
+| components/workflows/StepActionsEditor | startEdit(row)} disabled= title= > | — | No | src/components/workflows/StepActionsEditor.tsx | 296 |
+| components/workflows/StepActionsEditor | confirmDelete(row)} > | — | No | src/components/workflows/StepActionsEditor.tsx | 304 |
+| components/workflows/StepActionsEditor | Cancel | — | Yes | src/components/workflows/StepActionsEditor.tsx | 520 |
+| components/workflows/StepActionsEditor | fileInputRef.current?.click()} > Replace | — | No | src/components/workflows/StepActionsEditor.tsx | 627 |
+| components/workflows/StepActionsEditor | Download | — | No | src/components/workflows/StepActionsEditor.tsx | 633 |
+| components/workflows/StepActionsEditor | Remove | — | No | src/components/workflows/StepActionsEditor.tsx | 639 |
+| components/workflows/StepActionsEditor | fileInputRef.current?.click()} > Upload Signature | — | No | src/components/workflows/StepActionsEditor.tsx | 649 |
+| components/workflows/StepEntryNotificationsEditor | Add | — | No | src/components/workflows/StepEntryNotificationsEditor.tsx | 142 |
+| components/workflows/StepEntryNotificationsEditor | startEdit(row)}> | — | No | src/components/workflows/StepEntryNotificationsEditor.tsx | 187 |
+| components/workflows/StepEntryNotificationsEditor | confirmDelete(row)} > | — | No | src/components/workflows/StepEntryNotificationsEditor.tsx | 190 |
+| components/workflows/StepEntryNotificationsEditor | Cancel | — | Yes | src/components/workflows/StepEntryNotificationsEditor.tsx | 293 |
+| components/workflows/WorkflowVersionPanel | setHistoryOpen(true)} disabled= > History ( ) | — | No | src/components/workflows/WorkflowVersionPanel.tsx | 94 |
+| components/workflows/WorkflowVersionPanel | setOpen(true)} disabled= > Publish New Version | — | No | src/components/workflows/WorkflowVersionPanel.tsx | 103 |
+| components/workflows/WorkflowVersionPanel | setOpen(false)}>Cancel | — | No | src/components/workflows/WorkflowVersionPanel.tsx | 146 |
+| components/workflows/WorkflowVersionPanel | setHistoryOpen(false)}>Close | — | No | src/components/workflows/WorkflowVersionPanel.tsx | 214 |
+| pages/admin/ApiKeys | }> Issue key | — | No | src/pages/admin/ApiKeys.tsx | 97 |
+| pages/admin/ApiKeys | }> | — | No | src/pages/admin/ApiKeys.tsx | 106 |
+| pages/admin/ApiKeys | revoke.mutate(k.id)}> Revoke | — | No | src/pages/admin/ApiKeys.tsx | 155 |
+| pages/admin/ApiKeys | }> Copy | — | No | src/pages/admin/ApiKeys.tsx | 216 |
+| pages/admin/ApiKeys | }>Done | — | No | src/pages/admin/ApiKeys.tsx | 234 |
+| pages/admin/ApiKeys | create.mutate()} disabled= > Issue key | — | No | src/pages/admin/ApiKeys.tsx | 235 |
+| pages/admin/ApprovedLicensees | Export | — | No | src/pages/admin/ApprovedLicensees.tsx | 147 |
+| pages/admin/ApprovedLicensees | handleGenerateLicense(app.id)} > Generate License | — | No | src/pages/admin/ApprovedLicensees.tsx | 223 |
+| pages/admin/ApprovedLicensees | licensee ? navigate(`/admin/licensees/$ `) : navigate(`/applications/$ `)} > Vie | — | No | src/pages/admin/ApprovedLicensees.tsx | 237 |
+| pages/admin/ApprovedLicensees | setPage(p => p - 1)}> | — | No | src/pages/admin/ApprovedLicensees.tsx | 261 |
+| pages/admin/ApprovedLicensees | = totalPages - 1} onClick= > | — | No | src/pages/admin/ApprovedLicensees.tsx | 265 |
+| pages/admin/AuditExport | run.mutate()} disabled= className="w-full"> Run export | — | No | src/pages/admin/AuditExport.tsx | 114 |
+| pages/admin/AuditExport | download(j.file_path!)}> CSV | — | No | src/pages/admin/AuditExport.tsx | 154 |
+| pages/admin/AuditLogs | Clear filters | — | Yes | src/pages/admin/AuditLogs.tsx | 152 |
+| pages/admin/AuditLogs | View | — | Yes | src/pages/admin/AuditLogs.tsx | 218 |
+| pages/admin/AuditLogs | fetchPage(logs.length, false)}> Load more ( remaining) | — | No | src/pages/admin/AuditLogs.tsx | 235 |
+| pages/admin/BulkIntake | CSV Template | — | No | src/pages/admin/BulkIntake.tsx | 185 |
+| pages/admin/BulkIntake | Validate | — | No | src/pages/admin/BulkIntake.tsx | 230 |
+| pages/admin/BulkIntake | 0 \|\| committing} > Commit {okCount > 0 ? `($ )` : ''} | — | No | src/pages/admin/BulkIntake.tsx | 234 |
+| pages/admin/CaseAuditTrail | Load | — | No | src/pages/admin/CaseAuditTrail.tsx | 115 |
+| pages/admin/CaseAuditTrail | Export JSON | — | No | src/pages/admin/CaseAuditTrail.tsx | 127 |
+| pages/admin/ChangeActiveSector | navigate(-1)}>Cancel | — | No | src/pages/admin/ChangeActiveSector.tsx | 66 |
+| pages/admin/ChangeActiveSector | Save Sector | — | No | src/pages/admin/ChangeActiveSector.tsx | 67 |
+| pages/admin/ComplaintTypes | Add Type | — | No | src/pages/admin/ComplaintTypes.tsx | 105 |
+| pages/admin/ComplaintTypes | Add First Type | — | No | src/pages/admin/ComplaintTypes.tsx | 121 |
+| pages/admin/ComplaintTypes | openEdit(t)}> Edit | — | No | src/pages/admin/ComplaintTypes.tsx | 150 |
+| pages/admin/ComplianceAuditLogs | Apply Filters | — | Yes | src/pages/admin/ComplianceAuditLogs.tsx | 325 |
+| pages/admin/ComplianceAuditLogs | exportCsv('all')}> Export CSV | — | No | src/pages/admin/ComplianceAuditLogs.tsx | 328 |
+| pages/admin/ComplianceAuditLogs | loadCase()} disabled= > Trace | — | No | src/pages/admin/ComplianceAuditLogs.tsx | 414 |
+| pages/admin/ComplianceAuditLogs | exportCsv('case')} disabled= > Export CSV | — | No | src/pages/admin/ComplianceAuditLogs.tsx | 417 |
+| pages/admin/ComplianceAuditLogs | exportCsv('security')}> Export CSV | — | No | src/pages/admin/ComplianceAuditLogs.tsx | 495 |
+| pages/admin/ComplianceAuditLogs | exportCsv('exports')}> Export CSV | — | No | src/pages/admin/ComplianceAuditLogs.tsx | 535 |
+| pages/admin/conduct/MonitoringRules | Run now | — | No | src/pages/admin/conduct/MonitoringRules.tsx | 83 |
+| pages/admin/conduct/MonitoringRules | setEdit({ name: '', rule_type: 'complaint_volume', scope: 'entity', frequency: ' | — | No | src/pages/admin/conduct/MonitoringRules.tsx | 84 |
+| pages/admin/conduct/MonitoringRules | setEdit({ ...r, definition: JSON.stringify(r.definition \|\| , null, 2) })}>Edit | — | No | src/pages/admin/conduct/MonitoringRules.tsx | 109 |
+| pages/admin/conduct/MonitoringRules | setEdit(null)}>Cancel | — | No | src/pages/admin/conduct/MonitoringRules.tsx | 140 |
+| pages/admin/conduct/MonitoringRules | Save | — | No | src/pages/admin/conduct/MonitoringRules.tsx | 141 |
+| pages/admin/conduct/ProductsChannels | }> Add Product | — | No | src/pages/admin/conduct/ProductsChannels.tsx | 90 |
+| pages/admin/conduct/ProductsChannels | openEdit(r)}> | — | No | src/pages/admin/conduct/ProductsChannels.tsx | 104 |
+| pages/admin/conduct/ProductsChannels | }> Add Channel | — | No | src/pages/admin/conduct/ProductsChannels.tsx | 181 |
+| pages/admin/conduct/ProductsChannels | openEdit(r)}> | — | No | src/pages/admin/conduct/ProductsChannels.tsx | 194 |
+| pages/admin/conduct/RiskTaxonomy | }> Add Category | — | No | src/pages/admin/conduct/RiskTaxonomy.tsx | 85 |
+| pages/admin/conduct/RiskTaxonomy | openEdit(r)}> | — | No | src/pages/admin/conduct/RiskTaxonomy.tsx | 116 |
+| pages/admin/conduct/TriageRules | setSimOpen(true)}> Simulate | — | No | src/pages/admin/conduct/TriageRules.tsx | 205 |
+| pages/admin/conduct/TriageRules | Add Rule | — | No | src/pages/admin/conduct/TriageRules.tsx | 206 |
+| pages/admin/conduct/TriageRules | openEdit(r)}> | — | No | src/pages/admin/conduct/TriageRules.tsx | 241 |
+| pages/admin/conduct/TriageRules | remove(r)}> | — | No | src/pages/admin/conduct/TriageRules.tsx | 242 |
+| pages/admin/conduct/TriageRules | Add | — | No | src/pages/admin/conduct/TriageRules.tsx | 301 |
+| pages/admin/conduct/TriageRules | rmCond(i)}> | — | No | src/pages/admin/conduct/TriageRules.tsx | 346 |
+| pages/admin/CorrespondenceTemplates | setEditing( )}> New template | — | No | src/pages/admin/CorrespondenceTemplates.tsx | 115 |
+| pages/admin/CorrespondenceTemplates | }>Cancel | — | No | src/pages/admin/CorrespondenceTemplates.tsx | 188 |
+| pages/admin/CorrespondenceTemplates | editing && save.mutate(editing)} disabled= > Save | — | No | src/pages/admin/CorrespondenceTemplates.tsx | 189 |
+| pages/admin/CorrespondenceTemplates | }> | — | No | src/pages/admin/CorrespondenceTemplates.tsx | 225 |
+| pages/admin/CorrespondenceTemplates | confirm('Delete this template?') && del.mutate(t.id)} > | — | No | src/pages/admin/CorrespondenceTemplates.tsx | 228 |
+| pages/admin/DecisionOptions | { setOpt(emptyOpt); setAppliesText(' '); setOptOpen(true); }}> New Option | — | No | src/pages/admin/DecisionOptions.tsx | 102 |
+| pages/admin/DecisionOptions | { setOpt(o); setAppliesText(JSON.stringify(o.applies_to \|\| , null, 2)); setOptOp | — | No | src/pages/admin/DecisionOptions.tsx | 116 |
+| pages/admin/DecisionOptions | delOpt(o)}> | — | No | src/pages/admin/DecisionOptions.tsx | 117 |
+| pages/admin/DecisionOptions | }> New Template | — | No | src/pages/admin/DecisionOptions.tsx | 128 |
+| pages/admin/DecisionOptions | }> | — | No | src/pages/admin/DecisionOptions.tsx | 139 |
+| pages/admin/DecisionOptions | setOptOpen(false)}>Cancel | — | No | src/pages/admin/DecisionOptions.tsx | 191 |
+| pages/admin/DecisionOptions | Save | — | No | src/pages/admin/DecisionOptions.tsx | 191 |
+| pages/admin/DecisionOptions | setTplOpen(false)}>Cancel | — | No | src/pages/admin/DecisionOptions.tsx | 216 |
+| pages/admin/DecisionOptions | Save | — | No | src/pages/admin/DecisionOptions.tsx | 216 |
+| pages/admin/FeeManagement | Add Fee | — | No | src/pages/admin/FeeManagement.tsx | 515 |
+| pages/admin/FeeManagement | removeFeeTypeRow(ft)}> | — | No | src/pages/admin/FeeManagement.tsx | 675 |
+| pages/admin/FeeManagement | Add Rule | — | No | src/pages/admin/FeeManagement.tsx | 782 |
+| pages/admin/FeeManagement | Add Fee Type | — | No | src/pages/admin/FeeManagement.tsx | 933 |
+| pages/admin/FormBuilder | { if (activeVersion?.id) { window.open(`/preview/$ `, '_blank', 'noopener'); } e | — | No | src/pages/admin/FormBuilder.tsx | 662 |
+| pages/admin/FormManagement | navigate(`/admin/forms/create?type=returns&import=excel`)} title="Import a workb | — | No | src/pages/admin/FormManagement.tsx | 355 |
+| pages/admin/FormManagement | navigate(`/admin/forms/create?type=$ `)}> Add Form | — | No | src/pages/admin/FormManagement.tsx | 363 |
+| pages/admin/FormManagement | navigate('/admin/registration-forms')}> Open Registration Form Builder | — | No | src/pages/admin/FormManagement.tsx | 387 |
+| pages/admin/FormManagement | Publish Selected | — | No | src/pages/admin/FormManagement.tsx | 456 |
+| pages/admin/FormManagement | Unpublish Selected | — | No | src/pages/admin/FormManagement.tsx | 462 |
+| pages/admin/FormManagement | Delete Selected | — | No | src/pages/admin/FormManagement.tsx | 473 |
+| pages/admin/FormManagement | setSelectedIds(new Set())} disabled= > Clear Selection | — | No | src/pages/admin/FormManagement.tsx | 483 |
+| pages/admin/FormTemplateView | navigate(listRoute)}> Back to forms | — | No | src/pages/admin/FormTemplateView.tsx | 63 |
+| pages/admin/FormTemplateView | navigate(listRoute)}> Back | — | No | src/pages/admin/FormTemplateView.tsx | 79 |
+| pages/admin/FormTemplateView | window.open(`/preview/$ `, '_blank', 'noopener')} > Open in new tab | — | No | src/pages/admin/FormTemplateView.tsx | 83 |
+| pages/admin/FormTemplateView | navigate(`/admin/forms/create?type=$ &id=$ `) } > Edit | — | No | src/pages/admin/FormTemplateView.tsx | 91 |
+| pages/admin/FpCommittees | New committee | — | No | src/pages/admin/FpCommittees.tsx | 148 |
+| pages/admin/FpCommittees | setOpen(false)}>Cancel | — | No | src/pages/admin/FpCommittees.tsx | 161 |
+| pages/admin/FpCommittees | saveCommittee.mutate()} disabled= > Create | — | No | src/pages/admin/FpCommittees.tsx | 162 |
+| pages/admin/FpCommittees | addMember.mutate()} disabled= > Add | — | No | src/pages/admin/FpCommittees.tsx | 219 |
+| pages/admin/FpCommittees | }> | — | No | src/pages/admin/FpCommittees.tsx | 257 |
+| pages/admin/FpScreeningConfigs | New rule | — | No | src/pages/admin/FpScreeningConfigs.tsx | 113 |
+| pages/admin/FpScreeningConfigs | setOpen(false)}>Cancel | — | No | src/pages/admin/FpScreeningConfigs.tsx | 141 |
+| pages/admin/FpScreeningConfigs | save.mutate()} disabled= > Save | — | No | src/pages/admin/FpScreeningConfigs.tsx | 142 |
+| pages/admin/FpScreeningConfigs | startEdit(c)}> | — | No | src/pages/admin/FpScreeningConfigs.tsx | 172 |
+| pages/admin/FpScreeningConfigs | }> | — | No | src/pages/admin/FpScreeningConfigs.tsx | 173 |
+| pages/admin/FpSectorDecisionRules | New rule | — | No | src/pages/admin/FpSectorDecisionRules.tsx | 183 |
+| pages/admin/FpSectorDecisionRules | openEdit(r)}> | — | No | src/pages/admin/FpSectorDecisionRules.tsx | 216 |
+| pages/admin/FpSectorDecisionRules | remove.mutate(r)}> | — | No | src/pages/admin/FpSectorDecisionRules.tsx | 217 |
+| pages/admin/FpSectorDecisionRules | setOpen(false)}>Cancel | — | No | src/pages/admin/FpSectorDecisionRules.tsx | 299 |
+| pages/admin/FpSectorDecisionRules | save.mutate()} disabled= > Save | — | No | src/pages/admin/FpSectorDecisionRules.tsx | 300 |
+| pages/admin/LicenseActionFormsPage | setCreating(true)}> New Mapping | — | No | src/pages/admin/LicenseActionFormsPage.tsx | 132 |
+| pages/admin/LicenseActionFormsPage | setEditing(r)}> | — | No | src/pages/admin/LicenseActionFormsPage.tsx | 166 |
+| pages/admin/LicenseActionFormsPage | }> | — | No | src/pages/admin/LicenseActionFormsPage.tsx | 167 |
+| pages/admin/LicenseActionFormsPage | Cancel | — | Yes | src/pages/admin/LicenseActionFormsPage.tsx | 328 |
+| pages/admin/LicenseActionFormsPage | Save | — | No | src/pages/admin/LicenseActionFormsPage.tsx | 329 |
+| pages/admin/LicenseeDetail | navigate('/admin/licensees')}> Back to Licensees | — | No | src/pages/admin/LicenseeDetail.tsx | 164 |
+| pages/admin/LicenseeDetail | navigate('/admin/licensees')}> | — | No | src/pages/admin/LicenseeDetail.tsx | 190 |
+| pages/admin/ManageLicensees | { e.stopPropagation(); navigate(`/admin/licensees/$ `); }}> View | — | No | src/pages/admin/ManageLicensees.tsx | 345 |
+| pages/admin/ManageLicensees | setPage(p => p - 1)}> | — | No | src/pages/admin/ManageLicensees.tsx | 364 |
+| pages/admin/ManageLicensees | = totalPages - 1} onClick= > | — | No | src/pages/admin/ManageLicensees.tsx | 368 |
+| pages/admin/ManageWebUsers | toggleStatus(r)}> | — | No | src/pages/admin/ManageWebUsers.tsx | 194 |
+| pages/admin/ManageWebUsers | Add Web User | — | No | src/pages/admin/ManageWebUsers.tsx | 210 |
+| pages/admin/ManageWebUsers | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/ManageWebUsers.tsx | 256 |
+| pages/admin/MasterConfiguration | openEdit(entity, r)}> | — | No | src/pages/admin/MasterConfiguration.tsx | 187 |
+| pages/admin/MasterConfiguration | handleDelete(entity, r.id)}> | — | No | src/pages/admin/MasterConfiguration.tsx | 188 |
+| pages/admin/MasterConfiguration | downloadSampleExcel(ent)}> Sample Excel | — | No | src/pages/admin/MasterConfiguration.tsx | 256 |
+| pages/admin/MasterConfiguration | openImport(ent)}> Import Excel | — | No | src/pages/admin/MasterConfiguration.tsx | 259 |
+| pages/admin/MasterConfiguration | openAdd(ent)}> Add | — | No | src/pages/admin/MasterConfiguration.tsx | 262 |
+| pages/admin/MasterConfiguration | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/MasterConfiguration.tsx | 320 |
+| pages/admin/MasterDataManagement | Add Type | — | No | src/pages/admin/MasterDataManagement.tsx | 210 |
+| pages/admin/MasterDataManagement | downloadItemSampleExcel(selectedType?.name \|\| 'Items')}> Sample Excel | — | No | src/pages/admin/MasterDataManagement.tsx | 228 |
+| pages/admin/MasterDataManagement | setImportOpen(true)}> Import Excel | — | No | src/pages/admin/MasterDataManagement.tsx | 231 |
+| pages/admin/MasterDataManagement | Add Item | — | No | src/pages/admin/MasterDataManagement.tsx | 234 |
+| pages/admin/MasterDataManagement | setTypeDialogOpen(false)}>Cancel | — | No | src/pages/admin/MasterDataManagement.tsx | 280 |
+| pages/admin/MasterDataManagement | setItemDialogOpen(false)}>Cancel | — | No | src/pages/admin/MasterDataManagement.tsx | 329 |
+| pages/admin/NotificationTemplates | New Template | — | No | src/pages/admin/NotificationTemplates.tsx | 254 |
+| pages/admin/NotificationTemplates | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/NotificationTemplates.tsx | 363 |
+| pages/admin/PermissionCatalogTab | openCreateModule(null)}> Module | — | No | src/pages/admin/PermissionCatalogTab.tsx | 93 |
+| pages/admin/PermissionCatalogTab | }> Action | — | No | src/pages/admin/PermissionCatalogTab.tsx | 136 |
+| pages/admin/PermissionCatalogTab | }> | — | No | src/pages/admin/PermissionCatalogTab.tsx | 152 |
+| pages/admin/PermissionCatalogTab | handleDeleteAction(a)}> | — | No | src/pages/admin/PermissionCatalogTab.tsx | 156 |
+| pages/admin/PermissionCatalogTab | Cancel | — | Yes | src/pages/admin/PermissionCatalogTab.tsx | 319 |
+| pages/admin/PermissionCatalogTab | Save | — | No | src/pages/admin/PermissionCatalogTab.tsx | 320 |
+| pages/admin/PermissionCatalogTab | Cancel | — | Yes | src/pages/admin/PermissionCatalogTab.tsx | 361 |
+| pages/admin/PermissionCatalogTab | Save | — | No | src/pages/admin/PermissionCatalogTab.tsx | 362 |
+| pages/admin/PostLicenseForms | navigate('/admin/forms/create?type=post_license')}> Add Post-License Form | — | No | src/pages/admin/PostLicenseForms.tsx | 131 |
+| pages/admin/PostLicensingApplications | navigate(`/post-licensee/applications/$ /forms?service=$ `)}> | — | No | src/pages/admin/PostLicensingApplications.tsx | 93 |
+| pages/admin/PostLicensingApplications | navigate('/post-license/new')}> New Application | — | No | src/pages/admin/PostLicensingApplications.tsx | 114 |
+| pages/admin/PostLicensingApplications | setViewApp(null)}>Cancel | — | No | src/pages/admin/PostLicensingApplications.tsx | 154 |
+| pages/admin/PostLicensingApplications | Update | — | No | src/pages/admin/PostLicensingApplications.tsx | 155 |
+| pages/admin/PpocManagement | Add Mapping | — | No | src/pages/admin/PpocManagement.tsx | 337 |
+| pages/admin/PpocManagement | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/PpocManagement.tsx | 487 |
+| pages/admin/PreLicenseForms | navigate('/admin/forms/create?type=pre_license')}> Add Pre-License Form | — | No | src/pages/admin/PreLicenseForms.tsx | 131 |
+| pages/admin/RegistrationFormBuilder | Create Configuration | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 413 |
+| pages/admin/RegistrationFormBuilder | openPreviewForConfig(cfg)} > | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 466 |
+| pages/admin/RegistrationFormBuilder | openEdit(cfg)}> | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 474 |
+| pages/admin/RegistrationFormBuilder | handleDelete(cfg.id)}> | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 477 |
+| pages/admin/RegistrationFormBuilder | removeDocType(idx)}> | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 618 |
+| pages/admin/RegistrationFormBuilder | Add Document Type | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 623 |
+| pages/admin/RegistrationFormBuilder | removeDeclaration(idx)}> | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 654 |
+| pages/admin/RegistrationFormBuilder | Add Declaration | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 659 |
+| pages/admin/RegistrationFormBuilder | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 667 |
+| pages/admin/RegistrationFormBuilder | Preview | — | No | src/pages/admin/RegistrationFormBuilder.tsx | 668 |
+| pages/admin/RegistrationReview | navigate(`/admin/registration-review/$ `)}> Open Review | — | No | src/pages/admin/RegistrationReview.tsx | 255 |
+| pages/admin/RegulatorManagement | Add Regulator | — | No | src/pages/admin/RegulatorManagement.tsx | 200 |
+| pages/admin/RegulatorManagement | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/RegulatorManagement.tsx | 279 |
+| pages/admin/ReturnConfiguration | Add Configuration | — | No | src/pages/admin/ReturnConfiguration.tsx | 105 |
+| pages/admin/ReturnConfiguration | openEdit(c)}> | — | No | src/pages/admin/ReturnConfiguration.tsx | 175 |
+| pages/admin/ReturnConfiguration | handleDelete(c.id)}> | — | No | src/pages/admin/ReturnConfiguration.tsx | 176 |
+| pages/admin/returns/CutoffConfigPage | Add Cutoff | — | No | src/pages/admin/returns/CutoffConfigPage.tsx | 50 |
+| pages/admin/returns/DueDatesPage | Preview | — | No | src/pages/admin/returns/DueDatesPage.tsx | 132 |
+| pages/admin/returns/DueDatesPage | {generating ? 'Generating...' : `Generate $ Due Dates`} | — | No | src/pages/admin/returns/DueDatesPage.tsx | 133 |
+| pages/admin/returns/LateFeesPage | Add Fee Structure | — | No | src/pages/admin/returns/LateFeesPage.tsx | 56 |
+| pages/admin/returns/LateFeesPage | remove.mutate(t.id)}> | — | No | src/pages/admin/returns/LateFeesPage.tsx | 156 |
+| pages/admin/returns/LateFeesPage | Add | — | No | src/pages/admin/returns/LateFeesPage.tsx | 166 |
+| pages/admin/returns/ReturnConfigsPage | }> Add Configuration | — | No | src/pages/admin/returns/ReturnConfigsPage.tsx | 65 |
+| pages/admin/returns/ReturnConfigsPage | removeForm(f.form_id)}> | — | No | src/pages/admin/returns/ReturnConfigsPage.tsx | 241 |
+| pages/admin/returns/ReturnConfigsPage | onOpenChange(false)}>Cancel | — | No | src/pages/admin/returns/ReturnConfigsPage.tsx | 249 |
+| pages/admin/returns/ReturnTypesPage | Add Return Type | — | No | src/pages/admin/returns/ReturnTypesPage.tsx | 46 |
+| pages/admin/returns/ScheduleCalendarPage | setCurrentMonth(subMonths(currentMonth, 1))}> | — | No | src/pages/admin/returns/ScheduleCalendarPage.tsx | 40 |
+| pages/admin/returns/ScheduleCalendarPage | setCurrentMonth(addMonths(currentMonth, 1))}> | — | No | src/pages/admin/returns/ScheduleCalendarPage.tsx | 42 |
+| pages/admin/RfiAutoRules | setEditing(emptyRule())}> New rule | — | No | src/pages/admin/RfiAutoRules.tsx | 195 |
+| pages/admin/RfiAutoRules | setEditing(r)} > | — | No | src/pages/admin/RfiAutoRules.tsx | 273 |
+| pages/admin/RfiAutoRules | deleteRule(r.id)} > | — | No | src/pages/admin/RfiAutoRules.tsx | 280 |
+| pages/admin/RfiAutoRules | setEditing(null)}> Cancel | — | No | src/pages/admin/RfiAutoRules.tsx | 533 |
+| pages/admin/RfiAutoRules | Save rule | — | No | src/pages/admin/RfiAutoRules.tsx | 536 |
+| pages/admin/RoleManagement | Create Role | — | No | src/pages/admin/RoleManagement.tsx | 447 |
+| pages/admin/RoleManagement | Select all | — | Yes | src/pages/admin/RoleManagement.tsx | 801 |
+| pages/admin/RoleManagement | Clear | — | Yes | src/pages/admin/RoleManagement.tsx | 804 |
+| pages/admin/RoleManagement | setDialogOpen(false)}>Cancel | — | No | src/pages/admin/RoleManagement.tsx | 913 |
+| pages/admin/RoleManagement | setDeleteConfirm(null)}>Cancel | — | No | src/pages/admin/RoleManagement.tsx | 934 |
+| pages/admin/RuleOverrides | setTimelineFor(selected)}> View full entity timeline | — | No | src/pages/admin/RuleOverrides.tsx | 256 |
+| pages/admin/SecurityEvents | refetch()} disabled= > Refresh | — | No | src/pages/admin/SecurityEvents.tsx | 146 |
+| pages/admin/SecurityEvents | Export CSV | — | No | src/pages/admin/SecurityEvents.tsx | 150 |
+| pages/admin/SlaManager | navigate('/workflows')}> Workflow Designer | — | No | src/pages/admin/SlaManager.tsx | 89 |
+| pages/admin/SlaManager | Add SLA | — | No | src/pages/admin/SlaManager.tsx | 259 |
+| pages/admin/SlaManager | deleteRow(row.id)}> | — | No | src/pages/admin/SlaManager.tsx | 301 |
+| pages/admin/SlaManager | toggleDay(i)}> | — | No | src/pages/admin/SlaManager.tsx | 560 |
+| pages/admin/SlaManager | document.getElementById('hcsv')?.click()}> Import CSV | — | No | src/pages/admin/SlaManager.tsx | 597 |
+| pages/admin/SlaManager | deleteHoliday(h.id)}> | — | No | src/pages/admin/SlaManager.tsx | 617 |
+| pages/admin/SlaManager | Save Calendar | — | No | src/pages/admin/SlaManager.tsx | 626 |
+| pages/admin/SlaManager | navigate('/dashboard')}> Open DASH-OPS | — | No | src/pages/admin/SlaManager.tsx | 813 |
+| pages/admin/SufficiencyRules | New Rule | — | No | src/pages/admin/SufficiencyRules.tsx | 103 |
+| pages/admin/SufficiencyRules | startEdit(r)}> | — | No | src/pages/admin/SufficiencyRules.tsx | 132 |
+| pages/admin/SufficiencyRules | del(r)}> | — | No | src/pages/admin/SufficiencyRules.tsx | 133 |
+| pages/admin/SufficiencyRules | setOpen(false)}>Cancel | — | No | src/pages/admin/SufficiencyRules.tsx | 202 |
+| pages/admin/SufficiencyRules | Save | — | No | src/pages/admin/SufficiencyRules.tsx | 203 |
+| pages/admin/SufficiencyRuleSets | }> New Rule Set | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 105 |
+| pages/admin/SufficiencyRuleSets | setManageId(s.id)}> | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 124 |
+| pages/admin/SufficiencyRuleSets | }> | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 125 |
+| pages/admin/SufficiencyRuleSets | del(s)}> | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 126 |
+| pages/admin/SufficiencyRuleSets | setOpen(false)}>Cancel | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 152 |
+| pages/admin/SufficiencyRuleSets | Save | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 152 |
+| pages/admin/SufficiencyRuleSets | removeItem(it.id)}> | — | No | src/pages/admin/SufficiencyRuleSets.tsx | 180 |
+| pages/admin/SupervisoryPlanTemplates | { setEditing( as Template); setShowEdit(true); }}> New template | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 119 |
+| pages/admin/SupervisoryPlanTemplates | }> | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 147 |
+| pages/admin/SupervisoryPlanTemplates | removeTemplate(t.id)}> | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 148 |
+| pages/admin/SupervisoryPlanTemplates | setShowActionEdit( )}> | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 160 |
+| pages/admin/SupervisoryPlanTemplates | removeAction(a.id)}> | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 161 |
+| pages/admin/SupervisoryPlanTemplates | setShowActionEdit( )}> Add action | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 164 |
+| pages/admin/SupervisoryPlanTemplates | setShowEdit(false)}>Cancel | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 204 |
+| pages/admin/SupervisoryPlanTemplates | saveTemplate(editing)}>Save | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 205 |
+| pages/admin/SupervisoryPlanTemplates | Cancel | — | Yes | src/pages/admin/SupervisoryPlanTemplates.tsx | 271 |
+| pages/admin/SupervisoryPlanTemplates | onSave(form)}>Save | — | No | src/pages/admin/SupervisoryPlanTemplates.tsx | 272 |
+| pages/admin/UserManagement | Create Employee | — | No | src/pages/admin/UserManagement.tsx | 515 |
+| pages/admin/UserManagement | document.getElementById('create-avatar-input')?.click()}> Choose Image | — | No | src/pages/admin/UserManagement.tsx | 603 |
+| pages/admin/UserManagement | }> Remove | — | No | src/pages/admin/UserManagement.tsx | 607 |
+| pages/admin/UserManagement | setGeneratedPassword(generatePassword())} title="Regenerate"> | — | No | src/pages/admin/UserManagement.tsx | 650 |
+| pages/admin/UserManagement | copyToClipboard(generatedPassword)} title="Copy"> | — | No | src/pages/admin/UserManagement.tsx | 653 |
+| pages/admin/UserManagement | setCreateDialogOpen(false)}>Cancel | — | No | src/pages/admin/UserManagement.tsx | 664 |
+| pages/admin/UserManagement | copyToClipboard(createdEmail)}> | — | No | src/pages/admin/UserManagement.tsx | 686 |
+| pages/admin/UserManagement | copyToClipboard(generatedPassword)}> | — | No | src/pages/admin/UserManagement.tsx | 696 |
+| pages/admin/UserManagement | setCredentialsDialog(false)}>Done | — | No | src/pages/admin/UserManagement.tsx | 703 |
+| pages/admin/UserManagement | setEditDialog(false)}>Cancel | — | No | src/pages/admin/UserManagement.tsx | 745 |
+| pages/admin/UserManagement | setNewPassword(generatePassword())}> | — | No | src/pages/admin/UserManagement.tsx | 763 |
+| pages/admin/UserManagement | copyToClipboard(newPassword)}> | — | No | src/pages/admin/UserManagement.tsx | 766 |
+| pages/admin/UserManagement | setResetPasswordDialog(false)}>Cancel | — | No | src/pages/admin/UserManagement.tsx | 773 |
+| pages/admin/UserManagement | document.getElementById('edit-avatar-input')?.click()}> | — | No | src/pages/admin/UserManagement.tsx | 808 |
+| pages/admin/UserManagement | setProfileForm(p => ( ))}> Remove | — | No | src/pages/admin/UserManagement.tsx | 812 |
+| pages/admin/UserManagement | setProfileDialog(false)}>Cancel | — | No | src/pages/admin/UserManagement.tsx | 860 |
+| pages/admin/WorkflowConfig | New Workflow | — | No | src/pages/admin/WorkflowConfig.tsx | 66 |
+| pages/admin/WorkflowConfig | Edit | — | No | src/pages/admin/WorkflowConfig.tsx | 111 |
+| pages/analytics/AlertCenter | refetch()} disabled= > | — | No | src/pages/analytics/AlertCenter.tsx | 259 |
+| pages/ApplicationForms | setActiveFormTemplateId(null)}> | — | No | src/pages/ApplicationForms.tsx | 338 |
+| pages/ApplicationForms | navigate(-1)}> | — | No | src/pages/ApplicationForms.tsx | 364 |
+| pages/ApplicationForms | handleStartForm(tmpl.id)} > | — | No | src/pages/ApplicationForms.tsx | 445 |
+| pages/ApplicationForms | setShowReview(true)}> Review Entered Data | — | No | src/pages/ApplicationForms.tsx | 467 |
+| pages/ApplicationForms | setShowReview(true)} disabled= > Review & Submit | — | No | src/pages/ApplicationForms.tsx | 476 |
+| pages/ApplicationForms | setShowReview(false)}> Back to Forms | — | No | src/pages/ApplicationForms.tsx | 523 |
+| pages/applications/ApplicationDetail | Allow Edit | — | No | src/pages/applications/ApplicationDetail.tsx | 1220 |
+| pages/applications/ApplicationDetail | Deny Edit | — | No | src/pages/applications/ApplicationDetail.tsx | 1224 |
+| pages/applications/ApplicationDetail | { if (needsForms) { setActiveTab('form'); setTimeout(() => { document.querySelec | — | No | src/pages/applications/ApplicationDetail.tsx | 1382 |
+| pages/applications/ApplicationDetail | Cancel | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1412 |
+| pages/applications/ApplicationDetail | Cancel | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1461 |
+| pages/applications/ApplicationDetail | Request Edit | — | No | src/pages/applications/ApplicationDetail.tsx | 1503 |
+| pages/applications/ApplicationDetail | Cancel | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1506 |
+| pages/applications/ApplicationDetail | setOpen(true)}> View Payment Details | — | No | src/pages/applications/ApplicationDetail.tsx | 1577 |
+| pages/applications/ApplicationQueue | setBulkOpen(true)} disabled= variant="default" > Bulk update ( ) | — | No | src/pages/applications/ApplicationQueue.tsx | 540 |
+| pages/applications/ApplicationQueue | setBulkOpen(false)} disabled= >Cancel | — | No | src/pages/applications/ApplicationQueue.tsx | 756 |
+| pages/applications/ApplicationQueue | Apply | — | Yes | src/pages/applications/ApplicationQueue.tsx | 757 |
+| pages/applications/ApplicationsList | · | — | No | src/pages/applications/ApplicationsList.tsx | 841 |
+| pages/applications/ApplicationsList | { if (!compareMode) setCompareMode(true); setSelectedForCompare(prev => { if (pr | — | No | src/pages/applications/ApplicationsList.tsx | 880 |
+| pages/applications/ApplicationsList | { e.stopPropagation(); if (isExpanded) else }} > | — | No | src/pages/applications/ApplicationsList.tsx | 987 |
+| pages/applications/ApplicationsList | setPage(p => p - 1)}> | — | No | src/pages/applications/ApplicationsList.tsx | 1216 |
+| pages/applications/ApplicationsList | = totalPages - 1} onClick= > | — | No | src/pages/applications/ApplicationsList.tsx | 1220 |
+| pages/applications/ApplicationsList | New Application | — | No | src/pages/applications/ApplicationsList.tsx | 1240 |
+| pages/applications/ApplicationsList | navigate(newApplicationPath)}> New Application | — | No | src/pages/applications/ApplicationsList.tsx | 1255 |
+| pages/applications/ApplicationsList | { setSearchParams( ); setPage(0); }} > Clear filter | — | No | src/pages/applications/ApplicationsList.tsx | 1277 |
+| pages/applications/ApplicationsList | } > | — | No | src/pages/applications/ApplicationsList.tsx | 1341 |
+| pages/applications/ApplicationsList | } > | — | No | src/pages/applications/ApplicationsList.tsx | 1350 |
+| pages/applications/ApplicationsList | Export CSV | — | No | src/pages/applications/ApplicationsList.tsx | 1362 |
+| pages/applications/ApplicationsList | setComparePickerOpen(true)} > Compare submissions | — | No | src/pages/applications/ApplicationsList.tsx | 1390 |
+| pages/applications/ApplicationsList | }> Cancel | — | No | src/pages/applications/ApplicationsList.tsx | 1398 |
+| pages/applications/ApplicationsList | moveGroupField(field, 'up')} > | — | No | src/pages/applications/ApplicationsList.tsx | 1414 |
+| pages/applications/ApplicationsList | moveGroupField(field, 'down')} > | — | No | src/pages/applications/ApplicationsList.tsx | 1421 |
+| pages/applications/ApplicationsList | onOpenChange(false)}>Cancel | — | No | src/pages/applications/ApplicationsList.tsx | 1617 |
+| pages/applications/ApplicationsList | Open comparison | — | No | src/pages/applications/ApplicationsList.tsx | 1618 |
+| pages/billing/Penalties | Case | — | No | src/pages/billing/Penalties.tsx | 120 |
+| pages/complaints/ComplaintDetail | setAckOpen(true)}> Reprint acknowledgement | — | No | src/pages/complaints/ComplaintDetail.tsx | 323 |
+| pages/complaints/ComplaintDetail | Back to Complaints | — | No | src/pages/complaints/ComplaintDetail.tsx | 326 |
+| pages/complaints/ComplaintDetail | openAttachment(f.file_path)} disabled= > View | — | No | src/pages/complaints/ComplaintDetail.tsx | 424 |
+| pages/complaints/ComplaintDetail | Update | — | No | src/pages/complaints/ComplaintDetail.tsx | 459 |
+| pages/complaints/ComplaintDetail | linkLicensee.mutate()} > Link Licensee | — | No | src/pages/complaints/ComplaintDetail.tsx | 512 |
+| pages/complaints/ComplaintsAnalytics | Back to List | — | No | src/pages/complaints/ComplaintsAnalytics.tsx | 47 |
+| pages/complaints/ComplaintsList | Analytics | — | No | src/pages/complaints/ComplaintsList.tsx | 581 |
+| pages/complaints/ComplaintsList | New Complaint | — | No | src/pages/complaints/ComplaintsList.tsx | 584 |
+| pages/complaints/ComplaintsList | File Complaint | — | No | src/pages/complaints/ComplaintsList.tsx | 592 |
+| pages/complaints/ComplaintsList | More filters | — | No | src/pages/complaints/ComplaintsList.tsx | 681 |
+| pages/complaints/ComplaintsList | setDetailDialog(c)}> View | — | No | src/pages/complaints/ComplaintsList.tsx | 833 |
+| pages/complaints/ComplaintsList | toggleRow(c.id)}> | — | No | src/pages/complaints/ComplaintsList.tsx | 871 |
+| pages/complaints/ComplaintsList | updateUrl( )}> | — | No | src/pages/complaints/ComplaintsList.tsx | 993 |
+| pages/complaints/ComplaintsList | updateUrl( )}> | — | No | src/pages/complaints/ComplaintsList.tsx | 995 |
+| pages/complaints/ComplaintsList | = totalPages} onClick={() => updateUrl( )}> | — | No | src/pages/complaints/ComplaintsList.tsx | 998 |
+| pages/complaints/ComplaintsList | = totalPages} onClick={() => updateUrl( )}> | — | No | src/pages/complaints/ComplaintsList.tsx | 1000 |
+| pages/complaints/ComplaintsList | openDetailAttachment(a.filePath)} disabled= > View | — | No | src/pages/complaints/ComplaintsList.tsx | 1046 |
+| pages/complaints/duplicates/DuplicateDetectionHub | detect.mutate()} disabled= > Run detection | — | No | src/pages/complaints/duplicates/DuplicateDetectionHub.tsx | 52 |
+| pages/complaints/duplicates/DuplicateDetectionHub | Back to Complaints | — | No | src/pages/complaints/duplicates/DuplicateDetectionHub.tsx | 56 |
+| pages/complaints/escalations/EscalationHub | sweep.mutate()} disabled= > Run sweep now | — | No | src/pages/complaints/escalations/EscalationHub.tsx | 70 |
+| pages/complaints/escalations/EscalationQueueTable | decide.mutate( )}>Ack | — | No | src/pages/complaints/escalations/EscalationQueueTable.tsx | 124 |
+| pages/complaints/escalations/EscalationQueueTable | decide.mutate( )}>Escalate | — | No | src/pages/complaints/escalations/EscalationQueueTable.tsx | 127 |
+| pages/complaints/escalations/EscalationQueueTable | decide.mutate( )}>Dismiss | — | No | src/pages/complaints/escalations/EscalationQueueTable.tsx | 130 |
+| pages/complaints/escalations/EscalationRulesAdmin | save.mutate()} disabled= >Save changes | — | No | src/pages/complaints/escalations/EscalationRulesAdmin.tsx | 67 |
+| pages/complaints/escalations/RuleCard | { refetch().then((r) => { const v = r.data as \| undefined; if (v) toast.success( | — | No | src/pages/complaints/escalations/RuleCard.tsx | 121 |
+| pages/complaints/NewInternalComplaint | Cancel | — | Yes | src/pages/complaints/NewInternalComplaint.tsx | 259 |
+| pages/compliance/ComplianceReturns | navigate(`/compliance/returns/submit?returnId=$ `)}> | — | No | src/pages/compliance/ComplianceReturns.tsx | 276 |
+| pages/compliance/ComplianceReturns | handleSubmit(ret.id)}> Submit | — | No | src/pages/compliance/ComplianceReturns.tsx | 281 |
+| pages/compliance/ComplianceReturns | navigate(adminReturnPath(ret.id))}> | — | No | src/pages/compliance/ComplianceReturns.tsx | 288 |
+| pages/compliance/ComplianceReturns | navigate(`/compliance/returns/submit?returnId=$ `)}> | — | No | src/pages/compliance/ComplianceReturns.tsx | 292 |
+| pages/compliance/ComplianceReturns | navigate('/compliance/returns/submit')} disabled= title= > New Submission | — | No | src/pages/compliance/ComplianceReturns.tsx | 325 |
+| pages/compliance/ComplianceReturns | Clear filter | — | Yes | src/pages/compliance/ComplianceReturns.tsx | 503 |
+| pages/compliance/ComplianceReturns | navigate('/admin/fees')}>Configure Penalties | — | No | src/pages/compliance/ComplianceReturns.tsx | 560 |
+| pages/compliance/ReturnSubmission | navigate('/compliance/returns')}>Back to Returns | — | No | src/pages/compliance/ReturnSubmission.tsx | 686 |
+| pages/compliance/ReturnSubmission | navigate('/compliance/returns')}> Back | — | No | src/pages/compliance/ReturnSubmission.tsx | 700 |
+| pages/compliance/ReturnSubmission | navigate('/compliance/returns')} className="gap-2" > Cancel | — | No | src/pages/compliance/ReturnSubmission.tsx | 814 |
+| pages/compliance/ReturnSubmission | Create | — | No | src/pages/compliance/ReturnSubmission.tsx | 822 |
+| pages/compliance/ReturnSubmission | navigate('/compliance/returns')}> Back | — | No | src/pages/compliance/ReturnSubmission.tsx | 845 |
+| pages/compliance/ReturnSubmission | } className="relative" > Section / | — | No | src/pages/compliance/ReturnSubmission.tsx | 994 |
+| pages/compliance/ReturnSubmission | setActiveFormIdx(idx)} > | — | No | src/pages/compliance/ReturnSubmission.tsx | 1018 |
+| pages/compliance/ReturnSubmission | Previous | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 1056 |
+| pages/compliance/ReturnSubmission | Next | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 1060 |
+| pages/conduct/ConductActions | setIssueOpen(true)}> Issue action | — | No | src/pages/conduct/ConductActions.tsx | 83 |
+| pages/conduct/ConductActions | Export CSV | — | No | src/pages/conduct/ConductActions.tsx | 84 |
+| pages/conduct/ConductActions | complete(a)}>Complete | — | No | src/pages/conduct/ConductActions.tsx | 137 |
+| pages/conduct/ConductAlerts | ack(r)}> Ack | — | No | src/pages/conduct/ConductAlerts.tsx | 141 |
+| pages/conduct/ConductAlerts | close(r)}> Close | — | No | src/pages/conduct/ConductAlerts.tsx | 142 |
+| pages/conduct/ConductEntityProfile | Back | — | Yes | src/pages/conduct/ConductEntityProfile.tsx | 100 |
+| pages/conduct/ConductEntityProfile | setIssueOpen(true)}> Issue action | — | No | src/pages/conduct/ConductEntityProfile.tsx | 154 |
+| pages/conduct/ConductEntityProfile | Open | — | No | src/pages/conduct/ConductEntityProfile.tsx | 230 |
+| pages/conduct/InvestigationDetail | Back | — | Yes | src/pages/conduct/InvestigationDetail.tsx | 60 |
+| pages/conduct/InvestigationDetail | Save | — | No | src/pages/conduct/InvestigationDetail.tsx | 84 |
+| pages/conduct/Investigations | setOpen(true)}> Open investigation | — | No | src/pages/conduct/Investigations.tsx | 60 |
+| pages/coordination/CoordinationDetail | Close Case | — | No | src/pages/coordination/CoordinationDetail.tsx | 293 |
+| pages/coordination/CoordinationDetail | setCloseOpen(false)}>Cancel | — | No | src/pages/coordination/CoordinationDetail.tsx | 323 |
+| pages/coordination/CoordinationDetail | closeCase.mutate()} disabled= > Close Case | — | No | src/pages/coordination/CoordinationDetail.tsx | 324 |
+| pages/coordination/CoordinationDetail | Open | — | No | src/pages/coordination/CoordinationDetail.tsx | 346 |
+| pages/coordination/CoordinationDetail | postMessage.mutate()} disabled= >Post | — | No | src/pages/coordination/CoordinationDetail.tsx | 392 |
+| pages/coordination/CoordinationDetail | Invite | — | No | src/pages/coordination/CoordinationDetail.tsx | 482 |
+| pages/coordination/CoordinationDetail | setInviting(false)}>Cancel | — | No | src/pages/coordination/CoordinationDetail.tsx | 512 |
+| pages/coordination/CoordinationDetail | invite.mutate()} disabled= > Invite | — | No | src/pages/coordination/CoordinationDetail.tsx | 513 |
+| pages/coordination/CoordinationDetail | onClearanceChange(p.id, 'cleared', noteById[p.id])}> Clear | — | No | src/pages/coordination/CoordinationDetail.tsx | 545 |
+| pages/coordination/CoordinationDetail | onClearanceChange(p.id, 'blocked', noteById[p.id])}> Block | — | No | src/pages/coordination/CoordinationDetail.tsx | 548 |
+| pages/coordination/CoordinationDetail | Raise Flag | — | No | src/pages/coordination/CoordinationDetail.tsx | 625 |
+| pages/coordination/CoordinationDetail | setOpen(false)}>Cancel | — | No | src/pages/coordination/CoordinationDetail.tsx | 662 |
+| pages/coordination/CoordinationDetail | create.mutate()} disabled= > Raise | — | No | src/pages/coordination/CoordinationDetail.tsx | 663 |
+| pages/coordination/CoordinationDetail | resolve.mutate(f.id)}>Resolve | — | No | src/pages/coordination/CoordinationDetail.tsx | 690 |
+| pages/coordination/CoordinationList | New Case | — | No | src/pages/coordination/CoordinationList.tsx | 117 |
+| pages/coordination/CoordinationList | setCreating(false)}>Cancel | — | No | src/pages/coordination/CoordinationList.tsx | 161 |
+| pages/coordination/CoordinationList | create.mutate()} disabled= > Create | — | No | src/pages/coordination/CoordinationList.tsx | 162 |
+| pages/coordination/CoordinationList | Open | — | No | src/pages/coordination/CoordinationList.tsx | 206 |
+| pages/correspondence/CorrespondenceDashboard | Open inbox | — | No | src/pages/correspondence/CorrespondenceDashboard.tsx | 68 |
+| pages/correspondence/CorrespondenceDetail | Back to inbox | — | No | src/pages/correspondence/CorrespondenceDetail.tsx | 28 |
+| pages/correspondence/CorrespondenceInbox | Open | — | No | src/pages/correspondence/CorrespondenceInbox.tsx | 99 |
+| pages/correspondence/CorrespondenceRecords | Export index | — | No | src/pages/correspondence/CorrespondenceRecords.tsx | 40 |
+| pages/correspondence/RoutingRulesAdmin | New rule | — | No | src/pages/correspondence/RoutingRulesAdmin.tsx | 32 |
+| pages/correspondence/RoutingRulesAdmin | setOpen(false)}>Cancel | — | No | src/pages/correspondence/RoutingRulesAdmin.tsx | 74 |
+| pages/correspondence/RoutingRulesAdmin | setOpen(false)}>Save rule | — | No | src/pages/correspondence/RoutingRulesAdmin.tsx | 75 |
+| pages/correspondence/RoutingRulesAdmin | remove(r.id)}> | — | No | src/pages/correspondence/RoutingRulesAdmin.tsx | 111 |
+| pages/delegation/DelegationRules | resetDelegateForm()}> New Role Transfer | — | No | src/pages/delegation/DelegationRules.tsx | 325 |
+| pages/delegation/DelegationRules | openEditDelegation(rule)} title="Edit delegation"> | — | No | src/pages/delegation/DelegationRules.tsx | 523 |
+| pages/delegation/DelegationRules | handleDelete(rule.id)}> | — | No | src/pages/delegation/DelegationRules.tsx | 526 |
+| pages/enforcement/EnforcementList | Open | — | No | src/pages/enforcement/EnforcementList.tsx | 194 |
+| pages/entity/returns/CreateReturnPage | 1 && !selectedLicenseeId) } onClick= > Next | — | No | src/pages/entity/returns/CreateReturnPage.tsx | 304 |
+| pages/entity/returns/CreateReturnPage | setStep(1)}> Back | — | No | src/pages/entity/returns/CreateReturnPage.tsx | 338 |
+| pages/entity/returns/CreateReturnPage | setStep(3)}>Next | — | No | src/pages/entity/returns/CreateReturnPage.tsx | 339 |
+| pages/entity/returns/CreateReturnPage | setStep(2)}> Back | — | No | src/pages/entity/returns/CreateReturnPage.tsx | 357 |
+| pages/entity/returns/EntityReturnsDashboard | navigate('/entity/returns/new')}> File New Return | — | No | src/pages/entity/returns/EntityReturnsDashboard.tsx | 26 |
+| pages/entity/returns/FillReturnPage | } disabled= > Previous | — | No | src/pages/entity/returns/FillReturnPage.tsx | 904 |
+| pages/entity/returns/FillReturnPage | } disabled= > Next | — | No | src/pages/entity/returns/FillReturnPage.tsx | 909 |
+| pages/entity/returns/FillReturnPage | } disabled= > Review &amp; Submit | — | No | src/pages/entity/returns/FillReturnPage.tsx | 914 |
+| pages/entity/returns/FillReturnPage | handleSave(false)} disabled= > | — | No | src/pages/entity/returns/FillReturnPage.tsx | 920 |
+| pages/entity/returns/MyReturnsPage | navigate('/entity/returns/new')}> Create New Return | — | No | src/pages/entity/returns/MyReturnsPage.tsx | 44 |
+| pages/entity/returns/MyReturnsPage | navigate(`/entity/returns/$ /view`)}> | — | No | src/pages/entity/returns/MyReturnsPage.tsx | 98 |
+| pages/entity/returns/MyReturnsPage | navigate(`/entity/returns/$ /fill`)}> | — | No | src/pages/entity/returns/MyReturnsPage.tsx | 100 |
+| pages/entity/returns/MyReturnsPage | handleDelete(r.id)}> | — | No | src/pages/entity/returns/MyReturnsPage.tsx | 103 |
+| pages/entity/returns/ViewReturnPage | navigate(`/entity/returns/$ /fill`)}> Edit & Resubmit | — | No | src/pages/entity/returns/ViewReturnPage.tsx | 279 |
+| pages/entity/returns/ViewReturnPage | setDialogOpen(true)}> Request Edit | — | No | src/pages/entity/returns/ViewReturnPage.tsx | 282 |
+| pages/entity/returns/ViewReturnPage | setDialogOpen(false)} disabled= >Cancel | — | No | src/pages/entity/returns/ViewReturnPage.tsx | 366 |
+| pages/entity/returns/ViewReturnPage | Submit Request | — | No | src/pages/entity/returns/ViewReturnPage.tsx | 367 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | transition.mutate(a.to)} disabled= > | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 132 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | Back to individual | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 136 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | removeEmployment(i)}> | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 500 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | Add employment | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 504 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | removeQualification(i)}> | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 517 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | Add qualification | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 520 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | save.mutate()} disabled= > Save draft | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 547 |
+| pages/fit-and-proper/FitAndProperAssessmentDetail | submit.mutate()} disabled= > Submit declaration | — | No | src/pages/fit-and-proper/FitAndProperAssessmentDetail.tsx | 550 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | Export history | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 307 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | Run cycle scheduler | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 342 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | Add role | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 348 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | setAddRoleOpen(false)}>Cancel | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 395 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | addRole.mutate()} disabled= > Save role | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 396 |
+| pages/fit-and-proper/FitAndProperIndividualDetail | saveCycle(r.id)} disabled= > Save | — | No | src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx | 435 |
+| pages/fit-and-proper/FitAndProperIndividuals | Population trends | — | No | src/pages/fit-and-proper/FitAndProperIndividuals.tsx | 112 |
+| pages/fit-and-proper/FitAndProperIndividuals | Add Individual | — | No | src/pages/fit-and-proper/FitAndProperIndividuals.tsx | 114 |
+| pages/fit-and-proper/FitAndProperIndividuals | setOpen(false)}>Cancel | — | No | src/pages/fit-and-proper/FitAndProperIndividuals.tsx | 130 |
+| pages/fit-and-proper/FitAndProperIndividuals | create.mutate()} disabled= > Save | — | No | src/pages/fit-and-proper/FitAndProperIndividuals.tsx | 131 |
+| pages/fit-and-proper/FitAndProperIndividuals | Open | — | No | src/pages/fit-and-proper/FitAndProperIndividuals.tsx | 169 |
+| pages/fit-and-proper/FpInitiationLog | exportCsv(filtered)}> Export CSV | — | No | src/pages/fit-and-proper/FpInitiationLog.tsx | 189 |
+| pages/fit-and-proper/FpInitiationLog | } > Reset | — | No | src/pages/fit-and-proper/FpInitiationLog.tsx | 270 |
+| pages/fit-and-proper/FpPopulationTrends | Run cycle scheduler now | — | No | src/pages/fit-and-proper/FpPopulationTrends.tsx | 142 |
+| pages/fit-and-proper/FpScheduler | Run Cycle Scheduler | — | No | src/pages/fit-and-proper/FpScheduler.tsx | 269 |
+| pages/fit-and-proper/FpScheduler | exportUpcomingCsv(upcomingRoles)} disabled= > Export CSV | — | No | src/pages/fit-and-proper/FpScheduler.tsx | 309 |
+| pages/fit-and-proper/InvitationTracker | Send Invitation | — | No | src/pages/fit-and-proper/InvitationTracker.tsx | 249 |
+| pages/fit-and-proper/InvitationTracker | }> | — | No | src/pages/fit-and-proper/InvitationTracker.tsx | 364 |
+| pages/fit-and-proper/InvitationTracker | sendInvitation.mutate()} disabled= > Generate Invitation | — | No | src/pages/fit-and-proper/InvitationTracker.tsx | 368 |
+| pages/fit-and-proper/InvitationTracker | resend.mutate(r)} title="Resend" > Resend | — | No | src/pages/fit-and-proper/InvitationTracker.tsx | 503 |
+| pages/fit-and-proper/ManualScreeningQueue | } > Clear filters | — | No | src/pages/fit-and-proper/ManualScreeningQueue.tsx | 184 |
+| pages/fit-and-proper/ManualScreeningQueue | assignToMe.mutate(task.id)} > Assign to Me | — | No | src/pages/fit-and-proper/ManualScreeningQueue.tsx | 319 |
+| pages/fit-and-proper/ManualScreeningQueue | View | — | Yes | src/pages/fit-and-proper/ManualScreeningQueue.tsx | 333 |
+| pages/fit-and-proper/ManualTaskDetail | Upload Evidence | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 456 |
+| pages/fit-and-proper/ManualTaskDetail | handleDownload(ev.file_path)} > Download | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 491 |
+| pages/fit-and-proper/ManualTaskDetail | completeTask.mutate()} disabled= className="w-full sm:w-auto" > Complete Task | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 549 |
+| pages/fit-and-proper/ManualTaskDetail | assignToMe.mutate()} disabled= > Assign to Me | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 612 |
+| pages/fit-and-proper/ManualTaskDetail | saveDueDate.mutate()} disabled= > Save due date | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 673 |
+| pages/fit-and-proper/ManualTaskDetail | saveNotes.mutate()} disabled= > Save notes | — | No | src/pages/fit-and-proper/ManualTaskDetail.tsx | 701 |
+| pages/ForgotPassword | navigate('/')}> Back to Sign In | — | No | src/pages/ForgotPassword.tsx | 89 |
+| pages/ForgotPassword | navigate('/')}> Back to Sign In | — | No | src/pages/ForgotPassword.tsx | 113 |
+| pages/FormDetail | navigate(-1)}> | — | No | src/pages/FormDetail.tsx | 53 |
+| pages/FormDetail | navigate(-1)}> | — | No | src/pages/FormDetail.tsx | 70 |
+| pages/fpa/FpaAiAnalysis | Cancel | — | Yes | src/pages/fpa/FpaAiAnalysis.tsx | 429 |
+| pages/fpa/FpaAiAnalysis | overrideMutation.mutate()} disabled= > Apply Override | — | No | src/pages/fpa/FpaAiAnalysis.tsx | 432 |
+| pages/fpa/FpaAiAnalysis | onViewIndividual(finding.individual_id!)} title="View individual record" > Indiv | — | No | src/pages/fpa/FpaAiAnalysis.tsx | 510 |
+| pages/fpa/FpaAiAnalysis | onOverride(finding)} > Override | — | No | src/pages/fpa/FpaAiAnalysis.tsx | 614 |
+| pages/fpa/FpaAiAnalysis | handleViewIndividual(selectedAssessment.individual_id)} title="View individual's | — | No | src/pages/fpa/FpaAiAnalysis.tsx | 838 |
+| pages/fpa/FpaAppeals | setShowFileDialog(true)} className="gap-1.5" > File Appeal | — | No | src/pages/fpa/FpaAppeals.tsx | 614 |
+| pages/fpa/FpaAppeals | startReviewMutation.mutate(appeal)} > Start Review | — | No | src/pages/fpa/FpaAppeals.tsx | 790 |
+| pages/fpa/FpaAppeals | } > Record Decision | — | No | src/pages/fpa/FpaAppeals.tsx | 804 |
+| pages/fpa/FpaAppeals | setShowFileDialog(false)} > Cancel | — | No | src/pages/fpa/FpaAppeals.tsx | 1013 |
+| pages/fpa/FpaAppeals | fileAppealMutation.mutate()} > File Appeal | — | No | src/pages/fpa/FpaAppeals.tsx | 1019 |
+| pages/fpa/FpaAppeals | } > Cancel | — | No | src/pages/fpa/FpaAppeals.tsx | 1109 |
+| pages/fpa/FpaAppeals | recordDecisionMutation.mutate()} > Confirm Decision | — | No | src/pages/fpa/FpaAppeals.tsx | 1119 |
+| pages/fpa/FpaCommittee | New Committee | — | No | src/pages/fpa/FpaCommittee.tsx | 629 |
+| pages/fpa/FpaCommittee | setNewCommitteeOpen(false)}> Cancel | — | No | src/pages/fpa/FpaCommittee.tsx | 689 |
+| pages/fpa/FpaCommittee | createCommittee.mutate()} disabled= > Create Committee | — | No | src/pages/fpa/FpaCommittee.tsx | 692 |
+| pages/fpa/FpaCommittee | setEditCommitteeOpen(false)}> Cancel | — | No | src/pages/fpa/FpaCommittee.tsx | 768 |
+| pages/fpa/FpaCommittee | updateCommittee.mutate()} disabled= > Save Changes | — | No | src/pages/fpa/FpaCommittee.tsx | 771 |
+| pages/fpa/FpaCommittee | setAddMemberOpen(true)}> Add Member | — | No | src/pages/fpa/FpaCommittee.tsx | 889 |
+| pages/fpa/FpaCommittee | }> Cancel | — | No | src/pages/fpa/FpaCommittee.tsx | 957 |
+| pages/fpa/FpaCommittee | addMember.mutate()} disabled= > Add Member | — | No | src/pages/fpa/FpaCommittee.tsx | 960 |
+| pages/fpa/FpaCommittee | castVote.mutate()} disabled= > Record Vote | — | No | src/pages/fpa/FpaCommittee.tsx | 1426 |
+| pages/fpa/FpaConditions | runSweepMutation.mutate()} disabled= title="Runs the same reminder + overdue-det | — | No | src/pages/fpa/FpaConditions.tsx | 546 |
+| pages/fpa/FpaConditions | setAddOpen(true)}> Add Condition | — | No | src/pages/fpa/FpaConditions.tsx | 558 |
+| pages/fpa/FpaConditions | } > Clear filters | — | No | src/pages/fpa/FpaConditions.tsx | 691 |
+| pages/fpa/FpaConditions | } > Mark Satisfied | — | No | src/pages/fpa/FpaConditions.tsx | 828 |
+| pages/fpa/FpaConditions | } > Waive | — | No | src/pages/fpa/FpaConditions.tsx | 840 |
+| pages/fpa/FpaConditions | sendReminderMutation.mutate(cond)} title="Send reminder now and log it" > Remind | — | No | src/pages/fpa/FpaConditions.tsx | 851 |
+| pages/fpa/FpaConditions | setHistoryTarget(cond)} title="View reminder / breach log" > | — | No | src/pages/fpa/FpaConditions.tsx | 864 |
+| pages/fpa/FpaConditions | } > Cancel | — | No | src/pages/fpa/FpaConditions.tsx | 932 |
+| pages/fpa/FpaConditions | { if (satisfyTarget) satisfyMutation.mutate( ); }} > Confirm Satisfied | — | No | src/pages/fpa/FpaConditions.tsx | 938 |
+| pages/fpa/FpaConditions | } > Cancel | — | No | src/pages/fpa/FpaConditions.tsx | 996 |
+| pages/fpa/FpaConditions | { if (waiveTarget) waiveMutation.mutate( ); }} > Confirm Waiver | — | No | src/pages/fpa/FpaConditions.tsx | 1002 |
+| pages/fpa/FpaConditions | setHistoryTarget(null)}>Close | — | No | src/pages/fpa/FpaConditions.tsx | 1071 |
+| pages/fpa/FpaConditions | setAddOpen(false)} > Cancel | — | No | src/pages/fpa/FpaConditions.tsx | 1235 |
+| pages/fpa/FpaConditions | addMutation.mutate()} > Add Condition | — | No | src/pages/fpa/FpaConditions.tsx | 1241 |
+| pages/fpa/FpaDashboard | View | — | Yes | src/pages/fpa/FpaDashboard.tsx | 99 |
+| pages/fpa/FpaDashboard | View | — | Yes | src/pages/fpa/FpaDashboard.tsx | 109 |
+| pages/fpa/FpaDeclarations | View | — | Yes | src/pages/fpa/FpaDeclarations.tsx | 88 |
+| pages/fpa/FpaDeclarations | setOpen(false)}>Close | — | No | src/pages/fpa/FpaDeclarations.tsx | 138 |
+| pages/fpa/FpaDeclarations | Request Declaration | — | No | src/pages/fpa/FpaDeclarations.tsx | 527 |
+| pages/fpa/FpaDeclarations | }> Cancel | — | No | src/pages/fpa/FpaDeclarations.tsx | 716 |
+| pages/fpa/FpaDeclarations | requestDeclaration.mutate()} disabled= > Send Request | — | No | src/pages/fpa/FpaDeclarations.tsx | 719 |
+| pages/fpa/FpaDeclarations | }> Close | — | No | src/pages/fpa/FpaDeclarations.tsx | 729 |
+| pages/fpa/FpaDeclarations | refetchStats()}> Retry | — | No | src/pages/fpa/FpaDeclarations.tsx | 745 |
+| pages/fpa/FpaDeclarations | refetchQueue()}> Retry | — | No | src/pages/fpa/FpaDeclarations.tsx | 814 |
+| pages/fpa/FpaDeclarations | sendReminder.mutate(row.id)} > Remind | — | No | src/pages/fpa/FpaDeclarations.tsx | 879 |
+| pages/fpa/FpaDeclarations | refetchNotif()}> Retry | — | No | src/pages/fpa/FpaDeclarations.tsx | 925 |
+| pages/fpa/FpaDeterminations | { setOpen(false); navigate(`/fpa/conditions?open=1&individual_id=$ &determinatio | — | No | src/pages/fpa/FpaDeterminations.tsx | 333 |
+| pages/fpa/FpaDeterminations | New Determination | — | No | src/pages/fpa/FpaDeterminations.tsx | 833 |
+| pages/fpa/FpaDeterminations | setOpen(false)}> Cancel | — | No | src/pages/fpa/FpaDeterminations.tsx | 1032 |
+| pages/fpa/FpaDeterminations | addDetermination.mutate()} disabled= > Record Determination | — | No | src/pages/fpa/FpaDeterminations.tsx | 1035 |
+| pages/fpa/FpaDeterminations | setView('list')} > List View | — | No | src/pages/fpa/FpaDeterminations.tsx | 1121 |
+| pages/fpa/FpaDeterminations | setView('comparison')} > Comparison View | — | No | src/pages/fpa/FpaDeterminations.tsx | 1130 |
+| pages/fpa/FpaDeterminations | View | — | Yes | src/pages/fpa/FpaDeterminations.tsx | 1265 |
+| pages/fpa/FpaDeterminations | setConditionPrompt(null)}> Not now | — | No | src/pages/fpa/FpaDeterminations.tsx | 1343 |
+| pages/fpa/FpaDeterminations | { if (!conditionPrompt) return; navigate(`/fpa/conditions?open=1&individual_id=$ | — | No | src/pages/fpa/FpaDeterminations.tsx | 1346 |
+| pages/fpa/FpaFindingDetail | navigate('/fpa/findings')}> Back to Findings | — | No | src/pages/fpa/FpaFindingDetail.tsx | 172 |
+| pages/fpa/FpaFindingDetail | navigate('/fpa/findings')}> Back to Findings Console | — | No | src/pages/fpa/FpaFindingDetail.tsx | 198 |
+| pages/fpa/FpaFindingDetail | navigate(`/fpa/manual-tasks/$ `)}> Manage in Review Queue | — | No | src/pages/fpa/FpaFindingDetail.tsx | 202 |
+| pages/fpa/FpaFindings | } > Clear filters | — | No | src/pages/fpa/FpaFindings.tsx | 573 |
+| pages/fpa/FpaFindings | navigate(`/fpa/findings/$ `)} > Review | — | No | src/pages/fpa/FpaFindings.tsx | 744 |
+| pages/fpa/FpaFindings | navigate(`/fpa/manual-tasks/$ `)} > Manage | — | No | src/pages/fpa/FpaFindings.tsx | 753 |
+| pages/fpa/FpaFindings | } > Escalate | — | No | src/pages/fpa/FpaFindings.tsx | 763 |
+| pages/fpa/FpaFindings | } > Cancel | — | No | src/pages/fpa/FpaFindings.tsx | 847 |
+| pages/fpa/FpaFindings | { if (escalateTarget) { escalateMutation.mutate( ); } }} > Escalate Finding | — | No | src/pages/fpa/FpaFindings.tsx | 856 |
+| pages/fpa/FpaIndividualProfile | Edit | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 193 |
+| pages/fpa/FpaIndividualProfile | setOpen(false)}> Cancel | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 289 |
+| pages/fpa/FpaIndividualProfile | updateMutation.mutate()} disabled= > Save changes | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 292 |
+| pages/fpa/FpaIndividualProfile | Run Cycle Scheduler | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 469 |
+| pages/fpa/FpaIndividualProfile | Add Role | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 475 |
+| pages/fpa/FpaIndividualProfile | setOpen(false)}> Cancel | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 543 |
+| pages/fpa/FpaIndividualProfile | addRole.mutate()} disabled= > Add Role | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 546 |
+| pages/fpa/FpaIndividualProfile | saveCycle(r.id)} disabled= > | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 608 |
+| pages/fpa/FpaIndividualProfile | Close | — | Yes | src/pages/fpa/FpaIndividualProfile.tsx | 757 |
+| pages/fpa/FpaIndividualProfile | Start New Assessment | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 823 |
+| pages/fpa/FpaIndividualProfile | setOpen(false)}> Cancel | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 850 |
+| pages/fpa/FpaIndividualProfile | startAssessment.mutate()} disabled= > Create Assessment | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 853 |
+| pages/fpa/FpaIndividualProfile | handleViewAssessment(a)} > View | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 904 |
+| pages/fpa/FpaIndividualProfile | Log Access Denial | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 994 |
+| pages/fpa/FpaIndividualProfile | setDenialOpen(false)}> Cancel | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1019 |
+| pages/fpa/FpaIndividualProfile | Submit Denial Log | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1022 |
+| pages/fpa/FpaIndividualProfile | refetch()}> Retry | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1168 |
+| pages/fpa/FpaIndividualProfile | Back to Individuals | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1171 |
+| pages/fpa/FpaIndividualProfile | Back to Individuals | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1185 |
+| pages/fpa/FpaIndividualProfile | View Findings | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1203 |
+| pages/fpa/FpaIndividualProfile | Case Audit Trail | — | No | src/pages/fpa/FpaIndividualProfile.tsx | 1209 |
+| pages/fpa/FpaIndividuals | Add Individual | — | No | src/pages/fpa/FpaIndividuals.tsx | 364 |
+| pages/fpa/FpaIndividuals | setOpen(false)}> Cancel | — | No | src/pages/fpa/FpaIndividuals.tsx | 497 |
+| pages/fpa/FpaIndividuals | addIndividual.mutate()} disabled= > Register Individual | — | No | src/pages/fpa/FpaIndividuals.tsx | 500 |
+| pages/fpa/FpaIndividuals | Open | — | No | src/pages/fpa/FpaIndividuals.tsx | 628 |
+| pages/fpa/FpaInitiation | openDialog(pathway)} > Initiate | — | No | src/pages/fpa/FpaInitiation.tsx | 643 |
+| pages/fpa/FpaInitiation | setDialogOpen(false)}> Cancel | — | No | src/pages/fpa/FpaInitiation.tsx | 812 |
+| pages/fpa/FpaInitiation | initiateMutation.mutate()} className="gap-1.5" > Initiate Assessment | — | No | src/pages/fpa/FpaInitiation.tsx | 815 |
+| pages/fpa/FpaInitiation | setDeclDialogOpen(false)}> Skip for now | — | No | src/pages/fpa/FpaInitiation.tsx | 967 |
+| pages/fpa/FpaInitiation | requestDeclarationMutation.mutate()} disabled= > Send Request | — | No | src/pages/fpa/FpaInitiation.tsx | 970 |
+| pages/fpa/FpaInitiation | setDeclDialogOpen(false)}> Close | — | No | src/pages/fpa/FpaInitiation.tsx | 980 |
+| pages/fpa/FpaInitiation | openAssessmentDetail(row)} > View | — | No | src/pages/fpa/FpaInitiation.tsx | 1059 |
+| pages/fpa/FpaInitiation | setDetailDialogOpen(false)}> Close | — | No | src/pages/fpa/FpaInitiation.tsx | 1128 |
+| pages/fpa/FpaInitiation | { setDetailDialogOpen(false); openDeclDialog( selectedAssessment.individual_id!, | — | No | src/pages/fpa/FpaInitiation.tsx | 1132 |
+| pages/fpa/FpaManualTaskDetail | handleEvidenceRemove(item.path)} > | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 586 |
+| pages/fpa/FpaManualTaskDetail | handleEvidenceRemove(item.path)} > | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 695 |
+| pages/fpa/FpaManualTaskDetail | saveNotesMutation.mutate()} disabled= > Save Notes | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 764 |
+| pages/fpa/FpaManualTaskDetail | setClearDialogOpen(true)} disabled= > Mark CLEARED | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 787 |
+| pages/fpa/FpaManualTaskDetail | setAdverseDialogOpen(true)} disabled= > Confirm ADVERSE | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 797 |
+| pages/fpa/FpaManualTaskDetail | navigate('/fpa/manual-tasks')} > Back to Manual Tasks | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 976 |
+| pages/fpa/FpaManualTaskDetail | setClearDialogOpen(false)}> Cancel | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 1007 |
+| pages/fpa/FpaManualTaskDetail | markClearedMutation.mutate()} disabled= > Yes, Mark CLEARED | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 1010 |
+| pages/fpa/FpaManualTaskDetail | } > Cancel | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 1052 |
+| pages/fpa/FpaManualTaskDetail | confirmAdverseMutation.mutate()} disabled= > Confirm ADVERSE | — | No | src/pages/fpa/FpaManualTaskDetail.tsx | 1061 |
+| pages/fpa/FpaManualTasks | Open | — | No | src/pages/fpa/FpaManualTasks.tsx | 241 |
+| pages/fpa/FpaManualTasks | } > Clear filters | — | No | src/pages/fpa/FpaManualTasks.tsx | 466 |
+| pages/fpa/FpaMonitoring | onAcknowledge(event)} > Acknowledge | — | No | src/pages/fpa/FpaMonitoring.tsx | 329 |
+| pages/fpa/FpaMonitoring | setTriggerOpen(true)} > Trigger Event | — | No | src/pages/fpa/FpaMonitoring.tsx | 556 |
+| pages/fpa/FpaMonitoring | } > Clear filters | — | No | src/pages/fpa/FpaMonitoring.tsx | 672 |
+| pages/fpa/FpaMonitoring | eventsRefetch()} > Retry | — | No | src/pages/fpa/FpaMonitoring.tsx | 716 |
+| pages/fpa/FpaMonitoring | Export CSV | — | No | src/pages/fpa/FpaMonitoring.tsx | 763 |
+| pages/fpa/FpaMonitoring | auditRefetch()} > Retry | — | No | src/pages/fpa/FpaMonitoring.tsx | 791 |
+| pages/fpa/FpaMonitoring | setTriggerOpen(false)}> Cancel | — | No | src/pages/fpa/FpaMonitoring.tsx | 957 |
+| pages/fpa/FpaMonitoring | triggerMutation.mutate()} > Trigger Event | — | No | src/pages/fpa/FpaMonitoring.tsx | 960 |
+| pages/fpa/FpaMonitoring | }> Cancel | — | No | src/pages/fpa/FpaMonitoring.tsx | 1017 |
+| pages/fpa/FpaMonitoring | { if (ackTarget) ackMutation.mutate( ); }} > Confirm Acknowledgement | — | No | src/pages/fpa/FpaMonitoring.tsx | 1020 |
+| pages/fpa/FpaScreening | setAddConfigOpen(true)}> Add Config | — | No | src/pages/fpa/FpaScreening.tsx | 440 |
+| pages/fpa/FpaScreening | openRunDialog(config)} > Run Now | — | No | src/pages/fpa/FpaScreening.tsx | 475 |
+| pages/fpa/FpaScreening | } disabled= > Cancel | — | No | src/pages/fpa/FpaScreening.tsx | 753 |
+| pages/fpa/FpaScreening | addConfigMutation.mutate(addConfigForm)} disabled= > Add Configuration | — | No | src/pages/fpa/FpaScreening.tsx | 756 |
+| pages/fpa/FpaScreening | setRunDialogOpen(false)} disabled= > Cancel | — | No | src/pages/fpa/FpaScreening.tsx | 909 |
+| pages/fpa/FpaScreening | setDetailDialogOpen(false)}> Close | — | No | src/pages/fpa/FpaScreening.tsx | 999 |
+| pages/fpa/FpaSectorRules | onOpenChange(false)} disabled= > Cancel | — | No | src/pages/fpa/FpaSectorRules.tsx | 439 |
+| pages/fpa/FpaSectorRules | onSave(form)} disabled= > | — | No | src/pages/fpa/FpaSectorRules.tsx | 442 |
+| pages/fpa/FpaSectorRules | setAddOpen(true)}> Add Rule | — | No | src/pages/fpa/FpaSectorRules.tsx | 609 |
+| pages/fpa/FpaSectorRules | setShowActiveOnly((v) => !v)} className="gap-1.5" > | — | No | src/pages/fpa/FpaSectorRules.tsx | 624 |
+| pages/fpa/FpaSectorRules | } > Clear filters | — | No | src/pages/fpa/FpaSectorRules.tsx | 647 |
+| pages/fpa/FpaSectorRules | openEdit(rule)} > Edit | — | No | src/pages/fpa/FpaSectorRules.tsx | 756 |
+| pages/inspections/InspectionDetail | ← Back to queue | — | No | src/pages/inspections/InspectionDetail.tsx | 214 |
+| pages/inspections/InspectionDetail | ← Queue | — | No | src/pages/inspections/InspectionDetail.tsx | 223 |
+| pages/inspections/InspectionDetail | Edit | — | No | src/pages/inspections/InspectionDetail.tsx | 230 |
+| pages/inspections/InspectionDetail | Open licensee | — | No | src/pages/inspections/InspectionDetail.tsx | 253 |
+| pages/inspections/InspectionDetail | Add finding | — | No | src/pages/inspections/InspectionDetail.tsx | 264 |
+| pages/inspections/InspectionDetail | openEditFinding(f)}> | — | No | src/pages/inspections/InspectionDetail.tsx | 308 |
+| pages/inspections/InspectionDetail | escalate.mutate(f)} disabled= > Escalate | — | No | src/pages/inspections/InspectionDetail.tsx | 310 |
+| pages/inspections/InspectionDetail | setFindingOpen(false)}>Cancel | — | No | src/pages/inspections/InspectionDetail.tsx | 354 |
+| pages/inspections/InspectionDetail | saveFinding.mutate()} disabled= > Save | — | No | src/pages/inspections/InspectionDetail.tsx | 355 |
+| pages/inspections/InspectionDetail | setInspectionEditOpen(false)}>Cancel | — | No | src/pages/inspections/InspectionDetail.tsx | 395 |
+| pages/inspections/InspectionDetail | saveInspection.mutate()} disabled= > Save | — | No | src/pages/inspections/InspectionDetail.tsx | 396 |
+| pages/inspections/InspectionsCalendar | setCursor(addMonths(cursor, -1))}> | — | No | src/pages/inspections/InspectionsCalendar.tsx | 80 |
+| pages/inspections/InspectionsCalendar | setCursor(startOfMonth(new Date()))}>Today | — | No | src/pages/inspections/InspectionsCalendar.tsx | 81 |
+| pages/inspections/InspectionsCalendar | setCursor(addMonths(cursor, 1))}> | — | No | src/pages/inspections/InspectionsCalendar.tsx | 82 |
+| pages/inspections/InspectionsList | Calendar | — | No | src/pages/inspections/InspectionsList.tsx | 100 |
+| pages/inspections/InspectionsList | Open | — | No | src/pages/inspections/InspectionsList.tsx | 156 |
+| pages/licenses/LicenseDetail | Download Certificate | — | No | src/pages/licenses/LicenseDetail.tsx | 678 |
+| pages/licenses/LicenseDetail | openAction('suspension')} disabled= > Suspend | — | No | src/pages/licenses/LicenseDetail.tsx | 744 |
+| pages/licenses/LicenseDetail | openAction('revocation')} disabled= > Revoke | — | No | src/pages/licenses/LicenseDetail.tsx | 745 |
+| pages/licenses/LicenseDetail | navigate(`/applications/$ ?tab=form&view=submitted`)}> Renewal in progress | — | No | src/pages/licenses/LicenseDetail.tsx | 747 |
+| pages/licenses/LicenseDetail | navigate(`/post-licensee/applications/$ /forms?service=Renew`)}> Continue Renewa | — | No | src/pages/licenses/LicenseDetail.tsx | 751 |
+| pages/licenses/LicenseDetail | Renew | — | No | src/pages/licenses/LicenseDetail.tsx | 755 |
+| pages/licenses/LicenseDetail | openAction('reinstatement')} disabled= > Reinstate | — | No | src/pages/licenses/LicenseDetail.tsx | 764 |
+| pages/licenses/LicenseDetail | openAction('cancellation')} disabled= > Cancel | — | No | src/pages/licenses/LicenseDetail.tsx | 765 |
+| pages/licenses/LicenseDetail | navigate(`/applications/$ ?tab=form&view=submitted`)}> Renewal in progress | — | No | src/pages/licenses/LicenseDetail.tsx | 770 |
+| pages/licenses/LicenseDetail | navigate(`/post-licensee/applications/$ /forms?service=Renew`)}> Continue Renewa | — | No | src/pages/licenses/LicenseDetail.tsx | 774 |
+| pages/licenses/LicenseDetail | Renew | — | No | src/pages/licenses/LicenseDetail.tsx | 778 |
+| pages/licenses/LicenseDetail | navigate(`/applications/$ ?tab=form&view=submitted`)}> Renewal in progress | — | No | src/pages/licenses/LicenseDetail.tsx | 805 |
+| pages/licenses/LicenseDetail | navigate(`/post-licensee/applications/$ /forms?service=Renew`)}> Continue Renewa | — | No | src/pages/licenses/LicenseDetail.tsx | 809 |
+| pages/licenses/LicenseDetail | Renew License | — | No | src/pages/licenses/LicenseDetail.tsx | 813 |
+| pages/licenses/LicenseDetail | setViewResponseId(a.form_response_id!)} > View submitted form | — | No | src/pages/licenses/LicenseDetail.tsx | 852 |
+| pages/licenses/LicensesList | Clear filter | — | Yes | src/pages/licenses/LicensesList.tsx | 227 |
+| pages/licenses/LicensesList | navigate(`/licenses/$ `)}> View | — | No | src/pages/licenses/LicensesList.tsx | 274 |
+| pages/Login | Verify & Continue | — | No | src/pages/Login.tsx | 181 |
+| pages/Login | sendLoginOtp(pendingEmail)} > Resend code | — | No | src/pages/Login.tsx | 185 |
+| pages/Login | Cancel and sign out | — | No | src/pages/Login.tsx | 195 |
+| pages/MailSms | Send Message | — | No | src/pages/MailSms.tsx | 70 |
+| pages/NewApplication | navigate('/applications')}> Go to My Applications | — | No | src/pages/NewApplication.tsx | 1746 |
+| pages/NewApplication | }> Back | — | No | src/pages/NewApplication.tsx | 1749 |
+| pages/NewApplication | Proceed to Forms | — | No | src/pages/NewApplication.tsx | 1935 |
+| pages/NewApplication | handleStartForm(tmpl.id)} > | — | No | src/pages/NewApplication.tsx | 1997 |
+| pages/NewApplication | setShowInlineReview(true)}> Review Entered Data | — | No | src/pages/NewApplication.tsx | 2021 |
+| pages/NewApplication | setShowInlineReview(false)}>Close Review | — | No | src/pages/NewApplication.tsx | 2047 |
+| pages/NewApplication | void goToStep('selection')}> Back | — | No | src/pages/NewApplication.tsx | 2054 |
+| pages/NewApplication | {allFormsCompleted ? 'Continue' : `Complete all forms ($ /$ )`} | — | No | src/pages/NewApplication.tsx | 2057 |
+| pages/NewApplication | { setActiveFormTemplateId(null); void goToStep('forms', ); }}> Back to Forms | — | No | src/pages/NewApplication.tsx | 2142 |
+| pages/NewApplication | { setActiveFormTemplateId(null); void goToStep('forms', ); }}> Back to Forms | — | No | src/pages/NewApplication.tsx | 2162 |
+| pages/NewApplication | void goToStep('forms')}> Back to Forms | — | No | src/pages/NewApplication.tsx | 2199 |
+| pages/NewApplication | Retry Payment | — | No | src/pages/NewApplication.tsx | 2363 |
+| pages/NewApplication | void goToStep('documents')}> Back | — | No | src/pages/NewApplication.tsx | 2372 |
+| pages/NewApplication | void goToStep('review', )} disabled= > | — | No | src/pages/NewApplication.tsx | 2375 |
+| pages/NewApplication | void goToStep('payment')}> Back | — | No | src/pages/NewApplication.tsx | 2458 |
+| pages/NewPostLicenseApplication | navigate(-1)}> | — | No | src/pages/NewPostLicenseApplication.tsx | 159 |
+| pages/NewPostLicenseApplication | Proceed to Application | — | No | src/pages/NewPostLicenseApplication.tsx | 254 |
+| pages/Notifications | Mark All Read | — | No | src/pages/Notifications.tsx | 59 |
+| pages/notifications/NotificationCenter | Mark All Read | — | No | src/pages/notifications/NotificationCenter.tsx | 34 |
+| pages/payments/PaymentDetail | navigate(-1)}> | — | No | src/pages/payments/PaymentDetail.tsx | 75 |
+| pages/payments/PaymentHistory | viewReceipt(r)}> View | — | No | src/pages/payments/PaymentHistory.tsx | 399 |
+| pages/PostLicense | Save as Draft | — | No | src/pages/PostLicense.tsx | 108 |
+| pages/PostLicense | Submit Request | — | No | src/pages/PostLicense.tsx | 109 |
+| pages/PostLicenseApplicationForms | navigate(-1)}> | — | No | src/pages/PostLicenseApplicationForms.tsx | 485 |
+| pages/PostLicenseApplicationForms | handleStartForm(tmpl.id)} > | — | No | src/pages/PostLicenseApplicationForms.tsx | 579 |
+| pages/PostLicenseApplicationForms | setShowReview(true)}> Review Entered Data | — | No | src/pages/PostLicenseApplicationForms.tsx | 608 |
+| pages/PostLicenseApplicationForms | setShowReview(true)} disabled= > Review & Submit | — | No | src/pages/PostLicenseApplicationForms.tsx | 616 |
+| pages/PostLicenseApplicationForms | setShowReview(false)}> Back to Forms | — | No | src/pages/PostLicenseApplicationForms.tsx | 664 |
+| pages/PreLicense | Save as Draft | — | No | src/pages/PreLicense.tsx | 310 |
+| pages/PreLicense | Continue to Next Section | — | No | src/pages/PreLicense.tsx | 311 |
+| pages/PreLicenseeDashboard | navigate('/pre-license/new')}> New Application | — | No | src/pages/PreLicenseeDashboard.tsx | 127 |
+| pages/PreLicenseeDashboard | navigate(`/applications/$ `)}> | — | No | src/pages/PreLicenseeDashboard.tsx | 199 |
+| pages/PreLicenseeDashboard | deleteMutation.mutate(app.id)}> | — | No | src/pages/PreLicenseeDashboard.tsx | 208 |
+| pages/PreLicenseeDashboard | navigate(`/applications/$ /continue?draft=$ &mode=continue`)} > | — | No | src/pages/PreLicenseeDashboard.tsx | 218 |
+| pages/Profile | Save Changes | — | No | src/pages/Profile.tsx | 275 |
+| pages/Profile | Change Photo | — | No | src/pages/Profile.tsx | 293 |
+| pages/Profile | setSessionsOpen(true)}>Manage | — | No | src/pages/Profile.tsx | 376 |
+| pages/Profile | setSessionsOpen(false)}>Close | — | No | src/pages/Profile.tsx | 460 |
+| pages/Profile | Sign out of all other sessions | — | No | src/pages/Profile.tsx | 461 |
+| pages/profile/NotificationPreferences | Send test digest | — | No | src/pages/profile/NotificationPreferences.tsx | 192 |
+| pages/profile/NotificationPreferences | Save preferences | — | No | src/pages/profile/NotificationPreferences.tsx | 196 |
+| pages/prudential/ActionsList | overdue.mutate()}> | — | No | src/pages/prudential/ActionsList.tsx | 43 |
+| pages/prudential/ActionsList | setCreateOpen(true)}> New action | — | No | src/pages/prudential/ActionsList.tsx | 47 |
+| pages/prudential/ActionsList | { setCloseFor( ); setNote(''); }}>Complete | — | No | src/pages/prudential/ActionsList.tsx | 68 |
+| pages/prudential/ActionsList | { setCloseFor( ); setNote(''); }}>Waive | — | No | src/pages/prudential/ActionsList.tsx | 69 |
+| pages/prudential/ActionsList | { setCloseFor( ); setNote(''); }}>Cancel | — | No | src/pages/prudential/ActionsList.tsx | 70 |
+| pages/prudential/ActionsList | setCloseFor(null)}>Back | — | No | src/pages/prudential/ActionsList.tsx | 91 |
+| pages/prudential/AssessmentDetail | { if (upsert.isPending \|\| transition.isPending) return; try { await save(); awai | — | No | src/pages/prudential/AssessmentDetail.tsx | 129 |
+| pages/prudential/AssessmentDetail | transition.mutate( )}> | — | No | src/pages/prudential/AssessmentDetail.tsx | 137 |
+| pages/prudential/AssessmentDetail | transition.mutate( )}> | — | No | src/pages/prudential/AssessmentDetail.tsx | 142 |
+| pages/prudential/AssessmentDetail | transition.mutate( )}> | — | No | src/pages/prudential/AssessmentDetail.tsx | 147 |
+| pages/prudential/AssessmentDetail | evalStress.mutate(assessment.return_id!)}>Re-run stress evaluation | — | No | src/pages/prudential/AssessmentDetail.tsx | 166 |
+| pages/prudential/AssessmentDetail | setCreateAction({ entity_id: assessment.entity_id, source_type: 'assessment', so | — | No | src/pages/prudential/AssessmentDetail.tsx | 176 |
+| pages/prudential/AssessmentDetail | setCreateAction( )}>Create action from recommendation | — | No | src/pages/prudential/AssessmentDetail.tsx | 210 |
+| pages/prudential/AssessmentsList | New assessment | — | No | src/pages/prudential/AssessmentsList.tsx | 34 |
+| pages/prudential/AssessmentsList | { if (upsert.isPending) return; try { const r = await upsert.mutateAsync( as any | — | No | src/pages/prudential/AssessmentsList.tsx | 52 |
+| pages/prudential/EscalationsList | setCreateOpen(true)}> New escalation | — | No | src/pages/prudential/EscalationsList.tsx | 35 |
+| pages/prudential/EscalationsList | update.mutate({ id: es.id, patch: })}>Review | — | No | src/pages/prudential/EscalationsList.tsx | 52 |
+| pages/prudential/EscalationsList | }>Resolve | — | No | src/pages/prudential/EscalationsList.tsx | 54 |
+| pages/prudential/EscalationsList | setResolveFor(null)}>Back | — | No | src/pages/prudential/EscalationsList.tsx | 76 |
+| pages/prudential/PrudentialDashboard | setOpen(true)}> | — | No | src/pages/prudential/PrudentialDashboard.tsx | 265 |
+| pages/prudential/PrudentialDashboard | setOpen(true)}> | — | No | src/pages/prudential/PrudentialDashboard.tsx | 336 |
+| pages/prudential/PrudentialEntityProfile | Back to Entities | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 188 |
+| pages/prudential/PrudentialEntityProfile | setCreateAction( )}>New action | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 201 |
+| pages/prudential/PrudentialEntityProfile | setCreateEscalation( )}>New escalation | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 202 |
+| pages/prudential/PrudentialEntityProfile | Export | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 203 |
+| pages/prudential/PrudentialEntityProfile | setHistoryOpen(true)}> History | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 204 |
+| pages/prudential/PrudentialEntityProfile | }>Evaluate stress | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 250 |
+| pages/prudential/PrudentialEntityProfile | setHiddenRatios(new Set())}>All | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 348 |
+| pages/prudential/PrudentialEntityProfile | setHiddenRatios(new Set(allKeys))}>None | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 349 |
+| pages/prudential/PrudentialEntityProfile | setCreateAction({ entity_id: e.id, source_type: 'return_breach', source_id: b.id | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 487 |
+| pages/prudential/PrudentialEntityProfile | setCreateEscalation({ entity_id: e.id, related_type: 'return', related_id: b.ret | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 493 |
+| pages/prudential/PrudentialEntityProfile | Open return | — | No | src/pages/prudential/PrudentialEntityProfile.tsx | 691 |
+| pages/prudential/PrudentialTaxonomyAdmin | New category | — | No | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 53 |
+| pages/prudential/PrudentialTaxonomyAdmin | setOpen(false)}>Cancel | — | No | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 70 |
+| pages/prudential/PrudentialTaxonomyAdmin | openEdit(t)}> Edit | — | No | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 91 |
+| pages/prudential/PrudentialTaxonomyAdmin | del.mutate(t.id)}>Deactivate | — | No | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 95 |
+| pages/prudential/PrudentialTaxonomyAdmin | upsert.mutate( )}>Reactivate | — | No | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 97 |
+| pages/prudential/StressIndicatorsAdmin | setForm(EMPTY_FORM)}> New indicator | — | No | src/pages/prudential/StressIndicatorsAdmin.tsx | 53 |
+| pages/prudential/StressIndicatorsAdmin | { if (upsert.isPending) return; try catch }}> | — | No | src/pages/prudential/StressIndicatorsAdmin.tsx | 89 |
+| pages/prudential/StressIndicatorsAdmin | openEdit(i)}> Edit | — | No | src/pages/prudential/StressIndicatorsAdmin.tsx | 114 |
+| pages/prudential/StressIndicatorsAdmin | del.mutate(i.id)} disabled= >Deactivate | — | No | src/pages/prudential/StressIndicatorsAdmin.tsx | 115 |
+| pages/public/DeclarationLanding | Verify Identity | — | No | src/pages/public/DeclarationLanding.tsx | 255 |
+| pages/public/PublicEnforcement | load(Math.max(0, offset - limit))}>Previous | — | No | src/pages/public/PublicEnforcement.tsx | 82 |
+| pages/public/PublicEnforcement | = total \|\| loading} onClick= >Next | — | No | src/pages/public/PublicEnforcement.tsx | 83 |
+| pages/public/PublicLicensees | Search | — | Yes | src/pages/public/PublicLicensees.tsx | 61 |
+| pages/public/PublicLicensees | load(q, Math.max(0, offset - limit))}>Previous | — | No | src/pages/public/PublicLicensees.tsx | 101 |
+| pages/public/PublicLicensees | = total \|\| loading} onClick= >Next | — | No | src/pages/public/PublicLicensees.tsx | 102 |
+| pages/registration/PreLicenseeRegistration | window.location.reload()}>Try again | — | No | src/pages/registration/PreLicenseeRegistration.tsx | 1216 |
+| pages/registration/PreLicenseeRegistration | reloadConfig()}>Try again | — | No | src/pages/registration/PreLicenseeRegistration.tsx | 1241 |
+| pages/registration/PreLicenseeRegistration | reloadConfig()}>Refresh | — | No | src/pages/registration/PreLicenseeRegistration.tsx | 1256 |
+| pages/registration/PreLicenseeRegistration | Previous | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1348 |
+| pages/registration/PreLicenseeRegistration | {submitting ? ( Submitting... ) : ( )} | — | No | src/pages/registration/PreLicenseeRegistration.tsx | 1367 |
+| pages/registration/RegistrationFormFill | navigate('/registration/portal')} className="text-primary-foreground hover:bg-pr | — | No | src/pages/registration/RegistrationFormFill.tsx | 344 |
+| pages/registration/RegistrationPortal | Sign Out | — | Yes | src/pages/registration/RegistrationPortal.tsx | 258 |
+| pages/registration/RegistrationPortal | handleOpenForm(form.id)} > | — | No | src/pages/registration/RegistrationPortal.tsx | 327 |
+| pages/registration/RegistrationStatusPage | Update & Resubmit Registration | — | No | src/pages/registration/RegistrationStatusPage.tsx | 84 |
+| pages/registration/RegistrationStatusPage | Continue Verification | — | No | src/pages/registration/RegistrationStatusPage.tsx | 94 |
+| pages/registration/RegistrationStatusPage | Go to Dashboard | — | No | src/pages/registration/RegistrationStatusPage.tsx | 101 |
+| pages/registration/RegistrationStatusPage | window.location.reload()}> Refresh | — | No | src/pages/registration/RegistrationStatusPage.tsx | 107 |
+| pages/registration/RegistrationStatusPage | logout()}> Sign Out | — | No | src/pages/registration/RegistrationStatusPage.tsx | 110 |
+| pages/registration/VerificationPending | Simulate Verification | — | No | src/pages/registration/VerificationPending.tsx | 34 |
+| pages/registration/VerificationPending | Back to Home | — | No | src/pages/registration/VerificationPending.tsx | 39 |
+| pages/reports/components/AdHocReportBuilder | update( )}> | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 264 |
+| pages/reports/components/AdHocReportBuilder | ( ) | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 277 |
+| pages/reports/components/AdHocReportBuilder | update( )}> | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 287 |
+| pages/reports/components/AdHocReportBuilder | setCfg(DEFAULT)}> Reset | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 332 |
+| pages/reports/components/AdHocReportBuilder | setTemplateDialog(true)}> Save Template | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 336 |
+| pages/reports/components/AdHocReportBuilder | loadTemplate(t)}> Load | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 363 |
+| pages/reports/components/AdHocReportBuilder | handleDeleteTemplate(t.id)}> | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 366 |
+| pages/reports/components/AdHocReportBuilder | Save | — | No | src/pages/reports/components/AdHocReportBuilder.tsx | 386 |
+| pages/reports/components/ReportHistory | handleView(r)}> View | — | No | src/pages/reports/components/ReportHistory.tsx | 149 |
+| pages/reports/components/ReportHistory | handleExport(r, f.value as any)}> | — | No | src/pages/reports/components/ReportHistory.tsx | 151 |
+| pages/reports/components/ReportHistory | handleRerun(r)}> Re-run | — | No | src/pages/reports/components/ReportHistory.tsx | 159 |
+| pages/reports/components/ReportHistory | setConfirmId(r.id)}> | — | No | src/pages/reports/components/ReportHistory.tsx | 162 |
+| pages/reports/components/ReportLibrary | setShowFavsOnly((v) => !v)} > Favorites | — | No | src/pages/reports/components/ReportLibrary.tsx | 112 |
+| pages/reports/components/ReportLibrary | handleToggleFav(d.id)} aria-label="Favorite"> | — | No | src/pages/reports/components/ReportLibrary.tsx | 134 |
+| pages/reports/components/ReportLibrary | onSchedule(d)}> Schedule | — | No | src/pages/reports/components/ReportLibrary.tsx | 146 |
+| pages/reports/components/ReportLibrary | handleGenerate(d)} disabled= > | — | No | src/pages/reports/components/ReportLibrary.tsx | 149 |
+| pages/reports/components/ReportPreviewDialog | handleExport('pdf')}> PDF | — | No | src/pages/reports/components/ReportPreviewDialog.tsx | 153 |
+| pages/reports/components/ReportPreviewDialog | handleExport(f.value as any)}> | — | No | src/pages/reports/components/ReportPreviewDialog.tsx | 160 |
+| pages/reports/components/ReportPreviewDialog | Print | — | No | src/pages/reports/components/ReportPreviewDialog.tsx | 165 |
+| pages/reports/components/ReportPreviewDialog | setPage((p) => Math.max(0, p - 1))}>Prev | — | No | src/pages/reports/components/ReportPreviewDialog.tsx | 207 |
+| pages/reports/components/ReportPreviewDialog | = totalPages} onClick= >Next | — | No | src/pages/reports/components/ReportPreviewDialog.tsx | 208 |
+| pages/reports/components/ReportSchedules | handleRunNow(s.id)}> | — | No | src/pages/reports/components/ReportSchedules.tsx | 165 |
+| pages/reports/components/ReportSchedules | setConfirmId(s.id)}> | — | No | src/pages/reports/components/ReportSchedules.tsx | 169 |
+| pages/reports/ReportPage | Generate Report | — | No | src/pages/reports/ReportPage.tsx | 76 |
+| pages/reports/ReportPage | Apply Filters | — | Yes | src/pages/reports/ReportPage.tsx | 108 |
+| pages/reports/ReportsDashboard | }> Schedule Report | — | No | src/pages/reports/ReportsDashboard.tsx | 41 |
+| pages/reports/ReportsDashboard | setTab('builder')}> New Report | — | No | src/pages/reports/ReportsDashboard.tsx | 44 |
+| pages/ResetPassword | navigate('/forgot-password')}> Request New Link | — | No | src/pages/ResetPassword.tsx | 90 |
+| pages/ResetPassword | navigate('/')}> Back to Sign In | — | No | src/pages/ResetPassword.tsx | 93 |
+| pages/ResetPassword | navigate('/')}>Sign In | — | No | src/pages/ResetPassword.tsx | 167 |
+| pages/returns-mgmt/ManageRules | Add Rule | — | No | src/pages/returns-mgmt/ManageRules.tsx | 45 |
+| pages/returns-mgmt/ManageScheduling | New Schedule | — | No | src/pages/returns-mgmt/ManageScheduling.tsx | 48 |
+| pages/returns-mgmt/ManageStructures | New Structure | — | No | src/pages/returns-mgmt/ManageStructures.tsx | 45 |
+| pages/returns-mgmt/ManageValidations | setEditing(r)} title="Edit"> | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 111 |
+| pages/returns-mgmt/ManageValidations | publish(r)} title="Publish new version"> | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 112 |
+| pages/returns-mgmt/ManageValidations | openHistory(r)} title="Version history"> | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 113 |
+| pages/returns-mgmt/ManageValidations | cloneRule(r)} title="Clone"> | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 114 |
+| pages/returns-mgmt/ManageValidations | archiveRule(r)} title="Archive"> | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 115 |
+| pages/returns-mgmt/ManageValidations | { const ok = await Swal.fire( ); if (ok.isConfirmed) del.mutate(r.id); }} title= | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 116 |
+| pages/returns-mgmt/ManageValidations | setEditing( )}> Add Rule | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 141 |
+| pages/returns-mgmt/ManageValidations | setEditing(null)}>Cancel | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 249 |
+| pages/returns-mgmt/ManageValidations | Save | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 250 |
+| pages/returns-mgmt/ManageValidations | rollback(historyRule.id, v.version)}> Rollback | — | No | src/pages/returns-mgmt/ManageValidations.tsx | 267 |
+| pages/returns-mgmt/PrudentialRatios | setEditing(r)} title="Edit"> | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 87 |
+| pages/returns-mgmt/PrudentialRatios | publish(r)} title="Publish new version"> | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 88 |
+| pages/returns-mgmt/PrudentialRatios | openHistory(r)} title="Version history"> | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 89 |
+| pages/returns-mgmt/PrudentialRatios | archive(r)} title="Archive"> | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 90 |
+| pages/returns-mgmt/PrudentialRatios | { const ok = await Swal.fire( ); if (ok.isConfirmed) del.mutate(r.id); }} title= | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 91 |
+| pages/returns-mgmt/PrudentialRatios | setEditing( )}> Add Ratio | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 113 |
+| pages/returns-mgmt/PrudentialRatios | setEditing(null)}>Cancel | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 171 |
+| pages/returns-mgmt/PrudentialRatios | Save | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 172 |
+| pages/returns-mgmt/PrudentialRatios | rollback(historyRatio.id, v.version)}> Rollback | — | No | src/pages/returns-mgmt/PrudentialRatios.tsx | 191 |
+| pages/returns-mgmt/PrudentialThresholds | setEditing(r)} title="Edit"> | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 91 |
+| pages/returns-mgmt/PrudentialThresholds | publish(r)} title="Publish new version"> | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 92 |
+| pages/returns-mgmt/PrudentialThresholds | openHistory(r)} title="Version history"> | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 93 |
+| pages/returns-mgmt/PrudentialThresholds | archive(r)} title="Archive"> | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 94 |
+| pages/returns-mgmt/PrudentialThresholds | { const ok = await Swal.fire( ); if (ok.isConfirmed) del.mutate(r.id); }} title= | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 95 |
+| pages/returns-mgmt/PrudentialThresholds | setEditing( )}> Add Threshold | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 117 |
+| pages/returns-mgmt/PrudentialThresholds | setEditing(null)}>Cancel | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 169 |
+| pages/returns-mgmt/PrudentialThresholds | Save | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 170 |
+| pages/returns-mgmt/PrudentialThresholds | rollback(historyThreshold.id, v.version)}> Rollback | — | No | src/pages/returns-mgmt/PrudentialThresholds.tsx | 189 |
+| pages/returns-mgmt/ReturnAnalysis | navigate(-1)}> Back | — | No | src/pages/returns-mgmt/ReturnAnalysis.tsx | 136 |
+| pages/returns-mgmt/ReturnAnalysis | regenerate.mutate()} disabled= > Regenerate | — | No | src/pages/returns-mgmt/ReturnAnalysis.tsx | 139 |
+| pages/returns-mgmt/ReturnAnalysis | regenerate.mutate()} disabled= > Generate Analysis | — | No | src/pages/returns-mgmt/ReturnAnalysis.tsx | 155 |
+| pages/returns-mgmt/ReturnDetail | navigate(adminBasePath)}> Back to Returns | returns_management.view | No | src/pages/returns-mgmt/ReturnDetail.tsx | 608 |
+| pages/returns-mgmt/ReturnDetail | setHistoryOpen(true)} data-rbac="returns_management.view"> History | returns_management.view | No | src/pages/returns-mgmt/ReturnDetail.tsx | 612 |
+| pages/returns-mgmt/ReturnDetail | setCompareOpen(true)} disabled= title= data-rbac="returns_management.view" > Com | returns_management.view | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 616 |
+| pages/returns-mgmt/ReturnDetail | navigate(`$ /$ /analysis`)} data-rbac="report_management.view"> View Analysis | report_management.view | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 629 |
+| pages/returns-mgmt/ReturnDetail | { const confirm = await Swal.fire( ); if (!confirm.isConfirmed) return; try { aw | returns_management.approve | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 717 |
+| pages/returns-mgmt/ReturnDetail | { if (!editDecisionComment.trim()) const confirm = await Swal.fire( ); if (!conf | returns_management.reject | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 742 |
+| pages/returns-mgmt/ReturnDetail | Approve Return | returns_management.approve | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 854 |
+| pages/returns-mgmt/ReturnDetail | Request Edit | returns_management.reject | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 864 |
+| pages/returns-mgmt/ReturnGroups | Create Group | — | No | src/pages/returns-mgmt/ReturnGroups.tsx | 45 |
+| pages/returns-mgmt/ViewReturns | }> Clear filter | — | No | src/pages/returns-mgmt/ViewReturns.tsx | 241 |
+| pages/returns-mgmt/ViewReturns | { const headers = ['Reference', 'Licensee Name', 'Return Type', 'Period Start',  | returns_management.export | Yes | src/pages/returns-mgmt/ViewReturns.tsx | 269 |
+| pages/returns-mgmt/ViewReturns | navigate(`$ /$ `)}> | — | No | src/pages/returns-mgmt/ViewReturns.tsx | 353 |
+| pages/returns-mgmt/ViewReturns | setPage(p => p - 1)}> | — | No | src/pages/returns-mgmt/ViewReturns.tsx | 371 |
+| pages/returns-mgmt/ViewReturns | = totalPages - 1} onClick= > | — | No | src/pages/returns-mgmt/ViewReturns.tsx | 375 |
+| pages/Returns | View Calendar | — | No | src/pages/Returns.tsx | 144 |
+| pages/Returns | View Overdue | — | No | src/pages/Returns.tsx | 189 |
+| pages/Returns | Filters | — | No | src/pages/Returns.tsx | 217 |
+| pages/settings/ApplicationFormSettings | notifyVersionChange.mutate({ versionId: r.id, templateName: r.form_templates?.na | — | No | src/pages/settings/ApplicationFormSettings.tsx | 136 |
+| pages/settings/ApplicationFormSettings | navigate('/settings')}> Back | — | No | src/pages/settings/ApplicationFormSettings.tsx | 170 |
+| pages/settings/ApplicationFormSettings | Save Changes | — | No | src/pages/settings/ApplicationFormSettings.tsx | 173 |
+| pages/settings/BrandingSettings | navigate('/settings')}> Back | — | No | src/pages/settings/BrandingSettings.tsx | 118 |
+| pages/settings/BrandingSettings | Save Changes | — | No | src/pages/settings/BrandingSettings.tsx | 119 |
+| pages/settings/BrandingSettings | logoInputRef.current?.click()}> Upload | — | No | src/pages/settings/BrandingSettings.tsx | 163 |
+| pages/settings/BrandingSettings | faviconInputRef.current?.click()}> Upload | — | No | src/pages/settings/BrandingSettings.tsx | 193 |
+| pages/settings/BrandingSettings | removeMenuItem(i)}> | — | No | src/pages/settings/BrandingSettings.tsx | 219 |
+| pages/settings/BrandingSettings | Add Link | — | No | src/pages/settings/BrandingSettings.tsx | 222 |
+| pages/settings/BrandingSettings | removeFooterLink(i)}> | — | No | src/pages/settings/BrandingSettings.tsx | 268 |
+| pages/settings/BrandingSettings | Add Link | — | No | src/pages/settings/BrandingSettings.tsx | 271 |
+| pages/settings/BrandingSettings | removeSocial(i)}> | — | No | src/pages/settings/BrandingSettings.tsx | 294 |
+| pages/settings/BrandingSettings | Add Social | — | No | src/pages/settings/BrandingSettings.tsx | 297 |
+| pages/settings/CertificateSignatorySettings | navigate('/settings')}> Back | — | No | src/pages/settings/CertificateSignatorySettings.tsx | 214 |
+| pages/settings/CertificateSignatorySettings | Save Changes | — | No | src/pages/settings/CertificateSignatorySettings.tsx | 217 |
+| pages/settings/CertificateSignatorySettings | props.inputRef.current?.click()} disabled= > | — | No | src/pages/settings/CertificateSignatorySettings.tsx | 331 |
+| pages/settings/CertificateSignatorySettings | Remove | — | No | src/pages/settings/CertificateSignatorySettings.tsx | 346 |
+| pages/settings/DataManagementSettings | navigate('/settings')}> Back | — | No | src/pages/settings/DataManagementSettings.tsx | 23 |
+| pages/settings/DataManagementSettings | Save Changes | — | No | src/pages/settings/DataManagementSettings.tsx | 24 |
+| pages/settings/DataManagementSettings | Export Database | — | No | src/pages/settings/DataManagementSettings.tsx | 60 |
+| pages/settings/DataManagementSettings | Export Audit Logs | — | No | src/pages/settings/DataManagementSettings.tsx | 61 |
+| pages/settings/DataManagementSettings | Purge | — | No | src/pages/settings/DataManagementSettings.tsx | 97 |
+| pages/settings/EmailSmsSettings | navigate('/settings')}> Back | — | No | src/pages/settings/EmailSmsSettings.tsx | 140 |
+| pages/settings/EmailSmsSettings | Save Changes | — | No | src/pages/settings/EmailSmsSettings.tsx | 143 |
+| pages/settings/EmailSmsSettings | Send Test Email | — | No | src/pages/settings/EmailSmsSettings.tsx | 251 |
+| pages/settings/GeneralSettings | navigate('/settings')}> Back | — | No | src/pages/settings/GeneralSettings.tsx | 51 |
+| pages/settings/GeneralSettings | Save Changes | — | No | src/pages/settings/GeneralSettings.tsx | 52 |
+| pages/settings/IntegrationSettings | navigate('/settings')}> Back | — | No | src/pages/settings/IntegrationSettings.tsx | 26 |
+| pages/settings/IntegrationSettings | Save Changes | — | No | src/pages/settings/IntegrationSettings.tsx | 27 |
+| pages/settings/LicenseExpirySettings | navigate('/settings')}> Back | — | No | src/pages/settings/LicenseExpirySettings.tsx | 224 |
+| pages/settings/LicenseExpirySettings | Save Changes | — | No | src/pages/settings/LicenseExpirySettings.tsx | 227 |
+| pages/settings/LicenseExpirySettings | Add another sector | — | No | src/pages/settings/LicenseExpirySettings.tsx | 243 |
+| pages/settings/LicenseExpirySettings | removeRule(rule.id)}> | — | No | src/pages/settings/LicenseExpirySettings.tsx | 256 |
+| pages/settings/NotificationSettings | navigate('/settings')}> Back | — | No | src/pages/settings/NotificationSettings.tsx | 22 |
+| pages/settings/NotificationSettings | Save Changes | — | No | src/pages/settings/NotificationSettings.tsx | 23 |
+| pages/settings/PaymentSettings | navigate('/settings')}> Back | — | No | src/pages/settings/PaymentSettings.tsx | 27 |
+| pages/settings/PaymentSettings | Save Changes | — | No | src/pages/settings/PaymentSettings.tsx | 28 |
+| pages/settings/PaymentSettings | navigate('/admin/fee-management')}> Go to Fee Management | — | No | src/pages/settings/PaymentSettings.tsx | 85 |
+| pages/settings/ScheduleSettings | navigate('/settings')}> Back | — | No | src/pages/settings/ScheduleSettings.tsx | 40 |
+| pages/settings/ScheduleSettings | Save Changes | — | No | src/pages/settings/ScheduleSettings.tsx | 41 |
+| pages/settings/ScheduleSettings | Add Holiday | — | No | src/pages/settings/ScheduleSettings.tsx | 94 |
+| pages/settings/SecuritySettings | navigate('/settings')}> Back | — | No | src/pages/settings/SecuritySettings.tsx | 22 |
+| pages/settings/SecuritySettings | Save Changes | — | No | src/pages/settings/SecuritySettings.tsx | 23 |
+| pages/StatementReports | Generate Statement | — | No | src/pages/StatementReports.tsx | 27 |
+| pages/StatementReports | PDF | — | No | src/pages/StatementReports.tsx | 73 |
+| pages/supervision/BreachInbox | }> Ack | — | No | src/pages/supervision/BreachInbox.tsx | 327 |
+| pages/supervision/BreachInbox | }> Escalate | — | No | src/pages/supervision/BreachInbox.tsx | 330 |
+| pages/supervision/BreachInbox | setAckTarget(null)}>Cancel | — | No | src/pages/supervision/BreachInbox.tsx | 366 |
+| pages/supervision/BreachInbox | { if (!ackTarget) return; const highRisk = ackTarget.level === 'critical' \|\| ack | — | No | src/pages/supervision/BreachInbox.tsx | 367 |
+| pages/supervision/BreachInbox | setEscTarget(null)}>Cancel | — | No | src/pages/supervision/BreachInbox.tsx | 427 |
+| pages/supervision/BreachInbox | escalate.mutate()} disabled= > Create enforcement case | — | No | src/pages/supervision/BreachInbox.tsx | 428 |
+| pages/supervision/NewThematicReview | setStep(s => s - 1)}> Back | — | No | src/pages/supervision/NewThematicReview.tsx | 202 |
+| pages/supervision/NewThematicReview | setStep(s => s + 1)}>Next | — | No | src/pages/supervision/NewThematicReview.tsx | 204 |
+| pages/supervision/NewThematicReview | Create Review | — | No | src/pages/supervision/NewThematicReview.tsx | 206 |
+| pages/supervision/PrudentialEarlyWarnings | runRecompute.mutate()} disabled= > Recompute | — | No | src/pages/supervision/PrudentialEarlyWarnings.tsx | 135 |
+| pages/supervision/PrudentialEarlyWarnings | Export CSV | — | No | src/pages/supervision/PrudentialEarlyWarnings.tsx | 139 |
+| pages/supervision/PrudentialEarlyWarnings | nav(`/admin/licensees/$ `)}>Open | — | No | src/pages/supervision/PrudentialEarlyWarnings.tsx | 222 |
+| pages/supervision/PrudentialEarlyWarnings | seedAction.mutate(r)} disabled= > Seed action | — | No | src/pages/supervision/PrudentialEarlyWarnings.tsx | 223 |
+| pages/supervision/RiskHeatmap | recompute.mutate()} disabled= > Recompute now | — | No | src/pages/supervision/RiskHeatmap.tsx | 108 |
+| pages/supervision/SupervisoryPlansDashboard | setBulkMode('reassign')}> Reassign | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 306 |
+| pages/supervision/SupervisoryPlansDashboard | setBulkMode('extend')}> Extend due | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 307 |
+| pages/supervision/SupervisoryPlansDashboard | setBulkMode('complete')}> Mark complete | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 308 |
+| pages/supervision/SupervisoryPlansDashboard | setSelected(new Set())}>Clear | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 309 |
+| pages/supervision/SupervisoryPlansDashboard | submitForReview.mutate(plan.id)}> Submit | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 370 |
+| pages/supervision/SupervisoryPlansDashboard | approvePlan.mutate(plan.id)}> Approve | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 375 |
+| pages/supervision/SupervisoryPlansDashboard | Cancel | — | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 405 |
+| pages/supervision/SupervisoryPlansDashboard | runBulk.mutate()} disabled= > Reassign | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 406 |
+| pages/supervision/SupervisoryPlansDashboard | Cancel | — | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 421 |
+| pages/supervision/SupervisoryPlansDashboard | { const anyOverdue = Array.from(selected).some((id) => ); if (anyOverdue) { cons | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 422 |
+| pages/supervision/SupervisoryPlansDashboard | Cancel | — | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 459 |
+| pages/supervision/SupervisoryPlansDashboard | runBulk.mutate()} disabled= > Mark complete | — | No | src/pages/supervision/SupervisoryPlansDashboard.tsx | 460 |
+| pages/supervision/ThematicReviewDetail | setTransition( )}> Move back | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 122 |
+| pages/supervision/ThematicReviewDetail | setTransition( )}> Advance → | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 127 |
+| pages/supervision/ThematicReviewDetail | setTransition(null)}>Cancel | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 207 |
+| pages/supervision/ThematicReviewDetail | transition && runTransition(transition.to, undefined, transitionReason \|\| undefi | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 208 |
+| pages/supervision/ThematicReviewDetail | removeEntity(e.id)}>Remove | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 305 |
+| pages/supervision/ThematicReviewDetail | removeProduct(p.id)}>Remove | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 325 |
+| pages/supervision/ThematicReviewDetail | Add evidence | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 377 |
+| pages/supervision/ThematicReviewDetail | Add finding | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 458 |
+| pages/supervision/ThematicReviewDetail | issue(f)}>Issue | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 478 |
+| pages/supervision/ThematicReviewDetail | Add action | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 562 |
+| pages/supervision/ThematicReviewDetail | complete(a)}>Complete | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 584 |
+| pages/supervision/ThematicReviewDetail | setWaiveTarget(a)}> Waive | — | No | src/pages/supervision/ThematicReviewDetail.tsx | 585 |
+| pages/supervision/ThematicReviews | nav('/supervision/thematic-reviews/new')}> New Review | — | No | src/pages/supervision/ThematicReviews.tsx | 85 |
+| pages/supervision/ThematicReviews | Open | — | No | src/pages/supervision/ThematicReviews.tsx | 153 |
+| pages/UploadReturns | Browse Files | — | No | src/pages/UploadReturns.tsx | 78 |
+| pages/workflows/WorkflowList | setTemplatesOpen(true)}> Templates | — | No | src/pages/workflows/WorkflowList.tsx | 793 |
+| pages/workflows/WorkflowList | setCreateOpen(true)} disabled= title= > New Workflow | — | No | src/pages/workflows/WorkflowList.tsx | 796 |
+| pages/workflows/WorkflowList | setCreateOpen(true)}> Create First Workflow | — | No | src/pages/workflows/WorkflowList.tsx | 841 |
+| pages/workflows/WorkflowList | } aria-label={`Open workflow builder for $ `} title="Open workflow builder" > Bu | — | No | src/pages/workflows/WorkflowList.tsx | 933 |
+| pages/workflows/WorkflowList | } aria-label={`Edit workflow $ `} title="Edit workflow" > | — | No | src/pages/workflows/WorkflowList.tsx | 943 |
+| pages/workflows/WorkflowList | } aria-label={`Delete workflow $ `} > | — | No | src/pages/workflows/WorkflowList.tsx | 953 |
+| pages/workflows/WorkflowList | handleToggleActive(selectedWorkflow)}> | — | No | src/pages/workflows/WorkflowList.tsx | 978 |
+| pages/workflows/WorkflowList | Save as Template | — | No | src/pages/workflows/WorkflowList.tsx | 981 |
+| pages/workflows/WorkflowList | setIsEditingSteps(true)}> Edit Steps | — | No | src/pages/workflows/WorkflowList.tsx | 985 |
+| pages/workflows/WorkflowList | Add Step | — | No | src/pages/workflows/WorkflowList.tsx | 990 |
+| pages/workflows/WorkflowList | setIsEditingSteps(false)}> Done | — | No | src/pages/workflows/WorkflowList.tsx | 993 |
+| pages/workflows/WorkflowList | setCreateOpen(false)}>Cancel | — | No | src/pages/workflows/WorkflowList.tsx | 1172 |
+| pages/workflows/WorkflowList | setEditOpen(false)}>Cancel | — | No | src/pages/workflows/WorkflowList.tsx | 1289 |
+| pages/workflows/WorkflowList | handleDeleteTemplate(t)} > | — | No | src/pages/workflows/WorkflowList.tsx | 1332 |
+| pages/workflows/WorkflowList | setTemplatesOpen(false)}>Close | — | No | src/pages/workflows/WorkflowList.tsx | 1346 |
+| pages/workflows/WorkflowList | Add Step 1 | — | No | src/pages/workflows/WorkflowList.tsx | 1399 |
+| pages/workflows/WorkflowList | Add another step | — | No | src/pages/workflows/WorkflowList.tsx | 1432 |
+| pages/workflows/WorkflowList | onMove(index, -1)} title="Move up" aria-label={`Move step $ up`} > | — | No | src/pages/workflows/WorkflowList.tsx | 1717 |
+| pages/workflows/WorkflowList | onMove(index, 1)} title="Move down" aria-label={`Move step $ down`} > | — | No | src/pages/workflows/WorkflowList.tsx | 1726 |
+| pages/workflows/WorkflowList | onDelete(step.id)} title="Remove step" aria-label={`Remove step $ `} > | — | No | src/pages/workflows/WorkflowList.tsx | 1735 |

@@ -48,6 +48,8 @@ import { useReturnRevisions, snapshotReturnRevision, pickEditBaseline } from '@/
 import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevisionCompareDialog';
 import { GitCompareArrows } from 'lucide-react';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
+import { PermissionGate } from '@/components/auth/PermissionGate';
+
 
 function formatCellValue(value: any): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -607,23 +609,29 @@ export default function ReturnDetail() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} data-rbac="returns_management.view">
               <History className="h-4 w-4 mr-1" /> History
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCompareOpen(true)}
-              disabled={revisionsLoading || !canCompareVersions}
-              title={compareVersionsTitle}
-            >
-              {revisionsLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <GitCompareArrows className="h-4 w-4 mr-1" />} Compare Versions
-              {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
-              View Analysis
-            </Button>
+            <PermissionGate module="returns_management" action="view">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCompareOpen(true)}
+                disabled={revisionsLoading || !canCompareVersions}
+                title={compareVersionsTitle}
+                data-rbac="returns_management.view"
+              >
+                {revisionsLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <GitCompareArrows className="h-4 w-4 mr-1" />} Compare Versions
+                {revisions.length > 0 && <Badge variant="outline" className="ml-2 text-[10px]">{revisions.length}</Badge>}
+              </Button>
+            </PermissionGate>
+            <PermissionGate module="report_management" action="view">
+              <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)} data-rbac="report_management.view">
+                View Analysis
+              </Button>
+            </PermissionGate>
           </div>
+
         </div>
         <div className="bg-card border rounded-lg p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -705,56 +713,63 @@ export default function ReturnDetail() {
                 />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={decideEditRequest.isPending}
-                  onClick={async () => {
-                    const confirm = await Swal.fire({
-                      title: 'Allow licensee to edit?',
-                      text: 'The return will be reopened for the licensee to correct and resubmit.',
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonText: 'Allow Edit',
-                      confirmButtonColor: '#16a34a',
-                    });
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'allowed', comment: editDecisionComment, returnId: id! });
-                      setEditDecisionComment('');
-                    } catch { /* toast handled */ }
-                  }}
-                >
-                  {decideEditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                  Allow Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive/10"
-                  disabled={decideEditRequest.isPending}
-                  onClick={async () => {
-                    if (!editDecisionComment.trim()) {
-                      toast.error('Please provide a reason for denying the request.');
-                      return;
-                    }
-                    const confirm = await Swal.fire({
-                      title: 'Deny edit request?',
-                      text: 'The licensee will be notified. The return status is unchanged.',
-                      icon: 'warning',
-                      showCancelButton: true,
-                      confirmButtonText: 'Deny Request',
-                      confirmButtonColor: '#dc2626',
-                    });
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
-                      setEditDecisionComment('');
-                    } catch { /* toast handled */ }
-                  }}
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Deny Request
-                </Button>
+                <PermissionGate module="returns_management" action="approve">
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={decideEditRequest.isPending}
+                    data-rbac="returns_management.approve"
+                    onClick={async () => {
+                      const confirm = await Swal.fire({
+                        title: 'Allow licensee to edit?',
+                        text: 'The return will be reopened for the licensee to correct and resubmit.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Allow Edit',
+                        confirmButtonColor: '#16a34a',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'allowed', comment: editDecisionComment, returnId: id! });
+                        setEditDecisionComment('');
+                      } catch { /* toast handled */ }
+                    }}
+                  >
+                    {decideEditRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                    Allow Edit
+                  </Button>
+                </PermissionGate>
+                <PermissionGate module="returns_management" action="reject">
+                  <Button
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
+                    disabled={decideEditRequest.isPending}
+                    data-rbac="returns_management.reject"
+                    onClick={async () => {
+                      if (!editDecisionComment.trim()) {
+                        toast.error('Please provide a reason for denying the request.');
+                        return;
+                      }
+                      const confirm = await Swal.fire({
+                        title: 'Deny edit request?',
+                        text: 'The licensee will be notified. The return status is unchanged.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Deny Request',
+                        confirmButtonColor: '#dc2626',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
+                        setEditDecisionComment('');
+                      } catch { /* toast handled */ }
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Deny Request
+                  </Button>
+                </PermissionGate>
               </div>
+
             </CardContent>
           </Card>
         )}
@@ -835,21 +850,28 @@ export default function ReturnDetail() {
                           disabled={!!submitting} />
                       </div>
                       <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button onClick={handleApprove} disabled={!!submitting}
-                          className="bg-green-600 hover:bg-green-700">
-                          {submitting === 'approve'
-                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            : <CheckCircle className="h-4 w-4 mr-2" />}
-                          Approve Return
-                        </Button>
-                        <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
-                          className="border-amber-500 text-amber-700 hover:bg-amber-50">
-                          {submitting === 'request_edit'
-                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            : <AlertTriangle className="h-4 w-4 mr-2" />}
-                          Request Edit
-                        </Button>
+                        <PermissionGate module="returns_management" action="approve">
+                          <Button onClick={handleApprove} disabled={!!submitting}
+                            data-rbac="returns_management.approve"
+                            className="bg-green-600 hover:bg-green-700">
+                            {submitting === 'approve'
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              : <CheckCircle className="h-4 w-4 mr-2" />}
+                            Approve Return
+                          </Button>
+                        </PermissionGate>
+                        <PermissionGate module="returns_management" action="reject">
+                          <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
+                            data-rbac="returns_management.reject"
+                            className="border-amber-500 text-amber-700 hover:bg-amber-50">
+                            {submitting === 'request_edit'
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              : <AlertTriangle className="h-4 w-4 mr-2" />}
+                            Request Edit
+                          </Button>
+                        </PermissionGate>
                       </div>
+
                     </div>
                   ) : isApproved ? (
                     <Alert className="border-green-500 bg-green-50">
