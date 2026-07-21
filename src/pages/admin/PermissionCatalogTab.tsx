@@ -135,9 +135,11 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                     <CardTitle className="text-base flex items-center gap-2"><Zap className="h-4 w-4" /> Actions in {selectedModule.label}</CardTitle>
                     <CardDescription>Operations users can be granted on this module</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-1" />Action
-                  </Button>
+                  {canManage && (
+                    <Button size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-1" />Action
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -150,16 +152,18 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                           </div>
                           {a.description && <div className="text-xs text-muted-foreground">{a.description}</div>}
                         </div>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => { setEditingAction(a); setActionDialogOpen(true); }}>
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          {!a.is_system && (
-                            <Button size="sm" variant="ghost" onClick={() => handleDeleteAction(a)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        {canManage && (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => { setEditingAction(a); setActionDialogOpen(true); }}>
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
-                          )}
-                        </div>
+                            {!a.is_system && (
+                              <Button size="sm" variant="ghost" onClick={() => handleDeleteAction(a)}>
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {actionsFor(selectedModule.id).length === 0 && (
