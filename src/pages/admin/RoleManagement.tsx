@@ -148,6 +148,8 @@ export default function RoleManagement() {
   const canDelete = useCan('role_management', 'delete');
   const canReset = useCan('role_management', 'reset');
   const canAssign = useCan('role_management', 'assign_permissions');
+  const canViewCatalog = useCan('role_management', 'view_catalog');
+  const canManageCatalog = useCan('role_management', 'manage_catalog');
 
   // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
   // Radix can leave `pointer-events: none` on <body> and orphaned closed overlays in the
