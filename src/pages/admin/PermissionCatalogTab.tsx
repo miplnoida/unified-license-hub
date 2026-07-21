@@ -103,9 +103,9 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                 module={m}
                 selected={selectedModuleId === m.id}
                 onSelect={() => setSelectedModuleId(m.id)}
-                onEdit={() => openEditModule(m)}
-                onDelete={() => handleDeleteModule(m)}
-                onAddChild={() => openCreateModule(m.id)}
+                onEdit={canManage ? () => openEditModule(m) : undefined}
+                onDelete={canManage ? () => handleDeleteModule(m) : undefined}
+                onAddChild={canManage ? () => openCreateModule(m.id) : undefined}
                 children={childrenOf(m.id).map(c => (
                   <ModuleRow
                     key={c.id}
@@ -113,8 +113,8 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                     nested
                     selected={selectedModuleId === c.id}
                     onSelect={() => setSelectedModuleId(c.id)}
-                    onEdit={() => openEditModule(c)}
-                    onDelete={() => handleDeleteModule(c)}
+                    onEdit={canManage ? () => openEditModule(c) : undefined}
+                    onDelete={canManage ? () => handleDeleteModule(c) : undefined}
                   />
                 ))}
               />
