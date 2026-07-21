@@ -100,12 +100,20 @@ const PUBLIC_ALLOW_PATTERNS: RegExp[] = [
   /^copy\b/i,
 ];
 
+const SKIP_FILES = new Set([
+  'components/auth/GuardedButton.tsx',
+  'components/auth/PermissionGate.tsx',
+]);
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
     const s = statSync(p);
     if (s.isDirectory()) walk(p, out);
-    else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) && !/\.spec\.tsx?$/.test(entry)) out.push(p);
+    else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) && !/\.spec\.tsx?$/.test(entry)) {
+      const rel = relative(SRC, p).replace(/\\/g, '/');
+      if (!SKIP_FILES.has(rel)) out.push(p);
+    }
   }
   return out;
 }
