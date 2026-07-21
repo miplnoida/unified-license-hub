@@ -6,8 +6,8 @@
  * Any change here must be reflected in the migration in
  * supabase/migrations/20260721170000_rbac_transactional_saves.sql.
  */
-import { permissionDependencies } from './permissionDependencies';
-import { SENSITIVE_ACTIONS, type SensitiveAction } from './accessLevels';
+import { DEPENDENT_ACTIONS, permissionHasDependency } from './permissionDependencies';
+import { SENSITIVE_ACTION_NAMES } from './accessLevels';
 
 export interface Permission { id: string; module: string; name: string }
 
