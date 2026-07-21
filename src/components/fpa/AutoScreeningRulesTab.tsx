@@ -427,7 +427,7 @@ export default function AutoScreeningRulesTab() {
           Configure which screening process runs automatically when a business event occurs — e.g. running a sanctions
           check as soon as a declaration is received for a particular assessment type.
         </p>
-        <Button onClick={() => setAddOpen(true)} className="shrink-0">
+        <Button data-rbac="fit_and_proper_screening.create" onClick={() => setAddOpen(true)} className="shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           Add Rule
         </Button>
@@ -542,7 +542,7 @@ export default function AutoScreeningRulesTab() {
                         })}
                       </TableCell>
                       <TableCell>
-                        <Button
+                        <Button data-rbac="fit_and_proper_screening.edit"
                           size="sm"
                           variant="ghost"
                           className="gap-1.5 h-7 px-2"

@@ -109,9 +109,9 @@ export default function FitAndProperIndividuals() {
           description="Individuals in regulated positions (directors, key persons, senior managers) tracked through the FP lifecycle."
           actions={
             <div className="flex gap-2">
-              <Button asChild variant="outline"><a href="/fit-and-proper/trends">Population trends</a></Button>
+              <Button data-rbac="fit_and_proper.view" asChild variant="outline"><a href="/fit-and-proper/trends">Population trends</a></Button>
               <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Add Individual</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="fit_and_proper.create"><Plus className="h-4 w-4 mr-2" /> Add Individual</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add Individual</DialogTitle></DialogHeader>
                 <div className="space-y-3">
@@ -128,7 +128,7 @@ export default function FitAndProperIndividuals() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={() => create.mutate()} disabled={create.isPending}>
+                  <Button data-rbac="fit_and_proper.create" onClick={() => create.mutate()} disabled={create.isPending}>
                     {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save
                   </Button>
                 </DialogFooter>

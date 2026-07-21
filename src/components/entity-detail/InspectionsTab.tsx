@@ -50,7 +50,7 @@ export default function InspectionsTab({ entityId }: { entityId: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg"><ClipboardCheck className="h-5 w-5 text-primary" />Inspections</CardTitle>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
+        <Button data-rbac="licensee_management.edit" size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
       </CardHeader>
       <CardContent>
         <div className="mb-4 relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} /></div>
@@ -86,7 +86,7 @@ export default function InspectionsTab({ entityId }: { entityId: string }) {
             <div className="space-y-2"><Label>Status</Label><Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="in_progress">In Progress</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select></div>
             <div className="space-y-2"><Label>Findings Summary</Label><Textarea value={form.findings_summary} onChange={e => setForm(f => ({ ...f, findings_summary: e.target.value }))} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
+          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

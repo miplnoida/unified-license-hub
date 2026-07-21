@@ -202,7 +202,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
               </Button>
             )}
             {canDispatch && cert.dispatch_status === 'ready' && (
-              <Button size="sm" variant="secondary" onClick={() => setDispatchOpen(true)}>
+              <Button data-rbac="license_management.approve" size="sm" variant="secondary" onClick={() => setDispatchOpen(true)}>
                 <Send className="h-4 w-4 mr-1" />
                 Dispatch to Licensee
               </Button>
@@ -256,7 +256,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSignOpen(false)} disabled={working}>Cancel</Button>
-            <Button onClick={handleSign} disabled={working || reason.trim().length < 10}>
+            <Button data-rbac="license_management.approve" onClick={handleSign} disabled={working || reason.trim().length < 10}>
               {working ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSignature className="h-4 w-4 mr-1" />}
               Sign
             </Button>
@@ -278,7 +278,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDispatchOpen(false)} disabled={working}>Cancel</Button>
-            <Button onClick={handleDispatch} disabled={working}>
+            <Button data-rbac="license_management.approve" onClick={handleDispatch} disabled={working}>
               {working ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               Dispatch
             </Button>

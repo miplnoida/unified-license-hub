@@ -50,7 +50,7 @@ export default function PrudentialTaxonomyAdmin() {
             <h1 className="text-2xl font-semibold">Prudential Risk Taxonomy</h1>
             <p className="text-sm text-muted-foreground">Configurable risk categories linked to ratios, thresholds, indicators.</p>
           </div>
-          <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-2" />New category</Button>
+          <Button data-rbac="prudential_supervision.edit" size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-2" />New category</Button>
         </div>
 
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setForm(emptyForm); }}>
@@ -88,13 +88,13 @@ export default function PrudentialTaxonomyAdmin() {
                   <TableCell className="max-w-md truncate">{t.description}</TableCell>
                   <TableCell>{t.is_active ? 'Yes' : 'No'}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(t)}>
+                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => openEdit(t)}>
                       <Pencil className="h-4 w-4 mr-1" />Edit
                     </Button>
                     {t.is_active ? (
-                      <Button size="sm" variant="ghost" onClick={() => del.mutate(t.id)}>Deactivate</Button>
+                      <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => del.mutate(t.id)}>Deactivate</Button>
                     ) : (
-                      <Button size="sm" variant="ghost" onClick={() => upsert.mutate({ id: t.id, is_active: true })}>Reactivate</Button>
+                      <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => upsert.mutate({ id: t.id, is_active: true })}>Reactivate</Button>
                     )}
                   </TableCell>
                 </TableRow>

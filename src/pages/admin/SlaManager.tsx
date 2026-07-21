@@ -86,7 +86,7 @@ export default function SlaManager() {
           title="SLA Manager"
           description="Configure SLA timers, business calendars, and escalation chains across workflow stages."
           actions={
-            <Button variant="outline" onClick={() => navigate('/workflows')}>
+            <Button data-rbac="workflow_management.view" variant="outline" onClick={() => navigate('/workflows')}>
               <GitBranch className="h-4 w-4 mr-2" /> Workflow Designer
             </Button>
           }
@@ -256,7 +256,7 @@ function SlaConfigTab() {
           <CardTitle>SLA Configuration</CardTitle>
           <CardDescription>Per process-type / stage. Edits save on blur; toggles save immediately.</CardDescription>
         </div>
-        <Button onClick={addRow}><Plus className="h-4 w-4 mr-2" /> Add SLA</Button>
+        <Button data-rbac="workflow_management.edit" onClick={addRow}><Plus className="h-4 w-4 mr-2" /> Add SLA</Button>
       </CardHeader>
       <CardContent>
         <RetroNotice />
@@ -623,7 +623,7 @@ function CalendarTab() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={saveProfile}>Save Calendar</Button>
+                <Button data-rbac="workflow_management.edit" onClick={saveProfile}>Save Calendar</Button>
               </div>
             </CardContent>
           )}

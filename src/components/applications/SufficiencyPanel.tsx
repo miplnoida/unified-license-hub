@@ -121,7 +121,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
         </CardTitle>
         <div className="flex items-center gap-2">
           {autoRfiCandidates.length > 0 && (
-            <Button size="sm" variant="outline" onClick={() => setRfiOpen(true)}>
+            <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={() => setRfiOpen(true)}>
               <MessageSquarePlus className="h-4 w-4 mr-2" />
               Create RFI from Failed Rules ({autoRfiCandidates.length})
             </Button>
@@ -161,7 +161,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
                       <TableCell className="text-xs text-muted-foreground max-w-[240px] truncate">{r.detail ? JSON.stringify(r.detail) : '—'}</TableCell>
                       <TableCell className="text-right">
                         {(r.status === 'fail' || r.status === 'warning') && !ov && (
-                          <Button size="sm" variant="outline" onClick={() => setOverride({ result: r, reason: '' })}>Override</Button>
+                          <Button data-rbac="application_management.approve" size="sm" variant="outline" onClick={() => setOverride({ result: r, reason: '' })}>Override</Button>
                         )}
                       </TableCell>
                     </TableRow>
@@ -184,7 +184,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOverride({ result: null, reason: '' })}>Cancel</Button>
-            <Button onClick={submitOverride}>Record Override</Button>
+            <Button data-rbac="application_management.approve" onClick={submitOverride}>Record Override</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

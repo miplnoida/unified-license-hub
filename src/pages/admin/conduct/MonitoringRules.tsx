@@ -80,8 +80,8 @@ export default function MonitoringRules() {
           description="Automated rules that continuously scan conduct signals and feed into entity risk profiles."
           actions={
             <div className="flex gap-2">
-              <Button variant="outline" onClick={runNow} disabled={running}>{running ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />} Run now</Button>
-              <Button onClick={() => setEdit({ name: '', rule_type: 'complaint_volume', scope: 'entity', frequency: 'daily', active: true, risk_delta: 5, definition: '{\n  "window_days": 30,\n  "threshold": 5\n}' })}>
+              <Button data-rbac="market_conduct.edit" variant="outline" onClick={runNow} disabled={running}>{running ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />} Run now</Button>
+              <Button data-rbac="market_conduct.edit" onClick={() => setEdit({ name: '', rule_type: 'complaint_volume', scope: 'entity', frequency: 'daily', active: true, risk_delta: 5, definition: '{\n  "window_days": 30,\n  "threshold": 5\n}' })}>
                 <Plus className="h-4 w-4 mr-1" /> New rule
               </Button>
             </div>
@@ -106,7 +106,7 @@ export default function MonitoringRules() {
                   <TableCell className="text-xs">{r.risk_delta}</TableCell>
                   <TableCell><Switch checked={r.active} onCheckedChange={() => toggle(r)} /></TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" onClick={() => setEdit({ ...r, definition: JSON.stringify(r.definition || {}, null, 2) })}>Edit</Button>
+                    <Button data-rbac="market_conduct.edit" size="sm" variant="ghost" onClick={() => setEdit({ ...r, definition: JSON.stringify(r.definition || {}, null, 2) })}>Edit</Button>
                   </TableCell>
                 </TableRow>
               ))}</TableBody>
@@ -138,7 +138,7 @@ export default function MonitoringRules() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancel</Button>
-            <Button onClick={save}>Save</Button>
+            <Button data-rbac="market_conduct.edit" onClick={save}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

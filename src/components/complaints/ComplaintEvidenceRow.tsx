@@ -66,8 +66,8 @@ export function ComplaintEvidenceRow({ complaint: c, refs, onReprintAck, onRetry
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-4">
-        <Button size="sm" variant="outline" onClick={onReprintAck}><Printer className="h-3 w-3 mr-1" />Reprint acknowledgement</Button>
-        <Button size="sm" variant="outline" onClick={onRetryTriage}><RefreshCw className="h-3 w-3 mr-1" />Retry auto-triage</Button>
+        <Button data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={onReprintAck}><Printer className="h-3 w-3 mr-1" />Reprint acknowledgement</Button>
+        <Button data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={onRetryTriage}><RefreshCw className="h-3 w-3 mr-1" />Retry auto-triage</Button>
         <Button size="sm" variant="outline" asChild>
           <Link to={`/complaints/${c.id}`}><ExternalLink className="h-3 w-3 mr-1" />Open full detail & history</Link>
         </Button>

@@ -461,7 +461,7 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
                 <div className="text-sm text-muted-foreground">No risk profile generated yet.</div>
               )}
             </div>
-            <Button size="sm" variant="outline" onClick={generateProfile} disabled={generating}>
+            <Button data-rbac="licensee_management.edit" size="sm" variant="outline" onClick={generateProfile} disabled={generating}>
               {generating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
               Generate risk profile
             </Button>
@@ -489,7 +489,7 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
               Uses templates aligned to the current risk-profile tier. The plan is created as a draft in the Supervisory Plan tab.
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" onClick={autoCreatePlan} disabled={!canAutoCreate || creatingPlan}>
+              <Button data-rbac="licensee_management.edit" size="sm" onClick={autoCreatePlan} disabled={!canAutoCreate || creatingPlan}>
                 {creatingPlan && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                 Auto-create initial plan
               </Button>

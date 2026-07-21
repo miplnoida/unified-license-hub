@@ -205,7 +205,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Step Actions
         </Label>
-        <Button
+        <Button data-rbac="workflow_management.edit"
           type="button"
           size="sm"
           variant="outline"
@@ -624,13 +624,13 @@ function DigitalSignatureBlock({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Button
+                <Button data-rbac="workflow_management.edit"
                   type="button" variant="outline" size="sm" className="h-7 text-xs"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="h-3 w-3 mr-1" /> Replace
                 </Button>
-                <Button
+                <Button data-rbac="workflow_management.view"
                   type="button" variant="outline" size="sm" className="h-7 text-xs"
                   onClick={handleDownload}
                 >
@@ -646,7 +646,7 @@ function DigitalSignatureBlock({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Button
+              <Button data-rbac="workflow_management.edit"
                 type="button" variant="outline" size="sm" className="h-7 text-xs"
                 onClick={() => fileInputRef.current?.click()}
               >

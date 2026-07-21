@@ -194,7 +194,7 @@ export function TwinPeaksPanel({ applicationId }: Props) {
             </div>
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" onClick={() => setEditRole(null)}>Cancel</Button>
-              <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+              <Button data-rbac="application_management.edit" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
                 {save.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save
               </Button>
             </div>
@@ -206,7 +206,7 @@ export function TwinPeaksPanel({ applicationId }: Props) {
           <div className="flex gap-2">
             <Textarea rows={2} placeholder="Describe divergence between regulators…"
               value={newDisagreement} onChange={(e) => setNewDisagreement(e.target.value)} />
-            <Button size="sm" onClick={() => raise.mutate()} disabled={raise.isPending}>
+            <Button data-rbac="application_management.edit" size="sm" onClick={() => raise.mutate()} disabled={raise.isPending}>
               {raise.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Raise
             </Button>
           </div>
@@ -228,7 +228,7 @@ export function TwinPeaksPanel({ applicationId }: Props) {
                   <Input placeholder="Resolution rationale (min 10 chars)"
                     value={resolveText[d.id] ?? ''}
                     onChange={(e) => setResolveText((p) => ({ ...p, [d.id]: e.target.value }))} />
-                  <Button size="sm" variant="outline" onClick={() => resolve.mutate({ id: d.id, resolution: resolveText[d.id] ?? '' })}>
+                  <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={() => resolve.mutate({ id: d.id, resolution: resolveText[d.id] ?? '' })}>
                     Resolve
                   </Button>
                 </div>

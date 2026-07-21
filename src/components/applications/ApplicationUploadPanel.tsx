@@ -135,10 +135,10 @@ export function ApplicationUploadPanel({ formName, sections, disabled }: Props) 
               </Alert>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={downloadExcel} disabled={disabled}>
+                <Button data-rbac="application_management.import" variant="outline" size="sm" onClick={downloadExcel} disabled={disabled}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" /> Download Sample (Excel)
                 </Button>
-                <Button variant="outline" size="sm" onClick={downloadXml} disabled={disabled}>
+                <Button data-rbac="application_management.import" variant="outline" size="sm" onClick={downloadXml} disabled={disabled}>
                   <FileCode2 className="h-4 w-4 mr-2" /> Download Sample (XML)
                 </Button>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -168,7 +168,7 @@ export function ApplicationUploadPanel({ formName, sections, disabled }: Props) 
                       e.target.value = '';
                     }}
                   />
-                  <Button
+                  <Button data-rbac="application_management.import"
                     size="sm"
                     variant="outline"
                     onClick={() => document.getElementById(inputId)?.click()}

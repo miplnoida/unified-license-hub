@@ -741,7 +741,7 @@ export default function FpaFindings() {
                                     {/* Actions */}
                                     <TableCell className="py-3 text-right">
                                       <div className="flex items-center justify-end gap-1.5">
-                                        <Button
+                                        <Button data-rbac="fit_and_proper.view"
                                           size="sm"
                                           variant="ghost"
                                           className="h-7 px-2 text-xs"
@@ -750,7 +750,7 @@ export default function FpaFindings() {
                                           <Eye className="h-3.5 w-3.5 mr-1" />
                                           Review
                                         </Button>
-                                        <Button
+                                        <Button data-rbac="fit_and_proper.edit"
                                           size="sm"
                                           variant="outline"
                                           className="h-7 px-2 text-xs"

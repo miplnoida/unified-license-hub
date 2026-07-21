@@ -145,7 +145,7 @@ export default function FpCommittees() {
           backLabel="Admin"
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> New committee</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="fit_and_proper_committee.create"><Plus className="h-4 w-4 mr-2" /> New committee</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>New committee</DialogTitle></DialogHeader>
                 <div className="space-y-3">
@@ -159,7 +159,7 @@ export default function FpCommittees() {
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={() => saveCommittee.mutate()} disabled={saveCommittee.isPending}>
+                  <Button data-rbac="fit_and_proper_committee.create" onClick={() => saveCommittee.mutate()} disabled={saveCommittee.isPending}>
                     {saveCommittee.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Create
                   </Button>
                 </DialogFooter>
@@ -216,7 +216,7 @@ export default function FpCommittees() {
                         <SelectContent>{ROLES.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={() => addMember.mutate()} disabled={addMember.isPending || !memberUserId}>
+                    <Button data-rbac="fit_and_proper_committee.edit" onClick={() => addMember.mutate()} disabled={addMember.isPending || !memberUserId}>
                       <UserPlus className="h-4 w-4 mr-2" /> Add
                     </Button>
                   </div>

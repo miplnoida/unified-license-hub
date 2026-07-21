@@ -138,7 +138,7 @@ export default function ManageValidations() {
           title="Manage Validations"
           description="Configure business and cross-field validation rules per return configuration."
           actions={
-            <Button disabled={!selectedConfig} onClick={() => setEditing({ ...emptyRule, return_config_id: selectedConfig })}>
+            <Button data-rbac="returns_management.edit" disabled={!selectedConfig} onClick={() => setEditing({ ...emptyRule, return_config_id: selectedConfig })}>
               <Plus className="h-4 w-4 mr-2" />Add Rule
             </Button>
           }
@@ -247,7 +247,7 @@ export default function ManageValidations() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={save} disabled={upsert.isPending}>Save</Button>
+            <Button data-rbac="returns_management.edit" onClick={save} disabled={upsert.isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -264,7 +264,7 @@ export default function ManageValidations() {
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
                     {!v.is_current && historyRule && (
-                      <Button size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
+                      <Button data-rbac="returns_management.edit" size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
                         <Undo2 className="h-3 w-3 mr-1" /> Rollback
                       </Button>
                     )}

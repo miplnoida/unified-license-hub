@@ -44,7 +44,7 @@ export default function ActionsList() {
             {overdue.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             {overdue.isPending ? 'Sweeping…' : 'Sweep overdue'}
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New action</Button>
+          <Button data-rbac="prudential_supervision.create" size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New action</Button>
         </div>
       </div>
 
@@ -65,8 +65,8 @@ export default function ActionsList() {
                 <TableCell className="space-x-2">
                   {['open','in_progress','overdue'].includes(a.status) && (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => { setCloseFor({ id: a.id, kind: 'completed' }); setNote(''); }}>Complete</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setCloseFor({ id: a.id, kind: 'waived' }); setNote(''); }}>Waive</Button>
+                      <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => { setCloseFor({ id: a.id, kind: 'completed' }); setNote(''); }}>Complete</Button>
+                      <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => { setCloseFor({ id: a.id, kind: 'waived' }); setNote(''); }}>Waive</Button>
                       <Button size="sm" variant="ghost" onClick={() => { setCloseFor({ id: a.id, kind: 'cancelled' }); setNote(''); }}>Cancel</Button>
                     </>
                   )}

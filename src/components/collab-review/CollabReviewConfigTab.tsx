@@ -335,8 +335,8 @@ export default function CollabReviewConfigTab() {
                           />
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          <Button size="sm" variant="ghost" onClick={() => grantDefaults(r.id)}>Grant defaults</Button>
-                          <Button size="sm" variant="ghost" onClick={() => revoke(r.id)}>Revoke</Button>
+                          <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={() => grantDefaults(r.id)}>Grant defaults</Button>
+                          <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={() => revoke(r.id)}>Revoke</Button>
                         </TableCell>
                       </TableRow>
                     );

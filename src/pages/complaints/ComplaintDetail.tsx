@@ -320,7 +320,7 @@ export default function ComplaintDetail() {
           actions={
             <div className="flex items-center gap-2">
               <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
-              <Button variant="outline" size="sm" onClick={() => setAckOpen(true)}>
+              <Button data-rbac="complaint_management.edit" variant="outline" size="sm" onClick={() => setAckOpen(true)}>
                 <Printer className="h-4 w-4 mr-2" />Reprint acknowledgement
               </Button>
               <Button variant="outline" size="sm" asChild>
@@ -456,7 +456,7 @@ export default function ComplaintDetail() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
+                  <Button data-rbac="complaint_management.edit" onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
                 </div>
               </CardContent>
             </Card>
@@ -509,7 +509,7 @@ export default function ComplaintDetail() {
                       </PopoverContent>
                     </Popover>
                     <div className="flex justify-end">
-                      <Button
+                      <Button data-rbac="complaint_management.edit"
                         size="sm"
                         variant="secondary"
                         disabled={!stagedLicensee || linkLicensee.isPending}

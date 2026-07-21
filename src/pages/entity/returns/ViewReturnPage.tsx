@@ -276,10 +276,10 @@ function ViewReturnBody({ returnData, normalizedStatus, activeRequest, orderedFo
           <div className="flex items-center gap-2">
             <StatusBadge status={returnData.workflow_status} />
             {['TEMP', 'WIP', 'TBR'].includes(normalizedStatus) && (
-              <Button size="sm" onClick={() => navigate(`/entity/returns/${id}/fill`)}><Pencil className="h-4 w-4 mr-2" />Edit & Resubmit</Button>
+              <Button data-rbac="returns_management.edit" size="sm" onClick={() => navigate(`/entity/returns/${id}/fill`)}><Pencil className="h-4 w-4 mr-2" />Edit & Resubmit</Button>
             )}
             {canRequestEdit && (
-              <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+              <Button data-rbac="returns_management.edit" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
                 <MessageSquareWarning className="h-4 w-4 mr-2" />Request Edit
               </Button>
             )}
@@ -364,7 +364,7 @@ function ViewReturnBody({ returnData, normalizedStatus, activeRequest, orderedFo
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={requestEdit.isPending}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={!reason.trim() || requestEdit.isPending}>
+              <Button data-rbac="returns_management.edit" onClick={handleSubmit} disabled={!reason.trim() || requestEdit.isPending}>
                 {requestEdit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Submit Request
               </Button>

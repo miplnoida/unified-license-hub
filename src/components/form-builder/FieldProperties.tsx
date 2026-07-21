@@ -304,7 +304,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
                     </Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleAddOption}>
+                <Button data-rbac="form_management.edit" variant="outline" size="sm" className="w-full text-xs" onClick={handleAddOption}>
                   <Plus className="h-3 w-3 mr-1" /> Add Option
                 </Button>
               </div>
@@ -459,7 +459,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
                 </div>
               );
             })}
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={addTableColumn}>
+            <Button data-rbac="form_management.edit" variant="outline" size="sm" className="w-full text-xs" onClick={addTableColumn}>
               <Plus className="h-3 w-3 mr-1" /> Add Column
             </Button>
           </div>
@@ -655,7 +655,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
             <Label className="text-xs font-semibold flex items-center gap-1">
               <Zap className="h-3 w-3" /> Conditional Logic
             </Label>
-            <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={addCondition}>
+            <Button data-rbac="form_management.edit" variant="outline" size="sm" className="h-6 text-[10px]" onClick={addCondition}>
               <Plus className="h-3 w-3 mr-1" /> Add Rule
             </Button>
           </div>

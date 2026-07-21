@@ -202,8 +202,8 @@ export default function TriageRules() {
           description="Declarative rules that classify complaints on intake — severity, SLA, assigned team, priority, and conduct-risk category."
           actions={
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSimOpen(true)}><Play className="h-4 w-4 mr-2" />Simulate</Button>
-              <Button onClick={openNew}><PlusCircle className="h-4 w-4 mr-2" />Add Rule</Button>
+              <Button data-rbac="market_conduct.edit" variant="outline" onClick={() => setSimOpen(true)}><Play className="h-4 w-4 mr-2" />Simulate</Button>
+              <Button data-rbac="market_conduct.edit" onClick={openNew}><PlusCircle className="h-4 w-4 mr-2" />Add Rule</Button>
             </div>
           }
         />
@@ -298,7 +298,7 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing, 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Conditions</Label>
-              <Button size="sm" variant="outline" onClick={addCond}><PlusCircle className="h-3 w-3 mr-1" />Add</Button>
+              <Button data-rbac="market_conduct.edit" size="sm" variant="outline" onClick={addCond}><PlusCircle className="h-3 w-3 mr-1" />Add</Button>
             </div>
             {(form.conditions || []).map((c: Condition, i: number) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-start border rounded p-2">

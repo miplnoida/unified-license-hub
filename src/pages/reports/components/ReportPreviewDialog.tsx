@@ -150,7 +150,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
             {exportFormats.map((f) => {
               if (f.value === 'pdf') {
                 return (
-                  <Button key={f.value} size="sm" variant="outline" onClick={() => handleExport('pdf')}>
+                  <Button data-rbac="report_management.view" key={f.value} size="sm" variant="outline" onClick={() => handleExport('pdf')}>
                     <FileText className="h-3 w-3 mr-1" />PDF
                   </Button>
                 );
@@ -162,7 +162,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
                 </Button>
               );
             })}
-            <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print</Button>
+            <Button data-rbac="report_management.view" size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print</Button>
           </div>
 
           <div className="border rounded-md max-h-[50vh] overflow-auto print:max-h-none print:overflow-visible">

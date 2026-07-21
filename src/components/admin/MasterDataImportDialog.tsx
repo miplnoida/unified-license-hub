@@ -222,10 +222,10 @@ export function MasterDataImportDialog({
 
         <div className="space-y-4 overflow-y-auto flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => downloadSampleExcel(entity)}>
+            <Button data-rbac="settings.export" variant="outline" onClick={() => downloadSampleExcel(entity)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />Download Sample Excel
             </Button>
-            <Button variant="outline" onClick={() => inputRef.current?.click()}>
+            <Button data-rbac="settings.import" variant="outline" onClick={() => inputRef.current?.click()}>
               <Upload className="h-4 w-4 mr-2" />Choose Excel File
             </Button>
             <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />

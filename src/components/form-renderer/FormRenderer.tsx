@@ -1220,7 +1220,7 @@ export function FormRenderer({
                                     )}
                                   </>
                                 ) : (
-                                  <Button
+                                  <Button data-rbac="form_management.edit"
                                     type="button"
                                     variant="outline"
                                     size="sm"
@@ -1309,7 +1309,7 @@ export function FormRenderer({
               </div>
             )}
             {!readOnly && (
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => onChange(field.fieldName, [...tableData, {}])}>
+              <Button data-rbac="form_management.edit" variant="outline" size="sm" className="text-xs" onClick={() => onChange(field.fieldName, [...tableData, {}])}>
                 <Plus className="h-3 w-3 mr-1" /> Add Row
               </Button>
             )}
@@ -1617,7 +1617,7 @@ export function FormRenderer({
                       </Card>
                     ))}
                     {!readOnly && (
-                      <Button variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
+                      <Button data-rbac="form_management.edit" variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
                         <Plus className="h-4 w-4 mr-1" /> Add Another Entry
                       </Button>
                     )}
@@ -1645,7 +1645,7 @@ export function FormRenderer({
             </Button>
           ) : (
             !hideActions && !readOnly && (
-              <Button
+              <Button data-rbac="application_management.create"
                 onClick={handleSubmit}
                 disabled={saving || !capSubmitAllowed}
                 title={!capSubmitAllowed ? "You don't have permission to submit in this portal" : undefined}

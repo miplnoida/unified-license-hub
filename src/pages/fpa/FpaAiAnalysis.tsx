@@ -429,7 +429,7 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
           <Button variant="ghost" onClick={handleClose} disabled={overrideMutation.isPending}>
             Cancel
           </Button>
-          <Button
+          <Button data-rbac="fit_and_proper.edit"
             onClick={() => overrideMutation.mutate()}
             disabled={overrideMutation.isPending || !form.decision || !form.reason.trim()}
           >
@@ -507,7 +507,7 @@ function FindingCard({ finding, inconsistency, onOverride, onViewIndividual }: F
                 </Badge>
               )}
               {finding.individual_id && (
-                <Button
+                <Button data-rbac="fit_and_proper.view"
                   size="sm"
                   variant="ghost"
                   className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
@@ -611,7 +611,7 @@ function FindingCard({ finding, inconsistency, onOverride, onViewIndividual }: F
                 </details>
               )}
             </div>
-            <Button
+            <Button data-rbac="fit_and_proper.edit"
               size="sm"
               variant="outline"
               className="gap-1.5 text-xs h-8"

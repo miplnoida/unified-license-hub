@@ -121,13 +121,13 @@ export function EscalationQueueTable() {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {c.status === 'pending' && (
-                      <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'acknowledged' })}>Ack</Button>
+                      <Button data-rbac="complaint_management.edit" size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'acknowledged' })}>Ack</Button>
                     )}
                     {c.status !== 'escalated' && c.status !== 'dismissed' && c.status !== 'resolved' && (
-                      <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'escalated' })}>Escalate</Button>
+                      <Button data-rbac="complaint_management.escalate" size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'escalated' })}>Escalate</Button>
                     )}
                     {c.status !== 'dismissed' && c.status !== 'resolved' && (
-                      <Button size="sm" variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'dismissed' })}>Dismiss</Button>
+                      <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'dismissed' })}>Dismiss</Button>
                     )}
                   </div>
                 </TableCell>

@@ -102,7 +102,7 @@ export default function ComplaintTypes() {
           title="Complaint Types"
           description="Manage the types of complaints that can be submitted."
           actions={
-            <Button onClick={openCreate}>
+            <Button data-rbac="complaint_type.create" onClick={openCreate}>
               <PlusCircle className="h-4 w-4 mr-2" />Add Type
             </Button>
           }
@@ -118,7 +118,7 @@ export default function ComplaintTypes() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Tags className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">No complaint types configured yet.</p>
-                <Button variant="outline" className="mt-3" onClick={openCreate}>
+                <Button data-rbac="complaint_type.create" variant="outline" className="mt-3" onClick={openCreate}>
                   <PlusCircle className="h-4 w-4 mr-2" />Add First Type
                 </Button>
               </div>
@@ -147,7 +147,7 @@ export default function ComplaintTypes() {
                         {new Date(t.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>
+                        <Button data-rbac="complaint_type.edit" variant="ghost" size="sm" onClick={() => openEdit(t)}>
                           <Pencil className="h-4 w-4 mr-1" />Edit
                         </Button>
                       </TableCell>

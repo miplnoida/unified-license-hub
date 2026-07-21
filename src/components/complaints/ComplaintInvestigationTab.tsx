@@ -177,9 +177,9 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
                       {!readOnly && t.status !== 'completed' && t.status !== 'cancelled' && (
                         <div className="flex gap-1 mt-2">
                           {t.status !== 'in_progress' && (
-                            <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'in_progress' })}>Start</Button>
+                            <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'in_progress' })}>Start</Button>
                           )}
-                          <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'completed' })}>Complete</Button>
+                          <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'completed' })}>Complete</Button>
                           <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'cancelled' })}>Cancel</Button>
                         </div>
                       )}

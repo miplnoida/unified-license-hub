@@ -58,7 +58,7 @@ export default function EnforcementTab({ entityId }: { entityId: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg"><Gavel className="h-5 w-5 text-primary" />Enforcement Actions</CardTitle>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
+        <Button data-rbac="licensee_management.edit" size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
       </CardHeader>
       <CardContent>
         <div className="mb-4 relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} /></div>
@@ -95,7 +95,7 @@ export default function EnforcementTab({ entityId }: { entityId: string }) {
             <div className="space-y-2"><Label>Penalty Amount</Label><Input type="number" value={form.penalty_amount} onChange={e => setForm(f => ({ ...f, penalty_amount: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
+          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

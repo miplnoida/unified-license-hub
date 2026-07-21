@@ -116,7 +116,7 @@ export default function SupervisoryPlanTemplates() {
           title="Supervisory Plan Templates"
           description="Per-sector templates seeded into a new supervisory plan when an application is approved."
           actions={
-            <Button onClick={() => { setEditing({ id: '', name: '', description: '', sector_id: null, is_active: true } as Template); setShowEdit(true); }}>
+            <Button data-rbac="application_management.edit" onClick={() => { setEditing({ id: '', name: '', description: '', sector_id: null, is_active: true } as Template); setShowEdit(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New template
             </Button>
           }
@@ -161,7 +161,7 @@ export default function SupervisoryPlanTemplates() {
                       <Button size="sm" variant="ghost" onClick={() => removeAction(a.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </div>
                   ))}
-                  <Button size="sm" variant="outline" onClick={() => setShowActionEdit({ templateId: t.id, action: null })}>
+                  <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={() => setShowActionEdit({ templateId: t.id, action: null })}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Add action
                   </Button>
                 </CardContent>
@@ -202,7 +202,7 @@ export default function SupervisoryPlanTemplates() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
-              <Button onClick={() => saveTemplate(editing)}>Save</Button>
+              <Button data-rbac="application_management.edit" onClick={() => saveTemplate(editing)}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -269,7 +269,7 @@ function ActionEditor({ templateId, action, onClose, onSave }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(form)}>Save</Button>
+          <Button data-rbac="application_management.edit" onClick={() => onSave(form)}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

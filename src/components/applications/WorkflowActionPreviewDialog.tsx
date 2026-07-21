@@ -717,7 +717,7 @@ export function WorkflowActionPreviewDialog({
                       <span className="text-muted-foreground">{recipientSummary(b)}</span>
                       {b.template && <span className="text-muted-foreground">· Template: <strong>{b.template.name}</strong></span>}
                     </div>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => resetBinding(b)} disabled={processing}>
+                    <Button data-rbac="application_management.edit" type="button" size="sm" variant="ghost" onClick={() => resetBinding(b)} disabled={processing}>
                       <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset to template
                     </Button>
                   </div>
@@ -782,7 +782,7 @@ export function WorkflowActionPreviewDialog({
                   onChange={handleSignatureUpload}
                   disabled={processing}
                 />
-                <Button
+                <Button data-rbac="application_management.edit"
                   type="button"
                   size="sm"
                   variant="outline"
@@ -826,7 +826,7 @@ export function WorkflowActionPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={processing || signatureMissing}>
+          <Button data-rbac="application_management.approve" onClick={handleConfirm} disabled={processing || signatureMissing}>
             {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             Confirm &amp; Send
           </Button>

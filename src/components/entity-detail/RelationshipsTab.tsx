@@ -102,7 +102,7 @@ export default function RelationshipsTab({ entityId }: RelationshipsTabProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg"><Users className="h-5 w-5 text-primary" />Relationships</CardTitle>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
+        <Button data-rbac="licensee_management.edit" size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Add</Button>
       </CardHeader>
       <CardContent>
         <div className="mb-4 relative max-w-sm">
@@ -175,7 +175,7 @@ export default function RelationshipsTab({ entityId }: RelationshipsTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button>
+            <Button data-rbac="licensee_management.edit" onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -512,7 +512,7 @@ export default function FeeManagement() {
             <div className="flex justify-end">
               <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) { resetForm(); setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
                 <DialogTrigger asChild>
-                  <Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee</Button>
+                  <Button data-rbac="fee_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Fee</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editing ? 'Edit Fee' : 'New Fee Configuration'}</DialogTitle></DialogHeader>
@@ -779,7 +779,7 @@ export default function FeeManagement() {
             <div className="flex justify-end">
               <Dialog open={ruleDialogOpen} onOpenChange={(v) => { setRuleDialogOpen(v); if (!v) { resetRuleForm(); setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
                 <DialogTrigger asChild>
-                  <Button><PlusCircle className="h-4 w-4 mr-2" />Add Rule</Button>
+                  <Button data-rbac="fee_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Rule</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editingRule ? 'Edit Rule' : 'New Fee Rule'}</DialogTitle></DialogHeader>
@@ -930,7 +930,7 @@ export default function FeeManagement() {
             <div className="flex justify-end">
               <Dialog open={ftDialogOpen} onOpenChange={(v) => { setFtDialogOpen(v); if (!v) { resetFtForm(); setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
                 <DialogTrigger asChild>
-                  <Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee Type</Button>
+                  <Button data-rbac="fee_management.create"><PlusCircle className="h-4 w-4 mr-2" />Add Fee Type</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader><DialogTitle>{ftEditing ? 'Edit Fee Type' : 'New Fee Type'}</DialogTitle></DialogHeader>

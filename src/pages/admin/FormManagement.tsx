@@ -360,7 +360,7 @@ export default function FormManagement() {
                   <FileSpreadsheet className="h-4 w-4 mr-2" />Import from Excel
                 </Button>
               )}
-              <Button onClick={() => navigate(`/admin/forms/create?type=${activeTab}`)}>
+              <Button data-rbac="form_management.create" onClick={() => navigate(`/admin/forms/create?type=${activeTab}`)}>
                 <PlusCircle className="h-4 w-4 mr-2" />Add {activeTypeLabel} Form
               </Button>
             </div>
@@ -459,7 +459,7 @@ export default function FormManagement() {
                         </Button>
                       )}
                       {canEditForms && (
-                        <Button
+                        <Button data-rbac="form_management.edit"
                           size="sm"
                           variant="secondary"
                           onClick={handleBulkUnpublish}
@@ -480,7 +480,7 @@ export default function FormManagement() {
                           Delete Selected
                         </Button>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} disabled={bulkLoading}>
+                      <Button data-rbac="form_management.edit" size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} disabled={bulkLoading}>
                         Clear Selection
                       </Button>
                     </CardContent>

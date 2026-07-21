@@ -524,7 +524,7 @@ export default function FpaDeclarations() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button data-rbac="fit_and_proper.create">
                   <Plus className="h-4 w-4 mr-2" />
                   Request Declaration
                 </Button>
@@ -716,7 +716,7 @@ export default function FpaDeclarations() {
                       <Button variant="ghost" onClick={() => { setDialogOpen(false); resetDialog(); }}>
                         Cancel
                       </Button>
-                      <Button
+                      <Button data-rbac="fit_and_proper.create"
                         onClick={() => requestDeclaration.mutate()}
                         disabled={requestDeclaration.isPending || !selectedAssessment || !verificationHash}
                       >
@@ -876,7 +876,7 @@ export default function FpaDeclarations() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
+                                <Button data-rbac="fit_and_proper.edit"
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs"

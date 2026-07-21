@@ -99,7 +99,7 @@ export default function DecisionOptions() {
           <TabsList><TabsTrigger value="options">Decision Options</TabsTrigger><TabsTrigger value="templates">Rationale Templates</TabsTrigger></TabsList>
 
           <TabsContent value="options" className="space-y-3">
-            <div className="flex justify-end"><Button onClick={() => { setOpt(emptyOpt); setAppliesText('{}'); setOptOpen(true); }}><Plus className="h-4 w-4 mr-2" />New Option</Button></div>
+            <div className="flex justify-end"><Button data-rbac="license_management.edit" onClick={() => { setOpt(emptyOpt); setAppliesText('{}'); setOptOpen(true); }}><Plus className="h-4 w-4 mr-2" />New Option</Button></div>
             <Card><CardContent className="pt-6">
               <Table>
                 <TableHeader><TableRow><TableHead>Order</TableHead><TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Outcome</TableHead><TableHead>Requires Reason</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -125,7 +125,7 @@ export default function DecisionOptions() {
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-3">
-            <div className="flex justify-end"><Button onClick={() => { setTpl(emptyTpl); setTplOpen(true); }}><Plus className="h-4 w-4 mr-2" />New Template</Button></div>
+            <div className="flex justify-end"><Button data-rbac="license_management.edit" onClick={() => { setTpl(emptyTpl); setTplOpen(true); }}><Plus className="h-4 w-4 mr-2" />New Template</Button></div>
             <Card><CardContent className="pt-6">
               <Table>
                 <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Outcome</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -188,7 +188,7 @@ export default function DecisionOptions() {
                 <Textarea rows={3} className="font-mono text-xs" value={appliesText} onChange={(e) => setAppliesText(e.target.value)} placeholder='{"application_type":"new_license"}' />
               </div>
             </div>
-            <DialogFooter><Button variant="outline" onClick={() => setOptOpen(false)}>Cancel</Button><Button onClick={saveOpt}>Save</Button></DialogFooter>
+            <DialogFooter><Button variant="outline" onClick={() => setOptOpen(false)}>Cancel</Button><Button data-rbac="license_management.edit" onClick={saveOpt}>Save</Button></DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -213,7 +213,7 @@ export default function DecisionOptions() {
               <div><Label>Body (supports {'{{application_number}}'}, {'{{applicant_name}}'})</Label><Textarea rows={8} value={tpl.body || ''} onChange={(e) => setTpl({ ...tpl, body: e.target.value })} /></div>
               <div className="flex items-center gap-2"><Checkbox checked={tpl.is_active} onCheckedChange={(v) => setTpl({ ...tpl, is_active: !!v })} /><Label>Active</Label></div>
             </div>
-            <DialogFooter><Button variant="outline" onClick={() => setTplOpen(false)}>Cancel</Button><Button onClick={saveTpl}>Save</Button></DialogFooter>
+            <DialogFooter><Button variant="outline" onClick={() => setTplOpen(false)}>Cancel</Button><Button data-rbac="license_management.edit" onClick={saveTpl}>Save</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

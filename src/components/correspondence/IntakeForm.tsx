@@ -13,7 +13,7 @@ export function IntakeForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Inbox className="h-4 w-4 mr-2" />Capture correspondence</Button>
+        <Button data-rbac="correspondence_management.approve"><Inbox className="h-4 w-4 mr-2" />Capture correspondence</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Capture incoming correspondence</DialogTitle></DialogHeader>
@@ -55,7 +55,7 @@ export function IntakeForm() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => setOpen(false)}>Capture &amp; auto-route</Button>
+          <Button data-rbac="correspondence_management.approve" onClick={() => setOpen(false)}>Capture &amp; auto-route</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
