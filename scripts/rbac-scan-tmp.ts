@@ -1,0 +1,13 @@
+import { scanRepo, summarize } from '../src/lib/rbac/audit';
+const sites = scanRepo();
+const s = summarize(sites);
+console.log(`total=${s.total} protected=${s.protectedCount} pct=${((s.protectedCount/s.total)*100).toFixed(1)}%`);
+const focus = new Set(['Save','Submit','Report','Print','Email','Notification','Download','Upload','Action','View','Edit','Create','Export','Import','Delete','Approve','Reject','Assign','Escalate','Publish','Archive','Configure','Bulk','Resubmit','Issue','Reopen','Close']);
+const gaps = sites.filter(x=>!x.protected && focus.has(x.category));
+console.log(`focus gaps=${gaps.length}`);
+const byPage = new Map();
+for (const g of gaps) byPage.set(g.page, (byPage.get(g.page)||0)+1);
+const top = [...byPage.entries()].sort((a,b)=>b[1]-a[1]).slice(0,30);
+for (const [p,c] of top) console.log(`  ${c}\t${p}`);
+console.log('\nSample gaps (first 40):');
+for (const g of gaps.slice(0,40)) console.log(`  ${g.category}\t"${g.button}"\t${g.file}:${g.line}`);
