@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { scanRepo, renderMarkdown, renderCsv, summarize } from './rbac-audit';
+import { scanRepo, renderMarkdown, renderCsv, summarize } from '../src/lib/rbac/audit';
 
 const sites = scanRepo();
 const outDir = join(process.cwd(), 'docs', 'rbac');

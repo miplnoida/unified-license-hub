@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanRepo } from '../../scripts/rbac-audit';
+import { scanRepo } from '@/lib/rbac/audit';
 
 /**
  * RBAC action-coverage floor.
