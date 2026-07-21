@@ -1,4 +1,59 @@
-function	module	action	scope	notes
-audit-export	audit_management	export	self-folder	Signed URLs restricted to caller's userId prefix.
-generate-report	report_management	view	-	Preview mode. Export mode additionally requires report_management.export.
-generate-report (source=report_logs)	audit_management	view	-	Escalated check when the source references audit logs.
+function	kind	module	action	scope	notes
+add-application-remark	user	application_management	edit	recordId	Comment thread on application.
+approve-pre-licensee	user	registration_management	approve	recordId	Idempotent license/licensee creation on final approval.
+audit-export	user	audit_management	export	self-folder	Existing gate. Signed URLs restricted to caller.
+bulk-intake	user	complaint_management	create	-	Batch complaint intake.
+complaint-escalation-sweep	worker	-	-	-	pg_cron; requireWorkerInvocation.
+complaint-storage-cleanup	worker	-	-	-	pg_cron; orphaned staged evidence sweep.
+create-web-user	user	user_management	create	licenseeId	Licensee web-user provisioning.
+developer-api	api_key	-	-	-	Existing bearer-API-key auth path.
+dispatch-license-certificate	user	license_management	dispatch	recordId	Send generated certificate.
+dispatch-notification-event	worker	-	-	-	Internal orchestrator; invoked by other functions/cron.
+document-extract	user	document_management	upload	-	AI document extraction pass.
+evaluate-application-sufficiency	user	application_management	edit	recordId	AI + rules sufficiency check.
+evaluate-complaint-triage	user	complaint_management	workflow_action	recordId	Triage engine.
+evaluate-conduct-monitoring	worker	-	-	-	Scheduled market-conduct rule sweep.
+evaluate-prudential-early-warnings	worker	-	-	-	Recompute EW view + dispatch.
+evaluate-return-prudential	user	returns_management	view	returnId	Score submitted return.
+fp-ai-media-ingest	user	fit_and_proper	configure	-	Ingest media asset for AI review.
+fp-cycle-scheduler	user	fit_and_proper	execute	-	Kick a monitoring cycle.
+fp-monitoring-sweep	user	fit_and_proper	execute	-	Manual sweep trigger.
+fp-screening-run	user	fit_and_proper	execute	-	Manual screening run.
+generate-application-ai-assessment	user	application_management	view	recordId	AI assessment generator.
+generate-dashboard-insights	user	report_management	view	-	AI dashboard insights.
+generate-license-certificate	user	license_management	issue	recordId	Server-side PDF generation.
+generate-report	user	report_management	view	-	Existing gate. Export also requires report_management.export.
+generate-return-analysis	user	returns_management	view	returnId	AI narrative for a return.
+get-licensee-registration	user	registration_management	view	licenseeId	Fetch licensee registration record.
+license-expiry-reminders	worker	-	-	-	Daily license expiry sweep.
+list-web-users	user	user_management	view	licenseeId	Licensee web-user listing.
+manage-api-key	user	integration_management	configure	-	Rotate/inspect API keys.
+manage-web-user	user	user_management	edit	licenseeId	Update licensee web-user profile.
+notification-digest	worker	-	-	-	Daily/weekly digest builder.
+notification-failure-sweep	worker	-	-	-	Hourly admin alert for failed dispatches.
+notification-retry	user	notification_management	dispatch	-	Re-queue failed notification.
+notification-status	user	notification_management	view	-	Query dispatch status.
+overdue-action-sweep	worker	-	-	-	Overdue workflow actions.
+overdue-returns-sweep	worker	-	-	-	Overdue returns notifier.
+perform-license-action	user	license_management	workflow_action	recordId	Wraps perform_license_transition RPC.
+perform-registration-workflow-action	user	registration_management	workflow_action	recordId	Wraps registration workflow RPC.
+perform-return-workflow-action	user	returns_management	workflow_action	returnId	Wraps perform_return_workflow_transition.
+perform-workflow-action	user	application_management	workflow_action	recordId	Wraps perform_workflow_transition.
+process-notification-outbox	worker	-	-	-	Outbox drain worker.
+process-queue	worker	-	-	-	Generic job queue drain.
+prudential-monitoring-sweep	worker	-	-	-	Prudential thresholds sweep.
+public-registry	public	-	-	-	Public licensee directory read.
+register-pre-licensee	public	-	-	-	Public self-registration intake (OTP-gated).
+resubmit-return	user	returns_management	edit	returnId	Licensee resubmit after edit request.
+rfi-near-due-sweep	worker	-	-	-	RFI due-date reminders.
+risk-score-recompute	worker	-	-	-	Recompute entity risk scores.
+run-scheduled-reports	user	report_management	execute	-	Trigger scheduled report runs.
+send-correspondence	user	correspondence_management	dispatch	-	Outbound correspondence send.
+send-notification	worker	-	-	-	Notification delivery worker.
+send-registration-otp	public	-	-	-	Public OTP dispatch.
+sign-license-certificate	user	license_management	issue	recordId	Officer signature on certificate.
+sla-escalation-sweep	worker	-	-	-	SLA escalation sweep.
+test-smtp-email	user	notification_management	configure	-	Admin SMTP diagnostic.
+toggle-user-status	user	user_management	edit	licenseeId	Enable/disable licensee web user.
+verify-and-submit	user	application_management	submit	recordId	Final application submission.
+verify-registration-otp	public	-	-	-	Public OTP verify.
