@@ -15562,11 +15562,13 @@ export type Database = {
         Returns: boolean
       }
       can_act_on_approval: { Args: { _user: string }; Returns: boolean }
+      can_act_on_fp: { Args: { _user: string }; Returns: boolean }
       can_act_on_prudential: { Args: { _user: string }; Returns: boolean }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
       }
+      can_manage_fp_config: { Args: { _user: string }; Returns: boolean }
       can_manage_prudential_config: {
         Args: { _user: string }
         Returns: boolean
@@ -15599,6 +15601,18 @@ export type Database = {
       can_read_approval_config: { Args: { _user: string }; Returns: boolean }
       can_read_compliance_return: {
         Args: { _return_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_fp_assessment: {
+        Args: { _assessment_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_fp_individual: {
+        Args: { _individual_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_fp_licensee: {
+        Args: { _licensee_id: string; _user: string }
         Returns: boolean
       }
       can_read_license: {
