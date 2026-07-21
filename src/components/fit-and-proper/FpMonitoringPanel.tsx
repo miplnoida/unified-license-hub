@@ -94,7 +94,7 @@ export function FpMonitoringPanel({ individualId }: Props) {
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between">
             <span className="flex items-center gap-2"><Radar className="h-4 w-4" /> Monitoring alerts</span>
-            <Button size="sm" variant="outline" disabled={rechecking} onClick={triggerRecheck}>
+            <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" disabled={rechecking} onClick={triggerRecheck}>
               {rechecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Trigger recheck
             </Button>
@@ -122,7 +122,7 @@ export function FpMonitoringPanel({ individualId }: Props) {
                   <Textarea rows={1} placeholder="Acknowledgement note…"
                     value={ackNote[e.id] || ''}
                     onChange={(ev) => setAckNote((p) => ({ ...p, [e.id]: ev.target.value }))} />
-                  <Button size="sm" disabled={acknowledge.isPending} onClick={() => acknowledge.mutate(e.id)}>Acknowledge</Button>
+                  <Button data-rbac="fit_and_proper.edit" size="sm" disabled={acknowledge.isPending} onClick={() => acknowledge.mutate(e.id)}>Acknowledge</Button>
                 </div>
               )}
             </div>

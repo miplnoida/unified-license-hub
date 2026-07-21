@@ -50,7 +50,7 @@ export default function StressIndicatorsAdmin() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Stress Indicators</h1>
         <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild><Button size="sm" onClick={() => setForm(EMPTY_FORM)}><Plus className="h-4 w-4 mr-2" />New indicator</Button></DialogTrigger>
+          <DialogTrigger asChild><Button data-rbac="prudential_supervision.create" size="sm" onClick={() => setForm(EMPTY_FORM)}><Plus className="h-4 w-4 mr-2" />New indicator</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{isEdit ? 'Edit stress indicator' : 'New stress indicator'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
@@ -111,8 +111,8 @@ export default function StressIndicatorsAdmin() {
               <TableCell>{i.taxonomy_code || '—'}</TableCell>
               <TableCell>{i.is_active ? 'Yes' : 'No'}</TableCell>
               <TableCell className="text-right">
-                <Button size="sm" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4 mr-1" />Edit</Button>
-                <Button size="sm" variant="ghost" onClick={() => del.mutate(i.id)} disabled={!i.is_active}>Deactivate</Button>
+                <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4 mr-1" />Edit</Button>
+                <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => del.mutate(i.id)} disabled={!i.is_active}>Deactivate</Button>
               </TableCell>
             </TableRow>
           ))}

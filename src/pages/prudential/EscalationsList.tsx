@@ -32,7 +32,7 @@ export default function EscalationsList() {
       <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Prudential Escalations</h1>
-        <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New escalation</Button>
+        <Button data-rbac="prudential_supervision.create" size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New escalation</Button>
       </div>
 
       <Card><CardHeader><CardTitle>Escalations ({data.length})</CardTitle></CardHeader><CardContent>
@@ -49,9 +49,9 @@ export default function EscalationsList() {
                 <TableCell><Badge variant="outline">{es.status}</Badge></TableCell>
                 <TableCell className="max-w-xs truncate">{es.decision || '—'}</TableCell>
                 <TableCell className="space-x-2">
-                  {es.status === 'open' && <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ id: es.id, patch: { status: 'under_review' } })}>Review</Button>}
+                  {es.status === 'open' && <Button data-rbac="prudential_supervision.view" size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ id: es.id, patch: { status: 'under_review' } })}>Review</Button>}
                   {['open','under_review'].includes(es.status) && (
-                    <Button size="sm" onClick={() => { setResolveFor(es.id); setDecision(''); setOutcome(''); }}>Resolve</Button>
+                    <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => { setResolveFor(es.id); setDecision(''); setOutcome(''); }}>Resolve</Button>
                   )}
                 </TableCell>
               </TableRow>

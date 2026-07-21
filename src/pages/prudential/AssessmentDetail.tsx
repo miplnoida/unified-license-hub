@@ -163,7 +163,7 @@ export default function AssessmentDetail() {
           <CardContent className="space-y-3 text-sm">
             {assessment.return_id && (
               <div>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => evalStress.mutate(assessment.return_id!)}>Re-run stress evaluation</Button>
+                <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" className="w-full" onClick={() => evalStress.mutate(assessment.return_id!)}>Re-run stress evaluation</Button>
               </div>
             )}
             <div>
@@ -173,7 +173,7 @@ export default function AssessmentDetail() {
                   <span className="truncate">{b.metric_key || b.ratio_key}</span>
                   <span className="flex items-center gap-1">
                     <Badge>{b.severity}</Badge>
-                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setCreateAction({
+                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setCreateAction({
                       entity_id: assessment.entity_id, source_type: 'assessment', source_id: id,
                       title: `Address breach: ${b.metric_key || b.ratio_key}`, severity: b.severity,
                       description: `From assessment. ${b.metric_key || b.ratio_key} = ${b.observed_value ?? b.value}, threshold ${b.threshold_value}.`,
@@ -207,7 +207,7 @@ export default function AssessmentDetail() {
             ) : null}
             {form.recommended_response ? (
               <div>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => setCreateAction({
+                <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" className="w-full" onClick={() => setCreateAction({
                   entity_id: assessment.entity_id, source_type: 'assessment', source_id: id,
                   title: 'Follow-up on assessment recommendation', description: form.recommended_response,
                 })}>Create action from recommendation</Button>

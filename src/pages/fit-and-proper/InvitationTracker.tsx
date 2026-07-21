@@ -246,7 +246,7 @@ export default function InvitationTracker() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button data-rbac="fit_and_proper.create">
                   <Plus className="h-4 w-4 mr-2" /> Send Invitation
                 </Button>
               </DialogTrigger>
@@ -365,7 +365,7 @@ export default function InvitationTracker() {
                     {generatedUrl ? 'Close' : 'Cancel'}
                   </Button>
                   {!generatedUrl && (
-                    <Button
+                    <Button data-rbac="fit_and_proper.create"
                       onClick={() => sendInvitation.mutate()}
                       disabled={
                         sendInvitation.isPending ||
@@ -500,7 +500,7 @@ export default function InvitationTracker() {
                           {/* Actions */}
                           <TableCell>
                             {r.status !== 'SUBMITTED' && (
-                              <Button
+                              <Button data-rbac="fit_and_proper.create"
                                 size="sm"
                                 variant="ghost"
                                 disabled={resend.isPending}

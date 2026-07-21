@@ -80,7 +80,7 @@ export default function RiskRatingsTab({ entityId }: { entityId: string }) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg"><TrendingUp className="h-5 w-5 text-primary" />Assessment History</CardTitle>
-          <Button size="sm" onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-1" />New Assessment</Button>
+          <Button data-rbac="licensee_management.edit" size="sm" onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-1" />New Assessment</Button>
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
@@ -113,7 +113,7 @@ export default function RiskRatingsTab({ entityId }: { entityId: string }) {
             <div className="space-y-2"><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Mitigation Measures</Label><Textarea value={form.mitigation_measures} onChange={e => setForm(f => ({ ...f, mitigation_measures: e.target.value }))} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
+          <DialogFooter><Button data-rbac="licensee_management.edit" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

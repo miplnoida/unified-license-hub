@@ -159,13 +159,13 @@ export function LicenseStatusList({
                     </Link>
                   </Button>
                 ) : inProgressRenewalByLicense[lic.id] ? (
-                  <Button asChild size="sm" variant="outline">
+                  <Button data-rbac="license_management.edit" asChild size="sm" variant="outline">
                     <Link to={`/post-licensee/applications/${inProgressRenewalByLicense[lic.id].id}/forms?service=Renew`}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1" />Continue Renewal
                     </Link>
                   </Button>
                 ) : canRenew && (
-                  <Button asChild size="sm" variant="outline">
+                  <Button data-rbac="license_management.edit" asChild size="sm" variant="outline">
                     <Link to={`/licenses/${lic.id}?action=renew`}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
                     </Link>

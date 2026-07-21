@@ -120,7 +120,7 @@ export function LicenseConditionsPanel({ licenseId, applicationId, isInternal }:
         {isInternal && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline"><Plus className="h-4 w-4 mr-1" /> Add condition</Button>
+              <Button data-rbac="application_management.edit" size="sm" variant="outline"><Plus className="h-4 w-4 mr-1" /> Add condition</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add License Condition</DialogTitle></DialogHeader>
@@ -161,7 +161,7 @@ export function LicenseConditionsPanel({ licenseId, applicationId, isInternal }:
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={addCondition} disabled={saving}>
+                <Button data-rbac="application_management.edit" onClick={addCondition} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                   Add
                 </Button>

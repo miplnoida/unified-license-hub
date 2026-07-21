@@ -114,7 +114,7 @@ export default function PrudentialThresholds() {
         <PageHeader
           title="Prudential Thresholds"
           description="Configure warning and breach limits per prudential metric."
-          actions={<Button disabled={!selected} onClick={() => setEditing({ ...empty, return_config_id: selected })}><Plus className="h-4 w-4 mr-2" />Add Threshold</Button>}
+          actions={<Button data-rbac="prudential_supervision.edit" disabled={!selected} onClick={() => setEditing({ ...empty, return_config_id: selected })}><Plus className="h-4 w-4 mr-2" />Add Threshold</Button>}
         />
         <div className="min-w-[280px]">
           <Label>Return Configuration</Label>
@@ -167,7 +167,7 @@ export default function PrudentialThresholds() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={save} disabled={upsert.isPending}>Save</Button>
+            <Button data-rbac="prudential_supervision.edit" onClick={save} disabled={upsert.isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -186,7 +186,7 @@ export default function PrudentialThresholds() {
                     <div className="flex items-center gap-2">
                       <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
                       {!isCurrent && historyThreshold && (
-                        <Button size="sm" variant="outline" onClick={() => rollback(historyThreshold.id, v.version)}>
+                        <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => rollback(historyThreshold.id, v.version)}>
                           <Undo2 className="h-3 w-3 mr-1" /> Rollback
                         </Button>
                       )}

@@ -201,7 +201,7 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               <X className="h-4 w-4 mr-2" />Close
             </Button>
-            <Button onClick={handlePrint}>
+            <Button data-rbac="complaint_management.view" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />Print / Save as PDF
             </Button>
           </DialogFooter>
@@ -285,7 +285,7 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4 mr-2" />Close
           </Button>
-          <Button onClick={handlePrint}>
+          <Button data-rbac="complaint_management.view" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />Print / Save as PDF
           </Button>
         </DialogFooter>

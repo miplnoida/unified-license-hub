@@ -103,7 +103,7 @@ export function ReturnCard({
             <ArrowRight className="h-4 w-4" />
           </Button>
           {(returnItem.status === 'pending' || returnItem.status === 'draft') && canFinalSubmit && (
-            <Button 
+            <Button data-rbac="returns_management.edit" 
               variant={isOverdue ? 'destructive' : 'default'} 
               size="sm" 
               onClick={onSubmit}
@@ -112,7 +112,7 @@ export function ReturnCard({
             </Button>
           )}
           {(returnItem.status === 'pending' || returnItem.status === 'draft') && !canFinalSubmit && (
-            <Button variant="outline" size="sm">
+            <Button data-rbac="returns_management.edit" variant="outline" size="sm">
               <Save className="h-4 w-4 mr-1" />
               Save Draft
             </Button>

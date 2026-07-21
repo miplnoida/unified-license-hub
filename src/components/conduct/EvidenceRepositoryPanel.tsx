@@ -139,7 +139,7 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" />{title}</CardTitle>
-        <Button size="sm" onClick={() => setOpen(true)}><Upload className="h-4 w-4 mr-1" />Upload</Button>
+        <Button data-rbac="market_conduct.edit" size="sm" onClick={() => setOpen(true)}><Upload className="h-4 w-4 mr-1" />Upload</Button>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
@@ -214,7 +214,7 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" size="sm" type="button" onClick={() => fileRef.current?.click()}>
+                <Button data-rbac="market_conduct.edit" variant="outline" size="sm" type="button" onClick={() => fileRef.current?.click()}>
                   <Plus className="h-4 w-4 mr-1" />Select file
                 </Button>
               )}

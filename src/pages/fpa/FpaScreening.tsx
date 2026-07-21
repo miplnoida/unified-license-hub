@@ -437,7 +437,7 @@ export default function FpaScreening() {
                     <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-sm font-semibold text-foreground">Screening Configurations</h2>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setAddConfigOpen(true)}>
+                  <Button data-rbac="fit_and_proper_screening.create" size="sm" variant="outline" onClick={() => setAddConfigOpen(true)}>
                     <Plus className="h-3.5 w-3.5 mr-1.5" />
                     Add Config
                   </Button>
@@ -472,7 +472,7 @@ export default function FpaScreening() {
                             </p>
                           )}
                         </div>
-                        <Button
+                        <Button data-rbac="fit_and_proper_screening.edit"
                           size="sm"
                           variant="outline"
                           className="flex-shrink-0 gap-1.5 h-7 px-2.5 text-xs"
@@ -753,7 +753,7 @@ export default function FpaScreening() {
             <Button variant="ghost" onClick={() => { setAddConfigOpen(false); setAddConfigForm(EMPTY_CONFIG_FORM); }} disabled={addConfigMutation.isPending}>
               Cancel
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper_screening.create"
               onClick={() => addConfigMutation.mutate(addConfigForm)}
               disabled={addConfigMutation.isPending || !addConfigForm.key.trim() || !addConfigForm.display_label.trim() || !addConfigForm.check_type}
             >

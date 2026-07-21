@@ -117,7 +117,7 @@ export function SendCorrespondenceDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" size="sm">
+          <Button data-rbac="correspondence_management.approve" variant="outline" size="sm">
             <Mail className="h-4 w-4 mr-1" /> Send correspondence
           </Button>
         )}
@@ -183,7 +183,7 @@ export function SendCorrespondenceDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => send.mutate()} disabled={send.isPending}>
+          <Button data-rbac="correspondence_management.approve" onClick={() => send.mutate()} disabled={send.isPending}>
             {send.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
             Send
           </Button>

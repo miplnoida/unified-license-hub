@@ -234,7 +234,7 @@ export function VersionedDocumentUploader({
         </Button>
 
         {staged.some(s => s.status === 'pending' || s.status === 'failed') && (
-          <Button size="sm" onClick={handleUploadAll} disabled={uploading}>
+          <Button data-rbac="application_management.edit" size="sm" onClick={handleUploadAll} disabled={uploading}>
             {uploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -251,7 +251,7 @@ export function VersionedDocumentUploader({
         )}
 
         {staged.some(s => s.status === 'success') && (
-          <Button variant="ghost" size="sm" onClick={clearSucceeded} disabled={uploading}>
+          <Button data-rbac="application_management.edit" variant="ghost" size="sm" onClick={clearSucceeded} disabled={uploading}>
             Clear uploaded
           </Button>
         )}
