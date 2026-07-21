@@ -1,120 +1,81 @@
-# Slice 2 — Edge Function Authorization Coverage
+## Slice 3 — Returns RLS + storage lockdown
 
-## Current state (verified this turn)
+Scope: `returns_filed` + 15 return_* data child tables + `return-uploads` storage. Config/admin tables (return_configs, return_types, return_templates, return_cutoff_config, return_due_dates, return_form_versions, return_notification_templates, return_validation_rule[_versions], return_config_forms, return_configurations, return_template_downloads) remain deferred to Phase 4 per the RBAC change log.
 
-- `supabase/functions/_shared/authz.ts` exists and exposes `requireUserPermission(module, action, scope?)`.
-- Of 59 functions, only **2** actually use it today: `audit-export` and `generate-report`.
-- 32 functions call `getClaims()` inline (authenticated but not `has_permission`-gated).
-- 16 functions have no JWT check at all — mix of legitimate schedulers, public endpoints, and gaps that must be closed.
-- `docs/rbac/edge-function-permission-map.tsv` only documents the 2 already-migrated functions.
+### 1. Canonical helpers (new SECURITY DEFINER, `search_path=public`, `STABLE`)
 
-## Goals
+- `public.can_read_return_filed(_user_id uuid, _return_id uuid) → boolean`
+  Composes, in order: `is_super_admin` → `has_permission('returns_management','view_all_entities')` → `user_has_entity_assignment(_user, r.entity_id)` (mapped regulator, any status) → licensee membership (`profiles.licensee_id ∈ {entity_id, on_behalf_of_licensee_id}`) → PPOC (`ppoc_mapped_licensee_ids`) → external capability (`external_can_access_return_filed(_user, id, 'can_view_status' | 'can_submit_returns')`) → creator (`r.created_by = _user`).
+- `public.can_read_return_filed_row(_user_id, _entity_id, _on_behalf uuid, _created_by uuid, _return_id uuid) → boolean`
+  Value-form used inside `returns_filed` policies to avoid self-referencing subselects.
+- `public.can_mutate_return_filed(_user_id uuid, _return_id uuid) → boolean`
+  Owner during editable lifecycle (`workflow_status IN TEMP/WIP/TBR`) + `has_permission('returns_management','edit')` + super_admin + external `can_submit_returns`. Never grants mutate to assignment-only regulators.
 
-One authoritative authz path per function, aligned with the module.action catalog from Slice 1. Never trust caller-supplied user ids; always resolve identity from the JWT the shared helper validates.
+Everything routes through `has_permission` — no `has_role` calls remain in the new policies.
 
-## Scope of this slice
+### 2. `returns_filed` policy rewrite
 
-Full migration of every user-invoked function + a formal worker-token guard for schedulers + full documentation. Deno test coverage focuses on the 6 highest-risk mutating functions (adding tests for all 59 would balloon the slice).
+Drop all 11 existing policies; replace with:
 
-## Work items
+- **SELECT** `returns_filed_read` → `can_read_return_filed_row(auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, id)`
+- **INSERT** `returns_filed_insert` → creator = `auth.uid()` AND ( licensee-owner OR PPOC OR external-submit OR `has_permission('returns_management','create')` )
+- **UPDATE** `returns_filed_update` → `can_mutate_return_filed(auth.uid(), id)`; `WITH CHECK` re-asserts same
+- **DELETE** `returns_filed_delete` → `is_super_admin` OR `has_permission('returns_management','delete')`
 
-### 1. Classify every function (authoritative table)
+Assignment-only regulators cannot mutate or insert; SELECT works for all statuses on mapped entities (matches the user's earlier correction).
 
-Publish `docs/rbac/edge-function-permission-map.tsv` with one row per function and one of these auth kinds:
-- `user` → `requireUserPermission(module, action[, scope])`
-- `worker` → requires `x-worker-token` matching `WORKER_INVOKE_TOKEN` secret **or** cron `Authorization: Bearer <service_role>`
-- `public` → explicitly public (documented reason, e.g., OTP request, public registry)
-- `api_key` → developer-API key auth (unchanged)
+### 3. Child data tables (15) — uniform pattern
 
-### 2. Migrate user-invoked functions to `requireUserPermission`
-
-Function → module.action (representative selection):
-
-| Function | module | action | scope |
+| Table | SELECT | INSERT/UPDATE | DELETE |
 |---|---|---|---|
-| add-application-remark | application_management | edit | recordId → applications |
-| approve-pre-licensee | registration_management | approve | recordId |
-| bulk-intake | complaint_management | create | — |
-| create-web-user / list-web-users / manage-web-user / toggle-user-status | user_management | create/view/edit | licenseeId |
-| document-extract | document_management | upload | — |
-| dispatch-license-certificate | license_management | dispatch | recordId |
-| evaluate-application-sufficiency | application_management | edit | recordId |
-| evaluate-return-prudential | returns_management | view | returnId |
-| fp-ai-media-ingest / fp-cycle-scheduler / fp-monitoring-sweep / fp-screening-run | fit_and_proper | configure / execute | — |
-| generate-application-ai-assessment | application_management | view | recordId |
-| generate-dashboard-insights | report_management | view | — |
-| generate-license-certificate | license_management | issue | recordId |
-| generate-return-analysis | returns_management | view | returnId |
-| get-licensee-registration | registration_management | view | licenseeId |
-| manage-api-key | integration_management | configure | — |
-| notification-retry / notification-status | notification_management | view / dispatch | — |
-| perform-license-action | license_management | workflow_action | recordId |
-| perform-registration-workflow-action | registration_management | workflow_action | recordId |
-| perform-return-workflow-action | returns_management | workflow_action | returnId |
-| perform-workflow-action | application_management | workflow_action | recordId |
-| resubmit-return | returns_management | edit | returnId |
-| run-scheduled-reports | report_management | execute | — |
-| send-correspondence | correspondence_management | dispatch | — |
-| sign-license-certificate | license_management | issue | recordId |
-| test-smtp-email | notification_management | configure | — |
-| verify-and-submit | application_management | submit | recordId |
+| return_form_data | `can_read_return_filed(uid, return_id)` | `can_mutate_return_filed(uid, return_id)` | mutate + super_admin |
+| return_documents | same | mutate + `document_management.upload` for insert | mutate + `document_management.delete` |
+| return_comments | same | `can_read_return_filed` + `performed_by = uid` | mutate |
+| return_audit_log | same | `performed_by = uid` AND `can_read_return_filed` (append-only) | denied |
+| return_data_revisions | same | mutate + `created_by = uid` | super_admin |
+| return_calculated_ratios | same | `has_permission('returns_management','edit')` (system-populated) | super_admin |
+| return_consolidated_analysis | `can_read_return_filed` OR `report_management.view` | `has_permission('returns_management','edit')` | super_admin |
+| return_edit_requests | `can_read_return_filed` OR `has_permission('returns_management','workflow_action')` | requester = uid OR workflow_action | workflow_action |
+| return_requests | same | workflow_action | workflow_action |
+| return_notifications_log | `can_read_return_filed` | system/service-role only | denied |
+| return_threshold_breaches | `can_read_return_filed` OR `report_management.view` | `edit` | super_admin |
+| return_upload_attempts | `can_read_return_filed` OR uploader | `uploaded_by = uid` AND `can_mutate_return_filed` for return-scoped rows; entity-scoped rows require `edit` | super_admin |
+| return_upload_imports | uploader OR `edit` | uploader | uploader OR super_admin |
+| return_validation_run_log | `can_read_return_filed` | `edit` | super_admin |
 
-Each callsite replaces the ad-hoc `getClaims()` block with:
-```ts
-const gate = await requireUserPermission(req, MODULE, ACTION, scope);
-if (!gate.ok) return gate.response;
-const { userId, adminClient } = gate;
-```
-Callers that already resolve `userId` from claims stop trusting body-supplied ids; ownership is re-derived from the JWT.
+`GRANT SELECT, INSERT, UPDATE, DELETE … TO authenticated` and `GRANT ALL … TO service_role` re-asserted on each. `anon` grants dropped — none of these are public.
 
-### 3. Worker-token guard for schedulers
+### 4. Storage — `return-uploads` bucket
 
-Add `supabase/functions/_shared/workerAuth.ts` exporting `requireWorkerInvocation(req)`:
-- Accepts `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (cron path), **or**
-- `x-worker-token` matching `WORKER_INVOKE_TOKEN` secret (manual sweep runs)
-- Returns 401 otherwise.
+Replace the three existing policies with authorized versions:
 
-Apply to: `complaint-escalation-sweep`, `complaint-storage-cleanup`, `dispatch-notification-event`, `evaluate-conduct-monitoring`, `evaluate-prudential-early-warnings`, `license-expiry-reminders`, `notification-digest`, `notification-failure-sweep`, `overdue-action-sweep`, `overdue-returns-sweep`, `process-notification-outbox`, `process-queue`, `rfi-near-due-sweep`, `risk-score-recompute`, `sla-escalation-sweep`, `send-notification`, `prudential-monitoring-sweep`.
+- **read**: object-name matches a `return_upload_attempts.storage_path` or `return_documents.file_path` whose parent return passes `can_read_return_filed`; OR uploader is the object owner; OR super_admin; OR `returns_management.view_all_entities`.
+- **write (INSERT)**: `owner = auth.uid()` AND caller passes `can_mutate_return_filed` for the referenced return (path prefix parsed via `split_part(name,'/',1)::uuid` when the path encodes the return id) OR `has_permission('returns_management','edit')`.
+- **delete**: object owner AND `can_mutate_return_filed`, OR super_admin.
 
-Request `WORKER_INVOKE_TOKEN` via `add_secret` at the start of build mode.
+All storage policies use the canonical helpers — no `has_role`.
 
-### 4. Public functions — explicit allow-list
+### 5. pgTAP suite — `supabase/tests/rbac/40_returns_data_rls.sql`
 
-Add a header comment + shared `markPublicFunction(reason)` no-op documenting intent for: `public-registry`, `register-pre-licensee`, `send-registration-otp`, `verify-registration-otp`, `developer-api`. No behavioural change.
+Five personas seeded in a transaction:
+1. super_admin
+2. staff_with_view_all (`returns_management.view_all_entities`)
+3. assignment_only_regulator (mapped to licensee A only)
+4. licensee_primary_user (licensee A)
+5. unrelated_authenticated (no rights)
 
-### 5. Deno tests for the top-6 highest-risk functions
+Coverage per table (~60 assertions total): SELECT allowed/denied, INSERT allowed/denied, UPDATE allowed/denied, DELETE allowed/denied per persona. Explicit assertions:
+- assignment-only regulator can SELECT return_form_data across all workflow statuses (TEMP/WIP/SUB/APR) for licensee A;
+- assignment-only regulator **cannot** UPDATE or INSERT anything;
+- assignment-only regulator sees nothing for licensee B.
 
-Add `*_test.ts` (Deno convention) covering **401 (no bearer), 403 (wrong permission), 200 (mapped permission)** for:
-1. `perform-workflow-action`
-2. `perform-return-workflow-action`
-3. `perform-license-action`
-4. `approve-pre-licensee`
-5. `verify-and-submit`
-6. `create-web-user`
+### 6. Frontend impact
 
-Tests mock `adminClient.rpc('has_permission', …)` via env-injected supabase test project. All tests use the pattern in `<useful-context>edge-function-testing`.
+No frontend changes. All existing hooks/screens continue to work because policy semantics are preserved (creators, licensees, PPOC, external capability, view-all, mapped regulator) — only the underlying gate consolidates onto `has_permission` + canonical helpers.
 
-### 6. Documentation
+### Deliverables
 
-- Rewrite `docs/rbac/edge-function-permission-map.tsv` with the full 59-row table (function, kind, module, action, scope, notes).
-- Add `docs/rbac/edge-function-authorization.md` explaining the four kinds and the worker-token mechanism.
-- Append a change-log entry under `docs/rbac/change-log.md`.
-
-## Out of scope for this slice
-
-- Rewriting RLS on 249 tables (Slice 3+).
-- Locking down SECURITY DEFINER function search paths beyond the ones already touched.
-- Storage policy overhaul (later slice).
-- Vitest coverage for every user-invoked function (only top-6 in this slice).
-
-## Verification
-
-- `bunx vitest run` remains green.
-- `supabase--test_edge_functions` runs the 6 new Deno test files, all pass.
-- Grep sweep: every function in `supabase/functions/*/index.ts` matches one of `requireUserPermission`, `requireWorkerInvocation`, or `markPublicFunction`; the audit fails CI otherwise (add a lightweight `scripts/verify-edge-authz.mjs`).
-
-## Rollout / risk
-
-- Migration is per-function; no shared runtime state changes.
-- If a caller was silently relying on unauthenticated access, it will now receive 401/403 — that's the intended enforcement. All internal callers already send `Authorization: Bearer <session>` via `supabase.functions.invoke`.
-- Worker cron jobs already run with service-role bearer, so the worker guard accepts them without config change; the extra `WORKER_INVOKE_TOKEN` is only needed for on-demand manual invocations.
+- `supabase/migrations/*_slice_3_returns_rls.sql`
+- `supabase/tests/rbac/40_returns_data_rls.sql`
+- `docs/rbac/change-log.md` — new Slice 3 section listing every dropped/created policy
+- `docs/rbac/policy-inventory.md` — refreshed rows for the 16 tables + storage
