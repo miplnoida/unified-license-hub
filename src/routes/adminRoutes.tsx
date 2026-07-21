@@ -77,7 +77,7 @@ function M({ module, children }: { module: PermissionModule; children: React.Rea
 
 export const adminRoutes = (
   <>
-    <Route path="/admin" element={<A><AdminHub /></A>} />
+    <Route path="/admin" element={<M module="admin_dashboard"><AdminHub /></M>} />
 
     <Route path="/admin/forms" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormManagement /></ModuleRoute></P>} />
     <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
