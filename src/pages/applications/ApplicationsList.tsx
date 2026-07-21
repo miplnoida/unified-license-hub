@@ -1243,10 +1243,10 @@ export default function ApplicationsList() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate('/pre-license/new')}>
+                    <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/pre-license/new')}>
                       New Pre-Licensee Application
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/post-license/new')}>
+                    <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/post-license/new')}>
                       New Post-Licensee Application
                     </DropdownMenuItem>
                   </DropdownMenuContent>
