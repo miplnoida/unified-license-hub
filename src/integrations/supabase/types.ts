@@ -16287,6 +16287,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_any_internal_role: { Args: { _user_id: string }; Returns: boolean }
+      has_any_permission: {
+        Args: { _keys: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_complaint_perm: {
         Args: { _action: string; _user_id: string }
         Returns: boolean
@@ -16324,6 +16328,10 @@ export type Database = {
           values_written: number
         }[]
       }
+      is_assignment_only_regulator: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       is_collab_admin: { Args: { _user_id: string }; Returns: boolean }
       is_coordination_participant: {
         Args: { _case_id: string; _user_id: string }
@@ -16342,6 +16350,7 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       latest_return_analysis: {
         Args: { _return_id: string }
         Returns: {
@@ -17271,6 +17280,10 @@ export type Database = {
       }
       user_can_upload_document_object: {
         Args: { _object_name: string }
+        Returns: boolean
+      }
+      user_has_entity_assignment: {
+        Args: { _licensee_id: string; _user_id: string }
         Returns: boolean
       }
       user_has_permission: {
