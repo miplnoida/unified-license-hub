@@ -9,10 +9,21 @@ export type RoleCategory =
   | 'operational' | 'reviewer' | 'approver' | 'supervisor'
   | 'administrator' | 'read_only' | 'custom';
 
-/** JSON blob persisted at roles.scope_config. Free-form per module. */
+/**
+ * JSON blob persisted at roles.scope_config. Every field is authoritative:
+ * the backend RLS/RPC layer reads it via public.role_scope_for(role_id, module).
+ * Do not add free-text fields — everything the backend cannot enforce is
+ * forbidden by design.
+ */
 export type RoleScopeConfig = Record<
   string,
-  { scope?: 'all' | 'assigned' | 'sector' | 'department' | 'own'; sectors?: string[]; departments?: string[]; notes?: string }
+  {
+    scope?: 'all' | 'assigned' | 'team' | 'sector' | 'department' | 'institution' | 'own';
+    sectors?: string[];
+    licensees?: string[];
+    departments?: string[];
+    teams?: string[];
+  }
 >;
 
 export interface DynamicRole {
