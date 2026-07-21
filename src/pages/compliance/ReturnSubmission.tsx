@@ -991,7 +991,7 @@ function MultiFormView({
             const groupComplete = forms.every(f => completedForms.has(f.id));
             const isActive = key === activeGroupKey;
             return (
-              <Button
+              <Button data-rbac="returns_management.edit"
                 key={key}
                 variant={isActive ? 'default' : 'outline'}
                 size="sm"

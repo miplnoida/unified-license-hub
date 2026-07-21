@@ -47,7 +47,7 @@ export function LicenseExpiryBanner({ userId }: Props) {
                 <span>
                   Expired on {expiredOn}. Grace ended {graceEndsOn}. Please renew to restore your license.
                 </span>
-                <Button
+                <Button data-rbac="application_management.edit"
                   size="sm"
                   variant="secondary"
                   onClick={() => navigate(`/licenses/${s.license_id}?action=renew`)}

@@ -130,7 +130,7 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} disabled={versions.length < 2}>
+      <Button data-rbac="form_management.edit" variant="outline" size="sm" onClick={() => setOpen(true)} disabled={versions.length < 2}>
         <GitCompare className="h-4 w-4 mr-1" />
         Compare
       </Button>

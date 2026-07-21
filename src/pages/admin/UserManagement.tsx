@@ -600,7 +600,7 @@ export default function UserManagement() {
                       }}
                     />
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('create-avatar-input')?.click()}>
+                      <Button data-rbac="user_management.edit" type="button" variant="outline" size="sm" onClick={() => document.getElementById('create-avatar-input')?.click()}>
                         <Upload className="h-4 w-4 mr-2" /> Choose Image
                       </Button>
                       {pendingAvatarPreview && (

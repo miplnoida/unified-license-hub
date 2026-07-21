@@ -48,7 +48,7 @@ export function ResponseComposer({ recipient }: { recipient: string }) {
         <Textarea rows={8} defaultValue={`Dear Ms. Mensah,\n\nWe acknowledge your request dated {{received_date}}. After review, we approve a 7-day extension for the Q4 2025 return, with a revised submission deadline of {{new_deadline}}.\n\nKind regards,\nSupervision Team`} />
       </div>
       <div className="flex justify-end">
-        <Button size="sm"><Send className="h-4 w-4 mr-1" />Send response</Button>
+        <Button data-rbac="settings.edit" size="sm"><Send className="h-4 w-4 mr-1" />Send response</Button>
       </div>
     </div>
   );

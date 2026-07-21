@@ -91,7 +91,7 @@ export default function RegistrationStatusPage() {
                 </Button>
               )}
               {category === 'unverified' && (
-                <Button asChild variant="outline" className="w-full">
+                <Button data-rbac="registration_management.edit" asChild variant="outline" className="w-full">
                   <Link to="/register">
                     <MailCheck className="h-4 w-4 mr-2" /> Continue Verification
                   </Link>

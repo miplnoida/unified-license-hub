@@ -91,7 +91,7 @@ export function WorkflowVersionPanel({ workflowId, workflowName }: Props) {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button
+            <Button data-rbac="workflow_management.edit"
               size="sm"
               variant="outline"
               onClick={() => setHistoryOpen(true)}

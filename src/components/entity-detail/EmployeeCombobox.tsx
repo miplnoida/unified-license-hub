@@ -43,7 +43,7 @@ export function EmployeeCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button data-rbac="license_management.edit"
           type="button"
           variant="outline"
           role="combobox"

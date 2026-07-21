@@ -150,7 +150,7 @@ export function FullRegistrationPreview({
                 <Label className="text-sm">Email OTP Verification</Label>
                 <div className="flex gap-2">
                   <Input placeholder="Enter 6-digit code" disabled className="text-sm" />
-                  <Button variant="outline" size="sm" disabled>Send Code</Button>
+                  <Button data-rbac="form_management.edit" variant="outline" size="sm" disabled>Send Code</Button>
                 </div>
               </div>
             )}

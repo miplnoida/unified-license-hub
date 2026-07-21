@@ -253,13 +253,13 @@ export default function MasterConfiguration() {
                 <DataTableShell columns={cfg.cols} data={cfg.data} searchPlaceholder={cfg.ph}
                   actions={
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => downloadSampleExcel(ent)}>
+                      <Button data-rbac="settings.edit" variant="outline" onClick={() => downloadSampleExcel(ent)}>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
                       </Button>
                       <Button data-rbac="master_data_management.import" variant="outline" onClick={() => openImport(ent)}>
                         <Upload className="h-4 w-4 mr-2" />Import Excel
                       </Button>
-                      <Button onClick={() => openAdd(ent)}><Plus className="h-4 w-4 mr-2" />Add {cfg.label}</Button>
+                      <Button data-rbac="settings.edit" onClick={() => openAdd(ent)}><Plus className="h-4 w-4 mr-2" />Add {cfg.label}</Button>
                     </div>
                   } />
               </TabsContent>

@@ -497,7 +497,7 @@ export default function FpaIndividuals() {
                   <Button variant="ghost" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     onClick={() => addIndividual.mutate()}
                     disabled={addIndividual.isPending || !form.full_name.trim()}
                   >

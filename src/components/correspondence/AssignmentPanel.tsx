@@ -38,7 +38,7 @@ export function AssignmentPanel({ unit, officer }: { unit: string; officer: stri
         </div>
       </div>
       <div className="flex justify-end">
-        <Button size="sm">Reassign</Button>
+        <Button data-rbac="settings.edit" size="sm">Reassign</Button>
       </div>
     </div>
   );

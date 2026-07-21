@@ -163,7 +163,7 @@ function PenaltyTiersDialog({ structureId, open, onOpenChange }: { structureId: 
             <div className="space-y-1"><Label className="text-xs">From</Label><Input type="number" value={daysFrom} onChange={e => setDaysFrom(e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">To</Label><Input type="number" value={daysTo} onChange={e => setDaysTo(e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Penalty %</Label><Input type="number" value={penalty} onChange={e => setPenalty(e.target.value)} /></div>
-            <Button onClick={handleAdd} disabled={create.isPending} size="sm"><PlusCircle className="h-4 w-4 mr-1" />Add</Button>
+            <Button data-rbac="returns_management.edit" onClick={handleAdd} disabled={create.isPending} size="sm"><PlusCircle className="h-4 w-4 mr-1" />Add</Button>
           </div>
         </div>
       </DialogContent>

@@ -52,7 +52,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
             <FileText className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Applications &amp; required forms</h3>
           </div>
-          <Button asChild size="sm" variant="outline">
+          <Button data-rbac="application_management.edit" asChild size="sm" variant="outline">
             <Link to={newApplicationPath}>
               <PlusCircle className="h-3.5 w-3.5 mr-1" /> New
             </Link>

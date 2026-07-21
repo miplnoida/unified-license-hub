@@ -77,7 +77,7 @@ export function DocumentExtractionPanel({ fileUploadId, fileName, sourceType, so
               {PRESETS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={() => run.mutate()} disabled={run.isPending}>
+          <Button data-rbac="settings.edit" onClick={() => run.mutate()} disabled={run.isPending}>
             {run.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Extract
           </Button>
