@@ -69,5 +69,71 @@ Code, no migration.
 - Full permission map: `docs/rbac/edge-function-permission-map.tsv`.
 - Details: `docs/rbac/edge-function-authorization.md`.
 - Deno tests: `supabase/functions/{perform-workflow-action,perform-return-workflow-action,perform-license-action,approve-pre-licensee,verify-and-submit,create-web-user}/authz_test.ts`.
-- Secret provisioned: `WORKER_INVOKE_TOKEN` (48-char random, generated).
+
+## Slice 3 — Returns RLS + storage lockdown (shipped)
+
+Migration: `supabase/migrations/*_slice_3_returns_rls.sql`
+
+**New canonical helpers** (SECURITY DEFINER, STABLE, `search_path = public`):
+
+- `public.can_read_return_filed_row(_user, _entity_id, _on_behalf_of_licensee_id, _created_by, _return_id) → boolean`
+- `public.can_read_return_filed(_user, _return_id) → boolean`
+- `public.can_mutate_return_filed(_user, _return_id) → boolean`
+
+`EXECUTE` revoked from `PUBLIC`; granted to `authenticated, service_role`.
+All three route decisions through `is_super_admin` / `has_permission`
+(catalog is the single authority), then compose creator, mapped regulator
+(any status), licensee membership (`profiles.licensee_id`), `entity_user_access`,
+PPOC (`ppoc_mapped_licensee_ids`), and external capability
+(`external_can_access_return_filed*`). `can_mutate_return_filed` restricts
+licensee/PPOC/external mutation to the editable lifecycle (TEMP/WIP/TBR);
+assignment-only regulators can never mutate.
+
+**Table policy rewrites** — dropped every legacy policy on 15 tables and
+replaced with the canonical pattern (SELECT via `can_read_*`, INSERT/UPDATE
+via `can_mutate_*` or explicit `has_permission`, DELETE via
+`is_super_admin` OR `returns_management.delete`):
+
+- `returns_filed` (11 policies → 4)
+- `return_form_data` (8 → 4)
+- `return_documents` (3 → 4)
+- `return_comments` (1 → 4)
+- `return_audit_log` (3 → 2, append-only)
+- `return_data_revisions` (2 → 3)
+- `return_calculated_ratios` (2 → 4)
+- `return_consolidated_analysis` (2 → 4)
+- `return_edit_requests` (3 → 4)
+- `return_requests` (4 → 4)
+- `return_notifications_log` (2 → 1, read-only)
+- `return_threshold_breaches` (3 → 4)
+- `return_upload_attempts` (4 → 4)
+- `return_upload_imports` (2 → 3)
+- `return_validation_run_log` (2 → 3)
+
+Grants reasserted on every table: `authenticated` CRUD, `service_role` ALL,
+`anon` revoked.
+
+**Storage** — `return-uploads` bucket policies replaced:
+
+- Legacy `return_uploads_owner_read / _owner_write / _owner_delete` dropped.
+- New `return_uploads_read / _write / _delete` route through
+  `can_read_return_filed` / `can_mutate_return_filed`; super_admin and
+  `returns_management.view_all_entities` bypass reads.
+
+**Permission catalog** — inserted missing rows if absent:
+`returns_management.view_all_entities`, `returns_management.workflow_action`.
+
+pgTAP: `supabase/tests/rbac/40_returns_data_rls.sql` — 30 assertions across
+five personas (super_admin, view_all_entities, assignment_only_regulator,
+licensee_primary_user, unassociated). Explicit verification that
+assignment-only regulators can read all statuses on mapped entities but
+cannot mutate anything, and that licensee users can only mutate returns
+in the editable lifecycle.
+
+Config/admin tables (`return_configs`, `return_types`, `return_templates`,
+`return_cutoff_config`, `return_due_dates`, `return_form_versions`,
+`return_notification_templates`, `return_validation_rule*`,
+`return_config_forms`, `return_configurations`, `return_template_downloads`)
+remain deferred to Phase 4.
+
 
