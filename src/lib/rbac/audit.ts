@@ -197,7 +197,9 @@ export function scanFile(file: string): ActionSite[] {
     const line = text.slice(0, idx).split('\n').length;
     const reason = findWrappingGate(text, idx);
     const lowered = label.toLowerCase();
-    const isPublic = PUBLIC_ALLOW_LABELS.has(lowered);
+    const isPublic =
+      PUBLIC_ALLOW_LABELS.has(lowered) ||
+      PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
     // Extract explicit module.action from a nearby data-rbac attribute.
     // JSX opening tags contain `=>` in arrow handlers, so a naive
     // indexOf('>') stops too early. Scan a fixed forward window instead.
