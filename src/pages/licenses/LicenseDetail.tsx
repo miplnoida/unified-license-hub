@@ -675,7 +675,7 @@ export default function LicenseDetail() {
           backLabel={isInternal ? "Back to Licensee Entities" : "Back to My Licenses"}
           actions={
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={downloadCertificate} disabled={downloading}>
+              <Button data-rbac="license_management.view" variant="outline" size="sm" onClick={downloadCertificate} disabled={downloading}>
                 {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
                 Download Certificate
               </Button>
@@ -741,8 +741,8 @@ export default function LicenseDetail() {
                   <div className="flex gap-2 flex-wrap">
                     {license.status === 'active' && (
                       <>
-                        <Button variant="outline" onClick={() => openAction('suspension')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
-                        <Button variant="destructive" onClick={() => openAction('revocation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
+                        <Button data-rbac="license_management.edit" variant="outline" onClick={() => openAction('suspension')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
+                        <Button data-rbac="license_management.delete" variant="destructive" onClick={() => openAction('revocation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
                         {pendingRenewalAppId ? (
                           <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
@@ -752,7 +752,7 @@ export default function LicenseDetail() {
                             <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                           </Button>
                         ) : (
-                          <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                          <Button data-rbac="license_management.edit" variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
                             {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                             Renew
                           </Button>
@@ -761,8 +761,8 @@ export default function LicenseDetail() {
                     )}
                     {license.status === 'suspended' && (
                       <>
-                        <Button onClick={() => openAction('reinstatement')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
-                        <Button variant="destructive" onClick={() => openAction('cancellation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
+                        <Button data-rbac="license_management.edit" onClick={() => openAction('reinstatement')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
+                        <Button data-rbac="license_management.delete" variant="destructive" onClick={() => openAction('cancellation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
                       </>
                     )}
                     {license.status === 'expired' && (
@@ -775,7 +775,7 @@ export default function LicenseDetail() {
                           <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                         </Button>
                       ) : (
-                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                        <Button data-rbac="license_management.edit" variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
                           {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                           Renew
                         </Button>
@@ -810,7 +810,7 @@ export default function LicenseDetail() {
                         <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                       </Button>
                     ) : (
-                      <Button onClick={startRenewal} disabled={startingRenewal}>
+                      <Button data-rbac="license_management.edit" onClick={startRenewal} disabled={startingRenewal}>
                         {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                         Renew License
                       </Button>
