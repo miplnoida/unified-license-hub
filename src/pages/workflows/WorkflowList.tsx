@@ -793,7 +793,7 @@ export default function WorkflowList() {
               <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
                 <FileStack className="h-4 w-4 mr-2" /> Templates
               </Button>
-              <Button
+              <Button data-rbac="workflow_management.create"
                 onClick={() => setCreateOpen(true)}
                 disabled={createDisabled}
                 title={createDisabledReason || undefined}
@@ -838,7 +838,7 @@ export default function WorkflowList() {
                   <div className="text-center py-8">
                     <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
                     <p className="text-sm text-muted-foreground">No workflows for {activeRegulator?.name || 'the selected regulator'}</p>
-                    <Button variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
+                    <Button data-rbac="workflow_management.create" variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
                       <Plus className="h-3.5 w-3.5 mr-1" /> Create First Workflow
                     </Button>
                   </div>
@@ -978,16 +978,16 @@ export default function WorkflowList() {
                                     <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
                                       {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>
+                                    <Button data-rbac="workflow_management.create" variant="outline" size="sm" onClick={handleSaveAsTemplate}>
                                       <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
                                     </Button>
                                     {!isEditingSteps ? (
-                                      <Button size="sm" onClick={() => setIsEditingSteps(true)}>
+                                      <Button data-rbac="workflow_management.edit" size="sm" onClick={() => setIsEditingSteps(true)}>
                                         <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
                                       </Button>
                                     ) : (
                                       <>
-                                        <Button size="sm" variant="outline" onClick={handleAddStep}>
+                                        <Button data-rbac="workflow_management.edit" size="sm" variant="outline" onClick={handleAddStep}>
                                           <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
                                         </Button>
                                         <Button size="sm" onClick={() => setIsEditingSteps(false)}>
@@ -1396,7 +1396,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               {isEditing ? 'No steps yet — add your first approver' : 'No steps configured. Click "Edit Steps" to add one.'}
             </p>
             {isEditing && (
-              <Button variant="outline" size="sm" onClick={onAdd}>
+              <Button data-rbac="workflow_management.edit" variant="outline" size="sm" onClick={onAdd}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
               </Button>
             )}
@@ -1429,7 +1429,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
         <>
           {isEditing && (
             <div className="flex justify-center py-1">
-              <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
+              <Button data-rbac="workflow_management.edit" variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
                 <Plus className="h-3 w-3 mr-1" /> Add another step
               </Button>
             </div>

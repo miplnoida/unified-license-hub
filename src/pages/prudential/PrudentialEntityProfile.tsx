@@ -198,8 +198,8 @@ export default function PrudentialEntityProfile() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
-          <Button size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
+          <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
+          <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
           <Button data-rbac="prudential.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
           <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}><History className="h-3 w-3 mr-1" />History</Button>
         </div>
@@ -247,7 +247,7 @@ export default function PrudentialEntityProfile() {
                     <TableCell>{r.submit_date ? new Date(r.submit_date).toLocaleDateString() : '—'}</TableCell>
                     <TableCell><Badge variant="outline">{r.workflow_status || r.status}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={async () => { await evalStress.mutateAsync(r.id); refetch(); }}>Evaluate stress</Button>
+                      <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={async () => { await evalStress.mutateAsync(r.id); refetch(); }}>Evaluate stress</Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -484,7 +484,7 @@ export default function PrudentialEntityProfile() {
                       <TableCell className="tabular-nums">{b.threshold_value != null ? formatRatio(b.threshold_value, fmt) : '—'}</TableCell>
                       <TableCell>{b.detected_at ? new Date(b.detected_at).toLocaleDateString() : '—'}</TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => setCreateAction({
+                        <Button data-rbac="prudential_supervision.create" size="sm" variant="ghost" onClick={() => setCreateAction({
                           entity_id: e.id, source_type: 'return_breach', source_id: b.id,
                           title: `Follow-up on breach: ${metric}`, severity: sev,
                           description: `Breach detected on ${metric} (value ${val}, threshold ${b.threshold_value}).`,

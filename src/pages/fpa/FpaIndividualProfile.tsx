@@ -190,7 +190,7 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
           <CardTitle className="text-base">Personal Details</CardTitle>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" onClick={openEdit}>
+              <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={openEdit}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
               </Button>
@@ -289,7 +289,7 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
                 <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button
+                <Button data-rbac="fit_and_proper.edit"
                   onClick={() => updateMutation.mutate()}
                   disabled={updateMutation.isPending}
                 >
@@ -466,13 +466,13 @@ function RolesTab({ id }: { id: string }) {
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">Roles &amp; Positions</CardTitle>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
+          <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
             {runningCycle ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5 mr-1.5" />}
             Run Cycle Scheduler
           </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button data-rbac="fit_and_proper.create" size="sm">
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Add Role
             </Button>
@@ -543,7 +543,7 @@ function RolesTab({ id }: { id: string }) {
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => addRole.mutate()} disabled={addRole.isPending}>
+              <Button data-rbac="fit_and_proper.create" onClick={() => addRole.mutate()} disabled={addRole.isPending}>
                 {addRole.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Add Role
               </Button>
@@ -820,7 +820,7 @@ function AssessmentsTab({ id }: { id: string }) {
           <CardTitle className="text-base">Assessments</CardTitle>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button data-rbac="fit_and_proper.create" size="sm">
                 <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Start New Assessment
               </Button>
@@ -850,7 +850,7 @@ function AssessmentsTab({ id }: { id: string }) {
                 <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => startAssessment.mutate()} disabled={startAssessment.isPending}>
+                <Button data-rbac="fit_and_proper.create" onClick={() => startAssessment.mutate()} disabled={startAssessment.isPending}>
                   {startAssessment.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
@@ -991,7 +991,7 @@ function AccessControlTab({ id }: { id: string }) {
           </CardTitle>
           <Dialog open={denialOpen} onOpenChange={setDenialOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="destructive">
+              <Button data-rbac="fit_and_proper.edit" size="sm" variant="destructive">
                 <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
                 Log Access Denial
               </Button>
@@ -1019,7 +1019,7 @@ function AccessControlTab({ id }: { id: string }) {
                 <Button variant="ghost" onClick={() => setDenialOpen(false)}>
                   Cancel
                 </Button>
-                <Button
+                <Button data-rbac="fit_and_proper.edit"
                   variant="destructive"
                   onClick={handleLogDenial}
                   disabled={submitting}

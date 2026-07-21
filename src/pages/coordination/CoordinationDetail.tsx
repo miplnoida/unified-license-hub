@@ -389,7 +389,7 @@ export default function CoordinationDetail() {
             {me && (
               <div className="flex gap-2">
                 <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Post a message to all participants…" rows={2} />
-                <Button onClick={() => postMessage.mutate()} disabled={!msg.trim() || postMessage.isPending}>Post</Button>
+                <Button data-rbac="coordination.edit" onClick={() => postMessage.mutate()} disabled={!msg.trim() || postMessage.isPending}>Post</Button>
               </div>
             )}
           </TabsContent>
@@ -479,7 +479,7 @@ function ParticipantsTab({
         {isOwner && (
           <Dialog open={inviting} onOpenChange={setInviting}>
             <DialogTrigger asChild>
-              <Button size="sm"><UserPlus className="h-4 w-4 mr-2" /> Invite</Button>
+              <Button data-rbac="coordination.edit" size="sm"><UserPlus className="h-4 w-4 mr-2" /> Invite</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Invite Participant</DialogTitle></DialogHeader>
@@ -510,7 +510,7 @@ function ParticipantsTab({
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setInviting(false)}>Cancel</Button>
-                <Button onClick={() => invite.mutate()} disabled={!selectedUserId || invite.isPending}>
+                <Button data-rbac="coordination.edit" onClick={() => invite.mutate()} disabled={!selectedUserId || invite.isPending}>
                   {invite.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Invite
                 </Button>
               </DialogFooter>
@@ -545,7 +545,7 @@ function ParticipantsTab({
                   <Button size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'cleared', noteById[p.id])}>
                     <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" /> Clear
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'blocked', noteById[p.id])}>
+                  <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'blocked', noteById[p.id])}>
                     <XCircle className="h-3 w-3 mr-1 text-red-600" /> Block
                   </Button>
                 </div>
@@ -622,7 +622,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         {canPost && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Flag className="h-4 w-4 mr-2" /> Raise Flag</Button>
+              <Button data-rbac="coordination.edit" size="sm"><Flag className="h-4 w-4 mr-2" /> Raise Flag</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Raise Flag</DialogTitle></DialogHeader>
@@ -660,7 +660,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => create.mutate()} disabled={create.isPending}>
+                <Button data-rbac="coordination.edit" onClick={() => create.mutate()} disabled={create.isPending}>
                   {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Raise
                 </Button>
               </DialogFooter>
@@ -687,7 +687,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
                 </div>
               </div>
               {canPost && f.status !== 'resolved' && (
-                <Button variant="outline" size="sm" onClick={() => resolve.mutate(f.id)}>Resolve</Button>
+                <Button data-rbac="coordination.edit" variant="outline" size="sm" onClick={() => resolve.mutate(f.id)}>Resolve</Button>
               )}
             </div>
           </div>

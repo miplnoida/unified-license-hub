@@ -330,7 +330,7 @@ function DeterminationDetailDialog({
           )}
 
           {determination.outcome === 'conditional' && (
-            <Button
+            <Button data-rbac="fit_and_proper.create"
               size="sm"
               variant="outline"
               onClick={() => {
@@ -830,7 +830,7 @@ export default function FpaDeterminations() {
           actions={
             <Dialog open={open} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
-                <Button>
+                <Button data-rbac="fit_and_proper.create">
                   <Plus className="h-4 w-4 mr-2" />
                   New Determination
                 </Button>
@@ -1032,7 +1032,7 @@ export default function FpaDeterminations() {
                   <Button variant="ghost" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
-                  <Button
+                  <Button data-rbac="fit_and_proper.edit"
                     onClick={() => addDetermination.mutate()}
                     disabled={
                       addDetermination.isPending ||
@@ -1343,7 +1343,7 @@ export default function FpaDeterminations() {
             <Button variant="ghost" onClick={() => setConditionPrompt(null)}>
               Not now
             </Button>
-            <Button
+            <Button data-rbac="fit_and_proper.create"
               onClick={() => {
                 if (!conditionPrompt) return;
                 navigate(`/fpa/conditions?open=1&individual_id=${conditionPrompt.individualId}&determination_id=${conditionPrompt.determinationId}`);
