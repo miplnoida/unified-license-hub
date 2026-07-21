@@ -81,14 +81,15 @@ describe('RBAC action coverage', () => {
     }
   });
 
-  it('overall coverage stays at or above the Slice 21 baseline', () => {
+  it('overall coverage stays at or above the Slice 22 baseline', () => {
     const total = sites.length;
     const prot = sites.filter((s) => s.protected).length;
     const pct = total === 0 ? 100 : (prot / total) * 100;
-    // Slice 21: extended scanner to <DropdownMenuItem>, swept Save/Submit
-    // categories, and annotated remaining mutating dropdown items. Overall
-    // now ~92%. Submit is at 100%, Save at 93%.
-    const BASELINE = 88;
+    // Slice 22: extended scanner to <ContextMenuItem>, expanded public
+    // allow-list for benign navigation/framework controls, and annotated
+    // the remaining Save/Create/Workflow/Report/Email sites. Coverage is
+    // now 100% across all detected call sites.
+    const BASELINE = 98;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
     // eslint-disable-next-line no-console
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
@@ -102,4 +103,15 @@ describe('RBAC action coverage', () => {
       `Submit floor breached: ${unprot.map((u) => `${u.file}:${u.line} "${u.button}"`).join(', ')}`,
     ).toBe(0);
   });
+
+  it('overall coverage is 100% (Slice 22 hard floor)', () => {
+    const total = sites.length;
+    const unprot = sites.filter((s) => !s.protected);
+    expect(
+      unprot.length,
+      `Unguarded action sites remain:\n${unprot.map((u) => `  - ${u.file}:${u.line} [${u.category}] "${u.button}"`).join('\n')}`,
+    ).toBe(0);
+    expect(total).toBeGreaterThan(0);
+  });
 });
+
