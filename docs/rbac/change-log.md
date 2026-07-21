@@ -374,3 +374,46 @@ pgTAP: `supabase/tests/rbac/90_approval_workflows_rls.sql` — 24
 assertions covering helper composition, applicant carve-out, per-table
 policy shape, absence of legacy `has_role()`, and new permission
 registration.
+
+## Slice 9 — Prudential Supervision RBAC
+
+**Permissions added** (module `prudential_supervision`): `create`,
+`edit`, `delete`, `view_all_entities`, `manage_config`,
+`workflow_action`. Registered in both `permission_actions` and
+`permissions` (enforced=true).
+
+**New helpers** (`SECURITY DEFINER`, `STABLE`, `search_path=public`):
+
+- `public.can_read_prudential_entity(_user, _entity_id)` — super_admin
+  OR `view_all_entities` OR (`view` AND (assignment on entity OR
+  `entity_user_access`)).
+- `public.can_manage_prudential_config(_user)` — super_admin OR
+  `manage_config`.
+- `public.can_act_on_prudential(_user)` — super_admin OR
+  `workflow_action` / `edit` / `create`.
+
+**Config/reference tables** (read=authenticated, write=`can_manage_prudential_config`):
+`prudential_ratios`, `prudential_ratio_versions`, `prudential_thresholds`,
+`prudential_threshold_versions`, `prudential_risk_taxonomy`,
+`prudential_stress_indicators`.
+
+**Entity-scoped tables** (4 policies each — read/insert/update/delete
+via canonical helpers, INSERT pins `created_by = auth.uid()` and
+requires assignment or `view_all_entities`):
+`prudential_assessments`, `prudential_actions`, `prudential_escalations`.
+
+**Other**:
+
+- `prudential_stress_events` — entity-scoped read via
+  `can_read_prudential_entity`; writes require `edit` or
+  `manage_config`.
+- `prudential_data_feed_logs` — read gated by super_admin or
+  `view_all_entities`; no authenticated write policy — inserts reserved
+  for the `service_role` (sweep workers/edge functions).
+
+**Grants** — anon revoked; authenticated CRUD and service_role ALL
+reasserted on all 11 tables.
+
+pgTAP: `supabase/tests/rbac/100_prudential_rls.sql` — 20 assertions
+covering helper presence and semantics, permission registration, policy
+shape per table, RLS enablement, and grant hardening.

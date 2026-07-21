@@ -15562,8 +15562,13 @@ export type Database = {
         Returns: boolean
       }
       can_act_on_approval: { Args: { _user: string }; Returns: boolean }
+      can_act_on_prudential: { Args: { _user: string }; Returns: boolean }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
+        Returns: boolean
+      }
+      can_manage_prudential_config: {
+        Args: { _user: string }
         Returns: boolean
       }
       can_mutate_application: {
@@ -15602,6 +15607,10 @@ export type Database = {
       }
       can_read_licensee: {
         Args: { _licensee_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_prudential_entity: {
+        Args: { _entity_id: string; _user: string }
         Returns: boolean
       }
       can_read_return_filed: {
