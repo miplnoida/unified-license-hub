@@ -142,6 +142,13 @@ export default function RoleManagement() {
   const [permSearch, setPermSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
+  // Exact action gates — the same permissions the DB triggers enforce.
+  const canCreate = useCan('role_management', 'create');
+  const canEdit = useCan('role_management', 'edit');
+  const canDelete = useCan('role_management', 'delete');
+  const canReset = useCan('role_management', 'reset');
+  const canAssign = useCan('role_management', 'assign_permissions');
+
   // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
   // Radix can leave `pointer-events: none` on <body> and orphaned closed overlays in the
   // DOM after the dialog closes, making the page unclickable. A single microtask cleanup
