@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { buildCoverage, classifyCoverage, type CatalogEntry } from '@/lib/rbac/coverage';
+import { buildCoverage, classifyCoverage, type CatalogEntry } from '@/lib/rbac/coverageScanner';
 
 const ROOT = resolve(__dirname, '../../..');
 const CATALOG_PATH = resolve(ROOT, 'src/lib/rbac/catalog.json');
