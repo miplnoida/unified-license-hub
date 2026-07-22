@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, ArrowLeft, Download, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 
 export default function DataManagementSettings() {
   const navigate = useNavigate();
@@ -57,8 +59,30 @@ export default function DataManagementSettings() {
               <Switch defaultChecked />
             </div>
             <div className="flex gap-2">
-              <Button data-rbac="settings.export" variant="outline"><Download className="h-4 w-4 mr-2" />Export Database</Button>
-              <Button data-rbac="settings.export" variant="outline"><Download className="h-4 w-4 mr-2" />Export Audit Logs</Button>
+              <Button
+                data-rbac="settings.export"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await authorizedExport('settings', 'export', { kind: 'database' });
+                    toast.success('Database export queued');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Not authorized to export');
+                  }
+                }}
+              ><Download className="h-4 w-4 mr-2" />Export Database</Button>
+              <Button
+                data-rbac="settings.export"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await authorizedExport('settings', 'export', { kind: 'audit_logs' });
+                    toast.success('Audit log export queued');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Not authorized to export');
+                  }
+                }}
+              ><Download className="h-4 w-4 mr-2" />Export Audit Logs</Button>
             </div>
           </CardContent>
         </Card>
