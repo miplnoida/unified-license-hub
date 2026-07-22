@@ -526,7 +526,13 @@ export default function FpaMonitoring() {
   });
 
   // ── CSV export for audit logs ───────────────────────────────────────────
-  function handleExportAudit() {
+  async function handleExportAudit() {
+    try {
+      await authorizedExport('fit_and_proper', 'export', { count: (auditLogs ?? []).length, kind: 'audit_trail' });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Not authorized');
+      return;
+    }
     const rows = (auditLogs ?? []).map((log) => ({
       timestamp: log.created_at ?? '',
       action_type: log.action_type ?? '',

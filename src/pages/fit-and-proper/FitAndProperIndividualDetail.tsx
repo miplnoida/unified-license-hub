@@ -248,6 +248,7 @@ export default function FitAndProperIndividualDetail() {
   async function exportAuditHistory() {
     if (!id) return;
     try {
+      await authorizedExport('fit_and_proper', 'export', { individual_id: id });
       const { data, error } = await supabase
         .from('compliance_audit_logs')
         .select('action, entity_type, entity_id, actor_id, created_at, old_value, new_value, justification')
