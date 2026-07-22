@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useSectors, useSubSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
