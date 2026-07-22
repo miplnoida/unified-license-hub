@@ -17079,6 +17079,10 @@ export type Database = {
         Args: { _application_id: string; _comments: string }
         Returns: Json
       }
+      reject_return: {
+        Args: { _reason: string; _return_id: string }
+        Returns: undefined
+      }
       reject_review_suggestion: {
         Args: { _suggestion_id: string }
         Returns: {
