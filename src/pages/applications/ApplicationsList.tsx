@@ -35,6 +35,7 @@ import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
 import { computeWorkflowSLA, type SlaStatus } from '@/hooks/useWorkflowSLA';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
