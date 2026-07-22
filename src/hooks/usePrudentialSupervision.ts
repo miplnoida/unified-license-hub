@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
+
 
 const sb = supabase as any;
 
@@ -154,15 +156,18 @@ export function useUpsertTaxonomy() {
       const payload = { ...row };
       const before = row.id ? (await sb.from('prudential_risk_taxonomy').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: row.id });
         const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);
         if (error) throw error;
         await audit('UPDATE', 'prudential_taxonomy', row.id, before, payload);
       } else {
+        await authorizedAction('prudential_supervision', 'create', { taxonomy_code: (row as any).code });
         const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();
         if (error) throw error;
         await audit('CREATE', 'prudential_taxonomy', data.id, null, data);
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
@@ -171,10 +176,12 @@ export function useDeleteTaxonomy() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: id, deactivate: true });
       const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_taxonomy', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy deactivated'); },
   });
 }
@@ -335,6 +342,7 @@ export function useUpsertAssessment() {
       const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
       const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { assessment_id: row.id });
         delete payload.id;
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
@@ -342,6 +350,7 @@ export function useUpsertAssessment() {
         await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
         return data;
       } else {
+        await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id });
         payload.created_by = user?.id;
         const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
         if (error) throw error;
@@ -349,6 +358,7 @@ export function useUpsertAssessment() {
         return data;
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Assessment saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
@@ -426,11 +436,13 @@ export function useCreateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAction>) => {
+      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, title: (row as any).title });
       const user = (await sb.auth.getUser()).data.user;
       const payload: any = { ...row, created_by: user?.id };
       const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
       if (error) throw error;
       await audit('CREATE', 'prudential_action', data.id, null, data);
+
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
       if (data.assigned_to) {
         await notify('prudential_action_assigned', 'prudential_action', data.id, {
@@ -447,8 +459,10 @@ export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
+      await authorizedAction('prudential_supervision', 'edit', { action_id: id, status: patch.status });
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+
       // Enforce mandatory notes at hook layer for terminal transitions,
       // so a direct hook caller cannot bypass the UI's 5-char guard.
       if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
@@ -527,7 +541,9 @@ export function useCreateEscalation() {
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
       const user = (await sb.auth.getUser()).data.user;
       if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
+      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, reason_preview: row.reason?.slice(0, 60) });
       const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
+
       if (error) throw error;
       await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
@@ -542,8 +558,10 @@ export function useUpdateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
+      await authorizedAction('prudential_supervision', 'edit', { escalation_id: id, status: patch.status });
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+
       const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
         if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
@@ -582,15 +600,18 @@ export function useUpsertStressIndicator() {
       const payload = { ...row };
       const before = row.id ? (await sb.from('prudential_stress_indicators').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { stress_indicator_id: row.id });
         const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);
         if (error) throw error;
         await audit('UPDATE', 'prudential_stress_indicator', row.id, before, payload);
       } else {
+        await authorizedAction('prudential_supervision', 'create', { metric_key: row.metric_key });
         const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();
         if (error) throw error;
         await audit('CREATE', 'prudential_stress_indicator', data.id, null, data);
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
@@ -599,10 +620,12 @@ export function useDeleteStressIndicator() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await authorizedAction('prudential_supervision', 'edit', { stress_indicator_id: id, deactivate: true });
       const { error } = await sb.from('prudential_stress_indicators').update({ is_active: false }).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_stress_indicator', id, { is_active: true }, { is_active: false }, 'Deactivated');
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator deactivated'); },
   });
 }

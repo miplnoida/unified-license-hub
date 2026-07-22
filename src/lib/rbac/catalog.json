@@ -497,12 +497,12 @@
   {
     "module": "market_conduct",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "market_conduct",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "market_conduct",
@@ -612,12 +612,12 @@
   {
     "module": "prudential_supervision",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "prudential_supervision",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "prudential_supervision",

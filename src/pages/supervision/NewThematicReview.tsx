@@ -67,7 +67,10 @@ export default function NewThematicReview() {
   const commit = async () => {
     setSaving(true);
     try {
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('market_conduct', 'create', { review_title: form.title });
       const { data: user } = await supabase.auth.getUser();
+
       const { data: tr, error } = await supabase.from('thematic_reviews' as any).insert({
         title: form.title.trim(),
         description: form.description || null,

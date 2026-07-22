@@ -78,10 +78,13 @@ export default function ThematicReviewDetail() {
 
   const runTransition = async (targetStatus: string, override_id?: string, reason?: string) => {
     try {
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('market_conduct', 'edit', { review_id: id, target_status: targetStatus });
       const { error } = await supabase.from('thematic_reviews' as any)
         .update({ status: targetStatus, ...(targetStatus === 'closed' ? { closed_at: new Date().toISOString() } : {}) })
         .eq('id', id);
       if (error) throw error;
+
       // status history: trigger already logs, but we can enrich reason
       if (reason) {
         await supabase.from('thematic_review_status_history' as any)
@@ -408,6 +411,9 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
   const add = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
+    const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+    try { await authorizedAction('market_conduct', 'create', { review_id: reviewId, finding_title: form.title }); }
+    catch (e: any) { toast.error(e?.message || 'Not authorized'); setSaving(false); return; }
     const { data: user } = await supabase.auth.getUser();
     const { data, error } = await supabase.from('thematic_review_findings' as any).insert({
       review_id: reviewId, title: form.title.trim(), severity: form.severity,
@@ -415,6 +421,7 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
       licensee_id: form.licensee_id || null,
       status: 'draft', created_by: user.user?.id,
     }).select('id').single();
+
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_created', 'thematic_review_finding', (data as any).id, { after: form, meta: { review_id: reviewId } });
@@ -424,10 +431,14 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
     setSaving(false);
   };
   const issue = async (f: any) => {
+    const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+    try { await authorizedAction('market_conduct', 'edit', { finding_id: f.id, action: 'issue' }); }
+    catch (e: any) { toast.error(e?.message || 'Not authorized'); return; }
     const { data: user } = await supabase.auth.getUser();
     const { error } = await supabase.from('thematic_review_findings' as any)
       .update({ status: 'issued', issued_at: new Date().toISOString(), issued_by: user.user?.id })
       .eq('id', f.id);
+
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_issued', 'thematic_review_finding', f.id, { before: { status: f.status }, after: { status: 'issued' } });
