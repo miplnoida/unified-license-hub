@@ -25,6 +25,7 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default', draft: 'secondary', archived: 'outline',
@@ -166,6 +167,7 @@ export default function FormManagement() {
   const doBulkPublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
+      await authorizedAction('form_management', 'publish', { ids, count: ids.length });
       const results = await Promise.allSettled(
         ids.map((id) => updateStatusMutation.mutateAsync({ id, status: 'published' }))
       );
@@ -175,8 +177,8 @@ export default function FormManagement() {
       if (failed > 0) toast.error(`${failed} form(s) failed to publish.`);
       else toast.success(`${ids.length} form(s) published successfully.`);
       setSelectedIds(new Set());
-    } catch {
-      toast.error('Failed to bulk publish forms.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to bulk publish forms.');
     } finally {
       setBulkLoading(false);
     }
@@ -238,6 +240,13 @@ export default function FormManagement() {
 
   const doBulkDelete = async (ids: string[]) => {
     setBulkLoading(true);
+    try {
+      await authorizedAction('form_management', 'delete', { ids, count: ids.length });
+    } catch (e: any) {
+      setBulkLoading(false);
+      toast.error(e?.message || 'Not authorized to delete form templates.');
+      return;
+    }
     const failures: string[] = [];
     for (const id of ids) {
       try {
@@ -281,7 +290,13 @@ export default function FormManagement() {
       description: 'This form template will be permanently deleted. This action cannot be undone.',
       confirmLabel: 'Yes, delete it',
       destructive: true,
-      onConfirm: () => {
+      onConfirm: async () => {
+        try {
+          await authorizedAction('form_management', 'delete', { id });
+        } catch (e: any) {
+          toast.error(e?.message || 'Not authorized to delete form templates.');
+          return;
+        }
         deleteTemplateMutation.mutate(id, {
           onSuccess: () => toast.success('Form template deleted.'),
           onError: (err: any) => toast.error(err?.message || 'Failed to delete form template.'),
@@ -305,8 +320,16 @@ export default function FormManagement() {
   };
 
 
-  const confirmStatusChange = () => {
+  const confirmStatusChange = async () => {
     const { id, newStatus } = statusDialog;
+    if (newStatus === 'published') {
+      try {
+        await authorizedAction('form_management', 'publish', { id });
+      } catch (e: any) {
+        toast.error(e?.message || 'Not authorized to publish forms.');
+        return;
+      }
+    }
     updateStatusMutation.mutate(
       {
         id,
@@ -354,7 +377,14 @@ export default function FormManagement() {
               {activeTab === 'returns' && canEditForms && (
                 <Button data-rbac="form_management.import"
                   variant="outline"
-                  onClick={() => navigate(`/admin/forms/create?type=returns&import=excel`)}
+                  onClick={async () => {
+                    try {
+                      await authorizedAction('form_management', 'import', { entry: 'excel_nav' });
+                      navigate(`/admin/forms/create?type=returns&import=excel`);
+                    } catch (e: any) {
+                      toast.error(e?.message || 'Not authorized to import forms.');
+                    }
+                  }}
                   title="Import a workbook (.xlsx, .xlsm, .xls). Each sheet becomes a return form with formulas preserved."
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />Import from Excel

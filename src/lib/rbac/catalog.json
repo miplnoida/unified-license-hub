@@ -357,7 +357,7 @@
   {
     "module": "form_management",
     "name": "delete",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "form_management",
@@ -367,12 +367,12 @@
   {
     "module": "form_management",
     "name": "import",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "form_management",
     "name": "publish",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "form_management",
