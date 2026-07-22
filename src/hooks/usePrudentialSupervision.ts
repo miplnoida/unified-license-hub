@@ -459,8 +459,10 @@ export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
+      await authorizedAction('prudential_supervision', 'edit', { action_id: id, status: patch.status });
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+
       // Enforce mandatory notes at hook layer for terminal transitions,
       // so a direct hook caller cannot bypass the UI's 5-char guard.
       if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
