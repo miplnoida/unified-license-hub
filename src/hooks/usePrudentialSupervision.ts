@@ -342,6 +342,7 @@ export function useUpsertAssessment() {
       const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
       const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { assessment_id: row.id });
         delete payload.id;
         const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
         if (error) throw error;
@@ -349,6 +350,7 @@ export function useUpsertAssessment() {
         await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
         return data;
       } else {
+        await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id });
         payload.created_by = user?.id;
         const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
         if (error) throw error;
@@ -356,6 +358,7 @@ export function useUpsertAssessment() {
         return data;
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Assessment saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
