@@ -772,7 +772,7 @@
   {
     "module": "role_management",
     "name": "assign_permissions",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "role_management",
@@ -782,7 +782,7 @@
   {
     "module": "role_management",
     "name": "delete",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "role_management",
@@ -792,12 +792,12 @@
   {
     "module": "role_management",
     "name": "manage_catalog",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "role_management",
     "name": "reset",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "role_management",
@@ -807,12 +807,12 @@
   {
     "module": "role_management",
     "name": "view_catalog",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "role_management",
     "name": "view_coverage",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "settings",
