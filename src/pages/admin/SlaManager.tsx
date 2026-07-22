@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
 import { notifySlaChange } from '@/lib/slaNotifications';
 import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
@@ -414,6 +415,12 @@ function CalendarTab() {
 
   const importCsv = async (file: File) => {
     if (!active) return;
+    try {
+      await authorizedAction('settings', 'import', { profile_id: active.id, file: file.name });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message ?? '', variant: 'destructive' });
+      return;
+    }
     const text = await file.text();
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const valid: { profile_id: string; holiday_date: string; name: string }[] = [];

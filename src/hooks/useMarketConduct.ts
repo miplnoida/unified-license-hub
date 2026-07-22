@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const sb = supabase as any;
 
@@ -119,6 +120,7 @@ export function useCreateInvestigation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<ConductInvestigation> & { allegation: string; source_type: string }) => {
+      await authorizedAction('conduct_management', 'create', { allegation: payload.allegation });
       const { data: user } = await supabase.auth.getUser();
       const body: any = { ...payload, opened_by: user.user?.id ?? null };
       const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();
@@ -228,6 +230,9 @@ export function useToggleEvidenceRestriction() {
  */
 export async function logEvidenceAccess(evidenceId: string, action: 'view' | 'download', reason?: string) {
   try {
+    if (action === 'download') {
+      await authorizedAction('conduct_management', 'export', { evidence_id: evidenceId, reason });
+    }
     await sb.rpc('log_conduct_evidence_access', { _evidence_id: evidenceId, _action: action, _reason: reason ?? null });
     await audit('EXPORT', 'conduct_evidence', evidenceId, null, { action }, reason);
   } catch (e) {

@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, ArrowUp } from 'lucide-react';
@@ -103,6 +104,7 @@ export function EscalationsTab({
 
   const update = useMutation({
     mutationFn: async ({ id, patch, action, justification }: { id: string; patch: Record<string, unknown>; action: string; justification?: string }) => {
+      await authorizedAction('coordination', 'edit', { escalation_id: id, action });
       const before = (escalations ?? []).find((e: any) => e.id === id) ?? null;
       const { error } = await supabase.from('coordination_escalations').update(patch).eq('id', id);
       if (error) throw error;

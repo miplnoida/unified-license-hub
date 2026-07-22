@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useSectors, useSubSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
@@ -69,6 +70,9 @@ export default function ReturnConfiguration() {
   const handleSave = async () => {
     if (!name.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
+    try {
+      await authorizedAction('returns_management', 'configure', { config_id: editing?.id ?? null, name: name.trim() });
+    } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); setSaving(false); return; }
     const payload: any = {
       name: name.trim(), frequency, due_day: parseInt(dueDay),
       sector_id: sectorId || null, sub_sector_id: subSectorId || null, is_active: isActive,
@@ -87,6 +91,9 @@ export default function ReturnConfiguration() {
   };
 
   const handleDelete = async (id: string) => {
+    try {
+      await authorizedAction('returns_management', 'configure', { config_id: id, action: 'delete' });
+    } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
     const { error } = await supabase.from('return_configurations' as any).delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Deleted'); loadConfigs();

@@ -22,6 +22,7 @@ import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
 import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { logCoordinationAction } from '@/lib/coordinationAudit';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { EscalationsTab } from '@/components/coordination/EscalationsTab';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
@@ -185,6 +186,7 @@ export default function CoordinationDetail() {
       if (status === 'blocked' && (!note || note.trim().length < 5)) {
         throw new Error('Block requires a note (min 5 chars)');
       }
+      await authorizedAction('coordination', 'edit', { participant_id: id, clearance_status: status });
       const before = (participants ?? []).find((p: any) => p.id === id) ?? null;
       const { error } = await supabase
         .from('coordination_participants')
@@ -224,6 +226,7 @@ export default function CoordinationDetail() {
       if (closeRationale.trim().length < 10) {
         throw new Error('Closure rationale must be at least 10 characters');
       }
+      await authorizedAction('coordination', 'edit', { case_id: caseId, action: 'close' });
       const { error } = await supabase
         .from('coordination_cases')
         .update({
