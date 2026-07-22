@@ -42,6 +42,16 @@ jobs:
       - name: RBAC authorization centralization (no ad-hoc permission scans)
         run: node scripts/verify-authz-centralized.mjs
 
+      - name: RBAC atomic authz (no unallowlisted check-then-mutate)
+        run: node scripts/verify-atomic-authz.mjs
+
+      - name: RBAC catalog fully enforced (enforced:false must be 0)
+        run: |
+          set -euo pipefail
+          count=$(node -e "console.log(Object.values(require('./src/lib/rbac/catalog.json')).flatMap(m => Object.values(m)).filter(v => v && v.enforced === false).length)")
+          echo "enforced:false count = $count"
+          [ "$count" -eq 0 ]
+
       - name: Authorize service unit tests
         run: bunx vitest run src/test/authorize.test.ts
 
