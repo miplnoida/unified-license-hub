@@ -18,6 +18,12 @@ export interface NavItem {
   /** If set, item is also gated by the dynamic role having access to this module */
   module?: PermissionModule;
   /**
+   * When set, sidebar visibility uses `hasPermission(module, requiredAction)`
+   * (exact action match) instead of `hasModuleAccess(module)` (any action on
+   * the module). Required for diagnostic entries like Permission Coverage.
+   */
+  requiredAction?: string;
+  /**
    * Admin-panel items (e.g. /admin/*). When true, the sidebar keeps enforcing
    * the static `roles` audience even in dynamic-permission mode so an external
    * user who is granted the same module does not see internal admin screens.
