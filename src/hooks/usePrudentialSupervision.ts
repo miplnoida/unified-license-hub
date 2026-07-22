@@ -558,8 +558,10 @@ export function useUpdateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
+      await authorizedAction('prudential_supervision', 'edit', { escalation_id: id, status: patch.status });
       const user = (await sb.auth.getUser()).data.user;
       const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
+
       const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
         if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
