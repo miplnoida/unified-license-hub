@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Bell, Mail, MessageSquare, Smartphone, Copy } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 interface NotificationTemplate {
   id: string;
@@ -126,6 +127,12 @@ export default function NotificationTemplates() {
   const handleSave = async () => {
     if (!name.trim() || !eventType || !body.trim()) {
       toast.error('Name, event type, and body are required');
+      return;
+    }
+    try {
+      await authorizedAction('notification_management', 'create', { event_type: eventType, channel, editing: !!editing });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to save notification templates');
       return;
     }
     setSaving(true);
