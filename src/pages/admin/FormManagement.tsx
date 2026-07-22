@@ -25,6 +25,7 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default', draft: 'secondary', archived: 'outline',
