@@ -1,23 +1,34 @@
-## Root cause
+# Fix: `system_role_not_deletable` on every role delete
 
-`audit_logs` has no `changes` column — its jsonb columns are `old_value`, `new_value`, and `metadata`. Two RPCs were written against a non-existent `changes` column:
+## Root cause (verified)
 
-- `public.enforce_action(module, action, meta)` — called by every client `authorizedAction(...)`, including the "delete role" flow (`useDeleteRole` → `authorizedAction('role_management','delete', ...)` → then `rbac_delete_role`). This is what raises `column "changes" of relation "audit_logs" does not exist` before the delete even runs.
-- `public.enforce_workflow_transition(...)` — same bug, will fail every workflow transition once exercised.
+`public.rbac_delete_role` rejects a role when **either**:
 
-`rbac_delete_role` itself is fine.
+1. `is_system = true`, **or**
+2. `system_role NOT IN ('custom','')`
+
+In the current `roles` table, every row has `system_role` set to a template key like `analyst`, `admin`, `supervisor`, etc. — including user-created custom roles (`is_system = false`). So condition (2) blocks every delete, even for legitimate custom roles such as "Application Intake Clerk" or "Insurance Regulator".
+
+`system_role` on this table is a **template lineage tag** (which starter template the role was cloned from), not a "this row is a built-in" flag. The authoritative built-in marker is `is_system`.
 
 ## Fix
 
-Single migration that redefines both functions to write the meta jsonb into `audit_logs.metadata` (the correct column) instead of `changes`. No table schema changes, no signature changes, no client changes.
+Migration to redefine `public.rbac_delete_role` so deletion is blocked **only** when `is_system = true`. Drop the `system_role` clause.
 
-- `enforce_action`: insert into `(user_id, action, entity_type, entity_id, metadata)` with `metadata = COALESCE(_meta,'{}'::jsonb)`.
-- `enforce_workflow_transition`: insert into `(user_id, action, entity_type, entity_id, metadata)` with `metadata = COALESCE(_meta,'{}'::jsonb) || jsonb_build_object('from_state', _from_state, 'to_state', _to_state, 'submitter', _submitter_id)`.
+```sql
+IF COALESCE(target.is_system, false) THEN
+  RAISE EXCEPTION 'system_role_not_deletable' USING ERRCODE = '22023';
+END IF;
+```
 
-Keep `SECURITY DEFINER`, pinned `search_path`, existing grants (`REVOKE ALL FROM PUBLIC` / `GRANT EXECUTE TO authenticated`), and behavior otherwise identical.
+Everything else (auth check, `has_permission('role_management','delete')`, cascading cleanup of `role_permissions` and `user_dynamic_roles`, audit) stays exactly as-is.
 
 ## Verification
 
-- Re-run role delete from `/admin/roles` — succeeds and leaves an `audit_logs` row with `action = 'rbac_action.role_management.delete'` and the meta in `metadata`.
-- `psql -c "select action, metadata from public.audit_logs where action like 'rbac_action.%' order by created_at desc limit 3"` shows the new row.
-- Existing pgTAP suites that exercise `enforce_action` / `enforce_workflow_transition` (e.g. `274_enforce_action_gate.sql`, `290_workflow_guard.sql`) continue to pass — they assert allow/deny, not the column name.
+- Attempting to delete a role with `is_system = true` (e.g. "Super Admin", "Legacy Admin") still raises `system_role_not_deletable`.
+- Attempting to delete a custom role (`is_system = false`, e.g. "Application Intake Clerk") succeeds and cascades.
+- Existing pgTAP coverage under `supabase/tests/rbac/` continues to pass; add one assertion for a custom-role deletion happy path.
+
+## Out of scope
+
+No UI changes. No changes to `rbac_save_role`, catalog, or persona matrix.
