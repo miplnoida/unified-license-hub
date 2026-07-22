@@ -16,6 +16,7 @@ import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrud
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
 import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
