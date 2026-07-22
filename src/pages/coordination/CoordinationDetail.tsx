@@ -226,6 +226,7 @@ export default function CoordinationDetail() {
       if (closeRationale.trim().length < 10) {
         throw new Error('Closure rationale must be at least 10 characters');
       }
+      await authorizedAction('coordination', 'edit', { case_id: caseId, action: 'close' });
       const { error } = await supabase
         .from('coordination_cases')
         .update({
