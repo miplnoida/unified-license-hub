@@ -297,11 +297,14 @@ export default function FpaScreening() {
 
   const toggleConfigMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper_screening', 'edit', { config_id: id, is_active: isActive });
       const { error } = await supabase
         .from('fp_screening_configs')
         .update({ is_active: isActive })
         .eq('id', id);
       if (error) throw error;
+
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fp_screening_configs'] });
