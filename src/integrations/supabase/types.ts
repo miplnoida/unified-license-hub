@@ -17534,7 +17534,7 @@ export type Database = {
       }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
       user_scope_for: {
-        Args: { _module: string; _user_id: string }
+        Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
       verify_declaration_identity: {

@@ -9,12 +9,14 @@
 import type { AccessLevel } from './accessLevels';
 import type { RoleCategory } from './roleClassification';
 
+// NOTE: 'team' and 'department' scopes were removed because the backend has
+// no backing tables or RLS wiring for them. Templates that previously used
+// those scopes have been remapped to the nearest enforceable option; see
+// docs/rbac/role-migration.md for the rationale.
 export type RecordScope =
   | 'own'
   | 'assigned'
   | 'assigned_institutions'
-  | 'team'
-  | 'department'
   | 'sector'
   | 'all';
 
@@ -22,8 +24,6 @@ export const RECORD_SCOPE_LABELS: Record<RecordScope, string> = {
   own: 'Own records only',
   assigned: 'Records assigned to me',
   assigned_institutions: 'Assigned institutions',
-  team: 'My team',
-  department: 'My department',
   sector: 'My sector',
   all: 'All institutions',
 };
@@ -32,8 +32,6 @@ export const RECORD_SCOPE_DESCRIPTIONS: Record<RecordScope, string> = {
   own: 'Only records this user created or owns.',
   assigned: 'Only records explicitly assigned to this user.',
   assigned_institutions: 'Records belonging to institutions this user is mapped to as regulator.',
-  team: 'Records handled by this user\'s team.',
-  department: 'Records handled by this user\'s department.',
   sector: 'Records belonging to the user\'s regulatory sector.',
   all: 'Every record in the system (requires sensitive privilege).',
 };
@@ -102,7 +100,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
     roleType: 'internal',
     perModuleLevel: { complaint_management: 'approver' },
     sensitive: [],
-    scope: { complaint_management: 'team' },
+    scope: { complaint_management: 'assigned' },
   },
   {
     key: 'returns_officer',
