@@ -4,16 +4,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/lib/permissionModules';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
+import {
+  authorize,
+  authorizeModule,
+  authorizeAnyView,
+  normalizeModule,
+  normalizeAction,
+  type AuthorizationContext,
+  type UserPermission,
+} from '@/lib/rbac/authorize';
 
-type UserPermission = {
-  id?: string;
-  module: string;
-  name: string;
-};
-
-const normalizeKey = (value?: string | null) => String(value || '').trim().toLowerCase();
-const normalizeModule = (value?: string | null) => normalizeKey(value).replace(/\s+/g, '_');
-const normalizeAction = normalizeKey;
 
 /**
  * Unified RBAC hook.
@@ -75,7 +75,8 @@ export function useUserDynamicPermissions() {
         const key = `${module}::${name}`;
         if (!seen.has(key)) {
           seen.add(key);
-          unique.push({ id: p.id, module, name });
+          unique.push({ module, name });
+
         }
       }
 
@@ -114,34 +115,38 @@ export function useUserDynamicPermissions() {
   // the user is not a bypass role since dynamic perms are the source of truth.
   const enforceDynamic = !isBypassRole;
 
-  /**
-   * Strict catalog match. Assignment does NOT synthesize any permission —
-   * assignment-only Return Queue access is a separate capability, see
-   * `hasAssignmentReturnQueueAccess` / `canViewAssignedReturn`.
-   */
-  const hasPermission = (module: string, action: string): boolean => {
-    if (isBypassRole) return true;
-    const moduleKey = normalizeModule(module);
-    const actionKey = normalizeAction(action);
-    return permissions.some(p => p.module === moduleKey && p.name === actionKey);
-  };
+  // Assignment computed below; declared early so the shared authorization
+  // context can reference it. See the block after `hasAnyModuleAccess`.
+  const hasAssignmentReturnQueueAccess: boolean = hasAnyEntityAssignment;
+  const isAssignmentOnlyRegulator: boolean =
+    !isBypassRole && !hasDynamicRole && hasAnyEntityAssignment;
 
   /**
-   * Module access = "can see menu / open landing route". View-gated:
-   * a user with only `edit` (and no `view`) must NOT see the menu.
-   * Assignment does NOT unlock module access — sidebar/route consumers that
-   * need the narrow Return Queue exception must additionally consult
-   * `hasAssignmentReturnQueueAccess`.
+   * Shared authorization context passed into every decision. Consumers must
+   * NOT re-implement the array scan — call `authorize()` (or the hook
+   * helpers below) so the CI guard in `verify-authz-centralized.mjs` keeps
+   * holding.
+   *
+   * Note: `hasPermission` / `hasModuleAccess` intentionally do NOT set
+   * `isAssignmentOnly` here — those are the raw decisions used by
+   * downstream consumers (e.g. `useCan` layers the assignment-only deny on
+   * top). Route access DOES apply the assignment-only branch explicitly via
+   * `isAssignmentAllowedReturnsPath`.
    */
-  const hasModuleAccess = (module: string): boolean => {
-    if (isBypassRole) return true;
-    const moduleKey = normalizeModule(module);
-    return permissions.some(p => p.module === moduleKey && p.name === 'view');
+  const authzCtx: AuthorizationContext = {
+    userPermissions: permissions,
+    isBypass: isBypassRole,
+    isLoading: !!isLoading,
   };
+
+  const hasPermission = (module: string, action: string): boolean =>
+    authorize(authzCtx, module, action).allowed;
+
+  const hasModuleAccess = (module: string): boolean =>
+    authorizeModule(authzCtx, module).allowed;
 
   const hasAnyModuleAccess = (): boolean => {
-    if (isBypassRole) return true;
-    if (permissions.some(p => p.name === 'view')) return true;
+    if (authorizeAnyView(authzCtx).allowed) return true;
     // A pure assignment-only regulator still has *some* access surface
     // (the Return Queue) — report that here so the dashboard doesn't
     // treat them as fully locked out.
@@ -149,12 +154,8 @@ export function useUserDynamicPermissions() {
   };
 
   // ─── Assignment-only capability (separate from RBAC) ────────────────────
+  // (declared earlier so the authorization context can reference it)
 
-  // Assignment rows in `licensees` can only be populated by admins with
-  // internal employees — being an assignee is itself proof of internal
-  // status, so we don't require the auth `isInternal` flag here (the static
-  // INTERNAL_ROLES list doesn't include every legitimate analyst role).
-  const hasAssignmentReturnQueueAccess: boolean = hasAnyEntityAssignment;
 
   /**
    * The narrow allow-list of Returns routes an assignment-only regulator may
@@ -208,7 +209,7 @@ export function useUserDynamicPermissions() {
       if (isProtectedInternalPath(pathname)) return false;
       return true;
     }
-    if (permissions.some(p => p.module === normalizeModule(mod) && p.name === 'view')) return true;
+    if (authorizeModule(authzCtx, mod).allowed) return true;
     if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
     return false;
   };
@@ -218,8 +219,8 @@ export function useUserDynamicPermissions() {
    * as a regulator on at least one licensee. Such users may only view mapped
    * returns — every business action button/menu must be hidden for them.
    */
-  const isAssignmentOnly: boolean =
-    !isBypassRole && !hasDynamicRole && hasAnyEntityAssignment;
+  const isAssignmentOnly: boolean = isAssignmentOnlyRegulator;
+
 
   return {
     roleIds,

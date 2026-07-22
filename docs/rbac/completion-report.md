@@ -263,13 +263,44 @@ Legacy permission-namespace aliases have been eliminated everywhere they were ac
 - `node scripts/verify-rbac-parity.mjs` → `RBAC parity OK. Orphan catalogue entries: 4 module(s), 79 action(s). Scope tuples: 46.` (exit 0, `violations: []`)
 - `psql -tAc "SELECT DISTINCT module FROM public.permissions WHERE module IN ('admin','applications','complaints','inspections','licenses','notifications','prudential','reporting','supervision','audit_logs')"` → zero rows.
 
+### What remains after Batch 1
+
+Batches 2–10 per `.lovable/plan.md`.
+
+---
+
+## Multi-turn closure — Batch 2: Centralized authorization service (2026-07-22)
+
+### What shipped
+
+Every UI authorization decision now flows through a single pure service. Ad-hoc `permissions.some(...)` array scans, bespoke normalization, and inline role-name comparisons are forbidden and CI-blocked.
+
+- **`src/lib/rbac/authorize.ts`** — new pure module exporting `authorize()`, `authorizeModule()`, `authorizeAnyView()`, `isAllowed()`, `normalizeModule()`, `normalizeAction()`, and typed `AuthorizationDecision` (`{ allowed, reason: 'bypass' | 'match' | 'missing' | 'assignment_only_denied' | 'loading' }`). Zero React/Supabase dependencies — reusable in tests, scripts, and any future SSR path.
+- **Decision precedence (single source of truth)**: `loading` → `bypass` (super_admin only) → `assignment_only_denied` → exact tuple `match` → `missing`. Assignment-only regulators can never obtain an action permission via this path.
+- **`src/hooks/usePermissions.ts`** — refactored: `hasPermission`, `hasModuleAccess`, `hasAnyModuleAccess`, and `canAccessPath` all delegate to `authorize.ts`. The four previous inline `permissions.some(...)` scans are removed. All existing return-shape and consumer semantics preserved (`useCan`, `GuardedButton`, `PermissionGate`, `ModuleGate`, `RouteGuards`, sidebar visibility unchanged).
+- **`scripts/verify-authz-centralized.mjs`** — new CI hard gate. Scans every `.ts`/`.tsx` under `src/` and rejects any occurrence of `permissions.some(` outside `src/lib/rbac/authorize.ts`, `src/hooks/usePermissions.ts`, `src/test/**`, and `src/integrations/supabase/**`. Adds a permanent guardrail so future contributors cannot silently reintroduce ad-hoc decisions.
+- **`src/test/authorize.test.ts`** — 11 unit assertions covering normalization, loading, bypass, assignment-only override, exact match, missing tuple, case/whitespace insensitivity, `authorizeModule` view-only semantics, `authorizeAnyView` bypass + no-view denial, assignment-only precedence over match, and input-array immutability.
+- **`.github/workflows/ci.yml`** — new steps: **RBAC authorization centralization (no ad-hoc permission scans)** running `verify-authz-centralized.mjs`, and **Authorize service unit tests** running `authorize.test.ts`. Both are hard gates alongside the existing parity and alias oracles.
+
+### Backend note
+
+`public.has_permission(user, module, action)` and `supabase/functions/_shared/authz.ts::requireUserPermission()` were already the single authorities on the backend before this batch — no changes were required there. The frontend now mirrors that shape exactly.
+
+### Verification (executed this turn)
+
+- `node scripts/verify-authz-centralized.mjs` → `Scanned 799 files under src/` · `OK — all authorization decisions are centralized in src/lib/rbac/authorize.ts.`
+- `bunx vitest run src/test/authorize.test.ts` → `Test Files 1 passed (1)` · `Tests 11 passed (11)`.
+- `node scripts/verify-no-alias-namespaces.mjs` → OK.
+- `node scripts/verify-rbac-parity.mjs` → `RBAC parity OK.`, `violations: []`, scope 46/46.
+
 ### What remains
 
-Batches 2–10 per `.lovable/plan.md`: centralized `authorize()` service; RLS+RPC completion for Applications/Registration/Licensing/Licensees, Returns/Prudential/Enforcement/Inspections, Reports/Forms/Notifications/Dashboard/Bulk; `workflow_authorize` consolidation; shared export/download helpers; storage bucket audit + signed-URL parity; edge-function authorization sweep; test expansion + final CI hard gates.
+Batches 3–10: backend enforcement completion for Applications/Registration/Licensing/Licensees (3), Returns/Prudential/Enforcement/Inspections (4), Reports/Forms/Notifications/Dashboard/Bulk (5); `workflow_authorize` consolidation (6); export/download shared helpers (7); storage bucket + signed-URL parity (8); edge-function authorization sweep (9); test expansion + final CI hard gates (10).
 
 ### Final declaration
 
-**Roles & Permissions implementation remains incomplete.** Batch 1 (namespace canonicalization) is fully landed and CI-gated. Remaining batches will be implemented in subsequent turns; each will append a factual entry to this document.
+**Roles & Permissions implementation remains incomplete.** Batches 1 (namespace canonicalization) and 2 (centralized authorization service) are fully landed and CI-gated. Remaining batches will be implemented in subsequent turns; each will append a factual entry to this document.
+
 
 
 

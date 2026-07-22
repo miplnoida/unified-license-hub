@@ -39,6 +39,12 @@ jobs:
       - name: RBAC namespace canonicalization (no legacy aliases)
         run: node scripts/verify-no-alias-namespaces.mjs
 
+      - name: RBAC authorization centralization (no ad-hoc permission scans)
+        run: node scripts/verify-authz-centralized.mjs
+
+      - name: Authorize service unit tests
+        run: bunx vitest run src/test/authorize.test.ts
+
       - name: Sensitive privilege proofs
         run: bunx vitest run src/test/sensitivePrivilegeProofs.test.ts
 
