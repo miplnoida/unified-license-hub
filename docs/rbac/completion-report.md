@@ -305,3 +305,40 @@ Batches 3–10: backend enforcement completion for Applications/Registration/Lic
 
 
 
+
+---
+
+## Batch 3 — Backend enforcement helpers (landed)
+
+Scope of this turn: introduce the DB-side authorization choke point that RPCs, triggers, and SECURITY DEFINER functions can invoke to raise `42501` when a caller lacks a required permission. This is the foundation the remaining Batch 3 work (Applications / Registration / Licensing / Licensees RPC gating) will call into.
+
+### Shipped
+
+- **Migration** `20260722070000_batch3_enforce_permission_helpers` — introduces:
+  - `public.enforce_permission(module text, action text)` — raises `SQLSTATE 42501` unless the caller is authenticated AND (`is_super_admin` OR `has_permission`).
+  - `public.enforce_scoped_permission(module text, action text, holder uuid, sector uuid, region uuid)` — same, but consults `public.has_scoped_permission` so per-record scope (assigned/sector/institution/etc.) is honoured.
+  - Both are `STABLE SECURITY DEFINER` with `search_path = public`, revoked from `PUBLIC`, granted to `authenticated` + `service_role`, and carry `COMMENT` labels tagging Batch 3.
+- **pgTAP** `supabase/tests/rbac/270_enforce_permission_helpers.sql` — 4 assertions:
+  1. `enforce_permission` exists.
+  2. `enforce_scoped_permission` exists.
+  3. `enforce_permission` raises `42501` when `auth.uid()` is null.
+  4. `enforce_scoped_permission` raises `42501` when `auth.uid()` is null.
+- **Catalog reconciliation** — `src/lib/rbac/catalog.json`:
+  - `license_management.delete` → `enforced: true` (already enforced by `licenses_delete` RLS via `has_permission`).
+  - `licensee_management.edit` → `enforced: true` (already enforced by `licensees_update` RLS via `can_mutate_licensee` → `has_scoped_permission`).
+- **CI** — `.github/workflows/ci.yml` adds `supabase/tests/rbac/270_enforce_permission_helpers.sql` to the required-pgTAP hard-gate list.
+
+### Verification (executed this turn)
+
+- Live psql smoke on the running project DB:
+  - `SELECT public.enforce_permission('application_management','close')` → `ERROR: authentication required for application_management.close` (SQLSTATE `42501`).
+  - `SELECT public.enforce_scoped_permission('license_management','edit')` → `ERROR: authentication required for license_management.edit` (SQLSTATE `42501`).
+- Catalog scan confirms the two flipped pairs match the current RLS behaviour on `licenses_delete` / `licensees_update`.
+
+### What remains in Batch 3
+
+Wire `enforce_permission` / `enforce_scoped_permission` into the still-unenforced application/licensee/registration action RPCs (`application_management.close/configure/escalate/export/import`, `licensee_management.export`) and add per-RPC pgTAP proving each raises for a caller without the corresponding permission. This is a code-only sweep on top of the helpers landed here and will be executed in the next turn.
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed; Batch 3 foundation (enforcement helpers + catalog reconciliation for already-enforced entries) landed and CI-gated this turn. Remaining Batch 3 RPC wiring and Batches 4–10 will follow in subsequent turns.
