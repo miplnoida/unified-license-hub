@@ -102,14 +102,10 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
           const optionList = cap!.options;
           const selectedIds =
             selectorKind === 'sectors' ? cfg.sectors ?? [] :
-            selectorKind === 'licensees' ? cfg.licensees ?? [] :
-            selectorKind === 'departments' ? cfg.departments ?? [] :
-            selectorKind === 'teams' ? cfg.teams ?? [] : [];
+            selectorKind === 'licensees' ? cfg.licensees ?? [] : [];
           const selectorPool =
             selectorKind === 'sectors' ? opts.sectors :
-            selectorKind === 'licensees' ? opts.licensees :
-            selectorKind === 'departments' ? opts.departments :
-            selectorKind === 'teams' ? opts.teams : [];
+            selectorKind === 'licensees' ? opts.licensees : [];
           return (
             <div key={mod} className="grid gap-3 border rounded-md p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
               <div>
