@@ -380,6 +380,11 @@
     "enforced": true
   },
   {
+    "module": "inspection_management",
+    "name": "edit",
+    "enforced": true
+  },
+  {
     "module": "license_management",
     "name": "approve",
     "enforced": true
@@ -570,6 +575,11 @@
     "enforced": false
   },
   {
+    "module": "notification_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
     "module": "prudential_payment_systems",
     "name": "conduct_pfmi_assessment",
     "enforced": true
@@ -608,6 +618,11 @@
     "module": "prudential_supervision",
     "name": "edit",
     "enforced": false
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "export",
+    "enforced": true
   },
   {
     "module": "prudential_supervision",
