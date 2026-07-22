@@ -120,6 +120,16 @@ export function useAllRolePermissions() {
  * never sees a half-saved role.
  */
 async function callSaveRole(payload: Record<string, unknown>) {
+  // Gate + audit permission-assignment writes centrally. Server-side RLS/RPC
+  // already enforce access; this call adds the mandatory audit row for
+  // role_management.assign_permissions so the catalog action is enforced.
+  await authorizedAction('role_management', 'assign_permissions', {
+    role_id: payload.id ?? null,
+    is_new: !payload.id,
+    permission_count: Array.isArray((payload as any).permission_ids)
+      ? (payload as any).permission_ids.length
+      : 0,
+  });
   const { data, error } = await supabase.rpc('rbac_save_role' as any, { _payload: payload as any });
   if (error) throw error;
   return data as { id: string };
