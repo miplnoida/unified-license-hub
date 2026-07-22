@@ -17554,6 +17554,13 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
+      validate_scope_config: {
+        Args: { _scope_config: Json }
+        Returns: {
+          error: string
+          module: string
+        }[]
+      }
       verify_declaration_identity: {
         Args: { p_dob: string; p_last4id: string; p_token: string }
         Returns: {
