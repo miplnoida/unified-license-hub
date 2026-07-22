@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Save, Plus, PlayCircle, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
@@ -248,6 +249,7 @@ export default function FitAndProperIndividualDetail() {
   async function exportAuditHistory() {
     if (!id) return;
     try {
+      await authorizedExport('fit_and_proper', 'export', { individual_id: id });
       const { data, error } = await supabase
         .from('compliance_audit_logs')
         .select('action, entity_type, entity_id, actor_id, created_at, old_value, new_value, justification')

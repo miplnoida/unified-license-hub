@@ -17,6 +17,7 @@ import {
 import { Loader2, PlayCircle, Download, CalendarClock, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -309,7 +310,7 @@ export default function FpScheduler() {
             <Button data-rbac="fit_and_proper.export"
               size="sm"
               variant="outline"
-              onClick={() => exportUpcomingCsv(upcomingRoles)}
+              onClick={async () => { try { await authorizedExport('fit_and_proper', 'export', { count: upcomingRoles.length }); exportUpcomingCsv(upcomingRoles); } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); } }}
               disabled={upcomingRoles.length === 0}
             >
               <Download className="h-4 w-4 mr-2" />

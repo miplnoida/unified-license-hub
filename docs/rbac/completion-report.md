@@ -507,3 +507,29 @@ All 38 have a universal server-side gate available via `enforce_action(module, a
 - `verify-rbac-parity.mjs` → RBAC parity OK. Scope 46/46.
 - `verify-authz-centralized.mjs` → OK (801 files).
 - `verify-no-alias-namespaces.mjs` → OK.
+
+## Final Closure (2026-07-22) — last three unenforced pairs
+
+### Shipped
+- `src/pages/correspondence/CorrespondenceRecords.tsx` — "Export index" button wired to `authorizedExport('correspondence_management','export',{count})`; denied callers see toast and no CSV is generated.
+- `src/components/correspondence/ReviewApprovalPanel.tsx` — "Reject" button wired to `authorizedAction('correspondence_management','reject')` via the shared `enforce_action` RPC.
+- `src/pages/fit-and-proper/FpInitiationLog.tsx`, `FpScheduler.tsx`, `FitAndProperIndividualDetail.tsx`, `src/pages/fpa/FpaMonitoring.tsx` — all four CSV export buttons wrapped with `authorizedExport('fit_and_proper','export', …)` which invokes `record_export_intent` → `enforce_permission` before any rows leave the browser. Server denial aborts the export and writes an audit row.
+- Catalog flips → `enforced: true` for `correspondence_management.export`, `correspondence_management.reject`, `fit_and_proper.export`.
+
+### Backend authority
+Every gated click routes through one of two SECURITY DEFINER RPCs already in production:
+- `public.record_export_intent(module, action, meta)` → `enforce_permission(module, action)` + audit row (used by exports).
+- `public.enforce_action(module, action, meta)` → `enforce_permission(module, action)` + audit row (used by reject).
+
+Both raise `42501` for unauthorized callers, so the browser never proceeds to file generation or mutation when the server denies.
+
+### Tests
+- `supabase/tests/rbac/282_final_closure_gates.sql` — 9 assertions: catalog presence for the three pairs, `enforce_permission` denies unauth callers for each, `record_export_intent` denies unauth callers for the two export pairs, `enforce_action` denies unauth callers for the reject pair.
+- `supabase/tests/rbac/283_custom_role_noop.sql` — 4 assertions proving `rbac_save_role` preserves `role_permissions` rows when only description / status / name metadata changes and the client resends the unchanged `permission_ids` array.
+
+### Result
+- `grep -c '"enforced": false' src/lib/rbac/catalog.json` → `0`.
+- Every catalog pair is either backend-enforced or documented as deprecated. No production permission remains in `enforced: false`.
+
+### Known limitation
+- Correspondence Records list still reads from a seed dataset; the export gate records the intent server-side but the file itself is client-generated. Any future live-data export path must apply the same gate before returning rows.

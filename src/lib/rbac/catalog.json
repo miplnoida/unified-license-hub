@@ -162,12 +162,12 @@
   {
     "module": "correspondence_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "correspondence_management",
     "name": "reject",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "delegation",
@@ -242,7 +242,7 @@
   {
     "module": "fit_and_proper",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper",
