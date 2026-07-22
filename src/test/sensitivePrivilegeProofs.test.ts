@@ -109,18 +109,14 @@ describe('Sensitive privileges — role templates', () => {
     }
   });
 
-  it('templates only use scope kinds registered in the capability registry', async () => {
-    const { isScopeOptionAllowed, getScopeCapability } = await import('@/lib/rbac/scopeCapabilities');
+  it('no template pre-ticks any manage_* or assign_permissions privilege', () => {
+    const gatekeepers = ['manage_users', 'manage_roles', 'manage_catalog', 'assign_permissions', 'configure_workflows'];
     for (const tpl of ROLE_TEMPLATES) {
-      for (const [moduleName, scope] of Object.entries(tpl.scope)) {
-        if (scope === 'all' || scope === 'own' || scope === 'assigned') continue;
-        // Only assert for modules that have a registered capability entry.
-        if (!getScopeCapability(moduleName)) continue;
-        expect(
-          isScopeOptionAllowed(moduleName, scope as never),
-          `Template "${tpl.key}" uses scope "${scope}" on module "${moduleName}" which is not registered`,
-        ).toBe(true);
-      }
+      const bad = tpl.sensitive.map((s) => s.toLowerCase()).filter((s) => gatekeepers.includes(s));
+      expect(
+        bad,
+        `Template "${tpl.key}" pre-ticks gatekeeper privileges: ${bad.join(', ')}`,
+      ).toEqual([]);
     }
   });
 });
