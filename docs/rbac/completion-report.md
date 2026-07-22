@@ -486,3 +486,10 @@ All 38 have a universal server-side gate available via `enforce_action(module, a
 - `PermissionCatalogTab.tsx`: create/update/delete of modules and actions now call `authorizedAction('role_management','manage_catalog', {op, key})` before the mutation. Corrected stale `data-rbac="role_management.create"` markers on catalog buttons to `role_management.manage_catalog`.
 - Flipped catalog flags to `enforced: true` for: `role_management.assign_permissions`, `role_management.delete`, `role_management.reset`, `role_management.manage_catalog`, `role_management.view_catalog`, `role_management.view_coverage`.
 - Added pgTAP `supabase/tests/rbac/275_role_management_gates.sql` (4 assertions) proving unprivileged callers get `42501` on `enforce_action` for delete/reset/assign_permissions/manage_catalog. Wired into CI required-list.
+
+## Batch 7 — form_management publish/delete/import gates
+
+- `src/pages/admin/FormManagement.tsx`: wrapped `doBulkPublish`, `doBulkDelete`, `handleDelete`, single-status `confirmStatusChange` (publish transition), and the "Import from Excel" navigation button with `authorizedAction('form_management', <action>, {...})`. Errors surface via toast and abort before mutation.
+- `src/components/form-builder/FileImport.tsx`: wrapped `handleLegacyConfirm` and `handleMultiSheetConfirm` with `authorizedAction('form_management','import',{mode})` before invoking the parent `onImport` / `onMultiSheetImport` callbacks.
+- Flipped catalog flags to `enforced: true` for: `form_management.publish`, `form_management.delete`, `form_management.import`.
+- Added pgTAP `supabase/tests/rbac/276_form_management_gates.sql` (3 assertions) proving unprivileged callers get `42501` on `enforce_action` for publish/delete/import. Wired into CI required-list.
