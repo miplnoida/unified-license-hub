@@ -16081,6 +16081,20 @@ export type Database = {
         Returns: Json
       }
       duplicate_hub_stats: { Args: never; Returns: Json }
+      enforce_permission: {
+        Args: { _action: string; _module: string }
+        Returns: undefined
+      }
+      enforce_scoped_permission: {
+        Args: {
+          _action: string
+          _holder?: string
+          _module: string
+          _region?: string
+          _sector?: string
+        }
+        Returns: undefined
+      }
       escalate_complaint_to_enforcement: {
         Args: { _findings: string; _id: string }
         Returns: {
