@@ -290,7 +290,13 @@ export default function FormManagement() {
       description: 'This form template will be permanently deleted. This action cannot be undone.',
       confirmLabel: 'Yes, delete it',
       destructive: true,
-      onConfirm: () => {
+      onConfirm: async () => {
+        try {
+          await authorizedAction('form_management', 'delete', { id });
+        } catch (e: any) {
+          toast.error(e?.message || 'Not authorized to delete form templates.');
+          return;
+        }
         deleteTemplateMutation.mutate(id, {
           onSuccess: () => toast.success('Form template deleted.'),
           onError: (err: any) => toast.error(err?.message || 'Failed to delete form template.'),
