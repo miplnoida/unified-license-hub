@@ -1,7 +1,7 @@
 import { Route, Navigate } from 'react-router-dom';
 import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
-import { AdminRoute, ModuleRoute } from '@/components/auth/RouteGuards';
+import { AdminRoute, ModuleRoute, PermissionRoute } from '@/components/auth/RouteGuards';
 import type { PermissionModule } from '@/lib/permissionModules';
 import ReturnDetail from '@/pages/returns-mgmt/ReturnDetail';
 import ViewReturns from '@/pages/returns-mgmt/ViewReturns';
