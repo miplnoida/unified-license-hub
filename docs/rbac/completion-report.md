@@ -199,3 +199,45 @@ Final declaration:
 
 **Roles & Permissions implementation remains incomplete** on the UI catalogue drift dimension only (306 tracked references). Every enforcement, scope, dependency, persona, and CI oracle required by the 17-point brief is now landed and gated in CI; UI catalogue closure is the remaining reduction work and is ratcheted so it cannot grow.
 
+---
+
+## Final closure pass (2026-07-22)
+
+### What changed in this pass
+
+- **UI catalogue drift driven from 306 → 0.** All 67 unique missing permission pairs referenced by the UI (aggregated across 128 files) have been added to `src/lib/rbac/catalog.json`, taking the flat catalogue from 121 to 188 entries. Newly added entries are marked `"enforced": false` — they are catalogued so `useCan(...)` in the UI can resolve them, but backend policy work for these pairs is explicitly still outstanding (see limitations below).
+- **CI parity gate hardened.** `.github/workflows/ci.yml` now runs `node scripts/verify-rbac-parity.mjs` in strict mode with no `--scope-only` flag and no baseline env var. Any future UI reference to an uncatalogued permission fails the build.
+- **Ratchet script removed.** `scripts/verify-rbac-ui-parity-ratchet.mjs` is deleted; `RBAC_UI_PARITY_BASELINE` is gone from the workflow. The single hard gate replaces both.
+- **Doc-comment false positives eliminated.** `src/lib/rbac/audit.ts` and `src/lib/rbac/coverageTypes.ts` no longer contain the literal string `data-rbac="module.action"` in their docstrings, which the parity regex was matching as a real UI reference.
+
+### Verification
+
+- `node scripts/verify-rbac-parity.mjs` — exit 0, `violations: []`, scope parity 46/46. This is the same command CI runs.
+
+### Honest limitations still present
+
+This pass closes the specific measurable gap the parity oracle tracks (UI drift), but the full 17-point brief covers substantially more surface than can be executed in one turn. The following remain incomplete and are the reason the final declaration below is the incomplete one:
+
+1. **Enforcement matrix for all modules (brief §1)** — the 67 newly catalogued pairs (`application_management.import`, `application_management.close`, `application_management.escalate`, `application_management.configure`, `application_management.export`, `returns_management.configure`, `returns_management.reject`, `returns_management.export`, `report_management.edit`/`.export`/`.configure`, `audit_management.export`, `audit_logs.export`, `complaint_management.escalate`, `fit_and_proper*.create`/`.edit`/`.configure`/`.export`, `prudential_supervision.create`/`.edit`, `coordination.edit`, `market_conduct.create`/`.edit`, `licensee_management.edit`/`.export`, `license_management.delete`, `role_management.delete`/`.reset`/`.assign_permissions`/`.view_catalog`/`.view_coverage`/`.manage_catalog`, `user_management.delete`, `notification_management.create`, `settings.create`/`.import`/`.export`, `form_management.import`/`.publish`/`.delete`, `master_data_management.import`, `correspondence_management.approve`/`.reject`/`.export`, `compliance_management.edit`/`.export`, `inspections.edit`, plus alias forms `applications.*`, `prudential.*`, `supervision.*`, `licenses.*`, `reporting.export`, `notifications.*`, `admin.*`, `complaints.configure`, `conduct_management.*`, `delegation.create`) are catalogued as `enforced: false`. Adding rows to a catalogue does not create backend policy; those pairs still need RLS/RPC/edge/storage wiring per module before their `enforced` flag can be flipped to `true`.
+2. **Permission-name unification (brief §8)** — pure aliases (`applications` vs `application_management`, `prudential` vs `prudential_supervision`, `licenses` vs `license_management`, `complaints` vs `complaint_management`, `reporting` vs `report_management`, `notifications` vs `notification_management`, `audit_logs` vs `audit_management`, `admin` vs `settings`, `supervision` vs `prudential_supervision`, `conduct_management` vs `market_conduct`) coexist in the catalogue. A codemod that rewrites UI to canonical names and a follow-up parity check that forbids alias forms is not part of this pass.
+3. **12-persona × every-surface matrix (brief §10)** — `personaMatrix.test.ts` covers 7 personas / 144 assertions; the brief calls for 12 personas across menu/route/list/view/create/edit/delete/approve/reject/assign/workflow/export/download/storage/edge/rpc/reports/dashboards/sensitive. Not extended in this pass.
+4. **Custom-role preservation proofs (brief §11)** — a byte-diff test that opens a custom role, no-op saves, and verifies `role_permissions` rows are unchanged is not yet in place; reliance is on `rbac_reclassify_roles` preserving operator fields, without an executable regression test.
+5. **Export/download separation (brief §5)** — `View != Export != Download` is not yet enforced by a `require_export_permission` helper across every export/download entry point; the newly catalogued `*.export` pairs make the gap explicit but do not close it.
+6. **Workflow authorization uniformity (brief §6)** — segregation-of-duties (`actor ≠ submitter` for approve/reject unless `workflow_override`) is not centralised in a single guard shared across every `perform_*_workflow_transition` RPC.
+7. **Sensitive-privilege catalogue completeness (brief §12)** — `SENSITIVE_ACTION_NAMES` is not yet extended to include `bulk_delete`, `bulk_update`, `override_workflow`, `manage_users`, `manage_roles`, `assign_permissions`, `view_all_entities`, `export_confidential`, `suspend`, `revoke`, `issue_license`, `purge`, `delete_evidence` as the brief enumerates.
+
+### Requirement traceability delta
+
+| # | Requirement | Status after this pass |
+|---|---|---|
+| 10 | UI parity governance | **Done** — strict hard gate, drift = 0, ratchet retired |
+
+All other rows in the traceability table above remain as previously reported.
+
+---
+
+Final declaration:
+
+**Roles & Permissions implementation remains incomplete.**
+
+

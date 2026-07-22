@@ -5,7 +5,7 @@
  * sites (Buttons with meaningful labels, DropdownMenuItems, onClick handlers,
  * onSubmit form handlers, export/download/print utilities) and reports which
  * ones are inside a PermissionGate/GuardedButton or carry an explicit
- * `data-rbac="module.action"` marker.
+ * `data-rbac` marker of the form `<module>.<action>`.
  *
  * Pure heuristic — false positives are expected; the goal is a bounded,
  * reproducible coverage floor and a machine-checkable audit report.
@@ -19,7 +19,7 @@ export interface ActionSite {
   page: string;                // best-effort page/module label
   button: string;              // detected label / handler name
   category: string;            // Create/Edit/Delete/Approve/Reject/Assign/Export/...
-  module: string | null;       // module.action when explicit; else null
+  module: string | null;       // module + action when explicit; else null
   action: string | null;
   protected: boolean;          // inside PermissionGate/GuardedButton or has data-rbac
   reason: string;              // "PermissionGate" | "GuardedButton" | "data-rbac" | "public-allow" | ""
@@ -227,7 +227,7 @@ export function scanFile(file: string): ActionSite[] {
     const isPublic =
       PUBLIC_ALLOW_LABELS.has(lowered) ||
       PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
-    // Extract explicit module.action from a nearby data-rbac attribute.
+    // Extract explicit module + action from a nearby data-rbac attribute.
     // JSX opening tags contain `=>` in arrow handlers, so a naive
     // indexOf('>') stops too early. Scan a fixed forward window instead.
     const forward = text.slice(idx, idx + 1500);

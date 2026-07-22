@@ -1,8 +1,28 @@
 [
   {
+    "module": "admin",
+    "name": "configure",
+    "enforced": false
+  },
+  {
+    "module": "admin",
+    "name": "view",
+    "enforced": false
+  },
+  {
     "module": "application_management",
     "name": "approve",
     "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "close",
+    "enforced": false
+  },
+  {
+    "module": "application_management",
+    "name": "configure",
+    "enforced": false
   },
   {
     "module": "application_management",
@@ -13,6 +33,21 @@
     "module": "application_management",
     "name": "edit",
     "enforced": true
+  },
+  {
+    "module": "application_management",
+    "name": "escalate",
+    "enforced": false
+  },
+  {
+    "module": "application_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "application_management",
+    "name": "import",
+    "enforced": false
   },
   {
     "module": "application_management",
@@ -25,6 +60,26 @@
     "enforced": true
   },
   {
+    "module": "applications",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "applications",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "audit_logs",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "audit_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
     "module": "complaint_management",
     "name": "create",
     "enforced": true
@@ -33,6 +88,11 @@
     "module": "complaint_management",
     "name": "edit",
     "enforced": true
+  },
+  {
+    "module": "complaint_management",
+    "name": "escalate",
+    "enforced": false
   },
   {
     "module": "complaint_management",
@@ -70,6 +130,31 @@
     "enforced": true
   },
   {
+    "module": "complaints",
+    "name": "configure",
+    "enforced": false
+  },
+  {
+    "module": "compliance_management",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "compliance_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "conduct_management",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "conduct_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
     "module": "coordination",
     "name": "admin",
     "enforced": true
@@ -86,6 +171,11 @@
   },
   {
     "module": "coordination",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "coordination",
     "name": "update",
     "enforced": true
   },
@@ -93,6 +183,26 @@
     "module": "coordination",
     "name": "view",
     "enforced": true
+  },
+  {
+    "module": "correspondence_management",
+    "name": "approve",
+    "enforced": false
+  },
+  {
+    "module": "correspondence_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "correspondence_management",
+    "name": "reject",
+    "enforced": false
+  },
+  {
+    "module": "delegation",
+    "name": "create",
+    "enforced": false
   },
   {
     "module": "executive_oversight",
@@ -141,6 +251,11 @@
   },
   {
     "module": "fit_and_proper",
+    "name": "configure",
+    "enforced": false
+  },
+  {
+    "module": "fit_and_proper",
     "name": "create",
     "enforced": true
   },
@@ -148,6 +263,16 @@
     "module": "fit_and_proper",
     "name": "delete",
     "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "export",
+    "enforced": false
   },
   {
     "module": "fit_and_proper",
@@ -181,6 +306,16 @@
   },
   {
     "module": "fit_and_proper_committee",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "fit_and_proper_committee",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "fit_and_proper_committee",
     "name": "provide_rationale",
     "enforced": true
   },
@@ -203,6 +338,16 @@
     "module": "fit_and_proper_initiation",
     "name": "view",
     "enforced": true
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "fit_and_proper_screening",
+    "name": "edit",
+    "enforced": false
   },
   {
     "module": "fit_and_proper_screening",
@@ -241,13 +386,33 @@
   },
   {
     "module": "form_management",
+    "name": "delete",
+    "enforced": false
+  },
+  {
+    "module": "form_management",
     "name": "edit",
     "enforced": true
   },
   {
     "module": "form_management",
+    "name": "import",
+    "enforced": false
+  },
+  {
+    "module": "form_management",
+    "name": "publish",
+    "enforced": false
+  },
+  {
+    "module": "form_management",
     "name": "view",
     "enforced": true
+  },
+  {
+    "module": "inspections",
+    "name": "edit",
+    "enforced": false
   },
   {
     "module": "license_management",
@@ -258,6 +423,11 @@
     "module": "license_management",
     "name": "create",
     "enforced": true
+  },
+  {
+    "module": "license_management",
+    "name": "delete",
+    "enforced": false
   },
   {
     "module": "license_management",
@@ -273,6 +443,21 @@
     "module": "license_management",
     "name": "view",
     "enforced": true
+  },
+  {
+    "module": "licensee_management",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "licensee_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "licenses",
+    "name": "create",
+    "enforced": false
   },
   {
     "module": "licensing",
@@ -346,6 +531,16 @@
   },
   {
     "module": "market_conduct",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "market_conduct",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "market_conduct",
     "name": "initiate_investigation",
     "enforced": true
   },
@@ -405,6 +600,41 @@
     "enforced": true
   },
   {
+    "module": "master_data_management",
+    "name": "import",
+    "enforced": false
+  },
+  {
+    "module": "notification_management",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "notifications",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "notifications",
+    "name": "view",
+    "enforced": false
+  },
+  {
+    "module": "prudential",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "prudential",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "prudential",
+    "name": "export",
+    "enforced": false
+  },
+  {
     "module": "prudential_payment_systems",
     "name": "conduct_pfmi_assessment",
     "enforced": true
@@ -433,6 +663,16 @@
     "module": "prudential_supervision",
     "name": "conduct_onsite_examination",
     "enforced": true
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "create",
+    "enforced": false
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "edit",
+    "enforced": false
   },
   {
     "module": "prudential_supervision",
@@ -496,8 +736,23 @@
   },
   {
     "module": "report_management",
+    "name": "configure",
+    "enforced": false
+  },
+  {
+    "module": "report_management",
     "name": "create",
     "enforced": true
+  },
+  {
+    "module": "report_management",
+    "name": "edit",
+    "enforced": false
+  },
+  {
+    "module": "report_management",
+    "name": "export",
+    "enforced": false
   },
   {
     "module": "report_management",
@@ -505,9 +760,19 @@
     "enforced": true
   },
   {
+    "module": "reporting",
+    "name": "export",
+    "enforced": false
+  },
+  {
     "module": "returns_management",
     "name": "approve",
     "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "configure",
+    "enforced": false
   },
   {
     "module": "returns_management",
@@ -518,6 +783,16 @@
     "module": "returns_management",
     "name": "edit",
     "enforced": true
+  },
+  {
+    "module": "returns_management",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "returns_management",
+    "name": "reject",
+    "enforced": false
   },
   {
     "module": "returns_management",
@@ -551,13 +826,33 @@
   },
   {
     "module": "role_management",
+    "name": "assign_permissions",
+    "enforced": false
+  },
+  {
+    "module": "role_management",
     "name": "create",
     "enforced": true
   },
   {
     "module": "role_management",
+    "name": "delete",
+    "enforced": false
+  },
+  {
+    "module": "role_management",
     "name": "edit",
     "enforced": true
+  },
+  {
+    "module": "role_management",
+    "name": "manage_catalog",
+    "enforced": false
+  },
+  {
+    "module": "role_management",
+    "name": "reset",
+    "enforced": false
   },
   {
     "module": "role_management",
@@ -565,19 +860,59 @@
     "enforced": true
   },
   {
+    "module": "role_management",
+    "name": "view_catalog",
+    "enforced": false
+  },
+  {
+    "module": "role_management",
+    "name": "view_coverage",
+    "enforced": false
+  },
+  {
+    "module": "settings",
+    "name": "create",
+    "enforced": false
+  },
+  {
     "module": "settings",
     "name": "edit",
     "enforced": true
   },
   {
     "module": "settings",
+    "name": "export",
+    "enforced": false
+  },
+  {
+    "module": "settings",
+    "name": "import",
+    "enforced": false
+  },
+  {
+    "module": "settings",
     "name": "view",
     "enforced": true
+  },
+  {
+    "module": "supervision",
+    "name": "approve",
+    "enforced": false
+  },
+  {
+    "module": "supervision",
+    "name": "edit",
+    "enforced": false
   },
   {
     "module": "user_management",
     "name": "create",
     "enforced": true
+  },
+  {
+    "module": "user_management",
+    "name": "delete",
+    "enforced": false
   },
   {
     "module": "user_management",

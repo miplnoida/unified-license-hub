@@ -30,7 +30,7 @@ export interface CoverageRow {
   menu: SurfaceReference[];
   route: SurfaceReference[];
   button: SurfaceReference[];
-  /** `data-rbac="module.action"` markers — audit signal only, NOT a real gate. */
+  /** `data-rbac` markers (module + action) — audit signal only, NOT a real gate. */
   marker: SurfaceReference[];
   rls: SurfaceReference[];
   rpc: SurfaceReference[];
