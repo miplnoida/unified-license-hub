@@ -115,6 +115,7 @@ export default function PrudentialEarlyWarnings() {
 
   const exportCsv = async () => {
     if (filtered.length === 0) return;
+    await authorizedExport('prudential_supervision', 'export', { count: filtered.length });
     const header = ['licensee_name', 'ratio_key', 'current_value', 'previous_value', 'delta_pct', 'recent_breach_count', 'warning_level', 'last_seen'];
     const rows = filtered.map((r) => [r.licensee_name, r.ratio_key, r.current_value, r.previous_value, r.delta_pct, r.recent_breach_count, r.warning_level, r.last_seen]);
     const csv = [header, ...rows].map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
