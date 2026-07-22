@@ -152,7 +152,6 @@ export default function PrudentialEntityProfile() {
     return worst;
   })();
 
-  const exportProfile = () => {
   const exportProfile = async () => {
     await authorizedExport('prudential_supervision', 'export', { entity: e.name });
     const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
