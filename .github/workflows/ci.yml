@@ -33,8 +33,13 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
 
-      - name: RBAC parity oracle (registry vs migrations)
-        run: node scripts/verify-rbac-parity.mjs
+      - name: RBAC parity oracle (scope-authoritative, hard gate)
+        run: node scripts/verify-rbac-parity.mjs --scope-only
+
+      - name: RBAC UI parity ratchet (baseline must not regress)
+        env:
+          RBAC_UI_PARITY_BASELINE: '306'
+        run: node scripts/verify-rbac-ui-parity-ratchet.mjs
 
       - name: Sensitive privilege proofs
         run: bunx vitest run src/test/sensitivePrivilegeProofs.test.ts
