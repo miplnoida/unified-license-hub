@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { RETURN_STATUS_LABELS, ReturnStatus } from '@/types/platform';
 import { Search, Loader2, ClipboardList, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, Eye } from 'lucide-react';
 import { PermissionGate } from '@/components/auth/PermissionGate';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 
 import {
   ADMIN_RETURN_DRILLDOWNS,
