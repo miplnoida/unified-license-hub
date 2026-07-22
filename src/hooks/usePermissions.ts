@@ -4,16 +4,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/lib/permissionModules';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
+import {
+  authorize,
+  authorizeModule,
+  authorizeAnyView,
+  normalizeModule,
+  normalizeAction,
+  type AuthorizationContext,
+  type UserPermission,
+} from '@/lib/rbac/authorize';
 
-type UserPermission = {
-  id?: string;
-  module: string;
-  name: string;
-};
-
-const normalizeKey = (value?: string | null) => String(value || '').trim().toLowerCase();
-const normalizeModule = (value?: string | null) => normalizeKey(value).replace(/\s+/g, '_');
-const normalizeAction = normalizeKey;
 
 /**
  * Unified RBAC hook.
