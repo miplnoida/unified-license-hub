@@ -58,9 +58,11 @@ const mk = (kind: ScopeKind, selector: ScopeSelector = null): ScopeOption => ({ 
  */
 export const MODULE_SCOPE_CAPABILITIES: ModuleScopeCapability[] = [
   { module: 'returns_management',    label: 'Returns',      options: [mk('all'), mk('assigned'), mk('institution', 'licensees'), mk('sector', 'sectors')] },
-  { module: 'complaint_management',  label: 'Complaints',   options: [mk('all'), mk('assigned'), mk('team', 'teams')] },
+  // NOTE: 'team' scope removed until a backing teams table exists — has_scoped_permission denies it anyway.
+  { module: 'complaint_management',  label: 'Complaints',   options: [mk('all'), mk('assigned')] },
   { module: 'market_conduct',        label: 'Market Conduct', options: [mk('all'), mk('assigned'), mk('sector', 'sectors')] },
-  { module: 'application_management',label: 'Applications', options: [mk('all'), mk('assigned'), mk('department', 'departments')] },
+  // NOTE: 'department' scope removed until a backing departments table exists.
+  { module: 'application_management',label: 'Applications', options: [mk('all'), mk('assigned')] },
   { module: 'licensee_management',   label: 'Licensees',    options: [mk('all'), mk('assigned'), mk('institution', 'licensees'), mk('sector', 'sectors')] },
   { module: 'license_management',    label: 'Licenses',     options: [mk('all'), mk('assigned'), mk('institution', 'licensees')] },
   { module: 'registration_management', label: 'Registrations', options: [mk('all'), mk('assigned')] },
