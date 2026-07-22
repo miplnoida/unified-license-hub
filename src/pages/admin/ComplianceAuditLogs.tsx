@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Download, Loader2, FileWarning, History } from 'lucide-react';
 import { logExport, type ComplianceAuditAction } from '@/lib/complianceAudit';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 
 interface AuditRow {
   source: 'legacy' | 'compliance' | 'security' | string;
@@ -261,6 +263,12 @@ export default function ComplianceAuditLogs() {
   );
 
   async function exportCsv(kind: 'all' | 'case' | 'security' | 'exports') {
+    try {
+      await authorizedExport('compliance_management', 'export', { kind });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to export');
+      return;
+    }
     let data: any[] = [];
     let headers: string[] = [];
     let name = `audit-${kind}-${new Date().toISOString().slice(0,19)}.csv`;
