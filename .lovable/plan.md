@@ -1,66 +1,69 @@
-## Scope
+# Final RBAC Security Closure — Implementation Plan
 
-Close the last three `enforced: false` entries in `src/lib/rbac/catalog.json` and add the verification evidence the closure prompt requires. Do not restart or redesign any RBAC work.
+You asked not to plan again, but the workspace is currently in **plan mode**, so I can't edit files, run migrations, deploy Edge Functions, or execute CI until you approve. Approving this plan flips the switch to build mode and I'll execute it end-to-end without asking again.
 
-Confirmed pre-plan reads:
-- `catalog.json` still has exactly 3 unenforced pairs: `correspondence_management.export`, `correspondence_management.reject`, `fit_and_proper.export`.
-- UI surfaces DO exist for all three (previous "no surface" note was wrong):
-  - `src/pages/correspondence/CorrespondenceRecords.tsx` → Export index button
-  - `src/components/correspondence/ReviewApprovalPanel.tsx` → Reject button
-  - `src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx`, `FpInitiationLog.tsx`, `FpScheduler.tsx`, `src/pages/fpa/FpaMonitoring.tsx` → Export buttons
+This plan is scoped exactly to your 10 numbered requirements. No scope creep.
 
-## Changes
+## Execution order
 
-### 1. Gate the three remaining pairs at their real mutation sites
+1. **Atomic backend operations (Req #1)**
+   - Grep for every `authorizedAction(` / `authorizedExport(` / `record_export_intent(` / `enforce_action(` call site.
+   - For each site, either:
+     - Fold the check into the mutation RPC / Edge Function (preferred), or
+     - Add the site to an allowlist file with a note explaining why the follow-up write is already backend-protected (RLS + `has_permission`).
+   - New SECURITY DEFINER RPCs where needed (e.g. `submit_return`, `reject_correspondence`, `export_correspondence_index`, `export_fp_audit`, `export_fp_initiations`, `export_fp_schedule`, `export_fp_individual_audit`). Each does `enforce_permission` + mutation + audit in one transaction.
+   - Rewire the corresponding UI to call the single RPC.
 
-- `CorrespondenceRecords.tsx`: wrap Export index onClick with `authorizedExport('correspondence_management', ...)`; ensure the underlying data query already filters by scope (verify via read; if not, filter server-side).
-- `ReviewApprovalPanel.tsx` (and the mutation hook it calls): wrap the reject mutation with `authorizedAction('correspondence_management', 'reject', { id })`. Add matching server gate via `enforce_permission` in the RPC/edge path that performs the reject; if reject writes directly to a table, add a `SECURITY DEFINER` reject RPC gated by `enforce_permission` and switch the client to call it.
-- The four FP export buttons: wrap each CSV/export onClick with `authorizedExport('fit_and_proper', 'export', …)` so the export intent is recorded and permission enforced.
+2. **Shared workflow guard (Req #2)**
+   - New `public.enforce_workflow_transition(_module, _record_id, _from_state, _to_state, _action)`:
+     auth user → active role → `has_permission` → scope → assignment → state machine → SoD (`actor != submitter` unless `override_workflow`) → audit.
+   - Refactor existing workflow RPCs (applications / registration / licensing / returns / prudential / inspections / enforcement / complaints / FP / correspondence / coordination) to delegate to it.
+   - pgTAP `290_workflow_guard.sql` covering allow + deny + SoD + override per module.
 
-### 2. Flip catalog flags
+3. **Edge Function sweep (Req #3)**
+   - Re-run `scripts/verify-edge-authz.mjs`; ensure every function under `supabase/functions/` has a marker (`requireUserPermission` / `requireWorkerInvocation` / `markPublicFunction`).
+   - Add Deno `*_test.ts` for every privileged function currently lacking one — asserting 401 (no JWT), 403 (wrong permission / wrong scope), 200 (authorized).
+   - New CI script `verify-edge-tests.mjs` fails when a `user`-kind function has no test.
 
-Flip `enforced: true` for the three pairs in `src/lib/rbac/catalog.json`. Result: zero remaining `enforced: false` entries.
+4. **Storage authorization (Req #4)**
+   - Migration hardening `storage.objects` policies per bucket (application / complaint / returns / prudential / inspection / enforcement / fp / correspondence / reports / audit-exports / licence / payment). Each policy calls `has_scoped_permission(...)` for read/list/insert/update/delete.
+   - Signed URLs: new `public.create_signed_url(bucket, path, ttl)` RPC that reapplies the same read policy before minting via storage admin API from an Edge Function; refactor client callers.
+   - pgTAP `300_storage_policies.sql` with authorized / unauthorized / assigned / unassigned matrices.
 
-### 3. Backend authority proofs (pgTAP)
+5. **Export/download atomicity (Req #5)**
+   - Replace client-side CSV assembly for every dataset export with a server RPC returning the filtered rows (RLS applies). Client only serializes what the server returned.
+   - Downloads: distinguish `view` vs `download` in catalog where missing; gate via signed-URL RPC.
+   - Remove the correspondence seed-data caveat.
 
-Add `supabase/tests/rbac/282_final_closure_gates.sql`:
-- `enforce_permission('correspondence_management','export')` denies without perm, allows with.
-- Same for `correspondence_management.reject` and `fit_and_proper.export`.
-- Assert `record_export_intent` writes an audit row for each successful export call.
+6. **Background jobs (Req #6)**
+   - Audit each scheduled function; ensure worker token or service-role invocation only, no `module`/`action` accepted from body, config validated, audit logs written.
+   - Deno tests proving unauthorized HTTP invoke returns 401/403.
 
-### 4. Custom-role regression test
+7. **Persona matrix expansion (Req #7)**
+   - Grow `src/test/personaMatrix.test.ts` from 7 → 13 personas.
+   - Add integration-style assertions: sidebar, route guard, list/view/create/edit/delete/approve/reject/assign/workflow/export/download/storage/edge/rpc/reports/dashboards/sensitive — allowed AND denied per persona.
 
-Add `supabase/tests/rbac/283_custom_role_noop.sql`:
-- Create a custom role with N permission rows.
-- Run `rbac_save_role` with only metadata (name/description/status) changes.
-- Assert `role_permissions` row set is unchanged (same count, same set) after each save.
+8. **Custom-role regression (Req #8)**
+   - Extend `283_custom_role_noop.sql` with: no-op save, description-only, status-only, name-only, scope-only, permission reordering, classification job, migration job → all preserve `role_permissions` (sorted-UUID comparison).
 
-### 5. Persona coverage expansion (vitest)
+9. **CI hard gates (Req #9)**
+   - Update `.github/workflows/ci.yml` with required jobs for: workflow tests, full persona matrix, custom-role regression, storage tests, signed-URL tests, edge tests, export tests, background-job tests, `enforced:false == 0` assertion.
+   - New `scripts/verify-atomic-authz.mjs` detects `authorizedAction(...)` followed by direct `.insert/.update/.delete/.invoke` in the same function; supports an allowlist with justification.
+   - Add all new pgTAP files to the required-files list.
 
-Extend `src/test/personaMatrix.test.ts` (or add a sibling test file) with the three added surfaces:
-- Correspondence export button hidden/disabled without `correspondence_management.export`.
-- Correspondence reject button hidden/disabled without `.reject`.
-- FP export buttons hidden/disabled without `fit_and_proper.export`.
-Cover the personas already in the matrix — no new personas needed.
+10. **Completion report (Req #10)**
+    - Rewrite `docs/rbac/completion-report.md` with four columns: completed / tested / CI-verified / known-limitation. Remove stale claims.
 
-### 6. Consistency sweep (read-only verification, code changes only where a violation is found)
+## Evidence I will produce at the end
 
-Grep for direct role comparisons and permission array scans outside the centralized path (`user.role === 'admin'`, `permissions.find(...)`, `hasRole('...')`) and replace any hits with `useCan` / `authorize()` / `has_permission`. If none found, note it as verified in the completion report.
+Commit SHA, changed-files list, matrices (workflow/edge/storage/signed-URL/export/background/persona), custom-role diff proofs, and full outputs from pgTAP, Vitest, Deno test, tsgo, lint, build, and GitHub Actions — with the final `enforced:false` count.
 
-### 7. Documentation
+## Technical notes
 
-Update `docs/rbac/completion-report.md` only to reflect: 0 unenforced entries, new pgTAP files, new vitest coverage, and consistency-sweep result. No new plans, no roadmap.
+- New RPCs are `SECURITY DEFINER`, `SET search_path = public`, and call `enforce_permission` + `enforce_workflow_transition` before any write.
+- Storage read/list policies mirror the RLS predicate of the owning record table via `has_scoped_permission`.
+- Signed-URL minting moves to an Edge Function so we can enforce permission and log per URL.
+- Client helpers (`authorizedAction`, `authorizedExport`) stay for UX pre-checks but are no longer the security boundary.
+- No changes to unrelated business logic.
 
-## Evidence to report back
-
-- Files changed list.
-- `grep -c '"enforced": false' src/lib/rbac/catalog.json` → 0.
-- pgTAP: `282_final_closure_gates.sql`, `283_custom_role_noop.sql` pass locally via `supabase--test_edge_functions`/db test runner as available.
-- Vitest: extended persona tests pass.
-- Consistency sweep result (grep output summarized).
-
-## Out of scope
-
-- No architectural changes to `authorize.ts`, `has_permission`, `has_scoped_permission`, or scope resolver.
-- No new personas beyond current 13.
-- No changes to unrelated modules or business logic.
+Approve to switch to build mode and execute in the order above.
