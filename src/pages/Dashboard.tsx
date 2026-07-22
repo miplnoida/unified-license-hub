@@ -3,10 +3,12 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useDashboardTier } from '@/hooks/useDashboardTier';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { SupervisoryDashboard } from '@/components/dashboard/SupervisoryDashboard';
 import { ExecutiveSupervisoryDashboard } from '@/components/dashboard/ExecutiveSupervisoryDashboard';
 import { LicenseeDashboard } from '@/components/dashboard/LicenseeDashboard';
 import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
+import { AdminOnlyDashboard } from '@/components/dashboard/AdminOnlyDashboard';
 
 /**
  * Audience-aware dashboard router.
