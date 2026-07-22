@@ -153,12 +153,31 @@ const report = {
   orphanModules,
   orphanPairs,
   violations,
+  scopeParity: {
+    expected: uiScopeTuples.size,
+    actual: dbScopeTuples.size,
+    missingInDb: scopeMissingInDb,
+    missingInUi: scopeMissingInUi,
+  },
 };
 
 console.log(JSON.stringify(report, null, 2));
 
+let failed = false;
 if (violations.length > 0) {
   console.error(`\nRBAC parity FAILED — ${violations.length} UI reference(s) point at permissions missing from the catalogue.`);
-  process.exit(1);
+  failed = true;
 }
-console.log(`\nRBAC parity OK. Orphan catalogue entries: ${orphanModules.length} module(s), ${orphanPairs.length} action(s).`);
+if (scopeMissingInDb.length > 0) {
+  console.error(`\nRecord-scope parity FAILED — ${scopeMissingInDb.length} UI scope option(s) missing from public.rbac_module_scopes:`);
+  for (const t of scopeMissingInDb) console.error(`  · ${t}`);
+  failed = true;
+}
+if (scopeMissingInUi.length > 0) {
+  console.error(`\nRecord-scope parity FAILED — ${scopeMissingInUi.length} DB scope row(s) not offered by the UI registry:`);
+  for (const t of scopeMissingInUi) console.error(`  · ${t}`);
+  failed = true;
+}
+if (failed) process.exit(1);
+
+console.log(`\nRBAC parity OK. Orphan catalogue entries: ${orphanModules.length} module(s), ${orphanPairs.length} action(s). Scope tuples: ${uiScopeTuples.size}.`);
