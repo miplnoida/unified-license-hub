@@ -396,3 +396,29 @@ Ran `grep -rn "data-rbac"` across `src/` and cross-checked each unenforced pair 
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batch 3 Phase C landed three gated RPCs, their pgTAP proofs, and the corresponding catalog flips. Remaining: `application_management.escalate/export`, `licensee_management.export`, `prudential_supervision.export` (no server surface exists — either needs new RPCs or the catalog entries removed) and Batches 4–10.
+
+---
+
+## Batch 3 — Phase D: export gate + application escalate RPC
+
+### Shipped this turn
+
+- **Migration** `20260722_batch3_phase_d_export_and_escalate`:
+  - `public.record_export_intent(text, text, jsonb)` — validates `_action IN ('export','download')`, calls `enforce_permission(_module, _action)`, writes `audit_logs`. `SECURITY DEFINER`, `SET search_path = public`, `REVOKE ALL FROM PUBLIC`, `GRANT EXECUTE TO authenticated`.
+  - `public.escalate_application(uuid, text)` — calls `enforce_permission('application_management','escalate')`, sets `applications.status = 'escalated'`, writes `audit_logs`. Same hardening.
+- **Client wiring** — `src/lib/rbac/authorizedExport.ts` (thin wrapper around the RPC); called before CSV generation in:
+  - `src/pages/applications/ApplicationsList.tsx` (`application_management.export`)
+  - `src/pages/admin/ApprovedLicensees.tsx` (`licensee_management.export`) — previously a no-op button
+  - `src/pages/prudential/PrudentialEntityProfile.tsx` and `src/pages/supervision/PrudentialEarlyWarnings.tsx` (`prudential_supervision.export`)
+- **pgTAP** `supabase/tests/rbac/272_export_and_escalate_gated.sql` — 6 assertions: function existence (×2), 42501 for unauthenticated `record_export_intent`/`escalate_application`, `invalid_parameter_value` on non-export action, and `authenticated` EXECUTE grant. Added to CI required-list.
+- **Catalog** `src/lib/rbac/catalog.json`: `application_management.export`, `licensee_management.export` → `enforced: true` (`prudential_supervision.export` already flipped in an earlier turn).
+
+### Verification (this turn)
+
+- `verify-rbac-parity.mjs` → `RBAC parity OK.`, scope 46/46.
+- `verify-authz-centralized.mjs` → OK (800 files, 0 offenders).
+- `verify-no-alias-namespaces.mjs` → OK.
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed. Batch 3 has now landed enforcement helpers, five gated RPCs (`close_application`, `configure_application_form`, `import_applications_bulk`, `record_export_intent`, `escalate_application`), client wiring for four export sites, three pgTAP suites in the CI required-list, and six catalog flips. Remaining: `application_management.escalate` client wiring (currently only opens the reason form; needs to invoke `escalate_application` on submit) and Batches 4–10.

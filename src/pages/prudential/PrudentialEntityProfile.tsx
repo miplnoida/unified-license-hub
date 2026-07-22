@@ -16,6 +16,7 @@ import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrud
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
 import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -151,7 +152,8 @@ export default function PrudentialEntityProfile() {
     return worst;
   })();
 
-  const exportProfile = () => {
+  const exportProfile = async () => {
+    await authorizedExport('prudential_supervision', 'export', { entity: e.name });
     const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(`${e.name}-ratios-${stamp}.csv`, (data.ratios || []).map((r: any) => {

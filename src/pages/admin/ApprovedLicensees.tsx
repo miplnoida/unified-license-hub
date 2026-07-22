@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2, RefreshCw } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 
 interface ApprovedApp {
   id: string;
@@ -144,7 +145,19 @@ export default function ApprovedLicensees() {
           title="Approved Licensees"
           description="All approved pre-license applications with issued license numbers"
           actions={
-            <Button data-rbac="licensee_management.export" variant="outline" size="sm">
+            <Button
+              data-rbac="licensee_management.export"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await authorizedExport('licensee_management', 'export', { source: 'ApprovedLicensees' });
+                  toast.success('Export recorded');
+                } catch (err: any) {
+                  toast.error(err?.message || 'Not authorized to export');
+                }
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />Export
             </Button>
           }

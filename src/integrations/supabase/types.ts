@@ -16169,6 +16169,49 @@ export type Database = {
         }
         Returns: undefined
       }
+      escalate_application: {
+        Args: { _application_id: string; _reason?: string }
+        Returns: {
+          ack_at: string | null
+          ack_by: string | null
+          ack_text: string | null
+          applicant_id: string
+          application_number: string
+          approved_at: string | null
+          assessment_notes: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_step_id: string | null
+          data: Json | null
+          decision_rationale: string | null
+          form_version_id: string | null
+          id: string
+          last_sufficiency_evaluation_id: string | null
+          license_type: string
+          priority: number
+          priority_reason: string | null
+          priority_set_at: string | null
+          priority_set_by: string | null
+          regulator_id: string | null
+          rejected_at: string | null
+          review_notes: string | null
+          search_vector: unknown
+          status: string
+          submitted_at: string | null
+          sufficiency_status: string | null
+          updated_at: string
+          workflow_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       escalate_complaint_to_enforcement: {
         Args: { _findings: string; _id: string }
         Returns: {
@@ -17005,6 +17048,10 @@ export type Database = {
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
+      record_export_intent: {
+        Args: { _action: string; _meta?: Json; _module: string }
+        Returns: Json
+      }
       record_return_breach: {
         Args: {
           _comparator: string

@@ -32,7 +32,7 @@
   {
     "module": "application_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "application_management",
@@ -422,7 +422,7 @@
   {
     "module": "licensee_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "licensing",
