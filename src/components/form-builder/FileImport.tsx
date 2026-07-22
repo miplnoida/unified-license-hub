@@ -1842,8 +1842,14 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
   }, []);
 
   // Confirm handlers
-  const handleLegacyConfirm = () => {
+  const handleLegacyConfirm = async () => {
     if (!legacyPreview) return;
+    try {
+      await authorizedAction('form_management', 'import', { mode: 'legacy', sections: legacyPreview.length });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to import forms.');
+      return;
+    }
     onImport(legacyPreview);
     const totalFields = legacyPreview.reduce((a, s) => a + s.fields.length, 0);
     toast.success(`Imported ${totalFields} fields from ${legacyPreview.length} section(s).`);
@@ -1851,11 +1857,17 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
     resetState();
   };
 
-  const handleMultiSheetConfirm = () => {
+  const handleMultiSheetConfirm = async () => {
     if (!multiResult || !onMultiSheetImport) return;
     const filtered = { ...multiResult, sheets: multiResult.sheets.filter(s => s.selected) };
     if (filtered.sheets.length === 0) {
       toast.error('Please select at least one sheet.');
+      return;
+    }
+    try {
+      await authorizedAction('form_management', 'import', { mode: 'multi_sheet', sheets: filtered.sheets.length });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to import forms.');
       return;
     }
     // Attach template name
