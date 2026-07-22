@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MasterDataItem } from '@/hooks/useMasterData';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 export interface ParsedItemRow {
   rowNumber: number;
