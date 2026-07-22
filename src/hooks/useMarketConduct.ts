@@ -119,6 +119,7 @@ export function useCreateInvestigation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<ConductInvestigation> & { allegation: string; source_type: string }) => {
+      await authorizedAction('conduct_management', 'create', { allegation: payload.allegation });
       const { data: user } = await supabase.auth.getUser();
       const body: any = { ...payload, opened_by: user.user?.id ?? null };
       const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();
