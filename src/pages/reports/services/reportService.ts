@@ -479,6 +479,7 @@ export async function saveTemplate(t: {
   sortDir?: SortDirection;
   visibility?: 'private' | 'shared';
 }) {
+  await authorizedAction('report_management', 'edit', { op: t.id ? 'update_template' : 'create_template', id: t.id });
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {
     name: t.name,
@@ -502,6 +503,7 @@ export async function saveTemplate(t: {
 }
 
 export async function deleteTemplate(id: string) {
+  await authorizedAction('report_management', 'edit', { op: 'delete_template', id });
   const { error } = await supabase.from('report_templates' as any).delete().eq('id', id);
   if (error) throw error;
 }
