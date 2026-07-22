@@ -65,7 +65,7 @@ jobs:
         run: bunx vitest run src/test/roleValidation.test.ts src/test/accessLevels.test.ts
 
       - name: Route/menu coverage
-        run: bunx vitest run src/test/routeCoverage.test.ts src/test/sidebarVisibility.test.tsx
+        run: bunx vitest run src/test/routeCoverage.test.ts src/test/sidebarVisibility.test.tsx src/test/adminNavGates.test.ts
 
       - name: RBAC test suite (permissions + persona + guards)
         run: bunx vitest run src/test/permissionsRbac.test.tsx
