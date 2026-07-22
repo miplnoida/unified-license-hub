@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import type {
   BuilderConfig, ExportFormat, ReportFavorite, ReportFilters, ReportRun,
   ReportSchedule, ReportSource, ReportTemplate, ScheduleFrequency, SortDirection,
