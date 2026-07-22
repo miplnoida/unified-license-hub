@@ -377,7 +377,14 @@ export default function FormManagement() {
               {activeTab === 'returns' && canEditForms && (
                 <Button data-rbac="form_management.import"
                   variant="outline"
-                  onClick={() => navigate(`/admin/forms/create?type=returns&import=excel`)}
+                  onClick={async () => {
+                    try {
+                      await authorizedAction('form_management', 'import', { entry: 'excel_nav' });
+                      navigate(`/admin/forms/create?type=returns&import=excel`);
+                    } catch (e: any) {
+                      toast.error(e?.message || 'Not authorized to import forms.');
+                    }
+                  }}
                   title="Import a workbook (.xlsx, .xlsm, .xls). Each sheet becomes a return form with formulas preserved."
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />Import from Excel
