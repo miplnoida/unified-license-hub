@@ -493,3 +493,17 @@ All 38 have a universal server-side gate available via `enforce_action(module, a
 - `src/components/form-builder/FileImport.tsx`: wrapped `handleLegacyConfirm` and `handleMultiSheetConfirm` with `authorizedAction('form_management','import',{mode})` before invoking the parent `onImport` / `onMultiSheetImport` callbacks.
 - Flipped catalog flags to `enforced: true` for: `form_management.publish`, `form_management.delete`, `form_management.import`.
 - Added pgTAP `supabase/tests/rbac/276_form_management_gates.sql` (3 assertions) proving unprivileged callers get `42501` on `enforce_action` for publish/delete/import. Wired into CI required-list.
+
+## Batch 8 — user delete, master-data import, settings export gates (2026-07-22)
+
+### Shipped
+- `src/components/entity-detail/WebUsersTab.tsx` — `deleteUser` now calls `authorizedAction('user_management','delete',{user_id})` before invoking `manage-web-user` edge function; permission-denied surfaces via toast and aborts.
+- `src/components/admin/MasterDataItemsImportDialog.tsx` and `src/components/admin/MasterDataImportDialog.tsx` — `handleImport` now calls `authorizedAction('master_data_management','import', …)` before parsing/writing rows.
+- `src/pages/settings/DataManagementSettings.tsx` — both "Export Database" and "Export Audit Logs" buttons wired with `onClick` handlers that call `authorizedExport('settings','export',{kind})` before queueing.
+- Catalog flips → `enforced: true` for `user_management.delete`, `master_data_management.import`, `settings.export` (3 pairs).
+- pgTAP `supabase/tests/rbac/277_batch8_gates.sql` (3 assertions) added to CI required-list.
+
+### Verification
+- `verify-rbac-parity.mjs` → RBAC parity OK. Scope 46/46.
+- `verify-authz-centralized.mjs` → OK (801 files).
+- `verify-no-alias-namespaces.mjs` → OK.

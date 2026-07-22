@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { SectorRow, SubSectorRow, CategoryRow, ServiceRow } from '@/hooks/useMasterConfig';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 export type ImportEntity = 'sectors' | 'sub-sectors' | 'categories' | 'services';
 
@@ -190,6 +191,12 @@ export function MasterDataImportDialog({
   const canImport = parsed.length > 0 && invalidCount === 0;
 
   const handleImport = async () => {
+    try {
+      await authorizedAction('master_data_management', 'import', { entity, rows: validRows.length });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message || 'You lack permission to import master data.', variant: 'destructive' });
+      return;
+    }
     setImporting(true);
     try {
       const result = await onImport(validRows);
