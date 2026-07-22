@@ -320,9 +320,12 @@ export default function FpaScreening() {
       if (!form.check_type) throw new Error('Check type is required.');
       const sortOrder = parseInt(form.sort_order, 10);
       if (isNaN(sortOrder)) throw new Error('Sort order must be a number.');
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper_screening', 'create', { key: form.key.trim() });
       const { error } = await supabase.from('fp_screening_configs').insert({
         key: form.key.trim(),
         display_label: form.display_label.trim(),
+
         description: form.description.trim() || null,
         check_type: form.check_type,
         provider: form.provider.trim() || null,
