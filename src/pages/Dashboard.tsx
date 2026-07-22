@@ -27,9 +27,25 @@ export default function Dashboard() {
   const { user } = useAuth();
   const ctx = useEffectivePortalContext();
   const { tier } = useDashboardTier();
+  const { hasModuleAccess, isBypassRole } = useUserDynamicPermissions();
 
   if (ctx.loading) return <AuthLoadingScreen />;
   if (!user) return null;
+
+  // Supervisory modules the SupervisoryDashboard actually renders data for.
+  // If an internal user has NONE of these but does have admin_dashboard
+  // access, they get an administrative landing page instead of the
+  // misleading "All clear — no supervisory issues" empty state.
+  const SUPERVISORY_MODULES = [
+    'application_management', 'license_management', 'returns_management',
+    'complaint_management', 'market_conduct', 'fit_and_proper',
+    'prudential_supervision', 'coordination', 'report_management',
+  ];
+  const hasSupervisoryAccess = isBypassRole
+    || SUPERVISORY_MODULES.some((m) => hasModuleAccess(m));
+  const hasAdminOnlyAccess = ctx.isInternal
+    && !hasSupervisoryAccess
+    && hasModuleAccess('admin_dashboard');
 
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
@@ -37,15 +53,20 @@ export default function Dashboard() {
       audience: ctx.audience,
       effectiveRole: ctx.effectiveRole,
       isInternal: ctx.isInternal,
-      isLicensee: ctx.isLicensee,
-      isPreLicensee: ctx.isPreLicensee,
-      isApplicant: ctx.isApplicant,
-      activeLicenseeId: ctx.activeLicenseeId,
+      hasSupervisoryAccess,
+      hasAdminOnlyAccess,
     });
   }
 
   const { title, subtitle, content } = (() => {
     if (ctx.isInternal) {
+      if (hasAdminOnlyAccess) {
+        return {
+          title: 'Administration',
+          subtitle: `Welcome back, ${user.fullName}. Administrative tools available to you.`,
+          content: <AdminOnlyDashboard />,
+        };
+      }
       if (tier === 'executive') {
         return {
           title: 'Executive Dashboard',
