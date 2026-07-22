@@ -97,6 +97,50 @@ export function ModuleRoute({
   return <AccessDenied />;
 }
 
+/**
+ * Exact `<module>.<action>` route guard. Use for diagnostic / non-view
+ * routes (e.g. the Permission Coverage report gated on
+ * `role_management.view_coverage`) so a role that can view Role Management
+ * but was NOT granted the coverage diagnostic can't reach the URL directly.
+ *
+ * External audiences remain blocked when `allowedRoles` is internal-only.
+ */
+export function PermissionRoute({
+  children,
+  module,
+  action,
+  allowedRoles = INTERNAL_ROLES,
+}: {
+  children: React.ReactNode;
+  module: PermissionModule;
+  action: string;
+  allowedRoles?: AppRole[];
+}) {
+  const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
+  const { hasPermission, isBypassRole, isLoading: permsLoading } = useUserDynamicPermissions();
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!session) return <Navigate to="/" replace />;
+  if (!user) return <AuthLoadingScreen />;
+  if (!isFullyAuthenticated) {
+    return mfaStatus === 'pending'
+      ? <Navigate to="/login?mfa=required" replace />
+      : <AuthLoadingScreen />;
+  }
+  if (permsLoading) return <AuthLoadingScreen />;
+
+  if (isBypassRole) return <>{children}</>;
+
+  const audienceIsInternalOnly = allowedRoles.length > 0
+    && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
+  if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
+    return <AccessDenied />;
+  }
+
+  if (hasPermission(module, action)) return <>{children}</>;
+  return <AccessDenied />;
+}
+
 /** Admin-only route guard. Restricts to super_admin and admin. */
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   return (
