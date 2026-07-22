@@ -1,4 +1,4 @@
--- pgTAP: enforce_permission / enforce_scoped_permission helpers
+-- pgTAP: Batch 3 enforce_permission / enforce_scoped_permission helpers
 BEGIN;
 SELECT plan(4);
 
@@ -12,7 +12,7 @@ SELECT has_function(
   'enforce_scoped_permission(text,text,uuid,uuid,uuid) exists'
 );
 
--- Unauthenticated call raises 42501
+-- With no auth.uid(), both helpers raise 42501
 SELECT throws_ok(
   $$SELECT public.enforce_permission('application_management','close')$$,
   '42501',

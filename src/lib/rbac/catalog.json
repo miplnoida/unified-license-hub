@@ -397,7 +397,7 @@
   {
     "module": "license_management",
     "name": "delete",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "license_management",
@@ -417,7 +417,7 @@
   {
     "module": "licensee_management",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "licensee_management",
