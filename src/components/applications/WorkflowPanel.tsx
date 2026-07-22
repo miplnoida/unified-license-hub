@@ -760,6 +760,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       }
       if (data?.error) { toast.error(data.error); return; }
 
+      if (entityType === 'application' && actionType === 'escalate') {
+        const { error: rpcError } = await supabase.rpc('escalate_application', {
+          _application_id: applicationId,
+          _reason: comment,
+        });
+        if (rpcError) {
+          toast.error(rpcError.message || 'Escalation gate failed');
+          return;
+        }
+      }
+
+
+
       if (entityType === 'application' && actionType === 'approve' && isLastLevel) {
         setApprovalResult({
           license_number: data.license_number,
