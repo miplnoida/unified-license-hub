@@ -22,6 +22,7 @@ import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
 import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { logCoordinationAction } from '@/lib/coordinationAudit';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { EscalationsTab } from '@/components/coordination/EscalationsTab';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
