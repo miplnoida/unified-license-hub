@@ -18,6 +18,7 @@ import {
   Layers, Link2, ArrowRight, ArrowLeft, CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import type { FormSection, FormField, FieldType, ValidationRules } from '@/types/formBuilder';
 
 // ─── Helpers ───
