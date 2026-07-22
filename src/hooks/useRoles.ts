@@ -206,7 +206,8 @@ export function useDeleteRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('roles' as any).delete().eq('id', id);
+      await authorizedAction('role_management', 'delete', { role_id: id });
+      const { error } = await supabase.rpc('rbac_delete_role' as any, { _role_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -227,6 +228,7 @@ export function useResetSystemRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (roleName: string) => {
+      await authorizedAction('role_management', 'reset', { role_name: roleName });
       const { error } = await supabase.rpc('reset_system_role_permissions' as any, { p_role_name: roleName });
       if (error) throw error;
     },
