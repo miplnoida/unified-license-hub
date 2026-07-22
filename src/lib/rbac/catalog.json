@@ -1,15 +1,5 @@
 [
   {
-    "module": "admin",
-    "name": "configure",
-    "enforced": false
-  },
-  {
-    "module": "admin",
-    "name": "view",
-    "enforced": false
-  },
-  {
     "module": "application_management",
     "name": "approve",
     "enforced": true
@@ -58,21 +48,6 @@
     "module": "application_management",
     "name": "view",
     "enforced": true
-  },
-  {
-    "module": "applications",
-    "name": "create",
-    "enforced": false
-  },
-  {
-    "module": "applications",
-    "name": "edit",
-    "enforced": false
-  },
-  {
-    "module": "audit_logs",
-    "name": "export",
-    "enforced": false
   },
   {
     "module": "audit_management",
@@ -128,11 +103,6 @@
     "module": "complaint_type",
     "name": "view",
     "enforced": true
-  },
-  {
-    "module": "complaints",
-    "name": "configure",
-    "enforced": false
   },
   {
     "module": "compliance_management",
@@ -410,9 +380,9 @@
     "enforced": true
   },
   {
-    "module": "inspections",
+    "module": "inspection_management",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "license_management",
@@ -452,11 +422,6 @@
   {
     "module": "licensee_management",
     "name": "export",
-    "enforced": false
-  },
-  {
-    "module": "licenses",
-    "name": "create",
     "enforced": false
   },
   {
@@ -610,29 +575,9 @@
     "enforced": false
   },
   {
-    "module": "notifications",
-    "name": "create",
-    "enforced": false
-  },
-  {
-    "module": "notifications",
+    "module": "notification_management",
     "name": "view",
-    "enforced": false
-  },
-  {
-    "module": "prudential",
-    "name": "create",
-    "enforced": false
-  },
-  {
-    "module": "prudential",
-    "name": "edit",
-    "enforced": false
-  },
-  {
-    "module": "prudential",
-    "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "prudential_payment_systems",
@@ -673,6 +618,11 @@
     "module": "prudential_supervision",
     "name": "edit",
     "enforced": false
+  },
+  {
+    "module": "prudential_supervision",
+    "name": "export",
+    "enforced": true
   },
   {
     "module": "prudential_supervision",
@@ -758,11 +708,6 @@
     "module": "report_management",
     "name": "view",
     "enforced": true
-  },
-  {
-    "module": "reporting",
-    "name": "export",
-    "enforced": false
   },
   {
     "module": "returns_management",
@@ -893,16 +838,6 @@
     "module": "settings",
     "name": "view",
     "enforced": true
-  },
-  {
-    "module": "supervision",
-    "name": "approve",
-    "enforced": false
-  },
-  {
-    "module": "supervision",
-    "name": "edit",
-    "enforced": false
   },
   {
     "module": "user_management",

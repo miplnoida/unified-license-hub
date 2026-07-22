@@ -200,7 +200,7 @@ export default function PrudentialEntityProfile() {
         <div className="flex gap-2">
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
-          <Button data-rbac="prudential.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
+          <Button data-rbac="prudential_supervision.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
           <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}><History className="h-3 w-3 mr-1" />History</Button>
         </div>
       </div>
@@ -490,7 +490,7 @@ export default function PrudentialEntityProfile() {
                           description: `Breach detected on ${metric} (value ${val}, threshold ${b.threshold_value}).`,
                         })}>Create action</Button>
                         {['critical','high','red','breach'].includes(sev) && (
-                          <Button data-rbac="prudential.edit" size="sm" variant="ghost" onClick={() => setCreateEscalation({
+                          <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => setCreateEscalation({
                             entity_id: e.id, related_type: 'return', related_id: b.return_id,
                             escalation_type: 'immediate_risk', reason: `${sev} breach on ${metric}`,
                           })}>Escalate</Button>

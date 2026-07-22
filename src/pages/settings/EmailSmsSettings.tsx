@@ -248,7 +248,7 @@ export default function EmailSmsSettings() {
                   placeholder="recipient@example.com"
                   className="max-w-md"
                 />
-                <Button data-rbac="admin.configure"
+                <Button data-rbac="settings.edit"
                   variant="outline"
                   size="default"
                   onClick={handleSendTest}

@@ -133,7 +133,7 @@ export default function ApplicationFormSettings() {
       key: 'notify',
       label: 'Notify',
       render: (r) => (
-        <Button data-rbac="admin.configure"
+        <Button data-rbac="settings.edit"
           variant="outline"
           size="sm"
           disabled={!form.notify_on_form_version_change}

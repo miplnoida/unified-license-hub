@@ -91,7 +91,7 @@ export default function ScheduleSettings() {
                 <CardTitle className="text-lg">Holiday Calendar</CardTitle>
                 <CardDescription>Public holidays when the system pauses SLA calculations.</CardDescription>
               </div>
-              <Button data-rbac="admin.configure" variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Add Holiday</Button>
+              <Button data-rbac="settings.edit" variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Add Holiday</Button>
             </div>
           </CardHeader>
           <CardContent>

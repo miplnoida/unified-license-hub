@@ -63,7 +63,7 @@ export function MultiSelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button data-rbac="admin.view"
+        <Button data-rbac="settings.view"
           variant="outline"
           role="combobox"
           aria-expanded={open}

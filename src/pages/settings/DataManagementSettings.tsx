@@ -94,7 +94,7 @@ export default function DataManagementSettings() {
                 <p className="font-medium text-foreground">Purge Old Data</p>
                 <p className="text-sm text-muted-foreground">Remove data older than the configured retention period.</p>
               </div>
-              <Button data-rbac="admin.configure" variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-2" />Purge</Button>
+              <Button data-rbac="settings.edit" variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-2" />Purge</Button>
             </div>
           </CardContent>
         </Card>

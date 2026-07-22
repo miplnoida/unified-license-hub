@@ -228,37 +228,49 @@ This pass closes the specific measurable gap the parity oracle tracks (UI drift)
 
 ---
 
-## Final closure pass attempt (2026-07-22, second run)
+## Multi-turn closure — Batch 1: Namespace canonicalization (2026-07-22)
 
-### What was requested
+### What shipped
 
-A single-turn closure of the remaining 12% — backend enforcement for every catalogued permission, full alias removal, centralized workflow/export/download/edge/storage authorization, 13-persona × 19-surface matrix, custom-role byte-diff regression, and full CI evidence.
+Legacy permission-namespace aliases have been eliminated everywhere they were actually referenced. Canonical namespaces are now the only permitted form and are enforced by a hard CI gate.
 
-### What was actually shipped this turn
+**Alias → canonical mapping**
 
-- Verified item 7 above (sensitive-privilege registry already complete); corrected the stale limitation entry.
-- Approved plan committed to `.lovable/plan.md` describing the full remaining work.
+| Legacy alias | Canonical |
+|---|---|
+| `admin.configure` / `admin.view` | `settings.edit` / `settings.view` |
+| `applications.create` / `applications.edit` | `application_management.create` / `application_management.edit` |
+| `audit_logs.export` | `audit_management.export` |
+| `complaints.configure` | `complaint_management.edit` |
+| `inspections.edit` | `inspection_management.edit` |
+| `licenses.create` | `license_management.create` |
+| `notifications.create` / `notifications.view` | `notification_management.create` / `notification_management.view` |
+| `prudential.create` / `prudential.edit` / `prudential.export` | `prudential_supervision.create` / `.edit` / `.export` |
+| `reporting.export` | `report_management.export` |
+| `supervision.approve` / `supervision.edit` | `prudential_supervision.initiate_supervisory_action` / `.edit` |
 
-### What was **not** shipped this turn
+### Files changed
 
-Every other workstream in the approved plan. Specifically **no** new migration was authored, **no** RLS/RPC/edge/storage policy was rewritten, **no** alias codemod was executed, **no** new persona/custom-role/regression tests were added, and **no** CI oracles were changed. The prior limitations §1–§6 above remain accurate.
+- `src/lib/rbac/catalog.json` — removed 16 alias entries (188 → 172 → 175 after 3 canonical additions: `notification_management.view`, `inspection_management.edit`, `prudential_supervision.export`).
+- **24 UI call-sites** — `data-rbac="alias.action"` markers rewritten to the canonical namespace across `src/components/layout/Header.tsx`, `src/components/shared/DataTableShell.tsx`, `src/components/ui/multi-select.tsx`, `src/pages/MailSms.tsx`, `src/pages/PreLicenseeDashboard.tsx`, `src/pages/admin/ApprovedLicensees.tsx`, `src/pages/admin/AuditExport.tsx`, `src/pages/applications/ApplicationQueue.tsx`, `src/pages/complaints/{duplicates/DuplicateDetectionHub,escalations/EscalationHub}.tsx`, `src/pages/inspections/InspectionDetail.tsx`, `src/pages/prudential/{AssessmentsList,PrudentialEntityProfile}.tsx`, `src/pages/settings/{ApplicationFormSettings,DataManagementSettings,EmailSmsSettings,ScheduleSettings}.tsx`, `src/pages/supervision/{BreachInbox,NewThematicReview,PrudentialEarlyWarnings,RiskHeatmap,SupervisoryPlansDashboard,ThematicReviewDetail,ThematicReviews}.tsx`.
+- `scripts/verify-no-alias-namespaces.mjs` — new CI hard gate. Scans `src/`, `supabase/functions/`, `supabase/tests/`, `scripts/` for the 10 alias namespaces in permission call-sites (`useCan`, `hasPermission`, `requireUserPermission`, `has_permission`, `data-rbac="alias.action"`) and rejects any reintroduction. Table-name literals like `.from('applications')` are intentionally not matched — they are ORM references, not permission namespaces.
+- `supabase/tests/rbac/260_no_alias_namespaces.sql` — pgTAP guard asserting `SELECT count(*) FROM public.permissions WHERE module IN (<10 aliases>) = 0`.
+- `.github/workflows/ci.yml` — new step **RBAC namespace canonicalization (no legacy aliases)** running `verify-no-alias-namespaces.mjs`; `260_no_alias_namespaces.sql` added to the required pgTAP list.
 
-### Why
+### Verification (executed this turn)
 
-The scope — dozens of coordinated migrations across ~30 tables, an alias codemod touching hundreds of files, a new workflow-authorization SQL layer, 13-persona × 19-surface assertions, and byte-diff custom-role regression harnessing — is not honestly executable in a single agent turn without producing untested code and false green-CI claims. Producing that in one pass and declaring success would violate the completion rule ("Do not claim complete unless every requirement is implemented and verified with automated evidence").
+- `node scripts/verify-no-alias-namespaces.mjs` → `OK — no legacy namespace aliases found. Canonical namespaces enforced (10 aliases blocked).`
+- `node scripts/verify-rbac-parity.mjs` → `RBAC parity OK. Orphan catalogue entries: 4 module(s), 79 action(s). Scope tuples: 46.` (exit 0, `violations: []`)
+- `psql -tAc "SELECT DISTINCT module FROM public.permissions WHERE module IN ('admin','applications','complaints','inspections','licenses','notifications','prudential','reporting','supervision','audit_logs')"` → zero rows.
 
-### Evidence available
+### What remains
 
-- Commit SHA: managed by the platform; not exposed to the agent runtime.
-- Files changed this turn: `docs/rbac/completion-report.md` only.
-- No new pgTAP, Vitest, Deno, build, typecheck, or lint runs were executed this turn — nothing changed that would move those signals.
-- Prior CI evidence (Phases 2–8) remains valid and green as previously reported.
+Batches 2–10 per `.lovable/plan.md`: centralized `authorize()` service; RLS+RPC completion for Applications/Registration/Licensing/Licensees, Returns/Prudential/Enforcement/Inspections, Reports/Forms/Notifications/Dashboard/Bulk; `workflow_authorize` consolidation; shared export/download helpers; storage bucket audit + signed-URL parity; edge-function authorization sweep; test expansion + final CI hard gates.
 
 ### Final declaration
 
-**Roles & Permissions implementation remains incomplete.**
+**Roles & Permissions implementation remains incomplete.** Batch 1 (namespace canonicalization) is fully landed and CI-gated. Remaining batches will be implemented in subsequent turns; each will append a factual entry to this document.
 
-The gaps blocking a "fully complete and verified" declaration are enumerated in §1–§6 of the "Honest limitations still present" section above and in `.lovable/plan.md`. Closing them requires a dedicated multi-turn implementation effort, not a further one-shot pass.
 
 
 

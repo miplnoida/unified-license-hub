@@ -302,7 +302,7 @@ function ScopeTab({ reviewId, entities, products, onChange }: any) {
             {entities.map((e: any) => (
               <div key={e.id} className="flex items-center justify-between text-sm border-b pb-1">
                 <span>{e.licensees?.name || e.licensee_id}</span>
-                <Button data-rbac="supervision.edit" variant="ghost" size="sm" onClick={() => removeEntity(e.id)}>Remove</Button>
+                <Button data-rbac="prudential_supervision.edit" variant="ghost" size="sm" onClick={() => removeEntity(e.id)}>Remove</Button>
               </div>
             ))}
           </div>
@@ -322,7 +322,7 @@ function ScopeTab({ reviewId, entities, products, onChange }: any) {
             {products.map((p: any) => (
               <div key={p.id} className="flex items-center justify-between text-sm border-b pb-1">
                 <span>{p.conduct_products?.name || p.product_id}</span>
-                <Button data-rbac="supervision.edit" variant="ghost" size="sm" onClick={() => removeProduct(p.id)}>Remove</Button>
+                <Button data-rbac="prudential_supervision.edit" variant="ghost" size="sm" onClick={() => removeProduct(p.id)}>Remove</Button>
               </div>
             ))}
           </div>
@@ -475,7 +475,7 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
                 <TableCell><Badge variant={f.status === 'issued' ? 'default' : 'outline'}>{f.status}</Badge></TableCell>
                 <TableCell className="text-xs">{f.licensees?.name || 'Thematic'}</TableCell>
                 <TableCell className="text-right">
-                  {f.status === 'draft' && <Button data-rbac="supervision.edit" size="sm" onClick={() => issue(f)}>Issue</Button>}
+                  {f.status === 'draft' && <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => issue(f)}>Issue</Button>}
                 </TableCell>
               </TableRow>))}</TableBody>
           </Table>
