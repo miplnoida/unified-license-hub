@@ -240,6 +240,13 @@ export default function FormManagement() {
 
   const doBulkDelete = async (ids: string[]) => {
     setBulkLoading(true);
+    try {
+      await authorizedAction('form_management', 'delete', { ids, count: ids.length });
+    } catch (e: any) {
+      setBulkLoading(false);
+      toast.error(e?.message || 'Not authorized to delete form templates.');
+      return;
+    }
     const failures: string[] = [];
     for (const id of ids) {
       try {
