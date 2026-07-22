@@ -75,7 +75,8 @@ export function useUserDynamicPermissions() {
         const key = `${module}::${name}`;
         if (!seen.has(key)) {
           seen.add(key);
-          unique.push({ id: p.id, module, name });
+          unique.push({ module, name });
+
         }
       }
 
