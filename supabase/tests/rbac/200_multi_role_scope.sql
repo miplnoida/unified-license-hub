@@ -19,14 +19,14 @@ ON CONFLICT DO NOTHING;
 -- unrelated all-scoped licensee, inactive all-scoped complaints.
 INSERT INTO public.roles (name, system_role, is_system, role_type, status, scope_config)
 VALUES
-  ('_pgtap_R','custom',false,'custom','active',   '{"complaint_management":{"scope":"assigned"}}'::jsonb),
-  ('_pgtap_A','custom',false,'custom','active',   '{"complaint_management":{"scope":"all"}}'::jsonb),
-  ('_pgtap_G','custom',false,'custom','active',   '{"licensee_management":{"scope":"all"}}'::jsonb),
-  ('_pgtap_I','custom',false,'custom','inactive', '{"complaint_management":{"scope":"all"}}'::jsonb),
-  ('_pgtap_S1','custom',false,'custom','active',  '{"complaint_management":{"scope":"sector","sectors":["00000000-0000-0000-0000-000000000aaa"]}}'::jsonb),
-  ('_pgtap_S2','custom',false,'custom','active',  '{"complaint_management":{"scope":"sector","sectors":["00000000-0000-0000-0000-000000000bbb"]}}'::jsonb),
-  ('_pgtap_L1','custom',false,'custom','active',  '{"licensee_management":{"scope":"institution","licensees":["00000000-0000-0000-0000-0000000000a1"]}}'::jsonb),
-  ('_pgtap_L2','custom',false,'custom','active',  '{"licensee_management":{"scope":"institution","licensees":["00000000-0000-0000-0000-0000000000a2"]}}'::jsonb)
+  ('_pgtap_R','custom',false,'internal','active',   '{"complaint_management":{"scope":"assigned"}}'::jsonb),
+  ('_pgtap_A','custom',false,'internal','active',   '{"complaint_management":{"scope":"all"}}'::jsonb),
+  ('_pgtap_G','custom',false,'internal','active',   '{"licensee_management":{"scope":"all"}}'::jsonb),
+  ('_pgtap_I','custom',false,'internal','inactive', '{"complaint_management":{"scope":"all"}}'::jsonb),
+  ('_pgtap_S1','custom',false,'internal','active',  '{"complaint_management":{"scope":"sector","sectors":["00000000-0000-0000-0000-000000000aaa"]}}'::jsonb),
+  ('_pgtap_S2','custom',false,'internal','active',  '{"complaint_management":{"scope":"sector","sectors":["00000000-0000-0000-0000-000000000bbb"]}}'::jsonb),
+  ('_pgtap_L1','custom',false,'internal','active',  '{"licensee_management":{"scope":"institution","licensees":["00000000-0000-0000-0000-0000000000a1"]}}'::jsonb),
+  ('_pgtap_L2','custom',false,'internal','active',  '{"licensee_management":{"scope":"institution","licensees":["00000000-0000-0000-0000-0000000000a2"]}}'::jsonb)
 ON CONFLICT (name) DO NOTHING;
 
 -- Wire complaints.view to _pgtap_R, _pgtap_A, _pgtap_I, _pgtap_S1, _pgtap_S2.
@@ -130,7 +130,7 @@ DO $$
 DECLARE r uuid; cp uuid;
 BEGIN
   INSERT INTO public.roles (name, system_role, is_system, role_type, status, scope_config)
-  VALUES ('_pgtap_TEAM','custom',false,'custom','active',
+  VALUES ('_pgtap_TEAM','custom',false,'internal','active',
     '{"complaint_management":{"scope":"team","teams":["x"]}}'::jsonb)
   RETURNING id INTO r;
   SELECT id INTO cp FROM public.permissions
