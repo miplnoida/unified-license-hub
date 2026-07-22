@@ -436,11 +436,13 @@ export function useCreateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAction>) => {
+      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, title: (row as any).title });
       const user = (await sb.auth.getUser()).data.user;
       const payload: any = { ...row, created_by: user?.id };
       const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
       if (error) throw error;
       await audit('CREATE', 'prudential_action', data.id, null, data);
+
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
       if (data.assigned_to) {
         await notify('prudential_action_assigned', 'prudential_action', data.id, {
