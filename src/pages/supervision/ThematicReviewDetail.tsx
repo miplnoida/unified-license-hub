@@ -78,10 +78,13 @@ export default function ThematicReviewDetail() {
 
   const runTransition = async (targetStatus: string, override_id?: string, reason?: string) => {
     try {
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('market_conduct', 'edit', { review_id: id, target_status: targetStatus });
       const { error } = await supabase.from('thematic_reviews' as any)
         .update({ status: targetStatus, ...(targetStatus === 'closed' ? { closed_at: new Date().toISOString() } : {}) })
         .eq('id', id);
       if (error) throw error;
+
       // status history: trigger already logs, but we can enrich reason
       if (reason) {
         await supabase.from('thematic_review_status_history' as any)
