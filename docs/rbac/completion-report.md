@@ -44,7 +44,24 @@ Changes:
 
 Not started this turn. Scope: rewrite RLS/RPCs/Edge/storage/exports/workflow across every scope-aware module and produce `docs/rbac/enforcement-matrix.md`.
 
-## Phase 4 — Selector validation, unsupported scopes, inactive-role enforcement (Sec. 3, 4, 5) — PENDING
+## Phase 4 — Selector validation, unsupported scopes, inactive-role enforcement (Sec. 3, 4, 5) — DONE
+
+Migration `20260722_phase4_selector_validation` (applied). New guarantees enforced by the database, not by the UI:
+
+- **`public.validate_scope_config(jsonb)`** — returns `(module, error)` rows for every problem in a role's `scope_config`. Rules:
+  - Module scope-kind must be present in `public.rbac_module_scopes` for that module.
+  - `institution` scope requires ≥1 licensee id and every id must exist in `public.licensees`.
+  - `sector` scope requires ≥1 sector id and every id must exist in `public.sectors`.
+  - `all`, `assigned`, `own` take no selectors (extras ignored, not rejected).
+
+- **Trigger `roles_validate_scope_config`** — BEFORE INSERT/UPDATE OF `scope_config` on `public.roles`. Raises `22023` when the validator returns any row. This closes the gap where the UI could submit arbitrary selector arrays that the resolver would silently treat as `none`.
+
+- **Trigger `user_dynamic_roles_active_only`** — BEFORE INSERT/UPDATE OF `role_id` on `public.user_dynamic_roles`. Rejects assigning any role whose `status <> 'active'`. Inactive roles were already ignored at resolve time; now they cannot be attached in the first place.
+
+- **Trigger `roles_block_activate_when_invalid`** — BEFORE UPDATE OF `status` on `public.roles`. When flipping inactive → active, re-runs `validate_scope_config` so a role cannot be reactivated with dangling licensee/sector ids.
+
+Test: `supabase/tests/rbac/230_phase4_selector_validation.sql` — 8 assertions covering validator output for `all`, unknown scope, unknown licensee id, empty selectors, insert-time rejection, inactive-role assignment rejection, and reactivation with a deleted licensee.
+
 
 ## Phase 5 — Atomic mutations, dependency registry, custom-role preservation (Sec. 6, 7, 9) — PENDING
 
