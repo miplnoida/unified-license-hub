@@ -1,40 +1,66 @@
-## Goal
-When a reviewer submits an "Escalate" action on an application, also invoke the new server-gated `public.escalate_application(application_id, reason)` RPC with the reviewer's remarks as the `reason`, so the permission gate + audit entry from Batch 3 Phase D are exercised on every escalation.
-
 ## Scope
-- Frontend only. No schema/RPC changes; the RPC already exists.
-- Only the application escalate path (`entityType === 'application'`, `actionType === 'escalate'`). Registration escalations and other action types are untouched.
-- No changes to any other business logic, notifications, or UI layout.
 
-## Change
-Single file: `src/components/applications/WorkflowPanel.tsx`, inside `executeAction`.
+Close the last three `enforced: false` entries in `src/lib/rbac/catalog.json` and add the verification evidence the closure prompt requires. Do not restart or redesign any RBAC work.
 
-After the existing `perform-workflow-action` edge-function invocation returns success (i.e. after the current success/error handling passes), and before the toast/query invalidation, add:
+Confirmed pre-plan reads:
+- `catalog.json` still has exactly 3 unenforced pairs: `correspondence_management.export`, `correspondence_management.reject`, `fit_and_proper.export`.
+- UI surfaces DO exist for all three (previous "no surface" note was wrong):
+  - `src/pages/correspondence/CorrespondenceRecords.tsx` → Export index button
+  - `src/components/correspondence/ReviewApprovalPanel.tsx` → Reject button
+  - `src/pages/fit-and-proper/FitAndProperIndividualDetail.tsx`, `FpInitiationLog.tsx`, `FpScheduler.tsx`, `src/pages/fpa/FpaMonitoring.tsx` → Export buttons
 
-```ts
-if (entityType === 'application' && actionType === 'escalate') {
-  const { error: rpcError } = await supabase.rpc('escalate_application', {
-    application_id: applicationId,
-    reason: comment,
-  });
-  if (rpcError) {
-    toast.error(rpcError.message || 'Escalation gate failed');
-    return;
-  }
-}
-```
+## Changes
 
-Rationale for placement:
-- Runs only for application escalations, keeping registration flow and every other action unchanged.
-- Uses `comment` (the reviewer's remarks textarea — already validated as required for escalate via `isRemarksRequired`), matching the RPC's `reason` parameter.
-- Runs after the edge function so the workflow action is recorded first; the RPC serves as the gated status/audit reinforcement introduced in Phase D. If the RPC rejects (permission denied), we surface the error and stop before invalidating caches so the UI reflects reality on next refetch.
+### 1. Gate the three remaining pairs at their real mutation sites
 
-## Verification
-- Manually escalate an application as an authorized reviewer → toast success, `approval_actions` row from edge fn + `escalate_application` audit row both present.
-- Escalate as a user missing `application_management.escalate` → edge fn path already blocks; if it somehow passes, the RPC now denies with a permission error toast.
-- No changes to approve/reject/send_back/etc. paths.
+- `CorrespondenceRecords.tsx`: wrap Export index onClick with `authorizedExport('correspondence_management', ...)`; ensure the underlying data query already filters by scope (verify via read; if not, filter server-side).
+- `ReviewApprovalPanel.tsx` (and the mutation hook it calls): wrap the reject mutation with `authorizedAction('correspondence_management', 'reject', { id })`. Add matching server gate via `enforce_permission` in the RPC/edge path that performs the reject; if reject writes directly to a table, add a `SECURITY DEFINER` reject RPC gated by `enforce_permission` and switch the client to call it.
+- The four FP export buttons: wrap each CSV/export onClick with `authorizedExport('fit_and_proper', 'export', …)` so the export intent is recorded and permission enforced.
+
+### 2. Flip catalog flags
+
+Flip `enforced: true` for the three pairs in `src/lib/rbac/catalog.json`. Result: zero remaining `enforced: false` entries.
+
+### 3. Backend authority proofs (pgTAP)
+
+Add `supabase/tests/rbac/282_final_closure_gates.sql`:
+- `enforce_permission('correspondence_management','export')` denies without perm, allows with.
+- Same for `correspondence_management.reject` and `fit_and_proper.export`.
+- Assert `record_export_intent` writes an audit row for each successful export call.
+
+### 4. Custom-role regression test
+
+Add `supabase/tests/rbac/283_custom_role_noop.sql`:
+- Create a custom role with N permission rows.
+- Run `rbac_save_role` with only metadata (name/description/status) changes.
+- Assert `role_permissions` row set is unchanged (same count, same set) after each save.
+
+### 5. Persona coverage expansion (vitest)
+
+Extend `src/test/personaMatrix.test.ts` (or add a sibling test file) with the three added surfaces:
+- Correspondence export button hidden/disabled without `correspondence_management.export`.
+- Correspondence reject button hidden/disabled without `.reject`.
+- FP export buttons hidden/disabled without `fit_and_proper.export`.
+Cover the personas already in the matrix — no new personas needed.
+
+### 6. Consistency sweep (read-only verification, code changes only where a violation is found)
+
+Grep for direct role comparisons and permission array scans outside the centralized path (`user.role === 'admin'`, `permissions.find(...)`, `hasRole('...')`) and replace any hits with `useCan` / `authorize()` / `has_permission`. If none found, note it as verified in the completion report.
+
+### 7. Documentation
+
+Update `docs/rbac/completion-report.md` only to reflect: 0 unenforced entries, new pgTAP files, new vitest coverage, and consistency-sweep result. No new plans, no roadmap.
+
+## Evidence to report back
+
+- Files changed list.
+- `grep -c '"enforced": false' src/lib/rbac/catalog.json` → 0.
+- pgTAP: `282_final_closure_gates.sql`, `283_custom_role_noop.sql` pass locally via `supabase--test_edge_functions`/db test runner as available.
+- Vitest: extended persona tests pass.
+- Consistency sweep result (grep output summarized).
 
 ## Out of scope
-- Refactoring the edge function to delegate to the RPC.
-- Registration escalation.
-- Any UI copy or layout changes.
+
+- No architectural changes to `authorize.ts`, `has_permission`, `has_scoped_permission`, or scope resolver.
+- No new personas beyond current 13.
+- No changes to unrelated modules or business logic.
