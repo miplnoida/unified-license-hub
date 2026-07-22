@@ -91,6 +91,9 @@ jobs:
             supabase/tests/rbac/275_role_management_gates.sql
             supabase/tests/rbac/276_form_management_gates.sql
             supabase/tests/rbac/277_batch8_gates.sql
+            supabase/tests/rbac/283_custom_role_noop.sql
+            supabase/tests/rbac/284_custom_role_full_regression.sql
+            supabase/tests/rbac/290_workflow_guard.sql
           )
           missing=0
           for f in "${required[@]}"; do
