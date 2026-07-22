@@ -23,6 +23,56 @@ jobs:
       - name: Frontend tests
         run: bun run test
 
+  rbac-oracles:
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      - name: RBAC parity oracle (registry vs migrations)
+        run: node scripts/verify-rbac-parity.mjs
+
+      - name: Sensitive privilege proofs
+        run: bunx vitest run src/test/sensitivePrivilegeProofs.test.ts
+
+      - name: Persona matrix (7 personas)
+        run: bunx vitest run src/test/personaMatrix.test.ts
+
+      - name: Role validation & scope capability tests
+        run: bunx vitest run src/test/roleValidation.test.ts src/test/accessLevels.test.ts
+
+      - name: Route/menu coverage
+        run: bunx vitest run src/test/routeCoverage.test.ts src/test/sidebarVisibility.test.tsx
+
+      - name: RBAC test suite (permissions + persona + guards)
+        run: bunx vitest run src/test/permissionsRbac.test.tsx
+
+      - name: Assert required RBAC pgTAP files exist
+        run: |
+          set -euo pipefail
+          required=(
+            supabase/tests/rbac/00_helpers.sql
+            supabase/tests/rbac/160_slice_b_scoped_permission.sql
+            supabase/tests/rbac/200_multi_role_scope.sql
+            supabase/tests/rbac/210_assigned_scope.sql
+            supabase/tests/rbac/220_phase3_complaints_conduct.sql
+            supabase/tests/rbac/230_phase4_selector_validation.sql
+            supabase/tests/rbac/240_phase5_atomic_and_deps.sql
+            supabase/tests/rbac/250_phase6_sensitive_privileges.sql
+          )
+          missing=0
+          for f in "${required[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required RBAC pgTAP file missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
   db-tests:
     runs-on: ubuntu-latest
     needs: frontend
@@ -35,7 +85,7 @@ jobs:
         run: supabase start
       - name: Reset database (applies all migrations)
         run: supabase db reset --no-seed
-      - name: Run complaints pgTAP suite
+      - name: Run pgTAP suite (complaints + RBAC)
         run: supabase test db
 
       - name: Assert required edge-function tests exist
