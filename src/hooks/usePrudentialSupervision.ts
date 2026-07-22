@@ -156,15 +156,18 @@ export function useUpsertTaxonomy() {
       const payload = { ...row };
       const before = row.id ? (await sb.from('prudential_risk_taxonomy').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: row.id });
         const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);
         if (error) throw error;
         await audit('UPDATE', 'prudential_taxonomy', row.id, before, payload);
       } else {
+        await authorizedAction('prudential_supervision', 'create', { taxonomy_code: (row as any).code });
         const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();
         if (error) throw error;
         await audit('CREATE', 'prudential_taxonomy', data.id, null, data);
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
