@@ -112,7 +112,7 @@
   {
     "module": "compliance_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "conduct_management",
@@ -732,12 +732,12 @@
   {
     "module": "returns_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "returns_management",
     "name": "reject",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "returns_management",
