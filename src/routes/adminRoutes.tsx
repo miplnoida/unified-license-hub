@@ -1,7 +1,7 @@
 import { Route, Navigate } from 'react-router-dom';
 import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
-import { AdminRoute, ModuleRoute } from '@/components/auth/RouteGuards';
+import { AdminRoute, ModuleRoute, PermissionRoute } from '@/components/auth/RouteGuards';
 import type { PermissionModule } from '@/lib/permissionModules';
 import ReturnDetail from '@/pages/returns-mgmt/ReturnDetail';
 import ViewReturns from '@/pages/returns-mgmt/ViewReturns';
@@ -101,7 +101,7 @@ export const adminRoutes = (
     <Route path="/admin/users" element={<M module="user_management"><UserManagement /></M>} />
     <Route path="/admin/web-users" element={<M module="user_management"><ManageWebUsers /></M>} />
     <Route path="/admin/roles" element={<M module="role_management"><RoleManagement /></M>} />
-    <Route path="/admin/permission-coverage" element={<M module="role_management"><PermissionCoverageReport /></M>} />
+    <Route path="/admin/permission-coverage" element={<P><PermissionRoute module="role_management" action="view_coverage"><PermissionCoverageReport /></PermissionRoute></P>} />
 
     <Route path="/admin/audit-logs" element={<M module="settings"><AuditLogs /></M>} />
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />

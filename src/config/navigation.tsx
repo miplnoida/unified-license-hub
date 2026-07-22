@@ -18,6 +18,12 @@ export interface NavItem {
   /** If set, item is also gated by the dynamic role having access to this module */
   module?: PermissionModule;
   /**
+   * When set, sidebar visibility uses `hasPermission(module, requiredAction)`
+   * (exact action match) instead of `hasModuleAccess(module)` (any action on
+   * the module). Required for diagnostic entries like Permission Coverage.
+   */
+  requiredAction?: string;
+  /**
    * Admin-panel items (e.g. /admin/*). When true, the sidebar keeps enforcing
    * the static `roles` audience even in dynamic-permission mode so an external
    * user who is granted the same module does not see internal admin screens.
@@ -50,7 +56,7 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Administration',
     items: [
-      { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
+      { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'admin_dashboard', adminOnly: true },
       { label: 'PPOC Mappings', href: '/admin/ppoc-mappings', icon: <UserCircle className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Activity Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
@@ -63,12 +69,12 @@ export const mainNavSections: NavSection[] = [
     // Never add external portal items here — those live under "External User Access".
     label: 'Internal Access Control',
     items: [
-      { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
-      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
-      // Permission Coverage is a developer-facing diagnostic. Gated to
-      // super_admin only so business administrators aren't exposed to the
-      // raw enforcement matrix; developers still access it via URL/CI docs.
-      { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'], module: 'role_management' },
+      { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'user_management', adminOnly: true },
+      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'role_management', adminOnly: true },
+      // Permission Coverage is a diagnostic surface — gated on the EXACT
+      // `role_management.view_coverage` action so a role that can view Role
+      // Management does not implicitly get access to the coverage matrix.
+      { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'role_management', requiredAction: 'view_coverage', adminOnly: true },
     ],
   },
   {
