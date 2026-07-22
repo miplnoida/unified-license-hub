@@ -274,7 +274,13 @@ export default function ViewReturns() {
                   className="ml-auto"
                   data-rbac="returns_management.export"
                   disabled={loading || filtered.length === 0}
-                  onClick={() => {
+                  onClick={async () => {
+                    try {
+                      await authorizedExport('returns_management', 'export', { count: filtered.length, statusFilter });
+                    } catch (e: any) {
+                      toast.error(e?.message || 'Not authorized to export');
+                      return;
+                    }
                     const headers = ['Reference', 'Licensee Name', 'Return Type', 'Period Start', 'Period End', 'Submission Date', 'Status'];
                     const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
                     const rows = filtered.map(r => [
