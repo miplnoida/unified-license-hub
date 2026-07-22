@@ -415,6 +415,12 @@ function CalendarTab() {
 
   const importCsv = async (file: File) => {
     if (!active) return;
+    try {
+      await authorizedAction('settings', 'import', { profile_id: active.id, file: file.name });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message ?? '', variant: 'destructive' });
+      return;
+    }
     const text = await file.text();
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const valid: { profile_id: string; holiday_date: string; name: string }[] = [];
