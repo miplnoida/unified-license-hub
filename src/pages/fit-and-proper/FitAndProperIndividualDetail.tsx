@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Save, Plus, PlayCircle, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
