@@ -320,8 +320,16 @@ export default function FormManagement() {
   };
 
 
-  const confirmStatusChange = () => {
+  const confirmStatusChange = async () => {
     const { id, newStatus } = statusDialog;
+    if (newStatus === 'published') {
+      try {
+        await authorizedAction('form_management', 'publish', { id });
+      } catch (e: any) {
+        toast.error(e?.message || 'Not authorized to publish forms.');
+        return;
+      }
+    }
     updateStatusMutation.mutate(
       {
         id,
