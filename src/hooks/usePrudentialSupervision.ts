@@ -541,7 +541,9 @@ export function useCreateEscalation() {
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
       const user = (await sb.auth.getUser()).data.user;
       if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
+      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, reason_preview: row.reason?.slice(0, 60) });
       const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
+
       if (error) throw error;
       await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
