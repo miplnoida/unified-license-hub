@@ -1,0 +1,5 @@
+{
+  "$schema": "atomic-authz-allowlist v1",
+  "description": "Each entry documents a site where authorizedAction/authorizedExport is followed by a mutation that is already backend-authoritative. Every entry must carry a 'reason' explaining the backing guarantee (RLS predicate, SECURITY DEFINER RPC re-check, worker-only invoke path, etc.).",
+  "entries": []
+}
