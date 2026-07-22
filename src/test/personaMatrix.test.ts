@@ -151,6 +151,82 @@ const PERSONAS: PersonaExpectation[] = [
     },
     untouchedModules: ['complaint_management', 'returns_management', 'license_management'],
   },
+  {
+    templateKey: 'prudential_analyst',
+    label: 'Prudential Analyst',
+    allow: {
+      prudential_supervision: ['view', 'create', 'edit'],
+      returns_management: ['view'],
+    },
+    deny: {
+      prudential_supervision: ['delete', 'approve', 'override_workflow', 'export'],
+      returns_management: ['create', 'edit', 'approve', 'reject', 'export'],
+    },
+    untouchedModules: ['role_management', 'settings', 'user_management'],
+  },
+  {
+    templateKey: 'conduct_analyst',
+    label: 'Market Conduct Analyst',
+    allow: {
+      complaint_management: ['view', 'review', 'comment', 'assign', 'escalate'],
+    },
+    deny: {
+      complaint_management: ['delete', 'approve', 'reject', 'export', 'override_workflow'],
+    },
+    untouchedModules: ['role_management', 'settings', 'returns_management'],
+  },
+  {
+    templateKey: 'inspector',
+    label: 'Inspector',
+    allow: {
+      license_management: ['view'],
+      application_management: ['view'],
+    },
+    deny: {
+      license_management: ['create', 'edit', 'issue', 'suspend', 'revoke', 'export'],
+      application_management: ['create', 'edit', 'delete', 'approve', 'reject'],
+    },
+    untouchedModules: ['role_management', 'settings', 'user_management', 'returns_management'],
+  },
+  {
+    templateKey: 'enforcement_officer',
+    label: 'Enforcement Officer',
+    allow: {
+      license_management: ['view', 'create', 'edit', 'review', 'approve', 'reject'],
+      complaint_management: ['view', 'review', 'comment'],
+    },
+    deny: {
+      license_management: ['delete', 'issue', 'suspend', 'revoke', 'export', 'override_workflow'],
+      complaint_management: ['delete', 'approve', 'reject', 'export'],
+    },
+    untouchedModules: ['role_management', 'settings', 'user_management'],
+  },
+  {
+    templateKey: 'read_only',
+    label: 'Read-only User',
+    allow: {
+      application_management: ['view'],
+      license_management: ['view'],
+      complaint_management: ['view'],
+      returns_management: ['view'],
+    },
+    deny: {
+      application_management: ['create', 'edit', 'approve', 'export'],
+      returns_management: ['create', 'edit', 'approve', 'export'],
+    },
+    untouchedModules: ['role_management', 'settings', 'user_management', 'prudential_supervision'],
+  },
+  {
+    templateKey: 'complaint_supervisor',
+    label: 'Complaint Supervisor',
+    allow: {
+      complaint_management: ['view', 'review', 'approve', 'reject', 'comment', 'assign'],
+    },
+    deny: {
+      complaint_management: ['delete', 'export', 'export_all', 'override_workflow', 'bulk_delete'],
+    },
+    untouchedModules: ['role_management', 'settings', 'returns_management'],
+  },
 ];
 
 describe('Phase 7 — Persona capability matrix', () => {
