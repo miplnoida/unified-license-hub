@@ -3,6 +3,9 @@
 -- Covers item #1 required matrix + item #4 removed-scope regression.
 -- =====================================================================
 BEGIN;
+-- Bypass FK triggers on user_dynamic_roles → auth.users so we can pin
+-- synthetic user IDs. This is a pgTAP-only concession; roll back at end.
+SET LOCAL session_replication_role = 'replica';
 SELECT plan(9);
 
 -- Fixtures ------------------------------------------------------------
