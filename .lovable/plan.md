@@ -1,54 +1,100 @@
-# Complete remaining RBAC gaps
+# Roles & Permissions — Completion Plan (18 items)
 
-Three surgical changes. No business-logic touchpoints — all edits are in the RBAC catalogue, capability registry, parity script, and one seed migration.
+This is a large, multi-migration engineering effort. To keep each change reviewable I'm proposing 6 sequenced phases. Every phase ends with executed evidence (pgTAP, Deno, Vitest, CI). I will not use the word "complete" until Phase 6's CI run is green.
 
-## 1. Parity oracle detects Record Scope drift
+## Confirmed current state (grounded reads)
 
-Extend `scripts/verify-rbac-parity.mjs` so CI fails when `rbac_module_scopes` diverges from `src/lib/rbac/scopeCapabilities.ts`.
+- `public.user_scope_for(_user_id, _module)` exists in `20260721170250_*.sql` (lines 118-170). It **does not** take an `action` argument, and its loop explicitly does `IF sc IS NULL THEN has_all := true` — an unrelated active role widens scope to `all`. This is the exact bug in item #1.
+- The same function still branches on `department` / `team` even though `rbac_module_scopes` no longer seeds those (item #4).
+- `has_scoped_permission` (`20260722052144_*.sql`) composes `has_permission` + `user_scope_for` but calls the module-only signature — action isn't passed through, so item #1's fix requires updating every caller.
+- Row helpers (`can_read_licensee`, `can_read_license`, `can_read_return_filed_row`, complaints/conduct/form policies from Slice B) all call `has_scoped_permission` with a specific action — they are the surfaces that will silently benefit from the fix, plus need signature changes.
 
-- Build the expected tuple set `(module, scope, selector)` by importing `MODULE_SCOPE_CAPABILITIES` (dynamic `import()` of the TS file compiled via a lightweight regex parser — the script must stay dependency-free, so I'll parse `scopeCapabilities.ts` with a small regex that captures `mk('kind', 'selector')` entries per module block, matching the current parser style used elsewhere in the file).
-- Statically parse the latest seed migration (`supabase/migrations/*rbac_transactional_saves*.sql` — the file that seeds `public.rbac_module_scopes`) to build the backend tuple set. Grep for `INSERT INTO public.rbac_module_scopes` rows.
-- Diff both directions:
-  - **UI has scope, DB missing** → hard failure (frontend would offer an option the backend can't enforce).
-  - **DB has scope, UI missing** → hard failure (backend accepts a scope no UI can produce — cruft that could leak).
-- When `PGHOST` is set, also verify the live table matches (best-effort; skipped in offline CI).
-- Report block added to the JSON output: `scopeParity: { expected, actual, missingInDb, missingInUi }`.
+## Phase 1 — Scope resolver correctness (items 1, 2, 4)
 
-## 2. Sensitive-privilege catalogue covers `export`
+Migration: `user_scope_for` rewritten to `(user_id, module, action)`.
 
-`src/lib/rbac/accessLevels.ts` currently only tags `export_confidential`. Any plain `export`, `download`, `bulk_export`, `export_all` action would slip past `partitionSensitive` and get auto-included by the Manager level (which already lists `export`).
+```text
+- Return jsonb {scope, sectors[], licensees[], source}.
+- Iterate active user_dynamic_roles → roles only.
+- For each role: skip unless role_permissions grants (module, action).
+- Missing scope_config[module] for a qualifying role => explicit 'all' ONLY
+  if that role qualified; otherwise contributes nothing.
+- Drop 'team' / 'department' branches entirely.
+- Super admin short-circuit unchanged.
+```
 
-- Remove `export` from `LEVEL_ADDITIONAL_ACTIONS.manager` (it must never be auto-granted).
-- Add to `SENSITIVE_ACTION_NAMES`: `export`, `export_all`, `bulk_export`, `download`, `download_all`, `download_bulk`, `print_bulk`.
-- Add matching `SENSITIVE_ACTION_LABELS` entries ("Export data", "Bulk export", "Bulk download", …).
-- Add a unit assertion in `src/test/roleValidation.test.ts` (or the sensible neighbouring `accessLevels`-focused spec if one exists) that `partitionSensitive` puts `export` into `sensitive` and `expandLevelActionNames('manager')` no longer contains it.
+- Update `has_scoped_permission` to pass `_action` down.
+- Update every caller (`can_read_licensee`, `can_read_license`, `can_read_return_filed_row`, `can_view_entity_returns`, complaint/conduct/form policies).
+- Backfill migration: any `roles.scope_config` missing a module that the role grants gets an explicit `{"scope":"all"}`. New saves via `rbac_save_role` reject missing scope for scope-aware modules (item #2).
+- Prune TypeScript unions in `src/lib/rbac/scopeCapabilities.ts`, `roleValidation.ts`, `RecordScopePanel.tsx`, `accessLevels.ts`, `roleSummary.ts`, and tests — remove `team` and `department` entirely (item #4).
+- pgTAP `supabase/tests/rbac/200_multi_role_scope.sql`: the 7 required cases (Assigned + unrelated, Assigned + All same module, Sector A + Sector B union, Institution union, Inactive + Assigned, No qualifying role, Super admin).
 
-## 3. Drop team/department from the scope registry
+## Phase 2 — Authoritative role writes (items 5, 6, 7, 8, 10)
 
-No `teams` or `departments` tables exist, so `has_scoped_permission` already denies both branches and `RecordScopePanel` renders an empty picker. The safest fix is to remove the options entirely until backing data is added.
+- Extend `rbac_save_role` to:
+  - Validate every sector_id / licensee_id against `sectors.status='active'` and `licensees` existence; strip duplicates; reject empty selector arrays for selector-based scopes; reject unknown IDs; reject IDs outside the caller's org boundary via `has_permission(caller,'role_management','assign_permissions')`.
+  - Reject non-view actions without view (module-aware dependency table `public.rbac_action_dependencies` seeded from a single generated source used by both DB triggers and `src/lib/rbac/dependencies.ts`).
+  - Preserve Custom roles: skip permission rewrite when payload omits `permissions`; require explicit `confirm_level_switch` flag to change classification.
+- New transactional RPCs: `rbac_clone_role`, `rbac_reset_system_role`, `rbac_classify_roles`, `rbac_bulk_update_roles`, `rbac_set_role_status`, `rbac_assign_role_to_user`. All wrap work in a single txn with `SAVEPOINT` and re-raise on any failure.
+- Inactive-role enforcement: trigger on `user_dynamic_roles` rejecting inserts where `roles.status <> 'active'`; UI dropdowns already filter, but now DB is the source of truth. `has_permission` and `user_scope_for` already ignore inactive — verified.
+- pgTAP `210_role_writes.sql` (selector validation, dependencies, inactive assignment rejection, custom preservation, rollback on partial failure via injected error).
 
-- `src/lib/rbac/scopeCapabilities.ts`: remove the `team` option from `complaint_management` and the `department` option from `application_management`. Drop `teams` / `departments` from `SelectorOptions` and the `mk` selector union in a follow-up if desired (keeping the union preserves type stability for a future re-add).
-- `RecordScopePanel.tsx`: no code change needed once the registry drops the options — the `.filter` already hides options the registry omits. Remove the now-dead `departments`/`teams` fields from `SelectorOptions`/`EMPTY_OPTS` and the `selectorKind === 'departments'` / `'teams'` branches to keep the component tight.
-- Seed migration: add a small follow-up migration that deletes the two rows from `public.rbac_module_scopes` (`complaint_management,team` and `application_management,department`) so the parity check in step 1 stays green.
-- Keep `ScopeKind` union values `team`/`department` in `scopeCapabilities.ts` (backend helper still recognises them) — only the option arrays lose the entries.
+## Phase 3 — Module enforcement matrix (items 3, 13, 14, 15, 16)
 
-## Files touched
+Produce `docs/rbac/enforcement-matrix.md` with a row per module × surface. For every gap the matrix reveals, land a migration or edge patch. Modules audited: Application, Licensing, Licensee, Registration, Returns, Complaints, Market Conduct, Fit & Proper, Prudential, Enforcement, Inspections, Fees, Reports, Form Management, Compliance Returns.
 
-- `scripts/verify-rbac-parity.mjs` — extend with scope-parity block.
-- `src/lib/rbac/accessLevels.ts` — sensitive list + manager fix.
-- `src/lib/rbac/scopeCapabilities.ts` — drop team/department options.
-- `src/components/rbac/RecordScopePanel.tsx` — remove dead selector branches.
-- `src/test/roleValidation.test.ts` (or a new `src/test/accessLevels.test.ts`) — add sensitive-privilege regression.
-- New migration `…_rbac_scope_registry_prune.sql` — delete stale rows.
-- `docs/rbac/role-migration.md` — one-paragraph note on the sensitive `export` rule and the pruned scopes.
+Per surface work:
+- **RLS**: rewrite policies still on raw `has_permission` to `has_scoped_permission` where the module has scope.
+- **RPCs / SECURITY DEFINER**: audit list generated by `information_schema.routines`; wrap privileged ones with `has_scoped_permission` gate.
+- **Edge Functions**: every function in `supabase/functions/*` gets `_shared/authz.ts` calls: JWT verify → permission check → scope check. Applies to exports, signed URLs, licence issuance, bulk ops, notifications, migrations.
+- **Storage**: rewrite bucket policies (return-uploads, application-documents, complaint-evidence, fp-evidence, secure-documents, payment-documents, certificates, audit-exports, report-exports) to require exact `(module, action)` + scoped ownership on object path.
+- **Exports / downloads**: `view` alone never implies export; each export path checks `export`/`download` + scope; generated file objects tagged with `owner_scope` so out-of-scope users cannot retrieve them later.
+- **Workflow transitions**: single `rbac_authorize_transition(record, transition)` helper; every workflow call site routes through it; audit row written in the same txn.
 
-## Verification
+Testing: pgTAP per module (`220_<module>.sql`), Deno tests in each function folder, storage policy pgTAP.
 
-- `node scripts/verify-rbac-parity.mjs` runs clean locally and fails deliberately when I mutate the registry to prove it detects drift.
-- Vitest suite passes with the new sensitive-privilege assertions.
-- `psql -c "SELECT module, scope FROM public.rbac_module_scopes ORDER BY 1,2"` matches the registry entry-for-entry after the prune migration.
+## Phase 4 — Parity, orphans, sensitive-privilege proofs (items 9, 11, 12)
 
-## Non-goals
+- Extend `scripts/verify-rbac-parity.mjs` to also emit an orphan-classification file `docs/rbac/orphan-classification.json` and fail CI when an unclassified orphan appears. Each catalog entry gets `usage: 'ui+backend'|'backend-only'|'service-only'|'external-only'|'deprecated'|'orphan'`.
+- Integration test suite `src/test/rbac/parity/*.test.tsx` seeds personas (Super, Legacy Admin, Analyst, Assignment-only regulator, Sector regulator, Institution supervisor, External primary, External secondary, Custom, Inactive-assignment target) and per module asserts: menu → route → list → detail → CRUD → assign → review/approve/reject → status → export → download → storage → RPC → edge → workflow. Both directions (UI-allows/backend-denies and inverse) must fail loudly.
+- Vitest `sensitive-privileges.test.ts` walks every access level + normal template, expands via `accessLevels.ts`, cross-checks against a saved role via a Supabase test transaction, and asserts none of the 18 sensitive names appear unless explicitly configured.
 
-- No changes to enforcement helpers (`has_scoped_permission`, RLS policies, storage) — behaviour already denies unbacked scopes.
-- No new backing tables for teams/departments. When those land, re-adding the options is a two-line change plus a seed migration.
+## Phase 5 — Custom role preservation & migration integrity (item 10, item 7 tail)
+
+- UI: `RoleManagement.tsx` locks the permission matrix for Custom unless Super Admin toggles "Advanced Permissions"; switching Custom→standard opens a diff dialog and requires confirmation.
+- Migration/classification path (`rbac_classify_roles`) proven idempotent by pgTAP fixture (`230_classification.sql`) that runs it twice and asserts checksum stability.
+
+## Phase 6 — CI wiring and final report (item 18)
+
+`.github/workflows/ci.yml`:
+
+```text
+jobs:
+  build, typecheck, lint, unit, persona, pgtap, deno,
+  parity, scope-registry-parity, orphan-classification,
+  dependency-parity, authz-integration
+```
+
+- Remove every `continue-on-error`.
+- All skipped tests must reference a tracked reason file `docs/rbac/skipped-tests.md`.
+- Final report generator `scripts/rbac-final-report.mjs` emits the 25-section report the prompt requires, pulling commit SHA, changed files, migration list, and captured logs from the CI run into `docs/rbac/final-report.md`.
+
+Final declaration text will be produced only from that generator, driven by real pass/fail status.
+
+## Technical details
+
+- Scope resolver signature: `public.user_scope_for(uuid, text, text) RETURNS jsonb`. Existing `(uuid, text)` overload deleted after all callers migrate in the same migration to avoid a divergent code path.
+- Scope precedence stays: `all` > `sector ∪` > `institution ∪` > `assigned` > `own`. Documented in `docs/rbac/scope-precedence.md`.
+- `rbac_action_dependencies` shape: `(module text, action text, requires text[])`, PK `(module, action)`. Generated file `src/lib/rbac/dependencies.generated.ts` and `supabase/seed/rbac_action_dependencies.sql` produced from a single YAML source (`rbac/dependencies.yaml`) so CI parity check compares hashes.
+- Every migration follows `CREATE → GRANT → RLS → POLICY` order. No table-less migrations skip lints.
+
+## Deliverables per phase
+
+Each phase PR includes: migrations, code, tests, and an appended row in `docs/rbac/enforcement-matrix.md`. I will not batch multiple phases into a single commit.
+
+## What I need from you
+
+1. Confirm sequencing (Phase 1 first) is acceptable, or say if you want a specific module (e.g. Returns) done end-to-end before others.
+2. Confirm that dropping the `team` and `department` scope kinds from the TypeScript union in Phase 1 is acceptable (it's already dead in the DB) — the alternative is to build backing tables in a separate epic, which I recommend deferring.
+
+Once you approve, I'll begin Phase 1 immediately.
