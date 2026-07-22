@@ -70,6 +70,9 @@ export default function ReturnConfiguration() {
   const handleSave = async () => {
     if (!name.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
+    try {
+      await authorizedAction('returns_management', 'configure', { config_id: editing?.id ?? null, name: name.trim() });
+    } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); setSaving(false); return; }
     const payload: any = {
       name: name.trim(), frequency, due_day: parseInt(dueDay),
       sector_id: sectorId || null, sub_sector_id: subSectorId || null, is_active: isActive,
