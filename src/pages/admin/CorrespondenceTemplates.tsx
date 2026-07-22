@@ -58,6 +58,7 @@ export default function CorrespondenceTemplates() {
   const save = useMutation({
     mutationFn: async (t: Partial<Template>) => {
       if (!t.code || !t.name || !t.body) throw new Error('Code, name and body are required');
+      await authorizedAction('settings', t.id ? 'edit' : 'create', { template_code: t.code });
       const payload = {
         code: t.code,
         name: t.name,
