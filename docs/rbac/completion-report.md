@@ -63,7 +63,18 @@ Migration `20260722_phase4_selector_validation` (applied). New guarantees enforc
 Test: `supabase/tests/rbac/230_phase4_selector_validation.sql` — 8 assertions covering validator output for `all`, unknown scope, unknown licensee id, empty selectors, insert-time rejection, inactive-role assignment rejection, and reactivation with a deleted licensee.
 
 
-## Phase 5 — Atomic mutations, dependency registry, custom-role preservation (Sec. 6, 7, 9) — PENDING
+## Phase 5 — Atomic mutations, dependency registry, custom-role preservation (Sec. 6, 7, 9) — DONE
+
+Migration `20260722_phase5_atomic_and_deps` (applied).
+
+- **Validator fix**: `validate_scope_config` was comparing against `rbac_module_scopes.scope_kind` which does not exist — the real column is `scope`. Rewritten; Phase 4 triggers now actually fire.
+- **Dependency registry (single source of truth)**: `public.permission_dependent_actions` (31 rows) drives a new AFTER INSERT/UPDATE/DELETE trigger `role_permissions_dependency_guard` on `role_permissions`. On every write it recomputes the effective permission set for the affected role and rejects any dependent action (Edit, Publish, Export, Download, Approve, …) that lacks View on the same module. Deletes can no longer strand dependent actions either.
+- **Atomic delete RPC**: `public.rbac_delete_role(uuid)` — SECURITY DEFINER, `role_management.delete` gated, refuses `is_system`/non-custom roles, cleans `role_permissions` and `user_dynamic_roles`, then removes the row in one transaction.
+- **Custom-role preservation**: `public.rbac_reclassify_roles()` back-fills only NULL/empty fields (`role_category`, `access_summary`, `status`). Operator-supplied values on custom roles are never overwritten.
+- Combined with the existing `rbac_save_role` SECURITY DEFINER RPC, every role mutation is now a single transaction the client cannot half-commit.
+
+Test: `supabase/tests/rbac/240_phase5_atomic_and_deps.sql` — 6 assertions covering the dependency guard, reclassify preservation of category + access_summary, and delete refusal on system roles.
+
 
 ## Phase 6 — Sensitive privilege proofs & orphan classification (Sec. 8, 15) — PENDING
 

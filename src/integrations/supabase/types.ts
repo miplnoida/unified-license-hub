@@ -16911,6 +16911,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
+      rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
