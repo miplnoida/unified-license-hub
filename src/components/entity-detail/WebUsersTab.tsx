@@ -261,6 +261,12 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       confirmButtonColor: '#dc2626',
     });
     if (!result.isConfirmed) return;
+    try {
+      await authorizedAction('user_management', 'delete', { user_id: u.id });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to delete users');
+      return;
+    }
     const { data, error } = await supabase.functions.invoke('manage-web-user', {
       body: { action: 'delete', user_id: u.id },
     });
