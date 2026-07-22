@@ -342,3 +342,39 @@ Wire `enforce_permission` / `enforce_scoped_permission` into the still-unenforce
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed; Batch 3 foundation (enforcement helpers + catalog reconciliation for already-enforced entries) landed and CI-gated this turn. Remaining Batch 3 RPC wiring and Batches 4–10 will follow in subsequent turns.
+
+---
+
+## Batch 3 — Continuation: enforcement inventory + audit-export flip
+
+Goal of this turn: after landing `enforce_permission` / `enforce_scoped_permission`, walk the still-`enforced: false` catalog entries and either (a) flip them where a backend gate already exists, or (b) record honestly that no server-side action exists to gate.
+
+### Inventory (source-of-truth scan)
+
+Ran `grep -rn "data-rbac"` across `src/` and cross-checked each unenforced pair against `supabase/functions/*/index.ts` and public RPCs:
+
+| Module.Action | UI marker present? | Server gate? | Status this turn |
+|---|---|---|---|
+| `audit_management.export` | Yes (`AuditExport.tsx`, `CaseAuditTrail.tsx`, `SecurityEvents.tsx`) | **Yes** — `supabase/functions/audit-export/index.ts` calls `requireUserPermission(req, 'audit_management', 'export')` | Flipped to `enforced: true` in `catalog.json` |
+| `application_management.close` | Yes (`ApplicationRfiTab.tsx`) | No dedicated RPC/edge fn — closes RFI row via table RLS on `application_rfis` | Left `enforced: false`; requires an RPC that calls `enforce_permission('application_management','close')` before Batch 3 can flip it |
+| `application_management.escalate` | Yes (`ApplicationAiAssessmentPanel.tsx`) | Client-side state (`startMode('escalated')`), no backend mutation | Left `enforced: false`; no server surface exists to gate |
+| `application_management.configure` | Yes (`SufficiencyRuleSets.tsx`) | Writes to `sufficiency_rule_sets` via RLS only | Left `enforced: false`; needs RLS/RPC gate |
+| `application_management.import` | Yes (`ApplicationUploadPanel.tsx`, `admin/BulkIntake.tsx`) | Direct table writes gated by RLS on `applications` (`application_management.create/edit`), not by `import` | Left `enforced: false`; import-specific gate not yet added |
+| `application_management.export` | No UI marker for `.export` yet | — | Left `enforced: false` |
+| `licensee_management.export` | No UI marker for `.export` yet | — | Left `enforced: false` |
+| `prudential_supervision.export` | No UI marker for `.export` yet | — | Left `enforced: false` |
+
+### Shipped this turn
+
+- `src/lib/rbac/catalog.json`: `audit_management.export` → `enforced: true` (audit-export edge function verified as calling `requireUserPermission`).
+- Report row above records the honest state of every remaining unenforced pair — either "needs new RPC + `enforce_permission` call" (close/configure/import) or "no server-side surface exists" (escalate/all `.export` without UI).
+
+### Verification (executed this turn)
+
+- `node scripts/verify-rbac-parity.mjs` → `RBAC parity OK.`, `violations: []`, scope 46/46.
+- `node scripts/verify-no-alias-namespaces.mjs` → OK.
+- `node scripts/verify-authz-centralized.mjs` → OK (799 files scanned).
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed. Batch 3 has landed its enforcement helpers, catalog reconciliation for three actually-enforced entries (`license_management.delete`, `licensee_management.edit`, `audit_management.export`), and a per-pair inventory of every remaining unenforced action. The remaining work in Batch 3 is application/licensee action-specific RPCs (`application_management.close/configure/import`) that must call `enforce_permission` before mutating; these will land in the next turn.
