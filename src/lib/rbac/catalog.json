@@ -52,7 +52,7 @@
   {
     "module": "audit_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "complaint_management",
