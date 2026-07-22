@@ -16581,6 +16581,10 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      is_record_assigned_to_user: {
+        Args: { _module: string; _record_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       latest_return_analysis: {
         Args: { _return_id: string }

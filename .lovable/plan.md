@@ -1,100 +1,82 @@
-# Roles & Permissions — Completion Plan (18 items)
+# Roles & Permissions — Final Completion Plan (Phases 2–8)
 
-This is a large, multi-migration engineering effort. To keep each change reviewable I'm proposing 6 sequenced phases. Every phase ends with executed evidence (pgTAP, Deno, Vitest, CI). I will not use the word "complete" until Phase 6's CI run is green.
+Scope: close every gap in the 17-section brief. Delivered in ordered phases; each phase lands migrations + code + tests together so CI stays green.
 
-## Confirmed current state (grounded reads)
+## Phase 2 — Assigned-scope must prove assignment (Sec. 1)
 
-- `public.user_scope_for(_user_id, _module)` exists in `20260721170250_*.sql` (lines 118-170). It **does not** take an `action` argument, and its loop explicitly does `IF sc IS NULL THEN has_all := true` — an unrelated active role widens scope to `all`. This is the exact bug in item #1.
-- The same function still branches on `department` / `team` even though `rbac_module_scopes` no longer seeds those (item #4).
-- `has_scoped_permission` (`20260722052144_*.sql`) composes `has_permission` + `user_scope_for` but calls the module-only signature — action isn't passed through, so item #1's fix requires updating every caller.
-- Row helpers (`can_read_licensee`, `can_read_license`, `can_read_return_filed_row`, complaints/conduct/form policies from Slice B) all call `has_scoped_permission` with a specific action — they are the surfaces that will silently benefit from the fix, plus need signature changes.
+Fix the critical defect where `has_scoped_permission(..., scope='assigned')` returns true unconditionally.
 
-## Phase 1 — Scope resolver correctness (items 1, 2, 4)
+- Migration: rewrite `public.has_scoped_permission(user, module, action, record_id, record_owner, record_licensee, record_sector)`. For `assigned`, delegate to a module-specific resolver `public.is_record_assigned_to_user(user_id, module, record_id)` and return false when unproven.
+- Create per-module assignment resolvers (all `SECURITY DEFINER`, pinned `search_path`):
+  - returns_filed / returns → `licensees.lead_regulator_id | regulator_officer_id | alternate_regulator_id` (existing `can_view_entity_returns` pattern)
+  - applications → assigned reviewer on `applications.assigned_to` + workflow `approval_step_actions.assigned_to`
+  - complaints → `complaints.assigned_to` + `complaint_investigation_tasks.assigned_to`
+  - conduct_investigations / conduct_alerts → `assigned_to`
+  - inspections → `inspections.lead_inspector_id` + team
+  - enforcement_actions → `assigned_to`
+  - fp_* → `fp_individual_roles.assigned_to`
+  - prudential_* → licensee lead/officer chain
+  - registrations → `assigned_to`
+  - reports/report_run_files → creator + shared_with
+  - Fallback: return false (deny).
+- Rewrite every RLS policy / helper that currently short-circuits on `assigned` to pass real `record_id`.
+- pgTAP `supabase/tests/rbac/210_assigned_scope.sql`: seven required cases per module (assigned reads, unassigned denied, reassignment flip, inactive assignment, expired, cross-module, super_admin bypass).
 
-Migration: `user_scope_for` rewritten to `(user_id, module, action)`.
+## Phase 3 — Full enforcement matrix (Sec. 2, 11, 12, 13)
 
-```text
-- Return jsonb {scope, sectors[], licensees[], source}.
-- Iterate active user_dynamic_roles → roles only.
-- For each role: skip unless role_permissions grants (module, action).
-- Missing scope_config[module] for a qualifying role => explicit 'all' ONLY
-  if that role qualified; otherwise contributes nothing.
-- Drop 'team' / 'department' branches entirely.
-- Super admin short-circuit unchanged.
-```
+Sweep every module in the brief and wire scope-aware checks into: list, detail, SELECT/INSERT/UPDATE/DELETE RLS, RPCs, SECURITY DEFINER fns, Edge Functions, storage policies, signed URLs, exports, downloads, dashboards, workflow, bulk ops.
 
-- Update `has_scoped_permission` to pass `_action` down.
-- Update every caller (`can_read_licensee`, `can_read_license`, `can_read_return_filed_row`, `can_view_entity_returns`, complaint/conduct/form policies).
-- Backfill migration: any `roles.scope_config` missing a module that the role grants gets an explicit `{"scope":"all"}`. New saves via `rbac_save_role` reject missing scope for scope-aware modules (item #2).
-- Prune TypeScript unions in `src/lib/rbac/scopeCapabilities.ts`, `roleValidation.ts`, `RecordScopePanel.tsx`, `accessLevels.ts`, `roleSummary.ts`, and tests — remove `team` and `department` entirely (item #4).
-- pgTAP `supabase/tests/rbac/200_multi_role_scope.sql`: the 7 required cases (Assigned + unrelated, Assigned + All same module, Sector A + Sector B union, Institution union, Inactive + Assigned, No qualifying role, Super admin).
+- Produce `docs/rbac/enforcement-matrix.md` with the required grid (Module | Tables | Read RLS | Write RLS | RPC | Edge | Storage | Export | Download | Workflow | Tests). Each cell names the exact object + test id; blanks fail CI.
+- Rewrite RLS for the remaining 20+ scope-aware tables identified in `docs/rbac/audit-2026-07-21/06_rls_coverage.md`.
+- Storage: rebuild policies for the 10 protected buckets (return uploads, application docs, complaint evidence, F&P evidence, secure documents, payment docs, certificates, audit exports, report exports, licence documents) using the new resolver + object-path→record mapping table `public.storage_object_record_map` populated by triggers.
+- Edge functions: refactor to require `authz.ts` with `requireUserPermission(module, action, scope)` for every function in `docs/rbac/edge-function-permission-map.tsv`. Deno tests per Sec. 10 checklist.
+- Exports/downloads: gate every export edge function + client route via `has_scoped_permission` with content-level assertions (dataset filtered by scope).
+- Workflow: `approval_step_actions` transitions call `public.assert_workflow_transition(user, record, from, to)` which checks exact transition permission + assignment + segregation of duties + sensitive override.
 
-## Phase 2 — Authoritative role writes (items 5, 6, 7, 8, 10)
+## Phase 4 — Selector validation, unsupported scopes, inactive roles (Sec. 3, 4, 5)
 
-- Extend `rbac_save_role` to:
-  - Validate every sector_id / licensee_id against `sectors.status='active'` and `licensees` existence; strip duplicates; reject empty selector arrays for selector-based scopes; reject unknown IDs; reject IDs outside the caller's org boundary via `has_permission(caller,'role_management','assign_permissions')`.
-  - Reject non-view actions without view (module-aware dependency table `public.rbac_action_dependencies` seeded from a single generated source used by both DB triggers and `src/lib/rbac/dependencies.ts`).
-  - Preserve Custom roles: skip permission rewrite when payload omits `permissions`; require explicit `confirm_level_switch` flag to change classification.
-- New transactional RPCs: `rbac_clone_role`, `rbac_reset_system_role`, `rbac_classify_roles`, `rbac_bulk_update_roles`, `rbac_set_role_status`, `rbac_assign_role_to_user`. All wrap work in a single txn with `SAVEPOINT` and re-raise on any failure.
-- Inactive-role enforcement: trigger on `user_dynamic_roles` rejecting inserts where `roles.status <> 'active'`; UI dropdowns already filter, but now DB is the source of truth. `has_permission` and `user_scope_for` already ignore inactive — verified.
-- pgTAP `210_role_writes.sql` (selector validation, dependencies, inactive assignment rejection, custom preservation, rollback on partial failure via injected error).
+- Migration: `public.validate_scope_config(scope_config jsonb, admin_id uuid)` — verifies every UUID exists, is active, correct type, within admin's org boundary; dedupes; rejects empty arrays, nulls, malformed UUIDs, archived rows. Called from `rbac_save_role` inside the transaction.
+- Regenerate Supabase types so `ScopeKind` no longer includes `team`/`department`; drop remaining references in docs & role summaries. Add CI grep guard.
+- Inactive roles:
+  - Trigger `user_dynamic_roles_reject_inactive` on INSERT/UPDATE.
+  - `rbac_assign_role_to_user` RPC (atomic) — only route for UI.
+  - `has_permission` already filters inactive; add scope path too.
+  - Hide inactive roles from assignment dropdowns; keep visible in Role Management with assigned-user count and deactivation warning modal.
+- pgTAP `220_selector_validation.sql`, `230_inactive_roles.sql` covering every case in Sec. 3 & 5.
 
-## Phase 3 — Module enforcement matrix (items 3, 13, 14, 15, 16)
+## Phase 5 — Atomic mutations, dependency registry, custom-role preservation (Sec. 6, 7, 9)
 
-Produce `docs/rbac/enforcement-matrix.md` with a row per module × surface. For every gap the matrix reveals, land a migration or edge patch. Modules audited: Application, Licensing, Licensee, Registration, Returns, Complaints, Market Conduct, Fit & Proper, Prudential, Enforcement, Inspections, Fees, Reports, Form Management, Compliance Returns.
+- Transactional RPCs: `rbac_clone_role`, `rbac_reset_system_role`, `rbac_set_role_status`, `rbac_migrate_role`, `rbac_bulk_replace_permissions`, `rbac_assign_role_to_user`, `rbac_unassign_role`. Each wraps metadata + permission delta + audit in one transaction; forced-failure pgTAP asserts rollback.
+- New table `public.rbac_action_dependencies(module, action, requires_action, sensitive boolean)` seeded from Sec. 7 list. Trigger on `role_permissions` blocks writes that violate it. Frontend `permissionDependencies.ts` regenerated from this table by `scripts/sync-permission-dependencies.ts` (already exists — extend). Parity check added to `verify-rbac-parity.mjs`.
+- Custom-role preservation: `rbac_save_role` detects `category='custom'` and — when caller omits `permission_ids` — leaves rows untouched; asserts before/after diff = ∅ unless caller is super_admin with `advanced_edit=true`. Test suite `240_custom_role_preservation.sql` covers all Sec. 9 guarantees.
 
-Per surface work:
-- **RLS**: rewrite policies still on raw `has_permission` to `has_scoped_permission` where the module has scope.
-- **RPCs / SECURITY DEFINER**: audit list generated by `information_schema.routines`; wrap privileged ones with `has_scoped_permission` gate.
-- **Edge Functions**: every function in `supabase/functions/*` gets `_shared/authz.ts` calls: JWT verify → permission check → scope check. Applies to exports, signed URLs, licence issuance, bulk ops, notifications, migrations.
-- **Storage**: rewrite bucket policies (return-uploads, application-documents, complaint-evidence, fp-evidence, secure-documents, payment-documents, certificates, audit-exports, report-exports) to require exact `(module, action)` + scoped ownership on object path.
-- **Exports / downloads**: `view` alone never implies export; each export path checks `export`/`download` + scope; generated file objects tagged with `owner_scope` so out-of-scope users cannot retrieve them later.
-- **Workflow transitions**: single `rbac_authorize_transition(record, transition)` helper; every workflow call site routes through it; audit row written in the same txn.
+## Phase 6 — Sensitive privilege proofs & orphan classification (Sec. 8, 15)
 
-Testing: pgTAP per module (`220_<module>.sql`), Deno tests in each function folder, storage policy pgTAP.
+- `src/test/sensitivePrivileges.test.ts`: for every access-level template and every standard template, expand → save via `rbac_save_role` in a test DB → assert none of the Sec. 8 actions appear unless the sensitive block was explicitly selected.
+- `src/lib/rbac/permissionClassification.json` (maintained file) — every permission tagged `ui_and_backend | backend_only | external_only | service_only | deprecated | hidden | orphan_allowed`. CI job fails on any permission missing a tag or tagged `orphan` without justification.
 
-## Phase 4 — Parity, orphans, sensitive-privilege proofs (items 9, 11, 12)
+## Phase 7 — Persona-based end-to-end tests (Sec. 14, 16)
 
-- Extend `scripts/verify-rbac-parity.mjs` to also emit an orphan-classification file `docs/rbac/orphan-classification.json` and fail CI when an unclassified orphan appears. Each catalog entry gets `usage: 'ui+backend'|'backend-only'|'service-only'|'external-only'|'deprecated'|'orphan'`.
-- Integration test suite `src/test/rbac/parity/*.test.tsx` seeds personas (Super, Legacy Admin, Analyst, Assignment-only regulator, Sector regulator, Institution supervisor, External primary, External secondary, Custom, Inactive-assignment target) and per module asserts: menu → route → list → detail → CRUD → assign → review/approve/reject → status → export → download → storage → RPC → edge → workflow. Both directions (UI-allows/backend-denies and inverse) must fail loudly.
-- Vitest `sensitive-privileges.test.ts` walks every access level + normal template, expands via `accessLevels.ts`, cross-checks against a saved role via a Supabase test transaction, and asserts none of the 18 sensitive names appear unless explicitly configured.
+- Vitest + Supabase test harness with seeded personas (No Access, View Only, Contributor, Reviewer, Approver, Manager, Sensitive variants) × each major module.
+- Per persona: menu, route, list rows, detail, button, direct mutation, RPC, edge, storage, export, download, workflow — both in-scope and out-of-scope records.
+- Failure modes required to break CI: UI-allows/backend-denies, backend-allows/UI-hides (undocumented), out-of-scope success, sensitive without privilege, inactive-role access, unassigned assigned-scope access.
+- pgTAP additions per Sec. 16 list.
 
-## Phase 5 — Custom role preservation & migration integrity (item 10, item 7 tail)
+## Phase 8 — CI hardening & evidence (Sec. 17 + final report)
 
-- UI: `RoleManagement.tsx` locks the permission matrix for Custom unless Super Admin toggles "Advanced Permissions"; switching Custom→standard opens a diff dialog and requires confirmation.
-- Migration/classification path (`rbac_classify_roles`) proven idempotent by pgTAP fixture (`230_classification.sql`) that runs it twice and asserts checksum stability.
+- `.github/workflows/ci.yml`: add jobs — component/persona tests, Deno storage tests, static permission validation, scope registry parity, dependency parity, orphan validation, executable integration tests. Remove any `continue-on-error`, ignored exit codes, or skipped suites. Fail on missing evidence artifacts.
+- Rename static script to `verify-rbac-static-coverage.mjs` with accurate description.
+- Emit the 25-section evidence report to `docs/rbac/completion-report.md` including commit SHA, migrations, RPCs, resolvers, matrix, all test outputs, and remaining limitations.
+- Only after every job is green in a single run do I use the exact declaration: "Roles & Permissions implementation is fully complete and verified." Otherwise: "Roles & Permissions implementation remains incomplete."
 
-## Phase 6 — CI wiring and final report (item 18)
+## Sequencing & guardrails
 
-`.github/workflows/ci.yml`:
+Phases land in order (2 → 8). After each phase I run: `bunx tsgo --noEmit`, `bun run lint`, `bun run test`, pgTAP suite, and `verify-rbac-parity`. A phase is not "done" until its own tests + all prior tests pass.
 
-```text
-jobs:
-  build, typecheck, lint, unit, persona, pgtap, deno,
-  parity, scope-registry-parity, orphan-classification,
-  dependency-parity, authz-integration
-```
+## Non-goals
 
-- Remove every `continue-on-error`.
-- All skipped tests must reference a tracked reason file `docs/rbac/skipped-tests.md`.
-- Final report generator `scripts/rbac-final-report.mjs` emits the 25-section report the prompt requires, pulling commit SHA, changed files, migration list, and captured logs from the CI run into `docs/rbac/final-report.md`.
+- No new business features. No cosmetic changes.
+- Team/Department scopes remain excised unless a follow-up epic adds backing tables (out of scope here).
+- No relaxing of external/applicant paths.
 
-Final declaration text will be produced only from that generator, driven by real pass/fail status.
-
-## Technical details
-
-- Scope resolver signature: `public.user_scope_for(uuid, text, text) RETURNS jsonb`. Existing `(uuid, text)` overload deleted after all callers migrate in the same migration to avoid a divergent code path.
-- Scope precedence stays: `all` > `sector ∪` > `institution ∪` > `assigned` > `own`. Documented in `docs/rbac/scope-precedence.md`.
-- `rbac_action_dependencies` shape: `(module text, action text, requires text[])`, PK `(module, action)`. Generated file `src/lib/rbac/dependencies.generated.ts` and `supabase/seed/rbac_action_dependencies.sql` produced from a single YAML source (`rbac/dependencies.yaml`) so CI parity check compares hashes.
-- Every migration follows `CREATE → GRANT → RLS → POLICY` order. No table-less migrations skip lints.
-
-## Deliverables per phase
-
-Each phase PR includes: migrations, code, tests, and an appended row in `docs/rbac/enforcement-matrix.md`. I will not batch multiple phases into a single commit.
-
-## What I need from you
-
-1. Confirm sequencing (Phase 1 first) is acceptable, or say if you want a specific module (e.g. Returns) done end-to-end before others.
-2. Confirm that dropping the `team` and `department` scope kinds from the TypeScript union in Phase 1 is acceptable (it's already dead in the DB) — the alternative is to build backing tables in a separate epic, which I recommend deferring.
-
-Once you approve, I'll begin Phase 1 immediately.
+Confirm and I start Phase 2 (assigned-scope fix + resolvers + pgTAP 210) immediately.
