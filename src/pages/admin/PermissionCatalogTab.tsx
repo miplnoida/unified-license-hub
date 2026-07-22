@@ -98,7 +98,7 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
               <CardDescription>Top-level modules and their sub-modules</CardDescription>
             </div>
             {canManage && (
-              <Button data-rbac="role_management.create" size="sm" variant="outline" onClick={() => openCreateModule(null)}>
+              <Button data-rbac="role_management.manage_catalog" size="sm" variant="outline" onClick={() => openCreateModule(null)}>
                 <Plus className="h-4 w-4 mr-1" />Module
               </Button>
             )}
@@ -143,7 +143,7 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                     <CardDescription>Operations users can be granted on this module</CardDescription>
                   </div>
                   {canManage && (
-                    <Button data-rbac="role_management.create" size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
+                    <Button data-rbac="role_management.manage_catalog" size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
                       <Plus className="h-4 w-4 mr-1" />Action
                     </Button>
                   )}
@@ -341,7 +341,7 @@ function ModuleForm({
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button data-rbac="role_management.create" onClick={submit}>Save</Button>
+        <Button data-rbac="role_management.manage_catalog" onClick={submit}>Save</Button>
       </DialogFooter>
     </div>
   );
@@ -383,7 +383,7 @@ function ActionForm({
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button data-rbac="role_management.create" onClick={submit}>Save</Button>
+        <Button data-rbac="role_management.manage_catalog" onClick={submit}>Save</Button>
       </DialogFooter>
     </div>
   );
