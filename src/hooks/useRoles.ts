@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 export type RoleType = 'internal' | 'external';
 export type DashboardTier = 'operational' | 'executive';
