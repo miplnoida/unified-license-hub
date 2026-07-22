@@ -82,7 +82,7 @@ export default function ThematicReviews() {
           title="Thematic Reviews"
           description="Cross-sector market conduct thematic supervision programmes."
           actions={
-            <Button data-rbac="prudential.create" onClick={() => nav('/supervision/thematic-reviews/new')}>
+            <Button data-rbac="prudential_supervision.create" onClick={() => nav('/supervision/thematic-reviews/new')}>
               <Plus className="h-4 w-4 mr-1" /> New Review
             </Button>
           }

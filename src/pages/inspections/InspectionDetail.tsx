@@ -307,7 +307,7 @@ export default function InspectionDetail() {
                           <div className="flex justify-end gap-1">
                             <Button size="sm" variant="ghost" onClick={() => openEditFinding(f)}><Pencil className="h-3 w-3" /></Button>
                             {canEscalate && (
-                              <Button data-rbac="inspections.edit" size="sm" variant="destructive" onClick={() => escalate.mutate(f)} disabled={escalate.isPending}>
+                              <Button data-rbac="inspection_management.edit" size="sm" variant="destructive" onClick={() => escalate.mutate(f)} disabled={escalate.isPending}>
                                 <Gavel className="h-3 w-3 mr-1" />Escalate
                               </Button>
                             )}

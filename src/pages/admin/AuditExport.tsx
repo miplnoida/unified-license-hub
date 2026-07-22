@@ -151,7 +151,7 @@ export default function AuditExport() {
                     </TableCell>
                     <TableCell className="text-right">
                       {j.file_path && j.status === 'completed' && (
-                        <Button data-rbac="audit_logs.export" size="sm" variant="outline" onClick={() => download(j.file_path!)}>
+                        <Button data-rbac="audit_management.export" size="sm" variant="outline" onClick={() => download(j.file_path!)}>
                           <Download className="h-3 w-3 mr-1" />CSV
                         </Button>
                       )}

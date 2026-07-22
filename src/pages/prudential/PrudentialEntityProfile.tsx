@@ -200,7 +200,7 @@ export default function PrudentialEntityProfile() {
         <div className="flex gap-2">
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
-          <Button data-rbac="prudential.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
+          <Button data-rbac="prudential_supervision.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
           <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}><History className="h-3 w-3 mr-1" />History</Button>
         </div>
       </div>

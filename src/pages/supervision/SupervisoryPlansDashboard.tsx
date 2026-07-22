@@ -372,7 +372,7 @@ export default function SupervisoryPlansDashboard() {
                                         </Button>
                                       )}
                                       {canApprove && (
-                                        <Button data-rbac="supervision.approve" size="sm" variant="ghost" className="h-6 px-2 text-emerald-700" onClick={() => approvePlan.mutate(plan.id)}>
+                                        <Button data-rbac="prudential_supervision.initiate_supervisory_action" size="sm" variant="ghost" className="h-6 px-2 text-emerald-700" onClick={() => approvePlan.mutate(plan.id)}>
                                           <ShieldCheck className="h-3 w-3 mr-1" />Approve
                                         </Button>
                                       )}

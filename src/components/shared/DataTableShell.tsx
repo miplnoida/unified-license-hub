@@ -89,7 +89,7 @@ export function DataTableShell<T extends Record<string, any>>({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button data-rbac="reporting.export" variant="outline" size="sm" className="hidden sm:inline-flex">
+          <Button data-rbac="report_management.export" variant="outline" size="sm" className="hidden sm:inline-flex">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>

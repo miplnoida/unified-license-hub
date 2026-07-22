@@ -105,7 +105,7 @@ export default function RiskHeatmap() {
             </h1>
             <p className="text-sm text-muted-foreground">Composite supervisory risk score per regulated entity.</p>
           </div>
-          <Button data-rbac="prudential.edit" onClick={() => recompute.mutate()} disabled={recompute.isPending}>
+          <Button data-rbac="prudential_supervision.edit" onClick={() => recompute.mutate()} disabled={recompute.isPending}>
             {recompute.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Recompute now
           </Button>

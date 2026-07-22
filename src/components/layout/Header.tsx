@@ -79,7 +79,7 @@ export function Header() {
             </span>
           </div>
         )}
-        <Button data-rbac="notifications.view" variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
+        <Button data-rbac="notification_management.view" variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold">

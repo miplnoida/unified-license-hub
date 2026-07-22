@@ -324,7 +324,7 @@ export default function BreachInbox() {
                             <HistoryButton entityType="prudential_breach" entityId={b.id} title="Breach history" variant="ghost" />
                             {!closed && (
                               <>
-                                <Button data-rbac="supervision.edit" size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
+                                <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
                                   <ShieldCheck className="h-3 w-3 mr-1" /> Ack
                                 </Button>
                                 <Button data-rbac="supervision.approve" size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
@@ -364,7 +364,7 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAckTarget(null)}>Cancel</Button>
-            <Button data-rbac="supervision.edit" onClick={() => {
+            <Button data-rbac="prudential_supervision.edit" onClick={() => {
               if (!ackTarget) return;
               const highRisk = ackTarget.level === 'critical' || ackTarget.level === 'high';
               if (highRisk) {

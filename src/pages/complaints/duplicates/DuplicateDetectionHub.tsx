@@ -49,7 +49,7 @@ export default function DuplicateDetectionHub() {
           description="Identify duplicate submissions and related complaints across institutions, products, intermediaries and issues"
           actions={
             <div className="flex gap-2">
-              <Button data-rbac="complaints.configure" onClick={() => detect.mutate()} disabled={detect.isPending}>
+              <Button data-rbac="complaint_management.edit" onClick={() => detect.mutate()} disabled={detect.isPending}>
                 {detect.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
                 Run detection
               </Button>
