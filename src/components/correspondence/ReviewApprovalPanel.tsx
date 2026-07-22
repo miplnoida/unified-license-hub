@@ -3,6 +3,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, MessageSquare } from 'lucide-react';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import { toast } from 'sonner';
 
 export function ReviewApprovalPanel() {
   return (
@@ -31,7 +33,7 @@ export function ReviewApprovalPanel() {
       </div>
 
       <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" size="sm" data-rbac="correspondence_management.reject"><XCircle className="h-4 w-4 mr-1" />Reject</Button>
+        <Button variant="outline" size="sm" data-rbac="correspondence_management.reject" onClick={async () => { try { await authorizedAction('correspondence_management', 'reject'); toast.success('Rejection recorded'); } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); } }}><XCircle className="h-4 w-4 mr-1" />Reject</Button>
         <Button size="sm" data-rbac="correspondence_management.approve"><CheckCircle2 className="h-4 w-4 mr-1" />Approve response</Button>
       </div>
     </div>

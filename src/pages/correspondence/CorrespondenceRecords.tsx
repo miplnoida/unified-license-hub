@@ -39,7 +39,7 @@ export default function CorrespondenceRecords() {
         <PageHeader
           title="Correspondence Records"
           description="Search, retrieve, and manage historical correspondence with version history and retention schedules."
-          actions={<Button data-rbac="correspondence_management.export" variant="outline"><Download className="h-4 w-4 mr-2" />Export index</Button>}
+          actions={<Button data-rbac="correspondence_management.export" variant="outline" onClick={async () => { try { await authorizedExport('correspondence_management', 'export', { count: rows.length }); toast.success('Export queued'); } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); } }}><Download className="h-4 w-4 mr-2" />Export index</Button>}
         />
 
         <Card>
