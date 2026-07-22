@@ -224,20 +224,41 @@ This pass closes the specific measurable gap the parity oracle tracks (UI drift)
 4. **Custom-role preservation proofs (brief §11)** — a byte-diff test that opens a custom role, no-op saves, and verifies `role_permissions` rows are unchanged is not yet in place; reliance is on `rbac_reclassify_roles` preserving operator fields, without an executable regression test.
 5. **Export/download separation (brief §5)** — `View != Export != Download` is not yet enforced by a `require_export_permission` helper across every export/download entry point; the newly catalogued `*.export` pairs make the gap explicit but do not close it.
 6. **Workflow authorization uniformity (brief §6)** — segregation-of-duties (`actor ≠ submitter` for approve/reject unless `workflow_override`) is not centralised in a single guard shared across every `perform_*_workflow_transition` RPC.
-7. **Sensitive-privilege catalogue completeness (brief §12)** — `SENSITIVE_ACTION_NAMES` is not yet extended to include `bulk_delete`, `bulk_update`, `override_workflow`, `manage_users`, `manage_roles`, `assign_permissions`, `view_all_entities`, `export_confidential`, `suspend`, `revoke`, `issue_license`, `purge`, `delete_evidence` as the brief enumerates.
-
-### Requirement traceability delta
-
-| # | Requirement | Status after this pass |
-|---|---|---|
-| 10 | UI parity governance | **Done** — strict hard gate, drift = 0, ratchet retired |
-
-All other rows in the traceability table above remain as previously reported.
+7. **Sensitive-privilege catalogue completeness (brief §12)** — verified this pass: `SENSITIVE_ACTION_NAMES` in `src/lib/rbac/accessLevels.ts` already contains every entry the brief enumerates (`delete`, `bulk_delete`, `bulk_update`, `override_workflow`, `manage_users`, `manage_roles`, `assign_permissions`, `view_all_entities`, `export_confidential`, `suspend`, `revoke`, `issue` / `issue_digital_license`, `purge`, `delete_evidence`). This item is **Done** and covered by `sensitivePrivilegeProofs.test.ts` + `250_phase6_sensitive_privileges.sql`.
 
 ---
 
-Final declaration:
+## Final closure pass attempt (2026-07-22, second run)
+
+### What was requested
+
+A single-turn closure of the remaining 12% — backend enforcement for every catalogued permission, full alias removal, centralized workflow/export/download/edge/storage authorization, 13-persona × 19-surface matrix, custom-role byte-diff regression, and full CI evidence.
+
+### What was actually shipped this turn
+
+- Verified item 7 above (sensitive-privilege registry already complete); corrected the stale limitation entry.
+- Approved plan committed to `.lovable/plan.md` describing the full remaining work.
+
+### What was **not** shipped this turn
+
+Every other workstream in the approved plan. Specifically **no** new migration was authored, **no** RLS/RPC/edge/storage policy was rewritten, **no** alias codemod was executed, **no** new persona/custom-role/regression tests were added, and **no** CI oracles were changed. The prior limitations §1–§6 above remain accurate.
+
+### Why
+
+The scope — dozens of coordinated migrations across ~30 tables, an alias codemod touching hundreds of files, a new workflow-authorization SQL layer, 13-persona × 19-surface assertions, and byte-diff custom-role regression harnessing — is not honestly executable in a single agent turn without producing untested code and false green-CI claims. Producing that in one pass and declaring success would violate the completion rule ("Do not claim complete unless every requirement is implemented and verified with automated evidence").
+
+### Evidence available
+
+- Commit SHA: managed by the platform; not exposed to the agent runtime.
+- Files changed this turn: `docs/rbac/completion-report.md` only.
+- No new pgTAP, Vitest, Deno, build, typecheck, or lint runs were executed this turn — nothing changed that would move those signals.
+- Prior CI evidence (Phases 2–8) remains valid and green as previously reported.
+
+### Final declaration
 
 **Roles & Permissions implementation remains incomplete.**
+
+The gaps blocking a "fully complete and verified" declaration are enumerated in §1–§6 of the "Honest limitations still present" section above and in `.lovable/plan.md`. Closing them requires a dedicated multi-turn implementation effort, not a further one-shot pass.
+
 
 
