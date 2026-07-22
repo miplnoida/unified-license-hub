@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -186,7 +188,7 @@ export default function FpInitiationLog() {
           backHref="/fit-and-proper"
           backLabel="Register"
           actions={
-            <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={() => exportCsv(filtered)}>
+            <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={async () => { try { await authorizedExport('fit_and_proper', 'export', { count: filtered.length }); exportCsv(filtered); } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); } }}>
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
