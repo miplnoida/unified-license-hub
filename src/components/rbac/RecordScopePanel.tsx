@@ -28,11 +28,9 @@ interface Props {
 interface SelectorOptions {
   sectors: { id: string; name: string }[];
   licensees: { id: string; name: string }[];
-  departments: { id: string; name: string }[];
-  teams: { id: string; name: string }[];
 }
 
-const EMPTY_OPTS: SelectorOptions = { sectors: [], licensees: [], departments: [], teams: [] };
+const EMPTY_OPTS: SelectorOptions = { sectors: [], licensees: [] };
 
 /**
  * Record Scope — driven strictly by the capability registry. Modules with
@@ -54,8 +52,6 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
       setOpts({
         sectors: (sectorsRes.data || []) as { id: string; name: string }[],
         licensees: (licenseesRes.data || []) as { id: string; name: string }[],
-        departments: [], // no department table yet — capability registry disables this scope everywhere it isn't backed
-        teams: [],
       });
     })();
     return () => { cancelled = true; };
