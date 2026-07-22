@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import type {
   BuilderConfig, ExportFormat, ReportFavorite, ReportFilters, ReportRun,
   ReportSchedule, ReportSource, ReportTemplate, ScheduleFrequency, SortDirection,
@@ -332,6 +334,7 @@ export async function createReportSchedule(config: {
   recipients: string[];
   exportFormat: ExportFormat;
 }) {
+  await authorizedAction('report_management', 'configure', { op: 'create_schedule', report_slug: config.reportSlug });
   const { data: { user } } = await supabase.auth.getUser();
   const next = calculateNextRunAt(config.frequency);
   // Resolve source: explicit > slug lookup. Never persist an empty source if avoidable.
@@ -359,6 +362,7 @@ export async function createReportSchedule(config: {
 }
 
 export async function updateReportSchedule(id: string, patch: Partial<{ isActive: boolean; frequency: ScheduleFrequency; recipients: string[]; exportFormat: ExportFormat }>) {
+  await authorizedAction('report_management', 'configure', { op: 'update_schedule', id });
   const update: Record<string, unknown> = {};
   if (patch.isActive !== undefined) update.is_active = patch.isActive;
   if (patch.frequency) { update.schedule_type = patch.frequency; update.next_run_at = calculateNextRunAt(patch.frequency).toISOString(); }
@@ -369,6 +373,7 @@ export async function updateReportSchedule(id: string, patch: Partial<{ isActive
 }
 
 export async function deleteReportSchedule(id: string) {
+  await authorizedAction('report_management', 'configure', { op: 'delete_schedule', id });
   const { error } = await supabase.from('report_schedules').delete().eq('id', id);
   if (error) throw error;
 }
@@ -474,6 +479,7 @@ export async function saveTemplate(t: {
   sortDir?: SortDirection;
   visibility?: 'private' | 'shared';
 }) {
+  await authorizedAction('report_management', 'edit', { op: t.id ? 'update_template' : 'create_template', id: t.id });
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {
     name: t.name,
@@ -497,6 +503,7 @@ export async function saveTemplate(t: {
 }
 
 export async function deleteTemplate(id: string) {
+  await authorizedAction('report_management', 'edit', { op: 'delete_template', id });
   const { error } = await supabase.from('report_templates' as any).delete().eq('id', id);
   if (error) throw error;
 }

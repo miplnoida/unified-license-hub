@@ -14,6 +14,7 @@ import { useReports } from '../hooks/useReports';
 import type { ReportRun } from '../types';
 import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename } from '../services/exportService';
 import { fetchRunRows, generateReport, logExport } from '../services/reportService';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useToast } from '@/hooks/use-toast';
 import { useReportOptions } from '../hooks/useReportMetadata';
 
@@ -81,6 +82,12 @@ export function ReportHistory({ onPreview }: Props) {
   };
 
   const handleExport = async (run: ReportRun, fmt: 'csv' | 'xlsx' | 'json' | 'pdf') => {
+    try {
+      await authorizedExport('report_management', 'export', { run_id: run.id, fmt, rows: run.rowCount });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message || 'You lack permission to export reports.', variant: 'destructive' });
+      return;
+    }
     const full = await loadFullRun(run);
     const fname = sanitizeFilename(run.name);
     if (fmt === 'csv') exportToCsv(full.rows, fname);

@@ -172,7 +172,7 @@
   {
     "module": "delegation",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "executive_oversight",
@@ -572,7 +572,7 @@
   {
     "module": "notification_management",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "notification_management",
@@ -687,7 +687,7 @@
   {
     "module": "report_management",
     "name": "configure",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "report_management",
@@ -697,12 +697,12 @@
   {
     "module": "report_management",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "report_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "report_management",

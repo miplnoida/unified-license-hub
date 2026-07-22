@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
 import { Trash2, Loader2, Calendar, UserCheck, Pencil, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 interface DelegationRule {
   id: string;
@@ -200,6 +201,12 @@ export default function DelegationRules() {
     }
     if (selectedRoles.length === 0) {
       toast.error('Please select at least one role to transfer');
+      return;
+    }
+    try {
+      await authorizedAction('delegation', 'create', { from_user_id: fromUserId, to_user_id: toUserId, editing: !!editingRuleId });
+    } catch (e: any) {
+      toast.error(e?.message || 'Not authorized to create delegation rules');
       return;
     }
     setCreating(true);
