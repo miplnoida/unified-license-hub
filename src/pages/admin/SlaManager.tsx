@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
 import { notifySlaChange } from '@/lib/slaNotifications';
 import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
