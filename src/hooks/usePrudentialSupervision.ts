@@ -584,15 +584,18 @@ export function useUpsertStressIndicator() {
       const payload = { ...row };
       const before = row.id ? (await sb.from('prudential_stress_indicators').select('*').eq('id', row.id).maybeSingle()).data : null;
       if (row.id) {
+        await authorizedAction('prudential_supervision', 'edit', { stress_indicator_id: row.id });
         const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);
         if (error) throw error;
         await audit('UPDATE', 'prudential_stress_indicator', row.id, before, payload);
       } else {
+        await authorizedAction('prudential_supervision', 'create', { metric_key: row.metric_key });
         const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();
         if (error) throw error;
         await audit('CREATE', 'prudential_stress_indicator', data.id, null, data);
       }
     },
+
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
   });
