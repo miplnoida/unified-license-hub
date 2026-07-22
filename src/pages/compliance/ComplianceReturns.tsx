@@ -173,6 +173,9 @@ export default function ComplianceReturns() {
   const getConfigFrequency = (id: string | null) => configs.find(c => c.id === id)?.frequency || '';
 
   const handleSubmit = async (id: string) => {
+    try {
+      await authorizedAction('compliance_management', 'edit', { return_id: id, action: 'submit' });
+    } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
     const { error } = await supabase.from('compliance_returns' as any)
       .update({ status: 'submitted', submitted_at: new Date().toISOString() } as any).eq('id', id);
     if (error) { toast.error(error.message); return; }
