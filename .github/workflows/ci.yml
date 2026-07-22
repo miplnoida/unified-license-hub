@@ -74,6 +74,7 @@ jobs:
             supabase/tests/rbac/250_phase6_sensitive_privileges.sql
             supabase/tests/rbac/260_no_alias_namespaces.sql
             supabase/tests/rbac/270_enforce_permission_helpers.sql
+            supabase/tests/rbac/271_application_rpcs_gated.sql
           )
           missing=0
           for f in "${required[@]}"; do

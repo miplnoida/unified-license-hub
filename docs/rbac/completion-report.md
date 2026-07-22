@@ -378,3 +378,21 @@ Ran `grep -rn "data-rbac"` across `src/` and cross-checked each unenforced pair 
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed. Batch 3 has landed its enforcement helpers, catalog reconciliation for three actually-enforced entries (`license_management.delete`, `licensee_management.edit`, `audit_management.export`), and a per-pair inventory of every remaining unenforced action. The remaining work in Batch 3 is application/licensee action-specific RPCs (`application_management.close/configure/import`) that must call `enforce_permission` before mutating; these will land in the next turn.
+
+---
+
+## Batch 3 — Phase C: application_management RPC gates
+
+### Shipped this turn
+
+- **Migration** `20260722_batch3_phase_c_application_rpcs`:
+  - `public.close_application(uuid, text)` — calls `enforce_permission('application_management','close')`, updates `applications.status = 'closed'`, writes `audit_logs`.
+  - `public.configure_application_form(uuid, jsonb)` — calls `enforce_permission('application_management','configure')`, touches `registration_form_configs`, writes `audit_logs`.
+  - `public.import_applications_bulk(jsonb)` — calls `enforce_permission('application_management','import')`, writes `audit_logs`.
+  - All three: `SECURITY DEFINER`, `SET search_path = public`, `REVOKE ALL FROM PUBLIC`, `GRANT EXECUTE TO authenticated`.
+- **pgTAP** `supabase/tests/rbac/271_application_rpcs_gated.sql` — 6 assertions: function existence (×3) + `42501` on unauthenticated call (×3). Added to CI required-list in `.github/workflows/ci.yml`.
+- **Catalog** `src/lib/rbac/catalog.json`: `application_management.close/configure/import` → `enforced: true`.
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batch 3 Phase C landed three gated RPCs, their pgTAP proofs, and the corresponding catalog flips. Remaining: `application_management.escalate/export`, `licensee_management.export`, `prudential_supervision.export` (no server surface exists — either needs new RPCs or the catalog entries removed) and Batches 4–10.

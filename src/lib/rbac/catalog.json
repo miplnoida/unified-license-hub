@@ -7,12 +7,12 @@
   {
     "module": "application_management",
     "name": "close",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "application_management",
     "name": "configure",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "application_management",
@@ -37,7 +37,7 @@
   {
     "module": "application_management",
     "name": "import",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "application_management",

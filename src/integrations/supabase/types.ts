@@ -15860,6 +15860,49 @@ export type Database = {
         Args: { _new_name: string; _rule_id: string }
         Returns: string
       }
+      close_application: {
+        Args: { _application_id: string; _reason?: string }
+        Returns: {
+          ack_at: string | null
+          ack_by: string | null
+          ack_text: string | null
+          applicant_id: string
+          application_number: string
+          approved_at: string | null
+          assessment_notes: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_step_id: string | null
+          data: Json | null
+          decision_rationale: string | null
+          form_version_id: string | null
+          id: string
+          last_sufficiency_evaluation_id: string | null
+          license_type: string
+          priority: number
+          priority_reason: string | null
+          priority_set_at: string | null
+          priority_set_by: string | null
+          regulator_id: string | null
+          rejected_at: string | null
+          review_notes: string | null
+          search_vector: unknown
+          status: string
+          submitted_at: string | null
+          sufficiency_status: string | null
+          updated_at: string
+          workflow_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       close_complaint:
         | {
             Args: { _category?: string; _id: string; _reason: string }
@@ -15914,6 +15957,37 @@ export type Database = {
       conduct_entity_profile_summary: {
         Args: { _entity_id: string }
         Returns: Json
+      }
+      configure_application_form: {
+        Args: { _config: Json; _form_config_id: string }
+        Returns: {
+          category_id: string | null
+          created_at: string
+          data_protection_url: string | null
+          declarations: Json
+          document_types: Json
+          form_schema: Json
+          form_schema_backup: Json | null
+          form_template_id: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          privacy_url: string | null
+          require_captcha: boolean
+          require_documents: boolean
+          require_otp: boolean
+          sector_id: string | null
+          sub_sector_id: string | null
+          terms_url: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "registration_form_configs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       confirm_complaint_duplicate: {
         Args: { _notes?: string; _pair_id: string; _parent_id: string }
@@ -16579,6 +16653,7 @@ export type Database = {
             }
             Returns: boolean
           }
+      import_applications_bulk: { Args: { _payload: Json }; Returns: Json }
       import_return_form_data: {
         Args: { _return_id: string; _rows: Json; _strategy: string }
         Returns: {
