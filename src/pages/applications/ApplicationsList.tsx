@@ -502,6 +502,7 @@ export default function ApplicationsList() {
   const exportFilteredCsv = async () => {
     setExporting(true);
     try {
+      await authorizedExport('application_management', 'export', { source: 'ApplicationsList' });
       const MAX = 5000;
       const PAGE = 500;
       let all: any[] = [];
