@@ -287,13 +287,13 @@ describe('Phase 7 — Persona capability matrix', () => {
     });
   }
 
-  it('all 7 personas resolve to a real, shipped template', () => {
+  it('all 13 personas resolve to a real, shipped template', () => {
     for (const p of PERSONAS) {
       expect(
         ROLE_TEMPLATES.find((t) => t.key === p.templateKey),
         `Persona ${p.label} pins missing template ${p.templateKey}`,
       ).toBeDefined();
     }
-    expect(PERSONAS.length).toBeGreaterThanOrEqual(7);
+    expect(PERSONAS.length).toBeGreaterThanOrEqual(13);
   });
 });
