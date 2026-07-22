@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Download, Loader2, FileWarning, History } from 'lucide-react';
 import { logExport, type ComplianceAuditAction } from '@/lib/complianceAudit';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 
 interface AuditRow {
   source: 'legacy' | 'compliance' | 'security' | string;
