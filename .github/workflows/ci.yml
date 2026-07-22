@@ -66,6 +66,7 @@ jobs:
             supabase/tests/rbac/230_phase4_selector_validation.sql
             supabase/tests/rbac/240_phase5_atomic_and_deps.sql
             supabase/tests/rbac/250_phase6_sensitive_privileges.sql
+            supabase/tests/rbac/260_no_alias_namespaces.sql
           )
           missing=0
           for f in "${required[@]}"; do
