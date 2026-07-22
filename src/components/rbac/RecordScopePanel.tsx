@@ -28,11 +28,9 @@ interface Props {
 interface SelectorOptions {
   sectors: { id: string; name: string }[];
   licensees: { id: string; name: string }[];
-  departments: { id: string; name: string }[];
-  teams: { id: string; name: string }[];
 }
 
-const EMPTY_OPTS: SelectorOptions = { sectors: [], licensees: [], departments: [], teams: [] };
+const EMPTY_OPTS: SelectorOptions = { sectors: [], licensees: [] };
 
 /**
  * Record Scope — driven strictly by the capability registry. Modules with
@@ -54,8 +52,6 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
       setOpts({
         sectors: (sectorsRes.data || []) as { id: string; name: string }[],
         licensees: (licenseesRes.data || []) as { id: string; name: string }[],
-        departments: [], // no department table yet — capability registry disables this scope everywhere it isn't backed
-        teams: [],
       });
     })();
     return () => { cancelled = true; };
@@ -106,14 +102,10 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
           const optionList = cap!.options;
           const selectedIds =
             selectorKind === 'sectors' ? cfg.sectors ?? [] :
-            selectorKind === 'licensees' ? cfg.licensees ?? [] :
-            selectorKind === 'departments' ? cfg.departments ?? [] :
-            selectorKind === 'teams' ? cfg.teams ?? [] : [];
+            selectorKind === 'licensees' ? cfg.licensees ?? [] : [];
           const selectorPool =
             selectorKind === 'sectors' ? opts.sectors :
-            selectorKind === 'licensees' ? opts.licensees :
-            selectorKind === 'departments' ? opts.departments :
-            selectorKind === 'teams' ? opts.teams : [];
+            selectorKind === 'licensees' ? opts.licensees : [];
           return (
             <div key={mod} className="grid gap-3 border rounded-md p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
               <div>
