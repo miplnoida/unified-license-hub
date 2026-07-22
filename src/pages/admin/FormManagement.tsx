@@ -167,6 +167,7 @@ export default function FormManagement() {
   const doBulkPublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
+      await authorizedAction('form_management', 'publish', { ids, count: ids.length });
       const results = await Promise.allSettled(
         ids.map((id) => updateStatusMutation.mutateAsync({ id, status: 'published' }))
       );
@@ -176,8 +177,8 @@ export default function FormManagement() {
       if (failed > 0) toast.error(`${failed} form(s) failed to publish.`);
       else toast.success(`${ids.length} form(s) published successfully.`);
       setSelectedIds(new Set());
-    } catch {
-      toast.error('Failed to bulk publish forms.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to bulk publish forms.');
     } finally {
       setBulkLoading(false);
     }
