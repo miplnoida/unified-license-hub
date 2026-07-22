@@ -125,10 +125,77 @@ The Administrator persona is explicitly asserted to ship with **zero** pre-ticke
 
 
 
-## Phase 8 — CI hardening & evidence (Sec. 17) — PENDING
+## Phase 8 — CI hardening & evidence (Sec. 17) — DONE
+
+Every prior phase is now wired into `.github/workflows/ci.yml` so no requirement can regress silently.
+
+### New CI job: `rbac-oracles`
+
+Runs on every push and PR, blocking merge on failure. Steps:
+
+| Step | Command | Enforces |
+|---|---|---|
+| Scope parity (hard) | `node scripts/verify-rbac-parity.mjs --scope-only` | `rbac_module_scopes` seed table exactly matches `scopeCapabilities.ts` (46/46). Any drift — added, removed, or renamed scope kind — fails CI. |
+| UI parity ratchet | `node scripts/verify-rbac-ui-parity-ratchet.mjs` (baseline=306) | UI→catalogue permission drift cannot regress. Current 306 pre-existing references are the ceiling; any new UI reference to an uncatalogued permission fails CI. |
+| Sensitive privilege proofs | `bunx vitest run src/test/sensitivePrivilegeProofs.test.ts` | No access level or template silently grants `delete`, `export*`, `download*`, `manage_users`, `manage_roles`, `assign_permissions`, `override_workflow`, `bulk_delete`, `bulk_export`. |
+| Persona matrix | `bunx vitest run src/test/personaMatrix.test.ts` | 144 assertions across 7 canonical personas: ALLOW / DENY / UNTOUCHED module coverage. |
+| Role validation | `bunx vitest run src/test/roleValidation.test.ts src/test/accessLevels.test.ts` | Dependency rules (Edit⇒View), scope config validity, sensitive-action registry. |
+| Route/menu coverage | `bunx vitest run src/test/routeCoverage.test.ts src/test/sidebarVisibility.test.tsx` | Every protected route wrapped in `<M>`; assignment-only regulators see only Return Queue. |
+| RBAC guard tests | `bunx vitest run src/test/permissionsRbac.test.tsx` | 556 permission-hook assertions (usePermissions, GuardedButton, useCan). |
+| Required-pgTAP presence | shell check | Fails if any of `00_helpers`, `160_slice_b_scoped_permission`, `200_multi_role_scope`, `210_assigned_scope`, `220_phase3_complaints_conduct`, `230_phase4_selector_validation`, `240_phase5_atomic_and_deps`, `250_phase6_sensitive_privileges` is deleted or renamed. |
+
+### Existing `db-tests` job, tightened
+
+- `supabase db reset --no-seed` + `supabase test db` now executes the entire pgTAP tree under `supabase/tests/rbac/*.sql`, including every RBAC file added in Phases 2 – 6 (`210_assigned_scope`, `220_phase3_complaints_conduct`, `230_phase4_selector_validation`, `240_phase5_atomic_and_deps`, `250_phase6_sensitive_privileges`).
+- Edge-function Deno tests still gate the job.
+
+### Local verification (executed this turn)
+
+```
+$ node scripts/verify-rbac-parity.mjs --scope-only
+scope-only exit=0     (scopeParity: expected=46 actual=46 missing=[])
+
+$ node scripts/verify-rbac-ui-parity-ratchet.mjs
+UI parity: current=306, baseline=306
+ratchet exit=0
+
+$ bunx vitest run src/test/sensitivePrivilegeProofs.test.ts \
+                  src/test/personaMatrix.test.ts \
+                  src/test/roleValidation.test.ts \
+                  src/test/accessLevels.test.ts
+Test Files  4 passed (4)
+     Tests  163 passed (163)
+```
+
+### Known tracked debt (does not block CI, cannot grow)
+
+- **UI catalogue drift = 306**. 306 pre-existing UI call sites reference permission pairs that were never added to the flat catalogue (mostly legacy `prudential.*`, `report.*` and module aliases). These do NOT weaken enforcement — the backend uses `has_permission` / `has_scoped_permission`, not the UI catalogue — but they mean a superficial `useCan("prudential", "create")` in the UI will always resolve to false unless the pair is added. The ratchet script enforces that this number can only shrink. To reduce it, add the missing pair to `src/lib/rbac/actionsCatalog.ts` **or** replace the UI reference with a catalogued pair, then lower `RBAC_UI_PARITY_BASELINE` in `.github/workflows/ci.yml`.
+
+### Requirement traceability (17-point brief)
+
+| # | Requirement | Phase | Evidence |
+|---|---|---|---|
+| 1 | Assigned scope proves assignment | 2 | `is_record_assigned_to_user` + `210_assigned_scope.sql` (9 assertions) |
+| 2 | Enforcement matrix (RLS/RPC/EF/storage) | 3 | `220_phase3_complaints_conduct.sql`, prior slices 100–150 |
+| 3 | Selector ID validation | 4 | `validate_scope_config` trigger + `230_phase4_selector_validation.sql` |
+| 4 | Inactive-role enforcement | 4 | `user_dynamic_roles_active_only`, `roles_block_activate_when_invalid` triggers |
+| 5 | Atomic mutations | 5 | `rbac_save_role`, `rbac_delete_role` RPCs |
+| 6 | Dependency registry | 5 | `role_permissions_dependency_guard` + `permission_dependent_actions` (31 rows) |
+| 7 | Sensitive privilege never leaked | 6 | `sensitivePrivilegeProofs.test.ts` (7) + `250_phase6_sensitive_privileges.sql` (6) |
+| 8 | Persona coverage | 7 | `personaMatrix.test.ts` (144 assertions, 7 personas) |
+| 9 | Scope parity | 8 | `--scope-only` hard gate (46/46) |
+| 10 | UI parity governance | 8 | Ratchet baseline=306, non-regressible |
+| 11 | Route coverage | prior | `routeCoverage.test.ts` + `ROUTE_MODULE_MAP` |
+| 12 | Menu coverage | prior | `sidebarVisibility.test.tsx` (10 personas) |
+| 13 | Button coverage | prior | `GuardedButton` audit (1043/1043) |
+| 14 | Custom role preservation | 5 | `rbac_reclassify_roles` preserves operator fields |
+| 15 | Multi-role resolver correctness | 1 | `200_multi_role_scope.sql` (9) |
+| 16 | Storage policy hardening | prior | `150_storage_policy_hardening.sql` |
+| 17 | CI-gated evidence | 8 | This section + `.github/workflows/ci.yml` `rbac-oracles` job |
 
 ---
 
-Final declaration until every phase is landed with executed evidence:
+Final declaration:
 
-**Roles & Permissions implementation remains incomplete.**
+**Roles & Permissions implementation remains incomplete** on the UI catalogue drift dimension only (306 tracked references). Every enforcement, scope, dependency, persona, and CI oracle required by the 17-point brief is now landed and gated in CI; UI catalogue closure is the remaining reduction work and is ratcheted so it cannot grow.
+
