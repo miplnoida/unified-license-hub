@@ -1,5 +1,10 @@
 [
   {
+    "module": "admin_dashboard",
+    "name": "view",
+    "enforced": true
+  },
+  {
     "module": "application_management",
     "name": "approve",
     "enforced": true
