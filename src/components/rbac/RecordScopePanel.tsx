@@ -119,7 +119,7 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
                   onValueChange={(v) =>
                     setModule(mod, {
                       scope: v as ScopeKind,
-                      sectors: undefined, licensees: undefined, departments: undefined, teams: undefined,
+                      sectors: undefined, licensees: undefined,
                     })
                   }
                   disabled={disabled}
