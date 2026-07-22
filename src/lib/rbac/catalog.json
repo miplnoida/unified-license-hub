@@ -107,7 +107,7 @@
   {
     "module": "compliance_management",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "compliance_management",
@@ -117,12 +117,12 @@
   {
     "module": "conduct_management",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "conduct_management",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "coordination",
@@ -142,7 +142,7 @@
   {
     "module": "coordination",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "coordination",
@@ -717,7 +717,7 @@
   {
     "module": "returns_management",
     "name": "configure",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "returns_management",
@@ -817,7 +817,7 @@
   {
     "module": "settings",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "settings",
@@ -832,7 +832,7 @@
   {
     "module": "settings",
     "name": "import",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "settings",
