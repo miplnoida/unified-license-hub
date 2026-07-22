@@ -201,6 +201,10 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
             modules={modules}
             onCancel={() => setModuleDialogOpen(false)}
             onSave={async (values) => {
+              await authorizedAction('role_management', 'manage_catalog', {
+                op: editingModule ? 'update_module' : 'create_module',
+                key: values.key,
+              });
               await upsertModule.mutateAsync({ id: editingModule?.id, ...values });
               setModuleDialogOpen(false);
             }}
