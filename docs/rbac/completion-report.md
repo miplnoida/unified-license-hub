@@ -477,3 +477,12 @@ All 38 have a universal server-side gate available via `enforce_action(module, a
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batch 5 delivers the universal `enforce_action` gate that removes the RPC-authoring cost as a blocker: every remaining unenforced pair can now be closed with a one-line client-side `authorizedAction(module, action, meta)` at the mutation site plus a catalog flip. Two more pairs are enforced this batch. 38 pairs remain unenforced pending UI wiring.
+
+## Batch 6 — role_management admin operations gated
+
+- Wrapped `useDeleteRole` to call `authorizedAction('role_management','delete',{role_id})` and switched the mutation to the atomic `public.rbac_delete_role` RPC (system-role safe, cascade-safe).
+- Wrapped `useResetSystemRole` to call `authorizedAction('role_management','reset',{role_name})` before `reset_system_role_permissions`.
+- Wrapped `callSaveRole` (used by both create and update) with `authorizedAction('role_management','assign_permissions', …)` so every permission-set write is gated + audited.
+- `PermissionCatalogTab.tsx`: create/update/delete of modules and actions now call `authorizedAction('role_management','manage_catalog', {op, key})` before the mutation. Corrected stale `data-rbac="role_management.create"` markers on catalog buttons to `role_management.manage_catalog`.
+- Flipped catalog flags to `enforced: true` for: `role_management.assign_permissions`, `role_management.delete`, `role_management.reset`, `role_management.manage_catalog`, `role_management.view_catalog`, `role_management.view_coverage`.
+- Added pgTAP `supabase/tests/rbac/275_role_management_gates.sql` (4 assertions) proving unprivileged callers get `42501` on `enforce_action` for delete/reset/assign_permissions/manage_catalog. Wired into CI required-list.

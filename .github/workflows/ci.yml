@@ -78,6 +78,7 @@ jobs:
             supabase/tests/rbac/272_export_and_escalate_gated.sql
             supabase/tests/rbac/273_returns_reject_gated.sql
             supabase/tests/rbac/274_enforce_action_gate.sql
+            supabase/tests/rbac/275_role_management_gates.sql
           )
           missing=0
           for f in "${required[@]}"; do

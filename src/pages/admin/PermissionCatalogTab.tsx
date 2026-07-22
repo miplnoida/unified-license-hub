@@ -20,6 +20,7 @@ import {
   useUpsertAction, useDeleteAction,
   CatalogModule, CatalogAction,
 } from '@/hooks/usePermissionCatalog';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
@@ -57,16 +58,22 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
     setEditingModule(m); setEditingParentId(m.parent_id); setModuleDialogOpen(true);
   };
 
-  const handleDeleteModule = (m: CatalogModule) => {
+  const handleDeleteModule = async (m: CatalogModule) => {
     if (m.is_system) { toast.error('System modules cannot be deleted'); return; }
     if (!confirm(`Delete module "${m.label}"? This removes all sub-modules and actions.`)) return;
+    try {
+      await authorizedAction('role_management', 'manage_catalog', { op: 'delete_module', module_id: m.id, key: m.key });
+    } catch (e: any) { toast.error(e.message || 'Not authorized'); return; }
     deleteModule.mutate(m.id);
     if (selectedModuleId === m.id) setSelectedModuleId(null);
   };
 
-  const handleDeleteAction = (a: CatalogAction) => {
+  const handleDeleteAction = async (a: CatalogAction) => {
     if (a.is_system) { toast.error('System actions cannot be deleted'); return; }
     if (!confirm(`Delete action "${a.label}"?`)) return;
+    try {
+      await authorizedAction('role_management', 'manage_catalog', { op: 'delete_action', action_id: a.id, key: a.key });
+    } catch (e: any) { toast.error(e.message || 'Not authorized'); return; }
     deleteAction.mutate(a.id);
   };
 
@@ -91,7 +98,7 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
               <CardDescription>Top-level modules and their sub-modules</CardDescription>
             </div>
             {canManage && (
-              <Button data-rbac="role_management.create" size="sm" variant="outline" onClick={() => openCreateModule(null)}>
+              <Button data-rbac="role_management.manage_catalog" size="sm" variant="outline" onClick={() => openCreateModule(null)}>
                 <Plus className="h-4 w-4 mr-1" />Module
               </Button>
             )}
@@ -136,7 +143,7 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
                     <CardDescription>Operations users can be granted on this module</CardDescription>
                   </div>
                   {canManage && (
-                    <Button data-rbac="role_management.create" size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
+                    <Button data-rbac="role_management.manage_catalog" size="sm" variant="outline" onClick={() => { setEditingAction(null); setActionDialogOpen(true); }}>
                       <Plus className="h-4 w-4 mr-1" />Action
                     </Button>
                   )}
@@ -194,6 +201,10 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
             modules={modules}
             onCancel={() => setModuleDialogOpen(false)}
             onSave={async (values) => {
+              await authorizedAction('role_management', 'manage_catalog', {
+                op: editingModule ? 'update_module' : 'create_module',
+                key: values.key,
+              });
               await upsertModule.mutateAsync({ id: editingModule?.id, ...values });
               setModuleDialogOpen(false);
             }}
@@ -213,6 +224,11 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
               action={editingAction}
               onCancel={() => setActionDialogOpen(false)}
               onSave={async (values) => {
+                await authorizedAction('role_management', 'manage_catalog', {
+                  op: editingAction ? 'update_action' : 'create_action',
+                  module_key: selectedModule.key,
+                  key: values.key,
+                });
                 await upsertAction.mutateAsync({
                   id: editingAction?.id,
                   module_id: selectedModule.id,
@@ -325,7 +341,7 @@ function ModuleForm({
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button data-rbac="role_management.create" onClick={submit}>Save</Button>
+        <Button data-rbac="role_management.manage_catalog" onClick={submit}>Save</Button>
       </DialogFooter>
     </div>
   );
@@ -367,7 +383,7 @@ function ActionForm({
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button data-rbac="role_management.create" onClick={submit}>Save</Button>
+        <Button data-rbac="role_management.manage_catalog" onClick={submit}>Save</Button>
       </DialogFooter>
     </div>
   );
