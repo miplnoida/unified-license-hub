@@ -16541,17 +16541,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      has_scoped_permission: {
-        Args: {
-          _action: string
-          _licensee_id?: string
-          _module: string
-          _owner_id?: string
-          _sector_id?: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_scoped_permission:
+        | {
+            Args: {
+              _action: string
+              _licensee_id?: string
+              _module: string
+              _owner_id?: string
+              _sector_id?: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _action: string
+              _licensee_id: string
+              _module: string
+              _owner_id: string
+              _record_id: string
+              _sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
       import_return_form_data: {
         Args: { _return_id: string; _rows: Json; _strategy: string }
         Returns: {
