@@ -186,6 +186,7 @@ export default function CoordinationDetail() {
       if (status === 'blocked' && (!note || note.trim().length < 5)) {
         throw new Error('Block requires a note (min 5 chars)');
       }
+      await authorizedAction('coordination', 'edit', { participant_id: id, clearance_status: status });
       const before = (participants ?? []).find((p: any) => p.id === id) ?? null;
       const { error } = await supabase
         .from('coordination_participants')
