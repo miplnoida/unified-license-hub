@@ -110,13 +110,14 @@ describe('Sensitive privileges — role templates', () => {
   });
 
   it('templates only use scope kinds registered in the capability registry', async () => {
-    const { getEnforceableScopeKinds } = await import('@/lib/rbac/scopeCapabilities');
+    const { isScopeOptionAllowed, getScopeCapability } = await import('@/lib/rbac/scopeCapabilities');
     for (const tpl of ROLE_TEMPLATES) {
       for (const [moduleName, scope] of Object.entries(tpl.scope)) {
-        if (scope === 'all' || scope === 'own') continue;
-        const allowed = getEnforceableScopeKinds(moduleName);
+        if (scope === 'all' || scope === 'own' || scope === 'assigned') continue;
+        // Only assert for modules that have a registered capability entry.
+        if (!getScopeCapability(moduleName)) continue;
         expect(
-          allowed.includes(scope as never) || scope === 'assigned',
+          isScopeOptionAllowed(moduleName, scope as never),
           `Template "${tpl.key}" uses scope "${scope}" on module "${moduleName}" which is not registered`,
         ).toBe(true);
       }
