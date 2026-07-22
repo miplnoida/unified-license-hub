@@ -513,6 +513,16 @@ export default function ReturnDetail() {
     if (!confirm.isConfirmed) return;
     setSubmitting('request_edit');
     try {
+      const { error: gateErr } = await supabase.rpc('reject_return', {
+        _return_id: id,
+        _reason: comments_.trim(),
+      });
+      if (gateErr) {
+        toast.error(gateErr.message || 'Reject gate failed');
+        setSubmitting(null);
+        return;
+      }
+
       // Snapshot the current state as the pre-edit baseline before flipping status.
       await snapshotReturnRevision({
         returnId: id,
