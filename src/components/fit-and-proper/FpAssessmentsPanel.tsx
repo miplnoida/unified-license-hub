@@ -125,8 +125,11 @@ export function FpAssessmentsPanel({ individualId }: Props) {
       if (triggerNote.trim()) extraData.trigger_note = triggerNote.trim();
       if (linkedAppId.trim()) extraData.linked_application_id = linkedAppId.trim();
 
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper', 'edit', { individual_id: individualId, assessment_type: selectedTile });
       const { data, error } = await supabase
         .from('fp_assessments')
+
         .insert({
           individual_id: individualId,
           assessment_type: selectedTile,

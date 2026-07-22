@@ -478,7 +478,10 @@ export default function FpaCommittee() {
       if (isNaN(q) || q < 1) throw new Error('Quorum must be at least 1.');
       if (isNaN(t) || t < 0 || t > 100) throw new Error('Approval threshold must be 0–100.');
 
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper_committee', 'create', { name: name.trim() });
       const { error } = await (supabase as any).from('fp_committees').insert({
+
         name: name.trim(),
         description: description.trim() || null,
         quorum: q,
@@ -508,9 +511,12 @@ export default function FpaCommittee() {
       if (isNaN(q) || q < 1) throw new Error('Quorum must be at least 1.');
       if (isNaN(t) || t < 0 || t > 100) throw new Error('Approval threshold must be 0–100.');
 
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper_committee', 'edit', { committee_id: selectedCommitteeId });
       const { error } = await (supabase as any)
         .from('fp_committees')
         .update({
+
           name: name.trim(),
           description: description.trim() || null,
           quorum: q,

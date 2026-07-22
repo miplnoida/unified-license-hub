@@ -157,7 +157,7 @@
   {
     "module": "correspondence_management",
     "name": "approve",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "correspondence_management",
@@ -222,7 +222,7 @@
   {
     "module": "fit_and_proper",
     "name": "configure",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper",
@@ -237,7 +237,7 @@
   {
     "module": "fit_and_proper",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper",
@@ -277,12 +277,12 @@
   {
     "module": "fit_and_proper_committee",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper_committee",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper_committee",
@@ -312,12 +312,12 @@
   {
     "module": "fit_and_proper_screening",
     "name": "create",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper_screening",
     "name": "edit",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "fit_and_proper_screening",

@@ -85,7 +85,10 @@ export function SendCorrespondenceDialog({
   const send = useMutation({
     mutationFn: async () => {
       if (!body.trim()) throw new Error('Body is required');
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('correspondence_management', 'approve', { source_type: sourceType, source_id: sourceId, channel });
       const { data, error } = await supabase.functions.invoke('send-correspondence', {
+
         body: {
           template_id: templateId === '__none__' ? undefined : templateId,
           subject,
