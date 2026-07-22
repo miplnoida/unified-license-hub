@@ -58,16 +58,22 @@ export default function PermissionCatalogTab({ canManage = false }: { canManage?
     setEditingModule(m); setEditingParentId(m.parent_id); setModuleDialogOpen(true);
   };
 
-  const handleDeleteModule = (m: CatalogModule) => {
+  const handleDeleteModule = async (m: CatalogModule) => {
     if (m.is_system) { toast.error('System modules cannot be deleted'); return; }
     if (!confirm(`Delete module "${m.label}"? This removes all sub-modules and actions.`)) return;
+    try {
+      await authorizedAction('role_management', 'manage_catalog', { op: 'delete_module', module_id: m.id, key: m.key });
+    } catch (e: any) { toast.error(e.message || 'Not authorized'); return; }
     deleteModule.mutate(m.id);
     if (selectedModuleId === m.id) setSelectedModuleId(null);
   };
 
-  const handleDeleteAction = (a: CatalogAction) => {
+  const handleDeleteAction = async (a: CatalogAction) => {
     if (a.is_system) { toast.error('System actions cannot be deleted'); return; }
     if (!confirm(`Delete action "${a.label}"?`)) return;
+    try {
+      await authorizedAction('role_management', 'manage_catalog', { op: 'delete_action', action_id: a.id, key: a.key });
+    } catch (e: any) { toast.error(e.message || 'Not authorized'); return; }
     deleteAction.mutate(a.id);
   };
 
