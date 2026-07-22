@@ -15,13 +15,11 @@
 export type ScopeKind =
   | 'all'
   | 'assigned'
-  | 'team'
   | 'sector'
-  | 'department'
   | 'institution'
   | 'own';
 
-export type ScopeSelector = 'sectors' | 'licensees' | 'departments' | 'teams' | null;
+export type ScopeSelector = 'sectors' | 'licensees' | null;
 
 export interface ScopeOption {
   kind: ScopeKind;
@@ -39,12 +37,14 @@ export interface ModuleScopeCapability {
   scopeless?: boolean;
 }
 
+// NOTE: 'team' and 'department' scope kinds are intentionally omitted. No
+// backing tables exist for them, and public.user_scope_for treats any such
+// entry as no-contribution (never widens access). Do not add them back
+// without also landing the backing tables, RLS helpers, and pgTAP.
 const OPT: Record<ScopeKind, Omit<ScopeOption, 'selector'>> = {
   all:         { kind: 'all',         label: 'All records',           help: 'See every record in this module (default).' },
   assigned:    { kind: 'assigned',    label: 'Assigned only',         help: 'Only records assigned to this user (regulator, officer, alternate).' },
-  team:        { kind: 'team',        label: 'Team records',          help: 'Records assigned to the user\'s team.' },
   sector:      { kind: 'sector',      label: 'Selected sectors',      help: 'Records whose licensee belongs to specific sectors.' },
-  department:  { kind: 'department',  label: 'Own department',        help: 'Records owned by the user\'s department.' },
   institution: { kind: 'institution', label: 'Selected institutions', help: 'Records for a specific list of licensees / institutions.' },
   own:         { kind: 'own',         label: 'Own records only',      help: 'Only records the user created.' },
 };
