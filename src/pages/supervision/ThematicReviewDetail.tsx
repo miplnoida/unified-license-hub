@@ -411,6 +411,9 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
   const add = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
+    const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+    try { await authorizedAction('market_conduct', 'create', { review_id: reviewId, finding_title: form.title }); }
+    catch (e: any) { toast.error(e?.message || 'Not authorized'); setSaving(false); return; }
     const { data: user } = await supabase.auth.getUser();
     const { data, error } = await supabase.from('thematic_review_findings' as any).insert({
       review_id: reviewId, title: form.title.trim(), severity: form.severity,
@@ -418,6 +421,7 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
       licensee_id: form.licensee_id || null,
       status: 'draft', created_by: user.user?.id,
     }).select('id').single();
+
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_created', 'thematic_review_finding', (data as any).id, { after: form, meta: { review_id: reviewId } });
