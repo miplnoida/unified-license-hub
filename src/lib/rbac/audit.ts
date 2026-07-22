@@ -19,7 +19,7 @@ export interface ActionSite {
   page: string;                // best-effort page/module label
   button: string;              // detected label / handler name
   category: string;            // Create/Edit/Delete/Approve/Reject/Assign/Export/...
-  module: string | null;       // module.action when explicit; else null
+  module: string | null;       // module + action when explicit; else null
   action: string | null;
   protected: boolean;          // inside PermissionGate/GuardedButton or has data-rbac
   reason: string;              // "PermissionGate" | "GuardedButton" | "data-rbac" | "public-allow" | ""
