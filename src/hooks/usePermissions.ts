@@ -209,7 +209,7 @@ export function useUserDynamicPermissions() {
       if (isProtectedInternalPath(pathname)) return false;
       return true;
     }
-    if (permissions.some(p => p.module === normalizeModule(mod) && p.name === 'view')) return true;
+    if (authorizeModule(authzCtx, mod).allowed) return true;
     if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
     return false;
   };
@@ -219,8 +219,8 @@ export function useUserDynamicPermissions() {
    * as a regulator on at least one licensee. Such users may only view mapped
    * returns — every business action button/menu must be hidden for them.
    */
-  const isAssignmentOnly: boolean =
-    !isBypassRole && !hasDynamicRole && hasAnyEntityAssignment;
+  const isAssignmentOnly: boolean = isAssignmentOnlyRegulator;
+
 
   return {
     roleIds,
