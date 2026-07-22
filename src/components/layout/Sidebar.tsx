@@ -157,6 +157,12 @@ export function Sidebar() {
         && isAssignmentAllowedReturnsPath(item.href);
       if (item.module) {
         if (isInternalOnlyItem && !userIsInternal) return false;
+        // Exact-action gate when the item declares one (e.g. Permission
+        // Coverage → role_management.view_coverage) — module-wide access is
+        // not enough for diagnostic entries.
+        if (item.requiredAction) {
+          return hasPermission(item.module, item.requiredAction);
+        }
         if (hasModuleAccess(item.module)) return true;
         if (item.module === 'returns_management' && itemIsAssignmentQueue && hasAssignmentReturnQueueAccess) return true;
         return false;
