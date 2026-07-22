@@ -20,6 +20,7 @@ import {
   useUpsertAction, useDeleteAction,
   CatalogModule, CatalogAction,
 } from '@/hooks/usePermissionCatalog';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
