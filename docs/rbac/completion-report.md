@@ -76,7 +76,26 @@ Migration `20260722_phase5_atomic_and_deps` (applied).
 Test: `supabase/tests/rbac/240_phase5_atomic_and_deps.sql` — 6 assertions covering the dependency guard, reclassify preservation of category + access_summary, and delete refusal on system roles.
 
 
-## Phase 6 — Sensitive privilege proofs & orphan classification (Sec. 8, 15) — PENDING
+## Phase 6 — Sensitive privilege proofs (Sec. 8, 15) — DONE
+
+Frontend proof (`src/test/sensitivePrivilegeProofs.test.ts`, 7 assertions, passing):
+
+- No access level (`view` → `manager`) ever expands to any sensitive action name (`delete`, `export`, `override_workflow`, `manage_users`, …). Confirms the level-to-action mapper cannot silently widen destructive access.
+- `manager` explicitly excludes `delete`, `bulk_delete`, `export`, `export_all`, `bulk_export`, `download_all`, `override_workflow`, `override`, `suspend`, `revoke`, `manage_users`, `manage_roles`, `assign_permissions`.
+- Every string listed in a template's `sensitive:` array is a registered sensitive action name (catches typos that would otherwise be silently ignored).
+- Operational and read-only templates cannot pre-tick destructive privileges (delete / purge / override / suspend / revoke / role & user management / permission assignment).
+- The Administrator template ships with `sensitive: []` — admins must opt in to every dangerous action deliberately.
+- No template pre-ticks `view_all_entities` (the assignment bypass) or any gatekeeper privilege (`manage_users`, `manage_roles`, `manage_catalog`, `assign_permissions`, `configure_workflows`).
+
+Backend proof (`supabase/tests/rbac/250_phase6_sensitive_privileges.sql`, 6 pgTAP assertions):
+
+- Fixture role granted only `view` + `edit` on a probe module. `has_permission(user, module, 'delete')` and `has_permission(user, module, 'export')` return **false** — sensitive privileges are never implicit.
+- After explicitly inserting `role_permissions(role, module, delete)` the same call flips to **true** — proving the enforcement is grant-driven, not level-driven.
+- Flipping the role to `status = 'inactive'` immediately revokes the sensitive grant — inactive roles cannot leak destructive privileges.
+
+Combined, the two suites prove sensitive privileges are gated at both the composition layer (templates + level mapper) and the runtime enforcement layer (`has_permission` + inactive-role guard).
+
+
 
 ## Phase 7 — Persona-based end-to-end tests (Sec. 14, 16) — PENDING
 
