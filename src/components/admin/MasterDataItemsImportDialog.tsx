@@ -122,6 +122,12 @@ export function MasterDataItemsImportDialog({ open, onOpenChange, typeName, exis
   const canImport = parsed.length > 0 && invalidCount === 0;
 
   const handleImport = async () => {
+    try {
+      await authorizedAction('master_data_management', 'import', { type: typeName, rows: validRows.length });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message || 'You lack permission to import master data.', variant: 'destructive' });
+      return;
+    }
     setImporting(true);
     try {
       const result = await onImport(validRows);
