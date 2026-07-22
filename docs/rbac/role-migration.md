@@ -69,3 +69,30 @@ node scripts/verify-rbac-parity.mjs
 ```
 
 Wire into CI to block merges when the UI drifts from the enforced catalogue.
+
+## Record Scope enforcement (Slice B)
+
+`scope_config` is authoritative. Backend enforcement flows through:
+
+- `public.user_scope_for(user, module) → jsonb` — aggregates every active role's per-module scope entry.
+- `public.has_scoped_permission(user, module, action, licensee_id, sector_id, owner_id)` — combines `has_permission` with `user_scope_for`. Super admins short-circuit. Inactive roles are excluded upstream in `has_permission`.
+
+Wired into policies and helpers this slice:
+
+| Surface | Now scoped via |
+| --- | --- |
+| `public.can_read_licensee` / `can_mutate_licensee` | `has_scoped_permission('licensee_management', …)` on `licensees.id` + `sector_id` |
+| `public.can_read_license` / `can_mutate_license` | `has_scoped_permission('license_management', …)` on `holder_id` + `sector_id` |
+| `public.can_read_return_filed_row` | `has_scoped_permission('returns_management','view', licensee, sector, created_by)` |
+| `complaints` SELECT / UPDATE policies | licensee + sector + complainant owner |
+| `conduct_alerts` SELECT / ALL policies | licensee + sector |
+| `conduct_investigations` SELECT / ALL policies | licensee + sector |
+| `form_templates` SELECT / ALL policies | sector + `created_by` for `own` scope |
+
+Legacy identity paths (profile.licensee_id, PPOC mappings, entity assignment,
+external portal capabilities) are preserved after the scope check so
+licensee-side and PPOC users are unaffected.
+
+pgTAP coverage: `supabase/tests/rbac/160_slice_b_scoped_permission.sql`
+(14 assertions across every scope kind + inactive-role regression).
+
