@@ -447,3 +447,33 @@ Ran `grep -rn "data-rbac"` across `src/` and cross-checked each unenforced pair 
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batch 4 lands three additional enforced pairs and one new gated RPC (`reject_return`), taking the enforced count up by 3. Remaining `enforced: false` pairs include `returns_management.configure`, `compliance_management.edit`, `prudential_supervision.create/edit`, plus the broader Batch 5–10 scope (workflow SoD guard, storage/edge parity across every module, custom-role byte-diff proof, 12-persona matrix expansion).
+
+---
+
+## Batch 5 — Universal action gate + complaint/application escalate enforcement (2026-07-22)
+
+### Shipped this turn
+
+- **Migration** `20260722_enforce_action_universal_gate`:
+  - `public.enforce_action(_module text, _action text, _meta jsonb)` — `SECURITY DEFINER`, `SET search_path = public`. Rejects unauthenticated (42501) and empty module/action (22023), delegates to `enforce_permission`, and writes `audit_logs(action='rbac_action.<module>.<action>')`. `REVOKE ALL FROM PUBLIC`, `GRANT EXECUTE TO authenticated`.
+- **Client helper** `src/lib/rbac/authorizedAction.ts` — thin wrapper mirroring `authorizedExport` for all sensitive non-export mutations.
+- **Client wiring**:
+  - `src/pages/complaints/escalations/EscalationQueueTable.tsx` — `decide` mutation calls `enforce_action('complaint_management','escalate')` before decision-writing when the decision is `escalated`.
+- **pgTAP** `supabase/tests/rbac/274_enforce_action_gate.sql` (6 assertions: signature, SECURITY DEFINER, PUBLIC revoked, `authenticated` EXECUTE, anon 42501, empty-input rejection). Added to CI required-list.
+- **Catalog flips**: `application_management.escalate` (Batch 3 wiring finalized), `complaint_management.escalate` (this batch) → `enforced: true` (2 pairs).
+
+### Verification (executed this turn)
+
+- `verify-rbac-parity.mjs` → `RBAC parity OK.` scope 46/46, no violations.
+- `verify-authz-centralized.mjs` → OK (801 files, 0 offenders).
+- `verify-no-alias-namespaces.mjs` → OK.
+
+### Remaining `enforced: false` (38 pairs, batches 6–10 scope)
+
+Grouped by module: `role_management` (6 catalog/coverage/reset admin ops), `correspondence_management` (3 approve/reject/export), `fit_and_proper` (3 configure/edit/export), `fit_and_proper_committee` (2), `fit_and_proper_screening` (2), `form_management` (3 publish/import/delete), `report_management` (3 configure/edit/export), `settings` (3 create/import/export), `conduct_management` (2 create/export), `market_conduct` (2 create/edit), `prudential_supervision` (2 create/edit), `compliance_management.edit`, `coordination.edit`, `delegation.create`, `master_data_management.import`, `notification_management.create`, `returns_management.configure`, `user_management.delete`.
+
+All 38 have a universal server-side gate available via `enforce_action(module, action, meta)`; remaining work is wiring the call at each UI mutation site (or migrating to per-op RPCs where atomicity is required — e.g. `configure_return_form`, `publish_form`) and flipping the catalog after each wire lands.
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batch 5 delivers the universal `enforce_action` gate that removes the RPC-authoring cost as a blocker: every remaining unenforced pair can now be closed with a one-line client-side `authorizedAction(module, action, meta)` at the mutation site plus a catalog flip. Two more pairs are enforced this batch. 38 pairs remain unenforced pending UI wiring.

@@ -48,6 +48,12 @@ export function EscalationQueueTable() {
 
   const decide = useMutation({
     mutationFn: async ({ id, decision }: { id: string; decision: string }) => {
+      if (decision === 'escalated') {
+        const { error: gateErr } = await supabase.rpc('enforce_action', {
+          _module: 'complaint_management', _action: 'escalate', _meta: { case_id: id } as never,
+        });
+        if (gateErr) throw gateErr;
+      }
       const { error } = await (supabase as any).rpc('decide_escalation_case', { _id: id, _decision: decision });
       if (error) throw error;
     },

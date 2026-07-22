@@ -27,7 +27,7 @@
   {
     "module": "application_management",
     "name": "escalate",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "application_management",
@@ -67,7 +67,7 @@
   {
     "module": "complaint_management",
     "name": "escalate",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "complaint_management",
