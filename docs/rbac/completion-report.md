@@ -422,3 +422,28 @@ Ran `grep -rn "data-rbac"` across `src/` and cross-checked each unenforced pair 
 ### Final declaration
 
 **Roles & Permissions implementation remains incomplete.** Batches 1–2 fully landed. Batch 3 has now landed enforcement helpers, five gated RPCs (`close_application`, `configure_application_form`, `import_applications_bulk`, `record_export_intent`, `escalate_application`), client wiring for four export sites, three pgTAP suites in the CI required-list, and six catalog flips. Remaining: `application_management.escalate` client wiring (currently only opens the reason form; needs to invoke `escalate_application` on submit) and Batches 4–10.
+
+---
+
+## Batch 4 — Returns reject + returns/compliance exports gated (2026-07-22)
+
+### Shipped this turn
+
+- **Migration** `20260722_batch4_returns_reject_gated`:
+  - `public.reject_return(uuid, text)` — `SECURITY DEFINER`, `SET search_path = public`. Calls `enforce_permission('returns_management','reject')`, validates non-empty reason, writes `audit_logs` (`action='reject_return'`). `REVOKE ALL FROM PUBLIC`, `GRANT EXECUTE TO authenticated`.
+- **Client wiring**:
+  - `src/pages/returns-mgmt/ReturnDetail.tsx` — both `returns_management.reject` sites (Request Edit on submitted returns, Deny edit request) now call `reject_return` before mutating; permission-denied surfaces via toast and aborts.
+  - `src/pages/returns-mgmt/ViewReturns.tsx` — Export CSV now goes through `authorizedExport('returns_management','export', {...})` before generating the blob.
+  - `src/pages/admin/ComplianceAuditLogs.tsx` — all four `exportCsv(kind)` entry points go through `authorizedExport('compliance_management','export',{kind})` before generating the CSV.
+- **pgTAP** `supabase/tests/rbac/273_returns_reject_gated.sql` (4 assertions: function existence, 42501 for unauthenticated with real + NULL id, `authenticated` EXECUTE grant). Added to CI required-list.
+- **Catalog flips** in `src/lib/rbac/catalog.json`: `returns_management.reject`, `returns_management.export`, `compliance_management.export` → `enforced: true` (3 pairs).
+
+### Verification (executed this turn)
+
+- `verify-rbac-parity.mjs` → `RBAC parity OK.` scope 46/46, violations empty.
+- `verify-authz-centralized.mjs` → OK (800 files, 0 offenders).
+- `verify-no-alias-namespaces.mjs` → OK.
+
+### Final declaration
+
+**Roles & Permissions implementation remains incomplete.** Batch 4 lands three additional enforced pairs and one new gated RPC (`reject_return`), taking the enforced count up by 3. Remaining `enforced: false` pairs include `returns_management.configure`, `compliance_management.edit`, `prudential_supervision.create/edit`, plus the broader Batch 5–10 scope (workflow SoD guard, storage/edge parity across every module, custom-role byte-diff proof, 12-persona matrix expansion).
