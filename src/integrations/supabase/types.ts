@@ -16155,6 +16155,10 @@ export type Database = {
         Returns: Json
       }
       duplicate_hub_stats: { Args: never; Returns: Json }
+      enforce_action: {
+        Args: { _action: string; _meta?: Json; _module: string }
+        Returns: undefined
+      }
       enforce_permission: {
         Args: { _action: string; _module: string }
         Returns: undefined
