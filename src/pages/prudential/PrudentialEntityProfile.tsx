@@ -153,6 +153,8 @@ export default function PrudentialEntityProfile() {
   })();
 
   const exportProfile = () => {
+  const exportProfile = async () => {
+    await authorizedExport('prudential_supervision', 'export', { entity: e.name });
     const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(`${e.name}-ratios-${stamp}.csv`, (data.ratios || []).map((r: any) => {
