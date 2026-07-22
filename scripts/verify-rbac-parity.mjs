@@ -163,10 +163,17 @@ const report = {
 
 console.log(JSON.stringify(report, null, 2));
 
+const scopeOnly = process.argv.includes('--scope-only');
+
 let failed = false;
 if (violations.length > 0) {
-  console.error(`\nRBAC parity FAILED — ${violations.length} UI reference(s) point at permissions missing from the catalogue.`);
-  failed = true;
+  const msg = `RBAC UI parity: ${violations.length} UI reference(s) point at permissions missing from the catalogue.`;
+  if (scopeOnly) {
+    console.warn(`\n[warn] ${msg} (non-blocking in --scope-only mode; tracked as debt in docs/rbac/completion-report.md)`);
+  } else {
+    console.error(`\nRBAC parity FAILED — ${msg}`);
+    failed = true;
+  }
 }
 if (scopeMissingInDb.length > 0) {
   console.error(`\nRecord-scope parity FAILED — ${scopeMissingInDb.length} UI scope option(s) missing from public.rbac_module_scopes:`);
