@@ -327,7 +327,7 @@ export default function BreachInbox() {
                                 <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
                                   <ShieldCheck className="h-3 w-3 mr-1" /> Ack
                                 </Button>
-                                <Button data-rbac="supervision.approve" size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
+                                <Button data-rbac="prudential_supervision.initiate_supervisory_action" size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
                                   <Gavel className="h-3 w-3 mr-1" /> Escalate
                                 </Button>
                               </>
@@ -425,7 +425,7 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEscTarget(null)}>Cancel</Button>
-            <Button data-rbac="supervision.approve" variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending}>
+            <Button data-rbac="prudential_supervision.initiate_supervisory_action" variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending}>
               {escalate.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Create enforcement case
             </Button>

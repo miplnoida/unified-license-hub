@@ -136,7 +136,7 @@ export default function PrudentialEarlyWarnings() {
               {runRecompute.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
               Recompute
             </Button>
-            <Button data-rbac="prudential.export" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Button data-rbac="prudential_supervision.export" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
               <Download className="h-3 w-3 mr-1" />Export CSV
             </Button>
           </div>
