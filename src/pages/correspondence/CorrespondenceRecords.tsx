@@ -11,6 +11,8 @@ import { RetentionBadge } from '@/components/correspondence/RetentionBadge';
 import { seedCases } from './seed';
 import { format } from 'date-fns';
 import { Download, Eye } from 'lucide-react';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { toast } from 'sonner';
 
 export default function CorrespondenceRecords() {
   const [filters, setFilters] = useState<RecordsFilters>({ query: '', category: 'all', status: 'all', channel: 'all' });
