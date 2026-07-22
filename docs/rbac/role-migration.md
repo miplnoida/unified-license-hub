@@ -96,3 +96,27 @@ licensee-side and PPOC users are unaffected.
 pgTAP coverage: `supabase/tests/rbac/160_slice_b_scoped_permission.sql`
 (14 assertions across every scope kind + inactive-role regression).
 
+
+## Slice I follow-ups (post-completion)
+
+Three residual gaps closed after the initial Slice I merge:
+
+- **Parity oracle upgrade** — `scripts/verify-rbac-parity.mjs` now statically
+  parses `src/lib/rbac/scopeCapabilities.ts` and replays every
+  `rbac_module_scopes` `INSERT`/`DELETE` across `supabase/migrations/*.sql` in
+  filename order. The report emits a `scopeParity` block and the script exits
+  non-zero on any `(module, scope, selector)` drift in either direction. CI
+  therefore fails if a scope option is added to the UI without a matching seed
+  row or if the DB seeds a scope the UI does not offer.
+- **Sensitive-privilege catalogue** — `SENSITIVE_ACTION_NAMES` now covers
+  every export/download/bulk-print variant (`export`, `export_all`,
+  `bulk_export`, `export_confidential`, `download`, `download_all`,
+  `download_bulk`, `print_bulk`). The Manager access level no longer
+  auto-grants `export`; regression covered in
+  `src/test/accessLevels.test.ts`.
+- **Record Scope registry pruning** — removed the `team` option from
+  `complaint_management` and the `department` option from
+  `application_management` because no backing tables exist. Follow-up
+  migration `20260722_rbac_scope_registry_prune` deletes the stale
+  `rbac_module_scopes` rows and clears any `scope_config` entries that
+  pointed at them, so admins can no longer choose an unenforceable scope.
