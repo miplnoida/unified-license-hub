@@ -431,10 +431,14 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
     setSaving(false);
   };
   const issue = async (f: any) => {
+    const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+    try { await authorizedAction('market_conduct', 'edit', { finding_id: f.id, action: 'issue' }); }
+    catch (e: any) { toast.error(e?.message || 'Not authorized'); return; }
     const { data: user } = await supabase.auth.getUser();
     const { error } = await supabase.from('thematic_review_findings' as any)
       .update({ status: 'issued', issued_at: new Date().toISOString(), issued_by: user.user?.id })
       .eq('id', f.id);
+
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_issued', 'thematic_review_finding', f.id, { before: { status: f.status }, after: { status: 'issued' } });
