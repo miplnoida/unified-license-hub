@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, ArrowUp } from 'lucide-react';
