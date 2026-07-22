@@ -36,6 +36,8 @@ jobs:
       - name: RBAC parity oracle (UI + scope, hard gate, no drift allowed)
         run: node scripts/verify-rbac-parity.mjs
 
+      - name: RBAC namespace canonicalization (no legacy aliases)
+        run: node scripts/verify-no-alias-namespaces.mjs
 
       - name: Sensitive privilege proofs
         run: bunx vitest run src/test/sensitivePrivilegeProofs.test.ts
