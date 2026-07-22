@@ -91,6 +91,9 @@ export default function ReturnConfiguration() {
   };
 
   const handleDelete = async (id: string) => {
+    try {
+      await authorizedAction('returns_management', 'configure', { config_id: id, action: 'delete' });
+    } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
     const { error } = await supabase.from('return_configurations' as any).delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Deleted'); loadConfigs();
