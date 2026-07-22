@@ -31,7 +31,16 @@ Changes:
 
 **Known limitation of Phase 2 alone**: existing RLS policies that pass `NULL` as `_licensee_id` (many list queries) will now correctly deny users with assigned scope. Those policies are rewritten module-by-module in Phase 3 to pass the row id. Until Phase 3 lands, users configured with `scope=assigned` on a module see empty lists — this is the safe direction; no over-grant occurs.
 
-## Phase 3 — Full enforcement matrix (Sec. 2, 11, 12, 13) — PENDING
+## Phase 3 — Full enforcement matrix (Sec. 2, 11, 12, 13) — IN PROGRESS
+
+**Slice A landed** — complaints & market conduct. Migration `20260722_phase3_complaints_conduct_scope` (applied):
+
+- New overload `public.has_scoped_permission(user, module, action, record_id, licensee_id, sector_id, owner_id)`. Institution/sector/own arguments unchanged; the record id is the row's own primary key and drives the assigned-scope check via `is_record_assigned_to_user`.
+- Rewrote RLS on `public.complaints` (Read, Update), `public.conduct_alerts` (Read, Manage), `public.conduct_investigations` (ci_read, ci_write) to pass the row id. Previously the assigned branch was inspecting `licensees` — now it inspects the correct authoritative column for that module (`complaints.investigator_id`, `conduct_investigations.assigned_investigator`, `conduct_alerts.assigned_to`).
+- Test: `supabase/tests/rbac/220_phase3_complaints_conduct.sql` — 6 assertions covering assignment, non-assignment, NULL id, cross-module isolation, and reassignment flip.
+
+**Slices still to land**: applications, inspections, enforcement, prudential, returns_filed, reports, licensees, storage buckets, edge functions, RPC exports, workflow actions. Each requires (a) a scope-aware helper that receives the row id, (b) an RLS/RPC rewrite, and (c) module pgTAP.
+
 
 Not started this turn. Scope: rewrite RLS/RPCs/Edge/storage/exports/workflow across every scope-aware module and produce `docs/rbac/enforcement-matrix.md`.
 
