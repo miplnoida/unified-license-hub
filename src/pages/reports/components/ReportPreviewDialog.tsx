@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import type { ReportRun, ReportSource } from '../types';
 import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useToast } from '@/hooks/use-toast';
 import { useReportSources, useReportOptions, useReportSourceColumns } from '../hooks/useReportMetadata';
 import { buildLabelMap, labelFor } from '../lib/columnLabels';
@@ -67,6 +68,12 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const groupSummary = (summary as any).groups as Record<string, number> | undefined;
 
   const handleExport = async (fmt: 'csv' | 'xlsx' | 'json' | 'pdf') => {
+    try {
+      await authorizedExport('report_management', 'export', { run_id: run.id, fmt, rows: run.rowCount });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message || 'You lack permission to export reports.', variant: 'destructive' });
+      return;
+    }
     if (fmt === 'csv') exportToCsv(run.rows, fname, labels);
     else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels);
     else if (fmt === 'pdf') exportToPdf(run.rows, fname, run.name, labels);
@@ -80,6 +87,12 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
+    try {
+      await authorizedExport('report_management', 'export', { run_id: run.id, fmt: 'print', rows: run.rowCount });
+    } catch (e: any) {
+      toast({ title: 'Not authorized', description: e?.message || 'You lack permission to export reports.', variant: 'destructive' });
+      return;
+    }
     const logged = await logExport(run.id, 'pdf', run.rowCount);
     if (!logged) {
       toast({ title: 'Print started', description: 'The audit log entry for this export failed to record.', variant: 'destructive' });
