@@ -567,7 +567,7 @@
   {
     "module": "master_data_management",
     "name": "import",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "notification_management",
@@ -827,7 +827,7 @@
   {
     "module": "settings",
     "name": "export",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "settings",
@@ -847,7 +847,7 @@
   {
     "module": "user_management",
     "name": "delete",
-    "enforced": false
+    "enforced": true
   },
   {
     "module": "user_management",
