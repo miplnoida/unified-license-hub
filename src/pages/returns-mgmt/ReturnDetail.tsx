@@ -769,6 +769,11 @@ export default function ReturnDetail() {
                       });
                       if (!confirm.isConfirmed) return;
                       try {
+                        const { error: gateErr } = await supabase.rpc('reject_return', {
+                          _return_id: id!,
+                          _reason: editDecisionComment.trim(),
+                        });
+                        if (gateErr) { toast.error(gateErr.message || 'Reject gate failed'); return; }
                         await decideEditRequest.mutateAsync({ requestId: pendingEditReq.id, decision: 'denied', comment: editDecisionComment, returnId: id! });
                         setEditDecisionComment('');
                       } catch { /* toast handled */ }
