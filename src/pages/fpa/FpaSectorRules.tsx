@@ -522,7 +522,10 @@ export default function FpaSectorRules() {
   const addRule = useMutation({
     mutationFn: async (form: RuleFormState) => {
       if (!form.sector_id) throw new Error('Sector is required.');
+      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
+      await authorizedAction('fit_and_proper', 'configure', { sector_id: form.sector_id, name: form.name });
       const { error } = await supabase.from('fp_sector_decision_rules').insert({
+
         name: form.name.trim(),
         sector_id: form.sector_id,
         sub_sector_id: form.sub_sector_id || null,
