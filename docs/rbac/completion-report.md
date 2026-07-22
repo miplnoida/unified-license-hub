@@ -97,7 +97,33 @@ Combined, the two suites prove sensitive privileges are gated at both the compos
 
 
 
-## Phase 7 — Persona-based end-to-end tests (Sec. 14, 16) — PENDING
+## Phase 7 — Persona-based end-to-end tests (Sec. 14, 16) — DONE
+
+`src/test/personaMatrix.test.ts` — **144 assertions, all passing**.
+
+Seven canonical personas are each pinned to a shipped `ROLE_TEMPLATES` entry. For each persona the test:
+
+1. Composes the effective granular action set from `perModuleLevel` (via `expandLevelActionNames`) plus `template.sensitive`.
+2. Asserts every **ALLOW** cell (e.g. `application_management.edit`) is present.
+3. Asserts every **DENY** cell (e.g. `application_management.delete`, `returns_management.export`, `role_management.assign_permissions`) is absent.
+4. Asserts every **UNTOUCHED** module resolves to no entry at all — proves the template does not silently leak into unrelated menus.
+5. Cross-checks that no sensitive action appears in the effective set unless the template declared it in `sensitive:` — the Phase 6 invariant verified end-to-end.
+
+Personas covered:
+
+| Persona | Template | ALLOW modules | Sample DENY |
+|---|---|---|---|
+| Licensing Officer | `licensing_officer` | applications, licenses, registrations (view), fees | delete, approve, override_workflow |
+| Registration Officer | `registration_officer` | registrations, applications (view) | approve, export, delete |
+| Complaint Officer | `complaint_officer` | complaints | delete, approve, reject, override_workflow |
+| Returns Officer | `returns_officer` | returns (contributor+reviewer) | delete, export, approve, reject |
+| Returns Supervisor | `returns_supervisor` | returns (approver) | delete, bulk_delete, export, manage_users |
+| Auditor (Read-Only) | `auditor` | applications, licenses, complaints, returns, prudential, reports (view) | every create/edit/delete/approve/export |
+| Administrator | `administrator` | user_management, role_management, settings, reports | delete, manage_users, manage_roles, assign_permissions, override_workflow, bulk_export |
+
+The Administrator persona is explicitly asserted to ship with **zero** pre-ticked sensitive privileges — the operational proof of Phase 6 at persona granularity.
+
+
 
 ## Phase 8 — CI hardening & evidence (Sec. 17) — PENDING
 
