@@ -16173,6 +16173,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      enforce_workflow_transition: {
+        Args: {
+          _action: string
+          _from_state?: string
+          _meta?: Json
+          _module: string
+          _record_id: string
+          _submitter_id?: string
+          _to_state?: string
+        }
+        Returns: undefined
+      }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
