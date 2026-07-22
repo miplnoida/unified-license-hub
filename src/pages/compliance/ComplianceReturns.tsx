@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
