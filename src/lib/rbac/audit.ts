@@ -5,7 +5,7 @@
  * sites (Buttons with meaningful labels, DropdownMenuItems, onClick handlers,
  * onSubmit form handlers, export/download/print utilities) and reports which
  * ones are inside a PermissionGate/GuardedButton or carry an explicit
- * `data-rbac="module.action"` marker.
+ * `data-rbac` marker of the form `<module>.<action>`.
  *
  * Pure heuristic — false positives are expected; the goal is a bounded,
  * reproducible coverage floor and a machine-checkable audit report.
