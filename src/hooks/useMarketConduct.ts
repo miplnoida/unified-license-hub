@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const sb = supabase as any;
 
