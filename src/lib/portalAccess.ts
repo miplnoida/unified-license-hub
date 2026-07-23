@@ -81,3 +81,48 @@ export function hasCapability(row: ExternalPortalAccessRow | null | undefined, c
   if (!row || row.status !== 'active') return false;
   return Boolean(row[cap]);
 }
+
+/**
+ * Role-based default portal capabilities for EXTERNAL users only.
+ *
+ * External portal capabilities (submit your own application/complaint/return,
+ * view your own status, upload supporting docs) are intrinsic to the role —
+ * they are NOT admin-configurable dynamic permissions. Row-level access is
+ * still enforced by RLS. Internal roles are intentionally absent here; their
+ * access is governed exclusively by the dynamic RBAC engine.
+ */
+const EXTERNAL_ROLE_DEFAULTS: Record<string, Partial<Record<PortalArea, PortalCapability[]>>> = {
+  applicant: {
+    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+  },
+  pre_licensee: {
+    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+  },
+  licensee_primary: {
+    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+  },
+  licensee_secondary: {
+    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+  },
+};
+
+export function hasDefaultPortalCapability(
+  role: string | null | undefined,
+  area: PortalArea,
+  capability: PortalCapability,
+): boolean {
+  if (!role) return false;
+  const caps = EXTERNAL_ROLE_DEFAULTS[role]?.[area];
+  return !!caps && caps.includes(capability);
+}
+

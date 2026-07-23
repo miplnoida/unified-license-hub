@@ -8,7 +8,8 @@
  * unified permission catalog so existing UI keeps working.
  */
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import type { PortalArea, PortalCapability, ExternalPortalAccessRow } from '@/lib/portalAccess';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasDefaultPortalCapability, type PortalArea, type PortalCapability, type ExternalPortalAccessRow } from '@/lib/portalAccess';
 
 const AREA_MODULE: Record<PortalArea, string> = {
   licensing: 'licensing',
@@ -36,9 +37,11 @@ const AREA_CAPABILITIES: Record<PortalArea, PortalCapability[]> = {
 
 export function useExternalPortalAccess() {
   const perms = useUserDynamicPermissions();
+  const { user } = useAuth();
 
   const can = (area: PortalArea, capability: PortalCapability, _entityId?: string | null) => {
-    return perms.hasPermission(AREA_MODULE[area], CAPABILITY_ACTION[capability]);
+    if (perms.hasPermission(AREA_MODULE[area], CAPABILITY_ACTION[capability])) return true;
+    return hasDefaultPortalCapability(user?.role, area, capability);
   };
 
   const hasAreaAccess = (area: PortalArea, _entityId?: string | null) => {
