@@ -224,6 +224,7 @@ export const SUPPORTED_ACTION_TYPES: WorkflowActionType[] = [
   'request_resubmission',
   'return_for_correction',
   'request_more_info',
+  'save_comment',
 ];
 
 /**
@@ -241,6 +242,7 @@ export const ALLOWED_UI_ACTION_TYPES: WorkflowActionType[] = [
   'request_resubmission',
   'return_for_correction',
   'request_more_info',
+  'save_comment',
 ];
 
 /** Default action types seeded for a brand-new step. */

@@ -211,6 +211,7 @@ export const DEFAULT_EVENT_FOR_ACTION: Record<WorkflowActionType, string> = {
   request_resubmission: 'application.resubmission_requested',
   return_for_correction: 'application.returned_for_correction',
   request_more_info: 'application.more_info_requested',
+  save_comment: 'application.comment_saved',
 };
 
 export type WorkflowEntityKind = 'application' | 'registration' | 'return';
@@ -223,6 +224,7 @@ const ACTION_EVENT_SUFFIX: Record<WorkflowActionType, string> = {
   request_resubmission: 'resubmission_requested',
   return_for_correction: 'returned_for_correction',
   request_more_info: 'more_info_requested',
+  save_comment: 'comment_saved',
 };
 
 /**
