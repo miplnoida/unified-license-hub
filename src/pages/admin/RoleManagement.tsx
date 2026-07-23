@@ -952,7 +952,13 @@ export default function RoleManagement() {
                           // Sensitive privileges are preserved untouched.
                           const kept = prev.filter(id => !regularIds.has(id));
                           const next = [...kept, ...idsToAdd];
-                          const { resolvedIds } = resolveDependencies(next, permissions);
+                          // Cascade-remove any dependent action (including sensitive
+                          // privileges) that just lost its View prerequisite.
+                          const cascaded = cascadeRemoveDependents(next, permissions);
+                          if (cascaded.removedIds.length > 0) {
+                            toast.info(`Cleared ${cascaded.removedIds.length} dependent action${cascaded.removedIds.length > 1 ? 's' : ''} on this module because the selected level does not include View.`);
+                          }
+                          const { resolvedIds } = resolveDependencies(cascaded.resolvedIds, permissions);
                           return [...new Set(resolvedIds)];
                         });
                       };
@@ -963,7 +969,14 @@ export default function RoleManagement() {
                       };
                       const clearAll = () => {
                         const ids = new Set(filtered.map(a => a.permission.id));
-                        setFormPerms(prev => prev.filter(id => !ids.has(id)));
+                        setFormPerms(prev => {
+                          const next = prev.filter(id => !ids.has(id));
+                          const cascaded = cascadeRemoveDependents(next, permissions);
+                          if (cascaded.removedIds.length > 0) {
+                            toast.info(`Also removed dependent action${cascaded.removedIds.length > 1 ? 's' : ''} that require View.`);
+                          }
+                          return cascaded.resolvedIds;
+                        });
                       };
                       const summary =
                         selectedCount === 0 ? 'No access'
