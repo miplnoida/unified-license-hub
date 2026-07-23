@@ -104,33 +104,16 @@ export async function handler(req: Request): Promise<Response> {
 
     let result: Record<string, unknown>;
 
-    if (raw_action === "save_comment") {
-      // Save Comment: record the comment (preserving action_type='save_comment'
-      // in audit history) and advance the workflow like Approve.
-      if (!comments.trim()) {
-        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
-      }
-      const { error: commentInsertErr } = await admin.from("approval_actions").insert({
-        application_id,
-        entity_type: "application",
-        entity_id: application_id,
-        step_id: step_id ?? null,
-        workflow_instance_id: instance_id ?? null,
-        actor_id: caller.id,
-        action: "comment_saved",
-        action_type: "save_comment",
-        comments,
-      });
-      if (commentInsertErr) {
-        console.error("save_comment insert error:", commentInsertErr);
-        return errorResponse(req, 500, commentInsertErr.message || "Failed to save comment", "DB_ERROR");
-      }
+    if (raw_action === "save_comment" && !comments.trim()) {
+      return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
     }
     {
-    // For Save Comment, advance the workflow like Approve by mapping to
-    // 'approve' for the transition RPC and configuration lookups. The
-    // approval_actions row above already recorded the true 'save_comment' action.
-    const effective_action = raw_action === "save_comment" ? "approve" : raw_action;
+    // save_comment is a first-class action in the RPC (records the row,
+    // advances the step like Approve, and dedups per actor/step). For
+    // signature/legal-stage gating we reuse the Approve configuration.
+    const effective_action = raw_action;
+    const config_action = raw_action === "save_comment" ? "approve" : raw_action;
+
 
     // Enforce digital signature requirement (configured per step OR per step+action).
     if (step_id) {
