@@ -48,7 +48,34 @@ export type DependentAction = (typeof DEPENDENT_ACTIONS)[number];
 
 const DEPENDENT_SET = new Set<string>(DEPENDENT_ACTIONS.map((a) => a.toLowerCase()));
 
+/**
+ * Normalize a module key the same way the DB does:
+ *   lower(regexp_replace(module, '\s+', '_', 'g'))
+ * Used everywhere we compare a permission's module to a `view` permission's
+ * module, so whitespace/case drift in the catalog cannot bypass the check.
+ */
+export function normalizeModuleKey(module: string | null | undefined): string {
+  return (module ?? '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+/**
+ * The DB rule (`public.rbac_save_role`) requires `view` for EVERY non-view
+ * permission on the same module — not just the curated `DEPENDENT_ACTIONS`
+ * list. Mirror that here so the UI never lets a role reach the server in a
+ * state the server will reject.
+ *
+ * `DEPENDENT_ACTIONS` / `DEPENDENT_SET` are kept as a documented subset for
+ * copy in UI messages and back-compat with existing callers.
+ */
 export function permissionHasDependency(action: string | null | undefined): boolean {
+  if (!action) return false;
+  const a = action.trim().toLowerCase();
+  if (!a) return false;
+  return a !== 'view';
+}
+
+/** True when `action` is in the curated dependent-action list (edit/create/…). */
+export function isCuratedDependentAction(action: string | null | undefined): boolean {
   return !!action && DEPENDENT_SET.has(action.trim().toLowerCase());
 }
 
@@ -86,11 +113,11 @@ export function resolveDependencies(
   const byId = new Map(catalog.map((p) => [p.id, p]));
   const selected = new Set(selectedIds);
 
-  // module -> id of the "view" permission on that module (if any).
+  // normalized module key -> id of the "view" permission on that module.
   const viewByModule = new Map<string, string>();
   for (const p of catalog) {
     if (p.name.trim().toLowerCase() === 'view') {
-      viewByModule.set(p.module, p.id);
+      viewByModule.set(normalizeModuleKey(p.module), p.id);
     }
   }
 
@@ -102,7 +129,7 @@ export function resolveDependencies(
     if (!p) continue;
     if (!permissionHasDependency(p.name)) continue;
 
-    const viewId = viewByModule.get(p.module);
+    const viewId = viewByModule.get(normalizeModuleKey(p.module));
     if (!viewId) continue; // no view permission catalogued for this module — nothing to require
     if (selected.has(viewId)) continue; // dependency satisfied
 
@@ -121,3 +148,4 @@ export function resolveDependencies(
     resolvedIds: [...new Set([...selectedIds, ...toAdd])],
   };
 }
+

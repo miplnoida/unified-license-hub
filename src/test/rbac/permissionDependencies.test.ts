@@ -62,4 +62,41 @@ describe('permissionDependencies', () => {
     expect(res.addedPermissionIds).toEqual([]);
     expect(res.violations).toEqual([]);
   });
+
+  it('treats every non-view action (including custom ones) as requiring view', () => {
+    // "add_legal_notes" is not in the curated DEPENDENT_ACTIONS list, but the
+    // DB still requires view — the resolver must mirror that.
+    const catalog = [
+      { id: 'v-lic', module: 'licensing', name: 'view' },
+      { id: 'aln-lic', module: 'licensing', name: 'add_legal_notes' },
+    ];
+    const res = resolveDependencies(['aln-lic'], catalog);
+    expect(res.addedPermissionIds).toEqual(['v-lic']);
+    expect(res.violations).toHaveLength(1);
+    expect(res.violations[0].action).toBe('add_legal_notes');
+    expect(res.resolvedIds.sort()).toEqual(['aln-lic', 'v-lic']);
+  });
+
+  it('adds view only once for multiple non-view actions on the same module', () => {
+    const catalog = [
+      { id: 'v-lic', module: 'licensing', name: 'view' },
+      { id: 'aln', module: 'licensing', name: 'add_legal_notes' },
+      { id: 'fc', module: 'licensing', name: 'flag_concern' },
+      { id: 'rc', module: 'licensing', name: 'recommend_conditions' },
+    ];
+    const res = resolveDependencies(['aln', 'fc', 'rc'], catalog);
+    expect(res.addedPermissionIds).toEqual(['v-lic']);
+    expect(res.violations).toHaveLength(3);
+  });
+
+  it('normalizes module keys (whitespace / case) when matching view', () => {
+    const catalog = [
+      { id: 'v', module: 'License Management', name: 'view' },
+      { id: 'mla', module: 'license_management', name: 'manage_license_actions' },
+    ];
+    const res = resolveDependencies(['mla'], catalog);
+    expect(res.addedPermissionIds).toEqual(['v']);
+    expect(res.violations).toHaveLength(1);
+  });
 });
+
