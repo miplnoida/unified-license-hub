@@ -149,3 +149,57 @@ export function resolveDependencies(
   };
 }
 
+export interface CascadeResult {
+  resolvedIds: string[];
+  removedIds: string[];
+  /** Normalized module keys where dependents were dropped. */
+  affectedModules: string[];
+}
+
+/**
+ * Mirror the DB rule at the client: for every module where `view` is NOT
+ * selected, drop every non-view permission on that module from the
+ * selection. Use this whenever a mutation path could remove `view` while
+ * leaving dependents behind (module-level access-level change, module
+ * clear-all, un-ticking view directly).
+ */
+export function cascadeRemoveDependents(
+  selectedIds: string[],
+  catalog: readonly PermissionLike[],
+): CascadeResult {
+  const byId = new Map(catalog.map((p) => [p.id, p]));
+  const selected = new Set(selectedIds);
+
+  // Modules that have `view` selected (by normalized key).
+  const modulesWithView = new Set<string>();
+  for (const id of selectedIds) {
+    const p = byId.get(id);
+    if (!p) continue;
+    if (p.name.trim().toLowerCase() === 'view') {
+      modulesWithView.add(normalizeModuleKey(p.module));
+    }
+  }
+
+  const removedIds: string[] = [];
+  const affected = new Set<string>();
+  const resolved: string[] = [];
+  for (const id of selectedIds) {
+    const p = byId.get(id);
+    if (!p) { resolved.push(id); continue; }
+    const modKey = normalizeModuleKey(p.module);
+    const isView = p.name.trim().toLowerCase() === 'view';
+    if (!isView && permissionHasDependency(p.name) && !modulesWithView.has(modKey)) {
+      removedIds.push(id);
+      affected.add(modKey);
+      continue;
+    }
+    resolved.push(id);
+  }
+
+  return {
+    resolvedIds: [...new Set(resolved)],
+    removedIds,
+    affectedModules: [...affected],
+  };
+}
+
