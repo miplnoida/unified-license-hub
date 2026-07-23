@@ -5,6 +5,8 @@ SELECT plan(5);
 SELECT has_function('public','create_application_draft',ARRAY['text','jsonb','uuid'],
   'create_application_draft(text,jsonb,uuid) exists');
 
+SELECT set_config('request.jwt.claims', '{}', true);
+
 SELECT throws_ok(
   $$SELECT (public.create_application_draft('General', '{}'::jsonb, NULL)).id$$,
   '42501', NULL,
