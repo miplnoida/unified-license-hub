@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
           .from("approval_step_actions")
           .select("require_digital_signature")
           .eq("step_id", step_id)
-          .eq("action_type", effective_action)
+          .eq("action_type", config_action)
           .eq("is_enabled", true)
           .maybeSingle(),
         admin
