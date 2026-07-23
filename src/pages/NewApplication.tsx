@@ -1097,35 +1097,18 @@ export default function NewApplication() {
       }
       return applicationId;
     } else {
-      // Resolve the LIVE authenticated user id right before the insert. The
-      // in-memory `user.id` from AuthContext can drift from `auth.uid()` after
-      // a silent token refresh or portal switch, which is the most common cause
-      // of the applications_insert RLS denial ("new row violates row-level
-      // security policy") on Proceed to Forms.
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-      const authUserId = authData?.user?.id;
-      if (authErr || !authUserId) {
-        toast.error('Your session has expired. Please sign in again.');
-        navigate('/login');
-        return null;
-      }
       const payload = buildDraftPayload(null);
-      const { data, error } = await supabase
-        .from('applications')
-        .insert({
-          applicant_id: authUserId,
-          license_type: payload.license_type,
-          status: 'draft',
-          data: payload.data,
-          regulator_id: payload.regulator_id,
-        } as any)
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).rpc('create_application_draft', {
+        _license_type: payload.license_type,
+        _data: payload.data,
+        _regulator_id: payload.regulator_id,
+      });
       if (error) {
-        const isRls = (error as any).code === '42501' || /row-level security/i.test(error.message);
+        const message = error.message || 'Unable to create application draft.';
+        const isAuth = (error as any).code === '42501' || /AUTH_REQUIRED|permission|forbidden|row-level security/i.test(message);
         toast.error(
-          'Failed to create application: ' + error.message +
-          (isRls ? ' — please sign out and sign back in, then try again.' : '')
+          'Failed to create application: ' + message +
+          (isAuth ? ' — please sign out and sign back in, then try again.' : '')
         );
         return null;
       }
