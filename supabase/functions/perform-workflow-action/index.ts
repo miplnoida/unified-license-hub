@@ -127,6 +127,10 @@ export async function handler(req: Request): Promise<Response> {
       }
     }
     {
+    // For Save Comment, advance the workflow like Approve by mapping to
+    // 'approve' for the transition RPC and configuration lookups. The
+    // approval_actions row above already recorded the true 'save_comment' action.
+    const effective_action = raw_action === "save_comment" ? "approve" : raw_action;
 
     // Enforce digital signature requirement (configured per step OR per step+action).
     if (step_id) {
@@ -135,7 +139,7 @@ export async function handler(req: Request): Promise<Response> {
           .from("approval_step_actions")
           .select("require_digital_signature")
           .eq("step_id", step_id)
-          .eq("action_type", raw_action)
+          .eq("action_type", effective_action)
           .eq("is_enabled", true)
           .maybeSingle(),
         admin
@@ -193,19 +197,14 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // Atomic transition — lock + validate + write happens in one transaction.
-    // raw_action is passed through unchanged; the RPC understands every
-    // accepted action type as a first-class transition.
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: raw_action,
-
+      _action_type: effective_action,
       _comments: comments,
       _actor_id: caller.id,
     });
-
-
 
     if (rpcErr) {
       console.error("perform_workflow_transition error:", rpcErr);
@@ -217,7 +216,10 @@ export async function handler(req: Request): Promise<Response> {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
-    } // end else (non-save_comment)
+    if (raw_action === "save_comment") {
+      (result as any).saved_comment = true;
+    }
+    } // end transition block
 
     // Persist captured signature on the just-written approval_actions row.
     if (signature_data_url) {
