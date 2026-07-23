@@ -18,6 +18,10 @@ DECLARE
   v_spoofed uuid := '00000000-0000-0000-0000-00000000d287';
   v_app public.applications;
 BEGIN
+  INSERT INTO auth.users(id, email)
+    VALUES (v_applicant, 'application-draft-owner@example.com')
+    ON CONFLICT (id) DO NOTHING;
+
   INSERT INTO public.user_roles(user_id, role)
     VALUES (v_applicant, 'applicant')
     ON CONFLICT DO NOTHING;
