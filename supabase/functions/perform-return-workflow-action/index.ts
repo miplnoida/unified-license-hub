@@ -171,6 +171,7 @@ Deno.serve(async (req) => {
         action_type === "request_more_info" ? "return.more_info_requested" :
         action_type === "send_back" ? "return.send_back" :
         action_type === "escalate" ? "return.escalated" :
+        action_type === "save_comment" ? "return.comment_saved" :
         action_type === "approve" ? ((result as any).new_status === "VAL" ? "return.approved" : "return.approved_step") :
         "return.workflow_action_taken";
       const sharedPayload = {
