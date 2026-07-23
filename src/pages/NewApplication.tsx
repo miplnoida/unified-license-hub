@@ -2191,6 +2191,15 @@ export default function NewApplication() {
                 entityId={applicationId}
                 onUploaded={() => setDocRefresh(p => p + 1)}
               />
+              {user?.id && (
+                <BatchDocumentUpload
+                  entityType="application"
+                  entityId={applicationId}
+                  userId={user.id}
+                  helperText="Queue multiple files, tag each with a document type, and upload in one go."
+                  onUploaded={() => setDocRefresh(p => p + 1)}
+                />
+              )}
               <div key={docRefresh}>
                 <AttachmentList entityType="application" entityId={applicationId} />
               </div>
