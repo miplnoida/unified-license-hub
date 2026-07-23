@@ -214,11 +214,12 @@ export async function handler(req: Request): Promise<Response> {
       return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
     }
 
-    const result = (rpcRes || {}) as Record<string, unknown>;
+    result = (rpcRes || {}) as Record<string, unknown>;
     if (result.error) {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
+    } // end else (non-save_comment)
 
     // Persist captured signature on the just-written approval_actions row.
     if (signature_data_url) {
