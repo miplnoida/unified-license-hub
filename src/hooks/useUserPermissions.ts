@@ -91,6 +91,12 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/change-password',
   '/notifications',
   '/registration-status',
+  // Portal capabilities that pre-licensees carry by default (submit / view
+  // their own complaint or F&P declaration). Route-level PortalRoute still
+  // enforces the capability check; this list only prevents the pre-licensee
+  // approval gate from bouncing them to /dashboard first.
+  '/complaints',
+  '/fp-declarations',
 ];
 
 /**
