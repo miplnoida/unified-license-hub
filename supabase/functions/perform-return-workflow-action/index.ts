@@ -15,6 +15,7 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
   "return_for_correction",
   "request_more_info",
+  "save_comment",
 ]);
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
