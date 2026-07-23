@@ -365,6 +365,7 @@ export async function handler(req: Request): Promise<Response> {
         raw_action === "request_more_info" ? "application.more_info_requested" :
         raw_action === "send_back" ? "application.send_back" :
         raw_action === "approve" ? "application.approved_step" :
+        raw_action === "save_comment" ? "application.comment_saved" :
         "application.workflow_action_taken";
       await admin.functions.invoke("dispatch-notification-event", {
         body: {
