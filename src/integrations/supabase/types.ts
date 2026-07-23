@@ -15997,6 +15997,49 @@ export type Database = {
         Args: { _from_step: string; _to_step: string }
         Returns: number
       }
+      create_application_draft: {
+        Args: { _data?: Json; _license_type: string; _regulator_id?: string }
+        Returns: {
+          ack_at: string | null
+          ack_by: string | null
+          ack_text: string | null
+          applicant_id: string
+          application_number: string
+          approved_at: string | null
+          assessment_notes: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          cancelled_at: string | null
+          created_at: string
+          current_step_id: string | null
+          data: Json | null
+          decision_rationale: string | null
+          form_version_id: string | null
+          id: string
+          last_sufficiency_evaluation_id: string | null
+          license_type: string
+          priority: number
+          priority_reason: string | null
+          priority_set_at: string | null
+          priority_set_by: string | null
+          regulator_id: string | null
+          rejected_at: string | null
+          review_notes: string | null
+          search_vector: unknown
+          status: string
+          submitted_at: string | null
+          sufficiency_status: string | null
+          updated_at: string
+          workflow_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_approval_workflow_with_steps: {
         Args: { _steps: Json; _workflow: Json }
         Returns: Json
