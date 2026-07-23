@@ -92,27 +92,15 @@ export async function handler(req: Request): Promise<Response> {
 
     let result: Record<string, unknown>;
 
-    if (raw_action === "save_comment") {
-      if (!comments.trim()) {
-        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
-      }
-      const { error: insertErr } = await admin.from("approval_actions").insert({
-        entity_type: "registration",
-        entity_id: registration_id,
-        step_id: step_id ?? null,
-        workflow_instance_id: instance_id ?? null,
-        actor_id: caller.id,
-        action: "comment_saved",
-        action_type: "save_comment",
-        comments,
-      });
-      if (insertErr) {
-        console.error("save_comment insert error:", insertErr);
-        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
-      }
+    if (raw_action === "save_comment" && !comments.trim()) {
+      return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
     }
     {
-    const effective_action = raw_action === "save_comment" ? "approve" : raw_action;
+    // save_comment is handled by the RPC as a first-class action. For
+    // signature configuration lookups we reuse the Approve config.
+    const effective_action = raw_action;
+    const config_action = raw_action === "save_comment" ? "approve" : raw_action;
+
 
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
