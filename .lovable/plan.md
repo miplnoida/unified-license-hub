@@ -1,28 +1,19 @@
-## Add Bulk Document Upload to New Application (Documents step)
+## Create "Merchant Bank License Application" Pre-License Form
 
-Mirror the batch upload UI already present in `ApplicationDetail.tsx` documents tab into the New Application wizard's Documents step, without touching any other flow.
+Add a new pre-license form template via a data insert into `form_templates` (form_type = `pre_license`), containing four required fields grouped in a single section.
 
-### Changes
+### Fields
+1. **Wholesale banking operations plan** — long text (textarea), required
+2. **Correspondent banking arrangements** — long text (textarea), required
+3. **Capital adequacy evidence** — file upload, required
+4. **Directors and officers** — long text (textarea), required
 
-**`src/pages/NewApplication.tsx`**
-1. Add import: `import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';`
-2. In the Documents step render block (around lines 2187-2195), insert `<BatchDocumentUpload>` right after the existing single `<DocumentUpload>`, guarded by `user?.id`:
-   ```tsx
-   <DocumentUpload entityType="application" entityId={applicationId} onUploaded={...} />
-   {user?.id && (
-     <BatchDocumentUpload
-       entityType="application"
-       entityId={applicationId}
-       userId={user.id}
-       helperText="Queue multiple files, tag each with a document type, and upload in one go."
-       onUploaded={() => setDocRefresh(p => p + 1)}
-     />
-   )}
-   <div key={docRefresh}>
-     <AttachmentList entityType="application" entityId={applicationId} />
-   </div>
-   ```
+### Details
+- Status: `draft` (admin can publish from Pre-License Forms screen)
+- Regulator: current active regulator context (will use the BOJ/default regulator already used by existing pre-license forms)
+- Sector / Sub-sector / Category: left unassigned so admin can classify before publishing (matches how other seed templates were created)
+- Version: 1
+- Layout: single section, one column per field
 
-### Out of scope
-- No changes to `BatchDocumentUpload`, `DocumentUpload`, `AttachmentList`, or Application Detail.
-- No changes to wizard step logic, RBAC, or backend.
+### Open question
+Should I assign this to a specific Sector / Sub-Sector / Category (e.g. Banking → Merchant Bank), or leave it unclassified for the admin to set before publishing?
