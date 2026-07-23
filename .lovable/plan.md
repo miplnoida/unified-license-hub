@@ -1,49 +1,59 @@
-# Fix "Save Comment" Behavior & Email
+## Problem
 
-Two issues to fix:
+The current "Save Comment" implementation maps the action to `approve` before calling `perform_workflow_transition` / `perform_registration_workflow_transition` / `perform_return_workflow_transition`. Each of those RPCs validates:
 
-1. **Email shows raw HTML tags.** The three `*.comment_saved` email templates (`application.comment_saved`, `registration.comment_saved`, `return.comment_saved`) were seeded with HTML markup (`<p>`, `<strong>`, `<blockquote>`), but every other email template in `notification_templates` is stored as plain text and the send-notification pipeline delivers bodies as plain text. Result: users see literal `<p>...</p>` markup in their inbox.
-
-2. **Save Comment must complete the step and advance.** Current behavior short-circuits inside the three `perform-*-workflow-action` edge functions and records only an `approval_actions` row without transitioning state. The user now wants Save Comment to behave like an "Approve" for the current step — mark it completed and move to the next step in the workflow.
-
-## Changes
-
-### 1. Rewrite the three comment-saved email templates as plain text
-Migration updates `notification_templates.body` (and keeps subject) for the 3 rows above:
-
-```
-{{reviewer_name}} added a comment on application {{application_number}}:
-
-{{comments}}
-
-No action is required — this notification is informational.
+```sql
+IF NOT (_action_type = ANY(v_step.allowed_actions)) THEN
+  RETURN jsonb_build_object('error', format('Action ''%s'' is not allowed on this step', _action_type), ...);
 ```
 
-Analogous copy for `registration.comment_saved` (uses `{{registration_reference}}`) and `return.comment_saved` (uses `{{return_reference}}`). Matches the plain-text style used by every other email template in the system.
+So when the current step's `allowed_actions` does not include `approve` for the caller's role (as on the step surfaced in application `94416f43-…`), Save Comment fails with `"action 'approve' is not allowed in this step"`. Additionally, repeatedly clicking Save Comment on the same step piles up duplicate rows in `approval_actions`.
 
-### 2. Make Save Comment advance the workflow like Approve
-In each of the three edge functions, remove the `save_comment` short-circuit branch and let the action flow through the existing `perform_*_workflow_transition` RPC. Two options for the RPC contract:
+## Fix
 
-- **Option A (preferred, no DB changes):** In the edge function, when `action_type === 'save_comment'`, first insert the `approval_actions` row with `action_type='save_comment'` (so audit history preserves the true action name), then invoke the transition RPC with `_action_type = 'approve'` to move the step forward. The dispatched notification still uses `*.comment_saved` event keys so the new plain-text template fires. The response still reports the correct `saved_comment: true` flag alongside `new_step_id`/`new_status` from the transition.
-- Option B would be to teach the SQL RPC to recognize `save_comment` as an advance-equivalent action, but that touches shared workflow logic used by other flows — avoiding it keeps the change surgical.
+Treat `save_comment` as its own first-class transition action instead of masquerading as `approve`. It must advance the step (as the user asked earlier) but must not depend on `approve` being configured for the step or the role, and it must not create duplicate comments per (actor, step).
 
-The digital-signature and comment-required checks stay as they are for save_comment (comment mandatory; signature per step config).
+### 1. Update the three transition RPCs
 
-### 3. No frontend changes required
-`useWorkflowEngine`, `useStepActions`, `useActionNotifications`, and both WorkflowPanels already register `save_comment`; they will simply see a real `new_step_id` in the response and refresh.
+Files (new migration; do NOT edit existing migrations):
 
-## Verification
+- `perform_workflow_transition` (application)
+- `perform_registration_workflow_transition`
+- `perform_return_workflow_transition`
 
-- Deploy edge functions and run migration.
-- Trigger Save Comment on an application in a multi-step workflow; confirm:
-  - `approval_actions` row has `action_type='save_comment'`.
-  - Workflow instance advances to next step (or completes if last step).
-  - Email body renders as plain text with the reviewer/comment values (no `<p>` tags visible).
-- Repeat for a registration and a return.
+Changes inside each RPC:
 
-## Files touched
+1. Add `'save_comment'` to the valid `_action_type` whitelist so it isn't rejected as `BAD_ACTION`.
+2. Skip the `allowed_actions` membership check when `_action_type = 'save_comment'` (comments are implicitly allowed on every step).
+3. In the progression branch, handle `save_comment` the same way as `approve` (advance to next step, or mark final approved if last step). It uses the approve progression code path but records `action_type='save_comment'` / `action='comment_saved'` in `approval_actions`.
+4. Before inserting the `approval_actions` row for `save_comment`, delete any prior `approval_actions` row where `entity_type = <entity>` AND `entity_id = <id>` AND `step_id = v_step.id` AND `actor_id = _actor_id` AND `action_type = 'save_comment'`. This enforces "only one Save Comment per actor per step".
 
-- `supabase/migrations/<new>_plain_text_comment_saved_templates.sql`
+### 2. Update the three edge functions
+
 - `supabase/functions/perform-workflow-action/index.ts`
 - `supabase/functions/perform-registration-workflow-action/index.ts`
 - `supabase/functions/perform-return-workflow-action/index.ts`
+
+Changes:
+
+1. Remove the pre-RPC `approval_actions` insert for `save_comment` (the RPC now writes the row itself with the correct de-dup behavior).
+2. Remove the `effective_action = raw_action === 'save_comment' ? 'approve' : raw_action` mapping. Pass `save_comment` through to the RPC unchanged.
+3. Keep the digital-signature check keyed on `save_comment` (it will simply find no config and require nothing, matching current behavior for optional actions).
+4. Keep the notification dispatch mapping for `*.comment_saved` untouched.
+
+### 3. No frontend changes
+
+`WorkflowPanel`, `useWorkflowEngine`, `useStepActions`, and notification templates already handle `save_comment` correctly. The UI already shows Save Comment alongside other actions; nothing to change there.
+
+## Verification
+
+- Load `/applications/94416f43-13d8-41ab-b4ee-a4b328ff27f5`, submit Save Comment. Confirm the step advances and no `approve`-not-allowed error appears.
+- Submit Save Comment twice on the same step (via a step that loops back or via a fresh test app): confirm exactly one `approval_actions` row per (actor, step, save_comment) exists.
+- Run Save Comment on a return and a registration to confirm parity across all three entities.
+- Confirm the `*.comment_saved` email still dispatches with the plain-text template.
+
+## Out of scope
+
+- No changes to notification templates or event configs (already fixed last turn).
+- No workflow builder changes — `save_comment` remains implicitly available on every step.
+- No RLS or role changes.

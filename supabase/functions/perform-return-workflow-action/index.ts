@@ -76,27 +76,13 @@ Deno.serve(async (req) => {
 
     let result: Record<string, unknown>;
 
-    if (action_type === "save_comment") {
-      if (!comments.trim()) {
-        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
-      }
-      const { error: insertErr } = await admin.from("approval_actions").insert({
-        entity_type: "return",
-        entity_id: return_id,
-        step_id: step_id ?? null,
-        workflow_instance_id: instance_id ?? null,
-        actor_id: caller.id,
-        action: "comment_saved",
-        action_type: "save_comment",
-        comments,
-      });
-      if (insertErr) {
-        console.error("save_comment insert error:", insertErr);
-        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
-      }
+    if (action_type === "save_comment" && !comments.trim()) {
+      return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
     }
     {
-    const effective_action = action_type === "save_comment" ? "approve" : action_type;
+    const effective_action = action_type;
+    const config_action = action_type === "save_comment" ? "approve" : action_type;
+
 
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
@@ -104,7 +90,7 @@ Deno.serve(async (req) => {
           .from("approval_step_actions")
           .select("require_digital_signature")
           .eq("step_id", step_id)
-          .eq("action_type", effective_action)
+          .eq("action_type", config_action)
           .eq("is_enabled", true)
           .maybeSingle(),
         admin
