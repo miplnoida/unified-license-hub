@@ -5,7 +5,7 @@ import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { AccessDenied } from '@/components/shared/AccessDenied';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
+import { hasDefaultPortalCapability, type PortalArea, type PortalCapability } from '@/lib/portalAccess';
 
 interface PortalRouteProps {
   children: React.ReactNode;
