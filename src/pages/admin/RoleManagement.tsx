@@ -32,7 +32,7 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, useResetSystemRole,
   DynamicRole, Permission, RoleType, DashboardTier, RoleStatus, RoleScopeConfig,
 } from '@/hooks/useRoles';
-import { resolveDependencies, permissionHasDependency } from '@/lib/rbac/permissionDependencies';
+import { resolveDependencies, permissionHasDependency, cascadeRemoveDependents } from '@/lib/rbac/permissionDependencies';
 import {
   useCatalogModules, useCatalogActions,
 } from '@/hooks/usePermissionCatalog';
