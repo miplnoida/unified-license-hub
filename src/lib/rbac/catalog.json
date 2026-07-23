@@ -876,7 +876,13 @@
   },
   {
     "module": "workflow_management",
+    "name": "publish",
+    "enforced": true
+  },
+  {
+    "module": "workflow_management",
     "name": "view",
     "enforced": true
   }
 ]
+
