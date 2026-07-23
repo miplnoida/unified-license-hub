@@ -433,10 +433,23 @@ export default function RoleManagement() {
       toast.error('Please select at least one permission so this role can do something');
       return;
     }
+    // Cascade first: drop any dependent action whose View was removed. This
+    // matches the DB's `assert_role_permission_view_retained` trigger so the
+    // RPC never sees an inconsistent selection (e.g. from legacy role data,
+    // template application, or search-scoped clear-all).
+    const cascaded = cascadeRemoveDependents([...new Set(formPerms)], permissions);
+    if (cascaded.removedIds.length > 0) {
+      const names = cascaded.removedIds
+        .map(id => permissions.find(p => p.id === id))
+        .filter(Boolean)
+        .map(p => `${p!.module}.${p!.name}`)
+        .join(', ');
+      toast.info(`Removed ${cascaded.removedIds.length} dependent action${cascaded.removedIds.length > 1 ? 's' : ''} lacking View: ${names}`);
+    }
     // Final safeguard — auto-add prerequisite `view` permissions so the
     // server-side dependency trigger never rejects the save.
     const { resolvedIds, violations, addedPermissionIds } = resolveDependencies(
-      [...new Set(formPerms)],
+      cascaded.resolvedIds,
       permissions,
     );
     if (violations.length > 0 && addedPermissionIds.length > 0) {
