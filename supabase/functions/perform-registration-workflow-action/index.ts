@@ -193,6 +193,7 @@ export async function handler(req: Request): Promise<Response> {
         isFinalApprove ? "registration.final_approved" :
         raw_action === "approve" ? "registration.approved_step" :
         raw_action === "escalate" ? "registration.escalated" :
+        raw_action === "save_comment" ? "registration.comment_saved" :
         "registration.action_taken";
 
       // Look up reviewer (current caller) display name for template rendering.
