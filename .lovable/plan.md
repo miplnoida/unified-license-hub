@@ -1,46 +1,56 @@
 ## Problem
 
-External users (applicant, licensee_primary, licensee_secondary, pre_licensee) no longer see the **Complaints** menu (and any other portal item that declares a `module`). It regressed as part of the RBAC hardening pass.
+External users (applicants, licensee_primary/secondary, pre-licensee) see the Complaints menu but clicking `/complaints` bounces them to `/dashboard`. Two guards are the culprits:
 
-## Root cause (confirmed by reading Sidebar.tsx lines 122–189)
+1. **`PortalRoute`** (`src/components/auth/PortalRoute.tsx`) — for external users it now calls `hasPermission('complaint_management', 'submit'|'view_status')` against the internal dynamic-permission engine. External users don't hold rows in `role_permissions`, so every capability returns `false` → the route renders `<AccessDenied />` (and, for pre-licensees, the outer gate redirects first — see #2).
 
-`Sidebar.isItemVisible` runs this branch whenever `enforceDynamic` is true (which is true for every non-super-admin, including external users):
+2. **`RegistrationApprovalGate`** (`src/routes/routeHelpers.tsx`) — for approved pre-licensees, if the path is not in `PRE_LICENSEE_ALLOWED_ROUTES` and the module permission check fails, it `Navigate`s to `/dashboard`. `/complaints` is not in the allowlist, which is exactly what the user is seeing.
 
-```ts
-if (item.module) {
-  if (isInternalOnlyItem && !userIsInternal) return false;
-  if (item.requiredAction) return hasPermission(item.module, item.requiredAction);
-  if (hasModuleAccess(item.module)) return true;
-  ...
-  return false;   // ← external users always land here
-}
-```
-
-`hasModuleAccess` / `hasPermission` walk `user_dynamic_roles → role_permissions → permissions`. External users have **no dynamic role**, so both return `false`, and the entry is hidden even though its `roles` array explicitly lists external audiences (`applicant`, `licensee_primary`, etc.).
-
-The Complaints entry in `src/config/navigation.tsx` line 126 lists external roles and `module: 'complaint_management'`, so it is affected. The same regression silently hides any other module-tagged item whose audience includes external roles (Applications, Payments, Returns for licensees, F&P declarations, Documents, etc.).
-
-The intent of the earlier `isInternalOnlyItem` block was exactly to distinguish admin-only screens from portal screens, but the code then still forces external users through the internal permission check.
+This regression came from consolidating external portal access into the dynamic RBAC engine without keeping a role-based fallback for the fixed portal capabilities that every external user is supposed to have by default (submit/view their own complaint, application, return, etc.).
 
 ## Fix
 
-Restore the external-audience path in `src/components/layout/Sidebar.tsx` `isItemVisible`, without weakening internal gating:
+Keep internal RBAC untouched. Restore role-based defaults for external portal capabilities so `PortalRoute` and the pre-licensee gate stop blocking legitimate external users.
 
-1. Compute `userIsInternal` once (already there).
-2. When `item.module` is set and the item is **not** `isInternalOnlyItem`:
-   - If `userIsInternal` → keep today's behavior (`hasModuleAccess` / `requiredAction` check).
-   - If not internal → return `effectiveVisible` (the existing audience match that already accounts for licensee / pre-licensee portal context). Row-level access is still enforced by RLS on click; the menu just needs to appear for the declared audience.
-3. Apply the same split in the `item.href → mappedModule` branch a few lines below (same regression class).
-4. Leave the `isInternalOnlyItem` early-return in place so admin-only screens (`/admin/*`, `/settings/*`, `adminOnly: true`) stay hidden for external users regardless of module.
+### 1. `src/lib/portalAccess.ts` (new helper) or inline in `PortalRoute.tsx`
 
-No changes to `usePermissions.ts`, no RLS changes, no navigation config changes.
+Add a small role → default capabilities table used only for external roles:
 
-## Verification
+```text
+applicant             → licensing (submit, view_status, upload_documents, respond_rfi),
+                        complaints (submit, view_status, upload_documents),
+                        fp_declarations (submit, view_status, upload_documents)
+pre_licensee          → same as applicant
+licensee_primary      → licensing + returns + complaints + fp_declarations (all capabilities)
+licensee_secondary    → same as primary (RLS still scopes rows)
+```
 
-- Add persona cases to `src/test/sidebarVisibility.test.tsx`: `applicant`, `licensee_primary`, `licensee_secondary`, `pre_licensee` each see **Complaints**; none of them see admin-only items like `Complaint Types`, `Duplicate Detection`, `Auto-Escalation`, `Admin Control Panel`.
-- Existing 10-persona suite must still pass (assignment-only regulator still sees only Return Queue; internal users without permission still don't see gated items).
+Expose `hasDefaultPortalCapability(role, area, capability)`.
+
+### 2. `src/components/auth/PortalRoute.tsx`
+
+For external users, allow if EITHER:
+- dynamic permission grants the mapped `(module, action)` (unchanged), OR
+- the user's base role carries the default portal capability from the table above.
+
+Only fall to `<AccessDenied />` when neither path grants access. Internal branch is unchanged.
+
+### 3. `src/hooks/useUserPermissions.ts`
+
+Add `/complaints` (and, defensively, `/fp-declarations`) to `PRE_LICENSEE_ALLOWED_ROUTES` so approved pre-licensees who submit complaints don't get redirected to `/dashboard` before `PortalRoute` even runs. Existing entries (`/applications`, `/licenses`, `/payments`, …) stay as-is.
+
+### 4. `src/hooks/useExternalPortalAccess.ts`
+
+Have `can()` also honour the role-default table so any UI still using this hook (buttons, empty-state CTAs) matches the route decision.
+
+### 5. Verification
+
+- Manual: log in as `licensee_primary`, `licensee_secondary`, `applicant`, and approved `pre_licensee`; open `/complaints` — list must render, not redirect, and no `<AccessDenied />`.
+- Manual: log in as internal user without `complaint_management.view` — still blocked (no regression).
+- Extend `src/test/sidebarVisibility.test.tsx` (or a sibling route test) with a "complaints route resolves for external roles" case using `PortalRoute` under `MemoryRouter`.
 
 ## Out of scope
 
-- No changes to backend policies, RPCs, or the permission catalog.
-- No changes to any route guard — only the sidebar visibility predicate.
+- No RLS changes (row-level checks already work correctly per the earlier `external-user-rls-invariant.md` memory).
+- No changes to internal module gating, sidebar visibility, or Complaints module business logic.
+- No changes to `/complaints/:id`, analytics, duplicates, escalations — those remain internal-only via `<M module="complaint_management">`. External users get list + create only, which matches the current menu wiring.
