@@ -1,25 +1,50 @@
-## Problem
+## Diagnosis
 
-On `/payments`, an applicant sees the page load forever — the table skeleton never resolves. Root cause is in `src/pages/payments/PaymentHistory.tsx → loadAll()`:
+The `applications_insert` RLS policy is:
 
-1. For non-admin users the code calls `loadVisibleApplications({ licenseeId: resolvedLicenseeId })`, which invokes the RPC `get_application_list_page`. That RPC is gated for internal / licensee-scoped callers and **throws** for a bare applicant (no licensee, no dynamic role).
-2. `loadAll()` has no `try/catch`, so the thrown error skips `setLoading(false)` — the table stays in the spinner state indefinitely (matches the "keeps loading" symptom).
-3. Even if the RPC returned empty, the current filter (`visibleAppIds.has(payment.application_id)`) would then hide the applicant's own linked payments, because their applications are not in that visible set.
+```sql
+is_super_admin(auth.uid())
+OR has_permission(auth.uid(),'application_management','create')
+OR (applicant_id = auth.uid()
+    AND (NOT has_external_role(auth.uid())
+         OR has_role(auth.uid(),'applicant')
+         OR has_role(auth.uid(),'pre_licensee')
+         OR has_role(auth.uid(),'licensee_primary')
+         OR has_role(auth.uid(),'licensee_secondary')))
+```
 
-Nothing else on the page is broken — receipts/refunds fetches succeed, the RLS on `payments` already scopes rows for external users.
+For the reported user `fincorp@yopmail.com` (id `e540758e-…`), I verified via psql that:
 
-## Fix (scoped, presentation layer only)
+- `has_external_role` = **true**
+- `has_role(applicant)` = **true**, `has_role(pre_licensee)` = **true**
+- `has_permission(application_management, create)` = false, `is_super_admin` = false
 
-Edit only `src/pages/payments/PaymentHistory.tsx`:
+So the policy **does** permit the insert on paper as long as `applicant_id = auth.uid()`. That points the finger at the client side, not the RLS: the row is being sent with an `applicant_id` that does **not** equal the JWT's `sub`. Two overlapping ways this happens in `src/pages/NewApplication.tsx`:
 
-1. **Skip the RPC for pure external applicants.** Compute a `needsVisibleAppLookup` flag = `isAdmin || !!resolvedLicenseeId`. Only call `loadVisibleApplications` when true. Otherwise the applicant sees payments filtered strictly by `payment.user_id === user.id` (which is what RLS already returns anyway).
-2. **Fail-safe the load.** Wrap the whole body of `loadAll` in `try / catch / finally`, toast the error, and always call `setLoading(false)` in `finally`. This eliminates the "spinner forever" class of bug for any future RPC/RLS regression.
-3. **Applicant fallback for enrichment.** When there's no visible-app lookup, still enrich linked applications by querying `applications` directly with `.in('id', appIds)` (RLS already restricts to their own rows) so the Applicant / Sector columns render.
+1. **Stale `user.id` from AuthContext.** `upsertDraftApplication` sends `applicant_id: user.id`. `user` is only re-hydrated every 5 min or on auth events; after a Supabase silent token refresh, or after a licensee switch / PPOC switch, `user.id` in memory can diverge from the current `auth.uid()` on the server. Result: RLS denies with the exact error the user pasted.
+2. **Missing session.** If the token has expired/logged out in another tab and no refresh has fired yet, `auth.uid()` is NULL and every branch of the policy is false.
 
-No RLS, RPC, backend, or other-page changes. Complaints and other public pages remain untouched.
+## Fix (client only — no RLS / DB changes)
+
+Edit only `src/pages/NewApplication.tsx → upsertDraftApplication`:
+
+1. Immediately before the INSERT, resolve the *live* auth user:
+   ```ts
+   const { data: authData, error: authErr } = await supabase.auth.getUser();
+   const authUserId = authData?.user?.id;
+   if (authErr || !authUserId) {
+     toast.error('Your session has expired. Please sign in again.');
+     navigate('/login');
+     return null;
+   }
+   ```
+2. Use `authUserId` (not `user.id`) as the `applicant_id` on the INSERT. This guarantees `applicant_id === auth.uid()` regardless of any stale `AuthContext` state.
+3. On the UPDATE branch, keep it unchanged (RLS already checks `can_mutate_application`).
+4. Improve the toast when Postgres returns code `42501` / `new row violates row-level security policy`: append "Please sign out and back in." so users have a clear next action if it recurs from another cause.
 
 ## Verification
 
-- Reload `/payments` as an applicant → spinner resolves, table renders with the applicant's own payments (or a real "No payments found" state).
-- Reload `/payments` as admin / licensee primary → behaviour unchanged (RPC path still runs, all payments visible with enrichment).
-- Simulated RPC failure → toast surfaces, spinner clears (no more stuck loading state).
+- Reproduce the flow as `fincorp@yopmail.com` → "Proceed to Forms" → application row inserts, no RLS error, navigation to forms proceeds.
+- Force a stale user object (e.g. hot-reload the AuthContext while keeping the Supabase session) → insert still succeeds because we now trust the live JWT.
+- Simulate expired session (delete the Supabase key from localStorage) → user is toasted and redirected to `/login`, no cryptic RLS error.
+- No changes to RLS, triggers, other pages, or admin/internal flows.
