@@ -52,6 +52,7 @@ import { classifyRole, ROLE_CATEGORY_LABELS } from '@/lib/rbac/roleClassificatio
 import { buildRoleSummary } from '@/lib/rbac/roleSummary';
 import { RecordScopePanel } from '@/components/rbac/RecordScopePanel';
 import { RoleMigrationRunnerDialog } from '@/components/rbac/RoleMigrationRunnerDialog';
+import { normalizeScopeConfig, validateScopeSelectors } from '@/lib/rbac/scopeConfig';
 
 
 /** Strip developer-style "Module N - " prefixes. */
@@ -440,13 +441,25 @@ export default function RoleManagement() {
     // so the persisted metadata always tracks the current permission set.
     const classification = classifyRole(resolvedIds, permissions);
     const summary = buildRoleSummary(resolvedIds, permissions);
+    // Normalize scope_config so every selected permission's canonical module
+    // has an entry (backend rejects otherwise with `scope_required_for_module`).
+    const normalizedScope = normalizeScopeConfig({
+      scopeConfig: formScope,
+      selectedPermissionIds: resolvedIds,
+      permissions,
+    });
+    const scopeErrors = validateScopeSelectors(normalizedScope);
+    if (scopeErrors.length > 0) {
+      toast.error(scopeErrors[0]);
+      return;
+    }
     const payload = {
       name, description: formDesc, system_role: 'analyst',
       role_type: formRoleType,
       dashboard_tier: formRoleType === 'internal' ? formDashboardTier : 'operational' as DashboardTier,
       status: formStatus,
       role_category: classification.category,
-      scope_config: formScope,
+      scope_config: normalizedScope,
       access_summary: {
         can: summary.can,
         cannot: summary.cannot,
