@@ -1,34 +1,53 @@
-## Root cause (verified)
+## Root cause (confirmed)
 
-The error `invalid_scope: module=admin_dashboard, scope=all` comes from `public.rbac_save_role` (migration `20260723051936_*`), which rejects any `scope_config` entry whose `(module, scope)` pair is not registered in `public.rbac_module_scopes`.
+`public.publish_workflow_version(uuid, text)` (in `supabase/migrations/20260611134401_...sql`, lines 126–160) gates publish with:
 
-A live query against `rbac_module_scopes` shows that `admin_dashboard` has **no rows at all**. It's not just this module — 17 modules currently have permissions registered but no entry in `rbac_module_scopes`:
-
-```
-admin_dashboard, complaint_type, executive_oversight, fit_and_proper_committee,
-fit_and_proper_screening, ai_management, report_management,
-market_conduct_investigation, prudential_payment_systems,
-fit_and_proper_initiation, enforcement_management, coordination,
-security_management, workflow_management, licensing, user_management,
-compliance_management
+```sql
+IF NOT public.has_role(auth.uid(), 'admin') THEN
+  RAISE EXCEPTION 'Forbidden' USING ERRCODE = '42501';
+END IF;
 ```
 
-When the role editor selects any permission belonging to one of these modules, the client-side normalizer (`scopeConfig.ts`) correctly auto-injects `{"scope":"all"}`. The backend then looks for `(admin_dashboard, all)` in `rbac_module_scopes`, doesn't find it, and raises `invalid_scope`.
+This is the legacy static-role check against `user_roles.role = 'admin'`. The rest of the RBAC system was migrated to the canonical pair `is_super_admin(uid)` + `has_permission(uid, module, action)` driven by dynamic roles. Any user who does not hold the literal static `admin` app_role — including super_admins provisioned only through dynamic roles and any workflow admin persona — gets `Forbidden` on publish. This matches the toast the user is seeing on Pre-License Approval Workflow.
 
-The recent `admin_dashboard.view` permission seed forgot the matching `rbac_module_scopes` row, and the same gap exists for the other 16 modules above — so this bug is not admin_dashboard-specific.
+The catalog (`src/lib/rbac/catalog.json`) only registers `workflow_management.view / create / edit` — there is no `publish` action, so the RPC has no canonical action to check today.
 
 ## Fix
 
-Single migration that backfills missing `rbac_module_scopes` rows so every module that has at least one permission has at least an `all` scope registered, and future permission seeds cannot drift again.
+Backend migration:
 
-1. **Backfill migration** — for every distinct `lower(regexp_replace(permissions.module,'\s+','_','g'))` not already present in `rbac_module_scopes`, insert `(module, 'all')`. Idempotent `ON CONFLICT DO NOTHING`.
-2. **Drift guard** — add an `AFTER INSERT` trigger on `public.permissions` that ensures a matching `(module,'all')` row exists in `rbac_module_scopes` (insert if missing). Prevents this class of bug from recurring the next time someone seeds a new permission/module.
-3. **Test** — add a pgTAP assertion that every distinct permission module has at least one row in `rbac_module_scopes`.
+1. Add a new permission `workflow_management.publish` to `public.permissions` (idempotent insert), and grant it to the same role templates that already receive `workflow_management.edit` (Legacy Admin + any workflow-owner templates). No new RLS or table changes.
+2. Redefine `public.publish_workflow_version(_workflow_id uuid, _notes text)` so the gate becomes:
+   ```sql
+   IF NOT (public.is_super_admin(auth.uid())
+           OR public.has_permission(auth.uid(), 'workflow_management', 'publish')) THEN
+     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+   END IF;
+   ```
+   Keep `SECURITY DEFINER`, `SET search_path = public`, and the existing snapshot/publish body unchanged. Re-`GRANT EXECUTE ... TO authenticated`.
+3. Same treatment for any sibling workflow RPC that still uses `has_role(..., 'admin')` if the migration search turns one up (only publish is in scope for this fix — audit noted but not modified).
 
-No frontend changes; no weakening of backend validation. Scoped modules (returns, complaints, etc.) keep their existing multi-scope registrations untouched.
+Frontend:
 
-## Verification after apply
+4. Register the new action in `src/lib/rbac/catalog.json` (`workflow_management.publish`, `enforced: true`) so the parity script and audit reports stay green.
+5. Gate the "Publish new version" button in `src/components/workflows/WorkflowVersionPanel.tsx` with `useCan('workflow_management', 'publish')` / `GuardedButton` so the UI matches the backend and no non-permitted user can click it.
 
-- Retry "Save Changes" on the role that triggered the screenshot — expect success.
-- Re-run the query `SELECT ... FROM permissions WHERE NOT EXISTS (rbac_module_scopes ...)` — expect zero rows.
-- pgTAP test passes in CI.
+Tests:
+
+6. Extend `supabase/tests/rbac/290_workflow_guard.sql` (or add a new pgTAP file under `supabase/tests/rbac/`) with:
+   - super_admin can publish,
+   - user with `workflow_management.publish` can publish,
+   - user with only `workflow_management.edit` cannot publish (still Forbidden),
+   - anonymous / no-permission user is Forbidden.
+7. Update `src/test/workflowVersioningMigration.test.ts` expectation to match the new gate string.
+
+## Out of scope
+
+- No changes to snapshot logic, instance pinning, `approval_workflows` schema, or the workflow builder UI.
+- Not touching other `has_role`-based RPCs beyond publish in this pass.
+
+## Verification
+
+- Run pgTAP suite (`supabase/tests/rbac/*`) — new publish assertions must be green.
+- Run `bunx vitest run` for the workflow versioning migration test.
+- Manually: as the current super_admin, click "Publish new version" on Pre-License Approval Workflow — expect success and a new row in `approval_workflow_versions`.
