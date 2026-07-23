@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   permissionHasDependency,
   resolveDependencies,
+  cascadeRemoveDependents,
   DEPENDENT_ACTIONS,
 } from '@/lib/rbac/permissionDependencies';
 
