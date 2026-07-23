@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
