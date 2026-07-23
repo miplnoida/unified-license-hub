@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
@@ -2190,6 +2191,15 @@ export default function NewApplication() {
                 entityId={applicationId}
                 onUploaded={() => setDocRefresh(p => p + 1)}
               />
+              {user?.id && (
+                <BatchDocumentUpload
+                  entityType="application"
+                  entityId={applicationId}
+                  userId={user.id}
+                  helperText="Queue multiple files, tag each with a document type, and upload in one go."
+                  onUploaded={() => setDocRefresh(p => p + 1)}
+                />
+              )}
               <div key={docRefresh}>
                 <AttachmentList entityType="application" entityId={applicationId} />
               </div>
