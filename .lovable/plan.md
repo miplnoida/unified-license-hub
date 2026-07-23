@@ -1,51 +1,50 @@
 ## Problem
 
-Saving the Licensing Officer role (and any other role that mixes custom actions with `view`) fails with:
+The server RPC `rbac_save_role` rejects saves when a role has any non-view action on a module but no `view` on that same module. The client blocks this in one place only — the individual `togglePerm` handler — so the error still slips through via other permission-mutation paths in `RoleManagement.tsx`:
 
-> permission_dependency_violation: action selected without view on its module
+- **`applyLevel(level)`** (module access-level dropdown): rebuilds regular actions from a level template but preserves sensitive privileges untouched. If the chosen level's action set does not include `view` while a sensitive privilege for that module is still selected, `view` gets stripped and the sensitive action becomes an orphan.
+- **`clearAll()`** (module header checkbox / search-scoped clear): removes every currently-filtered permission on the module. If the search filter is narrow (e.g. user searched "view"), `view` is dropped while dependents survive.
+- **Category/system template loads** and existing role data can also arrive without `view` for a module that has dependents (legacy data).
 
-### Root cause (confirmed)
+Result: user clicks Save and the server returns `dependency_still_referenced: cannot remove application_management.view while dependent actions remain on the role`.
 
-The database RPC `public.rbac_save_role` (migration `20260723051936_...`) enforces the invariant for **every** non-`view` permission:
+## Fix
 
-```sql
-WHERE p.id = ANY(perm_ids) AND lower(p.name) <> 'view'
-  AND NOT EXISTS (view on same normalized module in payload)
+Mirror the DB rule everywhere the selection changes, and add a last-line client-side validator before we call the RPC. Two small pieces:
+
+### 1. Shared cascade helper — `src/lib/rbac/permissionDependencies.ts`
+
+Add a pure function:
+
+```ts
+cascadeRemoveDependents(selectedIds, catalog): { resolvedIds, removedIds }
 ```
 
-The client-side mirror in `src/lib/rbac/permissionDependencies.ts` (`resolveDependencies`, `permissionHasDependency`) only considers a fixed allow-list `DEPENDENT_ACTIONS` (edit, create, delete, approve, …). The Licensing Officer role holds actions the list does not know about, e.g. `licensing.add_legal_notes`, `licensing.flag_concern`, `licensing.recommend_conditions`, `licensing.respond_rfi`, `licensing.upload_documents`, `license_management.manage_license_actions`. Consequences:
+Behaviour: for each module where `view` is NOT in `selectedIds`, drop every non-view permission on that module from the selection. Uses the existing `normalizeModuleKey` helper so it matches the DB comparison.
 
-1. When the user unticks `view` on `licensing` or `license_management`, the "cannot remove view" guard in `RoleManagement.tsx` (line 362-371) checks only `permissionHasDependency(name)`, so it lets `view` be removed even though those custom actions are still selected. The DB then rejects the save.
-2. When the user ticks one of those custom actions on a module where `view` is not yet selected, `resolveDependencies` does not auto-add `view` either.
-3. Module comparison in the removal guard uses `p.module === perm.module` (no normalization), so a whitespace/case drift between catalog rows would also miss the guard — the DB normalizes with `regexp_replace(module,'\s+','_','g')` and `lower(...)`.
+### 2. Apply the cascade at every mutation point — `src/pages/admin/RoleManagement.tsx`
 
-## Fix (frontend only, mirrors the DB rule)
+- `applyLevel`: after computing `next`, run `cascadeRemoveDependents` (before `resolveDependencies`). If anything was removed, `toast.info` explaining that dependent actions on the module were cleared because the chosen level does not include View.
+- `clearAll`: run the cascade on the result so removing `view` also removes its dependents on the same module.
+- `togglePerm` (view-off branch): replace the current hard block with the same cascade — if the user unticks `view`, automatically remove the dependents on that module and toast which actions were cleared, instead of refusing the click. This matches how the "on" branch already auto-adds View.
+- `selectAll`: unchanged (only adds, resolveDependencies covers it).
+- **Pre-save guard in `handleSave`**: run `resolveDependencies(formPerms, permissions)`; if `violations.length > 0`, show a single toast listing the offending module/actions and abort the save. This is the last-line defence that guarantees the RPC never sees a bad payload, even for legacy roles opened for edit.
 
-Make the client-side dependency logic match the server rule exactly: any non-`view` action requires `view` on the same normalized module.
+### 3. Tests — `src/test/rbac/permissionDependencies.test.ts`
 
-### `src/lib/rbac/permissionDependencies.ts`
-- Keep `DEPENDENT_ACTIONS` as documentation/back-compat export.
-- Change `permissionHasDependency(action)` to `action && action.toLowerCase() !== 'view'`.
-- In `resolveDependencies`, key `viewByModule` and the per-permission lookup by the same normalized module key the DB uses: `lower(module).replace(/\s+/g,'_')`. Apply the same normalization when comparing `p.module` to `view.module`.
+Add cases:
 
-### `src/pages/admin/RoleManagement.tsx`
-- In the toggle handler (~line 362-380), when deciding whether removing `view` is safe or whether toggling on a non-view action should auto-enable `view`, compare modules using the same normalized key helper. The updated `permissionHasDependency` will make the guard fire for every non-view action automatically.
-- No changes to payload shape, mutations, or scope-config handling.
+- `cascadeRemoveDependents` drops `edit`/`approve` on a module when `view` is absent.
+- Cascade leaves modules with `view` untouched.
+- Cascade preserves permissions on unrelated modules.
+- Normalization: works when catalog stores `"License Management"` but selection references `license_management`.
 
-### Tests
-Extend `src/test/rbac/permissionDependencies.test.ts`:
-- A custom action (e.g. `add_legal_notes`) on a module without `view` triggers a violation and auto-adds `view`.
-- Two custom actions on the same module add `view` only once.
-- Module keys with whitespace / mixed case still match their normalized `view` permission.
-- Removing `view` while any non-view action remains selected is reported as a violation (via `resolveDependencies` from the parent state).
+## Files touched
+
+- `src/lib/rbac/permissionDependencies.ts` — add `cascadeRemoveDependents`.
+- `src/pages/admin/RoleManagement.tsx` — apply cascade in `togglePerm`, `applyLevel`, `clearAll`; add pre-save validator in the save handler.
+- `src/test/rbac/permissionDependencies.test.ts` — cover the new helper.
 
 ## Out of scope
 
-- No DB migration — server rule is already correct, we are aligning the UI to it.
-- No changes to scope_config, role classification, `rbac_save_role`, or unrelated modules.
-
-## Verification
-
-1. `bunx vitest run src/test/rbac/permissionDependencies.test.ts` — new + existing cases pass.
-2. Manual: open Licensing Officer, untick then re-tick a custom action, hit Save — no `permission_dependency_violation` toast; role saves.
-3. Manual: create a fresh role with only `licensing.add_legal_notes` — UI auto-enables `licensing.view` and save succeeds.
+Backend behaviour is unchanged — the DB rule stays authoritative. No other module, hook, or RLS policy is touched.
