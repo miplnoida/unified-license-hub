@@ -78,8 +78,12 @@ export function RecordScopePanel({ moduleKeys, moduleLabels, value, onChange, di
   const setModule = (mod: string, patch: Partial<RoleScopeConfig[string]>) => {
     const next: RoleScopeConfig = { ...value };
     const merged = { ...(next[mod] ?? {}), ...patch };
-    if (!merged.scope || merged.scope === 'all') {
-      delete next[mod];
+    // Keep an authoritative entry even when scope resets to 'all' — the
+    // normalizer would re-add it anyway, and preserving it here avoids UI
+    // flicker and keeps intent explicit for the backend.
+    if (!merged.scope) merged.scope = 'all';
+    if (merged.scope === 'all') {
+      next[mod] = { scope: 'all' };
     } else {
       next[mod] = merged;
     }
