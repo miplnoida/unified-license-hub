@@ -2,7 +2,7 @@
 -- reordering, and re-classification. Reinforces 283_custom_role_noop.sql
 -- with the additional cases in the closure brief.
 begin;
-select plan(6);
+select plan(8);
 
 insert into public.user_roles(user_id, role)
   values ('00000000-0000-0000-0000-00000000c002', 'super_admin')
@@ -54,6 +54,22 @@ begin
   from public.role_permissions where role_id = _role_id;
   perform ok(_after = _before, 'no-op save preserves permissions');
 
+  -- No-op save with a view + dependent set must not delete `view` first and
+  -- trip the view-retention trigger.
+  perform lives_ok(
+    format(
+      'select public.rbac_save_role(%L::jsonb)',
+      jsonb_build_object(
+        'id', _role_id::text,
+        'name','pgtap_custom_role_full',
+        'description','baseline',
+        'permission_ids', _perms,
+        'scope_config', jsonb_build_object('returns_management', jsonb_build_object('scope','all'))
+      )::text
+    ),
+    'dependency-safe save: no-op view + dependent set succeeds'
+  );
+
   -- Reordered permission_ids
   perform public.rbac_save_role(jsonb_build_object(
     'id', _role_id::text,
@@ -64,6 +80,21 @@ begin
   select array_agg(permission_id order by permission_id) into _after
   from public.role_permissions where role_id = _role_id;
   perform ok(_after = _before, 'reordered permission_ids preserve set');
+
+  perform throws_ok(
+    format(
+      'select public.rbac_save_role(%L::jsonb)',
+      jsonb_build_object(
+        'id', _role_id::text,
+        'name','pgtap_custom_role_full',
+        'permission_ids', jsonb_build_array(_edit::text, _rev::text),
+        'scope_config', jsonb_build_object('returns_management', jsonb_build_object('scope','all'))
+      )::text
+    ),
+    NULL,
+    NULL,
+    'dependency invariant: removing view while keeping dependents is rejected'
+  );
 
   -- Scope-only change (permission_ids identical)
   perform public.rbac_save_role(jsonb_build_object(
