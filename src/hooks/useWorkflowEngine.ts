@@ -88,7 +88,8 @@ export type WorkflowActionType =
   | 'escalate'
   | 'request_resubmission'
   | 'return_for_correction'
-  | 'request_more_info';
+  | 'request_more_info'
+  | 'save_comment';
 
 export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   approve: 'Approve',
@@ -98,6 +99,7 @@ export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   request_resubmission: 'Request Resubmission',
   return_for_correction: 'Return for Correction',
   request_more_info: 'Request More Information',
+  save_comment: 'Save Comment',
 };
 
 export const ACTION_COLORS: Record<WorkflowActionType, string> = {
@@ -108,6 +110,7 @@ export const ACTION_COLORS: Record<WorkflowActionType, string> = {
   request_resubmission: 'bg-warning/10 text-warning border-warning/30',
   return_for_correction: 'bg-warning/10 text-warning border-warning/30',
   request_more_info: 'bg-info/10 text-info border-info/30',
+  save_comment: 'bg-muted text-muted-foreground border-border',
 };
 
 export interface Workflow {

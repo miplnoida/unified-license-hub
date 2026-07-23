@@ -15,6 +15,7 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
   "return_for_correction",
   "request_more_info",
+  "save_comment",
 ]);
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
@@ -73,6 +74,29 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    let result: Record<string, unknown>;
+
+    if (action_type === "save_comment") {
+      if (!comments.trim()) {
+        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
+      }
+      const { error: insertErr } = await admin.from("approval_actions").insert({
+        entity_type: "return",
+        entity_id: return_id,
+        step_id: step_id ?? null,
+        workflow_instance_id: instance_id ?? null,
+        actor_id: caller.id,
+        action: "comment_saved",
+        action_type: "save_comment",
+        comments,
+      });
+      if (insertErr) {
+        console.error("save_comment insert error:", insertErr);
+        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
+      }
+      result = { success: true, saved_comment: true, new_step_id: step_id };
+    } else {
+
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
         admin
@@ -107,11 +131,12 @@ Deno.serve(async (req) => {
       console.error("perform_return_workflow_transition error:", rpcErr);
       return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
     }
-    const result = (rpcRes || {}) as Record<string, unknown>;
+    result = (rpcRes || {}) as Record<string, unknown>;
     if (result.error) {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
+    } // end else (non-save_comment)
 
     if (signature_data_url) {
       try {
@@ -146,6 +171,7 @@ Deno.serve(async (req) => {
         action_type === "request_more_info" ? "return.more_info_requested" :
         action_type === "send_back" ? "return.send_back" :
         action_type === "escalate" ? "return.escalated" :
+        action_type === "save_comment" ? "return.comment_saved" :
         action_type === "approve" ? ((result as any).new_status === "VAL" ? "return.approved" : "return.approved_step") :
         "return.workflow_action_taken";
       const sharedPayload = {

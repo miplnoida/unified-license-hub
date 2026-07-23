@@ -901,6 +901,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     request_resubmission: !!canActResult?.can_request_resubmission && !isPaused,
     return_for_correction: !!canActResult?.can_return_for_correction && !isPaused,
     request_more_info: !!canActResult?.can_request_more_info && !isPaused,
+    save_comment: !!canActResult?.can_add_remark && !isPaused,
   };
 
   const enabledConfigured = (configuredStepActions as StepAction[])

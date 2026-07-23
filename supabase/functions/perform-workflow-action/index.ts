@@ -24,6 +24,7 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
   "return_for_correction",
   "request_more_info",
+  "save_comment",
 ]);
 
 // All seven action types are now first-class transitions in the RPC.
@@ -100,6 +101,34 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
+
+    let result: Record<string, unknown>;
+
+    if (raw_action === "save_comment") {
+      // Comment-only action: does NOT transition workflow state. Insert an
+      // approval_actions row and fall through to the notification dispatch
+      // block. Signature/legal-stage checks and perform_workflow_transition
+      // are intentionally skipped.
+      if (!comments.trim()) {
+        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
+      }
+      const { error: insertErr } = await admin.from("approval_actions").insert({
+        application_id,
+        entity_type: "application",
+        entity_id: application_id,
+        step_id: step_id ?? null,
+        workflow_instance_id: instance_id ?? null,
+        actor_id: caller.id,
+        action: "comment_saved",
+        action_type: "save_comment",
+        comments,
+      });
+      if (insertErr) {
+        console.error("save_comment insert error:", insertErr);
+        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
+      }
+      result = { success: true, saved_comment: true, new_step_id: step_id };
+    } else {
 
     // Enforce digital signature requirement (configured per step OR per step+action).
     if (step_id) {
@@ -179,16 +208,18 @@ export async function handler(req: Request): Promise<Response> {
     });
 
 
+
     if (rpcErr) {
       console.error("perform_workflow_transition error:", rpcErr);
       return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
     }
 
-    const result = (rpcRes || {}) as Record<string, unknown>;
+    result = (rpcRes || {}) as Record<string, unknown>;
     if (result.error) {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
+    } // end else (non-save_comment)
 
     // Persist captured signature on the just-written approval_actions row.
     if (signature_data_url) {
@@ -334,6 +365,7 @@ export async function handler(req: Request): Promise<Response> {
         raw_action === "request_more_info" ? "application.more_info_requested" :
         raw_action === "send_back" ? "application.send_back" :
         raw_action === "approve" ? "application.approved_step" :
+        raw_action === "save_comment" ? "application.comment_saved" :
         "application.workflow_action_taken";
       await admin.functions.invoke("dispatch-notification-event", {
         body: {
