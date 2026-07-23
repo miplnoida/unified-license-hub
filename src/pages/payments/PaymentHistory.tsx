@@ -112,27 +112,49 @@ export default function PaymentHistory() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [paymentsRes, receiptsRes, refundsRes] = await Promise.all([
-      supabase.from('payments' as any).select('*').order('created_at', { ascending: false }),
-      supabase.from('payment_receipts' as any).select('*').order('issued_at', { ascending: false }),
-      supabase.from('refunds' as any).select('*').order('created_at', { ascending: false }),
-    ]);
-    if (!receiptsRes.error) setReceipts((receiptsRes.data || []) as any);
-    if (!refundsRes.error) setRefunds((refundsRes.data || []) as any);
+    try {
+      const [paymentsRes, receiptsRes, refundsRes] = await Promise.all([
+        supabase.from('payments' as any).select('*').order('created_at', { ascending: false }),
+        supabase.from('payment_receipts' as any).select('*').order('issued_at', { ascending: false }),
+        supabase.from('refunds' as any).select('*').order('created_at', { ascending: false }),
+      ]);
+      if (!receiptsRes.error) setReceipts((receiptsRes.data || []) as any);
+      if (!refundsRes.error) setRefunds((refundsRes.data || []) as any);
 
-    if (!paymentsRes.error) {
-      const visibleApps = isAdmin ? [] : await loadVisibleApplications({ licenseeId: resolvedLicenseeId });
-      const visibleAppIds = new Set(visibleApps.map((app) => app.id));
+      if (paymentsRes.error) {
+        toast.error(paymentsRes.error.message);
+        setPayments([]);
+        return;
+      }
+
+      // Only run the internal visible-applications RPC when we actually have
+      // an internal or licensee-scoped context. Pure external applicants
+      // hit a permission error on that RPC — RLS on `payments` already
+      // scopes rows for them, so we rely on user_id ownership instead.
+      const needsVisibleAppLookup = isAdmin || !!resolvedLicenseeId;
+      let visibleAppIds: Set<string> | null = null;
+      if (needsVisibleAppLookup) {
+        try {
+          const visibleApps = isAdmin ? [] : await loadVisibleApplications({ licenseeId: resolvedLicenseeId });
+          visibleAppIds = new Set(visibleApps.map((app) => app.id));
+        } catch (err: any) {
+          // Non-fatal — fall back to user_id ownership filtering.
+          visibleAppIds = new Set();
+        }
+      }
+
       const rawPayments = ((paymentsRes.data || []) as any[]).filter((payment: any) => {
         if (isAdmin) return true;
-        if (payment.application_id) return visibleAppIds.has(payment.application_id);
+        if (visibleAppIds && payment.application_id) return visibleAppIds.has(payment.application_id);
         return payment.user_id === user?.id;
       });
+
       const appIds = Array.from(new Set(rawPayments.map(p => p.application_id).filter(Boolean)));
       const appsMap: Record<string, ApplicationLite> = {};
       const profilesMap: Record<string, ProfileLite> = {};
 
       if (appIds.length > 0) {
+        // Applications are RLS-scoped — this is safe for applicants too.
         const { data: apps } = await supabase
           .from('applications' as any)
           .select('id, application_number, license_type, applicant_id, data')
@@ -141,12 +163,10 @@ export default function PaymentHistory() {
 
         const applicantIds = Array.from(new Set((apps || []).map((a: any) => a.applicant_id).filter(Boolean)));
         if (applicantIds.length > 0) {
-          // Fetch from both profiles and pre_license_users — pre-licensee/temp users live in pre_license_users
           const [profilesRes, preRes] = await Promise.all([
             supabase.from('profiles' as any).select('id, full_name, entity_name').in('id', applicantIds),
             supabase.from('pre_license_users' as any).select('id, full_name, entity_name').in('id', applicantIds),
           ]);
-          // Prefer pre_license_users (original registered applicant identity) when present
           (profilesRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'profile' }; });
           (preRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'pre_license' }; });
         }
@@ -158,8 +178,11 @@ export default function PaymentHistory() {
         return { ...p, application: app || null, applicant: applicant || null };
       });
       setPayments(enriched as any);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load payments');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const [searchParams] = useSearchParams();
