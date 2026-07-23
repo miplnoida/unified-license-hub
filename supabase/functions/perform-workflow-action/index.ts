@@ -24,6 +24,7 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
   "return_for_correction",
   "request_more_info",
+  "save_comment",
 ]);
 
 // All seven action types are now first-class transitions in the RPC.
