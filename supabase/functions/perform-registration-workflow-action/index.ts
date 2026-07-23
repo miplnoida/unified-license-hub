@@ -110,8 +110,9 @@ export async function handler(req: Request): Promise<Response> {
         console.error("save_comment insert error:", insertErr);
         return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
       }
-      result = { success: true, saved_comment: true, new_step_id: step_id };
-    } else {
+    }
+    {
+    const effective_action = raw_action === "save_comment" ? "approve" : raw_action;
 
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
@@ -119,7 +120,7 @@ export async function handler(req: Request): Promise<Response> {
           .from("approval_step_actions")
           .select("require_digital_signature")
           .eq("step_id", step_id)
-          .eq("action_type", raw_action)
+          .eq("action_type", effective_action)
           .eq("is_enabled", true)
           .maybeSingle(),
         admin
@@ -138,7 +139,7 @@ export async function handler(req: Request): Promise<Response> {
       _registration_id: registration_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: raw_action,
+      _action_type: effective_action,
       _comments: comments,
       _actor_id: caller.id,
     });
@@ -154,7 +155,10 @@ export async function handler(req: Request): Promise<Response> {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
-    } // end else (non-save_comment)
+    if (raw_action === "save_comment") {
+      (result as any).saved_comment = true;
+    }
+    } // end transition block
 
     if (signature_data_url) {
       try {
