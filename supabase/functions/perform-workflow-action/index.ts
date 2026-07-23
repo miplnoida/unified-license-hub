@@ -102,6 +102,34 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    let result: Record<string, unknown>;
+
+    if (raw_action === "save_comment") {
+      // Comment-only action: does NOT transition workflow state. Insert an
+      // approval_actions row and fall through to the notification dispatch
+      // block. Signature/legal-stage checks and perform_workflow_transition
+      // are intentionally skipped.
+      if (!comments.trim()) {
+        return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
+      }
+      const { error: insertErr } = await admin.from("approval_actions").insert({
+        application_id,
+        entity_type: "application",
+        entity_id: application_id,
+        step_id: step_id ?? null,
+        workflow_instance_id: instance_id ?? null,
+        actor_id: caller.id,
+        action: "comment_saved",
+        action_type: "save_comment",
+        comments,
+      });
+      if (insertErr) {
+        console.error("save_comment insert error:", insertErr);
+        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
+      }
+      result = { success: true, saved_comment: true, new_step_id: step_id };
+    } else {
+
     // Enforce digital signature requirement (configured per step OR per step+action).
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
@@ -178,6 +206,7 @@ export async function handler(req: Request): Promise<Response> {
       _comments: comments,
       _actor_id: caller.id,
     });
+
 
 
     if (rpcErr) {
