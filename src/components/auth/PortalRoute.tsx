@@ -60,11 +60,13 @@ export function PortalRoute({ children, area, capability }: PortalRouteProps) {
 
   if (permsLoading) return <AuthLoadingScreen />;
 
+  const moduleKey = AREA_MODULE[area];
+  const grantedByDynamic = capabilities.some((cap) => hasPermission(moduleKey, CAPABILITY_ACTION[cap]));
+  const grantedByRole = capabilities.some((cap) => hasDefaultPortalCapability(user.role, area, cap));
+
   // External users with no dynamic role mapping fall back to legacy allow.
   if (!enforceDynamic) return <>{children}</>;
 
-  const moduleKey = AREA_MODULE[area];
-  const allowed = capabilities.some((cap) => hasPermission(moduleKey, CAPABILITY_ACTION[cap]));
-  if (!allowed) return <AccessDenied />;
+  if (!grantedByDynamic && !grantedByRole) return <AccessDenied />;
   return <>{children}</>;
 }
