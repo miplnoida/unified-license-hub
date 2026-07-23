@@ -157,6 +157,11 @@ export function Sidebar() {
         && isAssignmentAllowedReturnsPath(item.href);
       if (item.module) {
         if (isInternalOnlyItem && !userIsInternal) return false;
+        // External users (applicants, licensee primary/secondary, pre-licensees)
+        // are not gated by the internal dynamic-permission catalog. Their
+        // portal-item visibility comes from the item's declared audience;
+        // row-level access is enforced by RLS on click.
+        if (!userIsInternal) return effectiveVisible;
         // Exact-action gate when the item declares one (e.g. Permission
         // Coverage → role_management.view_coverage) — module-wide access is
         // not enough for diagnostic entries.
@@ -171,11 +176,13 @@ export function Sidebar() {
         const mappedModule = getModuleForPath(item.href);
         if (mappedModule) {
           if (isInternalOnlyItem && !userIsInternal) return false;
+          if (!userIsInternal) return effectiveVisible;
           if (hasModuleAccess(mappedModule)) return true;
           if (mappedModule === 'returns_management' && itemIsAssignmentQueue && hasAssignmentReturnQueueAccess) return true;
           return false;
         }
       }
+
       if (item.children?.length) return item.children.some(isItemVisible);
       // Module-less internal items (e.g. Dashboard) must still be gated so
       // assignment-only regulators and unpermissioned internal users don't see
