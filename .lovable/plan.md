@@ -1,50 +1,30 @@
-## Problem
+## Diagnosis
 
-The server RPC `rbac_save_role` rejects saves when a role has any non-view action on a module but no `view` on that same module. The client blocks this in one place only — the individual `togglePerm` handler — so the error still slips through via other permission-mutation paths in `RoleManagement.tsx`:
+The failing request sends `application_management.view` together with dependent permissions like `create`, `edit`, `approve`, `reject`, `manage_config`, and `workflow_action`, but the backend save function currently deletes all existing role permissions before reinserting the submitted set. During that full delete, the database trigger sees `application_management.view` being removed while existing dependent actions are still present, so it rejects the transaction with:
 
-- **`applyLevel(level)`** (module access-level dropdown): rebuilds regular actions from a level template but preserves sensitive privileges untouched. If the chosen level's action set does not include `view` while a sensitive privilege for that module is still selected, `view` gets stripped and the sensitive action becomes an orphan.
-- **`clearAll()`** (module header checkbox / search-scoped clear): removes every currently-filtered permission on the module. If the search filter is narrow (e.g. user searched "view"), `view` is dropped while dependents survive.
-- **Category/system template loads** and existing role data can also arrive without `view` for a module that has dependents (legacy data).
+`dependency_still_referenced: cannot remove application_management.view while dependent actions remain on the role`
 
-Result: user clicks Save and the server returns `dependency_still_referenced: cannot remove application_management.view while dependent actions remain on the role`.
+This is not a missing checkbox in the UI payload; the payload includes View. The backend save order is the unsafe part.
 
-## Fix
+## Implementation plan
 
-Mirror the DB rule everywhere the selection changes, and add a last-line client-side validator before we call the RPC. Two small pieces:
+1. **Patch the backend role-save function**
+   - Replace the current “delete all permissions then insert all permissions” logic in `rbac_save_role` with a dependency-safe diff update:
+     - Delete permissions that are no longer in the submitted set.
+     - For deletions, remove non-view permissions first.
+     - Remove `view` permissions only after their dependents have already been removed.
+     - Insert missing permissions after deletions, with `view` inserted before non-view actions.
+   - Keep all existing validations, scope handling, role metadata updates, authorization, and audit behavior unchanged.
 
-### 1. Shared cascade helper — `src/lib/rbac/permissionDependencies.ts`
+2. **Preserve DB invariants**
+   - Keep the database triggers authoritative.
+   - Do not loosen the dependency rule.
+   - Do not change unrelated role, permission, RLS, workflow, portal, or business logic.
 
-Add a pure function:
+3. **Add regression coverage**
+   - Extend the role-management backend regression test so a no-op save and reordered save of a role containing `view + dependents` succeeds.
+   - Add a case where removing only `view` while keeping dependents is still rejected or normalized before save, so the invariant remains protected.
 
-```ts
-cascadeRemoveDependents(selectedIds, catalog): { resolvedIds, removedIds }
-```
-
-Behaviour: for each module where `view` is NOT in `selectedIds`, drop every non-view permission on that module from the selection. Uses the existing `normalizeModuleKey` helper so it matches the DB comparison.
-
-### 2. Apply the cascade at every mutation point — `src/pages/admin/RoleManagement.tsx`
-
-- `applyLevel`: after computing `next`, run `cascadeRemoveDependents` (before `resolveDependencies`). If anything was removed, `toast.info` explaining that dependent actions on the module were cleared because the chosen level does not include View.
-- `clearAll`: run the cascade on the result so removing `view` also removes its dependents on the same module.
-- `togglePerm` (view-off branch): replace the current hard block with the same cascade — if the user unticks `view`, automatically remove the dependents on that module and toast which actions were cleared, instead of refusing the click. This matches how the "on" branch already auto-adds View.
-- `selectAll`: unchanged (only adds, resolveDependencies covers it).
-- **Pre-save guard in `handleSave`**: run `resolveDependencies(formPerms, permissions)`; if `violations.length > 0`, show a single toast listing the offending module/actions and abort the save. This is the last-line defence that guarantees the RPC never sees a bad payload, even for legacy roles opened for edit.
-
-### 3. Tests — `src/test/rbac/permissionDependencies.test.ts`
-
-Add cases:
-
-- `cascadeRemoveDependents` drops `edit`/`approve` on a module when `view` is absent.
-- Cascade leaves modules with `view` untouched.
-- Cascade preserves permissions on unrelated modules.
-- Normalization: works when catalog stores `"License Management"` but selection references `license_management`.
-
-## Files touched
-
-- `src/lib/rbac/permissionDependencies.ts` — add `cascadeRemoveDependents`.
-- `src/pages/admin/RoleManagement.tsx` — apply cascade in `togglePerm`, `applyLevel`, `clearAll`; add pre-save validator in the save handler.
-- `src/test/rbac/permissionDependencies.test.ts` — cover the new helper.
-
-## Out of scope
-
-Backend behaviour is unchanged — the DB rule stays authoritative. No other module, hook, or RLS policy is touched.
+4. **Verify the urgent path**
+   - Confirm the specific `Licensing Officer` save path no longer fails when `application_management.view` remains selected.
+   - Run the focused permission-dependency/role-management tests relevant to this change.
