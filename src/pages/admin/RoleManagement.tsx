@@ -32,7 +32,7 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, useResetSystemRole,
   DynamicRole, Permission, RoleType, DashboardTier, RoleStatus, RoleScopeConfig,
 } from '@/hooks/useRoles';
-import { resolveDependencies, permissionHasDependency } from '@/lib/rbac/permissionDependencies';
+import { resolveDependencies, permissionHasDependency, cascadeRemoveDependents } from '@/lib/rbac/permissionDependencies';
 import {
   useCatalogModules, useCatalogActions,
 } from '@/hooks/usePermissionCatalog';
@@ -357,21 +357,23 @@ export default function RoleManagement() {
     const perm = permissions.find(p => p.id === permId);
     setFormPerms(prev => {
       const isSelected = prev.includes(permId);
-      const normMod = (m: string) => (m ?? '').trim().toLowerCase().replace(/\s+/g, '_');
-      // Turning OFF a `view` permission that ANY non-view action on the same
-      // module still relies on must be blocked — the server rejects otherwise.
-      if (isSelected && perm && perm.name.trim().toLowerCase() === 'view') {
-        const permModKey = normMod(perm.module);
-        const stillDependent = prev
-          .filter(id => id !== permId)
-          .map(id => permissions.find(p => p.id === id))
-          .some(p => p && normMod(p.module) === permModKey && permissionHasDependency(p.name));
-        if (stillDependent) {
-          toast.error(`Cannot remove View on ${perm.module} while other actions on this module are selected. Uncheck the dependent actions first.`);
-          return prev;
+      const isView = !!perm && perm.name.trim().toLowerCase() === 'view';
+      let next = isSelected ? prev.filter(p => p !== permId) : [...prev, permId];
+
+      // Turning OFF `view` on a module: cascade-remove every dependent action
+      // on that module so the server-side view-retention trigger never fires.
+      if (isSelected && isView && perm) {
+        const { resolvedIds, removedIds } = cascadeRemoveDependents(next, permissions);
+        if (removedIds.length > 0) {
+          const removedNames = removedIds
+            .map(id => permissions.find(p => p.id === id)?.name)
+            .filter(Boolean)
+            .join(', ');
+          toast.info(`Removed dependent action${removedIds.length > 1 ? 's' : ''} on ${perm.module}: ${removedNames} (View is required).`);
         }
+        next = resolvedIds;
       }
-      const next = isSelected ? prev.filter(p => p !== permId) : [...prev, permId];
+
       // Auto-add View when any non-view action is turned on.
       if (!isSelected && perm && permissionHasDependency(perm.name)) {
         const { addedPermissionIds, violations } = resolveDependencies(next, permissions);
@@ -431,10 +433,23 @@ export default function RoleManagement() {
       toast.error('Please select at least one permission so this role can do something');
       return;
     }
+    // Cascade first: drop any dependent action whose View was removed. This
+    // matches the DB's `assert_role_permission_view_retained` trigger so the
+    // RPC never sees an inconsistent selection (e.g. from legacy role data,
+    // template application, or search-scoped clear-all).
+    const cascaded = cascadeRemoveDependents([...new Set(formPerms)], permissions);
+    if (cascaded.removedIds.length > 0) {
+      const names = cascaded.removedIds
+        .map(id => permissions.find(p => p.id === id))
+        .filter(Boolean)
+        .map(p => `${p!.module}.${p!.name}`)
+        .join(', ');
+      toast.info(`Removed ${cascaded.removedIds.length} dependent action${cascaded.removedIds.length > 1 ? 's' : ''} lacking View: ${names}`);
+    }
     // Final safeguard — auto-add prerequisite `view` permissions so the
     // server-side dependency trigger never rejects the save.
     const { resolvedIds, violations, addedPermissionIds } = resolveDependencies(
-      [...new Set(formPerms)],
+      cascaded.resolvedIds,
       permissions,
     );
     if (violations.length > 0 && addedPermissionIds.length > 0) {
@@ -950,7 +965,13 @@ export default function RoleManagement() {
                           // Sensitive privileges are preserved untouched.
                           const kept = prev.filter(id => !regularIds.has(id));
                           const next = [...kept, ...idsToAdd];
-                          const { resolvedIds } = resolveDependencies(next, permissions);
+                          // Cascade-remove any dependent action (including sensitive
+                          // privileges) that just lost its View prerequisite.
+                          const cascaded = cascadeRemoveDependents(next, permissions);
+                          if (cascaded.removedIds.length > 0) {
+                            toast.info(`Cleared ${cascaded.removedIds.length} dependent action${cascaded.removedIds.length > 1 ? 's' : ''} on this module because the selected level does not include View.`);
+                          }
+                          const { resolvedIds } = resolveDependencies(cascaded.resolvedIds, permissions);
                           return [...new Set(resolvedIds)];
                         });
                       };
@@ -961,7 +982,14 @@ export default function RoleManagement() {
                       };
                       const clearAll = () => {
                         const ids = new Set(filtered.map(a => a.permission.id));
-                        setFormPerms(prev => prev.filter(id => !ids.has(id)));
+                        setFormPerms(prev => {
+                          const next = prev.filter(id => !ids.has(id));
+                          const cascaded = cascadeRemoveDependents(next, permissions);
+                          if (cascaded.removedIds.length > 0) {
+                            toast.info(`Also removed dependent action${cascaded.removedIds.length > 1 ? 's' : ''} that require View.`);
+                          }
+                          return cascaded.resolvedIds;
+                        });
                       };
                       const summary =
                         selectedCount === 0 ? 'No access'

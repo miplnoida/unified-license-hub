@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   permissionHasDependency,
   resolveDependencies,
+  cascadeRemoveDependents,
   DEPENDENT_ACTIONS,
 } from '@/lib/rbac/permissionDependencies';
 
@@ -99,4 +100,51 @@ describe('permissionDependencies', () => {
     expect(res.violations).toHaveLength(1);
   });
 });
+
+describe('cascadeRemoveDependents', () => {
+  const CAT = [
+    { id: 'v-app', module: 'application_management', name: 'view' },
+    { id: 'e-app', module: 'application_management', name: 'edit' },
+    { id: 'a-app', module: 'application_management', name: 'approve' },
+    { id: 'v-lic', module: 'license_management', name: 'view' },
+    { id: 'c-lic', module: 'license_management', name: 'create' },
+  ];
+
+  it('drops dependents when view is absent on a module', () => {
+    const res = cascadeRemoveDependents(['e-app', 'a-app'], CAT);
+    expect(res.removedIds.sort()).toEqual(['a-app', 'e-app']);
+    expect(res.resolvedIds).toEqual([]);
+    expect(res.affectedModules).toEqual(['application_management']);
+  });
+
+  it('leaves the module untouched when view is present', () => {
+    const res = cascadeRemoveDependents(['v-app', 'e-app', 'a-app'], CAT);
+    expect(res.removedIds).toEqual([]);
+    expect(res.resolvedIds.sort()).toEqual(['a-app', 'e-app', 'v-app']);
+    expect(res.affectedModules).toEqual([]);
+  });
+
+  it('preserves permissions on unrelated modules', () => {
+    const res = cascadeRemoveDependents(['e-app', 'v-lic', 'c-lic'], CAT);
+    expect(res.removedIds).toEqual(['e-app']);
+    expect(res.resolvedIds.sort()).toEqual(['c-lic', 'v-lic']);
+  });
+
+  it('normalizes module key when view is on a different-cased module label', () => {
+    const catalog = [
+      { id: 'v', module: 'License Management', name: 'view' },
+      { id: 'mla', module: 'license_management', name: 'manage_license_actions' },
+    ];
+    const res = cascadeRemoveDependents(['v', 'mla'], catalog);
+    expect(res.removedIds).toEqual([]);
+    expect(res.resolvedIds.sort()).toEqual(['mla', 'v']);
+  });
+
+  it('keeps view even when nothing depends on it', () => {
+    const res = cascadeRemoveDependents(['v-app'], CAT);
+    expect(res.removedIds).toEqual([]);
+    expect(res.resolvedIds).toEqual(['v-app']);
+  });
+});
+
 
