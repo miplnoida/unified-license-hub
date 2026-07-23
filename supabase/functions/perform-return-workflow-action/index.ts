@@ -94,8 +94,9 @@ Deno.serve(async (req) => {
         console.error("save_comment insert error:", insertErr);
         return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
       }
-      result = { success: true, saved_comment: true, new_step_id: step_id };
-    } else {
+    }
+    {
+    const effective_action = action_type === "save_comment" ? "approve" : action_type;
 
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
           .from("approval_step_actions")
           .select("require_digital_signature")
           .eq("step_id", step_id)
-          .eq("action_type", action_type)
+          .eq("action_type", effective_action)
           .eq("is_enabled", true)
           .maybeSingle(),
         admin
@@ -122,7 +123,7 @@ Deno.serve(async (req) => {
       _return_id: return_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: action_type,
+      _action_type: effective_action,
       _comments: comments,
       _actor_id: caller.id,
     });
@@ -136,7 +137,10 @@ Deno.serve(async (req) => {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
-    } // end else (non-save_comment)
+    if (action_type === "save_comment") {
+      (result as any).saved_comment = true;
+    }
+    } // end transition block
 
     if (signature_data_url) {
       try {
