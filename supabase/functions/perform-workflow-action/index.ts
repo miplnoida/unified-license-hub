@@ -105,14 +105,12 @@ export async function handler(req: Request): Promise<Response> {
     let result: Record<string, unknown>;
 
     if (raw_action === "save_comment") {
-      // Comment-only action: does NOT transition workflow state. Insert an
-      // approval_actions row and fall through to the notification dispatch
-      // block. Signature/legal-stage checks and perform_workflow_transition
-      // are intentionally skipped.
+      // Save Comment: record the comment (preserving action_type='save_comment'
+      // in audit history) and advance the workflow like Approve.
       if (!comments.trim()) {
         return errorResponse(req, 400, "A comment is required.", "COMMENT_REQUIRED");
       }
-      const { error: insertErr } = await admin.from("approval_actions").insert({
+      const { error: commentInsertErr } = await admin.from("approval_actions").insert({
         application_id,
         entity_type: "application",
         entity_id: application_id,
@@ -123,12 +121,12 @@ export async function handler(req: Request): Promise<Response> {
         action_type: "save_comment",
         comments,
       });
-      if (insertErr) {
-        console.error("save_comment insert error:", insertErr);
-        return errorResponse(req, 500, insertErr.message || "Failed to save comment", "DB_ERROR");
+      if (commentInsertErr) {
+        console.error("save_comment insert error:", commentInsertErr);
+        return errorResponse(req, 500, commentInsertErr.message || "Failed to save comment", "DB_ERROR");
       }
-      result = { success: true, saved_comment: true, new_step_id: step_id };
-    } else {
+    }
+    {
 
     // Enforce digital signature requirement (configured per step OR per step+action).
     if (step_id) {
