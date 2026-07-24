@@ -1,4 +1,4 @@
-import { Bell, Search, UserCircle, LogOut, Layers } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,9 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +21,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const notifTypeIcon: Record<string, JSX.Element> = {
+  info: <Info className="h-4 w-4 text-info" />,
+  success: <CheckCircle className="h-4 w-4 text-success" />,
+  warning: <AlertTriangle className="h-4 w-4 text-warning" />,
+  error: <XCircle className="h-4 w-4 text-destructive" />,
+};
+
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { unreadCount } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const recent = notifications.slice(0, 5);
   const { activeSectorName } = useActiveSector();
   const { isPpoc, actingAs, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
@@ -79,14 +90,74 @@ export function Header() {
             </span>
           </div>
         )}
-        <Button data-rbac="notification_management.view" variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Button>
+        <HoverCard openDelay={100} closeDelay={150}>
+          <HoverCardTrigger asChild>
+            <Button data-rbac="notification_management.view" variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </HoverCardTrigger>
+          <HoverCardContent align="end" className="w-80 p-0 z-50">
+            <div className="flex items-center justify-between px-3 py-2 border-b">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">Notifications</span>
+                {unreadCount > 0 && (
+                  <Badge variant="default" className="text-[10px] px-1.5">{unreadCount} new</Badge>
+                )}
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); markAllRead(); }}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                >
+                  <CheckCheck className="h-3 w-3" /> Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {recent.length === 0 ? (
+                <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
+              ) : (
+                recent.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => {
+                      if (!n.read) markRead(n.id);
+                      navigate('/notifications');
+                    }}
+                    className={`w-full text-left flex items-start gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
+                  >
+                    <div className="mt-0.5 shrink-0">{notifTypeIcon[n.type] || notifTypeIcon.info}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs truncate ${!n.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                        {n.title}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">{n.message}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                    {!n.read && <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="border-t px-3 py-2">
+              <button
+                onClick={() => navigate('/notifications')}
+                className="w-full text-center text-xs font-medium text-primary hover:underline"
+              >
+                View all notifications
+              </button>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

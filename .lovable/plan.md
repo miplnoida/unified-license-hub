@@ -1,29 +1,35 @@
-## Verified current state
+## Goal
+Fix header bell notification count across all panels and add a hover-preview tray with the 5 most recent notifications plus a "View all" link to `/notifications`.
 
-- `APP-2026-000129` now has a linked licensee row: `New FinCorp Commercial Bank Limited`.
-- The licensee row now has `sector_id`, `sub_sector_id`, and `category_id` populated as Merchant Bank, so the previous NULL-taxonomy issue is fixed in the database.
-- The `/admin/licensees` page still uses the direct `licensees` list query and client-side filters/pagination, so the remaining issue is likely either:
-  - the signed-in regulator still fails the `licensees_read` access helper for this entity, or
-  - the current page/search/filter/pagination state is hiding the row even though it exists.
+## Current State (verified)
+- `src/components/layout/Header.tsx` renders a plain `Button` around the bell that navigates to `/notifications` on click. No hover tray.
+- Unread count comes from `useNotifications()` which filters `notifications` table by `user_id`, `channel='in_app'`, ordered desc, limit 100. Realtime INSERT/UPDATE/DELETE subscriptions already keep it in sync.
+- Two notifications pages exist: `src/pages/Notifications.tsx` (static demo data) and `src/pages/notifications/NotificationCenter.tsx` (real data via `useNotifications`). Need to confirm which route `/notifications` maps to and make it the real one so the count matches the list.
 
-## Plan
+## Changes
 
-1. **Trace the logged-in list request**
-   - Reproduce `/admin/licensees` with the current preview session.
-   - Capture the exact `licensees` response count and whether `3c4a539a-03a1-4ad1-b936-1c8ab343e328` is returned for the signed-in regulator.
-   - Check active search, sector, status, sort, and pagination state.
+### 1. `src/components/layout/Header.tsx` — hover tray
+- Wrap the bell button in a `HoverCard` (shadcn) so the tray opens on hover and stays open when moving into it. Keep the click behavior navigating to `/notifications` for keyboard/mobile users.
+- Tray content:
+  - Header row: "Notifications" + small unread badge.
+  - List of most recent 5 items from `useNotifications().notifications` (already sorted desc). Each row: type icon, title (bold if unread), one-line message truncated, relative time. Clicking a row calls `markRead(id)` then navigates to `/notifications`.
+  - Empty state when list is empty.
+  - Footer: "View all" link → `/notifications` and a "Mark all read" button when `unreadCount > 0`.
+- Preserve the existing red unread badge on the bell.
 
-2. **Fix backend visibility if the row is not returned**
-   - Patch the `can_read_licensee` backend helper so sector-scoped regulators can read licensees using the populated licensee taxonomy.
-   - Ensure the helper also handles assignment-based access without requiring unrelated global entity permissions.
-   - Keep RLS restrictive: do not make licensees publicly readable and do not loosen access beyond configured role/scope/assignment rules.
+### 2. Route sanity for `/notifications`
+- Inspect `src/routes/dashboardRoutes` to confirm `/notifications` points at `NotificationCenter` (real data). If it still points at the static `pages/Notifications.tsx`, switch it so the header count and the destination page use the same source. No behavior change beyond that.
 
-3. **Fix frontend hiding if the row is returned but not visible**
-   - Reset page index to page 0 when search/sector/status filters change.
-   - Make the search match the database licensee name and license number as well as the enriched display name/contact/category fields.
-   - Add resilient error handling so failed secondary lookups do not silently produce an empty/partial list.
+### 3. No backend / hook changes
+- Count logic already correct via `useNotifications`; realtime subscription handles updates. The reported "count not showing correctly" is expected to resolve once the header consistently reads from this hook (it already does) and the destination page uses the same hook rather than mocked data.
 
-4. **Verify**
-   - Confirm the target licensee is returned and visible on `/admin/licensees` for the current regulator session.
-   - Confirm the target shows Merchant Bank values in Sector/Sub-sector/Category.
-   - Confirm unrelated licensees remain hidden if the regulator is not scoped or assigned to them.
+## Technical Notes
+- Use existing shadcn `HoverCard` (`@/components/ui/hover-card`) — no new deps. Fall back to `openDelay=100`, `closeDelay=150`.
+- Format time with `date-fns` `formatDistanceToNow` (already used elsewhere).
+- Keep bell as the `HoverCardTrigger asChild` so the current click-to-navigate + badge markup is unchanged.
+- Tray width ~ `w-80`, max-height with scroll for safety, `z-50`.
+
+## Out of Scope
+- Redesigning the full Notifications page.
+- Email/SMS channel changes.
+- Per-notification deep-link routing based on `entity_type` (can be a follow-up).
