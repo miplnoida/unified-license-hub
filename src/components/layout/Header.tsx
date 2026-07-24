@@ -31,7 +31,8 @@ const notifTypeIcon: Record<string, JSX.Element> = {
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { unreadCount } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const recent = notifications.slice(0, 5);
   const { activeSectorName } = useActiveSector();
   const { isPpoc, actingAs, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
