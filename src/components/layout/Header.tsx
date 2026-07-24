@@ -1,4 +1,4 @@
-import { Bell, Search, UserCircle, LogOut, Layers } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,9 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +20,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const notifTypeIcon: Record<string, JSX.Element> = {
+  info: <Info className="h-4 w-4 text-info" />,
+  success: <CheckCircle className="h-4 w-4 text-success" />,
+  warning: <AlertTriangle className="h-4 w-4 text-warning" />,
+  error: <XCircle className="h-4 w-4 text-destructive" />,
+};
 
 export function Header() {
   const { user, logout } = useAuth();
