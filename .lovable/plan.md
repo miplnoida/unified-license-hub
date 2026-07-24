@@ -1,59 +1,68 @@
-## Problem
+## Root cause (verified against the DB)
 
-The current "Save Comment" implementation maps the action to `approve` before calling `perform_workflow_transition` / `perform_registration_workflow_transition` / `perform_return_workflow_transition`. Each of those RPCs validates:
+For APP-2026-000129 the taxonomy is set correctly everywhere upstream:
+
+- `applications.data`: `sector_id=87ecc596-…`, `sub_sector_id=0334a897-…`, `category_id=0be646b8-…` (Merchant Bank)
+- `licenses` row `9376aa9e-…`: same three IDs populated
+- `licensees` row `3c4a539a-…` (linked via `license_id`): `sector_id / sub_sector_id / category_id = NULL`
+
+The provisioning RPC in migration `20260630080930_…` inserts the licensee with only three columns and never copies the taxonomy:
 
 ```sql
-IF NOT (_action_type = ANY(v_step.allowed_actions)) THEN
-  RETURN jsonb_build_object('error', format('Action ''%s'' is not allowed on this step', _action_type), ...);
+INSERT INTO public.licensees (license_id, name, applicant_id)
+VALUES (v_license.id, v_entity_name, v_app.applicant_id);
 ```
 
-So when the current step's `allowed_actions` does not include `approve` for the caller's role (as on the step surfaced in application `94416f43-…`), Save Comment fails with `"action 'approve' is not allowed in this step"`. Additionally, repeatedly clicking Save Comment on the same step piles up duplicate rows in `approval_actions`.
+Because the row lacks `sector_id`, `can_read_licensee` → `has_scoped_permission(_user, 'licensee_management', 'view', licensee_id, NULL, NULL)` fails for sector-scoped regulators (super-admins and `view_all_entities` holders still see it, which is why the record exists but was invisible to the reporting user). It's a systemic bug — every licensee provisioned via this RPC has NULL taxonomy.
 
 ## Fix
 
-Treat `save_comment` as its own first-class transition action instead of masquerading as `approve`. It must advance the step (as the user asked earlier) but must not depend on `approve` being configured for the step or the role, and it must not create duplicate comments per (actor, step).
+### 1. Schema-level RPC patch (migration tool)
 
-### 1. Update the three transition RPCs
+Replace the licensee INSERT inside `create_license_and_licensee_from_application` (both the renewal and non-renewal branches, if the renewal branch ever creates a licensee) to copy taxonomy from the license the RPC just created / found, falling back to `applications.data`:
 
-Files (new migration; do NOT edit existing migrations):
+```sql
+INSERT INTO public.licensees (
+  license_id, name, applicant_id,
+  sector_id, sub_sector_id, category_id
+)
+VALUES (
+  v_license.id, v_entity_name, v_app.applicant_id,
+  COALESCE(v_license.sector_id,     NULLIF(v_app_data->>'sector_id','')::uuid),
+  COALESCE(v_license.sub_sector_id, NULLIF(v_app_data->>'sub_sector_id','')::uuid),
+  COALESCE(v_license.category_id,   NULLIF(v_app_data->>'category_id','')::uuid)
+)
+RETURNING id INTO v_licensee_id;
+```
 
-- `perform_workflow_transition` (application)
-- `perform_registration_workflow_transition`
-- `perform_return_workflow_transition`
+(Requires selecting `sector_id, sub_sector_id, category_id` into `v_license` where the row is fetched / created.)
 
-Changes inside each RPC:
+### 2. One-off backfill (insert tool — data change)
 
-1. Add `'save_comment'` to the valid `_action_type` whitelist so it isn't rejected as `BAD_ACTION`.
-2. Skip the `allowed_actions` membership check when `_action_type = 'save_comment'` (comments are implicitly allowed on every step).
-3. In the progression branch, handle `save_comment` the same way as `approve` (advance to next step, or mark final approved if last step). It uses the approve progression code path but records `action_type='save_comment'` / `action='comment_saved'` in `approval_actions`.
-4. Before inserting the `approval_actions` row for `save_comment`, delete any prior `approval_actions` row where `entity_type = <entity>` AND `entity_id = <id>` AND `step_id = v_step.id` AND `actor_id = _actor_id` AND `action_type = 'save_comment'`. This enforces "only one Save Comment per actor per step".
+Fill NULL taxonomy on every existing licensee from the linked license, then application data as a fallback:
 
-### 2. Update the three edge functions
+```sql
+UPDATE public.licensees lc
+SET sector_id     = COALESCE(lc.sector_id,     li.sector_id,     NULLIF(a.data->>'sector_id','')::uuid),
+    sub_sector_id = COALESCE(lc.sub_sector_id, li.sub_sector_id, NULLIF(a.data->>'sub_sector_id','')::uuid),
+    category_id   = COALESCE(lc.category_id,   li.category_id,   NULLIF(a.data->>'category_id','')::uuid),
+    updated_at    = now()
+FROM public.licenses li
+LEFT JOIN public.applications a ON a.id = li.application_id
+WHERE lc.license_id = li.id
+  AND (lc.sector_id IS NULL OR lc.sub_sector_id IS NULL OR lc.category_id IS NULL);
+```
 
-- `supabase/functions/perform-workflow-action/index.ts`
-- `supabase/functions/perform-registration-workflow-action/index.ts`
-- `supabase/functions/perform-return-workflow-action/index.ts`
+This immediately populates APP-2026-000129's licensee (`3c4a539a-…`) with Merchant Bank / Merchant Bank / Merchant Bank and makes it visible to the current sector-scoped user.
 
-Changes:
+### 3. Verify
 
-1. Remove the pre-RPC `approval_actions` insert for `save_comment` (the RPC now writes the row itself with the correct de-dup behavior).
-2. Remove the `effective_action = raw_action === 'save_comment' ? 'approve' : raw_action` mapping. Pass `save_comment` through to the RPC unchanged.
-3. Keep the digital-signature check keyed on `save_comment` (it will simply find no config and require nothing, matching current behavior for optional actions).
-4. Keep the notification dispatch mapping for `*.comment_saved` untouched.
+- Re-query `licensees` for `license_id=9376aa9e-…` → taxonomy columns non-null.
+- Reload `/admin/licensees` as the reporting user — "New FinCorp Commercial Bank Limited" row appears with the correct Sector / Sub-sector / Category.
+- Approve a fresh test application end-to-end → new licensee row shows taxonomy populated on first insert (no backfill needed).
 
-### 3. No frontend changes
+## Not touched
 
-`WorkflowPanel`, `useWorkflowEngine`, `useStepActions`, and notification templates already handle `save_comment` correctly. The UI already shows Save Comment alongside other actions; nothing to change there.
-
-## Verification
-
-- Load `/applications/94416f43-13d8-41ab-b4ee-a4b328ff27f5`, submit Save Comment. Confirm the step advances and no `approve`-not-allowed error appears.
-- Submit Save Comment twice on the same step (via a step that loops back or via a fresh test app): confirm exactly one `approval_actions` row per (actor, step, save_comment) exists.
-- Run Save Comment on a return and a registration to confirm parity across all three entities.
-- Confirm the `*.comment_saved` email still dispatches with the plain-text template.
-
-## Out of scope
-
-- No changes to notification templates or event configs (already fixed last turn).
-- No workflow builder changes — `save_comment` remains implicitly available on every step.
-- No RLS or role changes.
+- `ManageLicensees.tsx` — the frontend is correct once the DB row has the values.
+- RLS policy `can_read_licensee` — behavior is intentional; we feed it correct data instead of loosening the gate.
+- Approval edge functions, workflow logic, notification templates.
