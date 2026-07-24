@@ -77,6 +77,14 @@ export default function ManageLicensees() {
         supabase.from('licenses').select('id, application_id, license_number, status, valid_until'),
       ]);
 
+      const loadErrors = [licRes.error, secRes.error, subRes.error, catRes.error, licensesRes.error].filter(Boolean);
+      if (loadErrors.length) {
+        console.error('[ManageLicensees] Failed to load licensee list', loadErrors);
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+
       const sMap: LookupMap = {};
       (secRes.data || []).forEach(s => { sMap[s.id] = s.name; });
       setSectors(sMap);
@@ -142,12 +150,12 @@ export default function ManageLicensees() {
         const data = app?.data || {};
 
         const licenseeName =
+          l.name ||
           reg?.applicant_name ||
           data?.applicant_name ||
           data?.entity_name ||
           pl?.entity_name ||
           prof?.entity_name ||
-          l.name ||
           '—';
 
         const contactName =
@@ -157,9 +165,9 @@ export default function ManageLicensees() {
           pl?.full_name ||
           '—';
 
-        const sectorId = reg?.sector_id || data?.sector_id || l.sector_id;
-        const subSectorId = reg?.sub_sector_id || data?.sub_sector_id || l.sub_sector_id;
-        const categoryId = reg?.category_id || data?.category_id || l.category_id;
+        const sectorId = l.sector_id || data?.sector_id || reg?.sector_id;
+        const subSectorId = l.sub_sector_id || data?.sub_sector_id || reg?.sub_sector_id;
+        const categoryId = l.category_id || data?.category_id || reg?.category_id;
 
         // License status (suspended/revoked/expired/active) is the source of truth
         // for the licensee badge — the licensees.status row stays 'active' even
@@ -201,7 +209,7 @@ export default function ManageLicensees() {
       if (sectorFilter !== 'all' && r.sector_id !== sectorFilter) return false;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (q) {
-        const hay = [r.licensee_name, r.contact_name, r.sector_name, r.sub_sector_name, r.category_name]
+        const hay = [r.licensee_name, r.contact_name, r.license_number, r.sector_name, r.sub_sector_name, r.category_name]
           .join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
