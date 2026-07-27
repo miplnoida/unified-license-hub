@@ -1,30 +1,31 @@
-## Goal
+## Root cause (confirmed)
 
-1. Complaints can no longer be lodged without logging in, and the anonymous submission option is removed.
-2. Logged-in applicants/external users get a proper "Track complaint" experience, not just the submission form.
+Tracking never fails on the "complaint not found" check — the complaint is found, then the RPC crashes while building the timeline.
 
-## 1. Close public / anonymous intake
+`public.get_public_complaint_tracking` joins the status catalogue on `approval_actions.new_status`, but that column does not exist on `approval_actions` (columns are `action`, `action_type`, `comments`, ...). Calling it errors with:
 
-- Delete `src/pages/public/PublicComplaintIntake.tsx`.
-- In `src/routes/publicRoutes.tsx`: remove the `/complaints/submit` public route and point `/complaints/submit`, `/complaints/new`, `/submit-complaint` to the login page with `?redirect=/complaints` so an unauthenticated visitor is asked to sign in and lands on the complaints portal afterwards.
-- `src/components/landing/FeaturesSection.tsx`: "Lodge Complaint" tile now links to the login/complaints flow instead of the public form. The "Track Complaint" tile stays.
-- Backend: revoke anonymous execution on the complaint intake functions (`create_complaint`, `create_complaint_with_attachments`, `finalize_complaint_with_attachments`) so the anon path is closed server-side, not just in the UI, and drop the anonymous branch of the intake rules. Authenticated flows are unaffected.
-- Internal staff intake (`/complaints/internal/new`) and the applicant "File Complaint" dialog are untouched.
+```text
+ERROR: column aa.new_status does not exist
+```
 
-Public complaint tracking at `/track/complaint` stays available so people holding an old reference number can still check status (read-only, no submission).
+Verified directly against the database with a real reference (`CMP-2026-000073`).
 
-## 2. Track Complaint for applicants
+The UI then shows the generic "No complaint found for the details provided" because `ComplaintTrackingPanel` maps *any* RPC error (other than `CONTACT_MISMATCH`) to that message.
 
-In `src/pages/complaints/ComplaintsList.tsx`, external (non-internal) view only:
+## Fix
 
-- Add a "Track Complaint" button next to "File Complaint" in the page header, opening a dialog where the user enters a complaint reference number and sees the status, submitted/last-updated dates, and progress timeline.
-- Add a "Track" action on each row in the applicant table, next to "View", opening the same dialog pre-filled with that complaint's reference so progress is one click away.
-- The tracking panel is extracted into a small reusable component (`src/components/complaints/ComplaintTrackingPanel.tsx`) used by both the dialog and the existing `/track/complaint` page, so the timeline renders identically in both places.
-- Data comes from the existing tracking function already used by the public page; for a signed-in user the contact email is taken from their session rather than being typed in.
+1. **Migration — repair the tracking RPC**
+   - Rebuild the timeline subquery against real columns: use `approval_actions.action` / `action_type` and `comments`, keeping output redacted (public label + description only, no actor names, no internal notes).
+   - Derive public labels from the current complaint status catalogue where a mapping exists; otherwise fall back to a neutral "Progress update".
+   - Keep the current status block and contact-verification behaviour unchanged.
+   - Make contact matching resilient: trim + lowercase **both** sides of the email comparison.
+   - Allow a signed-in complainant to bypass the email check when `auth.uid() = complaints.complainant_id`, so applicants tracking their own complaint from the portal never hit a false `CONTACT_MISMATCH` when their login email differs from the contact email on the complaint.
 
-Internal staff views, filters, SLA badges and all other complaint functionality remain unchanged.
+2. **`src/components/complaints/ComplaintTrackingPanel.tsx` — honest error states**
+   - Distinguish three outcomes instead of one: RPC/network error ("Unable to load tracking right now" + retry), `CONTACT_MISMATCH` (verification failed), and genuinely not found.
+   - Show the underlying error detail for the failure case so a broken backend never masquerades as "no such complaint".
 
-## Technical notes
+## Verification
 
-- Route changes are redirects, so any bookmarked public intake URL degrades gracefully to login.
-- Revoking the anon grants requires a database migration; existing anonymous complaints already recorded keep working for tracking.
+- Call the fixed RPC via SQL for an existing reference with the matching email, a wrong email, and a nonexistent reference; confirm found/timeline, `CONTACT_MISMATCH`, and not-found respectively.
+- Load the applicant complaints list, use both the "Track complaint" button and a row-level "Track" action, and confirm status + timeline render.
