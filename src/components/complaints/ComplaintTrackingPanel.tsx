@@ -109,6 +109,16 @@ export function ComplaintTrackingPanel({
         </Button>
       </form>
 
+      {failure && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm space-y-2">
+          <p className="font-medium text-destructive">Unable to load tracking right now.</p>
+          <p className="text-muted-foreground">{failure}</p>
+          <Button size="sm" variant="outline" onClick={() => void runLookup(reference, email)}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {tracking && !tracking.found && (
         <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
           {tracking.error === 'CONTACT_MISMATCH'
@@ -116,6 +126,7 @@ export function ComplaintTrackingPanel({
             : 'No complaint found for the details provided. Please check the reference and try again.'}
         </div>
       )}
+
 
       {tracking?.found && (
         <div className="rounded-lg border bg-card p-4 space-y-4">
