@@ -36,6 +36,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { ComplaintTrackingPanel } from '@/components/complaints/ComplaintTrackingPanel';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
@@ -312,6 +313,7 @@ export default function ComplaintsList() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [trackDialog, setTrackDialog] = useState<{ open: boolean; reference: string }>({ open: false, reference: '' });
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
 
@@ -587,6 +589,11 @@ export default function ComplaintsList() {
                 </>
               )}
               {!isInternal && (
+                <Button variant="outline" onClick={() => setTrackDialog({ open: true, reference: '' })}>
+                  <Search className="h-4 w-4 mr-2" />Track Complaint
+                </Button>
+              )}
+              {!isInternal && (
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
                   <DialogTrigger asChild>
                     <Button data-rbac="complaint_management.create"><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
@@ -829,9 +836,16 @@ export default function ComplaintsList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
                           <Eye className="h-4 w-4 mr-1" />View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTrackDialog({ open: true, reference: c.complaint_number })}
+                        >
+                          <Search className="h-4 w-4 mr-1" />Track
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1066,6 +1080,21 @@ export default function ComplaintsList() {
           complaint={ackDialog}
           variant={ackVariant}
         />
+      )}
+
+      {!isInternal && (
+        <Dialog open={trackDialog.open} onOpenChange={(o) => setTrackDialog(t => ({ ...t, open: o }))}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Track a complaint</DialogTitle></DialogHeader>
+            <ComplaintTrackingPanel
+              key={trackDialog.reference || 'blank'}
+              initialReference={trackDialog.reference}
+              initialEmail={user?.email ?? ''}
+              hideEmailField
+              autoLookup={!!trackDialog.reference}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </DashboardLayout>
   );
