@@ -165,7 +165,7 @@ export const dashboardRoutes = (
 
     <Route path="/payments" element={<EP area="licensing" capability="can_view_status"><PaymentHistory /></EP>} />
     <Route path="/payments/:id" element={<EP area="licensing" capability="can_view_status"><PaymentDetail /></EP>} />
-    <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
+    <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={INTERNAL_ROLES}><ComplaintsList /></ExternalPortalOrModule>} />
     <Route path="/complaints/analytics" element={<M module="complaint_management"><ComplaintsAnalytics /></M>} />
     <Route path="/complaints/duplicates" element={<M module="complaint_management"><DuplicateDetectionHub /></M>} />
     <Route path="/complaints/escalations" element={<M module="complaint_management"><EscalationHub /></M>} />
