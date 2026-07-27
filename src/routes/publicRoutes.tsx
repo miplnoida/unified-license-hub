@@ -48,6 +48,7 @@ export const publicRoutes = (
     <Route path="/track/complaint" element={<PublicComplaintTracking />} />
     {/* Public / anonymous complaint intake — no authentication required. */}
     <Route path="/complaints/submit" element={<PublicComplaintIntake />} />
+    <Route path="/complaints/new" element={<Navigate to="/complaints/submit" replace />} />
     <Route path="/submit-complaint" element={<Navigate to="/complaints/submit" replace />} />
     <Route path="*" element={<NotFound />} />
   </>

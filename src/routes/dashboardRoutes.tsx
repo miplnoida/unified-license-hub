@@ -223,7 +223,7 @@ export const dashboardRoutes = (
     <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
     <Route path="/conduct/investigations" element={<M module="market_conduct"><Investigations /></M>} />
     <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
-    <Route path="/complaints/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
+    <Route path="/complaints/internal/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
