@@ -1,30 +1,33 @@
-## Problem (verified)
+## Plan: Lock complaint tracking to the real owner/contact
 
-`public.get_public_complaint_tracking` only checks identity if the complaint has a contact email:
+### Confirmed issue
+- The current tracking RPC allows access when the signed-in caller has `complaint_management.view`.
+- The Applicant role has complaint permissions (`submit`, `upload_documents`, `view_status`), but some external/customer-style roles also have broader complaint `view` permission.
+- The signed-in tracking page passes the current user’s email, but backend access must be the final authority.
 
-- It matches the complaint by reference, then sets ownership as `complainant_id = auth.uid()`.
-- If not the owner, it compares the supplied email to `complaints.email` — but **only when that email is non-empty**. When the complaint has no email on file, the check is skipped entirely and the full redacted record is returned to anyone holding the reference.
-- Database check: of 31 complaints, **18 have no contact email and no complainant_id**, so any signed-in (or anonymous) user who enters those references sees the complaint. Signed-in users don't even type an email — the page sends their own session email — so those 18 open up automatically.
+### Fix
+1. **Harden the tracking RPC**
+   - Update `public.get_public_complaint_tracking` so external users/applicants can only view a complaint when:
+     - they are the complaint `complainant_id`, or
+     - their authenticated email exactly matches the complaint contact email.
+   - Only internal staff should be allowed through the broader `complaint_management.view` permission.
+   - Do not trust typed/caller-supplied email for signed-in users as a way to bypass identity.
 
-## Fix
+2. **Tighten public/anonymous tracking behavior**
+   - Since anonymous complaint intake is disabled, make tracking require an authenticated user unless there is a deliberate public tracking route requirement.
+   - If keeping `/track/complaint`, it should not reveal another person’s complaint by reference + guessed email.
 
-Rewrite the identity gate at the top of `get_public_complaint_tracking` (migration, no signature change):
+3. **Add regression checks**
+   - Add/adjust complaint security tests to cover:
+     - owner/applicant can track their own complaint.
+     - unrelated applicant cannot track by reference.
+     - unrelated applicant cannot bypass by supplying someone else’s email.
+     - internal staff with complaint `view` can still track for operational review.
 
-1. Resolve the caller's identity: `auth.uid()` and their email from `auth.users`/`profiles`.
-2. Allow when **any** of these hold:
-   - caller is the complainant (`complainant_id = auth.uid()`),
-   - caller's session email matches `complaints.email` (case/space-insensitive),
-   - the supplied `p_email` matches `complaints.email` (anonymous/public path, unchanged behaviour),
-   - caller is internal staff already permitted to read complaints (reuse the existing `has_complaint_perm`-style check) so officers tracking a case aren't blocked.
-3. **Deny by default otherwise** — including the "complaint has no email on file" case, which currently falls through. Return the existing `{found:false, error:'CONTACT_MISMATCH'}` shape so the UI message is unchanged, and never distinguish "wrong email" from "no such reference" to avoid reference enumeration.
+4. **Verify end-to-end**
+   - Test the RPC directly for owner vs unrelated applicant behavior.
+   - Check the tracking page route still shows valid owner details and shows “not found”/access denied for unrelated applicants.
 
-## Frontend
-
-No behaviour change needed. Optionally the signed-in page (`src/pages/complaints/ComplaintTracking.tsx` / `ComplaintTrackingView.tsx`) keeps showing the same "No complaint found for the details provided" message on denial — verify it reads correctly for the new deny case.
-
-## Verification
-
-- Query the 18 email-less complaints and confirm the RPC returns `found:false` for a non-owner session, and still returns the record for the complainant.
-- Confirm a complaint with an email still resolves for the matching email (public `/track/complaint`) and for its owner while signed in.
-- Confirm an internal officer with complaint view permission can still open any reference.
-- Existing pgTAP suite (`supabase/tests/complaints/09_public_tracking.sql`, `16_rpc_permissions.sql`) must still pass; add an assertion that an unrelated authenticated persona gets `found:false`.
+### Scope control
+- No changes to complaint workflow, status labels, history rendering, or unrelated business logic.
+- This is a targeted access-control fix for complaint tracking only.
