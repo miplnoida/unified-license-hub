@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
+
 import { RegulatorProvider } from "@/contexts/RegulatorContext";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { PpocProvider } from "@/contexts/PpocContext";
@@ -47,20 +49,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <SiteSettingsProvider>
       <AuthProvider>
-        <RegulatorProvider>
-          <PpocProvider>
-            <ActiveSectorProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AppRoutes />
-                </BrowserRouter>
-              </TooltipProvider>
-            </ActiveSectorProvider>
-          </PpocProvider>
-        </RegulatorProvider>
+        <NotificationsProvider>
+          <RegulatorProvider>
+            <PpocProvider>
+              <ActiveSectorProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </TooltipProvider>
+              </ActiveSectorProvider>
+            </PpocProvider>
+          </RegulatorProvider>
+        </NotificationsProvider>
       </AuthProvider>
+
     </SiteSettingsProvider>
   </QueryClientProvider>
 );
