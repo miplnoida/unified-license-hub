@@ -1,49 +1,40 @@
-## What's wrong today
+## What's actually wrong
 
-Verified against the live data and code:
+Verified against the live record `CMP-2026-000001`:
 
-- **History and "Actions taken" are always empty.** The tracking function builds both only from `approval_actions` linked to the complaint's workflow instance. Every complaint in the database has a workflow instance but **zero approval action rows**, so both sections render "No history recorded yet." The real activity lives in `audit_logs` (events like complaint created, licensee linked, investigation started, task created/completed, severity set, escalated, resolved, closed) — which the tracking function never reads.
-- **Investigation section is hidden most of the time.** It only renders when tasks exist or an investigator is assigned; complaints under review with neither show nothing at all, so users think the page is broken.
-- **Progress steps** come from workflow steps only; when a step has no public label the raw internal name shows.
-- **UI**: the lookup card with a full-width "Track complaint" button stays on screen even when a complaint is already loaded, dominating the page; the "Back to complaints" button in the header is oversized; labels are internal-sounding (status codes, "intake source", step keys).
+- The complaint is **closed** (`status = closed`, `closed_at = 1 Apr 2026`).
+- Its workflow instance is still `status = active` with **`current_step_key` and `current_step_id` both NULL**, and it has **zero approval actions**.
+- `get_public_complaint_tracking` computes progress purely from that instance: it looks up the step order of the current step, and with no current step `v_current_order` is NULL, so every step evaluates `is_complete = false` and `is_current = false` — the UI renders all twelve steps as "still to come".
+
+This is not a one-off: **31 complaint workflow instances have a NULL current step**, and **10 complaints are resolved/closed/rejected while their workflow instance is still not completed**. So every one of those tracking pages is wrong in the same way.
 
 ## What to build
 
-### 1. Backend — make the tracking function return real activity
+### Backend — one migration replacing `get_public_complaint_tracking`
 
-Extend `public.get_public_complaint_tracking`:
+Make progress derive from the complaint's **own status** first, and use the workflow instance only as extra detail:
 
-- **History**: build the timeline from `audit_logs` for the complaint (plus the workflow actions, merged and sorted by time). Map each audit action through a plain-English whitelist, e.g.
-  - `complaint_created` / `complaint.created` → "Complaint received"
-  - `licensee_linked` → "Matched to the firm concerned"
-  - `complaint.investigation_started` / `complaint_under_investigation` → "Review started"
-  - `complaint.task_created` / `task_in_progress` / `task_completed` → "Review activity progressed"
-  - `complaint.severity_set`, `complaint_triage_retry`, `RULE_OVERRIDE` → "Complaint assessed"
-  - `complaint.escalated_to_enforcement` → "Referred for enforcement"
-  - `complaint.resolved` → "Resolution reached"; `complaint_closed` → "Complaint closed"
-  - anything not on the whitelist (internal notes, correspondence internals, assignment changes) is **excluded**, so nothing internal leaks.
-  - No actor names, no internal remarks in the public/complainant view.
-- **Actions taken**: same source, filtered to decision-type events (investigation started, referred, resolved, closed, not accepted) so the section is meaningful rather than duplicating history.
-- **Investigation**: always return a block with a plain status ("Not yet started" / "In progress" / "Completed") derived from complaint status, tasks and investigator, plus the task counts and any published findings/outcome, so the section can always render.
-- **Steps**: fall back to a readable, title-cased label when neither `public_label` nor `name` is friendly.
+1. Map the complaint status to a milestone order using the step keys already configured on the complaint workflow:
+   - `submitted` → at `filed`/`triage`
+   - `under_investigation` → at `investigation`
+   - `resolved` → `resolved` reached (everything before it complete)
+   - `closed` → `closed` reached (all preceding complete, terminal step current/complete)
+   - `rejected` / `duplicate` → treated as closed with a "not taken forward" label
+2. Compute the effective order as `GREATEST(status-derived order, workflow current step order)` so a workflow that *has* advanced further still wins, but a stale/NULL instance can never drag progress back to zero.
+3. Mark steps: order < effective → complete; order = effective → current (or complete when the complaint is in a terminal status); order > effective → upcoming.
+4. Hide the branch-only steps that never applied (`enforcement`, `notice_issued`, `response_received`, `payment`, `appeal`, `withdrawn`) unless the complaint actually reached them — a closed complaint shouldn't list eight enforcement steps it never went through.
+5. When no workflow instance exists at all, still return a sensible milestone list from the status map, so the stepper is never empty.
 
-### 2. Frontend — `ComplaintTrackingView.tsx`
+Also, since the complaint is closed but history shows only two audit rows, add the complaint's own lifecycle timestamps (`created_at`, `resolved_at`, `closed_at`) as synthetic timeline entries when no matching audit event exists — so a closed complaint always shows "Complaint received" and "Complaint closed" with real dates.
 
-- **Lookup card**: collapse it once a complaint is loaded — show a compact "Tracking CMP-…  · Track a different complaint" line that expands the form on click. Button becomes a normal-size (`size="sm"`) inline button, not a full-width block.
-- **Status summary**: one clear headline card — big status label, one-sentence explanation of what it means and what happens next, plus the four dates as a simple row.
-- **Progress**: replace the chip row with a vertical numbered stepper (done / in progress / upcoming) with a short caption per step — easier for non-technical users than pills.
-- **Actions taken** and **History**: always visible; each entry is a plain sentence plus a friendly date (`27 Jul 2026, 3:40 pm`). Empty state gives a reassuring message ("Nothing further recorded yet — you'll see updates here as your complaint moves along.") instead of a bare "No history".
-- **Investigation**: always rendered, with the plain status, a simple "3 of 5 review activities completed" line and findings/outcome when published.
-- **Correspondence**: unchanged, shown only to the complainant.
-- Section headings reworded for non-technical readers; internal jargon (intake source, step keys, status codes) removed.
+### Frontend — `ComplaintTrackingView.tsx`
 
-### 3. Page chrome — `ComplaintTracking.tsx`
-
-- Shrink the "Back to complaints" action to a small ghost link in the header, matching other detail pages.
-- Keep the public `/track/complaint` page on the same component, unchanged in behaviour.
+Presentation only:
+- Show "Complete" / "In progress" / "Still to come" captions consistent with the new flags, and mark the whole stepper visually finished when the status is terminal.
+- No change to the lookup, correspondence, or investigation sections.
 
 ## Technical notes
 
-- One migration replacing `get_public_complaint_tracking`; return shape stays backwards-compatible (same keys), with `investigation.status_label` and richer `timeline` entries added.
-- Audit rows are read inside the SECURITY DEFINER function and filtered through the whitelist before returning — the raw `audit_logs` table stays inaccessible to external users.
-- Date formatting helper added in the view; no new dependencies.
+- Single migration, `CREATE OR REPLACE FUNCTION public.get_public_complaint_tracking`; return shape unchanged (same top-level keys, same `steps` entry fields), so the view keeps working.
+- No data backfill of the stale workflow instances — the fix is read-side, so all 31 affected complaints are corrected without touching workflow state or business logic.
+- The separate question of *why* complaint workflow instances never advance (0 approval actions across these complaints) is a workflow-engine issue; it is not addressed here and can be a follow-up if you want the underlying state repaired too.
