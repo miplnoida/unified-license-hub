@@ -36,6 +36,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { ComplaintTrackingPanel } from '@/components/complaints/ComplaintTrackingPanel';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
@@ -312,6 +313,7 @@ export default function ComplaintsList() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [demoMode, setDemoMode] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [trackDialog, setTrackDialog] = useState<{ open: boolean; reference: string }>({ open: false, reference: '' });
   const [detailDialog, setDetailDialog] = useState<any | null>(null);
   const [detailAttachments, setDetailAttachments] = useState<{ id: string; name: string; size?: number; filePath?: string }[]>([]);
 
