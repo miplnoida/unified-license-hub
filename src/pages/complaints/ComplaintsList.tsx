@@ -836,9 +836,16 @@ export default function ComplaintsList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
                           <Eye className="h-4 w-4 mr-1" />View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTrackDialog({ open: true, reference: c.complaint_number })}
+                        >
+                          <Search className="h-4 w-4 mr-1" />Track
                         </Button>
                       </TableCell>
                     </TableRow>
