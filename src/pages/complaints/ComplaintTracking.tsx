@@ -3,13 +3,12 @@
  *
  * Routes: /complaints/track and /complaints/track/:reference
  */
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintTrackingView } from '@/components/complaints/ComplaintTrackingView';
+
 
 export default function ComplaintTracking() {
   const { reference } = useParams<{ reference?: string }>();
