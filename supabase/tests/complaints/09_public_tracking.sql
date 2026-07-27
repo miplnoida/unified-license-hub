@@ -1,6 +1,6 @@
 -- Complaint tracking is authenticated and identity-gated.
 BEGIN;
-SELECT plan(5);
+SELECT plan(6);
 
 SELECT has_function('public','get_public_complaint_tracking',
   'public tracking RPC exists');
@@ -15,6 +15,7 @@ DO $$
 DECLARE
   owner_id uuid := '00000000-0000-0000-0000-000000090001';
   other_id uuid := '00000000-0000-0000-0000-000000090002';
+  consumer_role_id uuid := '00000000-0000-0000-0000-000000090201';
   complaint_id uuid := '00000000-0000-0000-0000-000000090101';
   ref text := 'CMP-TRACK-RLS-OWNER';
   res jsonb;
@@ -29,6 +30,24 @@ BEGIN
   VALUES
     (owner_id, 'applicant'::public.app_role),
     (other_id, 'applicant'::public.app_role)
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.roles(id, name, system_role, role_type, is_system, status)
+  VALUES (
+    consumer_role_id,
+    'Consumer / Complainant RLS Test',
+    'applicant',
+    'internal',
+    false,
+    'active'
+  )
+  ON CONFLICT (name) DO UPDATE SET
+    system_role = EXCLUDED.system_role,
+    role_type = EXCLUDED.role_type,
+    status = EXCLUDED.status;
+
+  INSERT INTO public.user_dynamic_roles(user_id, role_id)
+  VALUES (other_id, consumer_role_id)
   ON CONFLICT DO NOTHING;
 
   INSERT INTO public.complaints(
@@ -78,6 +97,11 @@ SELECT ok(
 SELECT ok(
   COALESCE((public.get_public_complaint_tracking('CMP-TRACK-RLS-OWNER', 'complaint-owner@rls.test')->>'found')::boolean, false) IS NOT TRUE,
   'unrelated applicant cannot bypass tracking by supplying the owner email'
+);
+
+SELECT ok(
+  COALESCE((public.get_public_complaint_tracking('CMP-TRACK-RLS-OWNER', NULL)->>'found')::boolean, false) IS NOT TRUE,
+  'consumer/applicant dynamic roles do not receive the internal staff override'
 );
 
 RESET role;
