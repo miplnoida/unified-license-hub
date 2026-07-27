@@ -1081,6 +1081,21 @@ export default function ComplaintsList() {
           variant={ackVariant}
         />
       )}
+
+      {!isInternal && (
+        <Dialog open={trackDialog.open} onOpenChange={(o) => setTrackDialog(t => ({ ...t, open: o }))}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Track a complaint</DialogTitle></DialogHeader>
+            <ComplaintTrackingPanel
+              key={trackDialog.reference || 'blank'}
+              initialReference={trackDialog.reference}
+              initialEmail={user?.email ?? ''}
+              hideEmailField
+              autoLookup={!!trackDialog.reference}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </DashboardLayout>
   );
 }
