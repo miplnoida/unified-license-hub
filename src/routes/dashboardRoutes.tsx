@@ -169,6 +169,8 @@ export const dashboardRoutes = (
     <Route path="/complaints/analytics" element={<M module="complaint_management"><ComplaintsAnalytics /></M>} />
     <Route path="/complaints/duplicates" element={<M module="complaint_management"><DuplicateDetectionHub /></M>} />
     <Route path="/complaints/escalations" element={<M module="complaint_management"><EscalationHub /></M>} />
+    <Route path="/complaints/track" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={INTERNAL_ROLES}><ComplaintTracking /></ExternalPortalOrModule>} />
+    <Route path="/complaints/track/:reference" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={INTERNAL_ROLES}><ComplaintTracking /></ExternalPortalOrModule>} />
     <Route path="/complaints/:id" element={<M module="complaint_management"><ComplaintDetail /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
