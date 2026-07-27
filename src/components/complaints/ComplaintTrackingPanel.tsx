@@ -46,22 +46,25 @@ export function ComplaintTrackingPanel({
   const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
   const [tracking, setTracking] = useState<ComplaintTracking | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   const runLookup = useCallback(async (ref: string, mail: string) => {
     if (ref.trim().length < 4) return;
     setLoading(true);
     setTracking(null);
+    setFailure(null);
     const { data, error } = await supabase.rpc('get_public_complaint_tracking' as any, {
       p_reference: ref.trim(),
       p_email: mail.trim() || null,
     });
     setLoading(false);
     if (error) {
-      setTracking({ found: false, error: error.message });
+      setFailure(error.message || 'Unknown error');
       return;
     }
     setTracking(data as ComplaintTracking);
   }, []);
+
 
   useEffect(() => {
     if (autoLookup && initialReference) {
