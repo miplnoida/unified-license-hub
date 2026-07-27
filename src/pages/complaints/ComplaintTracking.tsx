@@ -21,13 +21,11 @@ export default function ComplaintTracking() {
       <PageHeader
         title="Track Complaint"
         description="Follow the progress, actions taken and outcome of a complaint."
-        actions={
-          <Button variant="outline" asChild>
-            <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to complaints</Link>
-          </Button>
-        }
+        backHref="/complaints"
+        backLabel="Back to complaints"
       />
       <div className="mt-4">
+
         <ComplaintTrackingView
           reference={reference ? decodeURIComponent(reference) : undefined}
           email={user?.email ?? ''}
