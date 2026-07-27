@@ -16658,6 +16658,10 @@ export type Database = {
         Args: { p_email?: string; p_reference: string }
         Returns: Json
       }
+      get_public_complaint_tracking_raw: {
+        Args: { p_email?: string; p_reference: string }
+        Returns: Json
+      }
       get_registration_reviewer_remarks: {
         Args: { _registration_id: string }
         Returns: string
