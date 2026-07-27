@@ -6,26 +6,29 @@
  * `get_public_complaint_tracking` RPC which returns a redacted view — public
  * status labels only, no assignee names, no internal notes.
  */
-import { Card, CardContent } from '@/components/ui/card';
-import { ComplaintTrackingPanel } from '@/components/complaints/ComplaintTrackingPanel';
+import { useState } from 'react';
+import { ComplaintTrackingView } from '@/components/complaints/ComplaintTrackingView';
 
 export default function PublicComplaintTracking() {
+  const [lookup, setLookup] = useState<{ reference?: string; email: string }>({ email: '' });
+
   return (
     <div className="min-h-screen bg-muted/30 py-10 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Track your complaint</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Enter your complaint reference number to see the latest public status.
-            You will need the email address you used when submitting the complaint.
+            Enter your complaint reference number to see the latest public status,
+            actions taken and progress. You will need the email address you used
+            when submitting the complaint.
           </p>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <ComplaintTrackingPanel />
-          </CardContent>
-        </Card>
+        <ComplaintTrackingView
+          reference={lookup.reference}
+          email={lookup.email}
+          onLookup={(reference, email) => setLookup({ reference, email })}
+        />
       </div>
     </div>
   );
