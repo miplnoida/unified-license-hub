@@ -1,40 +1,30 @@
-## What's actually wrong
+## Problem (verified)
 
-Verified against the live record `CMP-2026-000001`:
+`public.get_public_complaint_tracking` only checks identity if the complaint has a contact email:
 
-- The complaint is **closed** (`status = closed`, `closed_at = 1 Apr 2026`).
-- Its workflow instance is still `status = active` with **`current_step_key` and `current_step_id` both NULL**, and it has **zero approval actions**.
-- `get_public_complaint_tracking` computes progress purely from that instance: it looks up the step order of the current step, and with no current step `v_current_order` is NULL, so every step evaluates `is_complete = false` and `is_current = false` — the UI renders all twelve steps as "still to come".
+- It matches the complaint by reference, then sets ownership as `complainant_id = auth.uid()`.
+- If not the owner, it compares the supplied email to `complaints.email` — but **only when that email is non-empty**. When the complaint has no email on file, the check is skipped entirely and the full redacted record is returned to anyone holding the reference.
+- Database check: of 31 complaints, **18 have no contact email and no complainant_id**, so any signed-in (or anonymous) user who enters those references sees the complaint. Signed-in users don't even type an email — the page sends their own session email — so those 18 open up automatically.
 
-This is not a one-off: **31 complaint workflow instances have a NULL current step**, and **10 complaints are resolved/closed/rejected while their workflow instance is still not completed**. So every one of those tracking pages is wrong in the same way.
+## Fix
 
-## What to build
+Rewrite the identity gate at the top of `get_public_complaint_tracking` (migration, no signature change):
 
-### Backend — one migration replacing `get_public_complaint_tracking`
+1. Resolve the caller's identity: `auth.uid()` and their email from `auth.users`/`profiles`.
+2. Allow when **any** of these hold:
+   - caller is the complainant (`complainant_id = auth.uid()`),
+   - caller's session email matches `complaints.email` (case/space-insensitive),
+   - the supplied `p_email` matches `complaints.email` (anonymous/public path, unchanged behaviour),
+   - caller is internal staff already permitted to read complaints (reuse the existing `has_complaint_perm`-style check) so officers tracking a case aren't blocked.
+3. **Deny by default otherwise** — including the "complaint has no email on file" case, which currently falls through. Return the existing `{found:false, error:'CONTACT_MISMATCH'}` shape so the UI message is unchanged, and never distinguish "wrong email" from "no such reference" to avoid reference enumeration.
 
-Make progress derive from the complaint's **own status** first, and use the workflow instance only as extra detail:
+## Frontend
 
-1. Map the complaint status to a milestone order using the step keys already configured on the complaint workflow:
-   - `submitted` → at `filed`/`triage`
-   - `under_investigation` → at `investigation`
-   - `resolved` → `resolved` reached (everything before it complete)
-   - `closed` → `closed` reached (all preceding complete, terminal step current/complete)
-   - `rejected` / `duplicate` → treated as closed with a "not taken forward" label
-2. Compute the effective order as `GREATEST(status-derived order, workflow current step order)` so a workflow that *has* advanced further still wins, but a stale/NULL instance can never drag progress back to zero.
-3. Mark steps: order < effective → complete; order = effective → current (or complete when the complaint is in a terminal status); order > effective → upcoming.
-4. Hide the branch-only steps that never applied (`enforcement`, `notice_issued`, `response_received`, `payment`, `appeal`, `withdrawn`) unless the complaint actually reached them — a closed complaint shouldn't list eight enforcement steps it never went through.
-5. When no workflow instance exists at all, still return a sensible milestone list from the status map, so the stepper is never empty.
+No behaviour change needed. Optionally the signed-in page (`src/pages/complaints/ComplaintTracking.tsx` / `ComplaintTrackingView.tsx`) keeps showing the same "No complaint found for the details provided" message on denial — verify it reads correctly for the new deny case.
 
-Also, since the complaint is closed but history shows only two audit rows, add the complaint's own lifecycle timestamps (`created_at`, `resolved_at`, `closed_at`) as synthetic timeline entries when no matching audit event exists — so a closed complaint always shows "Complaint received" and "Complaint closed" with real dates.
+## Verification
 
-### Frontend — `ComplaintTrackingView.tsx`
-
-Presentation only:
-- Show "Complete" / "In progress" / "Still to come" captions consistent with the new flags, and mark the whole stepper visually finished when the status is terminal.
-- No change to the lookup, correspondence, or investigation sections.
-
-## Technical notes
-
-- Single migration, `CREATE OR REPLACE FUNCTION public.get_public_complaint_tracking`; return shape unchanged (same top-level keys, same `steps` entry fields), so the view keeps working.
-- No data backfill of the stale workflow instances — the fix is read-side, so all 31 affected complaints are corrected without touching workflow state or business logic.
-- The separate question of *why* complaint workflow instances never advance (0 approval actions across these complaints) is a workflow-engine issue; it is not addressed here and can be a follow-up if you want the underlying state repaired too.
+- Query the 18 email-less complaints and confirm the RPC returns `found:false` for a non-owner session, and still returns the record for the complainant.
+- Confirm a complaint with an email still resolves for the matching email (public `/track/complaint`) and for its owner while signed in.
+- Confirm an internal officer with complaint view permission can still open any reference.
+- Existing pgTAP suite (`supabase/tests/complaints/09_public_tracking.sql`, `16_rpc_permissions.sql`) must still pass; add an assertion that an unrelated authenticated persona gets `found:false`.
