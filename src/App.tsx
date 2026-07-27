@@ -47,20 +47,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <SiteSettingsProvider>
       <AuthProvider>
-        <RegulatorProvider>
-          <PpocProvider>
-            <ActiveSectorProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AppRoutes />
-                </BrowserRouter>
-              </TooltipProvider>
-            </ActiveSectorProvider>
-          </PpocProvider>
-        </RegulatorProvider>
+        <NotificationsProvider>
+          <RegulatorProvider>
+            <PpocProvider>
+              <ActiveSectorProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </TooltipProvider>
+              </ActiveSectorProvider>
+            </PpocProvider>
+          </RegulatorProvider>
+        </NotificationsProvider>
       </AuthProvider>
+
     </SiteSettingsProvider>
   </QueryClientProvider>
 );
