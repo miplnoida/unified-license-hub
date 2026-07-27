@@ -589,6 +589,11 @@ export default function ComplaintsList() {
                 </>
               )}
               {!isInternal && (
+                <Button variant="outline" onClick={() => setTrackDialog({ open: true, reference: '' })}>
+                  <Search className="h-4 w-4 mr-2" />Track Complaint
+                </Button>
+              )}
+              {!isInternal && (
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
                   <DialogTrigger asChild>
                     <Button data-rbac="complaint_management.create"><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
