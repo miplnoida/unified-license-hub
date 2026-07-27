@@ -7,6 +7,7 @@ const services = [
   { icon: ClipboardList, label: 'Submit Returns', href: '/login' },
   { icon: CreditCard, label: 'Make Payment', href: '/login' },
   { icon: AlertTriangle, label: 'Lodge Complaint', href: '/complaints/submit' },
+  { icon: Search, label: 'Track Complaint', href: '/track/complaint' },
   { icon: BarChart3, label: 'View Reports', href: '/login' },
 ];
 
