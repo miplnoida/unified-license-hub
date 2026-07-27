@@ -4,7 +4,8 @@
  * Renders the redacted public record returned by `get_public_complaint_tracking`
  * — details, progress steps, actions taken, investigation summary, history and
  * correspondence. Used by the signed-in tracking page and by the public
- * /track/complaint page.
+ * /track/complaint page. Written for non-technical readers: plain language,
+ * friendly dates, no internal jargon.
  */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Circle, Clock, Loader2, Search } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Loader2, Search, FileSearch, History, Mail } from 'lucide-react';
 
 export type ComplaintTracking = {
   found: boolean;
@@ -41,6 +42,7 @@ export type ComplaintTracking = {
   actions?: Array<{ at: string; action: string; step?: string | null }>;
   investigation?: {
     started?: boolean;
+    status_label?: string;
     tasks_total?: number;
     tasks_completed?: number;
     findings?: string | null;
@@ -51,7 +53,21 @@ export type ComplaintTracking = {
   timeline?: Array<{ event_at: string; label: string; description: string }>;
 };
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+/** Friendly date: 27 Jul 2026, 3:40 pm */
+const fmt = (v?: string | null) => {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d
+    .toLocaleString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+    .replace(',', ',');
+};
 
 interface Props {
   /** Reference from the URL. When absent, only the lookup form is shown. */
@@ -67,6 +83,7 @@ interface Props {
 export function ComplaintTrackingView({ reference, email = '', hideEmailField = false, onLookup }: Props) {
   const [refInput, setRefInput] = useState(reference ?? '');
   const [emailInput, setEmailInput] = useState(email);
+  const [showLookup, setShowLookup] = useState(false);
 
   const q = useQuery({
     queryKey: ['complaint-tracking', reference, email],
@@ -82,57 +99,76 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
   });
 
   const t = q.data;
+  const loaded = !!t?.found;
   const steps = t?.steps ?? [];
   const actions = t?.actions ?? [];
   const timeline = t?.timeline ?? [];
   const inv = t?.investigation;
   const corr = t?.correspondence ?? [];
+  const formOpen = !loaded || showLookup;
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Search className="h-4 w-4" />Find a complaint
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onLookup(refInput.trim(), emailInput.trim());
-            }}
-          >
-            <div>
-              <Label htmlFor="ctv-ref">Complaint reference</Label>
-              <Input
-                id="ctv-ref"
-                value={refInput}
-                onChange={(e) => setRefInput(e.target.value)}
-                required
-                minLength={4}
-                placeholder="e.g. CMP-2026-000123"
-              />
-            </div>
-            {!hideEmailField && (
-              <div>
-                <Label htmlFor="ctv-email">Contact email</Label>
+      {/* Lookup — collapses to a single line once a complaint is on screen */}
+      {formOpen ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Search className="h-4 w-4" />Find a complaint
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setShowLookup(false);
+                onLookup(refInput.trim(), emailInput.trim());
+              }}
+            >
+              <div className="sm:max-w-xs sm:flex-1">
+                <Label htmlFor="ctv-ref" className="text-xs">Complaint reference</Label>
                 <Input
-                  id="ctv-email"
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="you@example.com"
+                  id="ctv-ref"
+                  value={refInput}
+                  onChange={(e) => setRefInput(e.target.value)}
+                  required
+                  minLength={4}
+                  placeholder="e.g. CMP-2026-000123"
                 />
               </div>
-            )}
-            <Button type="submit" disabled={refInput.trim().length < 4 || q.isFetching}>
-              {q.isFetching ? 'Looking up…' : 'Track complaint'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              {!hideEmailField && (
+                <div className="sm:max-w-xs sm:flex-1">
+                  <Label htmlFor="ctv-email" className="text-xs">Contact email</Label>
+                  <Input
+                    id="ctv-email"
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+              )}
+              <Button type="submit" size="sm" disabled={refInput.trim().length < 4 || q.isFetching}>
+                {q.isFetching ? 'Looking up…' : 'Track complaint'}
+              </Button>
+              {loaded && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => setShowLookup(false)}>
+                  Cancel
+                </Button>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Showing complaint</span>
+          <span className="font-mono font-medium text-foreground">{t?.reference}</span>
+          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setShowLookup(true)}>
+            Track a different complaint
+          </Button>
+        </div>
+      )}
 
       {q.isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -160,8 +196,9 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
         </Card>
       )}
 
-      {t?.found && (
+      {loaded && t && (
         <>
+          {/* Where things stand */}
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -170,7 +207,9 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
                   <p className="text-sm text-muted-foreground mt-1">{t.subject}</p>
                 </div>
                 {t.status && (
-                  <Badge variant={t.status.terminal ? 'secondary' : 'default'}>{t.status.label}</Badge>
+                  <Badge variant={t.status.terminal ? 'secondary' : 'default'} className="text-sm px-3 py-1">
+                    {t.status.label}
+                  </Badge>
                 )}
               </div>
               {t.status?.description && <p className="text-sm">{t.status.description}</p>}
@@ -191,15 +230,16 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
             </CardContent>
           </Card>
 
+          {/* What you told us */}
           <Card>
-            <CardHeader><CardTitle className="text-base">Complaint details</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">What your complaint is about</CardTitle></CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  ['Type', t.details?.type],
-                  ['Entity complained about', t.details?.entity],
-                  ['Product', t.details?.product],
-                  ['Channel', t.details?.channel],
+                  ['Type of complaint', t.details?.type],
+                  ['Firm concerned', t.details?.entity],
+                  ['Product or service', t.details?.product],
+                  ['How it reached us', t.details?.channel],
                 ].map(([label, value]) => (
                   <div key={label as string}>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -209,47 +249,72 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
               </div>
               {t.details?.description && (
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Description</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Your description</div>
                   <p className="whitespace-pre-wrap">{t.details.description}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Progress — vertical numbered stepper */}
           {steps.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">Progress</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base">Where your complaint is now</CardTitle>
+              </CardHeader>
               <CardContent>
-                <ol className="flex flex-wrap gap-2">
-                  {steps.map((s) => (
-                    <li
-                      key={s.key}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs ${
-                        s.is_current
-                          ? 'border-primary bg-primary/10 font-medium'
-                          : s.is_complete
-                          ? 'border-muted bg-muted/40 text-muted-foreground'
-                          : 'border-muted text-muted-foreground'
-                      }`}
-                    >
-                      {s.is_complete ? <CheckCircle2 className="h-3 w-3" /> : s.is_current ? <Clock className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
-                      {s.label}
-                    </li>
-                  ))}
+                <ol className="space-y-3">
+                  {steps.map((s, i) => {
+                    const state = s.is_complete ? 'done' : s.is_current ? 'current' : 'upcoming';
+                    return (
+                      <li key={s.key} className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border text-xs ${
+                            state === 'done'
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : state === 'current'
+                              ? 'border-primary text-primary'
+                              : 'border-muted text-muted-foreground'
+                          }`}
+                        >
+                          {state === 'done' ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
+                        </span>
+                        <div>
+                          <div className={state === 'upcoming' ? 'text-muted-foreground' : 'font-medium'}>
+                            {s.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {state === 'done'
+                              ? 'Completed'
+                              : state === 'current'
+                              ? 'Happening now'
+                              : 'Still to come'}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
               </CardContent>
             </Card>
           )}
 
+          {/* Key decisions */}
           <Card>
-            <CardHeader><CardTitle className="text-base">Actions taken</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />What we have done so far
+              </CardTitle>
+            </CardHeader>
             <CardContent className="text-sm">
               {actions.length === 0 ? (
-                <p className="text-muted-foreground">No actions recorded yet.</p>
+                <p className="text-muted-foreground">
+                  No decisions have been recorded yet. They will appear here as your complaint moves along.
+                </p>
               ) : (
                 <ul className="divide-y">
                   {actions.map((a, i) => (
-                    <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <li key={i} className="flex flex-wrap items-start justify-between gap-2 py-2">
                       <div>
                         <div className="font-medium">{a.action}</div>
                         {a.step && <div className="text-xs text-muted-foreground">{a.step}</div>}
@@ -262,42 +327,64 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
             </CardContent>
           </Card>
 
-          {inv?.started && (
-            <Card>
-              <CardHeader><CardTitle className="text-base">Investigation</CardTitle></CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="text-muted-foreground">
-                  {inv.tasks_total
-                    ? `${inv.tasks_completed ?? 0} of ${inv.tasks_total} investigation activities completed.`
-                    : 'An investigation has been opened for this complaint.'}
-                </div>
-                {inv.findings && (
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Findings</div>
-                    <p className="whitespace-pre-wrap">{inv.findings}</p>
-                  </div>
-                )}
-                {inv.outcome && (
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Outcome</div>
-                    <p className="whitespace-pre-wrap">{inv.outcome}</p>
-                  </div>
-                )}
-                {inv.closure_reason && (
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Closure reason</div>
-                    <p className="whitespace-pre-wrap">{inv.closure_reason}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
+          {/* Investigation — always visible */}
           <Card>
-            <CardHeader><CardTitle className="text-base">History</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileSearch className="h-4 w-4" />Investigation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant={inv?.status_label === 'Completed' ? 'secondary' : inv?.started ? 'default' : 'outline'}>
+                  {inv?.status_label || (inv?.started ? 'In progress' : 'Not yet started')}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {inv?.status_label === 'Completed'
+                    ? 'Our review of your complaint has finished.'
+                    : inv?.started
+                    ? 'Our team is reviewing your complaint.'
+                    : 'Your complaint is waiting to be picked up for review.'}
+                </span>
+              </div>
+              {!!inv?.tasks_total && (
+                <div className="text-muted-foreground">
+                  {inv.tasks_completed ?? 0} of {inv.tasks_total} review activities completed.
+                </div>
+              )}
+              {inv?.findings && (
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">What we found</div>
+                  <p className="whitespace-pre-wrap">{inv.findings}</p>
+                </div>
+              )}
+              {inv?.outcome && (
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Outcome</div>
+                  <p className="whitespace-pre-wrap">{inv.outcome}</p>
+                </div>
+              )}
+              {inv?.closure_reason && (
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Why the file was closed</div>
+                  <p className="whitespace-pre-wrap">{inv.closure_reason}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4" />History
+              </CardTitle>
+            </CardHeader>
             <CardContent className="text-sm">
               {timeline.length === 0 ? (
-                <p className="text-muted-foreground">No history recorded yet.</p>
+                <p className="text-muted-foreground">
+                  Nothing further recorded yet — you'll see every update here as your complaint moves along.
+                </p>
               ) : (
                 <ol className="relative space-y-4 border-l pl-4">
                   {timeline.map((e, i) => (
@@ -315,7 +402,11 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
 
           {corr.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">Correspondence sent to you</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Mail className="h-4 w-4" />Messages sent to you
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {corr.map((c, i) => (
                   <div key={i} className="rounded-md border p-3">
