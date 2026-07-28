@@ -1,33 +1,41 @@
-## Plan: Lock complaint tracking to the real owner/contact
+## Deliverable: FRD Gap Analysis — Project Management Tracker (.xlsx)
 
-### Confirmed issue
-- The current tracking RPC allows access when the signed-in caller has `complaint_management.view`.
-- The Applicant role has complaint permissions (`submit`, `upload_documents`, `view_status`), but some external/customer-style roles also have broader complaint `view` permission.
-- The signed-in tracking page passes the current user’s email, but backend access must be the final authority.
+An Excel workbook written to `/mnt/documents/FRD_Gap_Tracker.xlsx`, styled like a standard PM tracker (frozen header row, autofilter, colour-coded status, column widths, Arial). No code in the app is touched.
 
-### Fix
-1. **Harden the tracking RPC**
-   - Update `public.get_public_complaint_tracking` so external users/applicants can only view a complaint when:
-     - they are the complaint `complainant_id`, or
-     - their authenticated email exactly matches the complaint contact email.
-   - Only internal staff should be allowed through the broader `complaint_management.view` permission.
-   - Do not trust typed/caller-supplied email for signed-in users as a way to bypass identity.
+### Sheet 1 — `Summary Dashboard`
+- Counts by status (Done / Partial / Missing / Not Applicable) per FRD module, driven by **formulas** (`COUNTIFS` against the tracker sheet), not hardcoded numbers.
+- % complete per module and overall.
+- Legend for status colours and severity.
 
-2. **Tighten public/anonymous tracking behavior**
-   - Since anonymous complaint intake is disabled, make tracking require an authenticated user unless there is a deliberate public tracking route requirement.
-   - If keeping `/track/complaint`, it should not reveal another person’s complaint by reference + guessed email.
+### Sheet 2 — `Requirement Tracker` (the main sheet, point by point)
+One row per FRD requirement (not per module), with these columns:
 
-3. **Add regression checks**
-   - Add/adjust complaint security tests to cover:
-     - owner/applicant can track their own complaint.
-     - unrelated applicant cannot track by reference.
-     - unrelated applicant cannot bypass by supplying someone else’s email.
-     - internal staff with complaint `view` can still track for operational review.
+| Column | Content |
+|---|---|
+| Req ID | FRD reference (e.g. BOJ-LIC-001) |
+| Module | Licensing / Registration / Complaints / Returns & Compliance / Prudential / Market Conduct / Workflow / RBAC / Notifications / Payments / Reporting / Audit |
+| Requirement | The FRD requirement text, restated in one line |
+| Status | Done / Partial / Missing |
+| Evidence in system | Concrete artefact: page route, component, table, RPC, or edge function that satisfies it |
+| Gap detail | Exactly what is absent or only partially implemented — specific, not "needs work" |
+| Severity | Critical / High / Medium / Low |
+| Effort | S / M / L |
+| Phase | 1–4 (sequenced delivery) |
+| Owner | blank for user to assign |
+| Target date | blank |
+| Notes | blank |
 
-4. **Verify end-to-end**
-   - Test the RPC directly for owner vs unrelated applicant behavior.
-   - Check the tracking page route still shows valid owner details and shows “not found”/access denied for unrelated applicants.
+### Sheet 3 — `Delivery Plan`
+Phased backlog rolled up from the Missing/Partial rows: phase, workstream, items included, dependencies, exit criteria.
+
+### Sheet 4 — `Assumptions & Sources`
+Where each "Done" claim was verified from (route file, migration, edge function, docs), so the sheet is auditable.
+
+### How the content is produced
+1. Re-read the four completed inventory reports from the earlier analysis turn plus the FRD document.
+2. Map every FRD line item to code/DB evidence already gathered — no new assumptions; anything unverified is marked `Status = Unverified` rather than guessed.
+3. Generate the workbook with `openpyxl`, recalculate formulas, then render each sheet to an image and visually QA for clipped text, wrong colours, and broken layout before delivering.
 
 ### Scope control
-- No changes to complaint workflow, status labels, history rendering, or unrelated business logic.
-- This is a targeted access-control fix for complaint tracking only.
+- Read-only on the repo and database. No application code, migrations, or config changed.
+- Output is a single downloadable `.xlsx` artefact.
