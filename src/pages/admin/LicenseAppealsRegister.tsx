@@ -6,7 +6,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, Gavel, Clock, CheckCircle, Users } from 'lucide-react';
+import { Eye, Gavel, Clock, CheckCircle } from 'lucide-react';
 import { LicenseAppeal, useLicenseAppeals } from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
