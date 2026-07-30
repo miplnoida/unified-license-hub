@@ -50,6 +50,7 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { LicenseAppealPanel } from '@/components/appeals/LicenseAppealPanel';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
@@ -848,6 +849,18 @@ export default function ApplicationDetail() {
 
         {isOwner && <LicenseStatusBanner />}
         {isInternal && <DecisionGatesBanner applicationId={app.id} />}
+
+        {app.status === 'rejected' && (
+          <LicenseAppealPanel
+            applicationId={app.id}
+            applicationNumber={app.application_number}
+            rejectedAt={(app as any).rejected_at || (app as any).updated_at}
+            licenseeId={(app as any).licensee_id ?? null}
+            regulatorId={(app as any).regulator_id ?? null}
+            canLodge={isOwner}
+          />
+        )}
+
 
 
 

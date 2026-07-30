@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit, Database, ClipboardCheck, Microscope, History,
+  ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -92,6 +92,9 @@ export const mainNavSections: NavSection[] = [
       { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'], module: 'application_management' },
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'License Action Forms', href: '/admin/license-action-forms', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
+      { label: 'Licensing Appeals', href: '/admin/license-appeals', icon: <Gavel className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'license_appeals' as PermissionModule },
+      { label: 'Appeal Panels', href: '/admin/appeal-panels', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_appeals' as PermissionModule, adminOnly: true },
+      { label: 'My Appeals', href: '/appeals', icon: <Gavel className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
       { label: 'Registration Review', href: '/admin/registration-review', icon: <ClipboardEdit className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'registration_management' },
     ],
   },
