@@ -167,6 +167,30 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
             </>
           )}
 
+          {needsReopen && (
+            <>
+              <Separator />
+              <div className="space-y-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  Application is still refused
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  This appeal was accepted, but application {application?.application_number} was not
+                  put back under review. Reopen it now to complete the decision.
+                </p>
+                <Button size="sm" onClick={reopen} disabled={reinstateApplication.isPending}>
+                  {reinstateApplication.isPending
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <RotateCcw className="h-4 w-4 mr-2" />}
+                  Reopen application
+                </Button>
+              </div>
+            </>
+          )}
+
+
+
           <Separator />
           <div>
             <p className="text-sm font-medium mb-2">Appeal history</p>
