@@ -1583,28 +1583,20 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
   (ppocRes.data || []).forEach((r: any) => r.ppoc_user_id && ids.add(r.ppoc_user_id));
   const userIds = Array.from(ids);
   if (userIds.length === 0) return 0;
-  const recipients = userIds.map(id => ({ id }));
 
   const semver = v.semantic_version || `${v.version}.0`;
-  const effectiveLine = v.effective_from
-    ? ` It becomes effective on ${new Date(v.effective_from).toLocaleDateString()}.`
+  const effectiveDate = v.effective_from
+    ? new Date(v.effective_from).toLocaleDateString()
     : '';
-  const rows = recipients.map(u => ({
-    user_id: u.id,
-    title: `Form version update: ${(tpl as any).name}`,
-    message: `Version v${semver} of "${(tpl as any).name}" is now available.${effectiveLine}`,
-    type: 'info',
-    channel: 'in_app',
-    delivery_status: 'delivered',
-    entity_type: 'form_version',
-    entity_id: versionId,
-  }));
-  const CHUNK = 500;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const { error: insErr } = await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
-    if (insErr) throw insErr;
-  }
-  return recipients.length;
+  const effectiveLine = effectiveDate ? ` It becomes effective on ${effectiveDate}.` : '';
+
+  await dispatchToRecipients('form_version.published', versionId, userIds, {
+    form_name: (tpl as any).name,
+    semantic_version: semver,
+    effective_date: effectiveDate,
+    effective_line: effectiveLine,
+  });
+  return userIds.length;
 }
 
 // Re-export helpers for use in FormBuilder
