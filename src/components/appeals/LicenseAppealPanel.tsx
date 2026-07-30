@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gavel, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
+
 import { useApplicationAppeals, useLicenseAppealMutations } from '@/hooks/useLicenseAppeals';
 import {
   APPEAL_WINDOW_DAYS, appealDeadlineFor, appealDecisionMeta, appealStatusMeta,
