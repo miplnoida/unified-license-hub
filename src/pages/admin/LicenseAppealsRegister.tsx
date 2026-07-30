@@ -15,7 +15,7 @@ import { AppealActionsDialog } from '@/components/appeals/AppealActionsDialog';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All appeals' },
-  { value: 'submitted', label: 'Pending decision' },
+  { value: 'pending', label: 'Pending decision' },
   { value: 'decided', label: 'Decided' },
   { value: 'withdrawn', label: 'Withdrawn' },
 ];
@@ -23,11 +23,17 @@ const STATUS_FILTERS = [
 export default function LicenseAppealsRegister() {
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState<LicenseAppeal | null>(null);
-  const { data: appeals, isLoading } = useLicenseAppeals({ status });
+  const { data: appeals, isLoading } = useLicenseAppeals({});
 
-  const rows = appeals || [];
-  const openCount = rows.filter((a) => isAppealOpen(a.status)).length;
-  const decidedCount = rows.filter((a) => a.status === 'decided').length;
+  const all = appeals || [];
+  const rows = status === 'all'
+    ? all
+    : status === 'pending'
+      ? all.filter((a) => isAppealOpen(a.status))
+      : all.filter((a) => a.status === status);
+  const openCount = all.filter((a) => isAppealOpen(a.status)).length;
+  const decidedCount = all.filter((a) => a.status === 'decided').length;
+
 
 
   const columns: Column<LicenseAppeal>[] = [
