@@ -288,7 +288,30 @@ export function useLicenseAppealMutations() {
         } as never)
         .eq('id', input.appeal.id);
       if (error) throw error;
-      await logEvent(input.appeal.id, 'decided', `Appeal decided: ${input.decision.replace(/_/g, ' ')}`, user?.id);
+      await logEvent(
+        input.appeal.id,
+        'decided',
+        input.decision === 'upheld'
+          ? 'Appeal accepted for consideration'
+          : 'Appeal declined',
+        user?.id,
+      );
+
+      // Accepting an appeal puts the refused application back under review.
+      let reinstated: { application_number?: string } | null = null;
+      if (input.decision === 'upheld') {
+        const { data, error: rpcError } = await supabase.rpc(
+          'reinstate_application_after_appeal' as never,
+          { _appeal_id: input.appeal.id, _remarks: input.rationale } as never,
+        );
+        if (rpcError) throw rpcError;
+        const result = data as unknown as
+          | { error?: string; success?: boolean; skipped?: boolean; application_number?: string }
+          | null;
+        if (result?.error) throw new Error(result.error);
+        if (result?.success && !result.skipped) reinstated = result;
+      }
+
       await dispatchNotificationEvent({
         event_key: 'license_appeal.decided',
         entity_type: 'license_appeal',
@@ -301,9 +324,16 @@ export function useLicenseAppealMutations() {
           status: 'Decided',
         },
       });
+      return reinstated;
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['application'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+    },
   });
+
 
   const savePanel = useMutation({
     mutationFn: async (input: { id?: string; name: string; description?: string; is_active: boolean }) => {
