@@ -7386,6 +7386,215 @@ export type Database = {
           },
         ]
       }
+      license_appeal_events: {
+        Row: {
+          actor_id: string | null
+          appeal_id: string
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          metadata: Json
+        }
+        Insert: {
+          actor_id?: string | null
+          appeal_id: string
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          metadata?: Json
+        }
+        Update: {
+          actor_id?: string | null
+          appeal_id?: string
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_appeal_events_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_appeal_panel_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          member_role: string
+          panel_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          panel_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          panel_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_appeal_panel_members_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeal_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_appeal_panels: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      license_appeals: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          appeal_deadline: string | null
+          appeal_reference: string
+          application_id: string
+          assigned_to: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_rationale: string | null
+          filed_at: string
+          filed_by: string
+          grounds: string
+          hearing_date: string | null
+          id: string
+          license_id: string | null
+          licensee_id: string | null
+          panel_id: string | null
+          regulator_id: string | null
+          relief_sought: string | null
+          status: string
+          supporting_docs: Json
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          appeal_deadline?: string | null
+          appeal_reference: string
+          application_id: string
+          assigned_to?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          filed_at?: string
+          filed_by: string
+          grounds: string
+          hearing_date?: string | null
+          id?: string
+          license_id?: string | null
+          licensee_id?: string | null
+          panel_id?: string | null
+          regulator_id?: string | null
+          relief_sought?: string | null
+          status?: string
+          supporting_docs?: Json
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          appeal_deadline?: string | null
+          appeal_reference?: string
+          application_id?: string
+          assigned_to?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          filed_at?: string
+          filed_by?: string
+          grounds?: string
+          hearing_date?: string | null
+          id?: string
+          license_id?: string | null
+          licensee_id?: string | null
+          panel_id?: string | null
+          regulator_id?: string | null
+          relief_sought?: string | null
+          status?: string
+          supporting_docs?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_appeals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_appeals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_appeals_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeal_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_certificate_signatures: {
         Row: {
           certificate_id: string
@@ -15719,6 +15928,10 @@ export type Database = {
       }
       can_read_license: {
         Args: { _license_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_license_appeal: {
+        Args: { _appeal_id: string; _user_id: string }
         Returns: boolean
       }
       can_read_licensee: {
