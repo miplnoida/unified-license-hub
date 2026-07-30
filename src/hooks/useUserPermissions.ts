@@ -81,6 +81,8 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   // Pre-licensees who already hold a license (e.g. registered as applicant
   // and later issued one) must be able to view it and start a renewal.
   '/licenses',
+  // Applicants/licensees track appeals they lodged against refused applications.
+  '/appeals',
   '/post-licensee/applications',
   '/post-license',
   // Pre-licensees start new applications at /pre-license/new; allow the prefix
