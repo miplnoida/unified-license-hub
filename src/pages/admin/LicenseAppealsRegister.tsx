@@ -80,7 +80,7 @@ export default function LicenseAppealsRegister() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-          <StatCard title="Total appeals" value={rows.length} icon={<Gavel className="h-6 w-6" />} />
+          <StatCard title="Total appeals" value={all.length} icon={<Gavel className="h-6 w-6" />} />
           <StatCard title="Pending decision" value={openCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Decided" value={decidedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
