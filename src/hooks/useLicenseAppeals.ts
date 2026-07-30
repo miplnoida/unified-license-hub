@@ -112,6 +112,24 @@ export function useLicenseAppeal(appealId: string | undefined) {
   });
 }
 
+/** Status of the application an appeal was lodged against (used to offer a reopen retry). */
+export function useAppealApplicationStatus(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'application-status', applicationId],
+    queryFn: async (): Promise<{ status: string; application_number: string } | null> => {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('status, application_number')
+        .eq('id', applicationId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { status: string; application_number: string } | null) ?? null;
+    },
+    enabled: !!applicationId,
+    staleTime: 10_000,
+  });
+}
+
 export function useLicenseAppealEvents(appealId: string | undefined) {
   return useQuery({
     queryKey: [APPEALS_KEY, 'events', appealId],
@@ -141,6 +159,27 @@ export function useLicenseAppealPanels(activeOnly = false) {
     },
     staleTime: 120_000,
   });
+}
+
+export interface ReinstateResult {
+  success?: boolean;
+  skipped?: boolean;
+  reason?: string;
+  error?: string;
+  application_number?: string;
+  status?: string;
+}
+
+/** Calls the reopen-after-appeal routine and turns its result into a thrown error or a value. */
+async function runReinstate(appealId: string, remarks: string): Promise<ReinstateResult> {
+  const { data, error } = await supabase.rpc(
+    'reinstate_application_after_appeal' as never,
+    { _appeal_id: appealId, _remarks: remarks } as never,
+  );
+  if (error) throw error;
+  const result = (data as unknown as ReinstateResult | null) ?? {};
+  if (result.error) throw new Error(result.error);
+  return result;
 }
 
 async function logEvent(appealId: string, eventType: string, description: string, actorId?: string | null) {
@@ -298,18 +337,9 @@ export function useLicenseAppealMutations() {
       );
 
       // Accepting an appeal puts the refused application back under review.
-      let reinstated: { application_number?: string } | null = null;
+      let reinstated: ReinstateResult | null = null;
       if (input.decision === 'upheld') {
-        const { data, error: rpcError } = await supabase.rpc(
-          'reinstate_application_after_appeal' as never,
-          { _appeal_id: input.appeal.id, _remarks: input.rationale } as never,
-        );
-        if (rpcError) throw rpcError;
-        const result = data as unknown as
-          | { error?: string; success?: boolean; skipped?: boolean; application_number?: string }
-          | null;
-        if (result?.error) throw new Error(result.error);
-        if (result?.success && !result.skipped) reinstated = result;
+        reinstated = await runReinstate(input.appeal.id, input.rationale);
       }
 
       await dispatchNotificationEvent({
@@ -326,6 +356,18 @@ export function useLicenseAppealMutations() {
       });
       return reinstated;
     },
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['application'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+    },
+  });
+
+  /** Retry the reopen step for an appeal that was already accepted. */
+  const reinstateApplication = useMutation({
+    mutationFn: async (input: { appeal: LicenseAppeal }) =>
+      runReinstate(input.appeal.id, input.appeal.decision_rationale || ''),
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -353,5 +395,8 @@ export function useLicenseAppealMutations() {
     onSuccess: invalidate,
   });
 
-  return { lodgeAppeal, withdrawAppeal, acknowledgeAppeal, assignPanel, recordDecision, savePanel };
+  return {
+    lodgeAppeal, withdrawAppeal, acknowledgeAppeal, assignPanel,
+    recordDecision, reinstateApplication, savePanel,
+  };
 }

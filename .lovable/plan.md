@@ -1,41 +1,24 @@
-# Reinstate an application when its appeal is considered
+## What I found (verified in the database)
 
-Today, "Consider appeal" only stamps a decision on the appeal record. The application stays `rejected` forever, so the applicant sees a dead end and staff have nothing to continue with.
+- Application `APP-2026-000131` (`e2d244b7…`): `status = rejected`, `rejected_at = 30 Jul 08:59`.
+- Its appeal `APL-2026-000001`: `decision = upheld`, `decided_at = 30 Jul 12:34`, `status = decided`.
+- The appeal's event history has `filed → panel_assigned → decided`, but **no `application_reinstated` event**, and there is no `application_reinstated_after_appeal` audit entry. So the decision was saved, but the reinstatement step never completed for this appeal.
+- The application's workflow instance is `status = completed` (not `rejected`). The reinstatement function only reactivates instances whose status is `rejected`, so even on a successful run the workflow would not have reopened here.
 
-## What will change
+Two separate problems: this one record is stuck, and the logic/UX has gaps that let it get stuck silently.
 
-**1. Accepting an appeal reopens the application**
+## Plan
 
-When a reviewer clicks **Consider appeal** on `/admin/license-appeals`, the linked application is reinstated:
+1. **Repair this record**: run the reinstatement for appeal `APL-2026-000001` so `APP-2026-000131` returns to `in_progress`, its workflow instance is reactivated at the step it was refused, and the audit trail / applicant notification are written.
 
-- Status moves from `rejected` back to `in_progress`, `rejected_at` is cleared.
-- The workflow instance that was closed on rejection is reactivated and resumes at the step where the refusal happened (no restart from step 1, no re-payment, no re-submission of forms).
-- The applicant gets a notification: "Your appeal was considered — application ABC is back under review."
+2. **Handle refused workflow instances that ended as `completed`**: broaden the reinstatement function to pick the most recent instance in `rejected` **or** `completed` state for the application (keeping the existing guard that never creates a second active/paused instance).
 
-Declining an appeal changes nothing on the application; it stays refused.
+3. **Make failure visible instead of silent**: when an appeal is accepted, treat the reinstatement result as part of the operation — if the function returns an error or is skipped, the UI surfaces a clear message rather than a plain "Appeal considered" success toast.
 
-**2. History tells the full story**
+4. **Add a retry path**: on an already-decided, upheld appeal whose application is still `rejected`, show a "Reopen application" action in the admin appeal dialog so staff can complete the reinstatement without developer help. Uses the same function, so it stays idempotent.
 
-Both the application activity trail and the appeal history will show the sequence in plain English:
+5. **Verify**: re-check the application status, workflow instance, appeal events, audit log and applicant notification for APP-2026-000131, and confirm the applicant's application page shows the "Reinstated after appeal" banner.
 
-```text
-Application refused — remarks: "…"
-Appeal APL-2026-0000X lodged
-Appeal considered — remarks: "…"
-Application reinstated for reconsideration
-```
-
-The refusal entry is never deleted, so the record shows it was rejected and then reconsidered on appeal.
-
-**3. UI cues**
-
-- Application detail page: while an appeal is open or has been considered, a banner reads "Reinstated after appeal" instead of just the red Rejected badge.
-- Appeal dialog confirmation text for "Consider appeal" states clearly that the application will be reopened for reconsideration.
-- Applications list: reinstated applications drop the "Appeal available" cue and appear back in the active queue.
-
-## Technical notes
-
-- New `SECURITY DEFINER` RPC `public.reinstate_application_after_appeal(_appeal_id uuid, _remarks text)`, mirroring `reject_application_action`: sets the trusted workflow-mutation context, verifies the caller holds `license_appeals` decide permission, guards that the application is currently `rejected`, updates `applications` (status/rejected_at), flips the `workflow_instances` row from `rejected` back to `active` (clearing `completed_at`), writes an `audit_logs` entry (`application_reinstated_after_appeal`), an `approval_actions` row, a `license_appeal_events` row, and an applicant notification. All in one transaction.
-- `recordDecision` in `src/hooks/useLicenseAppeals.ts` calls the RPC when `decision === 'upheld'`, then invalidates application/workflow query keys alongside the appeals key.
-- `AppealActionsDialog.tsx`: reworded confirmation and success toast only.
-- No change to the reject path, appeal lodging, or the 30-day window logic.
+### Technical notes
+- Files touched: `public.reinstate_application_after_appeal` (migration), `src/hooks/useLicenseAppeals.ts`, `src/components/appeals/AppealActionsDialog.tsx`.
+- No changes to appeal lodging, panels, notifications templates, or unrelated workflow behaviour.
