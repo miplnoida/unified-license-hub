@@ -375,6 +375,10 @@ function ActionForm({
       ? draft.next_step_id
       : null;
 
+  // Reject is always terminal: a rejection at any step must end the workflow
+  // with a Rejected outcome (never route to another step / keep in progress).
+  const isRejectAction = draft.action_type === 'reject';
+
   const handleModeChange = (next: NextStepMode) => {
     // Reset stale fields so we never leave the draft in an inconsistent state.
     setDraft({
@@ -384,6 +388,19 @@ function ActionForm({
       end_state: next === 'end_workflow' ? draft.end_state : null,
     });
   };
+
+  useEffect(() => {
+    if (!isRejectAction) return;
+    if (draft.next_step_mode === 'end_workflow' && draft.end_state === 'rejected') return;
+    setDraft({
+      ...draft,
+      next_step_mode: 'end_workflow',
+      next_step_id: null,
+      end_state: 'rejected',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRejectAction, draft.next_step_mode, draft.end_state]);
+
 
   return (
     <div className="space-y-3">
