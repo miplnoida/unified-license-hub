@@ -1,24 +1,23 @@
-## What's actually wrong (verified)
+## What I verified
 
-**1. "Show unchanged" never has anything to show.**
-`computeDiff` in `VersionDiffViewer.tsx` pairs fields between two versions by `field.id`. But `useCreateNewFormVersion` (`useFormTemplates.ts`, line ~892) regenerates a fresh `crypto.randomUUID()` for every field when a new version is created. So no field ID ever matches across versions: every field is reported as *removed* on the left and *added* on the right, the `unchanged` (and `changed`) count is always 0, and the toggle looks broken. The same bug also means the side-by-side columns never line up a field with its counterpart.
-
-**2. Rollback is rendered, but nearly invisible and over-restricted.**
-The action exists in `VersionHistory.tsx` (lines 323–334) as an unlabeled ghost icon (`Undo2`) sitting among four other icon buttons, and it is hidden whenever `v.status === 'draft'` or the row is the current default. On templates whose only other versions are drafts, no Rollback button appears at all.
+- `VersionDiffViewer.tsx` reads `version.schema_snapshot` directly as the section list.
+- In the database, many `form_versions` rows have an **empty** `schema_snapshot` (`[]`) while their fields live in the normalized `form_fields` table (e.g. versions with 0 snapshot sections but 20–36 field rows). The rest of the app handles this: `useFormTemplates.ts` (~line 660) uses the snapshot only when `isValidSectionSnapshot` passes, and otherwise builds sections from `form_fields` via `fieldRowsToSections`.
+- Consequence: for those templates the diff array is empty, every stat reads 0, and the "Show unchanged" toggle has nothing to reveal — which matches the reported behaviour. Where a version *does* carry a snapshot (checked templates with 317 fields, all with unique non-blank `fieldName`s), pairing by field name works.
 
 ## Changes
 
-### A. Diff pairing — `src/components/form-builder/VersionDiffViewer.tsx`
-- Pair fields by a stable identity instead of `id`: primary key `fieldName` (falling back to `section::label` when `fieldName` is blank, and finally to `id`). Keep section grouping as today.
-- With real pairing, `changed` / `unchanged` classification and the existing `changedKeys` highlighting start producing results, so "Show unchanged" and the side-by-side alignment both work with no further UI change.
-- Also treat a field that moved between sections as *changed* (already handled once pairing works), and keep section add/remove entries as-is.
-- Add a small note under the stats row when the two versions share no field names at all, so a genuinely total rewrite still reads clearly.
+### 1. Remove the rollback feature — `src/components/form-builder/VersionHistory.tsx`
+- Delete the Rollback button on every version row, the `onRollback` handler and its SweetAlert confirmation dialog, and the now-unused `Undo2` import plus any imports/hooks used only by rollback (`useCreateNewFormVersion`, and `useActivateVersionAsCurrent`/`updateSchedule` if not used elsewhere in the file — keep whatever the remaining publish/activate/schedule actions still need).
+- No other version-history action (view, publish, activate, schedule, edit) changes.
 
-### B. Rollback affordance — `src/components/form-builder/VersionHistory.tsx`
-- Replace the icon-only button with a visible labelled button: `Undo2` icon + "Rollback", `variant="outline"`, same handler.
-- Show it on **every version row that is not the current default**, including drafts (a draft's snapshot is a valid source to copy from). Still hidden on the current default row, since rolling back to the current version is a no-op.
-- Keep the existing confirmation dialog, usage-count note, the "Make the restored version the current default immediately" checkbox, and the existing non-destructive behaviour (creates a new version; nothing is deleted).
+### 2. Make the diff resolve sections the same way the app does — `src/components/form-builder/VersionDiffViewer.tsx`
+- For each of the two selected versions, resolve its section list through the shared path instead of reading `schema_snapshot` raw:
+  - use the snapshot when it is a valid non-empty section array,
+  - otherwise fetch that version's `form_fields` (+ conditions) and build sections with the existing `fieldRowsToSections` helper — i.e. reuse the existing per-version sections hook from `useFormTemplates.ts` for the left and right version ids.
+- Handle loading state: show a small "Loading versions…" line while either side is still resolving, so the empty-state text doesn't flash a misleading "No differences found".
+- Keep existing field pairing (`fieldName` → `section::label` → `id`), stats, side-by-side/list toggle and the "Show unchanged" switch as-is; with real sections on both sides the unchanged bucket populates and the toggle works.
+- Keep the "no common fields" note, and keep the empty-state message when both versions genuinely resolve to zero fields.
 
 ## Technical notes
-- Frontend-only. No migration, no RPC, no RLS change. Rollback keeps composing the already-authorised `useCreateNewFormVersion` + `useActivateVersionAsCurrent` mutations.
-- Files touched: `src/components/form-builder/VersionDiffViewer.tsx`, `src/components/form-builder/VersionHistory.tsx`.
+- Frontend-only: no migration, no RPC, no RLS change. Files touched: `src/components/form-builder/VersionDiffViewer.tsx`, `src/components/form-builder/VersionHistory.tsx`.
+- The `form_fields` fallback reads through the same authorised queries already used to render a version, so no new data access is introduced.

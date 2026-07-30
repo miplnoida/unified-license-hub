@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { GitCompare, Plus, Minus, Edit3, Columns2, List } from 'lucide-react';
-import { useFormVersions } from '@/hooks/useFormTemplates';
+import { useFormVersions, useVersionSections } from '@/hooks/useFormTemplates';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface VersionDiffViewerProps {
@@ -220,12 +220,17 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
     if (!rightId && latest) setRightId(latest.id);
   }, [open, versions, leftId, rightId]);
 
+  // Sections must be resolved the same way the app renders a version: use the
+  // JSON snapshot when present, otherwise rebuild from normalized form_fields.
+  // Many versions store an empty snapshot, which previously made every diff empty.
+  const { data: leftSections = [], isFetching: leftLoading } = useVersionSections(leftId || null);
+  const { data: rightSections = [], isFetching: rightLoading } = useVersionSections(rightId || null);
+  const loading = !!leftId && !!rightId && (leftLoading || rightLoading);
+
   const diff = useMemo(() => {
     if (!leftVersion || !rightVersion) return [];
-    const oldSections = (leftVersion.schema_snapshot || []) as unknown as FormSection[];
-    const newSections = (rightVersion.schema_snapshot || []) as unknown as FormSection[];
-    return computeDiff(oldSections, newSections);
-  }, [leftVersion, rightVersion]);
+    return computeDiff(leftSections as FormSection[], rightSections as FormSection[]);
+  }, [leftVersion, rightVersion, leftSections, rightSections]);
 
   const stats = useMemo(() => ({
     added: diff.filter(d => d.type === 'added').length,
@@ -358,16 +363,16 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
                 </div>
               </div>
 
-              {stats.changed === 0 && stats.unchanged === 0 && (stats.added > 0 || stats.removed > 0) && (
+              {!loading && stats.changed === 0 && stats.unchanged === 0 && (stats.added > 0 || stats.removed > 0) && (
                 <p className="text-xs text-muted-foreground">
                   These two versions share no common fields — every field was replaced, so there is nothing to show side by side as “changed” or “unchanged”.
                 </p>
               )}
 
-
-
               <ScrollArea className="max-h-[50vh] pr-2">
-                {visible.length === 0 ? (
+                {loading ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Loading versions…</p>
+                ) : visible.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     {diff.length === 0 ? 'No differences found between versions.' : 'No changes to show. Enable “Show unchanged” to see all fields.'}
                   </p>

@@ -7,12 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle, Pencil, Undo2 } from 'lucide-react';
+import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle, Pencil } from 'lucide-react';
 import {
   useFormVersions,
   useUpdateVersionSchedule,
   useActivateVersionAsCurrent,
-  useCreateNewFormVersion,
   useFormVersionUsageCounts,
   isVersionEffective,
   notifyUpcomingVersionIfNeeded,
@@ -70,7 +69,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
   const { data: usageCounts = {} } = useFormVersionUsageCounts(templateId);
   const updateSchedule = useUpdateVersionSchedule();
   const activateAsCurrent = useActivateVersionAsCurrent();
-  const createVersion = useCreateNewFormVersion();
+  
 
 
   // The "current default" is the most recent published version that is currently
@@ -117,59 +116,8 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
     }
   };
 
-  // Rollback is forward-only and non-destructive: it creates a NEW version whose
-  // content is copied from the selected older version. Existing versions and
-  // in-flight applications are never modified.
-  const onRollback = async (v: any) => {
-    const label = `v${v.semantic_version || v.version}`;
-    const usage = usageCounts[v.id];
-    const res = await Swal.fire({
-      title: `Rollback to ${label}?`,
-      html:
-        `<p>A <strong>new version</strong> will be created with the exact content of ${label}.</p>` +
-        `<p style="color:hsl(var(--muted-foreground));font-size:0.85rem">Nothing is deleted — existing versions stay in history and applications already started keep their assigned version.</p>` +
-        (usage ? `<p style="color:hsl(var(--muted-foreground));font-size:0.8rem">${label} usage — in progress: <strong>${usage.in_progress ?? 0}</strong>, submitted: <strong>${usage.submitted ?? 0}</strong></p>` : '') +
-        `<label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;font-size:0.85rem">` +
-        `<input type="checkbox" id="rollback-activate" /> Make the restored version the current default immediately` +
-        `</label>`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Rollback',
-      cancelButtonText: 'Cancel',
-      heightAuto: false,
-      target: document.body,
-      customClass: { container: 'swal2-on-top' },
-      preConfirm: () => ({
-        activate: (document.getElementById('rollback-activate') as HTMLInputElement | null)?.checked ?? false,
-      }),
-      didOpen: () => {
-        const c = document.querySelector('.swal2-container') as HTMLElement | null;
-        if (c) { c.style.zIndex = '99999'; c.style.pointerEvents = 'auto'; }
-        document.body.style.pointerEvents = 'auto';
-      },
-    });
-    if (!res.isConfirmed) return;
-    const activate = !!(res.value as any)?.activate;
-    try {
-      const sections = (v.schema_snapshot || []) as unknown as FormSection[];
-      const created = await createVersion.mutateAsync({
-        templateId,
-        sections,
-        changeNotes: `Rolled back to ${label}`,
-      });
-      if (activate) {
-        // activate_form_version_as_current only accepts published versions.
-        await updateSchedule.mutateAsync({ versionId: created.versionId, status: 'published' });
-        await activateAsCurrent.mutateAsync({ versionId: created.versionId });
-        toast.success(`Rolled back to ${label} — new version is now the current default.`);
-      } else {
 
-        toast.success(`Rolled back to ${label} — new draft version created. Publish it when ready.`);
-      }
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to rollback version.');
-    }
-  };
+
 
 
 
@@ -320,20 +268,6 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {!isCurrentDefault && (
-                            <Button
-                              data-rbac="form_management.edit"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2 text-xs"
-                              onClick={() => onRollback(v)}
-                              title="Rollback to this version (creates a new version from its content)"
-                              disabled={createVersion.isPending || activateAsCurrent.isPending}
-                            >
-                              <Undo2 className="h-4 w-4 mr-1 text-amber-600" />
-                              Rollback
-                            </Button>
-                          )}
                           {v.status === 'published' && !isCurrentDefault && (
                             <Button
                               variant="ghost"
