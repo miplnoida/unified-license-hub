@@ -6,7 +6,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, Gavel, Clock, CheckCircle, Users } from 'lucide-react';
+import { Eye, Gavel, Clock, CheckCircle } from 'lucide-react';
 import { LicenseAppeal, useLicenseAppeals } from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
@@ -14,10 +14,8 @@ import {
 import { AppealActionsDialog } from '@/components/appeals/AppealActionsDialog';
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All statuses' },
-  { value: 'submitted', label: 'Filed' },
-  { value: 'under_review', label: 'Under review' },
-  { value: 'panel_review', label: 'With appeal panel' },
+  { value: 'all', label: 'All appeals' },
+  { value: 'pending', label: 'Pending decision' },
   { value: 'decided', label: 'Decided' },
   { value: 'withdrawn', label: 'Withdrawn' },
 ];
@@ -25,12 +23,18 @@ const STATUS_FILTERS = [
 export default function LicenseAppealsRegister() {
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState<LicenseAppeal | null>(null);
-  const { data: appeals, isLoading } = useLicenseAppeals({ status });
+  const { data: appeals } = useLicenseAppeals({});
 
-  const rows = appeals || [];
-  const openCount = rows.filter((a) => isAppealOpen(a.status)).length;
-  const panelCount = rows.filter((a) => a.status === 'panel_review').length;
-  const decidedCount = rows.filter((a) => a.status === 'decided').length;
+  const all = appeals || [];
+  const rows = status === 'all'
+    ? all
+    : status === 'pending'
+      ? all.filter((a) => isAppealOpen(a.status))
+      : all.filter((a) => a.status === status);
+  const openCount = all.filter((a) => isAppealOpen(a.status)).length;
+  const decidedCount = all.filter((a) => a.status === 'decided').length;
+
+
 
   const columns: Column<LicenseAppeal>[] = [
     {
@@ -72,15 +76,15 @@ export default function LicenseAppealsRegister() {
       <div className="space-y-6">
         <PageHeader
           title="Licensing Appeals"
-          description="Register of appeals lodged against licensing refusals, with panel referral and outcome tracking."
+          description="Appeals lodged against licensing refusals. Decide whether each appeal will be considered."
         />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <StatCard title="Total appeals" value={rows.length} icon={<Gavel className="h-6 w-6" />} />
-          <StatCard title="Open" value={openCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
-          <StatCard title="With panel" value={panelCount} icon={<Users className="h-6 w-6" />} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <StatCard title="Total appeals" value={all.length} icon={<Gavel className="h-6 w-6" />} />
+          <StatCard title="Pending decision" value={openCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Decided" value={decidedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
+
 
         <DataTableShell
           columns={columns}
