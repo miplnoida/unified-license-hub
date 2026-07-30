@@ -220,12 +220,17 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
     if (!rightId && latest) setRightId(latest.id);
   }, [open, versions, leftId, rightId]);
 
+  // Sections must be resolved the same way the app renders a version: use the
+  // JSON snapshot when present, otherwise rebuild from normalized form_fields.
+  // Many versions store an empty snapshot, which previously made every diff empty.
+  const { data: leftSections = [], isFetching: leftLoading } = useVersionSections(leftId || null);
+  const { data: rightSections = [], isFetching: rightLoading } = useVersionSections(rightId || null);
+  const loading = !!leftId && !!rightId && (leftLoading || rightLoading);
+
   const diff = useMemo(() => {
     if (!leftVersion || !rightVersion) return [];
-    const oldSections = (leftVersion.schema_snapshot || []) as unknown as FormSection[];
-    const newSections = (rightVersion.schema_snapshot || []) as unknown as FormSection[];
-    return computeDiff(oldSections, newSections);
-  }, [leftVersion, rightVersion]);
+    return computeDiff(leftSections as FormSection[], rightSections as FormSection[]);
+  }, [leftVersion, rightVersion, leftSections, rightSections]);
 
   const stats = useMemo(() => ({
     added: diff.filter(d => d.type === 'added').length,
