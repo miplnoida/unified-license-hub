@@ -41,8 +41,8 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
     const confirm = await Swal.fire({
       title: considering ? 'Consider this appeal?' : 'Decline this appeal?',
       text: considering
-        ? 'The appeal will be recorded as accepted for consideration and the applicant notified.'
-        : 'The appeal will be recorded as declined and the applicant notified.',
+        ? 'The refused application will be reopened and put back under review at the stage where it was refused, and the applicant will be notified.'
+        : 'The appeal will be recorded as declined and the applicant notified. The application stays refused.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: considering ? 'Yes, consider it' : 'Yes, decline it',
@@ -50,10 +50,15 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
     });
     if (!confirm.isConfirmed) return;
     try {
-      await recordDecision.mutateAsync({ appeal, decision, rationale: remarks.trim() });
-      toast.success(considering ? 'Appeal accepted for consideration' : 'Appeal declined');
+      const result = await recordDecision.mutateAsync({ appeal, decision, rationale: remarks.trim() });
+      toast.success(
+        considering
+          ? `Appeal considered — application ${result?.application_number ?? ''} is back under review`.trim()
+          : 'Appeal declined',
+      );
       setRemarks('');
     } catch (e: unknown) {
+
       toast.error((e as Error)?.message || 'Failed to record the decision');
     }
   };
