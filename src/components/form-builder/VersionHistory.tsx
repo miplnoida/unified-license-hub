@@ -285,19 +285,30 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={notifyingId !== null}
                               onClick={async () => {
+                                if (notifyingId) return;
+                                setNotifyingId(v.id);
+                                const toastId = toast.loading('Sending notifications, please wait…');
                                 try {
                                   const count = await notifyVersionToLicensees(v.id);
-                                  toast.success(count > 0 ? `Notification queued for ${count} user(s) (in-app + email).` : 'No licensee/PPOC users to notify.');
+                                  toast.success(count > 0 ? `Notification queued for ${count} user(s) (in-app + email).` : 'No licensee/PPOC users to notify.', { id: toastId });
                                 } catch (e: any) {
-                                  toast.error(e?.message || 'Failed to send notification.');
+                                  toast.error(e?.message || 'Failed to send notification.', { id: toastId });
+                                } finally {
+                                  setNotifyingId(null);
                                 }
                               }}
-                              title="Send notification to licensees/PPOC"
+                              title={notifyingId === v.id ? 'Sending notifications…' : 'Send notification to licensees/PPOC'}
                             >
-                              <Send className="h-4 w-4 text-blue-600" />
+                              {notifyingId === v.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                              ) : (
+                                <Send className="h-4 w-4 text-blue-600" />
+                              )}
                             </Button>
                           )}
+
                           {v.status !== 'draft' && (
                             <Button variant="ghost" size="sm" onClick={() => openSchedule(v)} title="Schedule effective dates">
                               <CalendarClock className="h-4 w-4" />
