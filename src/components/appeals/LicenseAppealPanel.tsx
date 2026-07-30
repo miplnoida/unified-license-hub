@@ -1,12 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Gavel, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApplicationAppeals, useLicenseAppealMutations } from '@/hooks/useLicenseAppeals';
@@ -15,6 +10,7 @@ import {
   daysRemaining, formatAppealDate, isAppealOpen,
 } from '@/lib/licenseAppeals';
 import { AppealTimeline } from '@/components/appeals/AppealTimeline';
+import { LodgeAppealDialog } from '@/components/appeals/LodgeAppealDialog';
 
 interface Props {
   applicationId: string;
@@ -34,38 +30,26 @@ export function LicenseAppealPanel({
   applicationId, applicationNumber, rejectedAt, licenseeId, regulatorId, canLodge,
 }: Props) {
   const { data: appeals, isLoading } = useApplicationAppeals(applicationId);
-  const { lodgeAppeal, withdrawAppeal } = useLicenseAppealMutations();
+  const { withdrawAppeal } = useLicenseAppealMutations();
   const [open, setOpen] = useState(false);
-  const [grounds, setGrounds] = useState('');
-  const [relief, setRelief] = useState('');
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [highlight, setHighlight] = useState(false);
+
+  // Deep link from the applications list: /applications/:id#appeal
+  useEffect(() => {
+    if (window.location.hash !== '#appeal') return;
+    const t = window.setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlight(true);
+      window.setTimeout(() => setHighlight(false), 2500);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const deadline = appealDeadlineFor(rejectedAt);
   const remaining = daysRemaining(deadline);
   const windowClosed = remaining !== null && remaining < 0;
   const existing = appeals?.[0] ?? null;
-
-  const submit = async () => {
-    if (grounds.trim().length < 20) {
-      toast.error('Please describe your grounds of appeal in at least 20 characters.');
-      return;
-    }
-    try {
-      await lodgeAppeal.mutateAsync({
-        applicationId,
-        licenseeId,
-        regulatorId,
-        grounds: grounds.trim(),
-        reliefSought: relief.trim(),
-        appealDeadline: deadline ? deadline.toISOString() : null,
-      });
-      toast.success('Appeal lodged — you will be notified as it progresses.');
-      setOpen(false);
-      setGrounds('');
-      setRelief('');
-    } catch (e: unknown) {
-      toast.error((e as Error)?.message || 'Failed to lodge appeal');
-    }
-  };
 
   const withdraw = async () => {
     if (!existing) return;
@@ -81,7 +65,11 @@ export function LicenseAppealPanel({
   const decisionMeta = appealDecisionMeta(existing?.decision);
 
   return (
-    <Card className="border-amber-200">
+    <Card
+      id="appeal"
+      ref={cardRef}
+      className={`border-amber-200 transition-shadow ${highlight ? 'ring-2 ring-amber-400 shadow-lg' : ''}`}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Gavel className="h-4 w-4 text-amber-600" />
@@ -155,45 +143,15 @@ export function LicenseAppealPanel({
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Lodge an appeal</DialogTitle>
-            <DialogDescription>
-              Appeal against the refusal of application {applicationNumber}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="appeal-grounds">Grounds of appeal *</Label>
-              <Textarea
-                id="appeal-grounds"
-                rows={5}
-                value={grounds}
-                onChange={(e) => setGrounds(e.target.value)}
-                placeholder="Explain why you believe the decision should be reconsidered…"
-              />
-            </div>
-            <div>
-              <Label htmlFor="appeal-relief">What outcome are you seeking?</Label>
-              <Textarea
-                id="appeal-relief"
-                rows={3}
-                value={relief}
-                onChange={(e) => setRelief(e.target.value)}
-                placeholder="For example: reconsideration of the application, or approval of the licence."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={lodgeAppeal.isPending}>
-              {lodgeAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Submit appeal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LodgeAppealDialog
+        open={open}
+        onOpenChange={setOpen}
+        applicationId={applicationId}
+        applicationNumber={applicationNumber}
+        licenseeId={licenseeId}
+        regulatorId={regulatorId}
+        deadline={deadline}
+      />
     </Card>
   );
 }
