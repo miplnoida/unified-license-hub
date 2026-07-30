@@ -1,41 +1,39 @@
-## Deliverable: FRD Gap Analysis — Project Management Tracker (.xlsx)
+## Goal
 
-An Excel workbook written to `/mnt/documents/FRD_Gap_Tracker.xlsx`, styled like a standard PM tracker (frozen header row, autofilter, colour-coded status, column widths, Arial). No code in the app is touched.
+Close the FRD gap on **Form Builder — Version History**: add a true side-by-side version comparison and a rollback-to-previous-version action. No other workflow (scheduling, activation, publishing, notifications, form rendering) changes.
 
-### Sheet 1 — `Summary Dashboard`
-- Counts by status (Done / Partial / Missing / Not Applicable) per FRD module, driven by **formulas** (`COUNTIFS` against the tracker sheet), not hardcoded numbers.
-- % complete per module and overall.
-- Legend for status colours and severity.
+## Current state (verified)
 
-### Sheet 2 — `Requirement Tracker` (the main sheet, point by point)
-One row per FRD requirement (not per module), with these columns:
+- `src/components/form-builder/VersionHistory.tsx` — lists versions with preview, schedule, activate-as-current, activate/deactivate. No rollback action.
+- `src/components/form-builder/VersionDiffViewer.tsx` — a "Compare" dialog exists, but it renders a **single stacked list** of added/removed/changed items, not a side-by-side left/right view.
+- `src/hooks/useFormTemplates.ts` — has `useCreateNewFormVersion` (creates a draft version from a schema snapshot, regenerating field IDs and conditional-logic references), `useActivateVersionAsCurrent` (RPC `activate_form_version_as_current`), `useFormVersions`, `useFormVersionUsageCounts`.
 
-| Column | Content |
-|---|---|
-| Req ID | FRD reference (e.g. BOJ-LIC-001) |
-| Module | Licensing / Registration / Complaints / Returns & Compliance / Prudential / Market Conduct / Workflow / RBAC / Notifications / Payments / Reporting / Audit |
-| Requirement | The FRD requirement text, restated in one line |
-| Status | Done / Partial / Missing |
-| Evidence in system | Concrete artefact: page route, component, table, RPC, or edge function that satisfies it |
-| Gap detail | Exactly what is absent or only partially implemented — specific, not "needs work" |
-| Severity | Critical / High / Medium / Low |
-| Effort | S / M / L |
-| Phase | 1–4 (sequenced delivery) |
-| Owner | blank for user to assign |
-| Target date | blank |
-| Notes | blank |
+## What will be built
 
-### Sheet 3 — `Delivery Plan`
-Phased backlog rolled up from the Missing/Partial rows: phase, workstream, items included, dependencies, exit criteria.
+### 1. Side-by-side diff (upgrade `VersionDiffViewer.tsx`)
 
-### Sheet 4 — `Assumptions & Sources`
-Where each "Done" claim was verified from (route file, migration, edge function, docs), so the sheet is auditable.
+- Keep the existing version pickers, auto-swap logic and the +added / −removed / ~changed summary badges.
+- Add a **view toggle: "Side by side" | "List"**, defaulting to side-by-side. The existing list view stays intact as the second mode.
+- Side-by-side layout: two synchronized columns headed by the selected version labels (`v<semantic> — status`), grouped by section, each field row aligned on the same line:
+  - removed → left cell filled/red, right cell shows an empty placeholder
+  - added → right cell filled/green, left empty
+  - changed → both cells shown with the differing attributes (type, label, required, options, validation, section) listed under each side
+  - unchanged rows hidden behind a "Show unchanged fields" toggle
+- Reuse the existing `computeDiff` logic; extend its output with the old/new field attribute values needed to render both columns. No change to how versions are read.
+- Responsive: columns stack on narrow screens.
 
-### How the content is produced
-1. Re-read the four completed inventory reports from the earlier analysis turn plus the FRD document.
-2. Map every FRD line item to code/DB evidence already gathered — no new assumptions; anything unverified is marked `Status = Unverified` rather than guessed.
-3. Generate the workbook with `openpyxl`, recalculate formulas, then render each sheet to an image and visually QA for clipped text, wrong colours, and broken layout before delivering.
+### 2. Rollback to a previous version (`VersionHistory.tsx`)
 
-### Scope control
-- Read-only on the repo and database. No application code, migrations, or config changed.
-- Output is a single downloadable `.xlsx` artefact.
+- New **"Rollback"** action on each non-current version row (hidden on the current default and on draft rows), gated with the same `data-rbac="form_management.edit"` marker used by the Compare button.
+- Rollback is **forward-only and non-destructive**: it never rewrites or deletes history. Clicking it:
+  1. Shows a SweetAlert2 confirmation (matching the existing dialog styling) naming the source version and explaining that a new version will be created from its content and that in-flight applications keep their assigned version.
+  2. Creates a new draft version via the existing `useCreateNewFormVersion` using the selected version's `schema_snapshot`, with `change_notes` set to `Rolled back to v<x>`.
+  3. Offers an optional checkbox in the confirmation — "Make the restored version the current default immediately" — which, when checked, calls the existing `useActivateVersionAsCurrent` on the new version (same retirement semantics as today). Unchecked leaves it as a draft to publish through the normal flow.
+  4. Toast on success/failure and query invalidation (already handled by the hooks).
+- If the source version has usage counts, the confirmation surfaces them as an informational note.
+
+## Technical notes
+
+- Frontend-only change; no migration, no RLS or RPC changes. Rollback composes two existing, already-authorised mutations.
+- Files touched: `src/components/form-builder/VersionDiffViewer.tsx`, `src/components/form-builder/VersionHistory.tsx`. No changes to `useFormTemplates.ts` unless a small helper is needed to fetch a single version snapshot (it is already available in the `useFormVersions` rows).
+- Styling uses existing semantic tokens and shadcn primitives already in these files.
