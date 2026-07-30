@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gavel, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
+
 import { useApplicationAppeals, useLicenseAppealMutations } from '@/hooks/useLicenseAppeals';
 import {
   APPEAL_WINDOW_DAYS, appealDeadlineFor, appealDecisionMeta, appealStatusMeta,
@@ -53,6 +55,16 @@ export function LicenseAppealPanel({
 
   const withdraw = async () => {
     if (!existing) return;
+    const confirm = await Swal.fire({
+      title: 'Withdraw this appeal?',
+      html: `<p>Appeal <b>${existing.appeal_reference}</b> will be withdrawn and the regulator will stop reviewing it.<br/>This action cannot be undone.</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, withdraw',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc2626',
+    });
+    if (!confirm.isConfirmed) return;
     try {
       await withdrawAppeal.mutateAsync(existing.id);
       toast.success('Appeal withdrawn');
@@ -60,6 +72,7 @@ export function LicenseAppealPanel({
       toast.error((e as Error)?.message || 'Failed to withdraw appeal');
     }
   };
+
 
   const statusMeta = existing ? appealStatusMeta(existing.status) : null;
   const decisionMeta = appealDecisionMeta(existing?.decision);

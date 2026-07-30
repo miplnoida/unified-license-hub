@@ -1,22 +1,23 @@
-## Confirmed cause
+## What I confirmed
 
-`APP-2026-000131` is rejected, belongs to the expected applicant account, has a valid `rejected_at` timestamp, and has no existing appeal. The **My Appeals** page still appears empty because its application query requests `applications.licensee_id`, but that column does not exist. The backend rejects the complete query, while the page ignores the returned error and converts it into an empty list.
+- `APP-2026-000131` has one appeal, `APL-2026-000001`, currently in **withdrawn** status (lodged and withdrawn today).
+- The appeal panel on the application page shows whatever appeal exists — including a withdrawn one — so the applicant can no longer see the "Lodge an appeal" button while that record stays.
+- Withdraw is currently a single click with no confirmation (`LicenseAppealPanel.tsx`).
+- Internal staff already have an appeals register; it is not something missing.
 
-## Implementation plan
+## Plan
 
-1. **Correct the refused-application query**
-   - Remove the nonexistent `licensee_id` field from the applications query and local interface.
-   - Continue passing the valid application and regulator identifiers when lodging an appeal; `licensee_id` is optional in the appeal record.
+1. **Confirmation before withdrawal**
+   - In the applicant appeal panel, wrap "Withdraw appeal" in a SweetAlert2 confirmation (matching the project's destructive-action pattern): title, explanation that withdrawal ends the appeal and cannot be undone, Cancel / Yes, withdraw.
+   - Only run the withdrawal mutation when confirmed; keep the existing spinner and toasts.
 
-2. **Prevent silent failures**
-   - Handle query errors explicitly on **My Appeals** instead of displaying the same “no appeals” state.
-   - Show a clear retryable error message if eligibility cannot be loaded.
+2. **Clear the withdrawn appeal for APP-2026-000131**
+   - Remove the withdrawn appeal record `APL-2026-000001` (and its timeline events) via a data migration, so the applicant sees the eligibility card and can lodge a fresh appeal within the remaining 30-day window.
 
-3. **Clean up the application detail integration**
-   - Remove the invalid `app.licensee_id` lookup from the appeal panel invocation.
-   - Preserve all existing application, workflow, and appeal behavior.
+3. **No other behaviour changes** — regulator register, panel referral, and decision flows stay as they are.
 
-4. **Verify the affected applicant flow**
-   - Confirm `APP-2026-000131` appears under **Applications you can appeal** with its 30-day deadline.
-   - Confirm **Lodge an appeal** opens and successfully creates an appeal without requiring a licensee ID.
-   - Confirm the lodged appeal replaces the eligibility card and appears in **My Appeals**.
+## Answer: how internal users see appeal requests
+
+Internal staff use the sidebar entry **Licensing → Licensing Appeals** (`/admin/license-appeals`). That register lists every lodged appeal with counters (total, open, with panel, decided), a status filter, and an eye icon that opens the appeal record where staff can acknowledge, refer to an appeal panel with a hearing date, and record the outcome with a rationale. A second entry, **Appeal Panels** (`/admin/appeal-panels`, admin-only), manages panel membership.
+
+Visibility requires the `license_appeals` module permission on the user's role — a role without it will not see the menu item and will be blocked from the route. So if a supervisor can't see appeals, grant that module in Roles & Permissions.
