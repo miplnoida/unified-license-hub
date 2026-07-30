@@ -23,29 +23,27 @@ export type LicenseAppealDecision =
   | 'overturned_to_approved';
 
 export const APPEAL_STATUS_META: Record<string, { label: string; className: string }> = {
-  submitted: { label: 'Filed', className: 'bg-blue-100 text-blue-800 border border-blue-200' },
-  under_review: { label: 'Under review', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
-  panel_review: { label: 'With appeal panel', className: 'bg-violet-100 text-violet-800 border border-violet-200' },
+  submitted: { label: 'Pending decision', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
+  under_review: { label: 'Pending decision', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
+  panel_review: { label: 'Pending decision', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
   decided: { label: 'Decided', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
   withdrawn: { label: 'Withdrawn', className: 'bg-slate-100 text-slate-600 border border-slate-200' },
   rejected_out_of_time: { label: 'Rejected (out of time)', className: 'bg-rose-100 text-rose-800 border border-rose-200' },
 };
 
 export const APPEAL_DECISION_META: Record<string, { label: string; className: string }> = {
-  upheld: { label: 'Appeal upheld', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
-  partially_upheld: { label: 'Partially upheld', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
-  dismissed: { label: 'Appeal dismissed', className: 'bg-slate-100 text-slate-700 border border-slate-200' },
+  upheld: { label: 'Appeal considered', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
+  partially_upheld: { label: 'Partially considered', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
+  dismissed: { label: 'Appeal declined', className: 'bg-slate-100 text-slate-700 border border-slate-200' },
   remitted: { label: 'Remitted for reconsideration', className: 'bg-blue-100 text-blue-800 border border-blue-200' },
   overturned_to_approved: { label: 'Refusal overturned', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
 };
 
 export const APPEAL_DECISION_OPTIONS: Array<{ value: LicenseAppealDecision; label: string }> = [
-  { value: 'upheld', label: 'Appeal upheld' },
-  { value: 'partially_upheld', label: 'Partially upheld' },
-  { value: 'dismissed', label: 'Appeal dismissed' },
-  { value: 'remitted', label: 'Remitted for reconsideration' },
-  { value: 'overturned_to_approved', label: 'Refusal overturned (approve)' },
+  { value: 'upheld', label: 'Appeal considered' },
+  { value: 'dismissed', label: 'Appeal declined' },
 ];
+
 
 export const OPEN_APPEAL_STATUSES: LicenseAppealStatus[] = ['submitted', 'under_review', 'panel_review'];
 
