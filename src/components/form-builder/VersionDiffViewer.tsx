@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GitCompare, Plus, Minus, Edit3 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { GitCompare, Plus, Minus, Edit3, Columns2, List } from 'lucide-react';
 import { useFormVersions } from '@/hooks/useFormTemplates';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
@@ -20,6 +21,33 @@ interface DiffItem {
   fieldLabel: string;
   fieldName: string;
   details?: string;
+  /** Attribute-level snapshot used by the side-by-side view. */
+  oldSide?: FieldSnapshot;
+  newSide?: FieldSnapshot;
+  /** Attribute keys that differ (side-by-side highlights only these). */
+  changedKeys?: string[];
+}
+
+interface FieldSnapshot {
+  label: string;
+  fieldName: string;
+  type: string;
+  required: boolean;
+  options?: string;
+  validation?: string;
+  section: string;
+}
+
+function snapshot(field: FormField, section: string): FieldSnapshot {
+  return {
+    label: field.label,
+    fieldName: field.fieldName,
+    type: field.type,
+    required: !!field.required,
+    options: field.options?.length ? field.options.map((o: any) => (typeof o === 'string' ? o : o?.label ?? o?.value)).join(', ') : undefined,
+    validation: field.validation ? JSON.stringify(field.validation) : undefined,
+    section,
+  };
 }
 
 function computeDiff(oldSections: FormSection[], newSections: FormSection[]): DiffItem[] {
@@ -33,32 +61,52 @@ function computeDiff(oldSections: FormSection[], newSections: FormSection[]): Di
   // Removed fields
   oldFields.forEach((v, id) => {
     if (!newFields.has(id)) {
-      items.push({ type: 'removed', sectionTitle: v.section, fieldLabel: v.field.label, fieldName: v.field.fieldName });
+      items.push({
+        type: 'removed',
+        sectionTitle: v.section,
+        fieldLabel: v.field.label,
+        fieldName: v.field.fieldName,
+        oldSide: snapshot(v.field, v.section),
+      });
     }
   });
 
   // Added fields
   newFields.forEach((v, id) => {
     if (!oldFields.has(id)) {
-      items.push({ type: 'added', sectionTitle: v.section, fieldLabel: v.field.label, fieldName: v.field.fieldName });
+      items.push({
+        type: 'added',
+        sectionTitle: v.section,
+        fieldLabel: v.field.label,
+        fieldName: v.field.fieldName,
+        newSide: snapshot(v.field, v.section),
+      });
     }
   });
 
-  // Changed fields
+  // Changed / unchanged fields
   newFields.forEach((v, id) => {
     const old = oldFields.get(id);
     if (!old) return;
     const changes: string[] = [];
-    if (old.field.type !== v.field.type) changes.push(`Type: ${old.field.type} → ${v.field.type}`);
-    if (old.field.label !== v.field.label) changes.push(`Label: "${old.field.label}" → "${v.field.label}"`);
-    if (old.field.required !== v.field.required) changes.push(`Required: ${old.field.required} → ${v.field.required}`);
-    if (JSON.stringify(old.field.options) !== JSON.stringify(v.field.options)) changes.push('Options changed');
-    if (JSON.stringify(old.field.validation) !== JSON.stringify(v.field.validation)) changes.push('Validation changed');
-    if (old.section !== v.section) changes.push(`Section: "${old.section}" → "${v.section}"`);
+    const changedKeys: string[] = [];
+    if (old.field.type !== v.field.type) { changes.push(`Type: ${old.field.type} → ${v.field.type}`); changedKeys.push('type'); }
+    if (old.field.label !== v.field.label) { changes.push(`Label: "${old.field.label}" → "${v.field.label}"`); changedKeys.push('label'); }
+    if (old.field.required !== v.field.required) { changes.push(`Required: ${old.field.required} → ${v.field.required}`); changedKeys.push('required'); }
+    if (JSON.stringify(old.field.options) !== JSON.stringify(v.field.options)) { changes.push('Options changed'); changedKeys.push('options'); }
+    if (JSON.stringify(old.field.validation) !== JSON.stringify(v.field.validation)) { changes.push('Validation changed'); changedKeys.push('validation'); }
+    if (old.section !== v.section) { changes.push(`Section: "${old.section}" → "${v.section}"`); changedKeys.push('section'); }
 
-    if (changes.length > 0) {
-      items.push({ type: 'changed', sectionTitle: v.section, fieldLabel: v.field.label, fieldName: v.field.fieldName, details: changes.join('; ') });
-    }
+    items.push({
+      type: changes.length > 0 ? 'changed' : 'unchanged',
+      sectionTitle: v.section,
+      fieldLabel: v.field.label,
+      fieldName: v.field.fieldName,
+      details: changes.length > 0 ? changes.join('; ') : undefined,
+      oldSide: snapshot(old.field, old.section),
+      newSide: snapshot(v.field, v.section),
+      changedKeys,
+    });
   });
 
   // Section-level changes
@@ -89,14 +137,55 @@ const bgMap = {
   added: 'bg-green-50 dark:bg-green-950/30 border-green-200',
   removed: 'bg-red-50 dark:bg-red-950/30 border-red-200',
   changed: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200',
-  unchanged: '',
+  unchanged: 'bg-muted/30 border-border',
 };
+
+function SidePanel({
+  snap,
+  tone,
+  changedKeys,
+  emptyLabel,
+}: {
+  snap?: FieldSnapshot;
+  tone: 'added' | 'removed' | 'changed' | 'unchanged';
+  changedKeys?: string[];
+  emptyLabel: string;
+}) {
+  if (!snap) {
+    return (
+      <div className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground flex items-center justify-center min-h-[76px]">
+        {emptyLabel}
+      </div>
+    );
+  }
+  const hl = (key: string) =>
+    changedKeys?.includes(key) ? 'font-medium text-foreground' : 'text-muted-foreground';
+  return (
+    <div className={`rounded-md border p-3 space-y-1 ${bgMap[tone]}`}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`text-sm ${changedKeys?.includes('label') ? 'font-semibold underline decoration-dotted' : 'font-medium'}`}>
+          {snap.label}
+        </span>
+        {snap.fieldName && <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{snap.fieldName}</code>}
+      </div>
+      <div className="text-xs space-y-0.5">
+        <div className={hl('type')}>Type: {snap.type}</div>
+        <div className={hl('required')}>Required: {snap.required ? 'Yes' : 'No'}</div>
+        <div className={hl('section')}>Section: {snap.section}</div>
+        {snap.options && <div className={`${hl('options')} break-words`}>Options: {snap.options}</div>}
+        {snap.validation && <div className={`${hl('validation')} break-words`}>Validation: {snap.validation}</div>}
+      </div>
+    </div>
+  );
+}
 
 export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerProps) {
   const [open, setOpen] = useState(false);
   const { data: versions = [] } = useFormVersions(templateId);
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
+  const [sideBySide, setSideBySide] = useState(true);
+  const [showUnchanged, setShowUnchanged] = useState(false);
 
   const leftVersion = versions.find((v: any) => v.id === leftId);
   const rightVersion = versions.find((v: any) => v.id === rightId);
@@ -126,7 +215,26 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
     added: diff.filter(d => d.type === 'added').length,
     removed: diff.filter(d => d.type === 'removed').length,
     changed: diff.filter(d => d.type === 'changed').length,
+    unchanged: diff.filter(d => d.type === 'unchanged').length,
   }), [diff]);
+
+  const visible = useMemo(
+    () => diff.filter(d => (d.type === 'unchanged' ? showUnchanged : true)),
+    [diff, showUnchanged],
+  );
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, DiffItem[]>();
+    visible.forEach(item => {
+      const list = map.get(item.sectionTitle) || [];
+      list.push(item);
+      map.set(item.sectionTitle, list);
+    });
+    return Array.from(map.entries());
+  }, [visible]);
+
+  const leftLabel = leftVersion ? `v${(leftVersion as any).semantic_version || (leftVersion as any).version}` : '';
+  const rightLabel = rightVersion ? `v${(rightVersion as any).semantic_version || (rightVersion as any).version}` : '';
 
   return (
     <>
@@ -136,7 +244,7 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh]">
+        <DialogContent className="max-w-5xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <GitCompare className="h-5 w-5" /> Version Comparison
@@ -144,7 +252,7 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
             <DialogDescription>{formName} — Select two versions to compare</DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Old Version (Base)</label>
               <Select value={leftId} onValueChange={(val) => {
@@ -199,18 +307,81 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
 
           {leftId && rightId && (
             <>
-              <div className="flex gap-3 text-sm">
-                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400">+{stats.added} added</Badge>
-                <Badge variant="outline" className="bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400">−{stats.removed} removed</Badge>
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400">~{stats.changed} changed</Badge>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex gap-3 text-sm flex-wrap">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400">+{stats.added} added</Badge>
+                  <Badge variant="outline" className="bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400">−{stats.removed} removed</Badge>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400">~{stats.changed} changed</Badge>
+                  <Badge variant="outline">{stats.unchanged} unchanged</Badge>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch id="diff-unchanged" checked={showUnchanged} onCheckedChange={setShowUnchanged} />
+                    <Label htmlFor="diff-unchanged" className="text-xs">Show unchanged</Label>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-md border p-0.5">
+                    <Button
+                      type="button"
+                      variant={sideBySide ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setSideBySide(true)}
+                    >
+                      <Columns2 className="h-3.5 w-3.5 mr-1" /> Side by side
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!sideBySide ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setSideBySide(false)}
+                    >
+                      <List className="h-3.5 w-3.5 mr-1" /> List
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <ScrollArea className="max-h-[50vh] pr-2">
-                <div className="space-y-2">
-                  {diff.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">No differences found between versions.</p>
-                  ) : (
-                    diff.map((item, idx) => (
+                {visible.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {diff.length === 0 ? 'No differences found between versions.' : 'No changes to show. Enable “Show unchanged” to see all fields.'}
+                  </p>
+                ) : sideBySide ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sticky top-0 bg-background z-10 pb-2">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {leftLabel} — {(leftVersion as any)?.status}
+                      </div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {rightLabel} — {(rightVersion as any)?.status}
+                      </div>
+                    </div>
+                    {grouped.map(([section, items]) => (
+                      <div key={section} className="space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground border-b pb-1">{section}</div>
+                        {items.map((item, idx) => (
+                          <div key={`${section}-${idx}`} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <SidePanel
+                              snap={item.oldSide}
+                              tone={item.type === 'added' ? 'unchanged' : item.type}
+                              changedKeys={item.type === 'changed' ? item.changedKeys : undefined}
+                              emptyLabel={`Not present in ${leftLabel}`}
+                            />
+                            <SidePanel
+                              snap={item.newSide}
+                              tone={item.type === 'removed' ? 'unchanged' : item.type}
+                              changedKeys={item.type === 'changed' ? item.changedKeys : undefined}
+                              emptyLabel={`Removed in ${rightLabel}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {visible.map((item, idx) => (
                       <div key={idx} className={`flex items-start gap-3 p-3 rounded-lg border ${bgMap[item.type]}`}>
                         {iconMap[item.type]}
                         <div className="flex-1 min-w-0">
@@ -225,9 +396,9 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
                         </div>
                         <Badge variant="outline" className="text-[10px] capitalize">{item.type}</Badge>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </ScrollArea>
             </>
           )}
