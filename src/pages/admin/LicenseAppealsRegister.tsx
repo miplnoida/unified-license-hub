@@ -70,15 +70,15 @@ export default function LicenseAppealsRegister() {
       <div className="space-y-6">
         <PageHeader
           title="Licensing Appeals"
-          description="Register of appeals lodged against licensing refusals, with panel referral and outcome tracking."
+          description="Appeals lodged against licensing refusals. Decide whether each appeal will be considered."
         />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           <StatCard title="Total appeals" value={rows.length} icon={<Gavel className="h-6 w-6" />} />
-          <StatCard title="Open" value={openCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
-          <StatCard title="With panel" value={panelCount} icon={<Users className="h-6 w-6" />} />
+          <StatCard title="Pending decision" value={openCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Decided" value={decidedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
+
 
         <DataTableShell
           columns={columns}
