@@ -112,6 +112,24 @@ export function useLicenseAppeal(appealId: string | undefined) {
   });
 }
 
+/** Status of the application an appeal was lodged against (used to offer a reopen retry). */
+export function useAppealApplicationStatus(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'application-status', applicationId],
+    queryFn: async (): Promise<{ status: string; application_number: string } | null> => {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('status, application_number')
+        .eq('id', applicationId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { status: string; application_number: string } | null) ?? null;
+    },
+    enabled: !!applicationId,
+    staleTime: 10_000,
+  });
+}
+
 export function useLicenseAppealEvents(appealId: string | undefined) {
   return useQuery({
     queryKey: [APPEALS_KEY, 'events', appealId],
