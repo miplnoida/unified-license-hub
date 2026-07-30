@@ -60,6 +60,8 @@ const RAW: Record<string, AuditDescriptor> = {
   'application_cancelled':            { label: 'Application cancelled',         category: 'application' },
   'application_approved':             { label: 'Application approved',          category: 'application' },
   'application_rejected':             { label: 'Application rejected',          category: 'application' },
+  'application_reinstated_after_appeal': { label: 'Application reinstated for reconsideration after appeal', category: 'application' },
+
   'application_resubmitted':          { label: 'Application resubmitted',       category: 'application' },
   'application_forward':              { label: 'Application forwarded',         category: 'workflow' },
   'application_return':               { label: 'Application returned',          category: 'workflow' },

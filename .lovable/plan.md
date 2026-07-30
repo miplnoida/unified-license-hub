@@ -1,39 +1,41 @@
-## Goal
+# Reinstate an application when its appeal is considered
 
-Make the admin appeal screen a simple yes/no call: **does the regulator consider this appeal or not** — no panels, no acknowledge step, no five outcome types.
+Today, "Consider appeal" only stamps a decision on the appeal record. The application stays `rejected` forever, so the applicant sees a dead end and staff have nothing to continue with.
 
-## What changes (UI only — no backend/schema change)
+## What will change
 
-### 1. Appeal detail dialog (`AppealActionsDialog.tsx`)
-Replace the three stacked action blocks (Acknowledge / Refer to panel / Record outcome) with a single decision card:
+**1. Accepting an appeal reopens the application**
+
+When a reviewer clicks **Consider appeal** on `/admin/license-appeals`, the linked application is reinstated:
+
+- Status moves from `rejected` back to `in_progress`, `rejected_at` is cleared.
+- The workflow instance that was closed on rejection is reactivated and resumes at the step where the refusal happened (no restart from step 1, no re-payment, no re-submission of forms).
+- The applicant gets a notification: "Your appeal was considered — application ABC is back under review."
+
+Declining an appeal changes nothing on the application; it stays refused.
+
+**2. History tells the full story**
+
+Both the application activity trail and the appeal history will show the sequence in plain English:
 
 ```text
-Decide on this appeal
-[ Reason / remarks ......................... ]
-[ Consider appeal ]   [ Decline appeal ]
+Application refused — remarks: "…"
+Appeal APL-2026-0000X lodged
+Appeal considered — remarks: "…"
+Application reinstated for reconsideration
 ```
 
-- **Consider appeal** → records outcome `upheld` (shown as "Appeal considered") with the remarks.
-- **Decline appeal** → records outcome `dismissed` (shown as "Appeal declined") with the remarks.
-- Both use the existing `recordDecision` mutation, so history, notifications and audit stay intact.
-- Remarks required (short minimum) before either button is enabled; confirmation prompt before submitting.
-- Remove panel selector, hearing date, acknowledge button, and the outcome dropdown from this screen.
-- Keep the read-only summary (reference, grounds, relief sought, dates) and the appeal history timeline.
+The refusal entry is never deleted, so the record shows it was rejected and then reconsidered on appeal.
 
-### 2. Register page (`LicenseAppealsRegister.tsx`)
-- Stat cards reduce to three: **Total**, **Pending decision**, **Decided**.
-- Status filter reduces to: All / Pending decision / Considered / Declined / Withdrawn.
-- Drop the "With appeal panel" card and column clutter; keep ref, lodged date, deadline, grounds, status, outcome.
+**3. UI cues**
 
-### 3. Labels (`src/lib/licenseAppeals.ts`)
-- Plain-English labels: `submitted`/`under_review`/`panel_review` all display as **Pending decision**; `upheld` → **Appeal considered**; `dismissed` → **Appeal declined**.
-- Keep the remaining legacy values mapped so existing records still render correctly.
+- Application detail page: while an appeal is open or has been considered, a banner reads "Reinstated after appeal" instead of just the red Rejected badge.
+- Appeal dialog confirmation text for "Consider appeal" states clearly that the application will be reopened for reconsideration.
+- Applications list: reinstated applications drop the "Appeal available" cue and appear back in the active queue.
 
-## Not touched
+## Technical notes
 
-- Database tables, RPCs, RLS, notifications, applicant-side lodging/withdrawal flow.
-- The Appeal Panels admin page stays available at its own route (unused by the simplified flow) unless you want it removed too.
-
-## Technical note
-
-Permission checks stay as-is; the decision buttons render under the existing `license_appeals.decide` permission, and `license_appeals.assign_panel` is simply no longer used on this screen.
+- New `SECURITY DEFINER` RPC `public.reinstate_application_after_appeal(_appeal_id uuid, _remarks text)`, mirroring `reject_application_action`: sets the trusted workflow-mutation context, verifies the caller holds `license_appeals` decide permission, guards that the application is currently `rejected`, updates `applications` (status/rejected_at), flips the `workflow_instances` row from `rejected` back to `active` (clearing `completed_at`), writes an `audit_logs` entry (`application_reinstated_after_appeal`), an `approval_actions` row, a `license_appeal_events` row, and an applicant notification. All in one transaction.
+- `recordDecision` in `src/hooks/useLicenseAppeals.ts` calls the RPC when `decision === 'upheld'`, then invalidates application/workflow query keys alongside the appeals key.
+- `AppealActionsDialog.tsx`: reworded confirmation and success toast only.
+- No change to the reject path, appeal lodging, or the 30-day window logic.

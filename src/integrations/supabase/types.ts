@@ -17351,6 +17351,10 @@ export type Database = {
         }
         Returns: string
       }
+      reinstate_application_after_appeal: {
+        Args: { _appeal_id: string; _remarks?: string }
+        Returns: Json
+      }
       reject_application_action: {
         Args: { _application_id: string; _comments: string }
         Returns: Json
