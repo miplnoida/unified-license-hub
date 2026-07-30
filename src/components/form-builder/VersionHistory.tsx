@@ -158,9 +158,12 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
         changeNotes: `Rolled back to ${label}`,
       });
       if (activate) {
+        // activate_form_version_as_current only accepts published versions.
+        await updateSchedule.mutateAsync({ versionId: created.versionId, status: 'published' });
         await activateAsCurrent.mutateAsync({ versionId: created.versionId });
         toast.success(`Rolled back to ${label} — new version is now the current default.`);
       } else {
+
         toast.success(`Rolled back to ${label} — new draft version created. Publish it when ready.`);
       }
     } catch (e: any) {
