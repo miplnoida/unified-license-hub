@@ -7,16 +7,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle, Pencil } from 'lucide-react';
+import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle, Pencil, Undo2 } from 'lucide-react';
 import {
   useFormVersions,
   useUpdateVersionSchedule,
   useActivateVersionAsCurrent,
+  useCreateNewFormVersion,
   useFormVersionUsageCounts,
   isVersionEffective,
   notifyUpcomingVersionIfNeeded,
   notifyVersionToLicensees,
 } from '@/hooks/useFormTemplates';
+
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { VersionDiffViewer } from '@/components/form-builder/VersionDiffViewer';
 import type { FormSection } from '@/types/formBuilder';
