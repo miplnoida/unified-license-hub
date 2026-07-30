@@ -50,13 +50,28 @@ function snapshot(field: FormField, section: string): FieldSnapshot {
   };
 }
 
+/**
+ * Stable cross-version identity for a field.
+ * Field `id`s are regenerated on every new version (see `useCreateNewFormVersion`),
+ * so pairing by id would report every field as removed+added. Pair by fieldName,
+ * then by section::label, and only fall back to id as a last resort.
+ */
+function fieldKey(field: FormField, section: string): string {
+  const fn = (field.fieldName || '').trim();
+  if (fn) return `n:${fn.toLowerCase()}`;
+  const lbl = (field.label || '').trim();
+  if (lbl) return `l:${section.trim().toLowerCase()}::${lbl.toLowerCase()}`;
+  return `i:${field.id}`;
+}
+
 function computeDiff(oldSections: FormSection[], newSections: FormSection[]): DiffItem[] {
   const items: DiffItem[] = [];
   const oldFields = new Map<string, { field: FormField; section: string }>();
   const newFields = new Map<string, { field: FormField; section: string }>();
 
-  oldSections.forEach(s => s.fields.forEach(f => oldFields.set(f.id, { field: f, section: s.title })));
-  newSections.forEach(s => s.fields.forEach(f => newFields.set(f.id, { field: f, section: s.title })));
+  oldSections.forEach(s => (s.fields || []).forEach(f => oldFields.set(fieldKey(f, s.title), { field: f, section: s.title })));
+  newSections.forEach(s => (s.fields || []).forEach(f => newFields.set(fieldKey(f, s.title), { field: f, section: s.title })));
+
 
   // Removed fields
   oldFields.forEach((v, id) => {
@@ -109,16 +124,17 @@ function computeDiff(oldSections: FormSection[], newSections: FormSection[]): Di
     });
   });
 
-  // Section-level changes
-  const oldSectionIds = new Set(oldSections.map(s => s.id));
-  const newSectionIds = new Set(newSections.map(s => s.id));
+  // Section-level changes (matched by title — section ids are regenerated per version)
+  const sectionKey = (s: FormSection) => (s.title || '').trim().toLowerCase();
+  const oldSectionKeys = new Set(oldSections.map(sectionKey));
+  const newSectionKeys = new Set(newSections.map(sectionKey));
   newSections.forEach(s => {
-    if (!oldSectionIds.has(s.id)) {
+    if (!oldSectionKeys.has(sectionKey(s))) {
       items.unshift({ type: 'added', sectionTitle: s.title, fieldLabel: `[Section Added]`, fieldName: '' });
     }
   });
   oldSections.forEach(s => {
-    if (!newSectionIds.has(s.id)) {
+    if (!newSectionKeys.has(sectionKey(s))) {
       items.unshift({ type: 'removed', sectionTitle: s.title, fieldLabel: `[Section Removed]`, fieldName: '' });
     }
   });
@@ -341,6 +357,14 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
                   </div>
                 </div>
               </div>
+
+              {stats.changed === 0 && stats.unchanged === 0 && (stats.added > 0 || stats.removed > 0) && (
+                <p className="text-xs text-muted-foreground">
+                  These two versions share no common fields — every field was replaced, so there is nothing to show side by side as “changed” or “unchanged”.
+                </p>
+              )}
+
+
 
               <ScrollArea className="max-h-[50vh] pr-2">
                 {visible.length === 0 ? (
