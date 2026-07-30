@@ -1502,24 +1502,47 @@ export async function notifyUpcomingVersionIfNeeded(versionId: string) {
   if (recipients.length > 0) {
     const friendlyDate = new Date(v.effective_from).toLocaleDateString();
     const semver = v.semantic_version || `${v.version}.0`;
-    const rows = recipients.map(u => ({
-      user_id: u.id,
-      title: `Upcoming form version: ${(tpl as any).name}`,
-      message: `A new version (v${semver}) of "${(tpl as any).name}" becomes effective on ${friendlyDate}. Please review before the activation date.`,
-      type: 'info',
-      channel: 'in_app',
-      delivery_status: 'delivered',
-      entity_type: 'form_version',
-      entity_id: versionId,
-    }));
-    const CHUNK = 500;
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
-    }
+    await dispatchToRecipients(
+      'form_version.upcoming',
+      versionId,
+      recipients.map(u => u.id),
+      {
+        form_name: (tpl as any).name,
+        semantic_version: semver,
+        effective_date: friendlyDate,
+      },
+    );
   }
 
   await supabase.from('form_versions').update({ notified_for_upcoming: true } as any).eq('id', versionId);
 }
+
+/**
+ * Fire the notification pipeline (in-app + email) once per recipient.
+ * Runs with limited concurrency and never throws — email failures are logged
+ * server-side in notification_dispatch_log.
+ */
+async function dispatchToRecipients(
+  eventKey: string,
+  versionId: string,
+  userIds: string[],
+  payload: Record<string, unknown>,
+) {
+  const CONCURRENCY = 10;
+  for (let i = 0; i < userIds.length; i += CONCURRENCY) {
+    await Promise.all(
+      userIds.slice(i, i + CONCURRENCY).map(uid =>
+        dispatchNotificationEvent({
+          event_key: eventKey,
+          entity_type: 'form_version',
+          entity_id: versionId,
+          payload: { ...payload, recipient_user_id: uid },
+        }),
+      ),
+    );
+  }
+}
+
 
 /**
  * Manually notify licensee/PPOC users about a form version (admin-triggered).
