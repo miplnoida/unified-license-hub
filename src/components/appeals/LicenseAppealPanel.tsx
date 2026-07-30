@@ -53,6 +53,16 @@ export function LicenseAppealPanel({
 
   const withdraw = async () => {
     if (!existing) return;
+    const confirm = await Swal.fire({
+      title: 'Withdraw this appeal?',
+      html: `<p>Appeal <b>${existing.appeal_reference}</b> will be withdrawn and the regulator will stop reviewing it.<br/>This action cannot be undone.</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, withdraw',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc2626',
+    });
+    if (!confirm.isConfirmed) return;
     try {
       await withdrawAppeal.mutateAsync(existing.id);
       toast.success('Appeal withdrawn');
@@ -60,6 +70,7 @@ export function LicenseAppealPanel({
       toast.error((e as Error)?.message || 'Failed to withdraw appeal');
     }
   };
+
 
   const statusMeta = existing ? appealStatusMeta(existing.status) : null;
   const decisionMeta = appealDecisionMeta(existing?.decision);
