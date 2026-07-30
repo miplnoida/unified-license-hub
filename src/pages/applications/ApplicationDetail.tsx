@@ -855,7 +855,6 @@ export default function ApplicationDetail() {
             applicationId={app.id}
             applicationNumber={app.application_number}
             rejectedAt={(app as any).rejected_at || (app as any).updated_at}
-            licenseeId={(app as any).licensee_id ?? null}
             regulatorId={(app as any).regulator_id ?? null}
             canLodge={isOwner}
           />

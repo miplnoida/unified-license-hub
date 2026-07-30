@@ -22,7 +22,6 @@ interface RefusedApplication {
   application_number: string;
   rejected_at: string | null;
   updated_at: string | null;
-  licensee_id: string | null;
   regulator_id: string | null;
 }
 
@@ -34,6 +33,8 @@ export default function MyAppeals() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [refused, setRefused] = useState<RefusedApplication[]>([]);
   const [loadingRefused, setLoadingRefused] = useState(true);
+  const [refusedError, setRefusedError] = useState<string | null>(null);
+  const [refusedRetryKey, setRefusedRetryKey] = useState(0);
   const [lodgeFor, setLodgeFor] = useState<RefusedApplication | null>(null);
 
   useEffect(() => {
@@ -41,19 +42,26 @@ export default function MyAppeals() {
     const load = async () => {
       if (!user?.id) { setLoadingRefused(false); return; }
       setLoadingRefused(true);
-      const { data } = await supabase
+      setRefusedError(null);
+      const { data, error } = await supabase
         .from('applications')
-        .select('id, application_number, rejected_at, updated_at, licensee_id, regulator_id')
+        .select('id, application_number, rejected_at, updated_at, regulator_id')
         .eq('applicant_id', user.id)
         .eq('status', 'rejected')
         .order('updated_at', { ascending: false });
       if (cancelled) return;
+      if (error) {
+        setRefused([]);
+        setRefusedError('We could not check which applications are eligible for appeal. Please try again.');
+        setLoadingRefused(false);
+        return;
+      }
       setRefused((data || []) as unknown as RefusedApplication[]);
       setLoadingRefused(false);
     };
     void load();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, refusedRetryKey]);
 
   const appealedAppIds = new Set((appeals || []).map((a) => a.application_id));
   const appealable = refused.filter((r) => !appealedAppIds.has(r.id));
@@ -73,6 +81,20 @@ export default function MyAppeals() {
           </div>
         ) : (
           <>
+            {refusedError && (
+              <Card className="border-destructive/40">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>{refusedError}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setRefusedRetryKey((key) => key + 1)}>
+                    Try again
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {appealable.length > 0 && (
               <Card className="border-amber-200">
                 <CardHeader className="pb-3">
@@ -121,7 +143,7 @@ export default function MyAppeals() {
               </Card>
             )}
 
-            {!appeals?.length ? (
+            {!appeals?.length && !refusedError ? (
               <Card>
                 <CardContent className="py-12 text-center space-y-3">
                   <Gavel className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -135,7 +157,7 @@ export default function MyAppeals() {
                   </Button>
                 </CardContent>
               </Card>
-            ) : (
+            ) : appeals?.length ? (
               <div className="space-y-4">
                 {appeals.map((a) => {
                   const status = appealStatusMeta(a.status);
@@ -198,7 +220,7 @@ export default function MyAppeals() {
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </>
         )}
 
@@ -208,7 +230,6 @@ export default function MyAppeals() {
             onOpenChange={(o) => { if (!o) setLodgeFor(null); }}
             applicationId={lodgeFor.id}
             applicationNumber={lodgeFor.application_number}
-            licenseeId={lodgeFor.licensee_id}
             regulatorId={lodgeFor.regulator_id}
             deadline={appealDeadlineFor(lodgeFor.rejected_at || lodgeFor.updated_at)}
             onLodged={() => setLodgeFor(null)}
