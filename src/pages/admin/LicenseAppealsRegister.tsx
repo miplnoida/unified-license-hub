@@ -14,10 +14,8 @@ import {
 import { AppealActionsDialog } from '@/components/appeals/AppealActionsDialog';
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All statuses' },
-  { value: 'submitted', label: 'Filed' },
-  { value: 'under_review', label: 'Under review' },
-  { value: 'panel_review', label: 'With appeal panel' },
+  { value: 'all', label: 'All appeals' },
+  { value: 'submitted', label: 'Pending decision' },
   { value: 'decided', label: 'Decided' },
   { value: 'withdrawn', label: 'Withdrawn' },
 ];
@@ -29,8 +27,8 @@ export default function LicenseAppealsRegister() {
 
   const rows = appeals || [];
   const openCount = rows.filter((a) => isAppealOpen(a.status)).length;
-  const panelCount = rows.filter((a) => a.status === 'panel_review').length;
   const decidedCount = rows.filter((a) => a.status === 'decided').length;
+
 
   const columns: Column<LicenseAppeal>[] = [
     {
