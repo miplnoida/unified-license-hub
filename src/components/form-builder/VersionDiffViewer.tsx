@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { GitCompare, Plus, Minus, Edit3, Columns2, List } from 'lucide-react';
-import { useFormVersions } from '@/hooks/useFormTemplates';
+import { useFormVersions, useVersionSections } from '@/hooks/useFormTemplates';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface VersionDiffViewerProps {
