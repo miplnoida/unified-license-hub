@@ -11,7 +11,7 @@
  *  - other rows' action_types are filtered out of the picker
  *  - save is rejected by the unique (step_id, action_type) constraint
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
