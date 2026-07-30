@@ -85,7 +85,7 @@ export default function LicenseAppealsRegister() {
         <DataTableShell
           columns={columns}
           data={rows}
-          data-loading={isLoading}
+          data={rows}
           searchPlaceholder="Search appeals..."
           actions={
             <Select value={status} onValueChange={setStatus}>
