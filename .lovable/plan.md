@@ -1,24 +1,35 @@
-## What I found (verified in the database)
+## Goal
 
-- Application `APP-2026-000131` (`e2d244b7…`): `status = rejected`, `rejected_at = 30 Jul 08:59`.
-- Its appeal `APL-2026-000001`: `decision = upheld`, `decided_at = 30 Jul 12:34`, `status = decided`.
-- The appeal's event history has `filed → panel_assigned → decided`, but **no `application_reinstated` event**, and there is no `application_reinstated_after_appeal` audit entry. So the decision was saved, but the reinstatement step never completed for this appeal.
-- The application's workflow instance is `status = completed` (not `rejected`). The reinstatement function only reactivates instances whose status is `rejected`, so even on a successful run the workflow would not have reopened here.
+Refresh `FRD_Gap_Tracker.xlsx` so it reflects the delivered state of Licensing Appeals and Form Builder Version History. No code changes.
 
-Two separate problems: this one record is stuck, and the logic/UX has gaps that let it get stuck silently.
+## Changes to the tracker
 
-## Plan
+Produce a new version of the workbook (`FRD_Gap_Tracker_v2.xlsx`) in the documents area, preserving all existing sheets, formatting and the other 101 rows unchanged.
 
-1. **Repair this record**: run the reinstatement for appeal `APL-2026-000001` so `APP-2026-000131` returns to `in_progress`, its workflow instance is reactivated at the step it was refused, and the audit trail / applicant notification are written.
+**Requirement Tracker sheet**
 
-2. **Handle refused workflow instances that ended as `completed`**: broaden the reinstatement function to pick the most recent instance in `rejected` **or** `completed` state for the application (keeping the existing guard that never creates a second active/paused instance).
+1. `LIC-APL-001` — Licensing Appeals (post-refusal appeal lodging & tracking)
+   - Status: Missing -> **Done**
+   - Severity / Effort / Phase: set to `-`
+   - Evidence: `license_appeals` + appeal-event tables with RLS and generated appeal references; `public.reinstate_application_after_appeal` RPC; applicant `LodgeAppealDialog.tsx`, `LicenseAppealPanel.tsx`, `/appeals` My Appeals page with 30-day window and withdraw confirmation; regulator register at `/admin/license-appeals` with Consider/Decline decision dialog and reopen-application retry; upheld appeals reopen the refused application at its last workflow step with audit trail, appeal timeline and applicant notification.
+   - Gap Detail: None. Note that no formal appeal-panel hearing/scheduling model exists — deliberately de-scoped to keep the decision flow simple.
 
-3. **Make failure visible instead of silent**: when an appeal is accepted, treat the reinstatement result as part of the operation — if the function returns an error or is skipped, the UI surfaces a clear message rather than a plain "Appeal considered" success toast.
+2. `ADM-FB-005` — Form Builder Version History
+   - Screen / Requirement text: drop ", rollback" -> **"Form Builder — Version History (compare versions)"**
+   - Status: Partial -> **Done**
+   - Severity / Effort / Phase: set to `-`
+   - Evidence: `src/components/form-builder/VersionHistory.tsx` and `VersionDiffViewer.tsx` — version list, side-by-side attribute-level field diff, working "Show unchanged" toggle, publish/upcoming version notifications.
+   - Gap Detail: None. Rollback confirmed out of scope by the business — not a requirement.
 
-4. **Add a retry path**: on an already-decided, upheld appeal whose application is still `rejected`, show a "Reopen application" action in the admin appeal dialog so staff can complete the reinstatement without developer help. Uses the same function, so it stays idempotent.
+**Summary Dashboard sheet**
 
-5. **Verify**: re-check the application status, workflow instance, appeal events, audit log and applicant notification for APP-2026-000131, and confirm the applicant's application page shows the "Reinstated after appeal" banner.
+- Recompute the Done / Partial / Missing counts and any percentage-complete figures to account for the two status changes.
+- Update the Licensing row commentary: remove "No licensing appeals;" so it reads only about the analyst workbench, legal review screen and decision letter.
 
-### Technical notes
-- Files touched: `public.reinstate_application_after_appeal` (migration), `src/hooks/useLicenseAppeals.ts`, `src/components/appeals/AppealActionsDialog.tsx`.
-- No changes to appeal lodging, panels, notifications templates, or unrelated workflow behaviour.
+**Delivery Plan sheet**
+
+- Phase 1 "Licensing completeness": remove `LIC-APL-001` from the requirement list and reword the description/exit criteria so appeals are described as delivered, leaving decision letters and the analyst/legal queues as the open items.
+
+## Verification
+
+Reopen the generated workbook, print the two changed rows plus the recomputed summary counts, and confirm every other row is byte-identical to the original before handing the file over.
