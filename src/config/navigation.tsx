@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit, Database, ClipboardCheck, Microscope, History,
+  ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
