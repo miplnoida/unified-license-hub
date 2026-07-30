@@ -65,6 +65,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
   const [scheduleVersion, setScheduleVersion] = useState<any | null>(null);
   const [scheduleFrom, setScheduleFrom] = useState('');
   const [scheduleUntil, setScheduleUntil] = useState('');
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const { data: versions = [] } = useFormVersions(templateId);
   const { data: usageCounts = {} } = useFormVersionUsageCounts(templateId);
   const updateSchedule = useUpdateVersionSchedule();
