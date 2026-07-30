@@ -316,18 +316,9 @@ export function useLicenseAppealMutations() {
       );
 
       // Accepting an appeal puts the refused application back under review.
-      let reinstated: { application_number?: string } | null = null;
+      let reinstated: ReinstateResult | null = null;
       if (input.decision === 'upheld') {
-        const { data, error: rpcError } = await supabase.rpc(
-          'reinstate_application_after_appeal' as never,
-          { _appeal_id: input.appeal.id, _remarks: input.rationale } as never,
-        );
-        if (rpcError) throw rpcError;
-        const result = data as unknown as
-          | { error?: string; success?: boolean; skipped?: boolean; application_number?: string }
-          | null;
-        if (result?.error) throw new Error(result.error);
-        if (result?.success && !result.skipped) reinstated = result;
+        reinstated = await runReinstate(input.appeal.id, input.rationale);
       }
 
       await dispatchNotificationEvent({
@@ -344,6 +335,18 @@ export function useLicenseAppealMutations() {
       });
       return reinstated;
     },
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['application'] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+    },
+  });
+
+  /** Retry the reopen step for an appeal that was already accepted. */
+  const reinstateApplication = useMutation({
+    mutationFn: async (input: { appeal: LicenseAppeal }) =>
+      runReinstate(input.appeal.id, input.appeal.decision_rationale || ''),
     onSuccess: () => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['applications'] });
