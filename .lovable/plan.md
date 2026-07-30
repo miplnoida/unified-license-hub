@@ -1,34 +1,27 @@
-## Problem (verified)
+## What I found for mipl1@yopmail.com
 
-For pre-licensee and post-licensee application workflows, a "Reject" at an early step leaves the record as **In Progress** and pushes it to the next approver instead of ending as **Rejected**.
+- The account (`a10e718f…`) is a pre-licensee whose registration is **approved**, so no gate blocks it.
+- Its application **APP-2026-000131** is `rejected` (30 Jul), owned by that same user id.
+- The appeal panel is only rendered inside the Application Detail page (`/applications/<id>`), for the owner, when status is `rejected`. There is **no link to it from My Appeals** and no appeal cue in the applications list — the empty-state text just says "you can appeal from the application page", which is why the user can't find how to appeal.
+- `applications.rejected_at` is NULL for this record, so the 30-day countdown falls back to `updated_at`. The window is not being stamped at rejection time.
 
-Cause confirmed in the database:
-- `public.perform_workflow_transition` applies the per-step action configuration (`approval_step_actions`) before considering the action's meaning. When `next_step_mode = 'next' | 'keep' | 'specific_step' | 'previous'`, it unconditionally sets the application status to `in_progress` and advances the step — even when the action is `reject`.
-- 8 configured reject actions currently use `next_step_mode = 'next'` instead of `end_workflow`, on: Building Society Pre License Workflow (Steps 1, 2), Commercial Bank Pre Licensee (Steps 1, 2), Pre License Approval Workflow (Licensing Officer, Final Approval), Post Application Workflow (Licensing Officer, Final Approval).
+So the feature exists but is effectively undiscoverable; nothing about the panel itself is broken.
 
-Registrations are not affected: `perform_registration_workflow_transition` already sets `rejected` + `completed` for any step (verified — REG-2026-000025 rejected at step 1 shows `rejected`).
+## Plan
 
-## Fix
+**1. Make appeals reachable from My Appeals**
+- On `/appeals`, also query the signed-in user's refused applications (status `rejected`) that have no appeal yet.
+- Show an "Applications you can appeal" section listing each refused application with its number, refusal date, days remaining in the 30-day window, and a primary **Lodge an appeal** button that opens the same appeal dialog inline (reusing `LicenseAppealPanel`'s lodging flow).
+- Keep the current empty state only when there is genuinely nothing to appeal, and reword it to "You have no appeals and no refused applications within the appeal window."
 
-**1. Harden the application transition function (migration)**
+**2. Add an appeal cue in the applications list**
+- For rows with status `rejected` in the applicant view of `ApplicationsList`, show an "Appeal available — N days left" hint plus a row action that deep-links to the application detail page's appeal panel (`/applications/:id#appeal`).
+- `ApplicationDetail` scrolls to and highlights the appeal card when that hash is present.
 
-In `public.perform_workflow_transition`, short-circuit `reject` before the step-config branch:
-- If `_action_type = 'reject'`, always set application status `rejected`, workflow instance `completed`, keep the current step as the terminating step, and skip `next_step_mode` / `result_status_override` handling entirely.
-- Same treatment for `cancelled`-style terminal end states already configured — no behaviour change there.
-- Everything else (approve, send_back, escalate, resubmission/correction/info paths, save_comment) stays exactly as it is.
+**3. Correct the appeal deadline source**
+- Stamp `applications.rejected_at` when a rejection is recorded, so the 30-day window is measured from the actual refusal rather than the last update.
+- Backfill `rejected_at` for the existing rejected applications (including APP-2026-000131) from their rejection audit/workflow timestamp.
 
-**2. Normalise the misconfigured step actions (data fix)**
-
-Update the 8 `approval_step_actions` rows with `action_type = 'reject'` and `next_step_mode <> 'end_workflow'` to `next_step_mode = 'end_workflow'`, `end_state = 'rejected'`, so the builder UI also reflects the correct terminal behaviour.
-
-**3. Prevent recurrence in the workflow builder**
-
-In the step action editor, force reject to a terminal outcome: when action type is `reject`, lock `next_step_mode` to "End workflow" with end state "Rejected" (shown as read-only) so admins cannot configure a non-terminal reject.
-
-**4. Backfill existing bad records (optional, on confirmation)**
-
-Any application whose latest workflow action is `reject` but whose status is still `in_progress` gets corrected to `rejected` with its instance marked completed. I'll list the affected records before applying.
-
-## Not changing
-
-Registration workflow logic, approve/send-back/escalate/resubmission paths, notifications, RBAC gates, and any other module.
+## Technical notes
+- Files: `src/pages/appeals/MyAppeals.tsx` (appealable-applications section), `src/components/appeals/LicenseAppealPanel.tsx` (extract/expose the lodging dialog so it can be launched from the list), `src/pages/applications/ApplicationsList.tsx` (rejected-row cue), `src/pages/applications/ApplicationDetail.tsx` (`#appeal` anchor).
+- Backend: set `rejected_at` in the rejection path of `perform_workflow_transition`, plus a one-off data update to backfill existing rejected rows. No change to reject semantics (already terminal) or to appeal RLS.

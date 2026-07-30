@@ -18,7 +18,7 @@ import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield, Gavel } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { toast } from 'sonner';
@@ -940,7 +940,17 @@ export default function ApplicationsList() {
             <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
               {APPLICATION_STATUS_LABELS[app.status] || app.status}
             </Badge>
+            {!isInternal && app.status === 'rejected' && (
+              <button
+                type="button"
+                className="mt-1 block text-[10px] font-medium text-amber-700 underline underline-offset-2"
+                onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}#appeal`); }}
+              >
+                Appeal available
+              </button>
+            )}
           </TableCell>
+
           <TableCell>
             {app.status === 'approved' && licensesByApp[app.id] ? (
               <div className="flex flex-col gap-1">
@@ -1017,6 +1027,11 @@ export default function ApplicationsList() {
                 hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised'].includes(app.status)),
               },
               {
+                label: 'Lodge an appeal', icon: Gavel, separator: true,
+                hidden: !(!isInternal && app.status === 'rejected'),
+                onClick: () => navigate(`/applications/${app.id}#appeal`),
+              },
+              {
                 label: 'Cancel Application', icon: Ban, destructive: true, separator: true,
                 hidden: !(!isInternal && ['draft', 'in_progress'].includes(app.status)),
                 onClick: async () => {
@@ -1025,6 +1040,7 @@ export default function ApplicationsList() {
                     _application_id: app.id,
                     _reason: 'Application cancelled by applicant',
                   });
+
                   if (error) { toast.error(error.message); return; }
                   if ((data as any)?.error) { toast.error((data as any).error); return; }
                   toast.success('Application cancelled');
