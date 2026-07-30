@@ -70,6 +70,9 @@ const FpaSectorRules = lazy(() => import('@/pages/fpa/FpaSectorRules'));
 const FpaDeterminations = lazy(() => import('@/pages/fpa/FpaDeterminations'));
 const FpaCommittee = lazy(() => import('@/pages/fpa/FpaCommittee'));
 const FpaConditions = lazy(() => import('@/pages/fpa/FpaConditions'));
+const LicenseAppealsRegister = lazy(() => import('@/pages/admin/LicenseAppealsRegister'));
+const LicenseAppealPanelsAdmin = lazy(() => import('@/pages/admin/LicenseAppealPanels'));
+const MyAppeals = lazy(() => import('@/pages/appeals/MyAppeals'));
 const FpaAppeals = lazy(() => import('@/pages/fpa/FpaAppeals'));
 const FpaMonitoring = lazy(() => import('@/pages/fpa/FpaMonitoring'));
 const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
@@ -153,6 +156,10 @@ export const dashboardRoutes = (
     <Route path="/pre-license/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />
     <Route path="/post-license/new" element={<EP area="licensing" capability="can_submit"><NewPostLicenseApplication /></EP>} />
     <Route path="/post-licensee/applications/:applicationId/forms" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><PostLicenseApplicationForms /></EP>} />
+
+    <Route path="/appeals" element={<EP area="licensing" capability="can_view_status"><MyAppeals /></EP>} />
+    <Route path="/admin/license-appeals" element={<M module="license_appeals"><LicenseAppealsRegister /></M>} />
+    <Route path="/admin/appeal-panels" element={<M module="license_appeals"><LicenseAppealPanelsAdmin /></M>} />
 
     <Route path="/licenses" element={<EP area="licensing" capability="can_view_status"><LicensesList /></EP>} />
     <Route path="/licenses/:id" element={<EP area="licensing" capability="can_view_status"><LicenseDetail /></EP>} />
