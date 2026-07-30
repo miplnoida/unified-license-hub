@@ -1,34 +1,34 @@
-## Diagnosis (verified)
+## Problem (verified)
 
-The reject call fails at the edge function's authorization gate, before any workflow logic runs.
+For pre-licensee and post-licensee application workflows, a "Reject" at an early step leaves the record as **In Progress** and pushes it to the next approver instead of ending as **Rejected**.
 
-`supabase/functions/perform-registration-workflow-action/index.ts:45` calls:
+Cause confirmed in the database:
+- `public.perform_workflow_transition` applies the per-step action configuration (`approval_step_actions`) before considering the action's meaning. When `next_step_mode = 'next' | 'keep' | 'specific_step' | 'previous'`, it unconditionally sets the application status to `in_progress` and advances the step — even when the action is `reject`.
+- 8 configured reject actions currently use `next_step_mode = 'next'` instead of `end_workflow`, on: Building Society Pre License Workflow (Steps 1, 2), Commercial Bank Pre Licensee (Steps 1, 2), Pre License Approval Workflow (Licensing Officer, Final Approval), Post Application Workflow (Licensing Officer, Final Approval).
 
-```ts
-requireUserPermission(req, "registration_management", "workflow_action")
-```
-
-But the permission catalog has no such entry:
-
-- `permissions` for `registration_management` contains only: `view, create, edit, approve, reject` — **no `workflow_action`**.
-- Every other workflow module *does* have it: `application_management`, `returns_management`, `license_management`, `compliance_management`, `enforcement_management`, `inspection_management`, `fit_and_proper`, `prudential_supervision`.
-- `public.has_permission()` matches on module + action name only, so a non-existent action always returns false → 403 `Forbidden` for everyone except super_admin.
-
-So this affects **all** registration workflow actions (approve, reject, send back, escalate, save comment) for non-super-admin reviewers — not just reject.
+Registrations are not affected: `perform_registration_workflow_transition` already sets `rejected` + `completed` for any step (verified — REG-2026-000025 rejected at step 1 shows `rejected`).
 
 ## Fix
 
-One migration, no code changes:
+**1. Harden the application transition function (migration)**
 
-1. Insert the `workflow_action` entry into `permission_actions` for the `registration_management` module (label "Perform workflow action"), matching how the other workflow modules are catalogued.
-2. Insert the matching row into `permissions` (`module = 'registration_management'`, `name = 'workflow_action'`).
-3. Grant it via `role_permissions` to every role that already holds `registration_management.approve` or `registration_management.reject`, so existing reviewer roles keep working without manual re-configuration.
-4. Register the dependency in `src/lib/rbac/permissionDependencies.ts` if the other workflow modules declare one there (so Role Management doesn't flag a dependency violation), mirroring `application_management.workflow_action`.
+In `public.perform_workflow_transition`, short-circuit `reject` before the step-config branch:
+- If `_action_type = 'reject'`, always set application status `rejected`, workflow instance `completed`, keep the current step as the terminating step, and skip `next_step_mode` / `result_status_override` handling entirely.
+- Same treatment for `cancelled`-style terminal end states already configured — no behaviour change there.
+- Everything else (approve, send_back, escalate, resubmission/correction/info paths, save_comment) stays exactly as it is.
 
-## Verification
+**2. Normalise the misconfigured step actions (data fix)**
 
-- Re-query `permissions` / `role_permissions` to confirm the new grant lands on the reviewer roles.
-- Call the edge function with the same payload (registration `1a347080…`, action `reject`) as the signed-in reviewer and confirm it returns the workflow result instead of `Forbidden`.
-- Confirm approve on the same step still works.
+Update the 8 `approval_step_actions` rows with `action_type = 'reject'` and `next_step_mode <> 'end_workflow'` to `next_step_mode = 'end_workflow'`, `end_state = 'rejected'`, so the builder UI also reflects the correct terminal behaviour.
 
-No changes to the workflow RPC, notification bindings, or any other module.
+**3. Prevent recurrence in the workflow builder**
+
+In the step action editor, force reject to a terminal outcome: when action type is `reject`, lock `next_step_mode` to "End workflow" with end state "Rejected" (shown as read-only) so admins cannot configure a non-terminal reject.
+
+**4. Backfill existing bad records (optional, on confirmation)**
+
+Any application whose latest workflow action is `reject` but whose status is still `in_progress` gets corrected to `rejected` with its instance marked completed. I'll list the affected records before applying.
+
+## Not changing
+
+Registration workflow logic, approve/send-back/escalate/resubmission paths, notifications, RBAC gates, and any other module.
