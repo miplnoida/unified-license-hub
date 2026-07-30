@@ -124,16 +124,17 @@ function computeDiff(oldSections: FormSection[], newSections: FormSection[]): Di
     });
   });
 
-  // Section-level changes
-  const oldSectionIds = new Set(oldSections.map(s => s.id));
-  const newSectionIds = new Set(newSections.map(s => s.id));
+  // Section-level changes (matched by title — section ids are regenerated per version)
+  const sectionKey = (s: FormSection) => (s.title || '').trim().toLowerCase();
+  const oldSectionKeys = new Set(oldSections.map(sectionKey));
+  const newSectionKeys = new Set(newSections.map(sectionKey));
   newSections.forEach(s => {
-    if (!oldSectionIds.has(s.id)) {
+    if (!oldSectionKeys.has(sectionKey(s))) {
       items.unshift({ type: 'added', sectionTitle: s.title, fieldLabel: `[Section Added]`, fieldName: '' });
     }
   });
   oldSections.forEach(s => {
-    if (!newSectionIds.has(s.id)) {
+    if (!newSectionKeys.has(sectionKey(s))) {
       items.unshift({ type: 'removed', sectionTitle: s.title, fieldLabel: `[Section Removed]`, fieldName: '' });
     }
   });
