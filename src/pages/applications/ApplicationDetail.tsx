@@ -850,6 +850,8 @@ export default function ApplicationDetail() {
         {isOwner && <LicenseStatusBanner />}
         {isInternal && <DecisionGatesBanner applicationId={app.id} />}
 
+        <ReinstatedAfterAppealBanner applicationId={app.id} status={app.status} />
+
         {app.status === 'rejected' && (
           <LicenseAppealPanel
             applicationId={app.id}
@@ -859,6 +861,7 @@ export default function ApplicationDetail() {
             canLodge={isOwner}
           />
         )}
+
 
 
 
