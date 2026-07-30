@@ -73,6 +73,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // ─── Licensing appeals ─────────────────────────────────────────────────
   ['/admin/license-appeals', 'license_appeals'],
   ['/admin/appeal-panels', 'license_appeals'],
+  ['/appeals', 'license_appeals'],
 
   // ─── Licenses / licensees ──────────────────────────────────────────────
   ['/admin/licensees', 'license_management'],
