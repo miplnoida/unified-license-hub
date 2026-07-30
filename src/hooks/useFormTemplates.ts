@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows, syncSectionFields } from '@/lib/formRows';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 // ─── Types ───
 export interface FormTemplate {
