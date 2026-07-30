@@ -358,6 +358,14 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
                 </div>
               </div>
 
+              {stats.changed === 0 && stats.unchanged === 0 && (stats.added > 0 || stats.removed > 0) && (
+                <p className="text-xs text-muted-foreground">
+                  These two versions share no common fields — every field was replaced, so there is nothing to show side by side as “changed” or “unchanged”.
+                </p>
+              )}
+
+
+
               <ScrollArea className="max-h-[50vh] pr-2">
                 {visible.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
