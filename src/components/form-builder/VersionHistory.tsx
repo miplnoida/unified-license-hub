@@ -69,7 +69,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
   const { data: usageCounts = {} } = useFormVersionUsageCounts(templateId);
   const updateSchedule = useUpdateVersionSchedule();
   const activateAsCurrent = useActivateVersionAsCurrent();
-  const createVersion = useCreateNewFormVersion();
+  
 
 
   // The "current default" is the most recent published version that is currently
