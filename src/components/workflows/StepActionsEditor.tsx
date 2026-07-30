@@ -515,7 +515,9 @@ function ActionForm({
             <Select
               value={draft.end_state ?? 'none'}
               onValueChange={v => setDraft({ ...draft, end_state: v === 'none' ? null : (v as EndState) })}
+              disabled={isRejectAction}
             >
+
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Choose end state" />
               </SelectTrigger>
