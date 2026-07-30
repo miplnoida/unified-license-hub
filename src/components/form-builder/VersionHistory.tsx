@@ -287,7 +287,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                               onClick={async () => {
                                 try {
                                   const count = await notifyVersionToLicensees(v.id);
-                                  toast.success(count > 0 ? `Notification sent to ${count} user(s).` : 'No licensee/PPOC users to notify.');
+                                  toast.success(count > 0 ? `Notification queued for ${count} user(s) (in-app + email).` : 'No licensee/PPOC users to notify.');
                                 } catch (e: any) {
                                   toast.error(e?.message || 'Failed to send notification.');
                                 }
