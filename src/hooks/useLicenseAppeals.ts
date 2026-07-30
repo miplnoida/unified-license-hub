@@ -161,6 +161,27 @@ export function useLicenseAppealPanels(activeOnly = false) {
   });
 }
 
+export interface ReinstateResult {
+  success?: boolean;
+  skipped?: boolean;
+  reason?: string;
+  error?: string;
+  application_number?: string;
+  status?: string;
+}
+
+/** Calls the reopen-after-appeal routine and turns its result into a thrown error or a value. */
+async function runReinstate(appealId: string, remarks: string): Promise<ReinstateResult> {
+  const { data, error } = await supabase.rpc(
+    'reinstate_application_after_appeal' as never,
+    { _appeal_id: appealId, _remarks: remarks } as never,
+  );
+  if (error) throw error;
+  const result = (data as unknown as ReinstateResult | null) ?? {};
+  if (result.error) throw new Error(result.error);
+  return result;
+}
+
 async function logEvent(appealId: string, eventType: string, description: string, actorId?: string | null) {
   await supabase.from('license_appeal_events').insert({
     appeal_id: appealId,
