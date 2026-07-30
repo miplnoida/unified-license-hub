@@ -23,7 +23,7 @@ const STATUS_FILTERS = [
 export default function LicenseAppealsRegister() {
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState<LicenseAppeal | null>(null);
-  const { data: appeals, isLoading } = useLicenseAppeals({});
+  const { data: appeals } = useLicenseAppeals({});
 
   const all = appeals || [];
   const rows = status === 'all'
