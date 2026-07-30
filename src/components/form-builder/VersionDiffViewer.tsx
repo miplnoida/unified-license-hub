@@ -50,13 +50,28 @@ function snapshot(field: FormField, section: string): FieldSnapshot {
   };
 }
 
+/**
+ * Stable cross-version identity for a field.
+ * Field `id`s are regenerated on every new version (see `useCreateNewFormVersion`),
+ * so pairing by id would report every field as removed+added. Pair by fieldName,
+ * then by section::label, and only fall back to id as a last resort.
+ */
+function fieldKey(field: FormField, section: string): string {
+  const fn = (field.fieldName || '').trim();
+  if (fn) return `n:${fn.toLowerCase()}`;
+  const lbl = (field.label || '').trim();
+  if (lbl) return `l:${section.trim().toLowerCase()}::${lbl.toLowerCase()}`;
+  return `i:${field.id}`;
+}
+
 function computeDiff(oldSections: FormSection[], newSections: FormSection[]): DiffItem[] {
   const items: DiffItem[] = [];
   const oldFields = new Map<string, { field: FormField; section: string }>();
   const newFields = new Map<string, { field: FormField; section: string }>();
 
-  oldSections.forEach(s => s.fields.forEach(f => oldFields.set(f.id, { field: f, section: s.title })));
-  newSections.forEach(s => s.fields.forEach(f => newFields.set(f.id, { field: f, section: s.title })));
+  oldSections.forEach(s => (s.fields || []).forEach(f => oldFields.set(fieldKey(f, s.title), { field: f, section: s.title })));
+  newSections.forEach(s => (s.fields || []).forEach(f => newFields.set(fieldKey(f, s.title), { field: f, section: s.title })));
+
 
   // Removed fields
   oldFields.forEach((v, id) => {
