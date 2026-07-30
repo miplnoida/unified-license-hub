@@ -940,7 +940,17 @@ export default function ApplicationsList() {
             <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
               {APPLICATION_STATUS_LABELS[app.status] || app.status}
             </Badge>
+            {!isInternal && app.status === 'rejected' && (
+              <button
+                type="button"
+                className="mt-1 block text-[10px] font-medium text-amber-700 underline underline-offset-2"
+                onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}#appeal`); }}
+              >
+                Appeal available
+              </button>
+            )}
           </TableCell>
+
           <TableCell>
             {app.status === 'approved' && licensesByApp[app.id] ? (
               <div className="flex flex-col gap-1">
