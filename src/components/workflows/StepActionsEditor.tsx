@@ -11,7 +11,7 @@
  *  - other rows' action_types are filtered out of the picker
  *  - save is rejected by the unique (step_id, action_type) constraint
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -375,6 +375,10 @@ function ActionForm({
       ? draft.next_step_id
       : null;
 
+  // Reject is always terminal: a rejection at any step must end the workflow
+  // with a Rejected outcome (never route to another step / keep in progress).
+  const isRejectAction = draft.action_type === 'reject';
+
   const handleModeChange = (next: NextStepMode) => {
     // Reset stale fields so we never leave the draft in an inconsistent state.
     setDraft({
@@ -384,6 +388,19 @@ function ActionForm({
       end_state: next === 'end_workflow' ? draft.end_state : null,
     });
   };
+
+  useEffect(() => {
+    if (!isRejectAction) return;
+    if (draft.next_step_mode === 'end_workflow' && draft.end_state === 'rejected') return;
+    setDraft({
+      ...draft,
+      next_step_mode: 'end_workflow',
+      next_step_id: null,
+      end_state: 'rejected',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRejectAction, draft.next_step_mode, draft.end_state]);
+
 
   return (
     <div className="space-y-3">
@@ -447,6 +464,7 @@ function ActionForm({
           <Select
             value={draft.next_step_mode}
             onValueChange={v => handleModeChange(v as NextStepMode)}
+            disabled={isRejectAction}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -455,7 +473,13 @@ function ActionForm({
               ))}
             </SelectContent>
           </Select>
+          {isRejectAction && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Reject always ends the workflow with a Rejected outcome, at any step.
+            </p>
+          )}
         </div>
+
 
 
         {draft.next_step_mode === 'specific_step' && (
@@ -491,7 +515,9 @@ function ActionForm({
             <Select
               value={draft.end_state ?? 'none'}
               onValueChange={v => setDraft({ ...draft, end_state: v === 'none' ? null : (v as EndState) })}
+              disabled={isRejectAction}
             >
+
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Choose end state" />
               </SelectTrigger>
