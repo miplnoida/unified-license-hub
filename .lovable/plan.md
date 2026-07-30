@@ -1,15 +1,34 @@
-## Cause (verified)
+## Diagnosis (verified)
 
-`/appeals` renders `MyAppeals` behind `PortalRoute` (licensing / can_view_status) — that guard is fine. The redirect comes from `RegistrationApprovalGate` in `src/routes/routeHelpers.tsx`: for an approved applicant/pre-licensee it allows the path only if it is in `PRE_LICENSEE_ALLOWED_ROUTES` (`src/hooks/useUserPermissions.ts`) or maps to a permission module the user holds. `/appeals` is in neither — `permissionModules.ts` only maps `/admin/license-appeals` and `/admin/appeal-panels` to `license_appeals`. So the gate falls through to `<Navigate to="/dashboard" replace />`.
+The reject call fails at the edge function's authorization gate, before any workflow logic runs.
+
+`supabase/functions/perform-registration-workflow-action/index.ts:45` calls:
+
+```ts
+requireUserPermission(req, "registration_management", "workflow_action")
+```
+
+But the permission catalog has no such entry:
+
+- `permissions` for `registration_management` contains only: `view, create, edit, approve, reject` — **no `workflow_action`**.
+- Every other workflow module *does* have it: `application_management`, `returns_management`, `license_management`, `compliance_management`, `enforcement_management`, `inspection_management`, `fit_and_proper`, `prudential_supervision`.
+- `public.has_permission()` matches on module + action name only, so a non-existent action always returns false → 403 `Forbidden` for everyone except super_admin.
+
+So this affects **all** registration workflow actions (approve, reject, send back, escalate, save comment) for non-super-admin reviewers — not just reject.
 
 ## Fix
 
-1. `src/hooks/useUserPermissions.ts` — add `'/appeals'` to `PRE_LICENSEE_ALLOWED_ROUTES` (prefix match also covers future `/appeals/:id`).
-2. `src/lib/permissionModules.ts` — add a route→module entry `['/appeals', 'license_appeals']` so the gate's dynamic-permission branch also resolves correctly for other external roles.
+One migration, no code changes:
 
-No changes to `PortalRoute`, RLS, or appeal business logic. Applicants keep seeing only their own appeals (RLS-enforced).
+1. Insert the `workflow_action` entry into `permission_actions` for the `registration_management` module (label "Perform workflow action"), matching how the other workflow modules are catalogued.
+2. Insert the matching row into `permissions` (`module = 'registration_management'`, `name = 'workflow_action'`).
+3. Grant it via `role_permissions` to every role that already holds `registration_management.approve` or `registration_management.reject`, so existing reviewer roles keep working without manual re-configuration.
+4. Register the dependency in `src/lib/rbac/permissionDependencies.ts` if the other workflow modules declare one there (so Role Management doesn't flag a dependency violation), mirroring `application_management.workflow_action`.
 
 ## Verification
 
-- Sign in as an applicant/pre-licensee, open My Appeals from the sidebar → page loads instead of bouncing to `/dashboard`.
-- Confirm an internal user still reaches `/admin/license-appeals` unchanged.
+- Re-query `permissions` / `role_permissions` to confirm the new grant lands on the reviewer roles.
+- Call the edge function with the same payload (registration `1a347080…`, action `reject`) as the signed-in reviewer and confirm it returns the workflow result instead of `Forbidden`.
+- Confirm approve on the same step still works.
+
+No changes to the workflow RPC, notification bindings, or any other module.
