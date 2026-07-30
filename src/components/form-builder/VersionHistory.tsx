@@ -117,6 +117,59 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
     }
   };
 
+  // Rollback is forward-only and non-destructive: it creates a NEW version whose
+  // content is copied from the selected older version. Existing versions and
+  // in-flight applications are never modified.
+  const onRollback = async (v: any) => {
+    const label = `v${v.semantic_version || v.version}`;
+    const usage = usageCounts[v.id];
+    const res = await Swal.fire({
+      title: `Rollback to ${label}?`,
+      html:
+        `<p>A <strong>new version</strong> will be created with the exact content of ${label}.</p>` +
+        `<p style="color:hsl(var(--muted-foreground));font-size:0.85rem">Nothing is deleted — existing versions stay in history and applications already started keep their assigned version.</p>` +
+        (usage ? `<p style="color:hsl(var(--muted-foreground));font-size:0.8rem">${label} usage — in progress: <strong>${usage.in_progress ?? 0}</strong>, submitted: <strong>${usage.submitted ?? 0}</strong></p>` : '') +
+        `<label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;font-size:0.85rem">` +
+        `<input type="checkbox" id="rollback-activate" /> Make the restored version the current default immediately` +
+        `</label>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Rollback',
+      cancelButtonText: 'Cancel',
+      heightAuto: false,
+      target: document.body,
+      customClass: { container: 'swal2-on-top' },
+      preConfirm: () => ({
+        activate: (document.getElementById('rollback-activate') as HTMLInputElement | null)?.checked ?? false,
+      }),
+      didOpen: () => {
+        const c = document.querySelector('.swal2-container') as HTMLElement | null;
+        if (c) { c.style.zIndex = '99999'; c.style.pointerEvents = 'auto'; }
+        document.body.style.pointerEvents = 'auto';
+      },
+    });
+    if (!res.isConfirmed) return;
+    const activate = !!(res.value as any)?.activate;
+    try {
+      const sections = (v.schema_snapshot || []) as unknown as FormSection[];
+      const created = await createVersion.mutateAsync({
+        templateId,
+        sections,
+        changeNotes: `Rolled back to ${label}`,
+      });
+      if (activate) {
+        await activateAsCurrent.mutateAsync({ versionId: created.versionId });
+        toast.success(`Rolled back to ${label} — new version is now the current default.`);
+      } else {
+        toast.success(`Rolled back to ${label} — new draft version created. Publish it when ready.`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to rollback version.');
+    }
+  };
+
+
+
   const saveSchedule = async () => {
     if (!scheduleVersion) return;
     try {
