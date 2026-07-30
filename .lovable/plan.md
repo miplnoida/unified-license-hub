@@ -1,23 +1,26 @@
-## What I verified
+## Problem
 
-- `VersionDiffViewer.tsx` reads `version.schema_snapshot` directly as the section list.
-- In the database, many `form_versions` rows have an **empty** `schema_snapshot` (`[]`) while their fields live in the normalized `form_fields` table (e.g. versions with 0 snapshot sections but 20–36 field rows). The rest of the app handles this: `useFormTemplates.ts` (~line 660) uses the snapshot only when `isValidSectionSnapshot` passes, and otherwise builds sections from `form_fields` via `fieldRowsToSections`.
-- Consequence: for those templates the diff array is empty, every stat reads 0, and the "Show unchanged" toggle has nothing to reveal — which matches the reported behaviour. Where a version *does* carry a snapshot (checked templates with 317 fields, all with unique non-blank `fieldName`s), pairing by field name works.
+The "Notify" action in Form Builder → Version History only writes in-app rows. Confirmed in `src/hooks/useFormTemplates.ts`:
 
-## Changes
+- `notifyVersionToLicensees()` (line ~1528) resolves licensee + PPOC user IDs and does a direct `supabase.from('notifications').insert(...)` with `channel: 'in_app'`. No email path at all.
+- `notifyUpcomingVersionIfNeeded()` (line ~1477, fired on scheduling a future version) does the same.
 
-### 1. Remove the rollback feature — `src/components/form-builder/VersionHistory.tsx`
-- Delete the Rollback button on every version row, the `onRollback` handler and its SweetAlert confirmation dialog, and the now-unused `Undo2` import plus any imports/hooks used only by rollback (`useCreateNewFormVersion`, and `useActivateVersionAsCurrent`/`updateSchedule` if not used elsewhere in the file — keep whatever the remaining publish/activate/schedule actions still need).
-- No other version-history action (view, publish, activate, schedule, edit) changes.
+Email in this system flows only through the `dispatch-notification-event` edge function, which resolves recipients from `notification_event_configs`, renders templates, writes the in-app row **and** sends SMTP mail with dispatch logging/dedupe. A query of `notification_event_configs` shows no `form_version.*` event keys exist yet.
 
-### 2. Make the diff resolve sections the same way the app does — `src/components/form-builder/VersionDiffViewer.tsx`
-- For each of the two selected versions, resolve its section list through the shared path instead of reading `schema_snapshot` raw:
-  - use the snapshot when it is a valid non-empty section array,
-  - otherwise fetch that version's `form_fields` (+ conditions) and build sections with the existing `fieldRowsToSections` helper — i.e. reuse the existing per-version sections hook from `useFormTemplates.ts` for the left and right version ids.
-- Handle loading state: show a small "Loading versions…" line while either side is still resolving, so the empty-state text doesn't flash a misleading "No differences found".
-- Keep existing field pairing (`fieldName` → `section::label` → `id`), stats, side-by-side/list toggle and the "Show unchanged" switch as-is; with real sections on both sides the unchanged bucket populates and the toggle works.
-- Keep the "no common fields" note, and keep the empty-state message when both versions genuinely resolve to zero fields.
+## Fix
 
-## Technical notes
-- Frontend-only: no migration, no RPC, no RLS change. Files touched: `src/components/form-builder/VersionDiffViewer.tsx`, `src/components/form-builder/VersionHistory.tsx`.
-- The `form_fields` fallback reads through the same authorised queries already used to render a version, so no new data access is introduced.
+1. **Add two event configs** (migration, seeded into `notification_event_configs`, `channels: ['in_app','email']`, `is_active: true`, recipient rule `[{"type":"payload_user","key":"recipient_user_id"}]`):
+   - `form_version.published` — admin-triggered notify
+   - `form_version.upcoming` — scheduled/future effective version
+   Each gets `title_template`, `message_template`, `email_subject_template`, plain-text `email_body_template` using tokens: `{{form_name}}`, `{{semantic_version}}`, `{{effective_date}}`, `{{app_url}}`.
+
+2. **Rewrite both helpers** in `src/hooks/useFormTemplates.ts` to stop inserting `notifications` rows directly and instead call `dispatchNotificationEvent()` (from `src/lib/notificationEvents.ts`) once per recipient, with `entity_type: 'form_version'`, `entity_id: versionId`, and payload `{ recipient_user_id, form_name, semantic_version, effective_date }`. Dispatch calls are batched with limited concurrency (e.g. 10 at a time) so large licensee lists don't stall the UI, and remain fire-and-forget so a mail failure never breaks the admin action.
+   - Duplicate in-app rows are avoided because the dispatcher already inserts the in-app notification.
+   - `notified_for_upcoming` flag handling stays unchanged.
+
+3. **Toast wording** in `src/components/form-builder/VersionHistory.tsx` becomes "Notification queued for N user(s) (in-app + email)" so the message matches actual behaviour.
+
+## Notes
+
+- Email delivery still depends on SMTP being configured under Settings → Email/SMS; if SMTP is off, the dispatch log will record `failed`/`skipped` rows that can be inspected in `notification_dispatch_log`.
+- No changes to workflow, publishing, scheduling, or version-diff behaviour.
