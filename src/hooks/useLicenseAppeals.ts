@@ -395,5 +395,8 @@ export function useLicenseAppealMutations() {
     onSuccess: invalidate,
   });
 
-  return { lodgeAppeal, withdrawAppeal, acknowledgeAppeal, assignPanel, recordDecision, savePanel };
+  return {
+    lodgeAppeal, withdrawAppeal, acknowledgeAppeal, assignPanel,
+    recordDecision, reinstateApplication, savePanel,
+  };
 }
