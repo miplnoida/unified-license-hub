@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
-import { LicenseAppeal, useLicenseAppealMutations } from '@/hooks/useLicenseAppeals';
+import {
+  LicenseAppeal, useAppealApplicationStatus, useLicenseAppealMutations,
+} from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
 } from '@/lib/licenseAppeals';
@@ -24,8 +26,9 @@ interface Props {
 
 /** Regulator-side appeal record: a single decision — consider the appeal, or decline it. */
 export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
-  const { recordDecision } = useLicenseAppealMutations();
+  const { recordDecision, reinstateApplication } = useLicenseAppealMutations();
   const canDecide = useCan('license_appeals', 'decide');
+  const { data: application } = useAppealApplicationStatus(appeal?.application_id);
 
   const [remarks, setRemarks] = useState('');
 
@@ -34,6 +37,8 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
   const decisionMeta = appealDecisionMeta(appeal.decision);
   const open = isAppealOpen(appeal.status);
   const remarksReady = remarks.trim().length >= 10;
+  const needsReopen =
+    appeal.decision === 'upheld' && application?.status === 'rejected' && canDecide;
 
   const decide = async (decision: 'upheld' | 'dismissed') => {
     if (!remarksReady) { toast.error('Add a short reason (at least 10 characters) before deciding'); return; }
@@ -51,15 +56,38 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
     if (!confirm.isConfirmed) return;
     try {
       const result = await recordDecision.mutateAsync({ appeal, decision, rationale: remarks.trim() });
-      toast.success(
-        considering
-          ? `Appeal considered — application ${result?.application_number ?? ''} is back under review`.trim()
-          : 'Appeal declined',
-      );
+      if (!considering) {
+        toast.success('Appeal declined');
+      } else if (result?.success && !result.skipped) {
+        toast.success(
+          `Appeal considered — application ${result.application_number ?? ''} is back under review`.trim(),
+        );
+      } else {
+        toast.warning(
+          result?.reason
+            ? `Appeal considered, but the application was not reopened: ${result.reason}`
+            : 'Appeal considered, but the application was not reopened. Use “Reopen application” to retry.',
+        );
+      }
       setRemarks('');
     } catch (e: unknown) {
 
       toast.error((e as Error)?.message || 'Failed to record the decision');
+    }
+  };
+
+  const reopen = async () => {
+    try {
+      const result = await reinstateApplication.mutateAsync({ appeal });
+      if (result?.success && !result.skipped) {
+        toast.success(
+          `Application ${result.application_number ?? ''} is back under review`.trim(),
+        );
+      } else {
+        toast.warning(result?.reason || 'The application could not be reopened.');
+      }
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Failed to reopen the application');
     }
   };
 
