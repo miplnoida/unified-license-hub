@@ -464,6 +464,7 @@ function ActionForm({
           <Select
             value={draft.next_step_mode}
             onValueChange={v => handleModeChange(v as NextStepMode)}
+            disabled={isRejectAction}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -472,7 +473,13 @@ function ActionForm({
               ))}
             </SelectContent>
           </Select>
+          {isRejectAction && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Reject always ends the workflow with a Rejected outcome, at any step.
+            </p>
+          )}
         </div>
+
 
 
         {draft.next_step_mode === 'specific_step' && (
