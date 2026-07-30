@@ -1027,6 +1027,11 @@ export default function ApplicationsList() {
                 hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised'].includes(app.status)),
               },
               {
+                label: 'Lodge an appeal', icon: Gavel, separator: true,
+                hidden: !(!isInternal && app.status === 'rejected'),
+                onClick: () => navigate(`/applications/${app.id}#appeal`),
+              },
+              {
                 label: 'Cancel Application', icon: Ban, destructive: true, separator: true,
                 hidden: !(!isInternal && ['draft', 'in_progress'].includes(app.status)),
                 onClick: async () => {
@@ -1035,6 +1040,7 @@ export default function ApplicationsList() {
                     _application_id: app.id,
                     _reason: 'Application cancelled by applicant',
                   });
+
                   if (error) { toast.error(error.message); return; }
                   if ((data as any)?.error) { toast.error((data as any).error); return; }
                   toast.success('Application cancelled');
