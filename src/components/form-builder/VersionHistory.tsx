@@ -260,6 +260,18 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {v.status !== 'draft' && !isCurrentDefault && (
+                            <Button
+                              data-rbac="form_management.edit"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onRollback(v)}
+                              title="Rollback to this version (creates a new version from its content)"
+                              disabled={createVersion.isPending || activateAsCurrent.isPending}
+                            >
+                              <Undo2 className="h-4 w-4 text-amber-600" />
+                            </Button>
+                          )}
                           {v.status === 'published' && !isCurrentDefault && (
                             <Button
                               variant="ghost"
@@ -271,6 +283,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                               <Star className="h-4 w-4 text-primary" />
                             </Button>
                           )}
+
                           {v.status === 'published' && (
                             <Button
                               variant="ghost"
