@@ -41,7 +41,9 @@ export default function CorrespondenceManager() {
         <PageHeader
           title="Communication Thread Manager"
           description="Every regulator-entity conversation in one auditable place — threads, internal notes, delivery status and read receipts."
+          actions={<IntakeForm />}
         />
+
         <Card className="overflow-hidden">
           <div className="grid lg:grid-cols-[360px_1fr] divide-y lg:divide-y-0 lg:divide-x min-h-[70vh]">
             <div className="lg:h-[75vh]">
