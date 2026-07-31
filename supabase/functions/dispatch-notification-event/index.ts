@@ -783,6 +783,11 @@ Deno.serve(async (req) => {
               entity_id: entity_id || null,
               channel: "in_app",
               delivery_status: "delivered",
+              event_key,
+              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
+              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
+              module: classifyModule(event_key, entity_type),
+              action_required: classifyCategory(event_key, dispatchCfg.cfg.notification_type) === "action_required",
             });
             if (error) throw error;
             await admin
@@ -837,6 +842,10 @@ Deno.serve(async (req) => {
               entity_id: entity_id || null,
               channel: "email",
               delivery_status: "queued",
+              event_key,
+              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
+              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
+              module: classifyModule(event_key, entity_type),
             });
             summary.sent++;
           }
