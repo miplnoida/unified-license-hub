@@ -24,6 +24,8 @@ export function ResponseComposer({ thread }: { thread: CorrespondenceThread }) {
   const [subject, setSubject] = useState(`Re: ${thread.subject}`);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
+
   const post = usePostCorrespondenceMessage(thread.id);
 
   const { data: templates = [] } = useQuery({
