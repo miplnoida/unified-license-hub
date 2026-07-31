@@ -11,7 +11,13 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORIES } from '@/pages/correspondence/seed';
-import { useCreateCorrespondenceThread, uploadCorrespondenceFile } from '@/hooks/useCorrespondence';
+import {
+  useCreateCorrespondenceThread,
+  uploadCorrespondenceFile,
+  THREAD_TYPE_LABELS,
+  type ThreadType,
+} from '@/hooks/useCorrespondence';
+
 
 export function IntakeForm() {
   const [open, setOpen] = useState(false);
