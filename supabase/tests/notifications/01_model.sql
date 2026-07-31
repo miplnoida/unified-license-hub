@@ -45,7 +45,7 @@ SELECT has_function('public','save_notification_event_preference','preference wr
 INSERT INTO public.notifications (id, user_id, title, message, type, channel, event_key, dedupe_key)
 VALUES ('00000000-0000-0000-0000-00000000e001',
         '00000000-0000-0000-0000-00000000d001',
-        'Model test', '  Long   message body for preview  ', 'info', 'in_app',
+        'Model test', 'Long   message body for preview', 'info', 'in_app',
         'phase2_model_test', 'phase2|model|1');
 
 SELECT is(
