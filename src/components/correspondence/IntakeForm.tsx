@@ -115,6 +115,38 @@ export function IntakeForm() {
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
+              <Label className="text-xs">Thread type</Label>
+              <Select value={threadType} onValueChange={(v) => setThreadType(v as ThreadType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(THREAD_TYPE_LABELS).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>{l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Linked case type</Label>
+              <Select value={sourceType} onValueChange={setSourceType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not linked</SelectItem>
+                  <SelectItem value="application">Application</SelectItem>
+                  <SelectItem value="complaint">Complaint</SelectItem>
+                  <SelectItem value="return">Return</SelectItem>
+                  <SelectItem value="license">Licence</SelectItem>
+                  <SelectItem value="enforcement">Enforcement</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Case reference</Label>
+              <Input value={sourceReference} onChange={(e) => setSourceReference(e.target.value)} placeholder="e.g. APP-2026-000123" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+
+            <div>
               <Label className="text-xs">Channel</Label>
               <Select value={channel} onValueChange={setChannel}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
