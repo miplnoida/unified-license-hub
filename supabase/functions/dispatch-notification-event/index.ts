@@ -30,6 +30,41 @@ const corsHeaders = {
 
 type Rule = { type: string; [k: string]: any };
 
+// Severity / category / module classification — mirrors the SQL helpers
+// public.notification_severity_for / notification_category_for / notification_module_for
+export function classifySeverity(eventKey: string, type?: string | null): string {
+  const k = eventKey || "";
+  if (/(breach|revoked|suspended|failed|failure|critical|enforcement|system_health)/i.test(k)) return "critical";
+  if (/(escalat|overdue|rejected|adverse|warning|expiring|near_due|sla)/i.test(k)) return "high";
+  if (/(rfi|approval|assigned|submitted|resubmit|payment|due|reminder|comment|appeal)/i.test(k)) return "medium";
+  if (type === "error") return "critical";
+  if (type === "warning") return "high";
+  if (type === "success") return "low";
+  return "medium";
+}
+
+export function classifyCategory(eventKey: string, type?: string | null): string {
+  const k = eventKey || "";
+  if (/(rfi|approval|assigned|action_required|due|payment_required|resubmission|vote|acknowledg)/i.test(k)) return "action_required";
+  if (/(breach|escalat|overdue|alert|warning|expiring|near_due|sla|threshold|pattern)/i.test(k)) return "alert";
+  if (/(system|integration|scheduler|form_version|maintenance)/i.test(k)) return "system";
+  if (type === "error") return "alert";
+  return "info";
+}
+
+export function classifyModule(eventKey: string, entityType?: string | null): string {
+  const s = `${eventKey || ""}${entityType || ""}`;
+  if (/(licen|registration|appeal)/i.test(s)) return "licensing";
+  if (/(application|form|payment)/i.test(s)) return "applications";
+  if (/(fp_|fit_and_proper|fitandproper)/i.test(s)) return "fit_and_proper";
+  if (/(prudential|return|ratio|threshold)/i.test(s)) return "prudential";
+  if (/(complaint|conduct)/i.test(s)) return "conduct";
+  if (/(enforcement|inspection)/i.test(s)) return "enforcement";
+  if (/(report)/i.test(s)) return "reporting";
+  if (/(correspondence|thread|message)/i.test(s)) return "communications";
+  return "system";
+}
+
 export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
   return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
@@ -783,6 +818,11 @@ Deno.serve(async (req) => {
               entity_id: entity_id || null,
               channel: "in_app",
               delivery_status: "delivered",
+              event_key,
+              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
+              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
+              module: classifyModule(event_key, entity_type),
+              action_required: classifyCategory(event_key, dispatchCfg.cfg.notification_type) === "action_required",
             });
             if (error) throw error;
             await admin
@@ -837,6 +877,10 @@ Deno.serve(async (req) => {
               entity_id: entity_id || null,
               channel: "email",
               delivery_status: "queued",
+              event_key,
+              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
+              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
+              module: classifyModule(event_key, entity_type),
             });
             summary.sent++;
           }

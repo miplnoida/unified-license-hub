@@ -9048,6 +9048,7 @@ export type Database = {
           id: string
           quiet_hours_end: string | null
           quiet_hours_start: string | null
+          type_settings: Json
           updated_at: string
           user_id: string
         }
@@ -9061,6 +9062,7 @@ export type Database = {
           id?: string
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          type_settings?: Json
           updated_at?: string
           user_id: string
         }
@@ -9074,6 +9076,7 @@ export type Database = {
           id?: string
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          type_settings?: Json
           updated_at?: string
           user_id?: string
         }
@@ -9134,40 +9137,73 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_required: boolean
+          actioned_at: string | null
+          category: Database["public"]["Enums"]["notification_category"]
           channel: string
+          correlation_id: string | null
           created_at: string
           delivery_status: string
+          dismiss_note: string | null
+          dismissed_at: string | null
           entity_id: string | null
           entity_type: string | null
+          event_key: string | null
           id: string
           message: string
+          metadata: Json
+          module: string | null
           read: boolean
+          severity: Database["public"]["Enums"]["notification_severity"]
+          template_id: string | null
           title: string
           type: string
           user_id: string
         }
         Insert: {
+          action_required?: boolean
+          actioned_at?: string | null
+          category?: Database["public"]["Enums"]["notification_category"]
           channel?: string
+          correlation_id?: string | null
           created_at?: string
           delivery_status?: string
+          dismiss_note?: string | null
+          dismissed_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          event_key?: string | null
           id?: string
           message: string
+          metadata?: Json
+          module?: string | null
           read?: boolean
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          template_id?: string | null
           title: string
           type?: string
           user_id: string
         }
         Update: {
+          action_required?: boolean
+          actioned_at?: string | null
+          category?: Database["public"]["Enums"]["notification_category"]
           channel?: string
+          correlation_id?: string | null
           created_at?: string
           delivery_status?: string
+          dismiss_note?: string | null
+          dismissed_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          event_key?: string | null
           id?: string
           message?: string
+          metadata?: Json
+          module?: string | null
           read?: boolean
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          template_id?: string | null
           title?: string
           type?: string
           user_id?: string
@@ -17616,6 +17652,10 @@ export type Database = {
         Args: { _action: string; _details?: Json; _group_id: string }
         Returns: undefined
       }
+      log_notification_audit: {
+        Args: { _action: string; _metadata?: Json; _notification_ids: string[] }
+        Returns: undefined
+      }
       log_restricted_legal_note_denial: {
         Args: {
           _application_id: string
@@ -17696,9 +17736,37 @@ export type Database = {
       }
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      notification_category_for: {
+        Args: { _event_key: string; _type: string }
+        Returns: Database["public"]["Enums"]["notification_category"]
+      }
+      notification_counts: { Args: never; Returns: Json }
+      notification_dismiss: {
+        Args: { _ids: string[]; _note?: string }
+        Returns: number
+      }
+      notification_mark_actioned: {
+        Args: { _id: string; _target?: string }
+        Returns: undefined
+      }
+      notification_mark_all_read: {
+        Args: {
+          _category?: Database["public"]["Enums"]["notification_category"]
+        }
+        Returns: number
+      }
+      notification_mark_read: { Args: { _ids: string[] }; Returns: number }
+      notification_module_for: {
+        Args: { _entity_type: string; _event_key: string }
+        Returns: string
+      }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
+      }
+      notification_severity_for: {
+        Args: { _event_key: string; _type: string }
+        Returns: Database["public"]["Enums"]["notification_severity"]
       }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
@@ -18233,6 +18301,18 @@ export type Database = {
       }
       run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }
+      save_notification_preferences: {
+        Args: {
+          _categories?: Json
+          _channels?: Json
+          _digest_enabled?: boolean
+          _digest_time?: string
+          _digest_timezone?: string
+          _quiet_hours?: Json
+          _type_settings?: Json
+        }
+        Returns: undefined
+      }
       save_ppoc_mapping: {
         Args: {
           _licensee_id: string
@@ -18253,6 +18333,50 @@ export type Database = {
           status: string
           total_count: number
         }[]
+      }
+      search_notifications: {
+        Args: {
+          _category?: Database["public"]["Enums"]["notification_category"]
+          _from?: string
+          _include_dismissed?: boolean
+          _limit?: number
+          _module?: string
+          _offset?: number
+          _search?: string
+          _severity?: Database["public"]["Enums"]["notification_severity"]
+          _to?: string
+          _unread_only?: boolean
+        }
+        Returns: {
+          action_required: boolean
+          actioned_at: string | null
+          category: Database["public"]["Enums"]["notification_category"]
+          channel: string
+          correlation_id: string | null
+          created_at: string
+          delivery_status: string
+          dismiss_note: string | null
+          dismissed_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string | null
+          id: string
+          message: string
+          metadata: Json
+          module: string | null
+          read: boolean
+          severity: Database["public"]["Enums"]["notification_severity"]
+          template_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       seed_external_portal_defaults: {
         Args: {
@@ -18585,6 +18709,8 @@ export type Database = {
         | "LOGOUT"
       cutoff_unit_enum: "days" | "weeks" | "months"
       entity_access_type: "primary_user" | "employee" | "secondary_contact"
+      notification_category: "action_required" | "alert" | "system" | "info"
+      notification_severity: "critical" | "high" | "medium" | "low"
       notification_status_enum: "pending" | "sent" | "failed"
       ontime_status_enum: "ON_TIME" | "LATE"
       portal_area: "licensing" | "returns" | "complaints" | "fp_declarations"
@@ -18775,6 +18901,8 @@ export const Constants = {
       ],
       cutoff_unit_enum: ["days", "weeks", "months"],
       entity_access_type: ["primary_user", "employee", "secondary_contact"],
+      notification_category: ["action_required", "alert", "system", "info"],
+      notification_severity: ["critical", "high", "medium", "low"],
       notification_status_enum: ["pending", "sent", "failed"],
       ontime_status_enum: ["ON_TIME", "LATE"],
       portal_area: ["licensing", "returns", "complaints", "fp_declarations"],
