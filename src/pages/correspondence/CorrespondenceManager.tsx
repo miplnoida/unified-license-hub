@@ -4,6 +4,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card } from '@/components/ui/card';
 import { ThreadList } from '@/components/correspondence/ThreadList';
+import { IntakeForm } from '@/components/correspondence/IntakeForm';
+
 import { ThreadDetail } from '@/components/correspondence/ThreadDetail';
 import {
   useCorrespondenceThreads,
