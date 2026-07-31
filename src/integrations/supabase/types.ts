@@ -17608,6 +17608,10 @@ export type Database = {
         Args: { _action: string; _evidence_id: string; _reason?: string }
         Returns: undefined
       }
+      log_correspondence_export: {
+        Args: { _detail?: string; _thread_id: string }
+        Returns: undefined
+      }
       log_document_batch_action: {
         Args: { _action: string; _details?: Json; _group_id: string }
         Returns: undefined
