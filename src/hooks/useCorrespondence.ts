@@ -6,6 +6,28 @@ export type CorrespondenceStatus =
 export type CorrespondencePriority = 'low' | 'normal' | 'high' | 'urgent';
 export type CorrespondenceChannel = 'email' | 'letter' | 'portal' | 'fax' | 'sms';
 
+export type ThreadType =
+  | 'rfi_response' | 'general_correspondence' | 'enforcement_notice'
+  | 'condition_reminder' | 'supervisory_letter' | 'internal_discussion';
+export type ThreadState = 'open' | 'pending_response' | 'closed';
+export type MessageKind = 'system' | 'external_outbound' | 'external_inbound' | 'internal';
+export type DeliveryStatus = 'queued' | 'sent' | 'delivered' | 'opened' | 'bounced';
+
+export const THREAD_TYPE_LABELS: Record<ThreadType, string> = {
+  rfi_response: 'RFI Response',
+  general_correspondence: 'General Correspondence',
+  enforcement_notice: 'Enforcement Notice',
+  condition_reminder: 'Condition Reminder',
+  supervisory_letter: 'Supervisory Letter',
+  internal_discussion: 'Internal Discussion',
+};
+
+export const THREAD_STATE_LABELS: Record<ThreadState, string> = {
+  open: 'Open',
+  pending_response: 'Pending Response',
+  closed: 'Closed',
+};
+
 export interface CorrespondenceThread {
   id: string;
   reference: string;
@@ -32,6 +54,16 @@ export interface CorrespondenceThread {
   tags: string[];
   created_at: string;
   updated_at: string;
+  thread_type: ThreadType;
+  thread_state: ThreadState;
+  source_type: string | null;
+  source_id: string | null;
+  source_reference: string | null;
+  last_message_at: string | null;
+  pending_since: string | null;
+  response_due_at: string | null;
+  close_justification: string | null;
+  is_entity_facing: boolean;
 }
 
 export interface CorrespondenceMessage {
@@ -46,7 +78,24 @@ export interface CorrespondenceMessage {
   author_name: string | null;
   author_role: string | null;
   sent_at: string;
+  message_kind: MessageKind;
+  delivery_status: DeliveryStatus;
+  delivered_at: string | null;
+  opened_at: string | null;
+  bounce_reason: string | null;
+  is_draft: boolean;
 }
+
+export interface CorrespondenceParticipant {
+  id: string;
+  thread_id: string;
+  user_id: string | null;
+  party_type: string;
+  display_name: string;
+  party_role: string | null;
+  last_read_at: string | null;
+}
+
 
 export interface CorrespondenceAttachment {
   id: string;
