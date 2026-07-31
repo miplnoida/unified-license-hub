@@ -8852,21 +8852,32 @@ export type Database = {
           channel: string
           created_at: string
           dedupe_key: string
+          delivered_at: string | null
           entity_id: string | null
           entity_type: string | null
           error: string | null
+          error_details: Json | null
           event_key: string
+          failed_at: string | null
           id: string
           last_attempt_at: string | null
+          notification_id: string | null
           payload: Json | null
+          provider: string | null
           provider_message_id: string | null
+          queued_at: string | null
           recipient_email: string | null
+          recipient_phone: string | null
           recipient_user_id: string | null
           reminder_window: string | null
+          rendered_content: string | null
+          rendered_content_ref: string | null
           retry_count: number
           sent_at: string | null
           status: string
           subject: string | null
+          template_id: string | null
+          template_version: number | null
         }
         Insert: {
           acknowledged_at?: string | null
@@ -8874,21 +8885,32 @@ export type Database = {
           channel?: string
           created_at?: string
           dedupe_key: string
+          delivered_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error?: string | null
+          error_details?: Json | null
           event_key: string
+          failed_at?: string | null
           id?: string
           last_attempt_at?: string | null
+          notification_id?: string | null
           payload?: Json | null
+          provider?: string | null
           provider_message_id?: string | null
+          queued_at?: string | null
           recipient_email?: string | null
+          recipient_phone?: string | null
           recipient_user_id?: string | null
           reminder_window?: string | null
+          rendered_content?: string | null
+          rendered_content_ref?: string | null
           retry_count?: number
           sent_at?: string | null
           status?: string
           subject?: string | null
+          template_id?: string | null
+          template_version?: number | null
         }
         Update: {
           acknowledged_at?: string | null
@@ -8896,26 +8918,38 @@ export type Database = {
           channel?: string
           created_at?: string
           dedupe_key?: string
+          delivered_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           error?: string | null
+          error_details?: Json | null
           event_key?: string
+          failed_at?: string | null
           id?: string
           last_attempt_at?: string | null
+          notification_id?: string | null
           payload?: Json | null
+          provider?: string | null
           provider_message_id?: string | null
+          queued_at?: string | null
           recipient_email?: string | null
+          recipient_phone?: string | null
           recipient_user_id?: string | null
           reminder_window?: string | null
+          rendered_content?: string | null
+          rendered_content_ref?: string | null
           retry_count?: number
           sent_at?: string | null
           status?: string
           subject?: string | null
+          template_id?: string | null
+          template_version?: number | null
         }
         Relationships: []
       }
       notification_event_configs: {
         Row: {
+          allow_mute: boolean
           channels: string[]
           created_at: string
           dedupe_window_seconds: number
@@ -8928,10 +8962,13 @@ export type Database = {
           message_template: string
           notification_type: string
           recipient_rules: Json
+          severity: Database["public"]["Enums"]["notification_severity"] | null
+          system_required: boolean
           title_template: string
           updated_at: string
         }
         Insert: {
+          allow_mute?: boolean
           channels?: string[]
           created_at?: string
           dedupe_window_seconds?: number
@@ -8944,10 +8981,13 @@ export type Database = {
           message_template: string
           notification_type?: string
           recipient_rules?: Json
+          severity?: Database["public"]["Enums"]["notification_severity"] | null
+          system_required?: boolean
           title_template: string
           updated_at?: string
         }
         Update: {
+          allow_mute?: boolean
           channels?: string[]
           created_at?: string
           dedupe_window_seconds?: number
@@ -8960,6 +9000,8 @@ export type Database = {
           message_template?: string
           notification_type?: string
           recipient_rules?: Json
+          severity?: Database["public"]["Enums"]["notification_severity"] | null
+          system_required?: boolean
           title_template?: string
           updated_at?: string
         }
@@ -9135,27 +9177,86 @@ export type Database = {
           },
         ]
       }
+      notification_user_event_preferences: {
+        Row: {
+          created_at: string
+          digest_frequency: Database["public"]["Enums"]["notification_digest_frequency"]
+          effective_from: string
+          email_enabled: boolean
+          event_key: string
+          id: string
+          in_app_enabled: boolean
+          muted: boolean
+          sms_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          digest_frequency?: Database["public"]["Enums"]["notification_digest_frequency"]
+          effective_from?: string
+          email_enabled?: boolean
+          event_key: string
+          id?: string
+          in_app_enabled?: boolean
+          muted?: boolean
+          sms_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          digest_frequency?: Database["public"]["Enums"]["notification_digest_frequency"]
+          effective_from?: string
+          email_enabled?: boolean
+          event_key?: string
+          id?: string
+          in_app_enabled?: boolean
+          muted?: boolean
+          sms_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_required: boolean
           actioned_at: string | null
+          archived_at: string | null
           category: Database["public"]["Enums"]["notification_category"]
           channel: string
           correlation_id: string | null
           created_at: string
+          dedupe_key: string | null
           delivery_status: string
           dismiss_note: string | null
           dismissed_at: string | null
           entity_id: string | null
           entity_type: string | null
           event_key: string | null
+          expires_at: string | null
           id: string
           message: string
           metadata: Json
           module: string | null
+          preview: string | null
           read: boolean
+          read_at: string | null
+          recipient_group: string | null
+          recipient_role: string | null
+          rendered_content_ref: string | null
+          route_params: Json | null
           severity: Database["public"]["Enums"]["notification_severity"]
+          source_reference: string | null
+          source_route: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          system_required: boolean
           template_id: string | null
+          template_version: number | null
           title: string
           type: string
           user_id: string
@@ -9163,23 +9264,37 @@ export type Database = {
         Insert: {
           action_required?: boolean
           actioned_at?: string | null
+          archived_at?: string | null
           category?: Database["public"]["Enums"]["notification_category"]
           channel?: string
           correlation_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           delivery_status?: string
           dismiss_note?: string | null
           dismissed_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           event_key?: string | null
+          expires_at?: string | null
           id?: string
           message: string
           metadata?: Json
           module?: string | null
+          preview?: string | null
           read?: boolean
+          read_at?: string | null
+          recipient_group?: string | null
+          recipient_role?: string | null
+          rendered_content_ref?: string | null
+          route_params?: Json | null
           severity?: Database["public"]["Enums"]["notification_severity"]
+          source_reference?: string | null
+          source_route?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          system_required?: boolean
           template_id?: string | null
+          template_version?: number | null
           title: string
           type?: string
           user_id: string
@@ -9187,23 +9302,37 @@ export type Database = {
         Update: {
           action_required?: boolean
           actioned_at?: string | null
+          archived_at?: string | null
           category?: Database["public"]["Enums"]["notification_category"]
           channel?: string
           correlation_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           delivery_status?: string
           dismiss_note?: string | null
           dismissed_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
           event_key?: string | null
+          expires_at?: string | null
           id?: string
           message?: string
           metadata?: Json
           module?: string | null
+          preview?: string | null
           read?: boolean
+          read_at?: string | null
+          recipient_group?: string | null
+          recipient_role?: string | null
+          rendered_content_ref?: string | null
+          route_params?: Json | null
           severity?: Database["public"]["Enums"]["notification_severity"]
+          source_reference?: string | null
+          source_route?: string | null
+          status?: Database["public"]["Enums"]["notification_status"]
+          system_required?: boolean
           template_id?: string | null
+          template_version?: number | null
           title?: string
           type?: string
           user_id?: string
@@ -17736,6 +17865,7 @@ export type Database = {
       }
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      notification_archive: { Args: { _ids: string[] }; Returns: number }
       notification_category_for: {
         Args: { _event_key: string; _type: string }
         Returns: Database["public"]["Enums"]["notification_category"]
@@ -17744,6 +17874,10 @@ export type Database = {
       notification_dismiss: {
         Args: { _ids: string[]; _note?: string }
         Returns: number
+      }
+      notification_effective_preference: {
+        Args: { _event_key: string; _user_id: string }
+        Returns: Json
       }
       notification_mark_actioned: {
         Args: { _id: string; _target?: string }
@@ -17763,6 +17897,29 @@ export type Database = {
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
+      }
+      notification_record_delivery: {
+        Args: {
+          _channel: string
+          _dedupe_key?: string
+          _entity_id?: string
+          _entity_type?: string
+          _error_details?: Json
+          _event_key: string
+          _notification_id?: string
+          _payload?: Json
+          _provider?: string
+          _provider_message_id?: string
+          _recipient_email?: string
+          _recipient_phone?: string
+          _recipient_user_id?: string
+          _rendered_content?: string
+          _status: string
+          _subject?: string
+          _template_id?: string
+          _template_version?: number
+        }
+        Returns: string
       }
       notification_severity_for: {
         Args: { _event_key: string; _type: string }
@@ -18301,6 +18458,37 @@ export type Database = {
       }
       run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }
+      save_notification_event_preference: {
+        Args: {
+          _digest?: Database["public"]["Enums"]["notification_digest_frequency"]
+          _effective_from?: string
+          _email?: boolean
+          _event_key: string
+          _in_app?: boolean
+          _muted?: boolean
+          _sms?: boolean
+        }
+        Returns: {
+          created_at: string
+          digest_frequency: Database["public"]["Enums"]["notification_digest_frequency"]
+          effective_from: string
+          email_enabled: boolean
+          event_key: string
+          id: string
+          in_app_enabled: boolean
+          muted: boolean
+          sms_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_user_event_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_notification_preferences: {
         Args: {
           _categories?: Json
@@ -18350,23 +18538,37 @@ export type Database = {
         Returns: {
           action_required: boolean
           actioned_at: string | null
+          archived_at: string | null
           category: Database["public"]["Enums"]["notification_category"]
           channel: string
           correlation_id: string | null
           created_at: string
+          dedupe_key: string | null
           delivery_status: string
           dismiss_note: string | null
           dismissed_at: string | null
           entity_id: string | null
           entity_type: string | null
           event_key: string | null
+          expires_at: string | null
           id: string
           message: string
           metadata: Json
           module: string | null
+          preview: string | null
           read: boolean
+          read_at: string | null
+          recipient_group: string | null
+          recipient_role: string | null
+          rendered_content_ref: string | null
+          route_params: Json | null
           severity: Database["public"]["Enums"]["notification_severity"]
+          source_reference: string | null
+          source_route: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          system_required: boolean
           template_id: string | null
+          template_version: number | null
           title: string
           type: string
           user_id: string
@@ -18710,7 +18912,14 @@ export type Database = {
       cutoff_unit_enum: "days" | "weeks" | "months"
       entity_access_type: "primary_user" | "employee" | "secondary_contact"
       notification_category: "action_required" | "alert" | "system" | "info"
+      notification_digest_frequency: "immediate" | "hourly" | "daily"
       notification_severity: "critical" | "high" | "medium" | "low"
+      notification_status:
+        | "unread"
+        | "read"
+        | "actioned"
+        | "dismissed"
+        | "archived"
       notification_status_enum: "pending" | "sent" | "failed"
       ontime_status_enum: "ON_TIME" | "LATE"
       portal_area: "licensing" | "returns" | "complaints" | "fp_declarations"
@@ -18902,7 +19111,15 @@ export const Constants = {
       cutoff_unit_enum: ["days", "weeks", "months"],
       entity_access_type: ["primary_user", "employee", "secondary_contact"],
       notification_category: ["action_required", "alert", "system", "info"],
+      notification_digest_frequency: ["immediate", "hourly", "daily"],
       notification_severity: ["critical", "high", "medium", "low"],
+      notification_status: [
+        "unread",
+        "read",
+        "actioned",
+        "dismissed",
+        "archived",
+      ],
       notification_status_enum: ["pending", "sent", "failed"],
       ontime_status_enum: ["ON_TIME", "LATE"],
       portal_area: ["licensing", "returns", "complaints", "fp_declarations"],

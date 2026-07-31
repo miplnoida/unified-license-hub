@@ -80,6 +80,15 @@ Deno.serve(async (req) => {
     const subject = stripUnresolvedTemplateTokens(row.subject || render(cfg?.email_subject_template, vars) || render(cfg?.title_template, vars) || row.event_key);
     const body = stripUnresolvedTemplateTokens(render(cfg?.email_body_template, vars) || render(cfg?.message_template, vars) || "");
 
+    // Immutable audit trail for the retry itself (admin-triggered vs sweep).
+    const adminTriggered = Boolean((await req.headers.get("x-triggered-by")) === "admin");
+    await admin.rpc("log_notification_audit", {
+      _action: adminTriggered ? "NOTIFICATION_RESENT_BY_ADMIN" : "NOTIFICATION_RETRIED",
+      _notification_ids: row.notification_id ? [row.notification_id] : [],
+      _metadata: { dispatch_log_id: log_id, event_key: row.event_key, channel: row.channel },
+    });
+
+
     if (row.channel === "email") {
       const to = row.recipient_email;
       if (!to) {
@@ -105,31 +114,45 @@ Deno.serve(async (req) => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else if (row.channel === "in_app" && row.recipient_user_id) {
-      const { error: insErr } = await admin.from("notifications").insert({
+      const message = render(cfg?.message_template, vars) || "";
+      const { data: created, error: insErr } = await admin.from("notifications").insert({
         user_id: row.recipient_user_id,
         title: render(cfg?.title_template, vars) || row.event_key,
-        message: render(cfg?.message_template, vars) || "",
+        message,
+        preview: message.replace(/\s+/g, " ").trim().slice(0, 160),
         type: cfg?.notification_type || "info",
         entity_type: row.entity_type,
         entity_id: row.entity_id,
+        event_key: row.event_key,
         channel: "in_app",
+        status: "unread",
         delivery_status: "delivered",
-      });
+      }).select("id").maybeSingle();
       if (insErr) {
         await admin.from("notification_dispatch_log").update({
-          status: "failed", error: insErr.message.slice(0, 500), last_attempt_at: new Date().toISOString(),
+          status: "failed",
+          error: insErr.message.slice(0, 500),
+          error_details: { message: insErr.message.slice(0, 500), channel: "in_app" },
+          failed_at: new Date().toISOString(),
+          last_attempt_at: new Date().toISOString(),
         }).eq("id", log_id);
         return new Response(JSON.stringify({ ok: false, error: insErr.message }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       await admin.from("notification_dispatch_log").update({
-        status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString(), error: null,
+        status: "delivered",
+        notification_id: created?.id || row.notification_id || null,
+        sent_at: new Date().toISOString(),
+        delivered_at: new Date().toISOString(),
+        last_attempt_at: new Date().toISOString(),
+        error: null,
       }).eq("id", log_id);
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     return new Response(JSON.stringify({ ok: false, error: "unsupported channel" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -97,7 +97,13 @@ serve(async (req) => {
         if (logId) {
           await supabase
             .from("notification_dispatch_log")
-            .update({ status: "failed", error: "smtp_not_configured", last_attempt_at: new Date().toISOString() })
+            .update({
+              status: "failed",
+              error: "smtp_not_configured",
+              error_details: { reason: "smtp_not_configured", channel: "email" },
+              failed_at: new Date().toISOString(),
+              last_attempt_at: new Date().toISOString(),
+            })
             .eq("id", logId);
         }
         console.warn("send-notification: SMTP not configured; email skipped", body.to);
@@ -112,9 +118,17 @@ serve(async (req) => {
         if (logId) {
           await supabase
             .from("notification_dispatch_log")
-            .update({ status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString(), error: null })
+            .update({
+              status: "sent",
+              provider: "smtp",
+              sent_at: new Date().toISOString(),
+              last_attempt_at: new Date().toISOString(),
+              error: null,
+              error_details: null,
+            })
             .eq("id", logId);
         }
+
         await logIntegration(supabase, {
           direction: "outbound",
           integrationKey: "smtp.send-notification",
@@ -140,12 +154,15 @@ serve(async (req) => {
           await supabase
             .from("notification_dispatch_log")
             .update({
-              status: "failed",
+              status: /bounce|no such user|mailbox unavailable|recipient rejected/i.test(errMsg) ? "bounced" : "failed",
               error: errMsg,
+              error_details: { message: errMsg, channel: "email", provider: "smtp" },
+              failed_at: new Date().toISOString(),
               last_attempt_at: new Date().toISOString(),
               retry_count: (row?.retry_count ?? 0) + 1,
             })
             .eq("id", logId);
+
         }
         await logIntegration(supabase, {
           direction: "outbound",

@@ -65,6 +65,75 @@ export function classifyModule(eventKey: string, entityType?: string | null): st
   return "system";
 }
 
+// Short preview stored alongside the full message (NOT-CEN-001).
+export function buildPreview(message: string | null | undefined, limit = 160): string {
+  const flat = String(message || "").replace(/\s+/g, " ").trim();
+  return flat.length <= limit ? flat : `${flat.slice(0, limit - 1)}…`;
+}
+
+// Safe deep-link metadata. Only a route hint is stored — the destination route
+// keeps enforcing its own RBAC/RLS, so this never grants access by itself.
+export function buildSourceRoute(entityType?: string | null, entityId?: string | null): string | null {
+  if (!entityType || !entityId) return null;
+  const map: Record<string, string> = {
+    application: "/applications",
+    registration: "/admin/registration-review",
+    return: "/returns",
+    returns_filed: "/returns",
+    complaint: "/complaints",
+    license: "/licenses",
+    license_appeal: "/appeals",
+    licensee: "/admin/licensees",
+    payment: "/payments",
+    correspondence_thread: "/correspondence/manager",
+    report: "/reports",
+    inspection: "/inspections",
+  };
+  const base = map[entityType];
+  return base ? `${base}/${entityId}` : null;
+}
+
+type EffectivePreference = {
+  in_app: boolean;
+  email: boolean;
+  sms: boolean;
+  digest: string;
+  muted: boolean;
+  severity: string;
+  system_required: boolean;
+};
+
+// Resolves per-event preferences through the DB resolver, which already enforces
+// the mandatory-notification guarantees (critical always in-app, critical/high
+// immediate, system-required cannot be disabled).
+async function effectivePreference(
+  admin: SupabaseClient,
+  userId: string,
+  eventKey: string,
+): Promise<EffectivePreference | null> {
+  try {
+    const { data, error } = await admin.rpc("notification_effective_preference", {
+      _user_id: userId,
+      _event_key: eventKey,
+    });
+    if (error) throw error;
+    return (data || null) as EffectivePreference | null;
+  } catch (e: any) {
+    console.error("effectivePreference failed (fail-open)", eventKey, e?.message || e);
+    return null;
+  }
+}
+
+export function channelAllowed(pref: EffectivePreference | null, channel: string): boolean {
+  if (!pref) return true; // fail open: never silently drop regulatory notifications
+  if (pref.muted && pref.severity === "low" && !pref.system_required) return false;
+  if (channel === "in_app") return pref.in_app !== false;
+  if (channel === "email") return pref.email !== false;
+  if (channel === "sms") return pref.sms === true;
+  return true;
+}
+
+
 export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
   return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
@@ -775,7 +844,16 @@ Deno.serve(async (req) => {
         supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
       });
 
+      const severity = classifySeverity(event_key, dispatchCfg.cfg.notification_type);
+      const category = classifyCategory(event_key, dispatchCfg.cfg.notification_type);
+      const module = classifyModule(event_key, entity_type);
+      const sourceReference = [vars.application_number, vars.registration_reference, vars.unique_id, vars.reference, vars.complaint_reference]
+        .find((v) => typeof v === "string" && v.length > 0) as string | undefined;
+      const sourceRoute = buildSourceRoute(entity_type, entity_id);
+
       for (const userId of recipients) {
+        const isDirectEmail = userId.startsWith("email:");
+        const pref = isDirectEmail ? null : await effectivePreference(admin, userId, dispatchCfg.eventKey);
         for (const channel of channels) {
         const dedupeKey = [event_key, entity_type || "-", entity_id || "-", userId, channel, dedupeBucket].join("|");
         const { data: insertedRow, error: dedupeErr } = await admin
@@ -784,12 +862,16 @@ Deno.serve(async (req) => {
             event_key: dispatchCfg.eventKey,
             entity_type: entity_type || null,
             entity_id: entity_id || null,
-            recipient_user_id: userId.startsWith("email:") ? null : userId,
+            recipient_user_id: isDirectEmail ? null : userId,
             channel,
             dedupe_key: dedupeKey,
-            status: "pending",
+            status: "queued",
+            queued_at: new Date().toISOString(),
+            provider: channel === "email" ? "smtp" : "in_app",
             reminder_window: reminder_window || null,
             subject: channel === "email" ? emailSubject : title,
+            rendered_content: channel === "email" ? emailBody : message,
+            template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
             payload: { vars, event_key: dispatchCfg.eventKey, entity_type, entity_id },
           })
           .select("id")
@@ -799,9 +881,25 @@ Deno.serve(async (req) => {
           continue;
         }
         const logId = insertedRow?.id;
+
+        // Preference gate — mandatory notifications are already forced on by the resolver.
+        if (!channelAllowed(pref, channel)) {
+          summary.skipped++;
+          await admin
+            .from("notification_dispatch_log")
+            .update({
+              status: "skipped",
+              error: "recipient_preference_opted_out",
+              error_details: { reason: "recipient_preference_opted_out", channel, preference: pref },
+              last_attempt_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+          continue;
+        }
+
         try {
           if (channel === "in_app") {
-            if (userId.startsWith("email:")) {
+            if (isDirectEmail) {
               summary.skipped++;
               await admin
                 .from("notification_dispatch_log")
@@ -809,42 +907,63 @@ Deno.serve(async (req) => {
                 .eq("id", logId);
               continue;
             }
-            const { error } = await admin.from("notifications").insert({
+            const { data: createdRow, error } = await admin.from("notifications").insert({
               user_id: userId,
               title,
               message,
+              preview: buildPreview(message),
               type: dispatchCfg.cfg.notification_type || "info",
               entity_type: entity_type || null,
               entity_id: entity_id || null,
+              source_reference: sourceReference || null,
+              source_route: sourceRoute,
               channel: "in_app",
+              status: "unread",
               delivery_status: "delivered",
               event_key,
-              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
-              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
-              module: classifyModule(event_key, entity_type),
-              action_required: classifyCategory(event_key, dispatchCfg.cfg.notification_type) === "action_required",
-            });
+              dedupe_key: `${dedupeKey}|inapp`,
+              severity,
+              category,
+              module,
+              system_required: pref?.system_required === true,
+              action_required: category === "action_required",
+              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              metadata: { event_key: dispatchCfg.eventKey, reminder_window: reminder_window || null },
+            }).select("id").maybeSingle();
             if (error) throw error;
             await admin
               .from("notification_dispatch_log")
-              .update({ status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString() })
+              .update({
+                status: "delivered",
+                notification_id: createdRow?.id || null,
+                sent_at: new Date().toISOString(),
+                delivered_at: new Date().toISOString(),
+                last_attempt_at: new Date().toISOString(),
+              })
               .eq("id", logId);
+            if (createdRow?.id) {
+              await admin.rpc("log_notification_audit", {
+                _action: "NOTIFICATION_CREATED",
+                _notification_ids: [createdRow.id],
+                _metadata: { event_key: dispatchCfg.eventKey, channel: "in_app", severity, category },
+              });
+            }
             summary.sent++;
           } else if (channel === "email") {
-            const email = userId.startsWith("email:")
+            const email = isDirectEmail
               ? userId.slice("email:".length)
               : await resolveRecipientEmail(admin, userId);
             if (!email) {
               summary.skipped++;
               await admin
                 .from("notification_dispatch_log")
-                .update({ status: "skipped", error: "no_email", last_attempt_at: new Date().toISOString() })
+                .update({ status: "skipped", error: "no_email", error_details: { reason: "no_email" }, last_attempt_at: new Date().toISOString() })
                 .eq("id", logId);
               continue;
             }
             await admin
               .from("notification_dispatch_log")
-              .update({ recipient_email: email })
+              .update({ recipient_email: email, status: "processing" })
               .eq("id", logId);
             // send-notification updates the log row (sent_at / error / retry_count) when dispatch_log_id is supplied.
             try {
@@ -862,28 +981,51 @@ Deno.serve(async (req) => {
               console.error("send-notification email failed", e?.message || e);
               await admin
                 .from("notification_dispatch_log")
-                .update({ status: "failed", error: String(e?.message || e).slice(0, 500), last_attempt_at: new Date().toISOString() })
+                .update({
+                  status: "failed",
+                  error: String(e?.message || e).slice(0, 500),
+                  error_details: { message: String(e?.message || e).slice(0, 500), channel: "email" },
+                  failed_at: new Date().toISOString(),
+                  last_attempt_at: new Date().toISOString(),
+                })
                 .eq("id", logId);
               summary.failed++;
               continue;
             }
             // Mirror to in-app inbox so users see the email even if SMTP fails silently
-            await admin.from("notifications").insert({
-              user_id: userId.startsWith("email:") ? null : userId,
+            const { data: emailRow } = await admin.from("notifications").insert({
+              user_id: isDirectEmail ? null : userId,
               title: emailSubject,
               message: emailBody,
+              preview: buildPreview(emailBody),
               type: dispatchCfg.cfg.notification_type || "info",
               entity_type: entity_type || null,
               entity_id: entity_id || null,
+              source_reference: sourceReference || null,
+              source_route: sourceRoute,
               channel: "email",
+              status: "unread",
               delivery_status: "queued",
               event_key,
-              severity: classifySeverity(event_key, dispatchCfg.cfg.notification_type),
-              category: classifyCategory(event_key, dispatchCfg.cfg.notification_type),
-              module: classifyModule(event_key, entity_type),
-            });
+              dedupe_key: `${dedupeKey}|email`,
+              severity,
+              category,
+              module,
+              system_required: pref?.system_required === true,
+              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              metadata: { event_key: dispatchCfg.eventKey, recipient_email: email },
+            }).select("id").maybeSingle();
+            if (emailRow?.id) {
+              await admin.from("notification_dispatch_log").update({ notification_id: emailRow.id }).eq("id", logId);
+              await admin.rpc("log_notification_audit", {
+                _action: "NOTIFICATION_CREATED",
+                _notification_ids: [emailRow.id],
+                _metadata: { event_key: dispatchCfg.eventKey, channel: "email", severity, category },
+              });
+            }
             summary.sent++;
           }
+
         } catch (e: any) {
           console.error("dispatch failure", event_key, userId, channel, e?.message || e);
           await admin

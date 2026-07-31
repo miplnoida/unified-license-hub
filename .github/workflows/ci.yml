@@ -116,7 +116,24 @@ jobs:
         run: supabase start
       - name: Reset database (applies all migrations)
         run: supabase db reset --no-seed
-      - name: Run pgTAP suite (complaints + RBAC)
+      - name: Assert required notification pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/notifications/01_model.sql \
+            supabase/tests/notifications/02_rls.sql \
+            supabase/tests/notifications/03_preferences.sql \
+            supabase/tests/notifications/04_delivery_audit.sql \
+            supabase/tests/notifications/05_read_audit.sql; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required notification pgTAP file missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications)
         run: supabase test db
 
       - name: Assert required edge-function tests exist
