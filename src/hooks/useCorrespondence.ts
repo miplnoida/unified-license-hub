@@ -6,6 +6,28 @@ export type CorrespondenceStatus =
 export type CorrespondencePriority = 'low' | 'normal' | 'high' | 'urgent';
 export type CorrespondenceChannel = 'email' | 'letter' | 'portal' | 'fax' | 'sms';
 
+export type ThreadType =
+  | 'rfi_response' | 'general_correspondence' | 'enforcement_notice'
+  | 'condition_reminder' | 'supervisory_letter' | 'internal_discussion';
+export type ThreadState = 'open' | 'pending_response' | 'closed';
+export type MessageKind = 'system' | 'external_outbound' | 'external_inbound' | 'internal';
+export type DeliveryStatus = 'queued' | 'sent' | 'delivered' | 'opened' | 'bounced';
+
+export const THREAD_TYPE_LABELS: Record<ThreadType, string> = {
+  rfi_response: 'RFI Response',
+  general_correspondence: 'General Correspondence',
+  enforcement_notice: 'Enforcement Notice',
+  condition_reminder: 'Condition Reminder',
+  supervisory_letter: 'Supervisory Letter',
+  internal_discussion: 'Internal Discussion',
+};
+
+export const THREAD_STATE_LABELS: Record<ThreadState, string> = {
+  open: 'Open',
+  pending_response: 'Pending Response',
+  closed: 'Closed',
+};
+
 export interface CorrespondenceThread {
   id: string;
   reference: string;
@@ -32,6 +54,16 @@ export interface CorrespondenceThread {
   tags: string[];
   created_at: string;
   updated_at: string;
+  thread_type: ThreadType;
+  thread_state: ThreadState;
+  source_type: string | null;
+  source_id: string | null;
+  source_reference: string | null;
+  last_message_at: string | null;
+  pending_since: string | null;
+  response_due_at: string | null;
+  close_justification: string | null;
+  is_entity_facing: boolean;
 }
 
 export interface CorrespondenceMessage {
@@ -46,7 +78,24 @@ export interface CorrespondenceMessage {
   author_name: string | null;
   author_role: string | null;
   sent_at: string;
+  message_kind: MessageKind;
+  delivery_status: DeliveryStatus;
+  delivered_at: string | null;
+  opened_at: string | null;
+  bounce_reason: string | null;
+  is_draft: boolean;
 }
+
+export interface CorrespondenceParticipant {
+  id: string;
+  thread_id: string;
+  user_id: string | null;
+  party_type: string;
+  display_name: string;
+  party_role: string | null;
+  last_read_at: string | null;
+}
+
 
 export interface CorrespondenceAttachment {
   id: string;
@@ -77,6 +126,10 @@ export interface ThreadFilters {
   channel?: string;
   openOnly?: boolean;
   licenseeOnly?: boolean;
+  threadType?: string;
+  threadState?: string;
+  sourceType?: string;
+  sourceId?: string;
 }
 
 const TABLE = 'correspondence_threads';
@@ -89,6 +142,10 @@ export function useCorrespondenceThreads(filters: ThreadFilters = {}) {
       if (filters.category && filters.category !== 'all') q = q.eq('category', filters.category);
       if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
       if (filters.channel && filters.channel !== 'all') q = q.eq('channel', filters.channel);
+      if (filters.threadType && filters.threadType !== 'all') q = q.eq('thread_type', filters.threadType);
+      if (filters.threadState && filters.threadState !== 'all') q = q.eq('thread_state', filters.threadState);
+      if (filters.sourceType) q = q.eq('source_type', filters.sourceType);
+      if (filters.sourceId) q = q.eq('source_id', filters.sourceId);
       if (filters.openOnly) q = q.not('status', 'in', '("closed","responded")');
       const term = (filters.query ?? '').trim();
       if (term) {
@@ -107,11 +164,12 @@ export function useCorrespondenceThread(id?: string) {
     enabled: !!id,
     queryKey: ['correspondence-thread', id],
     queryFn: async () => {
-      const [thread, messages, attachments, events] = await Promise.all([
+      const [thread, messages, attachments, events, participants] = await Promise.all([
         (supabase as any).from(TABLE).select('*').eq('id', id).maybeSingle(),
         (supabase as any).from('correspondence_messages').select('*').eq('thread_id', id).order('sent_at', { ascending: true }),
         (supabase as any).from('correspondence_attachments').select('*').eq('thread_id', id).order('created_at', { ascending: false }),
         (supabase as any).from('correspondence_events').select('*').eq('thread_id', id).order('created_at', { ascending: false }),
+        (supabase as any).from('correspondence_thread_participants').select('*').eq('thread_id', id).order('created_at', { ascending: true }),
       ]);
       if (thread.error) throw thread.error;
       if (!thread.data) throw new Error('Correspondence not found or not accessible.');
@@ -120,10 +178,12 @@ export function useCorrespondenceThread(id?: string) {
         messages: (messages.data ?? []) as CorrespondenceMessage[],
         attachments: (attachments.data ?? []) as CorrespondenceAttachment[],
         events: (events.data ?? []) as CorrespondenceEvent[],
+        participants: (participants.data ?? []) as CorrespondenceParticipant[],
       };
     },
   });
 }
+
 
 function useInvalidate(id?: string) {
   const qc = useQueryClient();
@@ -145,6 +205,12 @@ export interface CreateThreadInput {
   licensee_id?: string | null;
   tags?: string[];
   body?: string;
+  thread_type?: ThreadType;
+  source_type?: string | null;
+  source_id?: string | null;
+  source_reference?: string | null;
+  is_entity_facing?: boolean;
+  participants?: Array<{ user_id?: string | null; party_type?: string; display_name: string; party_role?: string }>;
 }
 
 export function useCreateCorrespondenceThread() {
@@ -163,9 +229,52 @@ export function useCreateCorrespondenceThread() {
         _licensee_id: input.licensee_id ?? null,
         _tags: input.tags ?? [],
         _body: input.body ?? null,
+        _thread_type: input.thread_type ?? 'general_correspondence',
+        _source_type: input.source_type ?? null,
+        _source_id: input.source_id ?? null,
+        _source_reference: input.source_reference ?? null,
+        _is_entity_facing: input.is_entity_facing ?? true,
+        _participants: input.participants ?? [],
       });
       if (error) throw error;
       return data as string;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetThreadState(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; state: ThreadState; justification?: string }) => {
+      const { error } = await (supabase as any).rpc('set_correspondence_thread_state', {
+        _thread_id: input.thread_id, _state: input.state, _justification: input.justification ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useMarkThreadRead(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).rpc('mark_correspondence_thread_read', { _thread_id: id });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRecordDelivery(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { message_id: string; status: DeliveryStatus; reason?: string }) => {
+      const { error } = await (supabase as any).rpc('record_correspondence_delivery', {
+        _message_id: input.message_id, _status: input.status, _reason: input.reason ?? null,
+      });
+      if (error) throw error;
     },
     onSuccess: invalidate,
   });
@@ -175,7 +284,8 @@ export function usePostCorrespondenceMessage(threadId?: string) {
   const invalidate = useInvalidate(threadId);
   return useMutation({
     mutationFn: async (input: {
-      thread_id: string; body: string; is_internal_note?: boolean; channel?: string; subject?: string; dispatch_id?: string | null;
+      thread_id: string; body: string; is_internal_note?: boolean; channel?: string; subject?: string;
+      dispatch_id?: string | null; is_draft?: boolean;
     }) => {
       const { data, error } = await (supabase as any).rpc('post_correspondence_message', {
         _thread_id: input.thread_id,
@@ -184,10 +294,12 @@ export function usePostCorrespondenceMessage(threadId?: string) {
         _channel: input.channel ?? 'portal',
         _subject: input.subject ?? null,
         _dispatch_id: input.dispatch_id ?? null,
+        _is_draft: input.is_draft ?? false,
       });
       if (error) throw error;
       return data as string;
     },
+
     onSuccess: invalidate,
   });
 }

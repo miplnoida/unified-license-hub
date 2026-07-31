@@ -86,6 +86,8 @@ const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
+const CorrespondenceManager = lazy(() => import('@/pages/correspondence/CorrespondenceManager'));
+
 const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
@@ -266,7 +268,9 @@ export const dashboardRoutes = (
     <Route path="/fpa/monitoring" element={<M module="fit_and_proper"><FpaMonitoring /></M>} />
     <Route path="/correspondence" element={<M module="settings"><CorrespondenceDashboard /></M>} />
     <Route path="/correspondence/dashboard" element={<M module="settings"><CorrespondenceDashboard /></M>} />
+    <Route path="/correspondence/manager" element={<M module="settings"><CorrespondenceManager /></M>} />
     <Route path="/correspondence/inbox" element={<M module="settings"><CorrespondenceInbox /></M>} />
+
     <Route path="/correspondence/records" element={<M module="settings"><CorrespondenceRecords /></M>} />
     <Route path="/correspondence/:id" element={<M module="settings"><CorrespondenceDetail /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />

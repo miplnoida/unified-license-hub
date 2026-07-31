@@ -11,7 +11,13 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CATEGORIES } from '@/pages/correspondence/seed';
-import { useCreateCorrespondenceThread, uploadCorrespondenceFile } from '@/hooks/useCorrespondence';
+import {
+  useCreateCorrespondenceThread,
+  uploadCorrespondenceFile,
+  THREAD_TYPE_LABELS,
+  type ThreadType,
+} from '@/hooks/useCorrespondence';
+
 
 export function IntakeForm() {
   const [open, setOpen] = useState(false);
@@ -28,10 +34,14 @@ export function IntakeForm() {
   const [summary, setSummary] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
+  const [threadType, setThreadType] = useState<ThreadType>('general_correspondence');
+  const [sourceType, setSourceType] = useState('none');
+  const [sourceReference, setSourceReference] = useState('');
   const [licenseeId, setLicenseeId] = useState('none');
   const [licenseeQuery, setLicenseeQuery] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+
 
   const { data: licensees = [] } = useQuery({
     queryKey: ['correspondence-licensee-search', licenseeQuery],
@@ -49,11 +59,16 @@ export function IntakeForm() {
     setChannel('email'); setCategory('General'); setPriority('normal');
     setSenderName(''); setSenderOrg(''); setSenderEmail(''); setSubject('');
     setSummary(''); setBody(''); setTags(''); setLicenseeId('none'); setFiles([]);
+    setThreadType('general_correspondence'); setSourceType('none'); setSourceReference('');
   };
 
   const submit = async () => {
     if (!subject.trim() || !senderName.trim()) {
       toast.error('Sender name and subject are required.');
+      return;
+    }
+    if (threadType !== 'general_correspondence' && threadType !== 'internal_discussion' && !sourceReference.trim()) {
+      toast.error('This thread type must be linked to a case reference.');
       return;
     }
     setSaving(true);
@@ -70,7 +85,12 @@ export function IntakeForm() {
         licensee_id: licenseeId === 'none' ? null : licenseeId,
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
         body: body.trim() || undefined,
+        thread_type: threadType,
+        source_type: sourceType === 'none' ? null : sourceType,
+        source_reference: sourceReference.trim() || null,
+        is_entity_facing: threadType !== 'internal_discussion',
       });
+
       for (const f of files) {
         await uploadCorrespondenceFile(id, f);
       }
@@ -94,6 +114,38 @@ export function IntakeForm() {
         <DialogHeader><DialogTitle>Capture incoming correspondence</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Thread type</Label>
+              <Select value={threadType} onValueChange={(v) => setThreadType(v as ThreadType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(THREAD_TYPE_LABELS).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>{l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Linked case type</Label>
+              <Select value={sourceType} onValueChange={setSourceType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not linked</SelectItem>
+                  <SelectItem value="application">Application</SelectItem>
+                  <SelectItem value="complaint">Complaint</SelectItem>
+                  <SelectItem value="return">Return</SelectItem>
+                  <SelectItem value="license">Licence</SelectItem>
+                  <SelectItem value="enforcement">Enforcement</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Case reference</Label>
+              <Input value={sourceReference} onChange={(e) => setSourceReference(e.target.value)} placeholder="e.g. APP-2026-000123" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+
             <div>
               <Label className="text-xs">Channel</Label>
               <Select value={channel} onValueChange={setChannel}>

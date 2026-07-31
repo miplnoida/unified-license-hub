@@ -1,45 +1,67 @@
-## Goal
+## What the FRD asks for (NOT-THR-001) vs what exists
 
-Turn the correspondence prototype into a working, auditable two-way thread manager. Current state (verified): `src/pages/correspondence/*` all read from `seed.ts` mock arrays — nothing is persisted. The only real tables are `correspondence_templates` and `correspondence_dispatches` (outbound send log, used by `SendCorrespondenceDialog` + the `send-correspondence` edge function). There is no thread/message store.
+I re-read section 10.2 of the FRD and inspected the current module (`correspondence_threads/messages/attachments/events` tables, `useCorrespondence.ts`, `src/pages/correspondence/*`).
 
-Screen structure stays exactly as-is (Dashboard / Inbox / Records / Detail / Routing Rules) — only the data source changes.
+What exists today is a **mail-intake case tracker**: a thread row with sender details, a received→classified→assigned→in_review→approved→responded→closed lifecycle, messages, versioned attachments, an audit trail, routing rules and a licensee portal view. It persists correctly, but it is not the FRD screen.
 
-## What gets built
+Confirmed gaps against the spec:
 
-**1. Database (new tables, RLS + GRANTs)**
-- `correspondence_threads` — reference (`COR-YYYY-NNNNNN`), subject, category, channel, direction, priority, status (received → classified → assigned → in_review → approved → responded → closed), sender name/org, `licensee_id`, `regulator_id`, assigned unit/officer, `received_at`, `due_at`, `sla_days`, retention years/expiry, tags, summary.
-- `correspondence_messages` — thread_id, direction (inbound/outbound), body, author_id, author_role, channel, sent_at, `is_internal_note` flag, `dispatch_id` link to `correspondence_dispatches` when emailed.
-- `correspondence_attachments` — thread/message link, storage path, file name, size, version number, uploaded_by (versioning by file name, matching the existing VersionHistoryList UI).
-- `correspondence_events` — audit trail rows (actor, role, action, detail, at) written by triggers/RPCs for create, classify, assign, review, approve, respond, close.
-- `correspondence_routing_rules` — persists the Routing Rules admin screen (match type/value, unit, officer, priority, manual override, order, active).
-- Private storage bucket `correspondence` with staff + owning-licensee policies.
+| FRD requirement | Current state |
+|---|---|
+| Thread type (RFI Response / General Correspondence / Enforcement Notice / Condition Reminder / Supervisory Letter / Internal Discussion) | No `thread_type` column |
+| Linked case (required for regulatory comms) + entry from any case workbench "Communications" tab | No case link columns at all; only `licensee_id` |
+| Left thread list + right thread detail + bottom composer (master/detail) | Separate Inbox table and full-page detail |
+| Parties/participants, unread badge, read receipts | No participants table, no read state |
+| Thread status Open / Pending Response (SLA timer) / Closed | Different 7-state intake lifecycle; no Pending Response |
+| Message colour coding: system grey, outbound blue, inbound green, internal purple + "not visible to entity" watermark | Only inbound/outbound/internal-note styling |
+| Composer: rich text, template selector, preview before send, Save Draft, character count, internal/external toggle | Plain textarea, no templates/draft/preview/count |
+| Per-message delivery status (Sent/Delivered/Opened/Bounced) + bounce alert to sender | Not tracked on messages |
+| Thread export to PDF (court-admissible, audit `THREAD_EXPORTED`) | No export |
+| Automated Message Log tab (system notifications for the thread's case) | Not present |
+| Audit event names `THREAD_CREATED`, `MESSAGE_SENT`, `THREAD_CLOSED`, `THREAD_EXPORTED`, `MESSAGE_DELIVERY_FAILED/CONFIRMED` | Events use lowercase intake verbs |
+| R-13 read-only all threads, R-01 admin all threads | Not explicitly covered |
 
-**2. Access rules**
-- Internal staff: read/write scoped by regulator, gated on the existing `correspondence_management` permission actions plus the existing route module.
-- Licensee users: read threads where `licensee_id` matches their entity, may insert inbound messages and attachments on those threads only. Internal notes (`is_internal_note`) are never visible to licensees.
-- All writes go through `SECURITY DEFINER` RPCs (`create_correspondence_thread`, `post_correspondence_message`, `classify_correspondence`, `assign_correspondence`, `record_correspondence_review`, `close_correspondence`) so the audit event is always written atomically with the change.
+## Plan
 
-**3. Frontend — staff (same screens, real data)**
-- `useCorrespondence.ts` hooks (list, detail, mutations) replacing `seedCases`.
-- `IntakeForm` actually captures a thread, uploads attachments, applies the first matching routing rule, and computes `due_at` from SLA days.
-- `CorrespondenceDetail`: message thread view (chronological bubbles, inbound vs outbound, internal notes marked), working Classify / Assign / Review / Respond panels, real attachment versions, real audit trail from `correspondence_events`.
-- `ResponseComposer`: loads real `correspondence_templates`, renders token substitution, sends via the existing `send-correspondence` edge function, and records the sent message on the thread.
-- `CorrespondenceInbox` / `CorrespondenceRecords` / `CorrespondenceDashboard`: DB-backed lists, filters, SLA/aging metrics; export uses the real row set.
-- `RoutingRulesAdmin`: CRUD against the rules table.
+### 1. Database (additive migration — no existing column removed)
+- `correspondence_threads`: add `thread_type`, `thread_state` (`open` / `pending_response` / `closed`), `source_type` + `source_id` + `source_reference` (linked case), `last_message_at`, `pending_since`, `response_due_at`, `close_justification`, `is_entity_facing`.
+- New `correspondence_thread_participants` — thread_id, user_id, party_type (`entity` / `officer` / `system`), display name, role, `last_read_at`. Drives Parties, unread badges and read receipts.
+- `correspondence_messages`: add `message_kind` (`system` / `external_outbound` / `external_inbound` / `internal`), `delivery_status` (`queued/sent/delivered/opened/bounced`), `delivered_at`, `opened_at`, `bounce_reason`, `is_draft`.
+- Backfill: existing rows get `thread_type='general_correspondence'`, `thread_state` derived from current status, `message_kind` derived from direction + `is_internal_note`. Existing screens keep working unchanged.
+- RLS/GRANTs on the new table following the module's existing pattern; entity participants can never read `internal` messages or internal notes. Read-only all-thread access for the audit role, admin access for R-01.
 
-**4. Frontend — licensee portal (new)**
-- `/portal/correspondence` list + `/portal/correspondence/:id` thread view for licensee users: read the thread, reply with text + attachments, see status and due date. Registered in the licensee route/nav config alongside existing portal entries; permission-gated so it only appears for entity users.
-- Replies land as inbound messages, reopen SLA tracking on the thread, and notify the assigned officer via the existing `dispatchNotificationEvent` pipeline (new `correspondence.reply_received` / `correspondence.response_sent` event configs).
+### 2. RPCs (new or extended, all `SECURITY DEFINER`, audit written atomically)
+- `create_correspondence_thread` extended: thread type, linked case (validated: required unless type is `internal_discussion`), participants, entity-facing flag. Audit `THREAD_CREATED`.
+- `post_correspondence_message` extended: `message_kind`, draft support, delivery status seeding. Audit `MESSAGE_SENT`.
+- `set_correspondence_thread_state` — Open / Pending Response (starts response SLA) / Closed; closing while a response SLA is open requires justification. Audit `THREAD_STATUS_CHANGED` / `THREAD_CLOSED`.
+- `mark_correspondence_thread_read` — updates participant `last_read_at` (read receipt + unread count).
+- `record_correspondence_delivery` — sets delivered/opened/bounced; on bounce writes `MESSAGE_DELIVERY_FAILED` and notifies the sending officer; confirmation writes `MESSAGE_DELIVERY_CONFIRMED`.
+- Threads/messages remain non-deletable (R-NOT-007) — no delete policy, no delete RPC.
 
-**5. Migration of prototype content**
-- `seed.ts` demo cases are inserted once as real rows (clearly demo-tagged) so the screens are not empty; the file is then removed from runtime imports.
+### 3. Staff screen — rebuild `/correspondence/threads` as the FRD two-panel manager
+- **Left panel**: thread list sorted by last activity — auto title (`case reference — thread type`), parties, last-message preview + timestamp, unread badge, status chip. Search by title / entity / case reference; filters for Status, Module, Direction (Inbound/Outbound/Internal).
+- **Right panel**: chronological message history with the FRD colour scheme (grey system + icon, blue external outbound, green external inbound, purple internal with "Internal — not visible to entity" watermark), sender + role + timestamp, attachment links, per-message delivery-status chip.
+- **Composer** docked at the bottom: rich text, read-only recipient line, attachments, template selector from `correspondence_templates` with token substitution, Preview dialog, Send, Save Draft, character count, Internal/External toggle (hidden on entity-facing-only threads).
+- **Header controls**: thread status management with SLA timer on Pending Response, Close (with justification when SLA open), Export thread.
+- **Tabs inside the thread**: Conversation · Automated Message Log (read-only system messages pulled from the notification dispatch log for the thread and its linked case) · Attachments.
+- **New Thread modal**: thread type, linked case typeahead (applications, complaints, returns, enforcement, inspections, licences), recipient selector (entity for external, user for internal), subject, initial body, attachments.
+- **Thread export**: client-side PDF of all messages + metadata + attachment manifest, gated through the existing authorized-export helper, audit `THREAD_EXPORTED`.
+
+The existing Inbox / Records / Dashboard / Routing Rules screens stay as they are (intake-side views) and keep working; the new manager is added as the Communication Threads screen the FRD describes and becomes the target of the "Communications" tab deep-links.
+
+### 4. Case workbench integration
+A reusable `CaseCommunicationsTab` that lists/creates threads filtered to `source_type` + `source_id`, mounted on the application, complaint and return detail pages (behind the existing permission gates). Notification deep-links open `/correspondence/threads?thread=<id>`.
+
+### 5. Licensee portal
+`MyCorrespondence` gains the same conversation view for entity-facing threads: unread badges, read receipts on open, reply composer (external only), thread status and response due date. Internal messages remain invisible.
+
+### 6. Notifications
+Reuse `dispatchNotificationEvent`; add `correspondence.message_sent`, `correspondence.reply_received`, `correspondence.thread_sla_breach`, `correspondence.delivery_failed` event configs so entity/officer/supervisor notifications fire as the FRD specifies.
 
 ## Out of scope
-- Auto-ingesting a real mailbox (no inbound email webhook) — capture is manual + licensee portal replies, per your answer.
-- No changes to complaints, notifications, workflow, or any other module's behaviour; `correspondence_dispatches` and `send-correspondence` are reused, not modified in a breaking way.
+No changes to complaints, returns, workflow, notifications engine or `send-correspondence` behaviour beyond additive event configs. Escalation Manager (NOT-ESC-001) is a separate screen and not touched here.
 
 ## Technical notes
-- Every new public table gets explicit `GRANT`s plus RLS, per project convention.
-- Reference numbers via a sequence + trigger, mirroring the complaints `CMP-` pattern.
-- Attachment versioning: same file name on a thread increments `version` rather than overwriting.
-- Queries paginated (25/page) with server-side filtering, matching the complaints module standard.
+- Migration is purely additive with backfill, so current Inbox/Records/Detail/portal screens continue to work during and after the change.
+- Delivery status is populated from `correspondence_dispatches` status on send; "Opened" only when tracking is available, otherwise the chip shows Sent/Delivered.
+- Thread list paginated at 25 with server-side filters, matching module convention.
