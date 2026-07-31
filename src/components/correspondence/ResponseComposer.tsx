@@ -127,14 +127,31 @@ export function ResponseComposer({ thread }: { thread: CorrespondenceThread }) {
         <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
       </div>
       <div>
-        <Label className="text-xs">Body</Label>
-        <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write the response…" />
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Body</Label>
+          <span className="text-[11px] text-muted-foreground">{body.length} / 5000 characters</span>
+        </div>
+        <Textarea rows={8} maxLength={5000} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write the response…" />
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Dialog open={preview} onOpenChange={setPreview}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" disabled={!body.trim()}><Eye className="h-4 w-4 mr-1" />Preview</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-xl">
+            <DialogHeader><DialogTitle>Preview response</DialogTitle></DialogHeader>
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">To:</span> {recipient || thread.sender_email || '—'}</div>
+              <div><span className="text-muted-foreground">Subject:</span> {subject}</div>
+              <div className="rounded border bg-muted/40 p-3 whitespace-pre-wrap">{body}</div>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Button data-rbac="correspondence_management.approve" size="sm" onClick={send} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}Send response
         </Button>
       </div>
+
     </div>
   );
 }
