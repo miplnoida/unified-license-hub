@@ -59,11 +59,16 @@ export function IntakeForm() {
     setChannel('email'); setCategory('General'); setPriority('normal');
     setSenderName(''); setSenderOrg(''); setSenderEmail(''); setSubject('');
     setSummary(''); setBody(''); setTags(''); setLicenseeId('none'); setFiles([]);
+    setThreadType('general_correspondence'); setSourceType('none'); setSourceReference('');
   };
 
   const submit = async () => {
     if (!subject.trim() || !senderName.trim()) {
       toast.error('Sender name and subject are required.');
+      return;
+    }
+    if (threadType !== 'general_correspondence' && threadType !== 'internal_discussion' && !sourceReference.trim()) {
+      toast.error('This thread type must be linked to a case reference.');
       return;
     }
     setSaving(true);
@@ -80,7 +85,12 @@ export function IntakeForm() {
         licensee_id: licenseeId === 'none' ? null : licenseeId,
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
         body: body.trim() || undefined,
+        thread_type: threadType,
+        source_type: sourceType === 'none' ? null : sourceType,
+        source_reference: sourceReference.trim() || null,
+        is_entity_facing: threadType !== 'internal_discussion',
       });
+
       for (const f of files) {
         await uploadCorrespondenceFile(id, f);
       }
