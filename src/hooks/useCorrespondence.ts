@@ -126,6 +126,10 @@ export interface ThreadFilters {
   channel?: string;
   openOnly?: boolean;
   licenseeOnly?: boolean;
+  threadType?: string;
+  threadState?: string;
+  sourceType?: string;
+  sourceId?: string;
 }
 
 const TABLE = 'correspondence_threads';
@@ -138,6 +142,10 @@ export function useCorrespondenceThreads(filters: ThreadFilters = {}) {
       if (filters.category && filters.category !== 'all') q = q.eq('category', filters.category);
       if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
       if (filters.channel && filters.channel !== 'all') q = q.eq('channel', filters.channel);
+      if (filters.threadType && filters.threadType !== 'all') q = q.eq('thread_type', filters.threadType);
+      if (filters.threadState && filters.threadState !== 'all') q = q.eq('thread_state', filters.threadState);
+      if (filters.sourceType) q = q.eq('source_type', filters.sourceType);
+      if (filters.sourceId) q = q.eq('source_id', filters.sourceId);
       if (filters.openOnly) q = q.not('status', 'in', '("closed","responded")');
       const term = (filters.query ?? '').trim();
       if (term) {
@@ -156,11 +164,12 @@ export function useCorrespondenceThread(id?: string) {
     enabled: !!id,
     queryKey: ['correspondence-thread', id],
     queryFn: async () => {
-      const [thread, messages, attachments, events] = await Promise.all([
+      const [thread, messages, attachments, events, participants] = await Promise.all([
         (supabase as any).from(TABLE).select('*').eq('id', id).maybeSingle(),
         (supabase as any).from('correspondence_messages').select('*').eq('thread_id', id).order('sent_at', { ascending: true }),
         (supabase as any).from('correspondence_attachments').select('*').eq('thread_id', id).order('created_at', { ascending: false }),
         (supabase as any).from('correspondence_events').select('*').eq('thread_id', id).order('created_at', { ascending: false }),
+        (supabase as any).from('correspondence_thread_participants').select('*').eq('thread_id', id).order('created_at', { ascending: true }),
       ]);
       if (thread.error) throw thread.error;
       if (!thread.data) throw new Error('Correspondence not found or not accessible.');
@@ -169,10 +178,12 @@ export function useCorrespondenceThread(id?: string) {
         messages: (messages.data ?? []) as CorrespondenceMessage[],
         attachments: (attachments.data ?? []) as CorrespondenceAttachment[],
         events: (events.data ?? []) as CorrespondenceEvent[],
+        participants: (participants.data ?? []) as CorrespondenceParticipant[],
       };
     },
   });
 }
+
 
 function useInvalidate(id?: string) {
   const qc = useQueryClient();
