@@ -1,17 +1,103 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
+import { usePostCorrespondenceMessage, type CorrespondenceThread } from '@/hooks/useCorrespondence';
 
-export function ResponseComposer({ recipient }: { recipient: string }) {
+function render(tpl: string, vars: Record<string, string>) {
+  return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => vars[k] ?? '');
+}
+
+export function ResponseComposer({ thread }: { thread: CorrespondenceThread }) {
+  const [channel, setChannel] = useState<string>(thread.channel === 'portal' ? 'portal' : 'email');
+  const [templateId, setTemplateId] = useState('none');
+  const [recipient, setRecipient] = useState(thread.sender_email ?? '');
+  const [subject, setSubject] = useState(`Re: ${thread.subject}`);
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const post = usePostCorrespondenceMessage(thread.id);
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['correspondence_templates', 'active'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('correspondence_templates')
+        .select('id, name, code, category, channel, subject, body')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const tokens = useMemo(
+    () => ({
+      reference: thread.reference,
+      subject: thread.subject,
+      sender_name: thread.sender_name,
+      sender_org: thread.sender_org ?? '',
+      category: thread.category,
+      received_date: new Date(thread.received_at).toLocaleDateString(),
+      due_date: thread.due_at ? new Date(thread.due_at).toLocaleDateString() : '',
+    }),
+    [thread],
+  );
+
+  useEffect(() => {
+    if (templateId === 'none') return;
+    const t = templates.find((x: any) => x.id === templateId);
+    if (t) {
+      setSubject(render(t.subject ?? '', tokens) || `Re: ${thread.subject}`);
+      setBody(render(t.body ?? '', tokens));
+      if (t.channel) setChannel(t.channel);
+    }
+  }, [templateId, templates, tokens, thread.subject]);
+
+  const send = async () => {
+    if (!body.trim()) { toast.error('Response body is required.'); return; }
+    setBusy(true);
+    try {
+      await post.mutateAsync({
+        thread_id: thread.id,
+        body: body.trim(),
+        subject: subject.trim(),
+        channel,
+        is_internal_note: false,
+      });
+      await dispatchNotificationEvent({
+        event_key: 'correspondence.response_sent',
+        entity_type: 'correspondence',
+        entity_id: thread.id,
+        payload: {
+          reference: thread.reference,
+          subject: thread.subject,
+          body: body.trim(),
+          recipient_email: recipient || thread.sender_email,
+        },
+      });
+      toast.success('Response recorded and sent');
+      setBody('');
+      setTemplateId('none');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Could not send response');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label className="text-xs">Channel</Label>
-          <Select defaultValue="email">
+          <Select value={channel} onValueChange={setChannel}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="email">Email</SelectItem>
@@ -23,32 +109,31 @@ export function ResponseComposer({ recipient }: { recipient: string }) {
         </div>
         <div className="col-span-2">
           <Label className="text-xs">Template</Label>
-          <Select defaultValue="none">
+          <Select value={templateId} onValueChange={setTemplateId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— None / custom —</SelectItem>
-              <SelectItem value="ack">Acknowledgement — Standard</SelectItem>
-              <SelectItem value="ext-appr">Extension Approved</SelectItem>
-              <SelectItem value="ext-rej">Extension Rejected</SelectItem>
-              <SelectItem value="foi-resp">FOI Response</SelectItem>
+              {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
       <div>
         <Label className="text-xs">To</Label>
-        <Input defaultValue={recipient} />
+        <Input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="recipient@example.com" />
       </div>
       <div>
         <Label className="text-xs">Subject</Label>
-        <Input defaultValue="Re: Request for extension on Q4 prudential return" />
+        <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
       </div>
       <div>
         <Label className="text-xs">Body</Label>
-        <Textarea rows={8} defaultValue={`Dear Ms. Mensah,\n\nWe acknowledge your request dated {{received_date}}. After review, we approve a 7-day extension for the Q4 2025 return, with a revised submission deadline of {{new_deadline}}.\n\nKind regards,\nSupervision Team`} />
+        <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write the response…" />
       </div>
       <div className="flex justify-end">
-        <Button data-rbac="settings.edit" size="sm"><Send className="h-4 w-4 mr-1" />Send response</Button>
+        <Button data-rbac="correspondence_management.approve" size="sm" onClick={send} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}Send response
+        </Button>
       </div>
     </div>
   );

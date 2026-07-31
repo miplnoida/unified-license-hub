@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { IntakeForm } from '@/components/correspondence/IntakeForm';
 import { RecordsSearchBar, type RecordsFilters } from '@/components/correspondence/RecordsSearchBar';
-import { seedCases } from './seed';
+import { useCorrespondenceThreads } from '@/hooks/useCorrespondence';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 
@@ -21,23 +22,7 @@ const priorityTone: Record<string, string> = {
 
 export default function CorrespondenceInbox() {
   const [filters, setFilters] = useState<RecordsFilters>({ query: '', category: 'all', status: 'all', channel: 'all' });
-
-  const rows = useMemo(() => {
-    const q = filters.query.trim().toLowerCase();
-    return seedCases.filter((c) => {
-      if (filters.category !== 'all' && c.category !== filters.category) return false;
-      if (filters.status !== 'all' && c.status !== filters.status) return false;
-      if (filters.channel !== 'all' && c.channel !== filters.channel) return false;
-      if (!q) return true;
-      return (
-        c.subject.toLowerCase().includes(q) ||
-        c.reference.toLowerCase().includes(q) ||
-        c.senderName.toLowerCase().includes(q) ||
-        (c.senderOrg ?? '').toLowerCase().includes(q) ||
-        c.tags.join(' ').toLowerCase().includes(q)
-      );
-    });
-  }, [filters]);
+  const { data: rows = [], isLoading } = useCorrespondenceThreads(filters);
 
   return (
     <DashboardLayout>
@@ -51,7 +36,7 @@ export default function CorrespondenceInbox() {
         <Card>
           <CardContent className="p-4 space-y-3">
             <RecordsSearchBar value={filters} onChange={setFilters} />
-            <div className="rounded-md border overflow-hidden">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -67,23 +52,26 @@ export default function CorrespondenceInbox() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((c) => {
-                    const overdue = new Date(c.dueAt).getTime() < Date.now() && c.status !== 'closed' && c.status !== 'responded';
+                  {isLoading && (
+                    <TableRow><TableCell colSpan={9}><Skeleton className="h-24 w-full" /></TableCell></TableRow>
+                  )}
+                  {!isLoading && rows.map((c) => {
+                    const overdue = !!c.due_at && new Date(c.due_at).getTime() < Date.now() && c.status !== 'closed' && c.status !== 'responded';
                     return (
                       <TableRow key={c.id}>
                         <TableCell className="font-mono text-xs">{c.reference}</TableCell>
                         <TableCell className="max-w-[260px]">
                           <div className="truncate font-medium">{c.subject}</div>
-                          <div className="text-xs text-muted-foreground truncate">{c.tags.map((t) => `#${t}`).join(' ')}</div>
+                          <div className="text-xs text-muted-foreground truncate">{(c.tags ?? []).map((t) => `#${t}`).join(' ')}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm">{c.senderName}</div>
-                          {c.senderOrg && <div className="text-xs text-muted-foreground">{c.senderOrg}</div>}
+                          <div className="text-sm">{c.sender_name}</div>
+                          {c.sender_org && <div className="text-xs text-muted-foreground">{c.sender_org}</div>}
                         </TableCell>
                         <TableCell><Badge variant="outline">{c.category}</Badge></TableCell>
                         <TableCell>
-                          <div className="text-sm">{c.assignedOfficer}</div>
-                          <div className="text-xs text-muted-foreground">{c.assignedUnit}</div>
+                          <div className="text-sm">{c.assigned_officer ?? '—'}</div>
+                          <div className="text-xs text-muted-foreground">{c.assigned_unit ?? 'Unassigned'}</div>
                         </TableCell>
                         <TableCell>
                           <Badge className={priorityTone[c.priority]} variant="outline">{c.priority}</Badge>
@@ -92,7 +80,7 @@ export default function CorrespondenceInbox() {
                         <TableCell>
                           <span className={overdue ? 'text-destructive font-medium inline-flex items-center gap-1' : ''}>
                             {overdue && <AlertTriangle className="h-3.5 w-3.5" />}
-                            {formatDistanceToNow(new Date(c.receivedAt))}
+                            {formatDistanceToNow(new Date(c.received_at))}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -103,7 +91,7 @@ export default function CorrespondenceInbox() {
                       </TableRow>
                     );
                   })}
-                  {rows.length === 0 && (
+                  {!isLoading && rows.length === 0 && (
                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No correspondence matches your filters.</TableCell></TableRow>
                   )}
                 </TableBody>

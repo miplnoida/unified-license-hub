@@ -89,6 +89,8 @@ const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/Correspond
 const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
+const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
+const MyCorrespondenceDetail = lazy(() => import('@/pages/entity/correspondence/MyCorrespondenceDetail'));
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
@@ -268,6 +270,8 @@ export const dashboardRoutes = (
     <Route path="/correspondence/records" element={<M module="settings"><CorrespondenceRecords /></M>} />
     <Route path="/correspondence/:id" element={<M module="settings"><CorrespondenceDetail /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
+    <Route path="/entity/correspondence" element={<MyCorrespondence />} />
+    <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
 
   </>
 );

@@ -1,8 +1,11 @@
 import { formatDistanceToNow } from 'date-fns';
 import { History } from 'lucide-react';
-import type { CorrespondenceAuditEntry } from '@/pages/correspondence/types';
+import type { CorrespondenceEvent } from '@/hooks/useCorrespondence';
 
-export function AuditTrailPanel({ entries }: { entries: CorrespondenceAuditEntry[] }) {
+export function AuditTrailPanel({ entries }: { entries: CorrespondenceEvent[] }) {
+  if (entries.length === 0) {
+    return <p className="text-sm text-muted-foreground">No activity recorded yet.</p>;
+  }
   return (
     <ol className="relative border-l border-border ml-2 space-y-4">
       {entries.map((e) => (
@@ -13,7 +16,7 @@ export function AuditTrailPanel({ entries }: { entries: CorrespondenceAuditEntry
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="font-medium text-sm">{e.action}</span>
             <span className="text-xs text-muted-foreground">
-              {e.actor} · {e.role} · {formatDistanceToNow(new Date(e.at), { addSuffix: true })}
+              {e.actor_name ?? 'System'} · {e.actor_role ?? 'System'} · {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
             </span>
           </div>
           {e.detail && <div className="text-xs text-muted-foreground mt-0.5">{e.detail}</div>}

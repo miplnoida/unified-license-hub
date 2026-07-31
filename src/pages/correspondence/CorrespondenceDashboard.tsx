@@ -5,57 +5,58 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MetricsCards } from '@/components/correspondence/MetricsCards';
 import { AgingBuckets } from '@/components/correspondence/AgingBuckets';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
-import { seedCases } from './seed';
+import { useCorrespondenceThreads } from '@/hooks/useCorrespondence';
 import { Link } from 'react-router-dom';
 
 export default function CorrespondenceDashboard() {
+  const { data: threads = [], isLoading } = useCorrespondenceThreads();
+
   const metrics = useMemo(() => {
     const now = Date.now();
-    const open = seedCases.filter((c) => c.status !== 'closed' && c.status !== 'responded');
-    const overdue = open.filter((c) => new Date(c.dueAt).getTime() < now).length;
-    const closedThisMonth = seedCases.filter((c) => c.closedAt && new Date(c.closedAt).getMonth() === new Date().getMonth()).length;
-    const responded = seedCases.filter((c) => c.respondedAt);
+    const open = threads.filter((c) => c.status !== 'closed' && c.status !== 'responded');
+    const overdue = open.filter((c) => c.due_at && new Date(c.due_at).getTime() < now).length;
+    const thisMonth = new Date().getMonth();
+    const closedThisMonth = threads.filter((c) => c.closed_at && new Date(c.closed_at).getMonth() === thisMonth).length;
+    const responded = threads.filter((c) => c.responded_at);
     const avgResponseDays = responded.length
-      ? responded.reduce((s, c) => s + (new Date(c.respondedAt!).getTime() - new Date(c.receivedAt).getTime()) / 86_400_000, 0) / responded.length
+      ? responded.reduce((s, c) => s + (new Date(c.responded_at!).getTime() - new Date(c.received_at).getTime()) / 86_400_000, 0) / responded.length
       : 0;
 
-    const bucket = (days: number) => {
-      if (days <= 3) return '0-3 d';
-      if (days <= 7) return '4-7 d';
-      if (days <= 14) return '8-14 d';
-      return '15+ d';
-    };
-    const agingMap = new Map<string, number>([
-      ['0-3 d', 0], ['4-7 d', 0], ['8-14 d', 0], ['15+ d', 0],
-    ]);
+    const bucket = (days: number) => (days <= 3 ? '0-3 d' : days <= 7 ? '4-7 d' : days <= 14 ? '8-14 d' : '15+ d');
+    const agingMap = new Map<string, number>([['0-3 d', 0], ['4-7 d', 0], ['8-14 d', 0], ['15+ d', 0]]);
     open.forEach((c) => {
-      const days = (now - new Date(c.receivedAt).getTime()) / 86_400_000;
+      const days = (now - new Date(c.received_at).getTime()) / 86_400_000;
       agingMap.set(bucket(days), (agingMap.get(bucket(days)) ?? 0) + 1);
     });
-    const aging = Array.from(agingMap.entries()).map(([bucket, count]) => ({ bucket, count }));
+    const aging = Array.from(agingMap.entries()).map(([b, count]) => ({ bucket: b, count }));
 
     const byUnitMap = new Map<string, number>();
-    open.forEach((c) => byUnitMap.set(c.assignedUnit, (byUnitMap.get(c.assignedUnit) ?? 0) + 1));
+    open.forEach((c) => {
+      const unit = c.assigned_unit ?? 'Unassigned';
+      byUnitMap.set(unit, (byUnitMap.get(unit) ?? 0) + 1);
+    });
     const byUnit = Array.from(byUnitMap.entries()).map(([unit, count]) => ({ unit, count }));
 
     const byCategoryMap = new Map<string, number>();
-    seedCases.forEach((c) => byCategoryMap.set(c.category, (byCategoryMap.get(c.category) ?? 0) + 1));
+    threads.forEach((c) => byCategoryMap.set(c.category, (byCategoryMap.get(c.category) ?? 0) + 1));
     const byCategory = Array.from(byCategoryMap.entries()).map(([name, value]) => ({ name, value }));
 
-    // Bottlenecks: median dwell time in each status for open cases (mocked)
-    const bottlenecks = [
-      { step: 'Classification', avgHours: 3 },
-      { step: 'Assignment', avgHours: 6 },
-      { step: 'Review', avgHours: 42 },
-      { step: 'Approval', avgHours: 28 },
-      { step: 'Response dispatch', avgHours: 12 },
-    ];
+    // Where cases are sitting right now (open workload by lifecycle stage)
+    const stages = ['received', 'classified', 'assigned', 'in_review', 'approved'];
+    const byStage = stages.map((stage) => {
+      const inStage = open.filter((c) => c.status === stage);
+      const avgHours = inStage.length
+        ? inStage.reduce((s, c) => s + (now - new Date(c.updated_at).getTime()) / 3_600_000, 0) / inStage.length
+        : 0;
+      return { step: stage.replace('_', ' '), count: inStage.length, avgHours: Math.round(avgHours) };
+    });
 
-    return { open, overdue, closedThisMonth, avgResponseDays, aging, byUnit, byCategory, bottlenecks };
-  }, []);
+    return { open, overdue, closedThisMonth, avgResponseDays, aging, byUnit, byCategory, byStage };
+  }, [threads]);
 
   const pieColors = ['hsl(var(--primary))', '#16a34a', '#f59e0b', '#dc2626', '#0ea5e9', '#a855f7', '#64748b', '#f97316'];
 
@@ -68,12 +69,16 @@ export default function CorrespondenceDashboard() {
           actions={<Button asChild variant="outline"><Link to="/correspondence/inbox">Open inbox</Link></Button>}
         />
 
-        <MetricsCards
-          totalOpen={metrics.open.length}
-          overdue={metrics.overdue}
-          avgResponseDays={metrics.avgResponseDays}
-          closedThisMonth={metrics.closedThisMonth}
-        />
+        {isLoading ? (
+          <Skeleton className="h-32 w-full" />
+        ) : (
+          <MetricsCards
+            totalOpen={metrics.open.length}
+            overdue={metrics.overdue}
+            avgResponseDays={metrics.avgResponseDays}
+            closedThisMonth={metrics.closedThisMonth}
+          />
+        )}
 
         <div className="grid lg:grid-cols-2 gap-4">
           <AgingBuckets data={metrics.aging} />
@@ -108,24 +113,26 @@ export default function CorrespondenceDashboard() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Bottleneck — average time spent in each step</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Bottleneck — open cases waiting at each step</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Step</TableHead>
-                    <TableHead className="text-right">Avg hours</TableHead>
+                    <TableHead className="text-right">Open</TableHead>
+                    <TableHead className="text-right">Avg wait</TableHead>
                     <TableHead className="text-right">Signal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {metrics.bottlenecks.map((b) => (
+                  {metrics.byStage.map((b) => (
                     <TableRow key={b.step}>
-                      <TableCell className="font-medium">{b.step}</TableCell>
+                      <TableCell className="font-medium capitalize">{b.step}</TableCell>
+                      <TableCell className="text-right font-mono">{b.count}</TableCell>
                       <TableCell className="text-right font-mono">{b.avgHours}h</TableCell>
                       <TableCell className="text-right">
                         <Badge variant={b.avgHours > 24 ? 'destructive' : b.avgHours > 12 ? 'secondary' : 'outline'}>
-                          {b.avgHours > 24 ? 'Bottleneck' : b.avgHours > 12 ? 'Watch' : 'OK'}
+                          {b.count === 0 ? 'Clear' : b.avgHours > 24 ? 'Bottleneck' : b.avgHours > 12 ? 'Watch' : 'OK'}
                         </Badge>
                       </TableCell>
                     </TableRow>
