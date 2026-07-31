@@ -28,10 +28,14 @@ export function IntakeForm() {
   const [summary, setSummary] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
+  const [threadType, setThreadType] = useState<ThreadType>('general_correspondence');
+  const [sourceType, setSourceType] = useState('none');
+  const [sourceReference, setSourceReference] = useState('');
   const [licenseeId, setLicenseeId] = useState('none');
   const [licenseeQuery, setLicenseeQuery] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+
 
   const { data: licensees = [] } = useQuery({
     queryKey: ['correspondence-licensee-search', licenseeQuery],
