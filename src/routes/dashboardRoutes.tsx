@@ -268,6 +268,8 @@ export const dashboardRoutes = (
     <Route path="/correspondence/records" element={<M module="settings"><CorrespondenceRecords /></M>} />
     <Route path="/correspondence/:id" element={<M module="settings"><CorrespondenceDetail /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
+    <Route path="/entity/correspondence" element={<MyCorrespondence />} />
+    <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
 
   </>
 );
