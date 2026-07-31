@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { notificationLink } from '@/lib/notificationLinks';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,7 +130,7 @@ export function Header() {
                     key={n.id}
                     onClick={() => {
                       if (!n.read) markRead(n.id);
-                      navigate('/notifications');
+                      navigate(notificationLink(n.entity_type, n.entity_id, n.metadata) || '/notifications');
                     }}
                     className={`w-full text-left flex items-start gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
                   >
