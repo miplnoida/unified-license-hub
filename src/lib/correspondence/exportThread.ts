@@ -61,13 +61,12 @@ export async function exportThreadToPdf(thread: CorrespondenceThread, messages: 
   if (w) { w.document.write(html); w.document.close(); }
 
   try {
-    await (supabase as any).from('correspondence_events').insert({
-      thread_id: thread.id,
-      action: 'THREAD_EXPORTED',
-      detail: `Thread exported (${messages.length} messages)`,
-      visible_to_licensee: false,
+    await (supabase as any).rpc('log_correspondence_export', {
+      _thread_id: thread.id,
+      _detail: `Thread exported (${messages.length} messages)`,
     });
   } catch {
     /* audit insert is best-effort; export already delivered */
   }
 }
+
