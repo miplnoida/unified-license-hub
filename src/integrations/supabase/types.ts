@@ -3949,6 +3949,63 @@ export type Database = {
           },
         ]
       }
+      correspondence_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          id: string
+          message_id: string | null
+          size_kb: number
+          storage_path: string
+          thread_id: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+          version: number
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          id?: string
+          message_id?: string | null
+          size_kb?: number
+          storage_path: string
+          thread_id: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+          version?: number
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          id?: string
+          message_id?: string | null
+          size_kb?: number
+          storage_path?: string
+          thread_id?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correspondence_attachments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       correspondence_dispatches: {
         Row: {
           body: string
@@ -4020,6 +4077,164 @@ export type Database = {
           },
         ]
       }
+      correspondence_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          thread_id: string
+          visible_to_licensee: boolean
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          thread_id: string
+          visible_to_licensee?: boolean
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          thread_id?: string
+          visible_to_licensee?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_events_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correspondence_messages: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          author_role: string | null
+          body: string
+          channel: string
+          created_at: string
+          direction: string
+          dispatch_id: string | null
+          id: string
+          is_internal_note: boolean
+          sent_at: string
+          subject: string | null
+          thread_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          author_role?: string | null
+          body: string
+          channel?: string
+          created_at?: string
+          direction?: string
+          dispatch_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          sent_at?: string
+          subject?: string | null
+          thread_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          author_role?: string | null
+          body?: string
+          channel?: string
+          created_at?: string
+          direction?: string
+          dispatch_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          sent_at?: string
+          subject?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_messages_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_dispatches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correspondence_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correspondence_routing_rules: {
+        Row: {
+          allow_manual_override: boolean
+          assign_officer: string | null
+          assign_unit: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          match_type: string
+          match_value: string
+          name: string
+          priority: string
+          sla_days: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allow_manual_override?: boolean
+          assign_officer?: string | null
+          assign_unit: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          match_value: string
+          name: string
+          priority?: string
+          sla_days?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_manual_override?: boolean
+          assign_officer?: string | null
+          assign_unit?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          match_value?: string
+          name?: string
+          priority?: string
+          sla_days?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       correspondence_templates: {
         Row: {
           body: string
@@ -4070,6 +4285,117 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "regulators"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      correspondence_threads: {
+        Row: {
+          assigned_officer: string | null
+          assigned_officer_id: string | null
+          assigned_unit: string | null
+          category: string
+          channel: string
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          due_at: string | null
+          id: string
+          is_demo: boolean
+          licensee_id: string | null
+          priority: string
+          received_at: string
+          reference: string
+          regulator_id: string | null
+          responded_at: string | null
+          retention_expires_at: string | null
+          retention_years: number
+          sender_email: string | null
+          sender_name: string
+          sender_org: string | null
+          sla_days: number
+          status: string
+          subject: string
+          summary: string | null
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          assigned_officer?: string | null
+          assigned_officer_id?: string | null
+          assigned_unit?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          due_at?: string | null
+          id?: string
+          is_demo?: boolean
+          licensee_id?: string | null
+          priority?: string
+          received_at?: string
+          reference?: string
+          regulator_id?: string | null
+          responded_at?: string | null
+          retention_expires_at?: string | null
+          retention_years?: number
+          sender_email?: string | null
+          sender_name: string
+          sender_org?: string | null
+          sla_days?: number
+          status?: string
+          subject: string
+          summary?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          assigned_officer?: string | null
+          assigned_officer_id?: string | null
+          assigned_unit?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          due_at?: string | null
+          id?: string
+          is_demo?: boolean
+          licensee_id?: string | null
+          priority?: string
+          received_at?: string
+          reference?: string
+          regulator_id?: string | null
+          responded_at?: string | null
+          retention_expires_at?: string | null
+          retention_years?: number
+          sender_email?: string | null
+          sender_name?: string
+          sender_org?: string | null
+          sla_days?: number
+          status?: string
+          subject?: string
+          summary?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_threads_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correspondence_threads_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -15680,6 +16006,17 @@ export type Database = {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
       }
+      add_correspondence_attachment: {
+        Args: {
+          _content_type?: string
+          _file_name: string
+          _message_id?: string
+          _size_kb: number
+          _storage_path: string
+          _thread_id: string
+        }
+        Returns: string
+      }
       add_review_comment: {
         Args: {
           _body: string
@@ -15837,6 +16174,15 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      assign_correspondence: {
+        Args: {
+          _officer?: string
+          _officer_id?: string
+          _thread_id: string
+          _unit: string
+        }
+        Returns: undefined
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
@@ -16051,6 +16397,15 @@ export type Database = {
         Args: { _id: string; _payload: Json }
         Returns: undefined
       }
+      classify_correspondence: {
+        Args: {
+          _category: string
+          _priority: string
+          _tags?: string[]
+          _thread_id: string
+        }
+        Returns: undefined
+      }
       classify_ratio_risk: {
         Args: {
           _breach: number
@@ -16130,6 +16485,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      close_correspondence: {
+        Args: { _notes?: string; _thread_id: string }
+        Returns: undefined
+      }
       complaint_sla_status: {
         Args: {
           _created_at: string
@@ -16210,6 +16569,14 @@ export type Database = {
         Args: { _from_step: string; _to_step: string }
         Returns: number
       }
+      correspondence_actor_label: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      correspondence_thread_visible: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
       create_application_draft: {
         Args: { _data?: Json; _license_type: string; _regulator_id?: string }
         Returns: {
@@ -16280,6 +16647,22 @@ export type Database = {
           _variant: string
         }
         Returns: Json
+      }
+      create_correspondence_thread: {
+        Args: {
+          _body?: string
+          _category?: string
+          _channel?: string
+          _licensee_id?: string
+          _priority?: string
+          _sender_email?: string
+          _sender_name: string
+          _sender_org?: string
+          _subject: string
+          _summary: string
+          _tags?: string[]
+        }
+        Returns: string
       }
       create_document_version: {
         Args: {
@@ -16633,6 +17016,7 @@ export type Database = {
         Returns: number
       }
       generate_complaint_number: { Args: never; Returns: string }
+      generate_correspondence_reference: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
       generate_registration_reference: { Args: never; Returns: string }
@@ -17255,6 +17639,17 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
+      post_correspondence_message: {
+        Args: {
+          _body: string
+          _channel?: string
+          _dispatch_id?: string
+          _is_internal_note?: boolean
+          _subject?: string
+          _thread_id: string
+        }
+        Returns: string
+      }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -17324,6 +17719,10 @@ export type Database = {
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
+      record_correspondence_review: {
+        Args: { _decision: string; _notes?: string; _thread_id: string }
+        Returns: undefined
+      }
       record_export_intent: {
         Args: { _action: string; _meta?: Json; _module: string }
         Returns: Json

@@ -1,35 +1,45 @@
 ## Goal
 
-Refresh `FRD_Gap_Tracker.xlsx` so it reflects the delivered state of Licensing Appeals and Form Builder Version History. No code changes.
+Turn the correspondence prototype into a working, auditable two-way thread manager. Current state (verified): `src/pages/correspondence/*` all read from `seed.ts` mock arrays — nothing is persisted. The only real tables are `correspondence_templates` and `correspondence_dispatches` (outbound send log, used by `SendCorrespondenceDialog` + the `send-correspondence` edge function). There is no thread/message store.
 
-## Changes to the tracker
+Screen structure stays exactly as-is (Dashboard / Inbox / Records / Detail / Routing Rules) — only the data source changes.
 
-Produce a new version of the workbook (`FRD_Gap_Tracker_v2.xlsx`) in the documents area, preserving all existing sheets, formatting and the other 101 rows unchanged.
+## What gets built
 
-**Requirement Tracker sheet**
+**1. Database (new tables, RLS + GRANTs)**
+- `correspondence_threads` — reference (`COR-YYYY-NNNNNN`), subject, category, channel, direction, priority, status (received → classified → assigned → in_review → approved → responded → closed), sender name/org, `licensee_id`, `regulator_id`, assigned unit/officer, `received_at`, `due_at`, `sla_days`, retention years/expiry, tags, summary.
+- `correspondence_messages` — thread_id, direction (inbound/outbound), body, author_id, author_role, channel, sent_at, `is_internal_note` flag, `dispatch_id` link to `correspondence_dispatches` when emailed.
+- `correspondence_attachments` — thread/message link, storage path, file name, size, version number, uploaded_by (versioning by file name, matching the existing VersionHistoryList UI).
+- `correspondence_events` — audit trail rows (actor, role, action, detail, at) written by triggers/RPCs for create, classify, assign, review, approve, respond, close.
+- `correspondence_routing_rules` — persists the Routing Rules admin screen (match type/value, unit, officer, priority, manual override, order, active).
+- Private storage bucket `correspondence` with staff + owning-licensee policies.
 
-1. `LIC-APL-001` — Licensing Appeals (post-refusal appeal lodging & tracking)
-   - Status: Missing -> **Done**
-   - Severity / Effort / Phase: set to `-`
-   - Evidence: `license_appeals` + appeal-event tables with RLS and generated appeal references; `public.reinstate_application_after_appeal` RPC; applicant `LodgeAppealDialog.tsx`, `LicenseAppealPanel.tsx`, `/appeals` My Appeals page with 30-day window and withdraw confirmation; regulator register at `/admin/license-appeals` with Consider/Decline decision dialog and reopen-application retry; upheld appeals reopen the refused application at its last workflow step with audit trail, appeal timeline and applicant notification.
-   - Gap Detail: None. Note that no formal appeal-panel hearing/scheduling model exists — deliberately de-scoped to keep the decision flow simple.
+**2. Access rules**
+- Internal staff: read/write scoped by regulator, gated on the existing `correspondence_management` permission actions plus the existing route module.
+- Licensee users: read threads where `licensee_id` matches their entity, may insert inbound messages and attachments on those threads only. Internal notes (`is_internal_note`) are never visible to licensees.
+- All writes go through `SECURITY DEFINER` RPCs (`create_correspondence_thread`, `post_correspondence_message`, `classify_correspondence`, `assign_correspondence`, `record_correspondence_review`, `close_correspondence`) so the audit event is always written atomically with the change.
 
-2. `ADM-FB-005` — Form Builder Version History
-   - Screen / Requirement text: drop ", rollback" -> **"Form Builder — Version History (compare versions)"**
-   - Status: Partial -> **Done**
-   - Severity / Effort / Phase: set to `-`
-   - Evidence: `src/components/form-builder/VersionHistory.tsx` and `VersionDiffViewer.tsx` — version list, side-by-side attribute-level field diff, working "Show unchanged" toggle, publish/upcoming version notifications.
-   - Gap Detail: None. Rollback confirmed out of scope by the business — not a requirement.
+**3. Frontend — staff (same screens, real data)**
+- `useCorrespondence.ts` hooks (list, detail, mutations) replacing `seedCases`.
+- `IntakeForm` actually captures a thread, uploads attachments, applies the first matching routing rule, and computes `due_at` from SLA days.
+- `CorrespondenceDetail`: message thread view (chronological bubbles, inbound vs outbound, internal notes marked), working Classify / Assign / Review / Respond panels, real attachment versions, real audit trail from `correspondence_events`.
+- `ResponseComposer`: loads real `correspondence_templates`, renders token substitution, sends via the existing `send-correspondence` edge function, and records the sent message on the thread.
+- `CorrespondenceInbox` / `CorrespondenceRecords` / `CorrespondenceDashboard`: DB-backed lists, filters, SLA/aging metrics; export uses the real row set.
+- `RoutingRulesAdmin`: CRUD against the rules table.
 
-**Summary Dashboard sheet**
+**4. Frontend — licensee portal (new)**
+- `/portal/correspondence` list + `/portal/correspondence/:id` thread view for licensee users: read the thread, reply with text + attachments, see status and due date. Registered in the licensee route/nav config alongside existing portal entries; permission-gated so it only appears for entity users.
+- Replies land as inbound messages, reopen SLA tracking on the thread, and notify the assigned officer via the existing `dispatchNotificationEvent` pipeline (new `correspondence.reply_received` / `correspondence.response_sent` event configs).
 
-- Recompute the Done / Partial / Missing counts and any percentage-complete figures to account for the two status changes.
-- Update the Licensing row commentary: remove "No licensing appeals;" so it reads only about the analyst workbench, legal review screen and decision letter.
+**5. Migration of prototype content**
+- `seed.ts` demo cases are inserted once as real rows (clearly demo-tagged) so the screens are not empty; the file is then removed from runtime imports.
 
-**Delivery Plan sheet**
+## Out of scope
+- Auto-ingesting a real mailbox (no inbound email webhook) — capture is manual + licensee portal replies, per your answer.
+- No changes to complaints, notifications, workflow, or any other module's behaviour; `correspondence_dispatches` and `send-correspondence` are reused, not modified in a breaking way.
 
-- Phase 1 "Licensing completeness": remove `LIC-APL-001` from the requirement list and reword the description/exit criteria so appeals are described as delivered, leaving decision letters and the analyst/legal queues as the open items.
-
-## Verification
-
-Reopen the generated workbook, print the two changed rows plus the recomputed summary counts, and confirm every other row is byte-identical to the original before handing the file over.
+## Technical notes
+- Every new public table gets explicit `GRANT`s plus RLS, per project convention.
+- Reference numbers via a sequence + trigger, mirroring the complaints `CMP-` pattern.
+- Attachment versioning: same file name on a thread increments `version` rather than overwriting.
+- Queries paginated (25/page) with server-side filtering, matching the complaints module standard.
