@@ -2,7 +2,7 @@
 -- Verifies the extended notification columns, enums, dedupe protection and
 -- that notifications cannot be hard-deleted by application callers.
 BEGIN;
-SELECT plan(26);
+SELECT plan(27);
 
 SELECT has_table('public', 'notifications', 'notifications table exists');
 SELECT has_table('public', 'notification_user_event_preferences', 'per-event preference table exists');

@@ -1,6 +1,6 @@
 -- Phase 2 — delivery records and immutable audit events.
 BEGIN;
-SELECT plan(8);
+SELECT plan(9);
 
 -- delivery columns
 SELECT has_column('public','notification_dispatch_log','notification_id','delivery links to notification');
