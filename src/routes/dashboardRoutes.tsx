@@ -86,6 +86,8 @@ const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
+const CorrespondenceManager = lazy(() => import('@/pages/correspondence/CorrespondenceManager'));
+
 const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
