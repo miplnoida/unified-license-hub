@@ -1117,6 +1117,7 @@ Deno.serve(async (req) => {
             rendered_content: channel === "email" ? emailBody : message,
             template_id: templateIdFor(channel),
             template_version: templateVersionFor(channel),
+            used_fallback_template: usedFallbackFor(channel),
             payload: {
               vars,
               event_key: dispatchCfg.eventKey,
