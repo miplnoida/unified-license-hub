@@ -9459,6 +9459,7 @@ export type Database = {
           subject: string | null
           template_id: string | null
           template_version: number | null
+          used_fallback_template: boolean
         }
         Insert: {
           acknowledged_at?: string | null
@@ -9497,6 +9498,7 @@ export type Database = {
           subject?: string | null
           template_id?: string | null
           template_version?: number | null
+          used_fallback_template?: boolean
         }
         Update: {
           acknowledged_at?: string | null
@@ -9535,6 +9537,7 @@ export type Database = {
           subject?: string | null
           template_id?: string | null
           template_version?: number | null
+          used_fallback_template?: boolean
         }
         Relationships: []
       }
@@ -9600,6 +9603,7 @@ export type Database = {
           email_subject_template: string | null
           event_key: string
           failure_escalation: Json
+          fallback_allowed: boolean
           id: string
           is_active: boolean
           message_template: string
@@ -9624,6 +9628,7 @@ export type Database = {
           email_subject_template?: string | null
           event_key: string
           failure_escalation?: Json
+          fallback_allowed?: boolean
           id?: string
           is_active?: boolean
           message_template: string
@@ -9648,6 +9653,7 @@ export type Database = {
           email_subject_template?: string | null
           event_key?: string
           failure_escalation?: Json
+          fallback_allowed?: boolean
           id?: string
           is_active?: boolean
           message_template?: string
@@ -17596,6 +17602,7 @@ export type Database = {
           subject: string | null
           template_id: string | null
           template_version: number | null
+          used_fallback_template: boolean
         }[]
         SetofOptions: {
           from: "*"
@@ -19113,6 +19120,26 @@ export type Database = {
         Args: { _active: boolean; _config_id: string }
         Returns: Json
       }
+      notification_event_config_validate: {
+        Args: never
+        Returns: {
+          category: string
+          channels: string[]
+          dedupe_window_seconds: number
+          event_key: string
+          failure_escalation_configured: boolean
+          fallback_allowed: boolean
+          has_in_app_or_email: boolean
+          has_trigger_history: boolean
+          issues: string[]
+          module: string
+          recipient_rule_count: number
+          severity: string
+          templates_bound: number
+          templates_required: number
+          unsupported_rule_types: string[]
+        }[]
+      }
       notification_export: {
         Args: { _ids: string[] }
         Returns: {
@@ -19303,6 +19330,10 @@ export type Database = {
         Returns: Json
       }
       notification_template_save: { Args: { _payload: Json }; Returns: string }
+      notification_template_snapshot: {
+        Args: { _actor?: string; _template_id: string }
+        Returns: number
+      }
       notification_template_versions_for: {
         Args: { _template_id: string }
         Returns: Json
