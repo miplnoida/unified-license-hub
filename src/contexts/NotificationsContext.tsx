@@ -36,6 +36,8 @@ interface NotificationsContextValue {
   archive: (ids: string[]) => Promise<void>;
   markActioned: (id: string, target?: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Epoch ms of the most recent critical/high notification received live. */
+  lastUrgentAt: number | null;
 }
 
 const EMPTY_COUNTS: NotificationCounts = {
@@ -55,6 +57,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
+  const [lastUrgentAt, setLastUrgentAt] = useState<number | null>(null);
 
   const loadCounts = useCallback(async () => {
     const { data } = await supabase.rpc('notification_counts' as never);
@@ -180,6 +183,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         archive,
         markActioned,
         refresh: load,
+        lastUrgentAt,
       }}
     >
 
