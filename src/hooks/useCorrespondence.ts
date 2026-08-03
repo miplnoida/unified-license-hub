@@ -405,7 +405,8 @@ export function usePostCorrespondenceMessage(threadId?: string) {
   return useMutation({
     mutationFn: async (input: {
       thread_id: string; body: string; is_internal_note?: boolean; channel?: string; subject?: string;
-      dispatch_id?: string | null; is_draft?: boolean;
+      dispatch_id?: string | null; is_draft?: boolean; body_format?: 'html' | 'text';
+      document_ids?: string[]; draft_message_id?: string | null;
     }) => {
       const { data, error } = await (supabase as any).rpc('post_correspondence_message', {
         _thread_id: input.thread_id,
@@ -415,6 +416,9 @@ export function usePostCorrespondenceMessage(threadId?: string) {
         _subject: input.subject ?? null,
         _dispatch_id: input.dispatch_id ?? null,
         _is_draft: input.is_draft ?? false,
+        _body_format: input.body_format ?? 'html',
+        _document_ids: input.document_ids ?? null,
+        _draft_message_id: input.draft_message_id ?? null,
       });
       if (error) throw error;
       return data as string;
@@ -423,6 +427,73 @@ export function usePostCorrespondenceMessage(threadId?: string) {
     onSuccess: invalidate,
   });
 }
+
+export function useDiscardDraft(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await (supabase as any).rpc('correspondence_discard_draft', { _message_id: messageId });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useMarkPendingResponse(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; due_at?: string | null; note?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_set_pending_response', {
+        _thread_id: input.thread_id, _due_at: input.due_at ?? null, _note: input.note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useReopenThread(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; reason: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_reopen_thread', {
+        _thread_id: input.thread_id, _reason: input.reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useLinkThreadCase(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; source_type: string; source_id: string; source_reference?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_thread_link_case', {
+        _thread_id: input.thread_id,
+        _source_type: input.source_type,
+        _source_id: input.source_id,
+        _source_reference: input.source_reference ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useAddThreadParticipant(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; user_id: string; party_role?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_add_participant', {
+        _thread_id: input.thread_id, _user_id: input.user_id, _party_role: input.party_role ?? 'Officer',
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 
 export function useClassifyCorrespondence(threadId?: string) {
   const invalidate = useInvalidate(threadId);
