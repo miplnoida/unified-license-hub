@@ -256,4 +256,11 @@ export const RECIPIENT_LABELS: Record<ActionNotificationRecipientType, string> =
   role: 'Users with Role',
   admin: 'Admin Users',
   custom_email: 'Custom Email',
+  assigned_officer: 'Assigned Officer',
+  next_step_role: 'Next-Step Role',
+  supervisor: 'Supervisor',
+  named_user: 'Named User',
+  entity_primary_users: 'Entity Primary Users',
+  entity_secondary_users: 'Entity Secondary Users',
+  regulator_team: 'Regulator Division Team',
 };
