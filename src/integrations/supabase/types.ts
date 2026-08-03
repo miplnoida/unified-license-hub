@@ -19039,6 +19039,19 @@ export type Database = {
       }
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      notif_enqueue: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _event_key: string
+          _payload?: Json
+          _reference: string
+          _reminder_window?: string
+          _route: string
+          _suffix?: string
+        }
+        Returns: string
+      }
       notification_admin_audit: {
         Args: {
           _action: string
@@ -19350,10 +19363,13 @@ export type Database = {
         Args: { _function_name: string }
         Returns: number
       }
+      notify_application_rfi_deadlines: { Args: never; Returns: number }
       notify_overdue_complaint_investigations: { Args: never; Returns: number }
       notify_overdue_conduct_actions: { Args: never; Returns: number }
+      notify_overdue_prudential_actions: { Args: never; Returns: number }
       notify_prudential_remediation_due: { Args: never; Returns: number }
       notify_returns_due: { Args: never; Returns: number }
+      notify_upcoming_form_versions: { Args: never; Returns: number }
       notify_workflow_sla_events: { Args: never; Returns: number }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
