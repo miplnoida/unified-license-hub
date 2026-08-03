@@ -343,6 +343,27 @@ function buildRecipientRulesForOverride(row: {
       const email = typeof cfg.email === "string" ? cfg.email.trim().toLowerCase() : "";
       return email ? [{ type: "direct_email", email }] : [];
     }
+    // FRD recipient vocabulary now selectable in the workflow designer.
+    case "assigned_officer":
+      return [{ type: "assigned_officer" }];
+    case "next_step_role": {
+      const role = typeof cfg.role === "string" ? cfg.role : typeof cfg.role_name === "string" ? cfg.role_name : "";
+      return [{ type: "next_step_role", ...(role ? { role } : {}) } as Rule];
+    }
+    case "supervisor":
+      return [{ type: "supervisor" }];
+    case "named_user": {
+      const userId = typeof cfg.user_id === "string" ? cfg.user_id : "";
+      return userId ? [{ type: "named_user", user_id: userId } as Rule] : [];
+    }
+    case "entity_primary_users":
+      return [{ type: "entity_primary_users" }];
+    case "entity_secondary_users":
+      return [{ type: "entity_secondary_users" }];
+    case "regulator_team": {
+      const regulatorId = typeof cfg.regulator_id === "string" ? cfg.regulator_id : "";
+      return [{ type: "regulator_team", ...(regulatorId ? { regulator_id: regulatorId } : {}) } as Rule];
+    }
     default:
       return [];
   }
