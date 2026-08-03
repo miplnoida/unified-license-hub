@@ -1,9 +1,10 @@
-import { Bell, Search, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -32,8 +33,19 @@ const notifTypeIcon: Record<string, JSX.Element> = {
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
-  const recent = notifications.slice(0, 5);
+  const { notifications, unreadCount, markRead, markAllRead, loading, counts, lastUrgentAt } =
+    useNotifications();
+  const recent = notifications.slice(0, 20);
+  const hasUrgent = counts.unread_urgent > 0;
+  const [pulse, setPulse] = useState(false);
+
+  // Briefly pulse the bell when a critical/high notification arrives live.
+  useEffect(() => {
+    if (!lastUrgentAt) return;
+    setPulse(true);
+    const t = setTimeout(() => setPulse(false), 6000);
+    return () => clearTimeout(t);
+  }, [lastUrgentAt]);
   const { activeSectorName } = useActiveSector();
   const { isPpoc, actingAs, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
