@@ -1839,6 +1839,7 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          escalation_id: string | null
           id: string
           notes: string | null
           rule_id: string | null
@@ -1857,6 +1858,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          escalation_id?: string | null
           id?: string
           notes?: string | null
           rule_id?: string | null
@@ -1875,6 +1877,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          escalation_id?: string | null
           id?: string
           notes?: string | null
           rule_id?: string | null
@@ -1901,6 +1904,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "report_view_complaints"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_escalation_cases_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
           },
           {
             foreignKeyName: "complaint_escalation_cases_rule_id_fkey"
@@ -2883,6 +2900,7 @@ export type Database = {
           created_at: string
           dedupe_key: string | null
           detail: Json
+          escalation_id: string | null
           generated_by: string
           id: string
           kind: string
@@ -2911,6 +2929,7 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           detail?: Json
+          escalation_id?: string | null
           generated_by?: string
           id?: string
           kind: string
@@ -2939,6 +2958,7 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           detail?: Json
+          escalation_id?: string | null
           generated_by?: string
           id?: string
           kind?: string
@@ -2982,6 +3002,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conduct_risk_categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
           },
           {
             foreignKeyName: "conduct_alerts_licensee_id_fkey"
@@ -3759,6 +3793,7 @@ export type Database = {
           assigned_to: string | null
           case_id: string
           created_at: string
+          escalation_id: string | null
           id: string
           raised_by: string
           reason: string
@@ -3774,6 +3809,7 @@ export type Database = {
           assigned_to?: string | null
           case_id: string
           created_at?: string
+          escalation_id?: string | null
           id?: string
           raised_by: string
           reason: string
@@ -3789,6 +3825,7 @@ export type Database = {
           assigned_to?: string | null
           case_id?: string
           created_at?: string
+          escalation_id?: string | null
           id?: string
           raised_by?: string
           reason?: string
@@ -3807,6 +3844,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "coordination_cases"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coordination_escalations_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coordination_escalations_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
           },
         ]
       }
@@ -5371,6 +5422,409 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escalation_notification_events: {
+        Row: {
+          channel: string | null
+          created_at: string
+          detail: Json
+          dispatch_log_id: string | null
+          escalation_id: string
+          event_key: string | null
+          id: string
+          outcome: string
+          recipient_role: string | null
+          recipient_user_id: string | null
+          tier: number | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          detail?: Json
+          dispatch_log_id?: string | null
+          escalation_id: string
+          event_key?: string | null
+          id?: string
+          outcome?: string
+          recipient_role?: string | null
+          recipient_user_id?: string | null
+          tier?: number | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          detail?: Json
+          dispatch_log_id?: string | null
+          escalation_id?: string
+          event_key?: string | null
+          id?: string
+          outcome?: string
+          recipient_role?: string | null
+          recipient_user_id?: string | null
+          tier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_notification_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_notification_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
+          },
+        ]
+      }
+      escalation_ownership_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          escalation_id: string
+          event_type: string
+          from_role: string | null
+          from_user_id: string | null
+          id: string
+          note: string | null
+          to_role: string | null
+          to_user_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          escalation_id: string
+          event_type: string
+          from_role?: string | null
+          from_user_id?: string | null
+          id?: string
+          note?: string | null
+          to_role?: string | null
+          to_user_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          escalation_id?: string
+          event_type?: string
+          from_role?: string | null
+          from_user_id?: string | null
+          id?: string
+          note?: string | null
+          to_role?: string | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_ownership_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_ownership_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
+          },
+        ]
+      }
+      escalation_rules: {
+        Row: {
+          business_calendar_profile_id: string | null
+          business_hours_only: boolean
+          create_case: boolean
+          create_task: boolean
+          created_at: string
+          created_by: string | null
+          default_severity: Database["public"]["Enums"]["escalation_severity"]
+          description: string | null
+          escalation_type: Database["public"]["Enums"]["escalation_type"]
+          id: string
+          initial_recipient_role: string
+          is_active: boolean
+          name: string
+          pause_on_acknowledgement: boolean
+          resolution_threshold_minutes: number | null
+          source_module: string
+          tier1_ack_threshold_minutes: number | null
+          tier1_channels: string[]
+          tier1_recipient_role: string | null
+          tier1_template_id: string | null
+          tier2_ack_threshold_minutes: number | null
+          tier2_channels: string[]
+          tier2_recipient_role: string | null
+          tier2_template_id: string | null
+          tier3_ack_threshold_minutes: number | null
+          tier3_channels: string[]
+          tier3_recipient_role: string | null
+          tier3_template_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          business_calendar_profile_id?: string | null
+          business_hours_only?: boolean
+          create_case?: boolean
+          create_task?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_severity?: Database["public"]["Enums"]["escalation_severity"]
+          description?: string | null
+          escalation_type: Database["public"]["Enums"]["escalation_type"]
+          id?: string
+          initial_recipient_role: string
+          is_active?: boolean
+          name: string
+          pause_on_acknowledgement?: boolean
+          resolution_threshold_minutes?: number | null
+          source_module: string
+          tier1_ack_threshold_minutes?: number | null
+          tier1_channels?: string[]
+          tier1_recipient_role?: string | null
+          tier1_template_id?: string | null
+          tier2_ack_threshold_minutes?: number | null
+          tier2_channels?: string[]
+          tier2_recipient_role?: string | null
+          tier2_template_id?: string | null
+          tier3_ack_threshold_minutes?: number | null
+          tier3_channels?: string[]
+          tier3_recipient_role?: string | null
+          tier3_template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          business_calendar_profile_id?: string | null
+          business_hours_only?: boolean
+          create_case?: boolean
+          create_task?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_severity?: Database["public"]["Enums"]["escalation_severity"]
+          description?: string | null
+          escalation_type?: Database["public"]["Enums"]["escalation_type"]
+          id?: string
+          initial_recipient_role?: string
+          is_active?: boolean
+          name?: string
+          pause_on_acknowledgement?: boolean
+          resolution_threshold_minutes?: number | null
+          source_module?: string
+          tier1_ack_threshold_minutes?: number | null
+          tier1_channels?: string[]
+          tier1_recipient_role?: string | null
+          tier1_template_id?: string | null
+          tier2_ack_threshold_minutes?: number | null
+          tier2_channels?: string[]
+          tier2_recipient_role?: string | null
+          tier2_template_id?: string | null
+          tier3_ack_threshold_minutes?: number | null
+          tier3_channels?: string[]
+          tier3_recipient_role?: string | null
+          tier3_template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_rules_business_calendar_profile_id_fkey"
+            columns: ["business_calendar_profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_calendar_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_rules_tier1_template_id_fkey"
+            columns: ["tier1_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_rules_tier2_template_id_fkey"
+            columns: ["tier2_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_rules_tier3_template_id_fkey"
+            columns: ["tier3_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escalation_tier_events: {
+        Row: {
+          acknowledgement_deadline: string | null
+          actor_id: string | null
+          created_at: string
+          escalation_id: string
+          from_tier: number | null
+          id: string
+          reason: string | null
+          recipient_role: string | null
+          to_tier: number
+          trigger_source: string
+        }
+        Insert: {
+          acknowledgement_deadline?: string | null
+          actor_id?: string | null
+          created_at?: string
+          escalation_id: string
+          from_tier?: number | null
+          id?: string
+          reason?: string | null
+          recipient_role?: string | null
+          to_tier: number
+          trigger_source?: string
+        }
+        Update: {
+          acknowledgement_deadline?: string | null
+          actor_id?: string | null
+          created_at?: string
+          escalation_id?: string
+          from_tier?: number | null
+          id?: string
+          reason?: string | null
+          recipient_role?: string | null
+          to_tier?: number
+          trigger_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_tier_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_tier_events_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
+          },
+        ]
+      }
+      escalations: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_deadline: string | null
+          assigned_role: string | null
+          assigned_user_id: string | null
+          auto_escalate_paused_at: string | null
+          correlation_id: string
+          created_at: string
+          created_by: string | null
+          current_tier: number
+          escalation_ref: string
+          escalation_type: Database["public"]["Enums"]["escalation_type"]
+          id: string
+          metadata: Json
+          next_auto_escalation_at: string | null
+          regulator_id: string | null
+          resolution_deadline: string | null
+          resolution_narrative: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          root_cause: string | null
+          rule_id: string | null
+          severity: Database["public"]["Enums"]["escalation_severity"]
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_event: string
+          source_module: string
+          source_reference: string | null
+          source_rule_id: string | null
+          status: Database["public"]["Enums"]["escalation_status"]
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_deadline?: string | null
+          assigned_role?: string | null
+          assigned_user_id?: string | null
+          auto_escalate_paused_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          created_by?: string | null
+          current_tier?: number
+          escalation_ref: string
+          escalation_type: Database["public"]["Enums"]["escalation_type"]
+          id?: string
+          metadata?: Json
+          next_auto_escalation_at?: string | null
+          regulator_id?: string | null
+          resolution_deadline?: string | null
+          resolution_narrative?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          rule_id?: string | null
+          severity?: Database["public"]["Enums"]["escalation_severity"]
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_event: string
+          source_module: string
+          source_reference?: string | null
+          source_rule_id?: string | null
+          status?: Database["public"]["Enums"]["escalation_status"]
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_deadline?: string | null
+          assigned_role?: string | null
+          assigned_user_id?: string | null
+          auto_escalate_paused_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          created_by?: string | null
+          current_tier?: number
+          escalation_ref?: string
+          escalation_type?: Database["public"]["Enums"]["escalation_type"]
+          id?: string
+          metadata?: Json
+          next_auto_escalation_at?: string | null
+          regulator_id?: string | null
+          resolution_deadline?: string | null
+          resolution_narrative?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          root_cause?: string | null
+          rule_id?: string | null
+          severity?: Database["public"]["Enums"]["escalation_severity"]
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_event?: string
+          source_module?: string
+          source_reference?: string | null
+          source_rule_id?: string | null
+          status?: Database["public"]["Enums"]["escalation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "escalation_rules"
             referencedColumns: ["id"]
           },
         ]
@@ -10566,6 +11020,7 @@ export type Database = {
           decision: string | null
           decision_by: string | null
           entity_id: string
+          escalation_id: string | null
           escalation_type: string
           evidence: Json
           id: string
@@ -10584,6 +11039,7 @@ export type Database = {
           decision?: string | null
           decision_by?: string | null
           entity_id: string
+          escalation_id?: string | null
           escalation_type: string
           evidence?: Json
           id?: string
@@ -10602,6 +11058,7 @@ export type Database = {
           decision?: string | null
           decision_by?: string | null
           entity_id?: string
+          escalation_id?: string | null
           escalation_type?: string
           evidence?: Json
           id?: string
@@ -10627,6 +11084,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_escalations_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "escalations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_escalations_escalation_id_fkey"
+            columns: ["escalation_id"]
+            isOneToOne: false
+            referencedRelation: "v_module_escalations"
+            referencedColumns: ["escalation_id"]
           },
         ]
       }
@@ -16404,6 +16875,88 @@ export type Database = {
           },
         ]
       }
+      v_module_escalations: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledgement_deadline: string | null
+          assigned_role: string | null
+          assigned_user_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          current_tier: number | null
+          escalation_id: string | null
+          escalation_ref: string | null
+          escalation_type: Database["public"]["Enums"]["escalation_type"] | null
+          metadata: Json | null
+          resolution_deadline: string | null
+          resolution_narrative: string | null
+          resolved_at: string | null
+          root_cause: string | null
+          severity: Database["public"]["Enums"]["escalation_severity"] | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_event: string | null
+          source_module: string | null
+          source_reference: string | null
+          status: Database["public"]["Enums"]["escalation_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledgement_deadline?: string | null
+          assigned_role?: string | null
+          assigned_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          current_tier?: number | null
+          escalation_id?: string | null
+          escalation_ref?: string | null
+          escalation_type?:
+            | Database["public"]["Enums"]["escalation_type"]
+            | null
+          metadata?: Json | null
+          resolution_deadline?: string | null
+          resolution_narrative?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: Database["public"]["Enums"]["escalation_severity"] | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_event?: string | null
+          source_module?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["escalation_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledgement_deadline?: string | null
+          assigned_role?: string | null
+          assigned_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          current_tier?: number | null
+          escalation_id?: string | null
+          escalation_ref?: string | null
+          escalation_type?:
+            | Database["public"]["Enums"]["escalation_type"]
+            | null
+          metadata?: Json | null
+          resolution_deadline?: string | null
+          resolution_narrative?: string | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          severity?: Database["public"]["Enums"]["escalation_severity"] | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_event?: string | null
+          source_module?: string | null
+          source_reference?: string | null
+          status?: Database["public"]["Enums"]["escalation_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       v_prudential_early_warnings: {
         Row: {
           current_value: number | null
@@ -17482,6 +18035,10 @@ export type Database = {
           enforcement_id: string
         }[]
       }
+      escalation_business_deadline: {
+        Args: { _from: string; _minutes: number; _profile_id: string }
+        Returns: string
+      }
       escalation_hub_stats: { Args: never; Returns: Json }
       evaluate_all_complaint_escalations: {
         Args: never
@@ -17919,6 +18476,10 @@ export type Database = {
       }
       has_external_role: { Args: { _user_id: string }; Returns: boolean }
       has_legal_access: { Args: { _user_id: string }; Returns: boolean }
+      has_module_access_for_escalation: {
+        Args: { _module: string; _user_id: string }
+        Returns: boolean
+      }
       has_permission: {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: boolean
@@ -19431,6 +19992,27 @@ export type Database = {
         | "LOGOUT"
       cutoff_unit_enum: "days" | "weeks" | "months"
       entity_access_type: "primary_user" | "employee" | "secondary_contact"
+      escalation_severity: "critical" | "high" | "medium" | "low"
+      escalation_status:
+        | "open"
+        | "acknowledged"
+        | "in_progress"
+        | "escalated"
+        | "resolved"
+        | "closed"
+      escalation_type:
+        | "sla_warning"
+        | "sla_breach"
+        | "threshold_breach"
+        | "fp_adverse_finding"
+        | "pattern_alert"
+        | "overdue_condition"
+        | "investigation_delay"
+        | "workflow_blockage"
+        | "integration_failure"
+        | "scheduler_failure"
+        | "notification_delivery_failure"
+        | "system_health_alert"
       notification_category: "action_required" | "alert" | "system" | "info"
       notification_digest_frequency: "immediate" | "hourly" | "daily"
       notification_severity: "critical" | "high" | "medium" | "low"
@@ -19637,6 +20219,29 @@ export const Constants = {
       ],
       cutoff_unit_enum: ["days", "weeks", "months"],
       entity_access_type: ["primary_user", "employee", "secondary_contact"],
+      escalation_severity: ["critical", "high", "medium", "low"],
+      escalation_status: [
+        "open",
+        "acknowledged",
+        "in_progress",
+        "escalated",
+        "resolved",
+        "closed",
+      ],
+      escalation_type: [
+        "sla_warning",
+        "sla_breach",
+        "threshold_breach",
+        "fp_adverse_finding",
+        "pattern_alert",
+        "overdue_condition",
+        "investigation_delay",
+        "workflow_blockage",
+        "integration_failure",
+        "scheduler_failure",
+        "notification_delivery_failure",
+        "system_health_alert",
+      ],
       notification_category: ["action_required", "alert", "system", "info"],
       notification_digest_frequency: ["immediate", "hourly", "daily"],
       notification_severity: ["critical", "high", "medium", "low"],
