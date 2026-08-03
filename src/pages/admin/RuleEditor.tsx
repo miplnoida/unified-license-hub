@@ -84,7 +84,7 @@ export default function RuleEditor() {
     const [{ data, error }, tests, execs, vers] = await Promise.all([
       supabase.from('engine_rules' as any).select('*').eq('id', id).maybeSingle(),
       supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(10),
-      supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('executed_at', { ascending: false }).limit(50),
       supabase.from('engine_rule_versions' as any).select('*').eq('rule_id', id).order('version', { ascending: false }),
     ]);
     if (error || !data) { toast.error(error?.message || 'Rule not found'); setLoading(false); return; }
@@ -655,8 +655,8 @@ export default function RuleEditor() {
                         {testHistory.map((t) => (
                           <TableRow key={t.id}>
                             <TableCell className="text-xs font-mono">{new Date(t.created_at).toLocaleString()}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.records_evaluated}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.records_matched}</TableCell>
+                            <TableCell className="text-xs font-mono">{t.evaluated_count}</TableCell>
+                            <TableCell className="text-xs font-mono">{t.matched_count}</TableCell>
                             <TableCell>{t.passed ? <Badge variant="approved">Passed</Badge> : <Badge variant="destructive">Failed</Badge>}</TableCell>
                           </TableRow>
                         ))}
@@ -745,7 +745,7 @@ export default function RuleEditor() {
                       <TableBody>
                         {executions.map((e) => (
                           <TableRow key={e.id}>
-                            <TableCell className="text-xs font-mono">{new Date(e.created_at).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs font-mono">{new Date(e.executed_at).toLocaleString()}</TableCell>
                             <TableCell className="text-sm">{e.entity_label || '—'}</TableCell>
                             <TableCell>
                               {e.suppressed ? <Badge variant="outline">Suppressed</Badge>
