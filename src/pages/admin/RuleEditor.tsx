@@ -58,12 +58,13 @@ export default function RuleEditor() {
 
   useEffect(() => {
     (async () => {
-      const [mRes, sRes, rRes, eRes, wRes] = await Promise.all([
+      const [mRes, sRes, rRes, eRes, wRes, oRes] = await Promise.all([
         supabase.from('prudential_ratios' as any).select('ratio_key, label').eq('is_active', true).order('label'),
         supabase.from('sectors' as any).select('id, name').order('name'),
         supabase.from('roles' as any).select('name').order('name'),
         supabase.from('notification_event_configs' as any).select('event_key, description').eq('is_active', true).order('event_key'),
         supabase.from('approval_workflows' as any).select('id, name, current_published_version_id').eq('is_active', true).order('name'),
+        supabase.from('profiles' as any).select('id, full_name, email').order('full_name').limit(500),
       ]);
       const seen = new Set<string>();
       setMetrics(((mRes.data as any[]) || []).filter((m) => {
@@ -73,21 +74,24 @@ export default function RuleEditor() {
       setRoles(((rRes.data as any[]) || []).map((r) => ({ value: r.name, label: r.name })));
       setEvents(((eRes.data as any[]) || []).map((e) => ({ value: e.event_key, label: e.event_key })));
       setWorkflows(((wRes.data as any[]) || []).filter((w) => w.current_published_version_id).map((w) => ({ value: w.id, label: w.name })));
+      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.id, label: p.full_name || p.email || p.id })));
     })();
   }, []);
 
   const loadRule = async () => {
     if (isNew) return;
     setLoading(true);
-    const [{ data, error }, tests, execs] = await Promise.all([
+    const [{ data, error }, tests, execs, vers] = await Promise.all([
       supabase.from('engine_rules' as any).select('*').eq('id', id).maybeSingle(),
       supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(10),
       supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('engine_rule_versions' as any).select('*').eq('rule_id', id).order('version', { ascending: false }),
     ]);
     if (error || !data) { toast.error(error?.message || 'Rule not found'); setLoading(false); return; }
     setRule(data as any);
     setTestHistory((tests.data as any[]) || []);
     setExecutions((execs.data as any[]) || []);
+    setVersions((vers.data as any[]) || []);
     setLoading(false);
   };
   useEffect(() => { loadRule(); }, [id]);
@@ -118,24 +122,45 @@ export default function RuleEditor() {
 
   const changeType = (t: RuleType) => setRule((r) => ({ ...r, rule_type: t, conditions: emptyConditions(t), }));
 
-  const save = async () => {
-    if (errors.length) return toast.error(errors[0]);
+  const buildPayload = (intent: 'draft' | 'activate') => ({
+    intent,
+    name: rule.name, description: rule.description || null, rule_type: rule.rule_type,
+    module: rule.module, sub_module: rule.sub_module || null, tags: rule.tags || [],
+    severity: rule.severity, conditions: c, actions: rule.actions || [],
+    suppression_days: Number(rule.suppression_days || 0),
+    owner_user_id: (rule as any).owner_user_id || null,
+    effective_from: (rule as any).effective_from || null,
+    effective_to: (rule as any).effective_to || null,
+  });
+
+  const save = async (intent: 'draft' | 'activate' = 'draft') => {
+    if (intent === 'activate' && errors.length) return toast.error(errors[0]);
     setSaving(true);
-    const payload = {
-      name: rule.name, description: rule.description || null, rule_type: rule.rule_type,
-      module: rule.module, sub_module: rule.sub_module || null, tags: rule.tags || [],
-      severity: rule.severity, conditions: c, actions: rule.actions || [],
-      suppression_days: Number(rule.suppression_days || 0),
-    };
     const { data, error } = await supabase.rpc('engine_rule_save' as any, {
-      _payload: payload as any, _rule_id: isNew ? null : id,
+      _payload: buildPayload(intent) as any, _rule_id: isNew ? null : id,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(isNew ? 'Rule created as draft' : 'Rule saved (new version)');
-    if (isNew) navigate(`/admin/rule-engine/${data as any}`, { replace: true });
+    if (error) return toast.error(error.message === 'forbidden' ? 'You are not permitted to edit rules.' : error.message);
+    const res = data as any;
+    if (res?.ok === false) return toast.error((res.errors || ['Rule could not be saved'])[0]);
+    const savedId = res?.rule?.id;
+    toast.success(res?.new_version ? `Saved as version ${res.rule.version} (draft)` : isNew ? 'Rule created as draft' : 'Rule saved');
+    if (isNew && savedId) navigate(`/admin/rule-engine/${savedId}`, { replace: true });
     else loadRule();
   };
+
+  const restoreVersion = async (version: number) => {
+    setRestoring(version);
+    const { data, error } = await supabase.rpc('engine_rule_restore_version' as any, {
+      _rule_id: id, _version: version, _note: `restored from v${version}`,
+    });
+    setRestoring(null);
+    if (error) return toast.error(error.message);
+    if ((data as any)?.ok === false) return toast.error('Restore failed');
+    toast.success(`Version ${version} restored as a new draft version`);
+    loadRule();
+  };
+
 
   const runTest = async () => {
     if (isNew) return toast.error('Save the rule before testing.');
