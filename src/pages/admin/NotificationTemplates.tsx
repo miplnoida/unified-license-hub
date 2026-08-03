@@ -331,11 +331,10 @@ export default function NotificationTemplates() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Event</Label>
-                <Select value={form.event_key || 'none'} onValueChange={(v) => setForm({ ...form, event_key: v === 'none' ? '' : v })}>
+                <Label>Event *</Label>
+                <Select value={form.event_key} onValueChange={(v) => setForm({ ...form, event_key: v })}>
                   <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not bound to an event</SelectItem>
                     {events.map((ev) => (
                       <SelectItem key={ev.id} value={ev.event_key}>{ev.event_key}</SelectItem>
                     ))}
