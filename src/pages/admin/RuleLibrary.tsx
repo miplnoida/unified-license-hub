@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,69 +11,77 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { toast } from 'sonner';
-import { Loader2, Plus, ExternalLink, PauseCircle, PlayCircle, Copy } from 'lucide-react';
-import { EngineRule, RULE_MODULES, RULE_TYPES, describeRule } from '@/lib/ruleEngine';
+import {
+  Loader2, Plus, ExternalLink, PauseCircle, PlayCircle, Copy, Download, Play, History,
+} from 'lucide-react';
+import { RULE_TYPES } from '@/lib/ruleEngine';
+import {
+  FAMILY_LABELS, InventoryRule, RuleInventoryKpis, inventoryCsv, searchRuleInventory,
+} from '@/lib/ruleInventory';
 
-const LEGACY_RULE_MODULES = [
-  { label: 'Return Validation Rules', href: '/admin/return-config', desc: 'Field, cross-field and expression validation on return forms.' },
-  { label: 'Prudential Thresholds', href: '/supervision/breaches', desc: 'Ratio thresholds and breach detection for prudential returns.' },
-  { label: 'Conduct Monitoring Rules', href: '/admin/conduct/monitoring-rules', desc: 'Conduct signal sweeps feeding entity risk profiles.' },
-  { label: 'Complaint Triage Rules', href: '/admin/conduct/triage-rules', desc: 'Auto-classification of complaints at intake.' },
-  { label: 'Sufficiency Rules', href: '/admin/sufficiency-rules', desc: 'Completeness checks for licensing applications.' },
-  { label: 'RFI Auto-Rules', href: '/admin/rfi-auto-rules', desc: 'Suggested RFI prompts for reviewers.' },
-  { label: 'Correspondence Routing Rules', href: '/admin/correspondence-routing', desc: 'Classification and routing of inbound correspondence.' },
-  { label: 'Escalation Rules', href: '/admin/escalations', desc: 'Tiered escalation and alert progression.' },
-];
+const PAGE_SIZE = 50;
 
 const statusVariant = (s: string) => (s === 'active' ? 'approved' : s === 'draft' ? 'draft' : 'secondary');
+const typeLabel = (t: string) => RULE_TYPES.find((x) => x.value === t)?.label ?? t.replace(/_/g, ' ');
+const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
 export default function RuleLibrary() {
   const navigate = useNavigate();
-  const [rules, setRules] = useState<EngineRule[]>([]);
+  const [rows, setRows] = useState<InventoryRule[]>([]);
+  const [kpis, setKpis] = useState<RuleInventoryKpis | null>(null);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+
+  const [family, setFamily] = useState('all');
   const [search, setSearch] = useState('');
-  const [moduleFilter, setModuleFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
-  const [deactivating, setDeactivating] = useState<EngineRule | null>(null);
+  const [sort, setSort] = useState('last_modified_at');
+  const [dir, setDir] = useState<'asc' | 'desc'>('desc');
+
+  const [deactivating, setDeactivating] = useState<InventoryRule | null>(null);
   const [justification, setJustification] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('engine_rules' as any)
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) toast.error(error.message);
-    else setRules((data as any as EngineRule[]) || []);
+    try {
+      const res = await searchRuleInventory({
+        search, family, rule_type: typeFilter, status: statusFilter, severity: severityFilter,
+        sort, dir, limit: PAGE_SIZE, offset: page * PAGE_SIZE,
+      });
+      setRows(res.rows);
+      setTotal(res.total);
+      setKpis(res.kpis);
+    } catch (e: any) {
+      toast.error(e.message === 'forbidden' ? 'You do not have access to the Rule Engine.' : e.message);
+    }
     setLoading(false);
+  }, [search, family, typeFilter, statusFilter, severityFilter, sort, dir, page]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(0); }, [search, family, typeFilter, statusFilter, severityFilter]);
+
+  const families = useMemo(() => {
+    const counts = kpis?.families || {};
+    const keys = Object.keys(FAMILY_LABELS).filter((k) => counts[k] !== undefined || k === 'shared');
+    return keys.map((k) => ({ key: k, label: FAMILY_LABELS[k], count: counts[k] ?? 0 }));
+  }, [kpis]);
+
+  const toggleSort = (col: string) => {
+    if (sort === col) setDir(dir === 'asc' ? 'desc' : 'asc');
+    else { setSort(col); setDir('desc'); }
   };
-  useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => rules.filter((r) => {
-    const q = search.trim().toLowerCase();
-    if (q && !`${r.rule_code} ${r.name} ${r.description ?? ''} ${(r.tags || []).join(' ')}`.toLowerCase().includes(q)) return false;
-    if (moduleFilter !== 'all' && r.module !== moduleFilter) return false;
-    if (typeFilter !== 'all' && r.rule_type !== typeFilter) return false;
-    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-    if (severityFilter !== 'all' && r.severity !== severityFilter) return false;
-    return true;
-  }), [rules, search, moduleFilter, typeFilter, statusFilter, severityFilter]);
-
-  const counts = useMemo(() => ({
-    total: rules.length,
-    active: rules.filter((r) => r.status === 'active').length,
-    draft: rules.filter((r) => r.status === 'draft').length,
-    inactive: rules.filter((r) => r.status === 'inactive').length,
-  }), [rules]);
-
-  const activate = async (r: EngineRule) => {
+  const activate = async (r: InventoryRule) => {
     setBusy(true);
-    const { error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: r.id });
+    const { error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: r.rule_id });
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`${r.rule_code} activated`);
@@ -84,7 +92,7 @@ export default function RuleLibrary() {
     if (justification.trim().length < 10) return toast.error('Justification must be at least 10 characters.');
     setBusy(true);
     const { error } = await supabase.rpc('engine_rule_deactivate' as any, {
-      _rule_id: deactivating!.id, _justification: justification.trim(),
+      _rule_id: deactivating!.rule_id, _justification: justification.trim(),
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -92,39 +100,75 @@ export default function RuleLibrary() {
     setDeactivating(null); setJustification(''); load();
   };
 
-  const clone = async (r: EngineRule) => {
+  const clone = async (r: InventoryRule) => {
+    const { data: src, error: readErr } = await supabase
+      .from('engine_rules' as any).select('*').eq('id', r.rule_id).maybeSingle();
+    if (readErr || !src) return toast.error(readErr?.message || 'Rule not found');
+    const s = src as any;
     const { error } = await supabase.rpc('engine_rule_save' as any, {
       _payload: {
-        name: `${r.name} (copy)`, description: r.description, rule_type: r.rule_type,
-        module: r.module, sub_module: r.sub_module, tags: r.tags, severity: r.severity,
-        conditions: r.conditions, actions: r.actions, suppression_days: r.suppression_days,
-      },
+        name: `${s.name} (copy)`, description: s.description, rule_type: s.rule_type,
+        module: s.module, sub_module: s.sub_module, tags: s.tags, severity: s.severity,
+        conditions: s.conditions, actions: s.actions, suppression_days: s.suppression_days,
+      } as any,
     });
     if (error) return toast.error(error.message);
     toast.success('Rule cloned as draft');
     load();
   };
 
+  const exportCsv = async () => {
+    try {
+      await authorizedExport('rule_engine', 'export', { count: rows.length, family });
+    } catch (e: any) {
+      return toast.error(e.message || 'Export not permitted');
+    }
+    const blob = new Blob([inventoryCsv(rows)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rule-inventory-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const openRule = (r: InventoryRule) => {
+    if (r.capabilities?.edit_central) navigate(`/admin/rule-engine/${r.rule_id}`);
+    else if (r.source_screen) navigate(r.source_screen);
+    else toast.info('This rule family has no editor screen.');
+  };
+
+  const kpiCards = [
+    { label: 'Total rules', value: kpis?.total ?? 0 },
+    { label: 'Active', value: kpis?.active ?? 0 },
+    { label: 'Draft', value: kpis?.draft ?? 0 },
+    { label: 'Inactive', value: kpis?.inactive ?? 0 },
+    { label: 'Never executed', value: kpis?.never_executed ?? 0 },
+    { label: 'Never tested', value: kpis?.never_tested ?? 0 },
+    { label: 'Tests older than 90d', value: kpis?.stale_tests ?? 0 },
+    { label: 'Failing (30d)', value: kpis?.failing ?? 0 },
+  ];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Rule Engine — Rule Library"
-          description="Central library of supervisory rules: thresholds, trends, patterns, SLAs, routing and scheduling."
+          description="Unified oversight of every supervisory rule across the platform. Module families keep their own editors and runtime owners; this library governs inventory, status, testing and execution evidence."
           actions={
-            <Button data-rbac="rule_engine.edit" onClick={() => navigate('/admin/rule-engine/new')}>
-              <Plus className="h-4 w-4 mr-2" /> New Rule
-            </Button>
+            <div className="flex gap-2">
+              <Button data-rbac="rule_engine.export" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+              <Button data-rbac="rule_engine.edit" onClick={() => navigate('/admin/rule-engine/new')}>
+                <Plus className="h-4 w-4 mr-2" /> New Rule
+              </Button>
+            </div>
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-4">
-          {[
-            { label: 'Total rules', value: counts.total },
-            { label: 'Active', value: counts.active },
-            { label: 'Draft', value: counts.draft },
-            { label: 'Inactive', value: counts.inactive },
-          ].map((k) => (
+        <div className="grid gap-3 md:grid-cols-4">
+          {kpiCards.map((k) => (
             <Card key={k.label}><CardContent className="p-4">
               <div className="text-xs text-muted-foreground">{k.label}</div>
               <div className="text-2xl font-semibold font-mono">{k.value}</div>
@@ -134,15 +178,17 @@ export default function RuleLibrary() {
 
         <Card>
           <CardContent className="p-4 space-y-4">
-            <div className="grid gap-3 md:grid-cols-5">
-              <Input placeholder="Search code, name, tag…" value={search} onChange={(e) => setSearch(e.target.value)} />
-              <Select value={moduleFilter} onValueChange={setModuleFilter}>
-                <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All modules</SelectItem>
-                  {RULE_MODULES.map((m) => <SelectItem key={m} value={m}>{m.replace(/_/g, ' ')}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <Tabs value={family} onValueChange={setFamily}>
+              <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="all">All rules ({kpis?.total ?? 0})</TabsTrigger>
+                {families.map((f) => (
+                  <TabsTrigger key={f.key} value={f.key}>{f.label} ({f.count})</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input placeholder="Search code, name, module, tag…" value={search} onChange={(e) => setSearch(e.target.value)} />
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger><SelectValue placeholder="Rule type" /></SelectTrigger>
                 <SelectContent>
@@ -170,50 +216,85 @@ export default function RuleLibrary() {
 
             {loading ? (
               <div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
-                No rules match these filters. Create a rule to get started.
+                No rules match these filters.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Rule</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_code')}>Rule ID</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('name')}>Rule</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('family')}>Family</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_type')}>Type</TableHead>
                     <TableHead>Module</TableHead>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last triggered</TableHead>
-                    <TableHead>Fires</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('severity')}>Severity</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('status')}>Status</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_triggered_at')}>Last triggered</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('trigger_count')}>Fires</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_tested_at')}>Last tested</TableHead>
+                    <TableHead>Last modified</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {filtered.map((r) => (
-                      <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/admin/rule-engine/${r.id}`)}>
+                    {rows.map((r) => (
+                      <TableRow key={`${r.family}-${r.rule_id}`} className="cursor-pointer" onClick={() => openRule(r)}>
                         <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                         <TableCell>
                           <div className="font-medium">{r.name}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{describeRule(r)}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">{r.description || '—'}</div>
                         </TableCell>
-                        <TableCell><Badge variant="outline">{RULE_TYPES.find((t) => t.value === r.rule_type)?.label ?? r.rule_type}</Badge></TableCell>
-                        <TableCell className="text-xs capitalize">{r.module?.replace(/_/g, ' ')}</TableCell>
-                        <TableCell><Badge variant="outline" className="capitalize">{r.severity}</Badge></TableCell>
+                        <TableCell className="text-xs">
+                          {r.family_label}
+                          {!r.capabilities?.edit_central && (
+                            <div className="text-[11px] text-muted-foreground">Managed in module</div>
+                          )}
+                        </TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{typeLabel(r.rule_type)}</Badge></TableCell>
+                        <TableCell className="text-xs capitalize">{r.module?.replace(/_/g, ' ') || '—'}</TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{r.severity || '—'}</Badge></TableCell>
                         <TableCell><Badge variant={statusVariant(r.status) as any} className="capitalize">{r.status}</Badge></TableCell>
-                        <TableCell className="text-xs font-mono">{r.last_triggered_at ? new Date(r.last_triggered_at).toLocaleDateString() : '—'}</TableCell>
-                        <TableCell className="text-xs font-mono">{r.trigger_count}</TableCell>
+                        <TableCell className="text-xs font-mono">{fmtDate(r.last_triggered_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">{r.trigger_count ?? 0}</TableCell>
+                        <TableCell className="text-xs font-mono">{fmtDate(r.last_tested_at)}</TableCell>
+                        <TableCell className="text-xs">
+                          <div>{fmtDate(r.last_modified_at)}</div>
+                          <div className="text-[11px] text-muted-foreground">{r.modified_by_name || '—'}</div>
+                        </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
-                            <Button data-rbac="rule_engine.edit" size="sm" variant="ghost" onClick={() => clone(r)} title="Clone">
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            {r.status === 'active' ? (
-                              <Button data-rbac="rule_engine.activate" size="sm" variant="ghost" onClick={() => setDeactivating(r)} title="Deactivate">
-                                <PauseCircle className="h-4 w-4" />
+                            {r.capabilities?.test && r.capabilities?.edit_central && (
+                              <Button data-rbac="rule_engine.test" size="sm" variant="ghost" title="Test"
+                                onClick={() => navigate(`/admin/rule-engine/${r.rule_id}?tab=test`)}>
+                                <Play className="h-4 w-4" />
                               </Button>
-                            ) : (
-                              <Button data-rbac="rule_engine.activate" size="sm" variant="ghost" disabled={busy} onClick={() => activate(r)} title="Activate">
-                                <PlayCircle className="h-4 w-4" />
+                            )}
+                            {r.capabilities?.executions && r.capabilities?.edit_central && (
+                              <Button data-rbac="rule_engine.view_executions" size="sm" variant="ghost" title="Execution history"
+                                onClick={() => navigate(`/admin/rule-engine/${r.rule_id}?tab=history`)}>
+                                <History className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {r.capabilities?.clone && (
+                              <Button data-rbac="rule_engine.edit" size="sm" variant="ghost" onClick={() => clone(r)} title="Clone">
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {r.capabilities?.activate && (
+                              r.status === 'active' ? (
+                                <Button data-rbac="rule_engine.activate" size="sm" variant="ghost" onClick={() => setDeactivating(r)} title="Deactivate">
+                                  <PauseCircle className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <Button data-rbac="rule_engine.activate" size="sm" variant="ghost" disabled={busy} onClick={() => activate(r)} title="Activate">
+                                  <PlayCircle className="h-4 w-4" />
+                                </Button>
+                              )
+                            )}
+                            {!r.capabilities?.edit_central && r.source_screen && (
+                              <Button size="sm" variant="ghost" title="Open module editor" onClick={() => navigate(r.source_screen!)}>
+                                <ExternalLink className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -224,25 +305,42 @@ export default function RuleLibrary() {
                 </Table>
               </div>
             )}
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {total === 0 ? 'No rules' : `Showing ${page * PAGE_SIZE + 1}–${Math.min(total, (page + 1) * PAGE_SIZE)} of ${total}`}
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button>
+                <Button size="sm" variant="outline" disabled={(page + 1) * PAGE_SIZE >= total} onClick={() => setPage(page + 1)}>Next</Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Module-specific rule configuration</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Runtime ownership</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
-            {LEGACY_RULE_MODULES.map((l) => (
-              <button
-                key={l.href}
-                onClick={() => navigate(l.href)}
-                className="text-left rounded-lg border p-3 hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{l.label}</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+            {families.map((f) => {
+              const sample = rows.find((r) => r.family === f.key);
+              return (
+                <div key={f.key} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{f.label}</span>
+                    <Badge variant="outline">{f.count}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Evaluated by: {sample?.runtime_owner || '—'}
+                  </p>
+                  {sample?.source_screen && (
+                    <Button size="sm" variant="ghost" className="px-0 mt-1 h-auto text-xs"
+                      onClick={() => navigate(sample.source_screen!)}>
+                      Open module configuration <ExternalLink className="h-3 w-3 ml-1" />
+                    </Button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{l.desc}</p>
-              </button>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
@@ -251,6 +349,9 @@ export default function RuleLibrary() {
         <DialogContent>
           <DialogHeader><DialogTitle>Deactivate {deactivating?.rule_code}</DialogTitle></DialogHeader>
           <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Deactivation stops future firing. Alerts already open stay open and must be closed on their own merits.
+            </p>
             <Label>Justification (recorded in the audit trail)</Label>
             <Textarea rows={4} value={justification} onChange={(e) => setJustification(e.target.value)}
               placeholder="Why is this rule being switched off?" />
