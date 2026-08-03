@@ -125,7 +125,10 @@ jobs:
             supabase/tests/notifications/02_rls.sql \
             supabase/tests/notifications/03_preferences.sql \
             supabase/tests/notifications/04_delivery_audit.sql \
-            supabase/tests/notifications/05_read_audit.sql; do
+            supabase/tests/notifications/05_read_audit.sql \
+            supabase/tests/notifications/06_centre_rpcs.sql \
+            supabase/tests/notifications/07_preferences_matrix.sql \
+            supabase/tests/notifications/08_digest.sql; do
             if [ ! -f "$f" ]; then
               echo "::error::Required notification pgTAP file missing: $f"
               missing=1
