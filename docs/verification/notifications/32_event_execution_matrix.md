@@ -1,6 +1,6 @@
 # Notification Event Execution Matrix
 
-Generated: 2026-08-03T10:56:02.268Z
+Generated: 2026-08-03T10:59:54.812Z
 Generator: `scripts/notification-closure-report.mjs`
 
 One row per configured event. "Wired" means a backend call site exists (database
@@ -57,7 +57,7 @@ Events with no delivery record are reported as NOT EXERCISED — never as passed
 | `correspondence.external_message_sent` | active | wired | 2 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
 | `correspondence.external_response_received` | active | wired | 3 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
 | `correspondence.internal_message_posted` | active | wired | 3 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
-| `correspondence.internal_participant_added` | active | wired | 1 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
+| `correspondence.internal_participant_added` | active | wired | 1 | y | 0 (0/0) | 0 | 1 (1) | NOT EXERCISED |
 | `correspondence.sla_breached` | active | wired | 3 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
 | `correspondence.sla_near_breach` | active | wired | 1 | y | 0 (0/0) | 0 | 0 (0) | NOT EXERCISED |
 

@@ -27,7 +27,7 @@ correspondence.awaiting_response,communications,medium,in_app+email,active,wired
 correspondence.external_message_sent,communications,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 correspondence.external_response_received,communications,high,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
 correspondence.internal_message_posted,communications,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
-correspondence.internal_participant_added,communications,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.internal_participant_added,communications,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,1,1,NOT EXERCISED
 correspondence.sla_breached,communications,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
 correspondence.sla_near_breach,communications,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 complaint.closed,complaint,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
@@ -173,13 +173,13 @@ regulator.assignment_changed,regulator,medium,in_app,active,wired,db,3,yes,0,0,0
 regulator.comment_added_or_query_raised,regulator,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 ai.critical_insight,reporting,critical,in_app+email,active,wired,edge:generate-dashboard-insights/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 ai.insight_generated,reporting,low,in_app,active,wired,edge:generate-dashboard-insights/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
-ai.processing_failed,reporting,high,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+ai.processing_failed,reporting,high,in_app+email,active,wired,edge:generate-dashboard-insights/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 report.delivery_failed,reporting,high,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 report.first_delivery_success,reporting,low,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 report.scheduled_delivered,reporting,low,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 return.analysis_complete,return,medium,in_app+email,active,wired,edge:generate-return-analysis/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 return.approved,return,low,email+in_app,active,wired,db,3,yes,10,5,5,0,10,0,0,PARTIAL (legacy dispatch only)
-return.approved_step,return,medium,email+in_app,active,wired,edge:_shared/return-notification-payload.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+return.approved_step,return,medium,email+in_app,active,wired,edge:perform-return-workflow-action/index.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
 return.breach_critical,return,critical,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
 return.breach_warning,return,critical,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 return.comment_added,return,medium,email+in_app,active,wired,db,4,yes,8,4,4,0,8,0,0,PARTIAL (legacy dispatch only)
@@ -205,7 +205,7 @@ escalation.ownership_assigned,system,high,in_app+email,active,wired,db,1,yes,0,0
 escalation.resolved,system,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
 escalation.tier_advanced,system,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
 system_health.cron_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
-system_health.dispatch_failure_repeated,system,critical,in_app+email,active,wired,edge:notification-event-queue-worker/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.dispatch_failure_repeated,system,critical,in_app+email,active,wired,edge:notification-email-retry-worker/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 system_health.integration_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 system_health.notification_queue_backlog,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
 system_health.scheduler_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED

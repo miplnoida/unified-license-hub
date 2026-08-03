@@ -1,6 +1,6 @@
 # Notifications & Communications — Recalculated Baseline
 
-Generated: 2026-08-03T10:56:02.268Z
+Generated: 2026-08-03T10:59:54.812Z
 Generator: `scripts/notification-closure-report.mjs` (live database queries only)
 Approved scope: In-App + Email. SMS is excluded from implementation, testing and every percentage.
 
@@ -23,15 +23,15 @@ Approved scope: In-App + Email. SMS is excluded from implementation, testing and
 | dispatch unresolved placeholder rows | 0 |
 | dispatch rendered token leak | 1 |
 | dispatch poisoned | 0 |
-| notifications rows | 963 |
-| notifications route resolved | 32 |
+| notifications rows | 964 |
+| notifications route resolved | 33 |
 | notifications route resolvable legacy | 750 |
 | notifications route legacy none | 181 |
-| correspondence threads | 0 |
-| correspondence messages | 0 |
+| correspondence threads | 1 |
+| correspondence messages | 3 |
 | escalations | 13 |
 | escalation tier events | 13 |
-| queue rows | 12 |
+| queue rows | 17 |
 | template versions | 419 |
 | event channel bindings | 398 |
 
@@ -48,6 +48,7 @@ Approved scope: In-App + Email. SMS is excluded from implementation, testing and
 | Status | Count |
 | --- | --- |
 | dispatched | 12 |
+| pending | 5 |
 
 ## Audit records by action (notification domain)
 
