@@ -25,13 +25,14 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString().slice(0, 10);
     const { data: overdue = [], error } = await admin
       .from("returns_filed")
-      .select("id, licensee_id, due_date, period_end, workflow_status")
+      .select("id, unique_id, entity_id, on_behalf_of_licensee_id, sector_id, subsector_id, return_configuration_id, due_date, period_end_date, workflow_status")
       .lte("due_date", nowIso)
-      .in("workflow_status", ["TEMP", "WIP", "TBR", null]);
+      .in("workflow_status", ["TEMP", "WIP", "TBR"]);
     if (error) throw error;
 
     let dispatched = 0;
     for (const r of (overdue as any[])) {
+      const licenseeId = r.on_behalf_of_licensee_id || r.entity_id;
       try {
         await admin.functions.invoke("dispatch-notification-event", {
           body: {
@@ -40,14 +41,23 @@ Deno.serve(async (req) => {
             entity_id: r.id,
             reminder_window: nowIso, // daily dedupe window
             payload: {
-              return_id: r.id, due_date: r.due_date, licensee_id: r.licensee_id,
-              period_end: r.period_end,
+              return_id: r.id,
+              unique_id: r.unique_id,
+              due_date: r.due_date,
+              licensee_id: licenseeId,
+              entity_id: r.entity_id,
+              sector_id: r.sector_id,
+              subsector_id: r.subsector_id,
+              period_end: r.period_end_date,
+              cta_url: `/returns/${r.id}`,
+              cta_label: "Open return",
             },
           },
         });
         dispatched++;
       } catch (_) { /* best effort */ }
     }
+
 
     return new Response(JSON.stringify({ ok: true, scanned: overdue.length, dispatched }), {
       status: 200, headers: { ...cors, "Content-Type": "application/json" },

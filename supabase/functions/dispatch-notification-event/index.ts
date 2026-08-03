@@ -717,9 +717,75 @@ async function resolveRecipients(
           if (email) out.add(`email:${email}`);
           break;
         }
+        case "thread_participants": {
+          const threadId = ctx.payload?.thread_id
+            || (ctx.entity_type === "correspondence_thread" ? ctx.entity_id : null);
+          if (threadId) {
+            const scope = typeof rule.scope === "string" ? rule.scope : "all";
+            let q = admin
+              .from("correspondence_thread_participants")
+              .select("user_id, is_internal")
+              .eq("thread_id", String(threadId))
+              .not("user_id", "is", null);
+            if (scope === "internal") q = q.eq("is_internal", true);
+            if (scope === "external") q = q.eq("is_internal", false);
+            const { data } = await q;
+            (data || []).forEach((r: any) => r.user_id && out.add(String(r.user_id)));
+          }
+          break;
+        }
+        case "thread_assigned_officer": {
+          const threadId = ctx.payload?.thread_id
+            || (ctx.entity_type === "correspondence_thread" ? ctx.entity_id : null);
+          if (ctx.payload?.assigned_officer_id) out.add(String(ctx.payload.assigned_officer_id));
+          else if (threadId) {
+            const { data } = await admin
+              .from("correspondence_threads")
+              .select("assigned_officer_id")
+              .eq("id", String(threadId))
+              .maybeSingle();
+            if (data?.assigned_officer_id) out.add(String(data.assigned_officer_id));
+          }
+          break;
+        }
+        case "record_assignee": {
+          // Generic assignee resolver for conduct / complaint style records.
+          // Reads well-known payload keys first, then falls back to an
+          // allow-listed table lookup keyed off the dispatch entity.
+          const payloadKeys = [
+            "assigned_to", "assigned_investigator", "investigator_id",
+            "assigned_officer_id", "assignee_id", "owner_id",
+          ];
+          let found = false;
+          for (const key of payloadKeys) {
+            const v = ctx.payload?.[key];
+            if (v) { out.add(String(v)); found = true; }
+          }
+          if (!found && ctx.entity_id) {
+            const lookup: Record<string, { table: string; column: string }> = {
+              conduct_alert: { table: "conduct_alerts", column: "assigned_to" },
+              conduct_investigation: { table: "conduct_investigations", column: "assigned_investigator" },
+              conduct_action: { table: "conduct_actions", column: "assigned_to" },
+              complaint: { table: "complaints", column: "investigator_id" },
+              correspondence_thread: { table: "correspondence_threads", column: "assigned_officer_id" },
+            };
+            const target = lookup[String(ctx.entity_type || "")];
+            if (target) {
+              const { data } = await admin
+                .from(target.table)
+                .select(target.column)
+                .eq("id", String(ctx.entity_id))
+                .maybeSingle();
+              const v = (data as any)?.[target.column];
+              if (v) out.add(String(v));
+            }
+          }
+          break;
+        }
         default:
           console.warn("Unknown recipient rule type", rule.type);
       }
+
     } catch (e: any) {
       console.error("recipient rule failure", rule, e?.message || e);
     }
