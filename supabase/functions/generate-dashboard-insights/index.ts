@@ -145,6 +145,15 @@ Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /
           error: (_e as Error)?.message ?? String(_e),
           durationMs: Date.now() - aiStarted,
         });
+        await enqueueNotificationEvent(supa, {
+          event_key: 'ai.processing_failed',
+          entity_type: 'report',
+          payload: {
+            job_label: 'ai-gateway.dashboard-insights',
+            error_message: String((_e as Error)?.message ?? _e).slice(0, 300),
+          },
+          idempotency_suffix: `${regulatorKey}:${new Date().toISOString().slice(0, 13)}`,
+        });
       }
     }
 
