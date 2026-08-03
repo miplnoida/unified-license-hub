@@ -1198,7 +1198,8 @@ Deno.serve(async (req) => {
               category,
               module,
               system_required: pref?.system_required === true,
-              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              template_id: templateIdFor("email"),
+              template_version: templateVersionFor("email"),
               metadata: { event_key: dispatchCfg.eventKey, recipient_email: email },
             }).select("id").maybeSingle();
             if (emailRow?.id) {
