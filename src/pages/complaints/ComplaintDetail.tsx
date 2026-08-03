@@ -555,8 +555,19 @@ export default function ComplaintDetail() {
           </TabsContent>
 
 
+          <TabsContent value="communications" className="space-y-4">
+            <CaseThreadsPanel
+              sourceType="complaint"
+              sourceId={complaint.id}
+              sourceReference={complaint.reference_number ?? null}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              title="Complaint communications"
+            />
+          </TabsContent>
+
           <TabsContent value="tracking" className="space-y-4">
             <WorkflowActionPanel complaintId={complaint.id} />
+
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
