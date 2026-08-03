@@ -1,54 +1,65 @@
-# Notification Delivery Channels — Production Hardening
+# Notifications & Communications — Final FRD Verification and Defect Closure
 
-Scope decided with you: **email only**. SMTP stays the sender (so no fake "delivered"), and **SMS is left visibly unavailable** — no provider integration in this pass.
+Verification runs live against the dev backend (real dispatch, real in-app/dispatch/audit rows, temporary data cleaned up afterwards). All notification defects found get fixed. Deliverables are markdown under `/docs/verification/notifications/`.
 
-## Current state (verified in code)
+## Confirmed pre-verification findings (from reads already done)
 
-- `send-notification` sends via nodemailer/SMTP, validates config from `site_settings.email_sms_settings`, and writes `sent`/`failed`/`bounced` to `notification_dispatch_log`.
-- `dispatch-notification-event` writes a `queued` log row per recipient/channel with `dedupe_key`, `subject`, `rendered_content`, `template_id`, `template_version` — then calls SMTP inline.
-- `notification-failure-sweep` alerts admins after 3 email failures/hour; `notification-status` returns a minimal booleans-only health payload; `notification-retry` supports manual/admin retry.
-- Gaps: no `provider_message_id`; no bounce webhook endpoint; no retry/backoff for email (only manual retry); SMS channel silently no-ops (log row stays `queued`, counted as neither sent nor failed); no channel-health UI page; health payload lacks queue depth, oldest pending, worker/cron status, provider errors.
+These are measured, not assumed:
 
-## What will be built
+- **214 active event configs; 34 have empty `recipient_rules`.** The dispatcher resolves recipients only from `recipient_rules` (`dispatch-notification-event/index.ts:967-975`) with no payload fallback, so these events resolve to **zero recipients**. Affected: `sla.warning`, `sla.breach`, `return.overdue`, `return.breach_warning`, `return.breach_critical`, `return.validation_failed/passed`, all seven `correspondence.*`, all `conduct_*` (15), `application.rfi_near_due`, `application.rfi_overdue`, `application.rfi_responded`, `application.ai_overridden`.
+- **No dispatch row has ever existed for any of those keys** — confirmed by querying `notification_dispatch_log` (51 distinct keys logged, none of the 34).
+- **`correspondence_threads` has 0 rows** → NOT-THR-001 is completely unexercised end-to-end.
+- **`notification_event_queue` has 0 rows** → transactional queue path unexercised in practice.
+- Cron is healthy: 12 relevant jobs all `active=true` (digest hourly/daily, event-queue worker 1 min, email retry 2 min, failure sweep hourly, health monitor, SLA/escalation/correspondence/complaint sweeps, licence expiry daily).
+- Complaints, licence expiry reminders, F&P invitation, return due reminders, and pattern alerts have **no dispatch history**, so their trigger paths are unproven.
 
-### 1. Email status model (correct semantics)
-Canonical statuses: `queued` → `processing` → `sent` (SMTP accepted) → `bounced` / `failed`, plus `skipped`. `delivered` is used **only** for in-app and for future provider-confirmed events; SMTP acceptance never sets `delivered`. Backfill any email rows wrongly marked `delivered` to `sent`.
+## Phase 1 — Verification harness and baseline
 
-### 2. Durable retry with backoff
-- Add `attempts`, `next_attempt_at`, `provider_message_id`, `poisoned` to `notification_dispatch_log` (only those not already present).
-- New `notification-email-retry-worker` edge function (cron, every 2 min): claims `failed` email rows with `attempts < 5` and `next_attempt_at <= now()` using `FOR UPDATE SKIP LOCKED`, re-sends, applies exponential backoff (2/4/8/16/32 min capped at 60), marks `poisoned` after max attempts, and never retries hard bounces or `no_email`/`opted_out` skips.
-- Poison rows raise a `system_health.dispatch_failure_repeated` escalation (existing pattern).
+- Add `docs/verification/notifications/` with a repeatable scenario runbook and a SQL evidence pack (`evidence/*.sql`) that, per scenario, extracts: recipient set, in-app row, severity, category, template id/version, deep link, channel, dispatch record, audit record, preference decision, dedupe key.
+- Snapshot the baseline (config counts, cron state, log key inventory) as `00_baseline.md` so every later claim is diffable.
 
-### 3. Immutable rendered content
-Database trigger makes `rendered_content`, `subject`, `recipient_email`, `template_id`, `template_version`, `sent_at` write-once once set — retries reuse the stored content instead of re-rendering (fixes today's `notification-retry`, which re-renders from current templates).
+## Phase 2 — Fix the recipient-resolution defect (root cause of most failures)
 
-### 4. Provider message ID + bounce endpoint
-- Capture nodemailer's `messageId` into `provider_message_id`.
-- New public `notification-delivery-webhook` function: HMAC-verified (secret via `generate_secret`), maps provider callbacks to `delivered` / `bounced` / `opened`. It stays dormant with plain SMTP and is documented as requiring an ESP; no status is invented without a callback.
+- Migration seeding correct `recipient_rules` for all 34 empty configs, per FRD ownership: SLA/return breach → assigned officer + `sla_process_team_leads` + supervisor role; `return.*` licensee-facing → `entity_primary_users`; `correspondence.*` → thread participants (new `thread_participants` rule type) plus assigned owner; `conduct_*` → assigned investigator + conduct supervisor role.
+- Add a guardrail so this class of defect cannot silently recur: a database validation that rejects activating an event config with empty `recipient_rules`, plus a vitest assertion that every active config has at least one rule.
+- Where a rule type the FRD needs does not exist yet (thread participants, F&P invitee), add it to `resolveRecipients`.
 
-### 5. Channel health view + admin page
-- `public.notification_channel_health()` (SECURITY DEFINER, gated on `notification_management.view`) returning: SMTP configured, SMS configured (false), last successful send per channel, failure count (1h/24h), queue depth, oldest pending item age, cron/worker last-run status from `cron.job_run_details` + queue worker heartbeats, and the last 10 provider errors with credentials and message bodies redacted.
-- New admin page `/admin/notifications/health` (linked from Notification History) with status tiles, queue/backlog metrics, worker status, a redacted recent-errors table, and per-row **Retry** / **Resend** actions reusing `notification-retry`.
+## Phase 3 — Wire and verify missing triggers
 
-### 6. SMS made honestly unavailable
-- Dispatcher: when `channel === 'sms'`, immediately mark the log row `skipped` with `sms_provider_not_configured` instead of leaving it `queued` — no silent success.
-- Health view and preferences UI show SMS as "Not available".
-- A thin `SmsProvider` interface file is added as the future extension point, with no implementation.
+For each of these, trace the business action to dispatch and implement the missing link only where absent: complaint submission acknowledgement, complaint assignment, pattern alert, licence expiry reminder to licensee, F&P invitation, return due reminder, RFI sent/response received, application assignment to officer, analyst/reviewer assignment, decision dispatch, thread message, thread SLA breach, scheduled report delivery failure, SMTP failure threshold, system-health alert escalation.
 
-### 7. Failure handling
-Existing hourly failure sweep extended to threshold-based alerting per channel, dedupe preserved, escalation on persistent failure, and log redaction helper applied to all error text.
+Every trigger must go through `notification_enqueue_event` / `dispatchNotificationEvent` — no bespoke insert paths.
 
-### 8. Tests
-- Deno tests (SMTP mocked): successful send, SMTP rejection → `failed`, retry with backoff, dedupe key collision → `skipped`, bounce webhook callback → `bounced`, poison → escalation, SMS → `skipped` with unavailable reason.
-- pgTAP: immutability trigger, status transition constraints, `notification_channel_health()` RBAC (admin allowed, analyst/licensee denied), backfill correctness.
-- Both wired into `.github/workflows/ci.yml`.
+## Phase 4 — Live end-to-end execution (30 scenarios)
 
-## Technical notes
+Create disposable fixtures (a test complaint, a correspondence thread, an overdue return, an expiring licence, a failing SMTP row), invoke the real sweeps/workers, then verify each scenario against the twelve verification standards and capture row-level evidence. Includes negative and control cases: preference enforcement, critical-cannot-be-muted, dedupe on repeat dispatch, dismiss/archive, bulk mark-read and export, admin retry of a failed delivery, cross-user notification block, unauthorised source-record block, internal thread message hidden from external user, hourly and daily digests.
 
-Files touched: `supabase/functions/dispatch-notification-event/index.ts`, `send-notification/index.ts`, `notification-retry/index.ts`, `notification-status/index.ts`, `notification-failure-sweep/index.ts`; new `notification-email-retry-worker/`, `notification-delivery-webhook/`, `_shared/redact.ts`, `_shared/smsProvider.ts`; new migration for columns/trigger/health RPC/backfill; new `src/pages/admin/NotificationChannelHealth.tsx` + hook + route + permission gate; `docs/notifications.md` updated with environment configuration and limitations.
+Cleanup script removes all fixtures and their notification rows at the end.
 
-## Known limitations (external dependencies)
+## Phase 5 — Security, RLS, RBAC
 
-- True `delivered` / `bounced` / `opened` requires an ESP with webhooks; with plain SMTP the terminal state is `sent`.
-- SMS remains unavailable until a provider is chosen and credentials/sender ID are provisioned.
-- `ADMIN_NOTIFICATION_EMAILS` and `APP_BASE_URL` must be configured for admin alerting and links.
+- Extend pgTAP (`supabase/tests/notifications/10_e2e_matrix.sql`, `11_thread_rls.sql`) with behavioural assertions for cross-user reads, source-record authorisation, internal-vs-external thread visibility, channel-health RBAC, and template/event admin gates.
+- Re-run the RLS persona matrix for `notifications`, `notification_dispatch_log`, `correspondence_*`, `escalations`.
+
+## Phase 6 — Deliverables
+
+Written to `docs/verification/notifications/`:
+
+1. `01_frd_traceability_matrix.md` — every FRD requirement (NOT-CEN-001, NOT-THR-001, NOT-ESC-001, bell, preferences, templates, event config, workflow config, in-app/email/SMS, digests, logs, retries, audit, RLS/RBAC, deep links, escalation, health, cross-module triggers) with pass/fail and evidence references to code line, migration, function, and test.
+2. `02_e2e_results.md` — per-scenario results against all twelve standards, with row IDs as evidence.
+3. `03_security_rls_results.md`.
+4. `04_limitations_and_dependencies.md` — external dependencies and regression risks.
+5. `05_compliance_summary.md` — exact percentages fully / partially / not implemented / blocked by external configuration.
+
+## Reporting rules honoured
+
+- SMS stays counted as **blocked by external configuration** (no provider; `skipped` state only) — never as implemented.
+- Email `delivered`/`bounced`/`opened` stay **partially implemented**: SMTP cannot confirm delivery without a provider callback.
+- Any requirement that is frontend-only, backend-only, mocked, or untested is reported as partial or fail. 100% compliance will not be claimed unless every screen, trigger, delivery path, audit event, security control, and E2E scenario passes.
+
+## Technical details
+
+- Dispatcher: `supabase/functions/dispatch-notification-event/index.ts` (recipient rules at 550-700, dispatch loop at 966-1120).
+- Transactional path: `notification_enqueue_event` → `notification_event_queue` → `notification-event-queue-worker`.
+- Delivery: `send-notification` (SMTP), `notification-email-retry-worker`, `notification-delivery-webhook`, `notification-failure-sweep`, `notification_channel_health()`.
+- No changes outside notification/correspondence/escalation code paths.
