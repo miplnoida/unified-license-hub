@@ -17972,6 +17972,10 @@ export type Database = {
         Args: { _channel?: string; _period: string; _period_start?: string }
         Returns: Json
       }
+      notification_digest_dispatch: {
+        Args: { _period: string; _period_start?: string }
+        Returns: Json
+      }
       notification_digest_mark: {
         Args: {
           _dispatch_log_id?: string
