@@ -365,12 +365,13 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
       if (c.schedule_mode === 'event' && c.event === 'return_submitted') {
         const since = new Date(Date.now() - 86400_000).toISOString();
         const { data, error } = await supa.from('returns_filed')
-          .select('id, unique_id, entity_id, submit_date, licensees:entity_id(name)')
+          .select('id, unique_id, entity_id, submit_date')
           .gte('submit_date', since).limit(1000);
         if (error) throw new Error(error.message);
         return ((data as Any[]) || []).map((r) => ({
           entity_id: r.entity_id,
-          entity_label: r.licensees?.name || r.unique_id,
+          entity_label: r.unique_id,
+
           matched: true,
           metrics: { return_id: r.id, submit_date: r.submit_date },
           reason: `Return ${r.unique_id} submitted ${r.submit_date}`,
