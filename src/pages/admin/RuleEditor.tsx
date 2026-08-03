@@ -29,7 +29,10 @@ const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 export default function RuleEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isNew = !id || id === 'new';
+  const tab = searchParams.get('tab') || 'configure';
+  const setTab = (v: string) => setSearchParams(v === 'configure' ? {} : { tab: v }, { replace: true });
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -45,9 +48,13 @@ export default function RuleEditor() {
   const [roles, setRoles] = useState<Option[]>([]);
   const [events, setEvents] = useState<Option[]>([]);
   const [workflows, setWorkflows] = useState<Option[]>([]);
+  const [owners, setOwners] = useState<Option[]>([]);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [restoring, setRestoring] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<any | null>(null);
   const [testHistory, setTestHistory] = useState<any[]>([]);
   const [executions, setExecutions] = useState<any[]>([]);
+
 
   useEffect(() => {
     (async () => {
