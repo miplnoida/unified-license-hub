@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
       }
 
       const next = nextRunAt(freq).toISOString();
+      const isFirstDelivery = !s.last_run_at;
       await admin.from('report_schedules').update({
         last_run_at: nowIso,
         next_run_at: next,
@@ -120,6 +121,35 @@ Deno.serve(async (req) => {
         last_error: null,
         retry_count: 0,
       }).eq('id', s.id);
+
+      // Notifications are dispatched only after the run has been persisted.
+      const reportPayload = {
+        report_name: s.report_name || s.report_slug || 'Scheduled Report',
+        record_count: result.rows.length,
+        export_format: s.export_format || 'csv',
+        period: nowIso.slice(0, 10),
+        schedule_summary: freq,
+        recipient_user_id: s.created_by,
+        created_by: s.created_by,
+        recipient_email: (s.recipients || [])[0] || null,
+        run_id: run?.id || null,
+      };
+      await enqueueNotificationEvent(admin, {
+        event_key: 'report.scheduled_delivered',
+        entity_type: 'report_schedule',
+        entity_id: s.id,
+        payload: reportPayload,
+        idempotency_suffix: `run:${run?.id || nowIso}`,
+      });
+      if (isFirstDelivery) {
+        await enqueueNotificationEvent(admin, {
+          event_key: 'report.first_delivery_success',
+          entity_type: 'report_schedule',
+          entity_id: s.id,
+          payload: reportPayload,
+          idempotency_suffix: 'first',
+        });
+      }
 
       results.push({ id: s.id, status: lastStatus, rows: result.rows.length, runId: run?.id });
     } catch (e: any) {
@@ -137,8 +167,21 @@ Deno.serve(async (req) => {
         executed_by: s.created_by,
         error_message: errMsg,
       });
+      await enqueueNotificationEvent(admin, {
+        event_key: 'report.delivery_failed',
+        entity_type: 'report_schedule',
+        entity_id: s.id,
+        payload: {
+          report_name: s.report_name || s.report_slug || 'Scheduled Report',
+          error_message: errMsg.slice(0, 300),
+          created_by: s.created_by,
+          retry_count: (s.retry_count || 0) + 1,
+        },
+        idempotency_suffix: `fail:${nowIso.slice(0, 13)}`,
+      });
       results.push({ id: s.id, status: 'failed', error: errMsg });
     }
+
   }
 
   return new Response(JSON.stringify({ ok: true, ran: results.length, results }), {
