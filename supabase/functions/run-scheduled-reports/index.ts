@@ -2,8 +2,9 @@
 // runs produce identical results. Resolves schedule source from explicit source or
 // the report definition slug; never uses a slug as a table name.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireUserPermission } from '../_shared/authz.ts';
+import { enqueueNotificationEvent } from '../_shared/notification-dispatch.ts';
 import {
-import { requireUserPermission } from "../_shared/authz.ts";
   corsHeaders, executeQuery, persistRun, resolveScheduleSource,
 } from '../_shared/report-generator.ts';
 
