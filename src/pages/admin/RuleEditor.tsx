@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Play, Plus, Save, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, History, Loader2, Play, Plus, RotateCcw, Save, Trash2, XCircle } from 'lucide-react';
 import {
   ACTION_TYPES, EngineRule, OPERATORS, PATTERN_EVENT_TYPES, PATTERN_GROUPINGS,
   RULE_MODULES, RULE_TYPES, RuleAction, RuleConditions, RuleType, SCHEDULE_EVENTS,
@@ -28,7 +29,10 @@ const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 export default function RuleEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isNew = !id || id === 'new';
+  const tab = searchParams.get('tab') || 'configure';
+  const setTab = (v: string) => setSearchParams(v === 'configure' ? {} : { tab: v }, { replace: true });
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -44,18 +48,23 @@ export default function RuleEditor() {
   const [roles, setRoles] = useState<Option[]>([]);
   const [events, setEvents] = useState<Option[]>([]);
   const [workflows, setWorkflows] = useState<Option[]>([]);
+  const [owners, setOwners] = useState<Option[]>([]);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [restoring, setRestoring] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<any | null>(null);
   const [testHistory, setTestHistory] = useState<any[]>([]);
   const [executions, setExecutions] = useState<any[]>([]);
 
+
   useEffect(() => {
     (async () => {
-      const [mRes, sRes, rRes, eRes, wRes] = await Promise.all([
+      const [mRes, sRes, rRes, eRes, wRes, oRes] = await Promise.all([
         supabase.from('prudential_ratios' as any).select('ratio_key, label').eq('is_active', true).order('label'),
         supabase.from('sectors' as any).select('id, name').order('name'),
         supabase.from('roles' as any).select('name').order('name'),
         supabase.from('notification_event_configs' as any).select('event_key, description').eq('is_active', true).order('event_key'),
         supabase.from('approval_workflows' as any).select('id, name, current_published_version_id').eq('is_active', true).order('name'),
+        supabase.from('profiles' as any).select('id, full_name, email').order('full_name').limit(500),
       ]);
       const seen = new Set<string>();
       setMetrics(((mRes.data as any[]) || []).filter((m) => {
@@ -65,21 +74,24 @@ export default function RuleEditor() {
       setRoles(((rRes.data as any[]) || []).map((r) => ({ value: r.name, label: r.name })));
       setEvents(((eRes.data as any[]) || []).map((e) => ({ value: e.event_key, label: e.event_key })));
       setWorkflows(((wRes.data as any[]) || []).filter((w) => w.current_published_version_id).map((w) => ({ value: w.id, label: w.name })));
+      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.id, label: p.full_name || p.email || p.id })));
     })();
   }, []);
 
   const loadRule = async () => {
     if (isNew) return;
     setLoading(true);
-    const [{ data, error }, tests, execs] = await Promise.all([
+    const [{ data, error }, tests, execs, vers] = await Promise.all([
       supabase.from('engine_rules' as any).select('*').eq('id', id).maybeSingle(),
       supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(10),
-      supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('executed_at', { ascending: false }).limit(50),
+      supabase.from('engine_rule_versions' as any).select('*').eq('rule_id', id).order('version', { ascending: false }),
     ]);
     if (error || !data) { toast.error(error?.message || 'Rule not found'); setLoading(false); return; }
     setRule(data as any);
     setTestHistory((tests.data as any[]) || []);
     setExecutions((execs.data as any[]) || []);
+    setVersions((vers.data as any[]) || []);
     setLoading(false);
   };
   useEffect(() => { loadRule(); }, [id]);
@@ -110,24 +122,45 @@ export default function RuleEditor() {
 
   const changeType = (t: RuleType) => setRule((r) => ({ ...r, rule_type: t, conditions: emptyConditions(t), }));
 
-  const save = async () => {
-    if (errors.length) return toast.error(errors[0]);
+  const buildPayload = (intent: 'draft' | 'activate') => ({
+    intent,
+    name: rule.name, description: rule.description || null, rule_type: rule.rule_type,
+    module: rule.module, sub_module: rule.sub_module || null, tags: rule.tags || [],
+    severity: rule.severity, conditions: c, actions: rule.actions || [],
+    suppression_days: Number(rule.suppression_days || 0),
+    owner_user_id: (rule as any).owner_user_id || null,
+    effective_from: (rule as any).effective_from || null,
+    effective_to: (rule as any).effective_to || null,
+  });
+
+  const save = async (intent: 'draft' | 'activate' = 'draft') => {
+    if (intent === 'activate' && errors.length) return toast.error(errors[0]);
     setSaving(true);
-    const payload = {
-      name: rule.name, description: rule.description || null, rule_type: rule.rule_type,
-      module: rule.module, sub_module: rule.sub_module || null, tags: rule.tags || [],
-      severity: rule.severity, conditions: c, actions: rule.actions || [],
-      suppression_days: Number(rule.suppression_days || 0),
-    };
     const { data, error } = await supabase.rpc('engine_rule_save' as any, {
-      _payload: payload as any, _rule_id: isNew ? null : id,
+      _payload: buildPayload(intent) as any, _rule_id: isNew ? null : id,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(isNew ? 'Rule created as draft' : 'Rule saved (new version)');
-    if (isNew) navigate(`/admin/rule-engine/${data as any}`, { replace: true });
+    if (error) return toast.error(error.message === 'forbidden' ? 'You are not permitted to edit rules.' : error.message);
+    const res = data as any;
+    if (res?.ok === false) return toast.error((res.errors || ['Rule could not be saved'])[0]);
+    const savedId = res?.rule?.id;
+    toast.success(res?.new_version ? `Saved as version ${res.rule.version} (draft)` : isNew ? 'Rule created as draft' : 'Rule saved');
+    if (isNew && savedId) navigate(`/admin/rule-engine/${savedId}`, { replace: true });
     else loadRule();
   };
+
+  const restoreVersion = async (version: number) => {
+    setRestoring(version);
+    const { data, error } = await supabase.rpc('engine_rule_restore_version' as any, {
+      _rule_id: id, _version: version, _note: `restored from v${version}`,
+    });
+    setRestoring(null);
+    if (error) return toast.error(error.message);
+    if ((data as any)?.ok === false) return toast.error('Restore failed');
+    toast.success(`Version ${version} restored as a new draft version`);
+    loadRule();
+  };
+
 
   const runTest = async () => {
     if (isNew) return toast.error('Save the rule before testing.');
@@ -197,8 +230,8 @@ export default function RuleEditor() {
               <Button data-rbac="rule_engine.edit" variant="outline" onClick={runTest} disabled={testing || isNew}>
                 {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />} Test rule
               </Button>
-              <Button data-rbac="rule_engine.edit" onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save
+              <Button data-rbac="rule_engine.edit" onClick={() => save('draft')} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save draft
               </Button>
               {!isNew && rule.status !== 'active' && (
                 <Button data-rbac="rule_engine.activate" variant="secondary" onClick={activate}>Activate</Button>
@@ -207,12 +240,14 @@ export default function RuleEditor() {
           }
         />
 
-        <Tabs defaultValue="configure">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="configure">Configuration</TabsTrigger>
             <TabsTrigger value="test">Test (sandbox)</TabsTrigger>
+            <TabsTrigger value="versions" disabled={isNew}>Version history</TabsTrigger>
             <TabsTrigger value="history" disabled={isNew}>Execution history</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="configure" className="space-y-4 pt-4">
             <Card>
@@ -245,9 +280,27 @@ export default function RuleEditor() {
                   <Input type="number" min={0} value={rule.suppression_days ?? 0}
                     onChange={(e) => setRule({ ...rule, suppression_days: Number(e.target.value) })} />
                   <p className="text-xs text-muted-foreground mt-1">Critical severity always fires regardless of suppression.</p></div>
+                <div><Label>Rule owner</Label>
+                  <Select value={(rule as any).owner_user_id || 'none'}
+                    onValueChange={(v) => setRule({ ...rule, owner_user_id: v === 'none' ? null : v } as any)}>
+                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {owners.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Effective from</Label>
+                    <Input type="date" value={(rule as any).effective_from || ''}
+                      onChange={(e) => setRule({ ...rule, effective_from: e.target.value || null } as any)} /></div>
+                  <div><Label>Effective to</Label>
+                    <Input type="date" value={(rule as any).effective_to || ''}
+                      onChange={(e) => setRule({ ...rule, effective_to: e.target.value || null } as any)} /></div>
+                </div>
                 <div className="md:col-span-2"><Label>Tags (comma separated)</Label>
                   <Input value={(rule.tags || []).join(', ')}
                     onChange={(e) => setRule({ ...rule, tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) })} /></div>
+
               </CardContent>
             </Card>
 
@@ -602,8 +655,8 @@ export default function RuleEditor() {
                         {testHistory.map((t) => (
                           <TableRow key={t.id}>
                             <TableCell className="text-xs font-mono">{new Date(t.created_at).toLocaleString()}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.records_evaluated}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.records_matched}</TableCell>
+                            <TableCell className="text-xs font-mono">{t.evaluated_count}</TableCell>
+                            <TableCell className="text-xs font-mono">{t.matched_count}</TableCell>
                             <TableCell>{t.passed ? <Badge variant="approved">Passed</Badge> : <Badge variant="destructive">Failed</Badge>}</TableCell>
                           </TableRow>
                         ))}
@@ -614,6 +667,67 @@ export default function RuleEditor() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="versions" className="pt-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Version history</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Versions are immutable. Restoring a version copies its configuration into a new draft
+                  version — no historical record is altered or deleted.
+                </p>
+                {versions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Only version {rule.version} exists. Editing an active rule creates the next version.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Version</TableHead><TableHead>Snapshot taken</TableHead>
+                        <TableHead>Name at the time</TableHead><TableHead>Type</TableHead>
+                        <TableHead>Severity</TableHead><TableHead>Note</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {versions.map((v) => {
+                          const s = v.snapshot || {};
+                          return (
+                            <TableRow key={v.id}>
+                              <TableCell className="font-mono text-xs">
+                                v{v.version}{v.version === rule.version && <Badge variant="outline" className="ml-2">current</Badge>}
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{new Date(v.created_at).toLocaleString()}</TableCell>
+                              <TableCell className="text-sm">{s.name || '—'}</TableCell>
+                              <TableCell className="text-xs">{RULE_TYPES.find((t) => t.value === s.rule_type)?.label || s.rule_type || '—'}</TableCell>
+                              <TableCell className="text-xs capitalize">{s.severity || '—'}</TableCell>
+                              <TableCell className="text-xs">{v.note || '—'}</TableCell>
+                              <TableCell className="text-right">
+                                <Button data-rbac="rule_engine.edit" size="sm" variant="ghost"
+                                  disabled={restoring !== null || v.version === rule.version}
+                                  onClick={() => restoreVersion(v.version)}>
+                                  {restoring === v.version
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <><RotateCcw className="h-4 w-4 mr-1" /> Restore as new</>}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {!isNew && (
+                  <Button variant="ghost" size="sm" className="text-xs px-0" onClick={() => setTab('history')}>
+                    <History className="h-3.5 w-3.5 mr-1" /> View execution history
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+
 
           <TabsContent value="history" className="pt-4">
             <Card>
@@ -631,7 +745,7 @@ export default function RuleEditor() {
                       <TableBody>
                         {executions.map((e) => (
                           <TableRow key={e.id}>
-                            <TableCell className="text-xs font-mono">{new Date(e.created_at).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs font-mono">{new Date(e.executed_at).toLocaleString()}</TableCell>
                             <TableCell className="text-sm">{e.entity_label || '—'}</TableCell>
                             <TableCell>
                               {e.suppressed ? <Badge variant="outline">Suppressed</Badge>

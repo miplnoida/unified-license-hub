@@ -5560,10 +5560,13 @@ export type Database = {
           created_by: string | null
           deactivation_reason: string | null
           description: string | null
+          effective_from: string | null
+          effective_to: string | null
           id: string
           last_triggered_at: string | null
           module: string
           name: string
+          owner_user_id: string | null
           rule_code: string
           rule_type: string
           severity: string
@@ -5585,10 +5588,13 @@ export type Database = {
           created_by?: string | null
           deactivation_reason?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           last_triggered_at?: string | null
           module: string
           name: string
+          owner_user_id?: string | null
           rule_code?: string
           rule_type: string
           severity?: string
@@ -5610,10 +5616,13 @@ export type Database = {
           created_by?: string | null
           deactivation_reason?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           last_triggered_at?: string | null
           module?: string
           name?: string
+          owner_user_id?: string | null
           rule_code?: string
           rule_type?: string
           severity?: string
@@ -17382,6 +17391,34 @@ export type Database = {
           },
         ]
       }
+      rule_inventory: {
+        Row: {
+          active_version: number | null
+          capabilities: Json | null
+          description: string | null
+          family: string | null
+          family_label: string | null
+          last_modified_at: string | null
+          last_modified_by: string | null
+          last_tested_at: string | null
+          last_triggered_at: string | null
+          module: string | null
+          name: string | null
+          owner_user_id: string | null
+          rule_code: string | null
+          rule_id: string | null
+          rule_type: string | null
+          runtime_owner: string | null
+          severity: string | null
+          source_screen: string | null
+          status: string | null
+          sub_module: string | null
+          tags: string[] | null
+          trigger_count: number | null
+          version: number | null
+        }
+        Relationships: []
+      }
       v_engine_metric_series: {
         Row: {
           computed_at: string | null
@@ -18631,6 +18668,10 @@ export type Database = {
           _rule_id: string
         }
         Returns: string
+      }
+      engine_rule_restore_version: {
+        Args: { _note?: string; _rule_id: string; _version: number }
+        Returns: Json
       }
       engine_rule_save: {
         Args: { _payload: Json; _rule_id?: string }
@@ -20373,6 +20414,25 @@ export type Database = {
       rollback_validation_rule: {
         Args: { _rule_id: string; _to_version: number }
         Returns: number
+      }
+      rule_inventory_search: {
+        Args: {
+          _dir?: string
+          _family?: string
+          _limit?: number
+          _module?: string
+          _offset?: number
+          _rule_type?: string
+          _search?: string
+          _severity?: string
+          _sort?: string
+          _status?: string
+          _sub_module?: string
+          _tag?: string
+          _triggered_from?: string
+          _triggered_to?: string
+        }
+        Returns: Json
       }
       run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }
