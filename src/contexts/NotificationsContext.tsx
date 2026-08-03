@@ -36,6 +36,8 @@ interface NotificationsContextValue {
   archive: (ids: string[]) => Promise<void>;
   markActioned: (id: string, target?: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Epoch ms of the most recent critical/high notification received live. */
+  lastUrgentAt: number | null;
 }
 
 const EMPTY_COUNTS: NotificationCounts = {
@@ -55,6 +57,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
+  const [lastUrgentAt, setLastUrgentAt] = useState<number | null>(null);
 
   const loadCounts = useCallback(async () => {
     const { data } = await supabase.rpc('notification_counts' as never);
@@ -81,6 +84,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     load();
     if (!user) return;
 
+    // Realtime is primary; a 60s poll keeps counts fresh if the socket drops.
+    const poll = setInterval(() => { load(); }, 60_000);
+
     const channel = supabase
       .channel('notif-' + user.id)
       .on('postgres_changes', {
@@ -92,6 +98,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const n = payload.new as AppNotification;
         if (n.channel === 'in_app' && isActiveNotification(n)) {
           setNotifications(prev => (prev.some(p => p.id === n.id) ? prev : [n, ...prev]));
+          if (n.severity === 'critical' || n.severity === 'high') {
+            setLastUrgentAt(Date.now());
+          }
           loadCounts();
         }
       })
@@ -111,8 +120,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(poll); supabase.removeChannel(channel); };
   }, [user, load, loadCounts]);
+
 
   const unreadCount = counts.unread
     || notifications.filter(n => resolveNotificationStatus(n) === 'unread').length;
@@ -173,6 +183,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         archive,
         markActioned,
         refresh: load,
+        lastUrgentAt,
       }}
     >
 

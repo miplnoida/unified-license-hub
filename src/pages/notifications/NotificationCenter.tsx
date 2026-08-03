@@ -1,3 +1,9 @@
+/**
+ * NOT-CEN-001 — Notification Centre (canonical notification page for /notifications).
+ *
+ * All filtering, searching and paging happens server-side through the
+ * `notification_feed` RPC. There is no hardcoded notification data here.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -15,132 +21,118 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   useNotificationsContext,
   type AppNotification,
-  type NotificationCategory,
-  type NotificationSeverity,
 } from '@/contexts/NotificationsContext';
+import { resolveNotificationStatus, type NotificationSeverity } from '@/types/notifications';
 import { notificationLink } from '@/lib/notificationLinks';
 import {
+  useNotificationFeed, NOTIFICATION_PAGE_SIZE, type NotificationTab,
+} from '@/hooks/useNotificationFeed';
+import { NotificationDetailDrawer } from '@/components/notifications/NotificationDetailDrawer';
+import { ForwardNotificationDialog } from '@/components/notifications/ForwardNotificationDialog';
+import {
+  SEVERITY_META, NOTIFICATION_MODULES,
+} from '@/components/notifications/notificationMeta';
+import {
   Bell, CheckCheck, Loader2, Search, Archive, Download, ExternalLink,
-  AlertOctagon, AlertTriangle, Info, Circle, RotateCcw,
+  RotateCcw, AlertCircle, Forward,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
-const SEVERITY_META: Record<NotificationSeverity, { label: string; icon: JSX.Element; className: string }> = {
-  critical: { label: 'Critical', icon: <AlertOctagon className="h-4 w-4" />, className: 'bg-destructive/10 text-destructive border-destructive/30' },
-  high: { label: 'High', icon: <AlertTriangle className="h-4 w-4" />, className: 'bg-warning/10 text-warning border-warning/30' },
-  medium: { label: 'Medium', icon: <Info className="h-4 w-4" />, className: 'bg-primary/10 text-primary border-primary/30' },
-  low: { label: 'Low', icon: <Circle className="h-3.5 w-3.5" />, className: 'bg-muted text-muted-foreground border-border' },
-};
-
-const TABS: Array<{ value: string; label: string; category?: NotificationCategory; unreadOnly?: boolean; archived?: boolean }> = [
+const TABS: Array<{ value: NotificationTab; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'unread', label: 'Unread', unreadOnly: true },
-  { value: 'action_required', label: 'Action required', category: 'action_required' },
-  { value: 'alert', label: 'Alerts', category: 'alert' },
-  { value: 'system', label: 'System', category: 'system' },
-  { value: 'archived', label: 'Archived', archived: true },
+  { value: 'unread', label: 'Unread' },
+  { value: 'action_required', label: 'Action required' },
+  { value: 'alerts', label: 'Alerts' },
+  { value: 'system', label: 'System' },
+  { value: 'archived', label: 'Archived' },
 ];
 
-const MODULES = [
-  'licensing', 'applications', 'fit_and_proper', 'prudential',
-  'conduct', 'enforcement', 'reporting', 'communications', 'system',
-];
-
-const PAGE_SIZE = 25;
+const STATUSES = ['unread', 'read', 'actioned', 'dismissed', 'archived'];
 
 export default function NotificationCenter() {
   const navigate = useNavigate();
-  const { counts, markManyRead, markAllRead, dismiss, markActioned, refresh } = useNotificationsContext();
+  const { counts, markManyRead, markAllRead, dismiss, archive, markActioned, refresh } =
+    useNotificationsContext();
 
-  const [tab, setTab] = useState('all');
+  const [tab, setTab] = useState<NotificationTab>('all');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [severity, setSeverity] = useState<string>('all');
-  const [moduleFilter, setModuleFilter] = useState<string>('all');
-  const [rows, setRows] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
+  const [severity, setSeverity] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
+  const [detail, setDetail] = useState<AppNotification | null>(null);
+  const [forwarding, setForwarding] = useState<AppNotification | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const activeTab = TABS.find(t => t.value === tab)!;
+  const filters = useMemo(() => ({
+    tab,
+    module: moduleFilter === 'all' ? null : moduleFilter,
+    severity: severity === 'all' ? null : severity,
+    status: statusFilter === 'all' ? null : statusFilter,
+    from: from ? new Date(from).toISOString() : null,
+    to: to ? new Date(`${to}T23:59:59`).toISOString() : null,
+    search: debouncedSearch,
+  }), [tab, moduleFilter, severity, statusFilter, from, to, debouncedSearch]);
 
-  useEffect(() => { setPage(0); setSelected([]); }, [tab, debouncedSearch, severity, moduleFilter]);
+  const feed = useNotificationFeed(filters);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data, error } = await supabase.rpc('search_notifications' as never, {
-        _search: debouncedSearch || null,
-        _category: activeTab.category ?? null,
-        _severity: severity === 'all' ? null : severity,
-        _module: moduleFilter === 'all' ? null : moduleFilter,
-        _unread_only: !!activeTab.unreadOnly,
-        _include_dismissed: !!activeTab.archived,
-        _from: null,
-        _to: null,
-        _limit: PAGE_SIZE,
-        _offset: page * PAGE_SIZE,
-      } as never);
-      if (cancelled) return;
-      if (error) {
-        toast.error('Could not load notifications');
-        setRows([]);
-      } else {
-        const list = (data || []) as unknown as AppNotification[];
-        setRows(activeTab.archived ? list.filter(n => n.dismissed_at) : list);
-      }
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [tab, debouncedSearch, severity, moduleFilter, page, activeTab, counts.unread]);
+  useEffect(() => { setSelected([]); }, [filters]);
 
+  const rows = feed.rows;
   const allSelected = rows.length > 0 && selected.length === rows.length;
-
   const toggleAll = () => setSelected(allSelected ? [] : rows.map(r => r.id));
   const toggleOne = (id: string) =>
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
 
-  const open = async (n: AppNotification) => {
-    const link = notificationLink(n.entity_type, n.entity_id, n.metadata);
-    if (!n.read) await markManyRead([n.id]);
-    if (link) {
-      await markActioned(n.id, link);
-      navigate(link);
+  const searchTooShort = search.trim().length > 0 && search.trim().length < 3;
+
+  const openDetail = async (n: AppNotification) => {
+    setDetail(n);
+    if (resolveNotificationStatus(n) === 'unread') {
+      await markManyRead([n.id]);
+      feed.patchRow(n.id, { read: true, status: 'read' });
     }
   };
 
-  const bulkRead = async () => {
-    await markManyRead(selected);
-    setSelected([]);
-    toast.success('Marked as read');
+  const runBulk = async (label: string, fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+      toast.success(label);
+      setSelected([]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : `Could not ${label.toLowerCase()}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const bulkDismiss = async () => {
-    await dismiss(selected);
-    setRows(prev => prev.filter(r => !selected.includes(r.id)));
-    setSelected([]);
-    toast.success('Moved to archive');
-  };
-
-  const exportCsv = () => {
-    const target = selected.length ? rows.filter(r => selected.includes(r.id)) : rows;
-    if (target.length === 0) { toast.error('Nothing to export'); return; }
-    const header = ['Date', 'Severity', 'Category', 'Module', 'Title', 'Message', 'Read', 'Archived'];
-    const escape = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const exportCsv = async () => {
+    const ids = selected.length ? selected : rows.map(r => r.id);
+    if (ids.length === 0) { toast.error('There is nothing to export'); return; }
+    setBusy(true);
+    const { data, error } = await supabase.rpc('notification_export' as never, { _ids: ids } as never);
+    setBusy(false);
+    if (error) { toast.error(error.message || 'Export was not permitted'); return; }
+    const list = (data || []) as Array<Record<string, string | null>>;
+    if (list.length === 0) { toast.error('There is nothing to export'); return; }
+    const header = ['Date', 'Severity', 'Category', 'Module', 'Type', 'Title', 'Message', 'Reference', 'Status'];
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
       header.join(','),
-      ...target.map(n => [
-        new Date(n.created_at).toISOString(),
-        n.severity, n.category, n.module ?? '', n.title, n.message,
-        n.read ? 'Yes' : 'No', n.dismissed_at ? 'Yes' : 'No',
-      ].map(escape).join(',')),
+      ...list.map(r => [
+        r.created_at, r.severity, r.category, r.module, r.type,
+        r.title, r.message, r.source_reference, r.status,
+      ].map(esc).join(',')),
     ].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
@@ -148,31 +140,44 @@ export default function NotificationCenter() {
     a.download = `notifications-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success(`Exported ${list.length} notification${list.length === 1 ? '' : 's'}`);
   };
 
-  const summary = useMemo(() => ([
+  const summary = [
     { label: 'Unread', value: counts.unread },
-    { label: 'Urgent (Critical/High)', value: counts.unread_urgent },
+    { label: 'Urgent (critical/high)', value: counts.unread_urgent },
     { label: 'Action required', value: counts.action_required },
     { label: 'Alerts', value: counts.alerts },
-  ]), [counts]);
+  ];
+
+  const resetFilters = () => {
+    setSearch(''); setSeverity('all'); setModuleFilter('all');
+    setStatusFilter('all'); setFrom(''); setTo('');
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Notification Centre"
-          description="All alerts, tasks and system messages addressed to you"
+          description="Every alert, task and system message addressed to you"
           actions={
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={exportCsv}>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={busy}>
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
-              <Button variant="outline" size="sm" onClick={() => { refresh(); setPage(0); }}>
+              <Button variant="outline" size="sm" onClick={() => { refresh(); feed.reload(); }}>
                 <RotateCcw className="h-4 w-4 mr-2" />Refresh
               </Button>
               {counts.unread > 0 && (
-                <Button size="sm" onClick={async () => { await markAllRead(); toast.success('All notifications marked as read'); }}>
+                <Button
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => runBulk('All notifications marked as read', async () => {
+                    await markAllRead();
+                    await feed.reload();
+                  })}
+                >
                   <CheckCheck className="h-4 w-4 mr-2" />Mark all read
                 </Button>
               )}
@@ -191,7 +196,7 @@ export default function NotificationCenter() {
           ))}
         </div>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as NotificationTab)}>
           <TabsList className="flex-wrap h-auto">
             {TABS.map(t => (
               <TabsTrigger key={t.value} value={t.value}>
@@ -202,23 +207,27 @@ export default function NotificationCenter() {
                 {t.value === 'action_required' && counts.action_required > 0 && (
                   <Badge variant="secondary" className="ml-2 text-[10px] px-1.5">{counts.action_required}</Badge>
                 )}
+                {t.value === 'alerts' && counts.alerts > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-[10px] px-1.5">{counts.alerts}</Badge>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
 
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="grid gap-3 md:grid-cols-6">
+          <div className="relative md:col-span-2">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search title, message or reference…"
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search notifications"
             />
           </div>
           <Select value={severity} onValueChange={setSeverity}>
-            <SelectTrigger className="md:w-44"><SelectValue placeholder="Severity" /></SelectTrigger>
+            <SelectTrigger aria-label="Severity"><SelectValue placeholder="Severity" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All severities</SelectItem>
               {(Object.keys(SEVERITY_META) as NotificationSeverity[]).map(s => (
@@ -227,68 +236,131 @@ export default function NotificationCenter() {
             </SelectContent>
           </Select>
           <Select value={moduleFilter} onValueChange={setModuleFilter}>
-            <SelectTrigger className="md:w-48"><SelectValue placeholder="Module" /></SelectTrigger>
+            <SelectTrigger aria-label="Module"><SelectValue placeholder="Module" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All modules</SelectItem>
-              {MODULES.map(m => (
-                <SelectItem key={m} value={m}>{m.replace(/_/g, ' ')}</SelectItem>
+              {NOTIFICATION_MODULES.map(m => (
+                <SelectItem key={m} value={m} className="capitalize">{m.replace(/_/g, ' ')}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger aria-label="Status"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any status</SelectItem>
+              {STATUSES.map(s => (
+                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
+          </div>
         </div>
 
+        {searchTooShort && (
+          <p className="text-xs text-muted-foreground">Type at least 3 characters to search.</p>
+        )}
+
         {rows.length > 0 && (
-          <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/30 px-3 py-2">
             <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
             <span className="text-xs text-muted-foreground">
-              {selected.length > 0 ? `${selected.length} selected` : 'Select all on this page'}
+              {selected.length > 0 ? `${selected.length} selected` : 'Select all loaded'}
             </span>
             {selected.length > 0 && (
-              <div className="flex gap-2 ml-auto">
-                <Button size="sm" variant="outline" onClick={bulkRead}>
+              <div className="flex flex-wrap gap-2 ml-auto">
+                <Button
+                  size="sm" variant="outline" disabled={busy}
+                  onClick={() => runBulk('Marked as read', async () => {
+                    await markManyRead(selected);
+                    selected.forEach(id => feed.patchRow(id, { read: true, status: 'read' }));
+                  })}
+                >
                   <CheckCheck className="h-3.5 w-3.5 mr-1.5" />Mark read
                 </Button>
-                {!activeTab.archived && (
-                  <Button size="sm" variant="outline" onClick={bulkDismiss}>
-                    <Archive className="h-3.5 w-3.5 mr-1.5" />Archive
-                  </Button>
+                {tab !== 'archived' && (
+                  <>
+                    <Button
+                      size="sm" variant="outline" disabled={busy}
+                      onClick={() => runBulk('Dismissed', async () => {
+                        await dismiss(selected);
+                        feed.removeRows(selected);
+                      })}
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      size="sm" variant="outline" disabled={busy}
+                      onClick={() => runBulk('Moved to archive', async () => {
+                        await archive(selected);
+                        feed.removeRows(selected);
+                      })}
+                    >
+                      <Archive className="h-3.5 w-3.5 mr-1.5" />Archive
+                    </Button>
+                  </>
                 )}
+                <Button size="sm" variant="outline" onClick={exportCsv} disabled={busy}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" />Export selected
+                </Button>
               </div>
             )}
           </div>
         )}
 
-        {loading ? (
+        {feed.loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : feed.error ? (
+          <Card className="border-destructive/40">
+            <CardContent className="py-10 text-center space-y-3">
+              <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+              <p className="text-sm text-muted-foreground">
+                We could not load your notifications. {feed.error}
+              </p>
+              <Button size="sm" variant="outline" onClick={feed.reload}>
+                <RotateCcw className="h-4 w-4 mr-2" />Try again
+              </Button>
+            </CardContent>
+          </Card>
         ) : rows.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <CardContent className="py-12 text-center space-y-3">
+              <Bell className="h-12 w-12 text-muted-foreground mx-auto" />
               <p className="text-muted-foreground">
-                {activeTab.unreadOnly ? 'All caught up!' : 'No notifications match these filters'}
+                {tab === 'unread'
+                  ? 'You are all caught up.'
+                  : 'No notifications match these filters.'}
               </p>
+              <Button size="sm" variant="outline" onClick={resetFilters}>Clear filters</Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-2">
             {rows.map(n => {
               const sev = SEVERITY_META[n.severity] ?? SEVERITY_META.medium;
-              const link = notificationLink(n.entity_type, n.entity_id, n.metadata);
+              const status = resolveNotificationStatus(n);
+              const link = n.source_route || notificationLink(n.entity_type, n.entity_id, n.metadata);
               return (
-                <Card key={n.id} className={!n.read ? 'border-primary/30 bg-primary/5' : ''}>
+                <Card key={n.id} className={status === 'unread' ? 'border-primary/30 bg-primary/5' : ''}>
                   <CardContent className="p-4 flex items-start gap-3">
                     <Checkbox
                       className="mt-1"
                       checked={selected.includes(n.id)}
                       onCheckedChange={() => toggleOne(n.id)}
-                      aria-label="Select notification"
+                      aria-label={`Select ${n.title}`}
                     />
                     <div className={`shrink-0 mt-0.5 rounded-md border p-1.5 ${sev.className}`}>{sev.icon}</div>
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => open(n)}>
+                    <button
+                      type="button"
+                      className="flex-1 min-w-0 text-left"
+                      onClick={() => openDetail(n)}
+                    >
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className={`text-sm ${!n.read ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                        <p className={`text-sm ${status === 'unread' ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
                           {n.title}
                         </p>
                         <Badge variant="outline" className={`text-[10px] px-1.5 ${sev.className}`}>{sev.label}</Badge>
@@ -300,10 +372,18 @@ export default function NotificationCenter() {
                             {n.module.replace(/_/g, ' ')}
                           </Badge>
                         )}
+                        {n.source_reference && (
+                          <span className="text-[11px] font-mono text-muted-foreground">{n.source_reference}</span>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {n.preview || n.message}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={format(new Date(n.created_at), 'd MMM yyyy, h:mm:ss a')}
+                        >
                           {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                         </span>
                         {link && (
@@ -311,24 +391,30 @@ export default function NotificationCenter() {
                             <ExternalLink className="h-3 w-3" />Open record
                           </span>
                         )}
-                        {n.dismissed_at && (
-                          <span className="text-xs text-muted-foreground">Archived</span>
+                        {(status === 'archived' || status === 'dismissed') && (
+                          <span className="text-xs text-muted-foreground capitalize">{status}</span>
                         )}
                       </div>
-                    </div>
-                    {!n.dismissed_at && (
+                    </button>
+                    <div className="flex flex-col gap-1">
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Archive"
-                        onClick={async () => {
-                          await dismiss([n.id]);
-                          setRows(prev => prev.filter(r => r.id !== n.id));
-                        }}
+                        size="icon" variant="ghost" title="Forward to a colleague"
+                        onClick={() => setForwarding(n)}
                       >
-                        <Archive className="h-4 w-4" />
+                        <Forward className="h-4 w-4" />
                       </Button>
-                    )}
+                      {status !== 'archived' && status !== 'dismissed' && !n.system_required && (
+                        <Button
+                          size="icon" variant="ghost" title="Archive"
+                          onClick={async () => {
+                            await archive([n.id]);
+                            feed.removeRows([n.id]);
+                          }}
+                        >
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -336,17 +422,41 @@ export default function NotificationCenter() {
           </div>
         )}
 
-        {(page > 0 || rows.length === PAGE_SIZE) && (
-          <div className="flex items-center justify-between">
-            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">Page {page + 1}</span>
-            <Button variant="outline" size="sm" disabled={rows.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
-              Next
+        {feed.hasMore && (
+          <div className="flex justify-center">
+            <Button variant="outline" size="sm" onClick={feed.loadMore} disabled={feed.loadingMore}>
+              {feed.loadingMore
+                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                : null}
+              Load {NOTIFICATION_PAGE_SIZE} more
             </Button>
           </div>
         )}
+
+        <NotificationDetailDrawer
+          notification={detail}
+          open={!!detail}
+          onOpenChange={(v) => { if (!v) setDetail(null); }}
+          onMarkRead={async (id) => {
+            await markManyRead([id]);
+            feed.patchRow(id, { read: true, status: 'read' });
+          }}
+          onMarkActioned={async (id, target) => {
+            await markActioned(id, target);
+            feed.patchRow(id, { status: 'actioned', read: true });
+          }}
+          onArchive={async (id) => {
+            await archive([id]);
+            feed.removeRows([id]);
+          }}
+          onForward={(n) => { setDetail(null); setForwarding(n); }}
+        />
+
+        <ForwardNotificationDialog
+          notification={forwarding}
+          open={!!forwarding}
+          onOpenChange={(v) => { if (!v) setForwarding(null); }}
+        />
       </div>
     </DashboardLayout>
   );

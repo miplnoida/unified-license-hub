@@ -17871,6 +17871,20 @@ export type Database = {
         Returns: Database["public"]["Enums"]["notification_category"]
       }
       notification_counts: { Args: never; Returns: Json }
+      notification_delivery_for: {
+        Args: { _notification_id: string }
+        Returns: {
+          channel: string
+          delivered_at: string
+          error: string
+          failed_at: string
+          provider: string
+          queued_at: string
+          retry_count: number
+          sent_at: string
+          status: string
+        }[]
+      }
       notification_dismiss: {
         Args: { _ids: string[]; _note?: string }
         Returns: number
@@ -17878,6 +17892,113 @@ export type Database = {
       notification_effective_preference: {
         Args: { _event_key: string; _user_id: string }
         Returns: Json
+      }
+      notification_export: {
+        Args: { _ids: string[] }
+        Returns: {
+          category: string
+          created_at: string
+          message: string
+          module: string
+          severity: string
+          source_reference: string
+          status: string
+          title: string
+          type: string
+        }[]
+      }
+      notification_feed: {
+        Args: {
+          _cursor_created_at?: string
+          _cursor_id?: string
+          _from?: string
+          _limit?: number
+          _module?: string
+          _search?: string
+          _severity?: string
+          _status?: string
+          _tab?: string
+          _to?: string
+          _type?: string
+        }
+        Returns: {
+          action_required: boolean
+          actioned_at: string | null
+          archived_at: string | null
+          category: Database["public"]["Enums"]["notification_category"]
+          channel: string
+          correlation_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          delivery_status: string
+          dismiss_note: string | null
+          dismissed_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string | null
+          expires_at: string | null
+          id: string
+          message: string
+          metadata: Json
+          module: string | null
+          preview: string | null
+          read: boolean
+          read_at: string | null
+          recipient_group: string | null
+          recipient_role: string | null
+          rendered_content_ref: string | null
+          route_params: Json | null
+          severity: Database["public"]["Enums"]["notification_severity"]
+          source_reference: string | null
+          source_route: string | null
+          status: Database["public"]["Enums"]["notification_status"]
+          system_required: boolean
+          template_id: string | null
+          template_version: number | null
+          title: string
+          type: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      notification_forward: {
+        Args: { _note?: string; _notification_id: string; _to_user_id: string }
+        Returns: Json
+      }
+      notification_history: {
+        Args: {
+          _channel?: string
+          _event_key?: string
+          _from?: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _status?: string
+          _to?: string
+        }
+        Returns: {
+          channel: string
+          created_at: string
+          error: string
+          event_key: string
+          failed_at: string
+          id: string
+          notification_id: string
+          notification_type: string
+          recipient_email: string
+          recipient_name: string
+          recipient_user_id: string
+          retry_count: number
+          sent_at: string
+          source_reference: string
+          status: string
+          template_name: string
+        }[]
       }
       notification_mark_actioned: {
         Args: { _id: string; _target?: string }
