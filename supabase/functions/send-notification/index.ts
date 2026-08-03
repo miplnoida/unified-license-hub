@@ -312,11 +312,18 @@ serve(async (req) => {
             });
           }
         } else if (notif.channel === "sms") {
-          // SMS provider not yet implemented; keep queued with note
+          // No SMS provider integration exists yet. Never record a successful
+          // SMS delivery — fail loudly and audit the reason instead.
           await supabase
             .from("notifications")
             .update({ delivery_status: "failed"} as any)
             .eq("id", notif.id);
+          await supabase.rpc("notification_record_delivery", {
+            _notification_id: notif.id,
+            _channel: "sms",
+            _status: "failed",
+            _error: "sms_provider_not_configured: an administrator must configure an SMS provider",
+          }).catch(() => undefined);
         }
       }
 
