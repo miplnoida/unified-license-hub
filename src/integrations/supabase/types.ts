@@ -4127,6 +4127,7 @@ export type Database = {
           author_name: string | null
           author_role: string | null
           body: string
+          body_format: string
           bounce_reason: string | null
           channel: string
           created_at: string
@@ -4137,9 +4138,11 @@ export type Database = {
           id: string
           is_draft: boolean
           is_internal_note: boolean
+          linked_document_ids: string[]
           message_kind: string
           opened_at: string | null
           sent_at: string
+          sent_by_system: boolean
           subject: string | null
           thread_id: string
         }
@@ -4148,6 +4151,7 @@ export type Database = {
           author_name?: string | null
           author_role?: string | null
           body: string
+          body_format?: string
           bounce_reason?: string | null
           channel?: string
           created_at?: string
@@ -4158,9 +4162,11 @@ export type Database = {
           id?: string
           is_draft?: boolean
           is_internal_note?: boolean
+          linked_document_ids?: string[]
           message_kind?: string
           opened_at?: string | null
           sent_at?: string
+          sent_by_system?: boolean
           subject?: string | null
           thread_id: string
         }
@@ -4169,6 +4175,7 @@ export type Database = {
           author_name?: string | null
           author_role?: string | null
           body?: string
+          body_format?: string
           bounce_reason?: string | null
           channel?: string
           created_at?: string
@@ -4179,9 +4186,11 @@ export type Database = {
           id?: string
           is_draft?: boolean
           is_internal_note?: boolean
+          linked_document_ids?: string[]
           message_kind?: string
           opened_at?: string | null
           sent_at?: string
+          sent_by_system?: boolean
           subject?: string | null
           thread_id?: string
         }
@@ -4311,6 +4320,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          is_internal: boolean
           last_read_at: string | null
           party_role: string | null
           party_type: string
@@ -4322,6 +4332,7 @@ export type Database = {
           created_at?: string
           display_name: string
           id?: string
+          is_internal?: boolean
           last_read_at?: string | null
           party_role?: string | null
           party_type?: string
@@ -4333,6 +4344,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          is_internal?: boolean
           last_read_at?: string | null
           party_role?: string | null
           party_type?: string
@@ -4354,11 +4366,13 @@ export type Database = {
         Row: {
           assigned_officer: string | null
           assigned_officer_id: string | null
+          assigned_team: string | null
           assigned_unit: string | null
           category: string
           channel: string
           close_justification: string | null
           closed_at: string | null
+          closed_by: string | null
           created_at: string
           created_by: string | null
           direction: string
@@ -4367,12 +4381,16 @@ export type Database = {
           is_demo: boolean
           is_entity_facing: boolean
           last_message_at: string | null
+          last_message_kind: string | null
+          last_message_preview: string | null
           licensee_id: string | null
+          module: string | null
           pending_since: string | null
           priority: string
           received_at: string
           reference: string
           regulator_id: string | null
+          reopened_count: number
           responded_at: string | null
           response_due_at: string | null
           retention_expires_at: string | null
@@ -4380,7 +4398,10 @@ export type Database = {
           sender_email: string | null
           sender_name: string
           sender_org: string | null
+          sla_breached_at: string | null
           sla_days: number
+          sla_hours: number | null
+          sla_warned_at: string | null
           source_id: string | null
           source_reference: string | null
           source_type: string | null
@@ -4395,11 +4416,13 @@ export type Database = {
         Insert: {
           assigned_officer?: string | null
           assigned_officer_id?: string | null
+          assigned_team?: string | null
           assigned_unit?: string | null
           category?: string
           channel?: string
           close_justification?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -4408,12 +4431,16 @@ export type Database = {
           is_demo?: boolean
           is_entity_facing?: boolean
           last_message_at?: string | null
+          last_message_kind?: string | null
+          last_message_preview?: string | null
           licensee_id?: string | null
+          module?: string | null
           pending_since?: string | null
           priority?: string
           received_at?: string
           reference?: string
           regulator_id?: string | null
+          reopened_count?: number
           responded_at?: string | null
           response_due_at?: string | null
           retention_expires_at?: string | null
@@ -4421,7 +4448,10 @@ export type Database = {
           sender_email?: string | null
           sender_name: string
           sender_org?: string | null
+          sla_breached_at?: string | null
           sla_days?: number
+          sla_hours?: number | null
+          sla_warned_at?: string | null
           source_id?: string | null
           source_reference?: string | null
           source_type?: string | null
@@ -4436,11 +4466,13 @@ export type Database = {
         Update: {
           assigned_officer?: string | null
           assigned_officer_id?: string | null
+          assigned_team?: string | null
           assigned_unit?: string | null
           category?: string
           channel?: string
           close_justification?: string | null
           closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -4449,12 +4481,16 @@ export type Database = {
           is_demo?: boolean
           is_entity_facing?: boolean
           last_message_at?: string | null
+          last_message_kind?: string | null
+          last_message_preview?: string | null
           licensee_id?: string | null
+          module?: string | null
           pending_since?: string | null
           priority?: string
           received_at?: string
           reference?: string
           regulator_id?: string | null
+          reopened_count?: number
           responded_at?: string | null
           response_due_at?: string | null
           retention_expires_at?: string | null
@@ -4462,7 +4498,10 @@ export type Database = {
           sender_email?: string | null
           sender_name?: string
           sender_org?: string | null
+          sla_breached_at?: string | null
           sla_days?: number
+          sla_hours?: number | null
+          sla_warned_at?: string | null
           source_id?: string | null
           source_reference?: string | null
           source_type?: string | null
@@ -17068,6 +17107,56 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      correspondence_add_participant: {
+        Args: { _party_role?: string; _thread_id: string; _user_id: string }
+        Returns: string
+      }
+      correspondence_case_readable: {
+        Args: { _source_id: string; _source_type: string; _user_id: string }
+        Returns: boolean
+      }
+      correspondence_discard_draft: {
+        Args: { _message_id: string }
+        Returns: undefined
+      }
+      correspondence_export_manifest: {
+        Args: { _thread_id: string }
+        Returns: Json
+      }
+      correspondence_link_documents: {
+        Args: { _document_ids: string[]; _message_id: string }
+        Returns: number
+      }
+      correspondence_module_for: {
+        Args: { _category: string; _source_type: string; _thread_type: string }
+        Returns: string
+      }
+      correspondence_reopen_thread: {
+        Args: { _reason: string; _thread_id: string }
+        Returns: undefined
+      }
+      correspondence_set_pending_response: {
+        Args: { _due_at?: string; _note?: string; _thread_id: string }
+        Returns: undefined
+      }
+      correspondence_sla_sweep: { Args: never; Returns: Json }
+      correspondence_thread_feed: {
+        Args: { _filters?: Json; _limit?: number; _offset?: number }
+        Returns: Json
+      }
+      correspondence_thread_link_case: {
+        Args: {
+          _source_id: string
+          _source_reference?: string
+          _source_type: string
+          _thread_id: string
+        }
+        Returns: undefined
+      }
+      correspondence_thread_unread_count: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: number
+      }
       correspondence_thread_visible: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
@@ -18427,30 +18516,21 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
-      post_correspondence_message:
-        | {
-            Args: {
-              _body: string
-              _channel?: string
-              _dispatch_id?: string
-              _is_internal_note?: boolean
-              _subject?: string
-              _thread_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _body: string
-              _channel?: string
-              _dispatch_id?: string
-              _is_draft?: boolean
-              _is_internal_note?: boolean
-              _subject?: string
-              _thread_id: string
-            }
-            Returns: string
-          }
+      post_correspondence_message: {
+        Args: {
+          _body: string
+          _body_format?: string
+          _channel?: string
+          _dispatch_id?: string
+          _document_ids?: string[]
+          _draft_message_id?: string
+          _is_draft?: boolean
+          _is_internal_note?: boolean
+          _subject?: string
+          _thread_id: string
+        }
+        Returns: string
+      }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]

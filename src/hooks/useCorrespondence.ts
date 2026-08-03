@@ -64,12 +64,21 @@ export interface CorrespondenceThread {
   response_due_at: string | null;
   close_justification: string | null;
   is_entity_facing: boolean;
+  module?: string;
+  assigned_officer_id?: string | null;
+  assigned_team?: string | null;
+  sla_hours?: number | null;
+  sla_warned_at?: string | null;
+  sla_breached_at?: string | null;
+  last_message_preview?: string | null;
+  last_message_kind?: MessageKind | null;
+  reopened_count?: number | null;
 }
 
 export interface CorrespondenceMessage {
   id: string;
   thread_id: string;
-  direction: 'inbound' | 'outbound';
+  direction: 'inbound' | 'outbound' | 'internal';
   channel: string;
   subject: string | null;
   body: string;
@@ -79,11 +88,14 @@ export interface CorrespondenceMessage {
   author_role: string | null;
   sent_at: string;
   message_kind: MessageKind;
-  delivery_status: DeliveryStatus;
+  delivery_status: DeliveryStatus | 'draft';
   delivered_at: string | null;
   opened_at: string | null;
   bounce_reason: string | null;
   is_draft: boolean;
+  body_format?: 'html' | 'text' | null;
+  linked_document_ids?: string[] | null;
+  sent_by_system?: boolean | null;
 }
 
 export interface CorrespondenceParticipant {
@@ -94,6 +106,7 @@ export interface CorrespondenceParticipant {
   display_name: string;
   party_role: string | null;
   last_read_at: string | null;
+  is_internal?: boolean;
 }
 
 
@@ -130,6 +143,113 @@ export interface ThreadFilters {
   threadState?: string;
   sourceType?: string;
   sourceId?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* NOT-THR-001 — unified thread feed                                   */
+/* ------------------------------------------------------------------ */
+
+export const CORRESPONDENCE_MODULE_LABELS: Record<string, string> = {
+  licensing: 'Licensing',
+  complaints: 'Complaints',
+  returns: 'Returns & Compliance',
+  enforcement: 'Enforcement',
+  supervision: 'Supervision',
+  internal: 'Internal',
+  general: 'General',
+};
+
+export type ThreadDirection = 'inbound' | 'outbound' | 'internal';
+
+export interface FeedParty {
+  id: string;
+  name: string;
+  role: string | null;
+  is_internal: boolean;
+  last_read_at: string | null;
+}
+
+export interface FeedThread {
+  id: string;
+  reference: string;
+  subject: string;
+  summary: string | null;
+  module: string;
+  category: string;
+  channel: string;
+  thread_type: ThreadType;
+  thread_state: ThreadState;
+  priority: string;
+  is_entity_facing: boolean;
+  source_type: string | null;
+  source_id: string | null;
+  source_reference: string | null;
+  licensee_id: string | null;
+  entity_name: string | null;
+  assigned_unit: string | null;
+  assigned_team: string | null;
+  assigned_officer: string | null;
+  assigned_officer_id: string | null;
+  sender_name: string | null;
+  sender_org: string | null;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_kind: MessageKind | null;
+  received_at: string;
+  pending_since: string | null;
+  response_due_at: string | null;
+  sla_warned_at: string | null;
+  sla_breached_at: string | null;
+  closed_at: string | null;
+  unread_count: number;
+  effective_direction: ThreadDirection;
+  parties: FeedParty[];
+}
+
+export interface ThreadFeedFilters {
+  query?: string;
+  status?: string;
+  module?: string;
+  direction?: string;
+  thread_type?: string;
+  assigned_officer_id?: string;
+  assigned_team?: string;
+  unread_only?: boolean;
+  source_type?: string;
+  source_id?: string;
+}
+
+export interface ThreadFeedResult {
+  rows: FeedThread[];
+  total: number;
+  page_count: number;
+  can_filter_assignee: boolean;
+}
+
+export function useThreadFeed(filters: ThreadFeedFilters = {}, page = 0, pageSize = 50) {
+  return useQuery({
+    queryKey: ['correspondence-feed', filters, page, pageSize],
+    queryFn: async (): Promise<ThreadFeedResult> => {
+      const payload: Record<string, unknown> = {};
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v === undefined || v === null || v === '' || v === false) return;
+        payload[k] = v;
+      });
+      const { data, error } = await (supabase as any).rpc('correspondence_thread_feed', {
+        _filters: payload,
+        _limit: pageSize,
+        _offset: page * pageSize,
+      });
+      if (error) throw error;
+      const res = (data ?? {}) as Partial<ThreadFeedResult>;
+      return {
+        rows: (res.rows ?? []) as FeedThread[],
+        total: res.total ?? 0,
+        page_count: res.page_count ?? 0,
+        can_filter_assignee: res.can_filter_assignee ?? false,
+      };
+    },
+  });
 }
 
 const TABLE = 'correspondence_threads';
@@ -189,9 +309,49 @@ function useInvalidate(id?: string) {
   const qc = useQueryClient();
   return () => {
     qc.invalidateQueries({ queryKey: ['correspondence-threads'] });
+    qc.invalidateQueries({ queryKey: ['correspondence-feed'] });
     if (id) qc.invalidateQueries({ queryKey: ['correspondence-thread', id] });
   };
 }
+
+/** Internal officers available as thread participants / assignees. */
+export function useInternalOfficers(search = '') {
+  return useQuery({
+    queryKey: ['correspondence-internal-officers', search],
+    queryFn: async (): Promise<Array<{ id: string; full_name: string; email: string | null }>> => {
+      let q = (supabase as any)
+        .from('profiles')
+        .select('id, full_name, email, licensee_id')
+        .is('licensee_id', null)
+        .order('full_name', { ascending: true })
+        .limit(50);
+      if (search.trim()) q = q.ilike('full_name', `%${search.trim()}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; full_name: string; email: string | null }>;
+    },
+  });
+}
+
+/** Documents attached to the case a thread is linked to. */
+export function useCaseDocuments(sourceType?: string | null, sourceId?: string | null) {
+  return useQuery({
+    enabled: !!sourceType && !!sourceId,
+    queryKey: ['correspondence-case-documents', sourceType, sourceId],
+    queryFn: async (): Promise<Array<{ id: string; file_name: string }>> => {
+      const { data, error } = await (supabase as any)
+        .from('documents')
+        .select('id, file_name')
+        .eq('entity_type', sourceType)
+        .eq('entity_id', sourceId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; file_name: string }>;
+    },
+  });
+}
+
 
 export interface CreateThreadInput {
   subject: string;
@@ -285,7 +445,8 @@ export function usePostCorrespondenceMessage(threadId?: string) {
   return useMutation({
     mutationFn: async (input: {
       thread_id: string; body: string; is_internal_note?: boolean; channel?: string; subject?: string;
-      dispatch_id?: string | null; is_draft?: boolean;
+      dispatch_id?: string | null; is_draft?: boolean; body_format?: 'html' | 'text';
+      document_ids?: string[]; draft_message_id?: string | null;
     }) => {
       const { data, error } = await (supabase as any).rpc('post_correspondence_message', {
         _thread_id: input.thread_id,
@@ -295,6 +456,9 @@ export function usePostCorrespondenceMessage(threadId?: string) {
         _subject: input.subject ?? null,
         _dispatch_id: input.dispatch_id ?? null,
         _is_draft: input.is_draft ?? false,
+        _body_format: input.body_format ?? 'html',
+        _document_ids: input.document_ids ?? null,
+        _draft_message_id: input.draft_message_id ?? null,
       });
       if (error) throw error;
       return data as string;
@@ -303,6 +467,73 @@ export function usePostCorrespondenceMessage(threadId?: string) {
     onSuccess: invalidate,
   });
 }
+
+export function useDiscardDraft(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await (supabase as any).rpc('correspondence_discard_draft', { _message_id: messageId });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useMarkPendingResponse(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; due_at?: string | null; note?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_set_pending_response', {
+        _thread_id: input.thread_id, _due_at: input.due_at ?? null, _note: input.note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useReopenThread(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; reason: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_reopen_thread', {
+        _thread_id: input.thread_id, _reason: input.reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useLinkThreadCase(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; source_type: string; source_id: string; source_reference?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_thread_link_case', {
+        _thread_id: input.thread_id,
+        _source_type: input.source_type,
+        _source_id: input.source_id,
+        _source_reference: input.source_reference ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useAddThreadParticipant(threadId?: string) {
+  const invalidate = useInvalidate(threadId);
+  return useMutation({
+    mutationFn: async (input: { thread_id: string; user_id: string; party_role?: string }) => {
+      const { error } = await (supabase as any).rpc('correspondence_add_participant', {
+        _thread_id: input.thread_id, _user_id: input.user_id, _party_role: input.party_role ?? 'Officer',
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 
 export function useClassifyCorrespondence(threadId?: string) {
   const invalidate = useInvalidate(threadId);

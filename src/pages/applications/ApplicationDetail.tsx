@@ -61,6 +61,8 @@ import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+
 
 
 
@@ -896,8 +898,10 @@ export default function ApplicationDetail() {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="communications">Communications</TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
+
               </TabsList>
 
 
@@ -1178,7 +1182,20 @@ export default function ApplicationDetail() {
                 )}
               </TabsContent>
 
+              <TabsContent value="communications" className="mt-4">
+                {activeTab === 'communications' && (
+                  <CaseThreadsPanel
+                    sourceType="application"
+                    sourceId={app.id}
+                    sourceReference={(app as any).application_number ?? null}
+                    licenseeId={(app as any).licensee_id ?? null}
+                    title="Case communications"
+                  />
+                )}
+              </TabsContent>
+
               {isInternal && (
+
                 <TabsContent value="consolidated" className="mt-4">
                   {activeTab === 'consolidated' && (
                     <ConsolidatedCaseTab applicationId={app.id} applicantId={app.applicant_id} />

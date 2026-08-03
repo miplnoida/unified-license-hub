@@ -40,6 +40,8 @@ import { VulnerabilityReviewBanner } from '@/components/complaints/Vulnerability
 // `execute_complaint_workflow_action` → notification_outbox — never React.
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
+import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   low: { label: 'Low', variant: 'outline' },
@@ -353,7 +355,9 @@ export default function ComplaintDetail() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="investigation">Investigation</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="communications">Communications</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -553,8 +557,19 @@ export default function ComplaintDetail() {
           </TabsContent>
 
 
+          <TabsContent value="communications" className="space-y-4">
+            <CaseThreadsPanel
+              sourceType="complaint"
+              sourceId={complaint.id}
+              sourceReference={complaint.reference_number ?? null}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              title="Complaint communications"
+            />
+          </TabsContent>
+
           <TabsContent value="tracking" className="space-y-4">
             <WorkflowActionPanel complaintId={complaint.id} />
+
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
