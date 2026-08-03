@@ -70,6 +70,10 @@ jobs:
       - name: RBAC test suite (permissions + persona + guards)
         run: bunx vitest run src/test/permissionsRbac.test.tsx
 
+      - name: Notification preference tests
+        run: bunx vitest run src/test/notificationPreferences.test.ts
+
+
       - name: Assert required RBAC pgTAP files exist
         run: |
           set -euo pipefail
