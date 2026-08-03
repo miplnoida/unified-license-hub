@@ -58,7 +58,8 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'admin_dashboard', adminOnly: true },
       { label: 'PPOC Mappings', href: '/admin/ppoc-mappings', icon: <UserCircle className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
-      { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
+      { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
+      { label: 'Notification Events', href: '/admin/notification-events', icon: <Bell className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
       { label: 'Notification History', href: '/admin/notification-history', icon: <Bell className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
       { label: 'Activity Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Audit Logs', href: '/admin/compliance-audit-logs', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
