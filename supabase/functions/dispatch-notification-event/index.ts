@@ -667,6 +667,34 @@ async function resolveRecipients(
           (await previousWorkflowActors(admin, aid)).forEach((u) => out.add(u));
           break;
         }
+        case "assigned_officer": {
+          (await assignedOfficer(ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+        case "next_step_role": {
+          (await nextStepRoleRecipients(admin, rule, ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+        case "supervisor": {
+          (await supervisorRecipients(admin)).forEach((u) => out.add(u));
+          break;
+        }
+        case "named_user": {
+          if (rule.user_id) out.add(String(rule.user_id));
+          break;
+        }
+        case "regulator_team": {
+          const rid = rule.regulator_id
+            || ctx.payload?.regulator_id
+            || ctx.app?.regulator_id;
+          (await regulatorTeam(admin, rid)).forEach((u) => out.add(u));
+          break;
+        }
+        case "custom_email": {
+          const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
+          if (email) out.add(`email:${email}`);
+          break;
+        }
         default:
           console.warn("Unknown recipient rule type", rule.type);
       }
