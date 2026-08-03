@@ -10,7 +10,6 @@ import { MessageThreadPanel } from '@/components/correspondence/MessageThreadPan
 import { AttachmentsPanel } from '@/components/correspondence/AttachmentsPanel';
 import { AuditTrailPanel } from '@/components/correspondence/AuditTrailPanel';
 import { useCorrespondenceThread } from '@/hooks/useCorrespondence';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import type { CorrespondenceStatus } from '@/pages/correspondence/types';
 import { ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';

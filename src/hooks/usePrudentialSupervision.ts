@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 
@@ -28,14 +27,6 @@ async function audit(
     });
   } catch (e) {
     if (import.meta.env.DEV) console.warn('[prudential audit] failed', e);
-  }
-}
-async function notify(event_key: string, entity_type: string, entity_id: string | null | undefined, payload: Record<string, unknown> = {}) {
-  if (!entity_id) return;
-  try {
-    await dispatchNotificationEvent({ event_key, entity_type, entity_id, payload });
-  } catch {
-    /* swallow */
   }
 }
 
@@ -379,14 +370,6 @@ export function useTransitionAssessment() {
       if (error) throw error;
       const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
       await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
-      const eventMap: Record<string, string> = {
-        submitted: 'prudential_assessment_submitted',
-        reviewed: 'prudential_assessment_reviewed',
-        approved: 'prudential_assessment_approved',
-      };
-      if (eventMap[to] && before?.entity_id) {
-        const ent = (await sb.from('licensees').select('name').eq('id', before.entity_id).maybeSingle()).data;
-      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),

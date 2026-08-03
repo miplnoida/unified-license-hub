@@ -10,7 +10,6 @@ import { Eye, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { usePostCorrespondenceMessage, type CorrespondenceThread } from '@/hooks/useCorrespondence';
 
 function render(tpl: string, vars: Record<string, string>) {

@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 const sb = supabase as any;
@@ -35,10 +34,6 @@ async function audit(
   } catch (e) {
     if (import.meta.env.DEV) console.warn('[market conduct audit] failed', e);
   }
-}
-async function notify(event_key: string, entity_type: string, entity_id: string | null | undefined, payload: Record<string, unknown> = {}) {
-  if (!entity_id) return;
-  try { await dispatchNotificationEvent({ event_key, entity_type, entity_id, payload }); } catch { /* swallow */ }
 }
 
 // ---------- Types ----------
