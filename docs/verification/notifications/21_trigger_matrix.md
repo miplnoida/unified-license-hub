@@ -1,6 +1,6 @@
 # Notification Trigger Matrix (authoritative)
 
-Generated: 2026-08-03T09:34:32.539Z
+Generated: 2026-08-03T10:13:44.265Z
 Generator: `scripts/notification-trigger-scan.mjs`
 
 "Wired" means a backend call site exists (database function/trigger body or edge
@@ -9,10 +9,10 @@ function). Frontend-only references never count as wiring.
 | Measure | Value |
 | --- | --- |
 | Active events | 212 |
-| Active events wired | 165 |
-| Active events unwired | 47 |
-| Active events executed at least once | 55 |
-| Active events wired but not yet executed | 123 |
+| Active events wired | 212 |
+| Active events unwired | 0 |
+| Active events executed at least once | 56 |
+| Active events wired but not yet executed | 156 |
 | Deactivated (out of approved scope) | 2 |
 
 ## administration
@@ -30,7 +30,7 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `application.ai_overridden` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `application.ai_overridden` | active | wired | db:trg_notify_application_ai_overridden | 2 | y | y | y | n |
 | `application.approved_step` | active | wired | edge:perform-workflow-action/index.ts | 3 | y | n | y | y |
 | `application.cancelled` | active | wired | db:tg_applications_audit | 3 | y | n | y | n |
 | `application.comment_saved` | active | wired | edge:perform-workflow-action/index.ts | 2 | y | y | y | y |
@@ -39,10 +39,10 @@ function). Frontend-only references never count as wiring.
 | `application.resubmission_requested` | active | wired | db:tg_applications_audit | 2 | y | y | y | y |
 | `application.resubmitted.applicant` | active | wired | edge:verify-and-submit/index.ts | 1 | y | y | y | y |
 | `application.resubmitted.reviewer` | active | wired | edge:verify-and-submit/index.ts | 2 | y | y | y | y |
-| `application.rfi_near_due` | active | wired | edge:rfi-near-due-sweep/index.ts | 2 | y | y | y | n |
-| `application.rfi_overdue` | active | wired | edge:rfi-near-due-sweep/index.ts | 3 | y | y | y | n |
-| `application.rfi_raised` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | y |
-| `application.rfi_responded` | active | **UNWIRED** | frontend-only:1 | 2 | y | n | y | n |
+| `application.rfi_near_due` | active | wired | db:notify_application_rfi_deadlines | 2 | y | y | y | n |
+| `application.rfi_overdue` | active | wired | db:notify_application_rfi_deadlines | 3 | y | y | y | y |
+| `application.rfi_raised` | active | wired | db:trg_notify_application_rfi_raised | 2 | y | y | y | y |
+| `application.rfi_responded` | active | wired | db:trg_notify_application_rfi_responded | 2 | y | n | y | n |
 | `application.send_back` | active | wired | edge:perform-workflow-action/index.ts | 3 | y | y | y | y |
 | `application.submitted` | active | wired | db:tg_applications_audit | 3 | y | y | y | n |
 | `application.submitted.applicant` | active | wired | edge:verify-and-submit/index.ts | 1 | y | y | y | y |
@@ -56,7 +56,7 @@ function). Frontend-only references never count as wiring.
 | `correspondence.awaiting_response` | active | wired | db:trg_correspondence_awaiting_response_notification | 2 | y | y | y | n |
 | `correspondence.external_message_sent` | active | wired | db:post_correspondence_message | 2 | y | y | y | n |
 | `correspondence.external_response_received` | active | wired | db:post_correspondence_message | 3 | y | y | y | n |
-| `correspondence.internal_message_posted` | active | wired | db:post_correspondence_message | 3 | y | y | y | n |
+| `correspondence.internal_message_posted` | active | wired | db:post_correspondence_message,trg_notify_correspondence_message | 3 | y | y | y | n |
 | `correspondence.internal_participant_added` | active | wired | db:correspondence_add_participant | 1 | y | y | y | n |
 | `correspondence.sla_breached` | active | wired | db:correspondence_sla_sweep | 3 | y | y | y | n |
 | `correspondence.sla_near_breach` | active | wired | db:correspondence_sla_sweep | 1 | y | y | y | n |
@@ -104,19 +104,19 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_action_cancelled` | active | **UNWIRED** | frontend-only:1 | 3 | y | y | y | n |
+| `conduct_action_cancelled` | active | wired | db:trg_notify_conduct_action | 3 | y | y | y | n |
 
 ## conduct_action_completed
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_action_completed` | active | **UNWIRED** | frontend-only:1 | 3 | y | y | y | n |
+| `conduct_action_completed` | active | wired | db:trg_notify_conduct_action | 3 | y | y | y | n |
 
 ## conduct_action_created
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_action_created` | active | **UNWIRED** | frontend-only:1 | 3 | y | y | y | y |
+| `conduct_action_created` | active | wired | db:trg_notify_conduct_action | 3 | y | y | y | y |
 
 ## conduct_action_overdue
 
@@ -128,19 +128,19 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_action_waived` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
+| `conduct_action_waived` | active | wired | db:trg_notify_conduct_action | 4 | y | y | y | n |
 
 ## conduct_alert_acknowledged
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_alert_acknowledged` | active | **UNWIRED** | frontend-only:2 | 2 | y | n | y | n |
+| `conduct_alert_acknowledged` | active | wired | db:trg_notify_conduct_alert | 2 | y | n | y | n |
 
 ## conduct_alert_closed
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_alert_closed` | active | **UNWIRED** | frontend-only:2 | 2 | y | n | y | n |
+| `conduct_alert_closed` | active | wired | db:trg_notify_conduct_alert | 2 | y | n | y | n |
 
 ## conduct_alert_created
 
@@ -164,13 +164,13 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_evidence_access_denied` | active | **UNWIRED** | frontend-only:1 | 2 | y | n | y | n |
+| `conduct_evidence_access_denied` | active | wired | db:trg_notify_conduct_evidence_denied | 2 | y | n | y | n |
 
 ## conduct_evidence_uploaded
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_evidence_uploaded` | active | **UNWIRED** | frontend-only:1 | 2 | y | n | y | n |
+| `conduct_evidence_uploaded` | active | wired | db:trg_notify_conduct_evidence_uploaded | 2 | y | n | y | n |
 
 ## conduct_high_severity_complaint
 
@@ -182,19 +182,19 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_investigation_assigned` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `conduct_investigation_assigned` | active | wired | db:trg_notify_conduct_investigation | 2 | y | y | y | n |
 
 ## conduct_investigation_closed
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_investigation_closed` | active | **UNWIRED** | frontend-only:1 | 2 | y | n | y | n |
+| `conduct_investigation_closed` | active | wired | db:trg_notify_conduct_investigation | 2 | y | n | y | n |
 
 ## conduct_investigation_opened
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `conduct_investigation_opened` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `conduct_investigation_opened` | active | wired | db:trg_notify_conduct_investigation | 2 | y | y | y | n |
 
 ## conduct_monitoring_rule_triggered
 
@@ -224,8 +224,8 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `correspondence.reply_received` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
-| `correspondence.response_sent` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
+| `correspondence.reply_received` | active | wired | db:trg_notify_correspondence_message | 1 | y | y | y | n |
+| `correspondence.response_sent` | active | wired | db:trg_notify_correspondence_message | 1 | y | y | y | n |
 
 ## enforcement
 
@@ -262,14 +262,14 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `form_version.published` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
-| `form_version.upcoming` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
+| `form_version.published` | active | wired | db:trg_notify_form_version_published | 1 | y | y | y | y |
+| `form_version.upcoming` | active | wired | db:notify_upcoming_form_versions | 1 | y | y | y | n |
 
 ## fp_appeal_decided
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `fp_appeal_decided` | active | **UNWIRED** | frontend-only:2 | 2 | y | n | y | y |
+| `fp_appeal_decided` | active | wired | db:trg_notify_fp_appeal_decided | 2 | y | n | y | y |
 
 ## fp_condition_overdue
 
@@ -293,13 +293,13 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `fp_finding_assigned` | active | **UNWIRED** | frontend-only:2 | 1 | y | n | y | y |
+| `fp_finding_assigned` | active | wired | db:trg_notify_fp_finding | 1 | y | n | y | y |
 
 ## fp_finding_resolved
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `fp_finding_resolved` | active | **UNWIRED** | frontend-only:1 | 2 | y | n | y | y |
+| `fp_finding_resolved` | active | wired | db:trg_notify_fp_finding | 2 | y | n | y | y |
 
 ## fp_high_severity_finding
 
@@ -323,8 +323,8 @@ function). Frontend-only references never count as wiring.
 | `license.expiring_soon` | active | wired | edge:license-expiry-reminders/index.ts | 1 | y | y | y | n |
 | `license.expiring_soon_officer` | active | wired | edge:license-expiry-reminders/index.ts | 2 | y | y | y | n |
 | `license.reinstated` | active | wired | edge:perform-license-action/index.ts | 1 | y | y | y | y |
-| `license.renewal_approved` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
-| `license.renewal_requested` | active | **UNWIRED** | frontend-only:1 | 3 | y | y | y | n |
+| `license.renewal_approved` | active | wired | db:trg_notify_license_renewal | 2 | y | y | y | n |
+| `license.renewal_requested` | active | wired | db:trg_notify_license_renewal | 3 | y | y | y | n |
 | `license.renewed` | active | wired | edge:perform-workflow-action/index.ts | 1 | y | y | y | n |
 | `license.revoked` | active | wired | edge:perform-license-action/index.ts | 2 | y | y | y | y |
 | `license.status_changed` | active | wired | edge:perform-license-action/index.ts | 4 | y | y | y | n |
@@ -334,10 +334,10 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `license_appeal.acknowledged` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
-| `license_appeal.decided` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
-| `license_appeal.filed` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
-| `license_appeal.panel_assigned` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
+| `license_appeal.acknowledged` | active | wired | db:trg_notify_license_appeal | 1 | y | y | y | n |
+| `license_appeal.decided` | active | wired | db:trg_notify_license_appeal | 1 | y | y | y | y |
+| `license_appeal.filed` | active | wired | db:trg_notify_license_appeal | 1 | y | y | y | y |
+| `license_appeal.panel_assigned` | active | wired | db:trg_notify_license_appeal | 1 | y | y | y | y |
 
 ## licensee
 
@@ -370,8 +370,8 @@ function). Frontend-only references never count as wiring.
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `payment.failed` | active | wired | db:tg_payments_audit | 2 | y | y | y | n |
-| `payment.received` | active | **UNWIRED** | frontend-only:2 | 3 | y | y | y | n |
-| `payment.required` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `payment.received` | active | wired | db:trg_notify_payment | 3 | y | y | y | n |
+| `payment.required` | active | wired | db:trg_notify_payment | 2 | y | y | y | n |
 
 ## prudential
 
@@ -390,37 +390,37 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_action_assigned` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
+| `prudential_action_assigned` | active | wired | db:trg_notify_prudential_action | 1 | y | y | y | y |
 
 ## prudential_action_completed
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_action_completed` | active | **UNWIRED** | frontend-only:1 | 1 | y | n | y | n |
+| `prudential_action_completed` | active | wired | db:trg_notify_prudential_action | 1 | y | n | y | n |
 
 ## prudential_action_overdue
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_action_overdue` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `prudential_action_overdue` | active | wired | db:notify_overdue_prudential_actions | 2 | y | y | y | n |
 
 ## prudential_assessment_approved
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_assessment_approved` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `prudential_assessment_approved` | active | wired | db:trg_notify_prudential_assessment | 2 | y | y | y | n |
 
 ## prudential_assessment_reviewed
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_assessment_reviewed` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `prudential_assessment_reviewed` | active | wired | db:trg_notify_prudential_assessment | 2 | y | y | y | n |
 
 ## prudential_assessment_submitted
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_assessment_submitted` | active | **UNWIRED** | frontend-only:1 | 2 | y | y | y | n |
+| `prudential_assessment_submitted` | active | wired | db:trg_notify_prudential_assessment | 2 | y | y | y | n |
 
 ## prudential_breach_detected
 
@@ -438,7 +438,7 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `prudential_escalation_resolved` | active | **UNWIRED** | frontend-only:1 | 3 | y | y | y | y |
+| `prudential_escalation_resolved` | active | wired | db:trg_notify_prudential_escalation_resolved | 3 | y | y | y | y |
 
 ## prudential_return_validation_failed
 
@@ -460,24 +460,24 @@ function). Frontend-only references never count as wiring.
 | `registration.approved` | active | wired | db:trg_registration_approved_notification | 1 | y | y | y | n |
 | `registration.approved_step` | active | wired | edge:perform-registration-workflow-action/index.ts | 4 | y | y | y | y |
 | `registration.comment_saved` | active | wired | edge:perform-registration-workflow-action/index.ts | 2 | y | y | y | n |
-| `registration.correction_required` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
+| `registration.correction_required` | active | wired | db:trg_notify_registration_state | 1 | y | y | y | n |
 | `registration.escalated` | active | wired | edge:perform-registration-workflow-action/index.ts | 4 | y | y | y | n |
 | `registration.final_approved` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | y |
 | `registration.final_rejected` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | y |
 | `registration.more_info_requested` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | n |
-| `registration.new_submission` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
-| `registration.pending_review` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
+| `registration.new_submission` | active | wired | db:trg_notify_registration_state | 4 | y | y | y | n |
+| `registration.pending_review` | active | wired | db:trg_notify_registration_state | 4 | y | y | y | n |
 | `registration.received` | active | wired | edge:register-pre-licensee/index.ts | 1 | y | y | y | y |
-| `registration.rejected` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | y |
+| `registration.rejected` | active | wired | db:trg_notify_registration_state | 1 | y | y | y | y |
 | `registration.resubmission_requested` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | y |
-| `registration.resubmitted` | active | **UNWIRED** | frontend-only:2 | 4 | y | y | y | y |
+| `registration.resubmitted` | active | wired | db:trg_notify_registration_state | 4 | y | y | y | y |
 | `registration.returned_for_correction` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | n |
 | `registration.send_back` | active | wired | edge:perform-registration-workflow-action/index.ts | 1 | y | y | y | n |
-| `registration.step_assigned` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
-| `registration.step_entered` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
+| `registration.step_assigned` | active | wired | db:trg_notify_registration_step | 4 | y | y | y | n |
+| `registration.step_entered` | active | wired | db:trg_notify_registration_step | 4 | y | y | y | n |
 | `registration.submitted` | active | wired | edge:register-pre-licensee/index.ts | 3 | y | y | y | y |
-| `registration.workflow_completed` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
-| `registration.workflow_started` | active | **UNWIRED** | frontend-only:1 | 4 | y | y | y | n |
+| `registration.workflow_completed` | active | wired | db:trg_notify_registration_state | 1 | y | y | y | n |
+| `registration.workflow_started` | active | wired | db:trg_notify_registration_state | 4 | y | y | y | n |
 
 ## regulator
 
@@ -504,7 +504,7 @@ function). Frontend-only references never count as wiring.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `return.analysis_complete` | active | wired | edge:generate-return-analysis/index.ts | 1 | y | y | y | n |
 | `return.approved` | active | wired | db:perform_return_workflow_transition | 3 | y | y | y | y |
-| `return.approved_step` | active | wired | edge:perform-return-workflow-action/index.ts,_shared/return-notification-payload.ts | 2 | y | y | y | y |
+| `return.approved_step` | active | wired | edge:_shared/return-notification-payload.ts,perform-return-workflow-action/index.ts | 2 | y | y | y | y |
 | `return.breach_critical` | active | wired | edge:evaluate-return-prudential/index.ts | 3 | y | y | y | n |
 | `return.breach_warning` | active | wired | edge:evaluate-return-prudential/index.ts | 2 | y | y | y | n |
 | `return.comment_added` | active | wired | db:tg_return_comment_added_audit | 4 | y | y | y | y |
@@ -528,7 +528,7 @@ function). Frontend-only references never count as wiring.
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `sla.breach` | active | wired | db:notify_workflow_sla_events | 4 | y | y | y | y |
-| `sla.configuration_updated` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
+| `sla.configuration_updated` | active | wired | db:trg_notify_sla_configuration_updated | 1 | y | y | y | n |
 | `sla.warning` | active | wired | db:notify_workflow_sla_events | 3 | y | y | y | n |
 
 ## system
@@ -551,7 +551,7 @@ function). Frontend-only references never count as wiring.
 
 | Event | State | Trigger | Call site | Recipients | In-app | Email | Published | Executed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `user.invited` | active | **UNWIRED** | frontend-only:1 | 1 | y | y | y | n |
+| `user.invited` | active | wired | db:trg_notify_user_invited | 1 | y | y | y | n |
 
 ## workflow
 
