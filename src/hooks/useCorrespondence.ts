@@ -94,6 +94,7 @@ export interface CorrespondenceParticipant {
   display_name: string;
   party_role: string | null;
   last_read_at: string | null;
+  is_internal?: boolean;
 }
 
 
@@ -130,6 +131,113 @@ export interface ThreadFilters {
   threadState?: string;
   sourceType?: string;
   sourceId?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* NOT-THR-001 — unified thread feed                                   */
+/* ------------------------------------------------------------------ */
+
+export const CORRESPONDENCE_MODULE_LABELS: Record<string, string> = {
+  licensing: 'Licensing',
+  complaints: 'Complaints',
+  returns: 'Returns & Compliance',
+  enforcement: 'Enforcement',
+  supervision: 'Supervision',
+  internal: 'Internal',
+  general: 'General',
+};
+
+export type ThreadDirection = 'inbound' | 'outbound' | 'internal';
+
+export interface FeedParty {
+  id: string;
+  name: string;
+  role: string | null;
+  is_internal: boolean;
+  last_read_at: string | null;
+}
+
+export interface FeedThread {
+  id: string;
+  reference: string;
+  subject: string;
+  summary: string | null;
+  module: string;
+  category: string;
+  channel: string;
+  thread_type: ThreadType;
+  thread_state: ThreadState;
+  priority: string;
+  is_entity_facing: boolean;
+  source_type: string | null;
+  source_id: string | null;
+  source_reference: string | null;
+  licensee_id: string | null;
+  entity_name: string | null;
+  assigned_unit: string | null;
+  assigned_team: string | null;
+  assigned_officer: string | null;
+  assigned_officer_id: string | null;
+  sender_name: string | null;
+  sender_org: string | null;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_kind: MessageKind | null;
+  received_at: string;
+  pending_since: string | null;
+  response_due_at: string | null;
+  sla_warned_at: string | null;
+  sla_breached_at: string | null;
+  closed_at: string | null;
+  unread_count: number;
+  effective_direction: ThreadDirection;
+  parties: FeedParty[];
+}
+
+export interface ThreadFeedFilters {
+  query?: string;
+  status?: string;
+  module?: string;
+  direction?: string;
+  thread_type?: string;
+  assigned_officer_id?: string;
+  assigned_team?: string;
+  unread_only?: boolean;
+  source_type?: string;
+  source_id?: string;
+}
+
+export interface ThreadFeedResult {
+  rows: FeedThread[];
+  total: number;
+  page_count: number;
+  can_filter_assignee: boolean;
+}
+
+export function useThreadFeed(filters: ThreadFeedFilters = {}, page = 0, pageSize = 50) {
+  return useQuery({
+    queryKey: ['correspondence-feed', filters, page, pageSize],
+    queryFn: async (): Promise<ThreadFeedResult> => {
+      const payload: Record<string, unknown> = {};
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v === undefined || v === null || v === '' || v === false) return;
+        payload[k] = v;
+      });
+      const { data, error } = await (supabase as any).rpc('correspondence_thread_feed', {
+        _filters: payload,
+        _limit: pageSize,
+        _offset: page * pageSize,
+      });
+      if (error) throw error;
+      const res = (data ?? {}) as Partial<ThreadFeedResult>;
+      return {
+        rows: (res.rows ?? []) as FeedThread[],
+        total: res.total ?? 0,
+        page_count: res.page_count ?? 0,
+        can_filter_assignee: res.can_filter_assignee ?? false,
+      };
+    },
+  });
 }
 
 const TABLE = 'correspondence_threads';
