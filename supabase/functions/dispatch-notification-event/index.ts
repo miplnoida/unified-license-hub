@@ -1058,6 +1058,30 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Delivery frequency rule from the event configuration. Non-immediate
+        // frequencies hand the email off to the hourly/daily digest worker; the
+        // in-app record is still written so the inbox stays current. Critical and
+        // high severity events are always immediate (regulatory requirement).
+        if (
+          channel === "email"
+          && deliveryFrequency !== "immediate"
+          && severity !== "critical"
+          && severity !== "high"
+        ) {
+          summary.skipped++;
+          await admin
+            .from("notification_dispatch_log")
+            .update({
+              status: "skipped",
+              error: "deferred_to_digest",
+              error_details: { reason: "deferred_to_digest", frequency: deliveryFrequency, channel },
+              last_attempt_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+          continue;
+        }
+
+
         try {
           if (channel === "in_app") {
             if (isDirectEmail) {
