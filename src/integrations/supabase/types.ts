@@ -18124,6 +18124,12 @@ export type Database = {
         }
         Returns: Json
       }
+      escalation_rule_preview: {
+        Args: { _from?: string; _rule_id: string }
+        Returns: Json
+      }
+      escalation_rule_save: { Args: { _payload: Json }; Returns: string }
+      escalation_rules_list: { Args: never; Returns: Json }
       escalation_stats: { Args: never; Returns: Json }
       escalation_sweep: { Args: never; Returns: Json }
       escalation_take_ownership: {
