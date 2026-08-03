@@ -1,0 +1,215 @@
+event_key,module,severity,channels,state,trigger,call_site,recipient_rules,published_version,dispatch_rows,in_app_rows,email_rows,versioned_rows,rows_with_resolved_recipient,notification_rows,notification_rows_with_route,result
+escalation_rule.changed,administration,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+notification_template.published,administration,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+rule.activated,administration,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+rule.first_fired,administration,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+user.role_changed,administration,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+workflow.published,administration,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.ai_overridden,application,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.approved_step,application,low,in_app,active,wired,edge:perform-workflow-action/index.ts,3,yes,23,16,7,0,23,0,0,PARTIAL (legacy dispatch only)
+application.cancelled,application,medium,in_app,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.comment_saved,application,medium,in_app+email,active,wired,edge:perform-workflow-action/index.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+application.final_approved,application,low,in_app+email,active,wired,edge:perform-workflow-action/index.ts,4,yes,62,31,31,0,62,0,0,PARTIAL (legacy dispatch only)
+application.rejected,application,high,in_app+email,active,wired,db,3,yes,8,4,4,0,8,0,0,PARTIAL (legacy dispatch only)
+application.resubmission_requested,application,high,in_app+email,active,wired,db,2,yes,2,1,1,0,2,0,0,PARTIAL (legacy dispatch only)
+application.resubmitted.applicant,application,medium,in_app+email,active,wired,edge:verify-and-submit/index.ts,1,yes,2,1,1,0,2,0,0,PARTIAL (legacy dispatch only)
+application.resubmitted.reviewer,application,medium,in_app+email,active,wired,edge:verify-and-submit/index.ts,2,yes,6,3,3,0,6,0,0,PARTIAL (legacy dispatch only)
+application.rfi_near_due,application,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.rfi_overdue,application,high,in_app+email,active,wired,db,3,yes,12,6,6,12,12,12,12,PASS
+application.rfi_raised,application,medium,in_app+email,active,wired,db,2,yes,14,7,7,0,14,0,0,PARTIAL (legacy dispatch only)
+application.rfi_responded,application,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.send_back,application,high,in_app+email,active,wired,edge:perform-workflow-action/index.ts,3,yes,20,10,10,0,20,0,0,PARTIAL (legacy dispatch only)
+application.submitted,application,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.submitted.applicant,application,medium,in_app+email,active,wired,edge:verify-and-submit/index.ts,1,yes,48,24,24,0,48,0,0,PARTIAL (legacy dispatch only)
+application.submitted.reviewer,application,medium,in_app+email,active,wired,edge:verify-and-submit/index.ts,2,yes,34,17,17,0,34,0,0,PARTIAL (legacy dispatch only)
+application.workflow_action_taken,application,medium,in_app,active,wired,edge:perform-workflow-action/index.ts,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.awaiting_response,communications,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.external_message_sent,communications,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.external_response_received,communications,high,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.internal_message_posted,communications,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.internal_participant_added,communications,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.sla_breached,communications,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.sla_near_breach,communications,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.closed,complaint,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.escalated_to_enforcement,complaint,critical,in_app+email,active,wired,db,5,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.investigation_started,complaint,medium,in_app+email,active,wired,db,5,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.resolved,complaint,low,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+compliance.return_due,compliance,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+compliance.return_rejected_or_changes_requested,compliance,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+compliance.return_reviewed,compliance,low,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+compliance.return_submitted,compliance,medium,in_app,active,wired,db,3,yes,3,3,0,0,3,0,0,PARTIAL (legacy dispatch only)
+complaint.acknowledged,conduct,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.assigned,conduct,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.complainant_update,conduct,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.investigation_overdue,conduct,high,in_app+email,active,wired,db,2,yes,10,5,5,10,10,10,10,PASS
+complaint.outcome_released,conduct,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.priority_changed,conduct,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+complaint.rfi_raised,conduct,high,in_app+email,deactivated,n/a,none,2,yes,0,0,0,0,0,0,0,OUT OF SCOPE (deactivated)
+complaint.rfi_responded,conduct,medium,in_app+email,deactivated,n/a,none,1,yes,0,0,0,0,0,0,0,OUT OF SCOPE (deactivated)
+conduct.pattern_alert,conduct,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct.systemic_flag_raised,conduct,critical,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_action_assigned,conduct_action_assigned,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_action_cancelled,conduct_action_cancelled,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_action_completed,conduct_action_completed,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_action_created,conduct_action_created,medium,in_app+email,active,wired,db,3,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+conduct_action_overdue,conduct_action_overdue,high,in_app+email,active,wired,db,2,yes,12,6,6,12,12,12,0,PASS
+conduct_action_waived,conduct_action_waived,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_alert_acknowledged,conduct_alert_acknowledged,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_alert_closed,conduct_alert_closed,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_alert_created,conduct_alert_created,high,in_app+email,active,wired,db,2,yes,4,2,2,0,4,4,0,PARTIAL (legacy dispatch only)
+conduct_complaint_created,conduct_complaint_created,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_complaint_triaged,conduct_complaint_triaged,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_evidence_access_denied,conduct_evidence_access_denied,high,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_evidence_uploaded,conduct_evidence_uploaded,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_high_severity_complaint,conduct_high_severity_complaint,high,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_investigation_assigned,conduct_investigation_assigned,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_investigation_closed,conduct_investigation_closed,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_investigation_opened,conduct_investigation_opened,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_monitoring_rule_triggered,conduct_monitoring_rule_triggered,high,in_app+email,active,wired,edge:evaluate-conduct-monitoring/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_thematic_review_assigned,conduct_thematic_review_assigned,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_thematic_review_closed,conduct_thematic_review_closed,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+conduct_thematic_review_created,conduct_thematic_review_created,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.reply_received,correspondence,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+correspondence.response_sent,correspondence,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+enforcement.case_closed,enforcement,critical,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+enforcement.case_withdrawn,enforcement,critical,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+enforcement.decision_recorded,enforcement,critical,in_app+email,active,wired,db,5,yes,0,0,0,0,0,0,0,NOT EXERCISED
+enforcement.notice_issued,enforcement,critical,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+enforcement.response_received,enforcement,critical,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+entity.primary_user_created,entity,medium,in_app+email,active,wired,edge:create-web-user/index.ts,3,yes,56,28,28,0,56,0,0,PARTIAL (legacy dispatch only)
+entity.secondary_user_created,entity,medium,in_app+email,active,wired,edge:create-web-user/index.ts,3,yes,6,3,3,0,6,0,0,PARTIAL (legacy dispatch only)
+entity.user_access_revoked,entity,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+entity.user_role_changed,entity,medium,in_app,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.assessment_assigned,fit_and_proper,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.committee_decision,fit_and_proper,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.committee_ready,fit_and_proper,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.determination_dispatched,fit_and_proper,high,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.pq_invitation,fit_and_proper,high,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.pq_submitted,fit_and_proper,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp.screening_completed,fit_and_proper,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+form_version.published,form_version,medium,in_app+email,active,wired,db,1,yes,24,12,12,0,24,0,0,PARTIAL (legacy dispatch only)
+form_version.upcoming,form_version,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp_appeal_decided,fp_appeal_decided,medium,in_app,active,wired,db,2,yes,2,2,0,0,2,0,0,PARTIAL (legacy dispatch only)
+fp_condition_overdue,fp_condition_overdue,high,in_app,active,wired,edge:fp-monitoring-sweep/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp_condition_reminder,fp_condition_reminder,medium,in_app,active,wired,edge:fp-monitoring-sweep/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp_cycle_assessment_opened,fp_cycle_assessment_opened,medium,in_app,active,wired,edge:fp-cycle-scheduler/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp_finding_assigned,fp_finding_assigned,medium,in_app,active,wired,db,1,yes,2,2,0,0,2,0,0,PARTIAL (legacy dispatch only)
+fp_finding_resolved,fp_finding_resolved,medium,in_app,active,wired,db,2,yes,2,2,0,0,2,0,0,PARTIAL (legacy dispatch only)
+fp_high_severity_finding,fp_high_severity_finding,medium,in_app,active,wired,edge:fp-screening-run/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+fp_monitoring_alert,fp_monitoring_alert,medium,in_app,active,wired,edge:fp-monitoring-sweep/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.cancelled,license,high,in_app+email,active,wired,edge:perform-license-action/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.created,license,low,in_app+email,active,wired,edge:perform-workflow-action/index.ts,4,yes,28,14,14,0,28,0,0,PARTIAL (legacy dispatch only)
+license.expired,license,critical,in_app+email,active,wired,edge:license-expiry-reminders/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.expiring_soon,license,high,in_app+email,active,wired,edge:license-expiry-reminders/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.expiring_soon_officer,license,high,in_app+email,active,wired,edge:license-expiry-reminders/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.reinstated,license,low,in_app+email,active,wired,edge:perform-license-action/index.ts,1,yes,10,5,5,0,10,0,0,PARTIAL (legacy dispatch only)
+license.renewal_approved,license,low,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.renewal_requested,license,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.renewed,license,low,in_app+email,active,wired,edge:perform-workflow-action/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.revoked,license,critical,in_app+email,active,wired,edge:perform-license-action/index.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+license.status_changed,license,high,in_app+email,active,wired,edge:perform-license-action/index.ts,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.suspended,license,critical,in_app+email,active,wired,edge:perform-license-action/index.ts,2,yes,34,17,17,0,34,0,0,PARTIAL (legacy dispatch only)
+license_appeal.acknowledged,license_appeal,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license_appeal.decided,license_appeal,medium,in_app+email,active,wired,db,1,yes,2,1,1,0,2,0,0,PARTIAL (legacy dispatch only)
+license_appeal.filed,license_appeal,medium,in_app+email,active,wired,db,1,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+license_appeal.panel_assigned,license_appeal,medium,in_app+email,active,wired,db,1,yes,2,1,1,0,2,0,0,PARTIAL (legacy dispatch only)
+licensee.created,licensee,medium,in_app,active,wired,edge:perform-workflow-action/index.ts,3,yes,16,16,0,0,16,0,0,PARTIAL (legacy dispatch only)
+application.analyst_assigned,licensing,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.decision_dispatched,licensing,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.decision_ready,licensing,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.escalated_to_supervisor,licensing,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.legal_review_completed,licensing,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.officer_assigned,licensing,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+application.routed_to_legal,licensing,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.certificate_issued,licensing,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+license.varied,licensing,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+notification.admin_failure_alert,notification,critical,in_app+email,active,wired,edge:notification-failure-sweep/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+payment.failed,payment,critical,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+payment.received,payment,medium,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+payment.required,payment,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.early_warning_triggered,prudential,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.examination_assigned,prudential,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.examination_finding_recorded,prudential,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.examination_notice_issued,prudential,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.group_contagion_alert,prudential,critical,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential.remediation_due,prudential,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.rfi_raised,prudential,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+supervisory_plan.created,prudential,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_action_assigned,prudential_action_assigned,medium,in_app+email,active,wired,db,1,yes,6,3,3,0,6,0,0,PARTIAL (legacy dispatch only)
+prudential_action_completed,prudential_action_completed,low,in_app,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_action_overdue,prudential_action_overdue,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_assessment_approved,prudential_assessment_approved,low,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_assessment_reviewed,prudential_assessment_reviewed,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_assessment_submitted,prudential_assessment_submitted,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_breach_detected,prudential_breach_detected,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_escalation_created,prudential_escalation_created,high,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,3,yes,8,4,4,0,8,0,0,PARTIAL (legacy dispatch only)
+prudential_escalation_resolved,prudential_escalation_resolved,high,in_app+email,active,wired,db,3,yes,8,4,4,0,8,0,0,PARTIAL (legacy dispatch only)
+prudential_return_validation_failed,prudential_return_validation_failed,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+prudential_stress_indicator_triggered,prudential_stress_indicator_triggered,high,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,3,yes,28,14,14,0,28,0,0,PARTIAL (legacy dispatch only)
+registration.action_taken,registration,medium,in_app,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.approved,registration,low,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.approved_step,registration,low,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,4,yes,48,14,34,0,48,0,0,PARTIAL (legacy dispatch only)
+registration.comment_saved,registration,medium,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.correction_required,registration,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.escalated,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.final_approved,registration,low,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,20,10,10,0,20,0,0,PARTIAL (legacy dispatch only)
+registration.final_rejected,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,2,1,1,0,2,0,0,PARTIAL (legacy dispatch only)
+registration.more_info_requested,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.new_submission,registration,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.pending_review,registration,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.received,registration,medium,in_app+email,active,wired,edge:register-pre-licensee/index.ts,1,yes,30,15,15,0,30,0,0,PARTIAL (legacy dispatch only)
+registration.rejected,registration,high,in_app+email,active,wired,db,1,yes,1,0,1,0,1,0,0,PARTIAL (legacy dispatch only)
+registration.resubmission_requested,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,4,1,3,0,4,0,0,PARTIAL (legacy dispatch only)
+registration.resubmitted,registration,medium,in_app+email,active,wired,db,4,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+registration.returned_for_correction,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.send_back,registration,high,in_app+email,active,wired,edge:perform-registration-workflow-action/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.step_assigned,registration,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.step_entered,registration,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.submitted,registration,medium,in_app+email,active,wired,edge:register-pre-licensee/index.ts,3,yes,44,22,22,0,44,0,0,PARTIAL (legacy dispatch only)
+registration.workflow_completed,registration,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+registration.workflow_started,registration,medium,in_app+email,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+regulator.action_taken_on_application,regulator,medium,in_app,active,wired,edge:perform-workflow-action/index.ts,3,yes,41,41,0,0,41,0,0,PARTIAL (legacy dispatch only)
+regulator.assignment_changed,regulator,medium,in_app,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+regulator.comment_added_or_query_raised,regulator,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+ai.critical_insight,reporting,critical,in_app+email,active,wired,edge:generate-dashboard-insights/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+ai.insight_generated,reporting,low,in_app,active,wired,edge:generate-dashboard-insights/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+ai.processing_failed,reporting,high,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+report.delivery_failed,reporting,high,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+report.first_delivery_success,reporting,low,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+report.scheduled_delivered,reporting,low,in_app+email,active,wired,edge:run-scheduled-reports/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.analysis_complete,return,medium,in_app+email,active,wired,edge:generate-return-analysis/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.approved,return,low,email+in_app,active,wired,db,3,yes,10,5,5,0,10,0,0,PARTIAL (legacy dispatch only)
+return.approved_step,return,medium,email+in_app,active,wired,edge:_shared/return-notification-payload.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+return.breach_critical,return,critical,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.breach_warning,return,critical,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.comment_added,return,medium,email+in_app,active,wired,db,4,yes,8,4,4,0,8,0,0,PARTIAL (legacy dispatch only)
+return.comment_saved,return,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.edit_requested,return,high,email+in_app,active,wired,db,3,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+return.overdue,return,high,in_app+email,active,wired,edge:overdue-returns-sweep/index.ts,2,yes,10,5,5,4,10,10,10,PASS
+return.rejected,return,high,email+in_app,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.resubmission_requested,return,high,in_app+email,active,wired,edge:perform-return-workflow-action/index.ts,2,yes,4,2,2,0,4,0,0,PARTIAL (legacy dispatch only)
+return.resubmitted,return,medium,email+in_app,active,wired,db,3,yes,14,7,7,0,14,0,0,PARTIAL (legacy dispatch only)
+return.resubmitted.confirmation,return,medium,email+in_app,active,wired,edge:_shared/return-notification-payload.ts,2,yes,10,5,5,0,10,0,0,PARTIAL (legacy dispatch only)
+return.send_back,return,high,email+in_app,active,wired,db,4,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.submitted,return,medium,email+in_app,active,wired,edge:_shared/return-notification-payload.ts,3,yes,16,8,8,0,16,0,0,PARTIAL (legacy dispatch only)
+return.submitted.confirmation,return,medium,email+in_app,active,wired,edge:_shared/return-notification-payload.ts,2,yes,12,6,6,0,12,0,0,PARTIAL (legacy dispatch only)
+return.supervisor_escalation,return,high,in_app+email,active,wired,edge:generate-return-analysis/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.validation_failed,return,critical,in_app+email,active,wired,edge:evaluate-return-prudential/index.ts,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.validation_passed,return,medium,in_app,active,wired,edge:evaluate-return-prudential/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+return.workflow_action_taken,return,medium,email+in_app,active,wired,edge:perform-return-workflow-action/index.ts,2,yes,16,8,8,0,16,0,0,PARTIAL (legacy dispatch only)
+sla.breach,sla,critical,email+in_app,active,wired,db,4,yes,8,4,4,0,8,8,0,PARTIAL (legacy dispatch only)
+sla.configuration_updated,sla,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+sla.warning,sla,high,email+in_app,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+escalation.created,system,high,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+escalation.ownership_assigned,system,high,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+escalation.resolved,system,medium,in_app+email,active,wired,db,2,yes,0,0,0,0,0,0,0,NOT EXERCISED
+escalation.tier_advanced,system,critical,in_app+email,active,wired,db,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.cron_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.dispatch_failure_repeated,system,critical,in_app+email,active,wired,edge:notification-event-queue-worker/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.integration_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.notification_queue_backlog,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.scheduler_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.sms_provider_failure,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+system_health.smtp_failure_threshold,system,critical,in_app+email,active,wired,edge:notification-system-health-monitor/index.ts,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+user.invited,user,medium,in_app+email,active,wired,db,1,yes,0,0,0,0,0,0,0,NOT EXERCISED
+workflow.sla_escalation,workflow,high,in_app+email,active,wired,edge:sla-escalation-sweep/index.ts,3,yes,0,0,0,0,0,0,0,NOT EXERCISED
