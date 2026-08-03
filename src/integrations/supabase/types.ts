@@ -17107,9 +17107,46 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      correspondence_add_participant: {
+        Args: { _party_role?: string; _thread_id: string; _user_id: string }
+        Returns: string
+      }
+      correspondence_case_readable: {
+        Args: { _source_id: string; _source_type: string; _user_id: string }
+        Returns: boolean
+      }
+      correspondence_export_manifest: {
+        Args: { _thread_id: string }
+        Returns: Json
+      }
+      correspondence_link_documents: {
+        Args: { _document_ids: string[]; _message_id: string }
+        Returns: number
+      }
       correspondence_module_for: {
         Args: { _category: string; _source_type: string; _thread_type: string }
         Returns: string
+      }
+      correspondence_reopen_thread: {
+        Args: { _reason: string; _thread_id: string }
+        Returns: undefined
+      }
+      correspondence_set_pending_response: {
+        Args: { _due_at?: string; _note?: string; _thread_id: string }
+        Returns: undefined
+      }
+      correspondence_thread_feed: {
+        Args: { _filters?: Json; _limit?: number; _offset?: number }
+        Returns: Json
+      }
+      correspondence_thread_link_case: {
+        Args: {
+          _source_id: string
+          _source_reference?: string
+          _source_type: string
+          _thread_id: string
+        }
+        Returns: undefined
       }
       correspondence_thread_unread_count: {
         Args: { _thread_id: string; _user_id: string }
