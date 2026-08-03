@@ -537,7 +537,7 @@ export function useUpdateEscalation() {
       const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
-      if (patch.status === 'resolved') {
+      
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
