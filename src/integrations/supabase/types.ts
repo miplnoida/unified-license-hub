@@ -9458,6 +9458,7 @@ export type Database = {
           status: string
           subject: string | null
           template_id: string | null
+          template_traceability_status: string | null
           template_version: number | null
           used_fallback_template: boolean
         }
@@ -9497,6 +9498,7 @@ export type Database = {
           status?: string
           subject?: string | null
           template_id?: string | null
+          template_traceability_status?: string | null
           template_version?: number | null
           used_fallback_template?: boolean
         }
@@ -9536,6 +9538,7 @@ export type Database = {
           status?: string
           subject?: string | null
           template_id?: string | null
+          template_traceability_status?: string | null
           template_version?: number | null
           used_fallback_template?: boolean
         }
@@ -10062,6 +10065,7 @@ export type Database = {
           recipient_role: string | null
           rendered_content_ref: string | null
           route_params: Json | null
+          route_status: string | null
           severity: Database["public"]["Enums"]["notification_severity"]
           source_reference: string | null
           source_route: string | null
@@ -10100,6 +10104,7 @@ export type Database = {
           recipient_role?: string | null
           rendered_content_ref?: string | null
           route_params?: Json | null
+          route_status?: string | null
           severity?: Database["public"]["Enums"]["notification_severity"]
           source_reference?: string | null
           source_route?: string | null
@@ -10138,6 +10143,7 @@ export type Database = {
           recipient_role?: string | null
           rendered_content_ref?: string | null
           route_params?: Json | null
+          route_status?: string | null
           severity?: Database["public"]["Enums"]["notification_severity"]
           source_reference?: string | null
           source_route?: string | null
@@ -17601,6 +17607,7 @@ export type Database = {
           status: string
           subject: string | null
           template_id: string | null
+          template_traceability_status: string | null
           template_version: number | null
           used_fallback_template: boolean
         }[]
@@ -19208,6 +19215,7 @@ export type Database = {
           recipient_role: string | null
           rendered_content_ref: string | null
           route_params: Json | null
+          route_status: string | null
           severity: Database["public"]["Enums"]["notification_severity"]
           source_reference: string | null
           source_route: string | null
@@ -19230,6 +19238,7 @@ export type Database = {
         Args: { _note?: string; _notification_id: string; _to_user_id: string }
         Returns: Json
       }
+      notification_global_template_tokens: { Args: never; Returns: string[] }
       notification_history: {
         Args: {
           _channel?: string
@@ -19326,6 +19335,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["notification_severity"]
       }
       notification_sms_available: { Args: never; Returns: boolean }
+      notification_source_route: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: string
+      }
       notification_template_archive: {
         Args: { _archive?: boolean; _template_id: string }
         Returns: Json
@@ -19333,6 +19346,14 @@ export type Database = {
       notification_template_clone: {
         Args: { _new_name?: string; _template_id: string }
         Returns: string
+      }
+      notification_template_placeholder_check: {
+        Args: { _template_id: string }
+        Returns: Json
+      }
+      notification_template_placeholders: {
+        Args: { _text: string }
+        Returns: string[]
       }
       notification_template_publish: {
         Args: { _template_id: string }
@@ -20000,6 +20021,7 @@ export type Database = {
           recipient_role: string | null
           rendered_content_ref: string | null
           route_params: Json | null
+          route_status: string | null
           severity: Database["public"]["Enums"]["notification_severity"]
           source_reference: string | null
           source_route: string | null

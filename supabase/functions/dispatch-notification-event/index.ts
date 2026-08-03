@@ -74,25 +74,75 @@ export function buildPreview(message: string | null | undefined, limit = 160): s
 
 // Safe deep-link metadata. Only a route hint is stored — the destination route
 // keeps enforcing its own RBAC/RLS, so this never grants access by itself.
+/**
+ * Local mirror of public.notification_source_route. The database function is the
+ * canonical resolver (see `resolveSourceRoute`); this map is only used when the
+ * RPC is unavailable so a dispatch is never blocked by a link lookup.
+ */
 export function buildSourceRoute(entityType?: string | null, entityId?: string | null): string | null {
   if (!entityType || !entityId) return null;
+  if (!/^[A-Za-z0-9._-]+$/.test(entityId)) return null;
   const map: Record<string, string> = {
-    application: "/applications",
-    registration: "/admin/registration-review",
-    return: "/returns",
-    returns_filed: "/returns",
-    complaint: "/complaints",
-    license: "/licenses",
-    license_appeal: "/appeals",
-    licensee: "/admin/licensees",
-    payment: "/payments",
-    correspondence_thread: "/correspondence/manager",
-    report: "/reports",
-    inspection: "/inspections",
+    application: `/applications/${entityId}`,
+    applications: `/applications/${entityId}`,
+    registration: `/admin/registrations/${entityId}`,
+    license: `/licenses/${entityId}`,
+    licensee: `/admin/licensees/${entityId}`,
+    license_appeal: `/admin/license-appeals?appeal=${entityId}`,
+    return: `/returns-mgmt/${entityId}`,
+    return_filed: `/returns-mgmt/${entityId}`,
+    returns_filed: `/returns-mgmt/${entityId}`,
+    compliance_return: `/compliance/${entityId}`,
+    complaint: `/complaints/${entityId}`,
+    correspondence: `/correspondence/manager?thread=${entityId}`,
+    correspondence_thread: `/correspondence/manager?thread=${entityId}`,
+    escalation: `/escalations?escalation=${entityId}`,
+    fp_individual: `/fit-and-proper/individuals/${entityId}`,
+    fp_assessment: `/fit-and-proper/assessments/${entityId}`,
+    prudential_assessment: `/prudential/assessments/${entityId}`,
+    enforcement_action: `/enforcement/${entityId}`,
+    inspection: `/inspections/${entityId}`,
+    payment: `/payments/${entityId}`,
+    report: `/reports/${entityId}`,
+    form_template: `/admin/forms/${entityId}`,
   };
-  const base = map[entityType];
-  return base ? `${base}/${entityId}` : null;
+  return map[entityType.toLowerCase()] ?? null;
 }
+
+/** Canonical route resolution: the database function decides, the map is fallback. */
+export async function resolveSourceRoute(
+  admin: SupabaseClient,
+  entityType?: string | null,
+  entityId?: string | null,
+): Promise<string | null> {
+  if (!entityType || !entityId) return null;
+  try {
+    const { data, error } = await admin.rpc("notification_source_route", {
+      _entity_type: entityType,
+      _entity_id: entityId,
+    });
+    if (error) throw error;
+    if (typeof data === "string" && data.length > 0) return data;
+    if (data === null) return null;
+  } catch (e: any) {
+    console.error("notification_source_route failed (using local mirror)", e?.message || e);
+    return buildSourceRoute(entityType, entityId);
+  }
+  return null;
+}
+
+/** Tokens present in the wording but absent from the render payload. */
+export function unresolvedTokens(tpl: string | null | undefined, vars: Record<string, any>): string[] {
+  if (!tpl) return [];
+  const found = new Set<string>();
+  for (const m of tpl.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)) {
+    const key = m[1];
+    const v = vars[key];
+    if (v === undefined || v === null || String(v) === "") found.add(key);
+  }
+  return [...found];
+}
+
 
 type EffectivePreference = {
   in_app: boolean;
@@ -856,6 +906,8 @@ Deno.serve(async (req) => {
       template_version: number | null;
       subject: string | null;
       body: string | null;
+      /** Tokens the template declares as required; drives placeholder integrity. */
+      variables: string[];
     };
     const channelTemplates = new Map<string, ChannelTemplate>();
     try {
@@ -869,7 +921,7 @@ Deno.serve(async (req) => {
         if (version != null) {
           const { data: v } = await admin
             .from("notification_template_versions")
-            .select("subject, body, version")
+            .select("subject, body, version, variables")
             .eq("template_id", b.template_id)
             .eq("version", version)
             .maybeSingle();
@@ -878,7 +930,7 @@ Deno.serve(async (req) => {
         if (!snapshot) {
           const { data: v } = await admin
             .from("notification_template_versions")
-            .select("subject, body, version")
+            .select("subject, body, version, variables")
             .eq("template_id", b.template_id)
             .order("version", { ascending: false })
             .limit(1)
@@ -888,11 +940,11 @@ Deno.serve(async (req) => {
         if (!snapshot) {
           const { data: t } = await admin
             .from("notification_templates")
-            .select("subject, body, published_version, status")
+            .select("subject, body, published_version, status, variables")
             .eq("id", b.template_id)
             .maybeSingle();
           if (t && t.status === "active") {
-            snapshot = { subject: t.subject, body: t.body, version: t.published_version };
+            snapshot = { subject: t.subject, body: t.body, version: t.published_version, variables: t.variables };
           }
         }
         if (snapshot) {
@@ -901,9 +953,11 @@ Deno.serve(async (req) => {
             template_version: snapshot.version ?? null,
             subject: snapshot.subject ?? null,
             body: snapshot.body ?? null,
+            variables: Array.isArray(snapshot.variables) ? snapshot.variables.map(String) : [],
           });
         }
       }
+
     } catch (bindErr: any) {
       console.error("channel template binding lookup failed", bindErr?.message || bindErr);
     }
@@ -1093,7 +1147,23 @@ Deno.serve(async (req) => {
       const module = classifyModule(event_key, entity_type);
       const sourceReference = [vars.application_number, vars.registration_reference, vars.unique_id, vars.reference, vars.complaint_reference]
         .find((v) => typeof v === "string" && v.length > 0) as string | undefined;
-      const sourceRoute = buildSourceRoute(entity_type, entity_id);
+      const sourceRoute = await resolveSourceRoute(admin, entity_type, entity_id);
+      // Placeholder integrity: a published template that references a token the
+      // payload does not carry must fail loudly (retryable) rather than silently
+      // rendering an incomplete regulatory message.
+      const missingTokensFor = (channel: string): string[] => {
+        const tpl = channel === "email" ? emailTpl : channel === "sms" ? smsTpl : inAppTpl;
+        if (!tpl || tpl.variables.length === 0) return [];
+        const missing = new Set([
+          ...unresolvedTokens(tpl.subject, vars),
+          ...unresolvedTokens(tpl.body, vars),
+        ]);
+        // Only tokens the template declares are treated as required; system tokens
+        // (cta_url, support_email, …) stay optional and are stripped as before.
+        return [...missing].filter((t) => tpl.variables.includes(t));
+      };
+
+
 
       for (const userId of recipients) {
         const isDirectEmail = userId.startsWith("email:");
@@ -1135,7 +1205,33 @@ Deno.serve(async (req) => {
         }
         const logId = insertedRow?.id;
 
+        // Placeholder integrity gate: fail safe and retryable, naming the tokens.
+        const missingTokens = missingTokensFor(channel);
+        if (missingTokens.length > 0) {
+          summary.skipped++;
+          console.error("unresolved_required_placeholder", dispatchCfg.eventKey, channel, missingTokens);
+          await admin
+            .from("notification_dispatch_log")
+            .update({
+              status: "failed",
+              error: `unresolved_required_placeholder: ${missingTokens.join(",")}`,
+              error_details: {
+                reason: "unresolved_required_placeholder",
+                channel,
+                missing_tokens: missingTokens,
+              },
+              attempts: 1,
+              retry_count: 0,
+              failed_at: new Date().toISOString(),
+              last_attempt_at: new Date().toISOString(),
+              next_attempt_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+            })
+            .eq("id", logId);
+          continue;
+        }
+
         // Preference gate — mandatory notifications are already forced on by the resolver.
+
         if (!channelAllowed(pref, channel)) {
           summary.skipped++;
           await admin
