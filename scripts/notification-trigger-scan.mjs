@@ -62,7 +62,7 @@ const events = sqlJson(`
     coalesce(c.delivery_frequency, 'immediate') as delivery_frequency,
     coalesce(jsonb_array_length(coalesce(c.recipient_rules, '[]'::jsonb)), 0) as recipient_rule_count,
     coalesce(c.recipient_rules, '[]'::jsonb)::text as recipient_rules,
-    coalesce(c.channels, '[]'::jsonb)::text as channels,
+    coalesce(array_to_string(c.channels, ','), '') as channels,
     exists (
       select 1 from notification_event_channel_templates b
       where b.event_config_id = c.id and b.channel = 'in_app'
