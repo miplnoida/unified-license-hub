@@ -1180,7 +1180,20 @@ export default function ApplicationDetail() {
                 )}
               </TabsContent>
 
+              <TabsContent value="communications" className="mt-4">
+                {activeTab === 'communications' && (
+                  <CaseThreadsPanel
+                    sourceType="application"
+                    sourceId={app.id}
+                    sourceReference={(app as any).application_number ?? null}
+                    licenseeId={(app as any).licensee_id ?? null}
+                    title="Case communications"
+                  />
+                )}
+              </TabsContent>
+
               {isInternal && (
+
                 <TabsContent value="consolidated" className="mt-4">
                   {activeTab === 'consolidated' && (
                     <ConsolidatedCaseTab applicationId={app.id} applicantId={app.applicant_id} />
