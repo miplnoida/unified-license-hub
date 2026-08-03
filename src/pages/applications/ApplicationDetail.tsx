@@ -61,6 +61,8 @@ import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+
 
 
 
