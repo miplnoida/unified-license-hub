@@ -43,6 +43,8 @@ const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
+const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
+const RuleEditor = lazy(() => import('@/pages/admin/RuleEditor'));
 const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
 const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
 const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
@@ -139,6 +141,9 @@ export const adminRoutes = (
     <Route path="/admin/conduct/triage-rules" element={<M module="market_conduct"><ConductTriageRules /></M>} />
     <Route path="/admin/sufficiency-rules" element={<M module="license_management"><SufficiencyRules /></M>} />
     <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
+    <Route path="/admin/rule-engine" element={<M module="rule_engine"><RuleLibrary /></M>} />
+    <Route path="/admin/rule-engine/new" element={<M module="rule_engine"><RuleEditor /></M>} />
+    <Route path="/admin/rule-engine/:id" element={<M module="rule_engine"><RuleEditor /></M>} />
     <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
     
     

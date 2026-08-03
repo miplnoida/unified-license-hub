@@ -5242,6 +5242,392 @@ export type Database = {
           },
         ]
       }
+      engine_rule_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          detail: Json
+          entity_id: string | null
+          execution_id: string | null
+          id: string
+          rule_id: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id?: string | null
+          execution_id?: string | null
+          id?: string
+          rule_id: string
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id?: string | null
+          execution_id?: string | null
+          id?: string
+          rule_id?: string
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_alerts_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rule_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_rule_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rule_executions: {
+        Row: {
+          actions_taken: Json
+          entity_id: string | null
+          entity_label: string | null
+          executed_at: string
+          id: string
+          matched: boolean
+          metrics: Json
+          reason: string | null
+          rule_id: string
+          run_mode: string
+          suppressed: boolean
+          version: number
+        }
+        Insert: {
+          actions_taken?: Json
+          entity_id?: string | null
+          entity_label?: string | null
+          executed_at?: string
+          id?: string
+          matched?: boolean
+          metrics?: Json
+          reason?: string | null
+          rule_id: string
+          run_mode?: string
+          suppressed?: boolean
+          version?: number
+        }
+        Update: {
+          actions_taken?: Json
+          entity_id?: string | null
+          entity_label?: string | null
+          executed_at?: string
+          id?: string
+          matched?: boolean
+          metrics?: Json
+          reason?: string | null
+          rule_id?: string
+          run_mode?: string
+          suppressed?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_executions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rule_suppressions: {
+        Row: {
+          created_at: string
+          entity_key: string
+          id: string
+          last_suppressed_at: string | null
+          rule_id: string
+          suppressed_count: number
+          suppressed_until: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_key: string
+          id?: string
+          last_suppressed_at?: string | null
+          rule_id: string
+          suppressed_count?: number
+          suppressed_until: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_key?: string
+          id?: string
+          last_suppressed_at?: string | null
+          rule_id?: string
+          suppressed_count?: number
+          suppressed_until?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_suppressions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rule_tasks: {
+        Row: {
+          assigned_role: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string | null
+          entity_id: string | null
+          execution_id: string | null
+          id: string
+          rule_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_role?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          entity_id?: string | null
+          execution_id?: string | null
+          id?: string
+          rule_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_role?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string | null
+          entity_id?: string | null
+          execution_id?: string | null
+          id?: string
+          rule_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_tasks_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rule_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_rule_tasks_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rule_tests: {
+        Row: {
+          created_at: string
+          error: string | null
+          evaluated_count: number
+          id: string
+          matched_count: number
+          params: Json
+          passed: boolean
+          results: Json
+          rule_id: string
+          run_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          evaluated_count?: number
+          id?: string
+          matched_count?: number
+          params?: Json
+          passed?: boolean
+          results?: Json
+          rule_id: string
+          run_by?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          evaluated_count?: number
+          id?: string
+          matched_count?: number
+          params?: Json
+          passed?: boolean
+          results?: Json
+          rule_id?: string
+          run_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_tests_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rule_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          rule_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          rule_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          rule_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engine_rules: {
+        Row: {
+          actions: Json
+          activated_at: string | null
+          activated_by: string | null
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          deactivation_reason: string | null
+          description: string | null
+          id: string
+          last_triggered_at: string | null
+          module: string
+          name: string
+          rule_code: string
+          rule_type: string
+          severity: string
+          status: string
+          sub_module: string | null
+          suppression_days: number
+          tags: string[]
+          trigger_count: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          actions?: Json
+          activated_at?: string | null
+          activated_by?: string | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          deactivation_reason?: string | null
+          description?: string | null
+          id?: string
+          last_triggered_at?: string | null
+          module: string
+          name: string
+          rule_code?: string
+          rule_type: string
+          severity?: string
+          status?: string
+          sub_module?: string | null
+          suppression_days?: number
+          tags?: string[]
+          trigger_count?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          actions?: Json
+          activated_at?: string | null
+          activated_by?: string | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          deactivation_reason?: string | null
+          description?: string | null
+          id?: string
+          last_triggered_at?: string | null
+          module?: string
+          name?: string
+          rule_code?: string
+          rule_type?: string
+          severity?: string
+          status?: string
+          sub_module?: string | null
+          suppression_days?: number
+          tags?: string[]
+          trigger_count?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       entity_relationships: {
         Row: {
           created_at: string
@@ -16996,6 +17382,43 @@ export type Database = {
           },
         ]
       }
+      v_engine_metric_series: {
+        Row: {
+          computed_at: string | null
+          entity_id: string | null
+          entity_name: string | null
+          metric_key: string | null
+          period_end_date: string | null
+          recency_rank: number | null
+          return_period: string | null
+          return_year: number | null
+          sector_id: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_filed_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "returns_filed_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_module_escalations: {
         Row: {
           acknowledged_at: string | null
@@ -17421,6 +17844,10 @@ export type Database = {
         Returns: boolean
       }
       can_act_on_prudential: { Args: { _user: string }; Returns: boolean }
+      can_activate_rule_engine: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -17430,6 +17857,7 @@ export type Database = {
         Args: { _user: string }
         Returns: boolean
       }
+      can_manage_rule_engine: { Args: { _user_id?: string }; Returns: boolean }
       can_mutate_application: {
         Args: { _application_id: string; _user: string }
         Returns: boolean
@@ -17545,6 +17973,7 @@ export type Database = {
         Args: { _return_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_rule_engine: { Args: { _user_id?: string }; Returns: boolean }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
@@ -18185,6 +18614,36 @@ export type Database = {
           _to_state?: string
         }
         Returns: undefined
+      }
+      engine_rule_activate: { Args: { _rule_id: string }; Returns: Json }
+      engine_rule_deactivate: {
+        Args: { _justification: string; _rule_id: string }
+        Returns: Json
+      }
+      engine_rule_record_test: {
+        Args: {
+          _error?: string
+          _evaluated: number
+          _matched: number
+          _params: Json
+          _passed: boolean
+          _results: Json
+          _rule_id: string
+        }
+        Returns: string
+      }
+      engine_rule_save: {
+        Args: { _payload: Json; _rule_id?: string }
+        Returns: Json
+      }
+      engine_rule_validate: {
+        Args: {
+          _actions: Json
+          _conditions: Json
+          _name: string
+          _rule_type: string
+        }
+        Returns: string[]
       }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }

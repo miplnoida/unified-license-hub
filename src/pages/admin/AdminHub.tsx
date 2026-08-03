@@ -42,6 +42,7 @@ export default function AdminHub() {
     { label: 'Form Builder', desc: `${m?.totalForms ?? '—'} templates`, icon: <FormInput className="h-5 w-5" />, href: '/admin/forms/pre-license', module: 'form_management' },
     { label: 'Workflow Configuration', desc: `${m?.totalWorkflows ?? '—'} workflows`, icon: <GitBranch className="h-5 w-5" />, href: '/workflows', module: 'workflow_management' },
     
+    { label: 'Rule Engine', desc: 'Thresholds, trends, patterns, SLAs & routing rules', icon: <Sparkles className="h-5 w-5" />, href: '/admin/rule-engine', module: 'rule_engine' },
     { label: 'Fee Management', desc: `${m?.totalFeeConfigs ?? '—'} fee configs`, icon: <DollarSign className="h-5 w-5" />, href: '/admin/fees', module: 'fee_management' },
     { label: 'Return Configuration', desc: 'Compliance schedules & rules', icon: <CalendarCheck className="h-5 w-5" />, href: '/admin/return-config', module: 'returns_management' },
     { label: 'Reports & Analytics', desc: 'Dashboards & ad-hoc reports', icon: <BarChart3 className="h-5 w-5" />, href: '/reports', module: 'report_management' },
