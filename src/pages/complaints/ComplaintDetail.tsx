@@ -40,6 +40,8 @@ import { VulnerabilityReviewBanner } from '@/components/complaints/Vulnerability
 // `execute_complaint_workflow_action` → notification_outbox — never React.
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
+import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
   low: { label: 'Low', variant: 'outline' },
