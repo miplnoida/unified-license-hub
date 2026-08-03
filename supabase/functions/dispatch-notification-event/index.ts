@@ -1024,8 +1024,16 @@ Deno.serve(async (req) => {
             reminder_window: reminder_window || null,
             subject: channel === "email" ? emailSubject : title,
             rendered_content: channel === "email" ? emailBody : message,
-            template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
-            payload: { vars, event_key: dispatchCfg.eventKey, entity_type, entity_id },
+            template_id: templateIdFor(channel),
+            template_version: templateVersionFor(channel),
+            payload: {
+              vars,
+              event_key: dispatchCfg.eventKey,
+              entity_type,
+              entity_id,
+              delivery_frequency: deliveryFrequency,
+              failure_escalation: failureEscalation,
+            },
           })
           .select("id")
           .maybeSingle();
