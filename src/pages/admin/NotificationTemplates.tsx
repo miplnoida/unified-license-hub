@@ -131,6 +131,7 @@ export default function NotificationTemplates() {
 
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Template name is required');
+    if (!form.event_key.trim()) return toast.error('Select the event this template belongs to');
     if (!form.body.trim()) return toast.error('Template body is required');
     if (form.channel !== 'in_app' && !form.subject.trim()) {
       return toast.error('Subject is required for email and SMS templates');
