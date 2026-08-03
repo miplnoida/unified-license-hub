@@ -113,6 +113,7 @@ for (const m of [
   'form_management', 'workflow_management', 'settings',
   'fit_and_proper', 'fit_and_proper_screening', 'fit_and_proper_committee',
   'market_conduct', 'coordination', 'prudential_supervision',
+  'notification_management',
 ]) {
   ALL_KNOWN_VIEW[m] = ['view'];
 }
