@@ -896,8 +896,10 @@ export default function ApplicationDetail() {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="communications">Communications</TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
+
               </TabsList>
 
 
