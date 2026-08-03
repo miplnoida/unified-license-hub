@@ -64,12 +64,21 @@ export interface CorrespondenceThread {
   response_due_at: string | null;
   close_justification: string | null;
   is_entity_facing: boolean;
+  module?: string;
+  assigned_officer_id?: string | null;
+  assigned_team?: string | null;
+  sla_hours?: number | null;
+  sla_warned_at?: string | null;
+  sla_breached_at?: string | null;
+  last_message_preview?: string | null;
+  last_message_kind?: MessageKind | null;
+  reopened_count?: number | null;
 }
 
 export interface CorrespondenceMessage {
   id: string;
   thread_id: string;
-  direction: 'inbound' | 'outbound';
+  direction: 'inbound' | 'outbound' | 'internal';
   channel: string;
   subject: string | null;
   body: string;
@@ -79,11 +88,14 @@ export interface CorrespondenceMessage {
   author_role: string | null;
   sent_at: string;
   message_kind: MessageKind;
-  delivery_status: DeliveryStatus;
+  delivery_status: DeliveryStatus | 'draft';
   delivered_at: string | null;
   opened_at: string | null;
   bounce_reason: string | null;
   is_draft: boolean;
+  body_format?: 'html' | 'text' | null;
+  linked_document_ids?: string[] | null;
+  sent_by_system?: boolean | null;
 }
 
 export interface CorrespondenceParticipant {
