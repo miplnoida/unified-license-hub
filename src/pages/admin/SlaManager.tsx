@@ -16,7 +16,6 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
-import { notifySlaChange } from '@/lib/slaNotifications';
 import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
 
 /* -------------------- Types -------------------- */
@@ -188,11 +187,6 @@ function SlaConfigTab() {
       metadata: { process_type: row.process_type, stage_name: row.stage_name },
     });
 
-    void notifySlaChange({
-      process_type: row.process_type,
-      entity_id: row.id,
-      change_summary: `${row.stage_name}: ${row.sla_duration} ${row.sla_unit}, warn ${row.warning_threshold_pct}%, active=${row.active}`,
-    });
 
     toast({ title: 'SLA updated', description: `${row.process_type} • ${row.stage_name}` });
   };
@@ -728,11 +722,6 @@ function EscalationTab() {
       entityId: id,
       newValue: t as unknown as Record<string, unknown>,
       metadata: { process_type: t.process_type, tier: t.tier },
-    });
-    void notifySlaChange({
-      process_type: t.process_type,
-      entity_id: id,
-      change_summary: `Escalation Tier ${t.tier}: delay ${t.delay_days}d → ${t.recipients}`,
     });
     toast({ title: 'Tier saved', description: `${t.process_type} • Tier ${t.tier}` });
   };
