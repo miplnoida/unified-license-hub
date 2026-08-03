@@ -9646,6 +9646,66 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_event_queue: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          claimed_by: string | null
+          correlation_id: string | null
+          created_at: string
+          dispatched_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          reminder_window: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dispatched_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_key: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          reminder_window?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dispatched_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_key?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          reminder_window?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_outbox: {
         Row: {
           action_history_id: string | null
@@ -17458,6 +17518,34 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      claim_notification_event_queue: {
+        Args: { _limit?: number; _worker?: string }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          claimed_by: string | null
+          correlation_id: string | null
+          created_at: string
+          dispatched_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          reminder_window: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_event_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_notification_outbox: {
         Args: { _limit?: number; _worker?: string }
         Returns: {
@@ -18913,6 +19001,18 @@ export type Database = {
         Args: { _event_key: string; _user_id: string }
         Returns: Json
       }
+      notification_enqueue_event: {
+        Args: {
+          _correlation_id?: string
+          _entity_id?: string
+          _entity_type?: string
+          _event_key: string
+          _idempotency_suffix?: string
+          _payload?: Json
+          _reminder_window?: string
+        }
+        Returns: string
+      }
       notification_event_config_save: {
         Args: { _payload: Json }
         Returns: string
@@ -19259,6 +19359,7 @@ export type Database = {
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
+      reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
       record_correspondence_delivery: {

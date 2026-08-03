@@ -1,77 +1,55 @@
+## Goal
 
-# NOT-ESC-001 — Escalation & Alert Manager
+Make every notification trigger the FRD requires actually fire end-to-end, and prove it with tests plus a published trigger matrix.
 
-## Consolidation approach
+## What exists today (verified)
 
-Today escalations live in five disconnected places: `complaint_escalation_cases` / `complaint_escalation_rules` / `complaint_escalation_log` (with the `complaint-escalation-sweep` job), `prudential_escalations` (2 live rows), `coordination_escalations` (empty), `conduct_alerts` + `conduct_alert_thresholds` (11 rows), and workflow SLA tiers driven by `sla-escalation-sweep` / `sla_escalation_dispatches`. Each has its own UI (`/complaints/escalations`, `/prudential/escalations`) and its own status vocabulary.
+- 157 active event configurations in the notification event registry, with templates, versioning, recipient rules, preference gating and a dispatch log with unique dedupe keys.
+- A single shared dispatcher (`dispatch-notification-event`) plus outbox/retry/failure-sweep workers, and ~40 server functions already calling it.
+- Coverage is strong for: applications and workflow actions, registration, RFI (raised/responded/near-due/overdue), licences (create/suspend/revoke/renew/expiry), returns and prudential breaches, conduct/complaints/enforcement, correspondence (including SLA near-breach and breach), F&P findings/conditions/appeals/monitoring, form version publication, SLA config change.
 
-The approach is **one shared spine, module tables kept as satellites**:
+## Confirmed gaps in the registry (no event key exists)
 
-1. New canonical tables `escalations`, `escalation_tier_events`, `escalation_ownership_events`, `escalation_notification_events`, `escalation_rules`.
-2. Every existing module table gets a nullable `escalation_id` pointing at the spine. Module sweeps stop writing status/tier logic themselves and instead call one RPC, `escalation_raise(...)`, which creates or reuses the spine record and links back.
-3. Module screens (`EscalationHub`, prudential `EscalationsList`) keep their layout but read tier/status/ownership from the spine through a compatibility view (`v_module_escalations`), so nothing existing breaks visually while there is a single source of truth.
-4. The new central manager at `/admin/escalations` is a view over the spine — not a new silo.
+- Escalation spine: escalation created / tier advanced / resolved / ownership taken.
+- Reports & AI: scheduled report delivered, first successful delivery, delivery failure, AI insight generated, critical AI insight, AI processing failure.
+- System health: SMTP failure threshold, SMS provider failure, integration failure threshold, scheduler/cron failure, notification queue backlog, repeated dispatch failure (only a generic admin failure alert exists today).
+- Administration: workflow publication, rule activation, first rule firing, role change, escalation rule change, template publication.
+- Licensing: F&P invitation, officer assignment, analyst assignment, route to legal, legal review completion, decision ready, decision dispatch, supervisory plan creation, variation.
+- Fit & Proper: PQ invitation, PQ submission, screening result, adverse finding, assessment assignment, committee readiness, committee decision, determination dispatch.
+- Prudential: examination assignment, examination notice, examination finding, remediation due/overdue, group contagion alert, EWI alert as a first-class event.
+- Complaints: acknowledgement, assignment, priority change, complainant update, entity RFI + response, investigation assignment, pattern alert, systemic flag, outcome release, overdue investigation.
 
-## Shared model
+Where an adjacent key exists (e.g. `conduct_alert_created`, `prudential_stress_indicator_triggered`) it will be mapped to the FRD trigger rather than duplicated.
 
-`public.escalations`
-- identity/source: `escalation_ref` (ESC-YYYY-NNNNNN), `source_module`, `source_event`, `source_rule_id`, `source_entity_type`, `source_entity_id`, `source_reference`, `correlation_id`, `metadata jsonb`
-- classification: `escalation_type` (enum below), `severity` (critical/high/medium/low), `current_tier` (0–3), `status` (open, acknowledged, in_progress, escalated, resolved, closed)
-- ownership: `assigned_role`, `assigned_user_id`
-- timing: `created_at`, `acknowledgement_deadline`, `acknowledged_at/by`, `resolution_deadline`, `resolved_at/by`, `auto_escalate_paused_at`, `next_auto_escalation_at`
-- outcome: `root_cause`, `resolution_narrative`
+## Plan
 
-Enum `escalation_type`: `sla_warning`, `sla_breach`, `threshold_breach`, `fp_adverse_finding`, `pattern_alert`, `overdue_condition`, `investigation_delay`, `workflow_blockage`, `integration_failure`, `scheduler_failure`, `notification_delivery_failure`, `system_health_alert`.
+### Phase 1 — Matrix and ground truth
+Build `docs/notifications/frd-trigger-matrix.md` (human) + `docs/notifications/frd-trigger-matrix.json` (machine) with one row per FRD trigger: FRD screen ID, business event, event key, source file/function, recipient rules, channels, template, severity, mandatory flag, audit event, test name, status. Status is derived from a checker script, never hand-set. Statuses: `dispatched` (registry row + call site + test), `registry-only`, `missing`.
 
-History tables are append-only (BEFORE UPDATE/DELETE guard trigger raising an exception), covering tier history, ownership history, and notification history (each notification dispatch row id + channel + tier + outcome).
+### Phase 2 — Registry completion
+One migration per domain seeding the missing event configs and their template versions: severity, mandatory/critical locks (critical/high cannot be muted or digested), channel set, recipient rules reusing existing resolvers (`assigned_officer`, `next_step_role`, `role`, `entity_primary_users`, `regulator_team`, `custom_email`), dedupe window, and deep-link route template.
 
-## Rules & routing configuration (`escalation_rules`)
+### Phase 3 — Server-side wiring
+Fire each event from the server after the business transaction commits, using the shared dispatcher only:
+- Existing edge functions (workflow, licence action, return workflow, complaint triage, prudential sweeps, F&P screening/cycle) gain the missing dispatch calls.
+- Database-side events (record insert/state change: escalation tiers, complaint assignment/priority, remediation due, supervisory plan creation, role change, rule activation) are dispatched from an outbox row written in the same transaction as the business change, then drained by `process-notification-outbox`. This keeps correlation IDs, guarantees no lost event, and guarantees a failed send never rolls back a regulatory decision.
+- Scheduled triggers (return due, remediation due/overdue, overdue investigation, condition reminder, pending-response warning) go through existing cron sweeps with window-scoped dedupe keys.
+- Reports/AI/system-health events fire from `run-scheduled-reports`, the AI insight functions and a health monitor sweep with threshold state so an alert raises once per incident, not per failure.
 
-Per rule: `source_module`, `escalation_type`, `initial_recipient_role`, `tier1/2/3_recipient_role`, `tier1/2/3_ack_threshold_minutes`, `tier1/2/3_template_id`, `tier1/2/3_channels text[]`, `business_hours_only`, `business_calendar_profile_id` (reuses existing `business_calendar_profiles`), `create_task`, `create_case`, `is_active`.
+### Phase 4 — De-duplication and hygiene
+Remove frontend dispatch calls wherever the server now covers the same event (notably licence actions, F&P panels, RFI dialogs, appeals) so a single event is never dispatched twice. Every dispatch carries `idempotency_key = event_key + entity + state + window`, plus the originating correlation ID; failures are logged to the dispatch log and escalated through the escalation spine rather than retried silently forever.
 
-Constraints enforced in DB:
-- every configured tier must have a recipient role (trigger validation, not CHECK, since it spans columns/tiers);
-- all thresholds strictly positive;
-- resolution narrative ≥ 50 characters on resolve (RPC + trigger);
-- acknowledgement sets `auto_escalate_paused_at` and clears `next_auto_escalation_at` where the tier config requires pause-on-ack;
-- unresolved escalations past `next_auto_escalation_at` advance one tier (max 3) via sweep;
-- resolve notifies every recipient recorded in tier history;
-- history immutable; resolving/closing never touches the source alert row.
+### Phase 5 — Verification
+- pgTAP tests: registry completeness (every matrix key exists, active, with a published template version), recipient resolution per rule type, mandatory/severity lock enforcement, dedupe key uniqueness, outbox-write-on-business-event triggers.
+- Deno integration tests: for each wired edge function, invoke it against test fixtures and assert an in-app notification row, a dispatch-log row per required channel, deep-link metadata, and an audit row.
+- A CI script fails the build if any matrix row is marked complete without a named passing test.
 
-Deadline maths uses the existing business-calendar helpers when `business_hours_only` is on (add `escalation_business_deadline(profile_id, from_ts, minutes)` on top of `business_calendar_profiles`).
-
-## RPCs (all SECURITY DEFINER + `enforce_permission`)
-
-`escalation_raise`, `escalation_acknowledge`, `escalation_take_ownership`, `escalation_escalate_tier` (manual), `escalation_resolve`, `escalation_close`, `escalation_feed` (filters + keyset paging), `escalation_detail` (record + tier/ownership/notification history + source event + related `notification_dispatch_log` rows), `escalation_sweep` (auto tier progression + deadline evaluation), `escalation_health_report`.
-
-New permission module `escalation_management` with actions `view`, `acknowledge`, `own`, `escalate`, `resolve`, `configure`, `view_system_health`; granted to super_admin/admin/supervisor by default. Module isolation: non-admins only see escalations for modules they hold permission on plus records assigned to them (reuses `user_scope_for` / `is_record_assigned_to_user`).
-
-## Central manager screen
-
-Route `/admin/escalations` (sidebar under Admin), `EscalationManager.tsx`:
-- KPI strip (open, unacknowledged past deadline, tier 3, breached resolution);
-- active escalations table: ref, module, type, severity, tier, source reference (deep link to the case screen), owner, age (hours < 48, else days), acknowledgement status chip, resolution status chip;
-- filters: module, type, severity, tier, status, owner, date range, plus text search on reference;
-- detail drawer `EscalationDetailDrawer.tsx`: source event details, full tier history, ownership history, related notification delivery records, root-cause textarea, resolution narrative (with live 50-char counter), and the four actions — Take Ownership, Acknowledge, Escalate to Next Tier, Resolve — each permission-gated;
-- tabs: **Active**, **Resolved**, **Rules** (`EscalationRulesAdmin` — full R-01 config form), **System Health** (R-01 only).
-
-## System health
-
-`escalation_health_signals` view aggregating existing signals: `integration_logs` failures, `job_queue` failed rows, `notification_outbox`/`notification_dispatch_log` failures (repeated email failures, SMS provider failures), scheduler misses from sweep run tables. `escalation_raise` is called with `severity='critical'` for these, dispatching immediately (bypassing digest deferral) via `dispatch-notification-event`, and a configured IT-leadership role receives the tier escalation when a critical health alert stays unresolved beyond its threshold.
-
-## Migration & compatibility
-
-- Backfill: 2 `prudential_escalations`, 11 `conduct_alerts`, 0 complaint cases, 0 coordination rows → spine rows with mapped type/severity/tier/status, `source_module` set accordingly, `escalation_id` written back.
-- `v_module_escalations` compatibility view + adapter hooks so existing module screens read from the spine.
-- `complaint-escalation-sweep`, `prudential-monitoring-sweep`, `sla-escalation-sweep`, `overdue-action-sweep`, `notification-failure-sweep` updated to call `escalation_raise` instead of writing bespoke escalation rows; a new `escalation-sweep` function (pg_cron every 15 min) handles tier progression and deadline evaluation.
-
-## Tests
-
-pgTAP `supabase/tests/escalations/`: auto tier progression, acknowledgement, timer pause, manual tier escalation, ownership transfer, resolution validation (<50 chars rejected), resolution notifications to all tier recipients, RBAC per persona, module isolation, system-health alert creation + IT escalation, business-calendar timing, and compatibility regressions for complaint + prudential flows. Vitest unit tests for the frontend filter/age helpers.
+### Phase 6 — Report
+Final summary in `docs/notifications/frd-trigger-coverage.md`: implemented vs required trigger counts, remaining unsupported triggers with reasons, test list with results, and external provider dependencies (SMTP relay for email, SMS provider — currently unconfigured, so SMS-required triggers degrade to email + in-app and are surfaced as unavailable).
 
 ## Technical notes
 
-- Enum values are additive; no existing enum is altered.
-- History immutability via triggers keeps `audit_logs` writes as-is (new actions: ESCALATION_RAISED / ACKNOWLEDGED / OWNED / TIER_ADVANCED / RESOLVED / CLOSED).
-- Every new public table ships with GRANTs + RLS in the same migration.
-- Known risks: sweep double-firing during the cutover window (mitigated by a unique key on `source_module + source_event + source_entity_id + source_rule_id + current_tier` for open records), and business-hours deadline drift for profiles without holidays configured.
+- No frontend ad hoc email sending; all channels flow through `dispatch-notification-event` → `send-notification` / outbox.
+- SMS remains gated on provider configuration; matrix marks such triggers `email+in_app (SMS pending provider)`.
+- Scope is limited to notification wiring, registry rows, tests and docs; no business-rule or workflow-logic changes beyond adding post-commit dispatch.
+- Expect roughly 6 migrations, ~25 edge-function edits, ~15 frontend de-duplication edits, and ~20 test files.
