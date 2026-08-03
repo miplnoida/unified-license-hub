@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { ROUTE_MODULE_MAP } from '@/lib/permissionModules';
+import { getModuleForPath } from '@/lib/permissionModules';
 import { resolveNotificationStatus, isActiveNotification } from '@/types/notifications';
 import { notificationLink } from '@/lib/notificationLinks';
 import { SEVERITY_META, URGENT_SEVERITIES } from '@/components/notifications/notificationMeta';
 
 describe('Notification Centre wiring (NOT-CEN-001)', () => {
   it('gates the admin notification history route behind notification_management', () => {
-    const entry = ROUTE_MODULE_MAP.find(([path]) => path === '/admin/notification-history');
-    expect(entry?.[1]).toBe('notification_management');
+    expect(getModuleForPath('/admin/notification-history')).toBe('notification_management');
   });
 
   it('treats critical and high as urgent for the bell badge', () => {
