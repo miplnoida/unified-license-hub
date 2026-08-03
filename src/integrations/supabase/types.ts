@@ -17115,6 +17115,10 @@ export type Database = {
         Args: { _source_id: string; _source_type: string; _user_id: string }
         Returns: boolean
       }
+      correspondence_discard_draft: {
+        Args: { _message_id: string }
+        Returns: undefined
+      }
       correspondence_export_manifest: {
         Args: { _thread_id: string }
         Returns: Json
@@ -17135,6 +17139,7 @@ export type Database = {
         Args: { _due_at?: string; _note?: string; _thread_id: string }
         Returns: undefined
       }
+      correspondence_sla_sweep: { Args: never; Returns: Json }
       correspondence_thread_feed: {
         Args: { _filters?: Json; _limit?: number; _offset?: number }
         Returns: Json
@@ -18511,30 +18516,21 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
-      post_correspondence_message:
-        | {
-            Args: {
-              _body: string
-              _channel?: string
-              _dispatch_id?: string
-              _is_internal_note?: boolean
-              _subject?: string
-              _thread_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _body: string
-              _channel?: string
-              _dispatch_id?: string
-              _is_draft?: boolean
-              _is_internal_note?: boolean
-              _subject?: string
-              _thread_id: string
-            }
-            Returns: string
-          }
+      post_correspondence_message: {
+        Args: {
+          _body: string
+          _body_format?: string
+          _channel?: string
+          _dispatch_id?: string
+          _document_ids?: string[]
+          _draft_message_id?: string
+          _is_draft?: boolean
+          _is_internal_note?: boolean
+          _subject?: string
+          _thread_id: string
+        }
+        Returns: string
+      }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]
