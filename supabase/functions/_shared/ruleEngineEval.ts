@@ -213,28 +213,35 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
 
       if (eventType === 'late_return') {
         const { data, error } = await supa.from('returns_filed')
-          .select('entity_id, ontime_status, submit_date, licensees:entity_id(name)')
+          .select('entity_id, ontime_status, submit_date')
           .gte('submit_date', since).eq('ontime_status', 'LATE').limit(5000);
         if (error) throw new Error(error.message);
         for (const r of (data as Any[]) || []) {
           if (!r.entity_id) continue;
-          const cur = counts.get(r.entity_id) || { count: 0, label: r.licensees?.name || 'Entity' };
+          const cur = counts.get(r.entity_id) || { count: 0, label: '' };
           cur.count++; counts.set(r.entity_id, cur);
         }
       } else if (eventType === 'threshold_breach') {
         const { data, error } = await supa.from('return_threshold_breaches')
-          .select('metric_key, detected_at, returns_filed:return_id(entity_id, licensees:entity_id(name))')
+          .select('metric_key, detected_at, return_id')
           .gte('detected_at', since).limit(5000);
         if (error) throw new Error(error.message);
+        const returnIds = [...new Set(((data as Any[]) || []).map((r) => r.return_id).filter(Boolean))];
+        const entityByReturn = new Map<string, string>();
+        for (let i = 0; i < returnIds.length; i += 200) {
+          const { data: rf } = await supa.from('returns_filed')
+            .select('id, entity_id').in('id', returnIds.slice(i, i + 200));
+          for (const r of (rf as Any[]) || []) if (r.entity_id) entityByReturn.set(r.id, r.entity_id);
+        }
         for (const r of (data as Any[]) || []) {
-          const id = r.returns_filed?.entity_id;
+          const id = entityByReturn.get(r.return_id);
           if (!id) continue;
-          const cur = counts.get(id) || { count: 0, label: r.returns_filed?.licensees?.name || 'Entity' };
+          const cur = counts.get(id) || { count: 0, label: '' };
           cur.count++; counts.set(id, cur);
         }
       } else {
         let q = supa.from('complaints')
-          .select('licensee_id, status, created_at, product_id, conduct_risk_category_id, licensees:licensee_id(name)')
+          .select('licensee_id, status, created_at, product_id, conduct_risk_category_id')
           .gte('created_at', since).limit(5000);
         if (eventType === 'complaint_upheld') q = q.in('status', ['upheld', 'resolved', 'closed']);
         const { data, error } = await q;
@@ -246,10 +253,18 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
               ? r.conduct_risk_category_id
               : r.licensee_id;
           if (!key) continue;
-          const cur = counts.get(key) || { count: 0, label: r.licensees?.name || 'Group' };
+          const cur = counts.get(key) || { count: 0, label: '' };
           cur.count++; counts.set(key, cur);
         }
       }
+
+      if (c.group_by === 'entity' || !c.group_by || rule.rule_type === 'recurrence') {
+        const labels = await resolveLicenseeNames(supa, [...counts.keys()]);
+        for (const [id, v] of counts) v.label = labels.get(id) || 'Entity';
+      } else {
+        for (const [, v] of counts) v.label = c.group_by === 'product' ? 'Product group' : 'Conduct category';
+      }
+
 
       const values = [...counts.values()].map((v) => v.count);
       const sectorAvg = values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
