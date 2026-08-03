@@ -280,9 +280,27 @@ export default function RuleEditor() {
                   <Input type="number" min={0} value={rule.suppression_days ?? 0}
                     onChange={(e) => setRule({ ...rule, suppression_days: Number(e.target.value) })} />
                   <p className="text-xs text-muted-foreground mt-1">Critical severity always fires regardless of suppression.</p></div>
+                <div><Label>Rule owner</Label>
+                  <Select value={(rule as any).owner_user_id || 'none'}
+                    onValueChange={(v) => setRule({ ...rule, owner_user_id: v === 'none' ? null : v } as any)}>
+                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {owners.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Effective from</Label>
+                    <Input type="date" value={(rule as any).effective_from || ''}
+                      onChange={(e) => setRule({ ...rule, effective_from: e.target.value || null } as any)} /></div>
+                  <div><Label>Effective to</Label>
+                    <Input type="date" value={(rule as any).effective_to || ''}
+                      onChange={(e) => setRule({ ...rule, effective_to: e.target.value || null } as any)} /></div>
+                </div>
                 <div className="md:col-span-2"><Label>Tags (comma separated)</Label>
                   <Input value={(rule.tags || []).join(', ')}
                     onChange={(e) => setRule({ ...rule, tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) })} /></div>
+
               </CardContent>
             </Card>
 
