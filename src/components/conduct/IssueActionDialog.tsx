@@ -7,7 +7,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -88,24 +87,6 @@ export function IssueActionDialog({
         });
       } catch { /* swallow */ }
 
-      try {
-        await dispatchNotificationEvent({
-          event_key: 'conduct_action_created',
-          entity_type: 'conduct_action',
-          entity_id: data.id,
-          payload: {
-            title: data.title,
-            action_type: data.action_type,
-            description: data.description ?? '',
-            rationale: rationale.trim(),
-            due_date: data.due_date ?? 'not set',
-            assigned_to: data.assigned_to,
-            created_by: data.created_by,
-            entity_id: data.entity_id,
-            source_module: data.source_module,
-          },
-        });
-      } catch { /* swallow */ }
       return data;
     },
     onSuccess: () => {

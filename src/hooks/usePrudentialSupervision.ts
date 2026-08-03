@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 
 
@@ -28,14 +27,6 @@ async function audit(
     });
   } catch (e) {
     if (import.meta.env.DEV) console.warn('[prudential audit] failed', e);
-  }
-}
-async function notify(event_key: string, entity_type: string, entity_id: string | null | undefined, payload: Record<string, unknown> = {}) {
-  if (!entity_id) return;
-  try {
-    await dispatchNotificationEvent({ event_key, entity_type, entity_id, payload });
-  } catch {
-    /* swallow */
   }
 }
 
@@ -379,15 +370,6 @@ export function useTransitionAssessment() {
       if (error) throw error;
       const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
       await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
-      const eventMap: Record<string, string> = {
-        submitted: 'prudential_assessment_submitted',
-        reviewed: 'prudential_assessment_reviewed',
-        approved: 'prudential_assessment_approved',
-      };
-      if (eventMap[to] && before?.entity_id) {
-        const ent = (await sb.from('licensees').select('name').eq('id', before.entity_id).maybeSingle()).data;
-        await notify(eventMap[to], 'prudential_assessment', id, { entity_name: ent?.name, entity_id: before.entity_id, assessment_id: id });
-      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -444,11 +426,6 @@ export function useCreateAction() {
       await audit('CREATE', 'prudential_action', data.id, null, data);
 
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      if (data.assigned_to) {
-        await notify('prudential_action_assigned', 'prudential_action', data.id, {
-          action_title: data.title, entity_name: ent?.name, entity_id: data.entity_id, assigned_to: data.assigned_to,
-        });
-      }
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
@@ -485,16 +462,7 @@ export function useUpdateAction() {
       const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
-      if (patch.status === 'completed') {
-        await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
-      }
       // Re-notify the new assignee if assignment changed.
-      if (patch.assigned_to && before?.assigned_to !== patch.assigned_to) {
-        await notify('prudential_action_assigned', 'prudential_action', id, {
-          action_title: before?.title, entity_name: before?.licensees?.name,
-          entity_id: before?.entity_id, assigned_to: patch.assigned_to, reassigned: true,
-        });
-      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -513,7 +481,6 @@ export function useMarkOverdue() {
       if (error) throw error;
       for (const a of (candidates ?? [])) {
         await audit('UPDATE', 'prudential_action', a.id, { status: 'open_or_in_progress' }, { status: 'overdue' }, 'Automated overdue sweep');
-        await notify('prudential_action_overdue', 'prudential_action', a.id, { action_title: a.title, entity_name: a.licensees?.name, entity_id: a.entity_id, assigned_to: a.assigned_to });
       }
       return n as number;
     },
@@ -547,7 +514,6 @@ export function useCreateEscalation() {
       if (error) throw error;
       await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      await notify('prudential_escalation_created', 'prudential_escalation', data.id, { entity_name: ent?.name, entity_id: data.entity_id, reason: data.reason });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
@@ -571,11 +537,7 @@ export function useUpdateEscalation() {
       const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
-      if (patch.status === 'resolved') {
-        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
-      } else if (patch.status === 'withdrawn') {
-        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision, outcome: 'withdrawn' });
-      }
+      
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -646,9 +608,6 @@ export function useEvaluateStressForReturn() {
       for (const ev of newEvents) {
         const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
         await audit('CREATE', 'prudential_stress_event', ev.event_id, null, ev, 'Auto-triggered by supervisor stress re-run');
-        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.event_id, {
-          ...ev, entity_name: ent?.name,
-        });
         try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }
       }
       return { new: newEvents.length, updated: updatedEvents.length };

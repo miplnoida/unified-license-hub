@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 export interface LicenseAppeal {
   id: string;
@@ -223,16 +222,6 @@ export function useLicenseAppealMutations() {
       if (error) throw error;
       const appeal = data as unknown as LicenseAppeal;
       await logEvent(appeal.id, 'filed', 'Appeal lodged against the licensing decision', user?.id);
-      await dispatchNotificationEvent({
-        event_key: 'license_appeal.filed',
-        entity_type: 'license_appeal',
-        entity_id: appeal.id,
-        payload: {
-          recipient_id: user?.id,
-          appeal_reference: appeal.appeal_reference,
-          status: 'Filed',
-        },
-      });
       return appeal;
     },
     onSuccess: invalidate,
@@ -262,16 +251,6 @@ export function useLicenseAppealMutations() {
         .eq('id', appeal.id);
       if (error) throw error;
       await logEvent(appeal.id, 'acknowledged', 'Appeal acknowledged and accepted for review', user?.id);
-      await dispatchNotificationEvent({
-        event_key: 'license_appeal.acknowledged',
-        entity_type: 'license_appeal',
-        entity_id: appeal.id,
-        payload: {
-          recipient_id: appeal.filed_by,
-          appeal_reference: appeal.appeal_reference,
-          status: 'Under review',
-        },
-      });
     },
     onSuccess: invalidate,
   });
@@ -298,18 +277,6 @@ export function useLicenseAppealMutations() {
         `Appeal referred to ${input.panelName}${input.hearingDate ? ` — hearing set for ${input.hearingDate}` : ''}`,
         user?.id,
       );
-      await dispatchNotificationEvent({
-        event_key: 'license_appeal.panel_assigned',
-        entity_type: 'license_appeal',
-        entity_id: input.appeal.id,
-        payload: {
-          recipient_id: input.appeal.filed_by,
-          appeal_reference: input.appeal.appeal_reference,
-          panel_name: input.panelName,
-          hearing_date: input.hearingDate || '',
-          status: 'With appeal panel',
-        },
-      });
     },
     onSuccess: invalidate,
   });
@@ -342,18 +309,6 @@ export function useLicenseAppealMutations() {
         reinstated = await runReinstate(input.appeal.id, input.rationale);
       }
 
-      await dispatchNotificationEvent({
-        event_key: 'license_appeal.decided',
-        entity_type: 'license_appeal',
-        entity_id: input.appeal.id,
-        payload: {
-          recipient_id: input.appeal.filed_by,
-          appeal_reference: input.appeal.appeal_reference,
-          decision: input.decision.replace(/_/g, ' '),
-          decision_rationale: input.rationale,
-          status: 'Decided',
-        },
-      });
       return reinstated;
     },
     onSuccess: () => {

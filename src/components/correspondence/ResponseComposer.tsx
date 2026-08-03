@@ -10,7 +10,6 @@ import { Eye, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { usePostCorrespondenceMessage, type CorrespondenceThread } from '@/hooks/useCorrespondence';
 
 function render(tpl: string, vars: Record<string, string>) {
@@ -74,17 +73,6 @@ export function ResponseComposer({ thread }: { thread: CorrespondenceThread }) {
         subject: subject.trim(),
         channel,
         is_internal_note: false,
-      });
-      await dispatchNotificationEvent({
-        event_key: 'correspondence.response_sent',
-        entity_type: 'correspondence',
-        entity_id: thread.id,
-        payload: {
-          reference: thread.reference,
-          subject: thread.subject,
-          body: body.trim(),
-          recipient_email: recipient || thread.sender_email,
-        },
       });
       toast.success('Response recorded and sent');
       setBody('');

@@ -24,7 +24,6 @@ import { Plus, Trash2, Loader2, MessageSquarePlus, Sparkles } from 'lucide-react
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRfiAutoSuggestions } from '@/hooks/useRfiAutoSuggestions';
-import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { logAction } from '@/hooks/useAuditLog';
 
 interface DraftItem {
@@ -255,21 +254,6 @@ export function RaiseRfiDialog({
         }
 
         // Templated fan-out (email + any configured channels)
-        void dispatchNotificationEvent({
-          event_key: 'application.rfi_raised',
-          entity_type: 'application',
-          entity_id: applicationId,
-          payload: {
-            application_id: applicationId,
-            application_number: appNumber,
-            applicant_id: applicantId,
-            rfi_id: rfiId,
-            item_count: items.length,
-            due_at: dueAtIso,
-            summary: summary.trim() || null,
-            deep_link: deepLink,
-          },
-        });
       } catch {
         // swallow — notification failure must not block RFI creation
       }
