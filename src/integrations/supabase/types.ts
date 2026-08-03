@@ -16535,6 +16535,16 @@ export type Database = {
         }
         Relationships: []
       }
+      escalation_health_signals: {
+        Row: {
+          escalation_type: string | null
+          failure_count: number | null
+          last_seen: string | null
+          signal_key: string | null
+          subject: string | null
+        }
+        Relationships: []
+      }
       report_runs: {
         Row: {
           category: string | null
@@ -18035,11 +18045,95 @@ export type Database = {
           enforcement_id: string
         }[]
       }
+      escalation_acknowledge: {
+        Args: { _id: string; _note?: string }
+        Returns: Json
+      }
+      escalation_advance_tier: {
+        Args: { _id: string; _reason?: string; _trigger?: string }
+        Returns: Json
+      }
       escalation_business_deadline: {
         Args: { _from: string; _minutes: number; _profile_id: string }
         Returns: string
       }
+      escalation_deadline: {
+        Args: { _from: string; _minutes: number; _rule_id: string }
+        Returns: string
+      }
+      escalation_detail: { Args: { _id: string }; Returns: Json }
+      escalation_escalate_tier: {
+        Args: { _id: string; _reason?: string }
+        Returns: Json
+      }
+      escalation_feed: {
+        Args: {
+          _from?: string
+          _limit?: number
+          _modules?: string[]
+          _offset?: number
+          _owner?: string
+          _search?: string
+          _severities?: string[]
+          _statuses?: string[]
+          _tiers?: number[]
+          _to?: string
+          _types?: string[]
+        }
+        Returns: Json
+      }
+      escalation_health_report: { Args: never; Returns: Json }
+      escalation_health_sweep: {
+        Args: { _min_failures?: number }
+        Returns: Json
+      }
       escalation_hub_stats: { Args: never; Returns: Json }
+      escalation_notify: {
+        Args: {
+          _body: string
+          _escalation_id: string
+          _event_key: string
+          _immediate?: boolean
+          _role: string
+          _tier: number
+          _title: string
+        }
+        Returns: number
+      }
+      escalation_raise: {
+        Args: {
+          _correlation_id?: string
+          _escalation_type: Database["public"]["Enums"]["escalation_type"]
+          _metadata?: Json
+          _severity?: Database["public"]["Enums"]["escalation_severity"]
+          _source_entity_id?: string
+          _source_entity_type?: string
+          _source_event: string
+          _source_module: string
+          _source_reference?: string
+          _source_rule_id?: string
+        }
+        Returns: string
+      }
+      escalation_resolve: {
+        Args: {
+          _close?: boolean
+          _id: string
+          _resolution_narrative: string
+          _root_cause?: string
+        }
+        Returns: Json
+      }
+      escalation_stats: { Args: never; Returns: Json }
+      escalation_sweep: { Args: never; Returns: Json }
+      escalation_take_ownership: {
+        Args: { _id: string; _note?: string }
+        Returns: Json
+      }
+      escalation_tier_config: {
+        Args: { _rule_id: string; _tier: number }
+        Returns: Json
+      }
       evaluate_all_complaint_escalations: {
         Args: never
         Returns: {
