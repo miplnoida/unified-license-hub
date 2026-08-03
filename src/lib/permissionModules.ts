@@ -45,6 +45,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'security_management',
   'ai_management',
   'license_appeals',
+  'escalation_management',
 ] as const;
 
 /**
@@ -143,6 +144,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/audit-logs', 'settings'],
   ['/admin/compliance-audit-logs', 'settings'],
   ['/admin/integration-logs', 'settings'],
+  ['/admin/escalations', 'escalation_management'],
   ['/admin/notification-templates', 'notification_management'],
   ['/admin/notification-events', 'notification_management'],
   ['/admin/notification-history', 'notification_management'],
