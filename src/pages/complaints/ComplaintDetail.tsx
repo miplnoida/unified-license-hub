@@ -353,7 +353,9 @@ export default function ComplaintDetail() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="investigation">Investigation</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="communications">Communications</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
