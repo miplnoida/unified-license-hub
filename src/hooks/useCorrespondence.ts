@@ -309,9 +309,49 @@ function useInvalidate(id?: string) {
   const qc = useQueryClient();
   return () => {
     qc.invalidateQueries({ queryKey: ['correspondence-threads'] });
+    qc.invalidateQueries({ queryKey: ['correspondence-feed'] });
     if (id) qc.invalidateQueries({ queryKey: ['correspondence-thread', id] });
   };
 }
+
+/** Internal officers available as thread participants / assignees. */
+export function useInternalOfficers(search = '') {
+  return useQuery({
+    queryKey: ['correspondence-internal-officers', search],
+    queryFn: async (): Promise<Array<{ id: string; full_name: string; email: string | null }>> => {
+      let q = (supabase as any)
+        .from('profiles')
+        .select('id, full_name, email, licensee_id')
+        .is('licensee_id', null)
+        .order('full_name', { ascending: true })
+        .limit(50);
+      if (search.trim()) q = q.ilike('full_name', `%${search.trim()}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; full_name: string; email: string | null }>;
+    },
+  });
+}
+
+/** Documents attached to the case a thread is linked to. */
+export function useCaseDocuments(sourceType?: string | null, sourceId?: string | null) {
+  return useQuery({
+    enabled: !!sourceType && !!sourceId,
+    queryKey: ['correspondence-case-documents', sourceType, sourceId],
+    queryFn: async (): Promise<Array<{ id: string; file_name: string }>> => {
+      const { data, error } = await (supabase as any)
+        .from('documents')
+        .select('id, file_name')
+        .eq('entity_type', sourceType)
+        .eq('entity_id', sourceId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; file_name: string }>;
+    },
+  });
+}
+
 
 export interface CreateThreadInput {
   subject: string;
