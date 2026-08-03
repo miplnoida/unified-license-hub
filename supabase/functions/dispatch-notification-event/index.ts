@@ -1112,7 +1112,8 @@ Deno.serve(async (req) => {
               module,
               system_required: pref?.system_required === true,
               action_required: category === "action_required",
-              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              template_id: templateIdFor("in_app"),
+              template_version: templateVersionFor("in_app"),
               metadata: { event_key: dispatchCfg.eventKey, reminder_window: reminder_window || null },
             }).select("id").maybeSingle();
             if (error) throw error;
