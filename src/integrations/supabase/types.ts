@@ -18103,6 +18103,21 @@ export type Database = {
       }
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      notification_admin_audit: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_type: string
+          _meta?: Json
+          _new?: Json
+          _old?: Json
+        }
+        Returns: undefined
+      }
+      notification_admin_guard: {
+        Args: { _action: string }
+        Returns: undefined
+      }
       notification_archive: { Args: { _ids: string[] }; Returns: number }
       notification_category_for: {
         Args: { _event_key: string; _type: string }
@@ -18146,6 +18161,14 @@ export type Database = {
       }
       notification_effective_preference: {
         Args: { _event_key: string; _user_id: string }
+        Returns: Json
+      }
+      notification_event_config_save: {
+        Args: { _payload: Json }
+        Returns: string
+      }
+      notification_event_config_set_active: {
+        Args: { _active: boolean; _config_id: string }
         Returns: Json
       }
       notification_export: {
@@ -18272,6 +18295,11 @@ export type Database = {
       }
       notification_preference_matrix: { Args: never; Returns: Json }
       notification_preferences_save: { Args: { _items: Json }; Returns: Json }
+      notification_recipient_rule_types: { Args: never; Returns: Json }
+      notification_recipient_rules_validate: {
+        Args: { _rules: Json }
+        Returns: Json
+      }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
@@ -18299,11 +18327,44 @@ export type Database = {
         }
         Returns: string
       }
+      notification_render: {
+        Args: { _text: string; _vars: Json }
+        Returns: string
+      }
       notification_severity_for: {
         Args: { _event_key: string; _type: string }
         Returns: Database["public"]["Enums"]["notification_severity"]
       }
       notification_sms_available: { Args: never; Returns: boolean }
+      notification_template_archive: {
+        Args: { _archive?: boolean; _template_id: string }
+        Returns: Json
+      }
+      notification_template_clone: {
+        Args: { _new_name?: string; _template_id: string }
+        Returns: string
+      }
+      notification_template_publish: {
+        Args: { _template_id: string }
+        Returns: Json
+      }
+      notification_template_render_preview: {
+        Args: { _sample?: Json; _template_id: string }
+        Returns: Json
+      }
+      notification_template_save: { Args: { _payload: Json }; Returns: string }
+      notification_template_versions_for: {
+        Args: { _template_id: string }
+        Returns: Json
+      }
+      notification_test_send: {
+        Args: { _sample?: Json; _template_id: string }
+        Returns: Json
+      }
+      notification_unresolved_tokens: {
+        Args: { _text: string }
+        Returns: string[]
+      }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
         Returns: Json
