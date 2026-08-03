@@ -16447,6 +16447,30 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_invocation_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          purpose: string
+          token: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          purpose: string
+          token: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          purpose?: string
+          token?: string
+        }
+        Relationships: []
+      }
       workflow_instances: {
         Row: {
           assigned_role: string | null
@@ -17750,6 +17774,10 @@ export type Database = {
         Args: { _notes?: string; _pair_id: string; _parent_id: string }
         Returns: Json
       }
+      consume_worker_token: {
+        Args: { _purpose: string; _token: string }
+        Returns: boolean
+      }
       copy_review_step_permissions: {
         Args: { _from_step: string; _to_step: string }
         Returns: number
@@ -18747,6 +18775,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      issue_worker_token: { Args: { _purpose: string }; Returns: string }
       latest_return_analysis: {
         Args: { _return_id: string }
         Returns: {
@@ -19145,6 +19174,14 @@ export type Database = {
       }
       notification_preference_matrix: { Args: never; Returns: Json }
       notification_preferences_save: { Args: { _items: Json }; Returns: Json }
+      notification_recent_cron_failures: {
+        Args: { _since_minutes?: number }
+        Returns: {
+          end_time: string
+          jobname: string
+          return_message: string
+        }[]
+      }
       notification_recipient_rule_types: { Args: never; Returns: Json }
       notification_recipient_rules_validate: {
         Args: { _rules: Json }
@@ -19214,6 +19251,10 @@ export type Database = {
       notification_unresolved_tokens: {
         Args: { _text: string }
         Returns: string[]
+      }
+      notification_worker_kick: {
+        Args: { _function_name: string }
+        Returns: number
       }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
