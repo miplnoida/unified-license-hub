@@ -1,69 +1,77 @@
-## What already exists (verified in code and database)
 
-- Tables: `correspondence_threads` (with `thread_type`, `thread_state`, `source_type/source_id/source_reference`, `last_message_at`, `pending_since`, `response_due_at`, `close_justification`, `is_entity_facing`), `correspondence_messages` (`message_kind`, `delivery_status`, `is_internal_note`, `is_draft`), `correspondence_thread_participants` (with `last_read_at`), `correspondence_attachments`, `correspondence_events`, `correspondence_templates`, `correspondence_routing_rules`, `correspondence_dispatches`.
-- RPCs: `create_correspondence_thread`, `post_correspondence_message`, `set_correspondence_thread_state`, `mark_correspondence_thread_read`, `record_correspondence_delivery`, `add_correspondence_attachment`, `close_correspondence`, `log_correspondence_export`, plus RLS helper `correspondence_thread_visible`.
-- UI: `/correspondence/manager` (ThreadList + ThreadDetail), `/correspondence/:id`, entity `My Correspondence`, `IntakeForm`, `MessageThreadPanel`, `ResponseComposer`, `AttachmentsPanel`, `AuditTrailPanel`, PDF/print export, and Notification Centre "Forward to Colleague" (`notification_forward`) already creating internal threads.
-- Notification events exist for `correspondence.reply_received` and `correspondence.response_sent`; `send-correspondence` edge function handles email dispatch.
+# NOT-ESC-001 — Escalation & Alert Manager
 
-## Confirmed gaps against NOT-THR-001
+## Consolidation approach
 
-1. Thread list lacks: module column, case reference, parties, last message preview, unread count, direction, assigned officer/team; filters limited to type/state (no status, module, direction, unread, assignee); search does not cover entity name or participant.
-2. No unread-count source — `last_read_at` exists but nothing aggregates unread messages per thread.
-3. Composer: plain textarea only (no controlled formatting), no "link authorised case document" picker, template selection only in the separate Response Composer, no preview in the inline composer, internal/external toggle not gated by thread type.
-4. New thread: source is a free-text reference, not a validated linked case; recipient selection is free text, not RBAC/assignment-aware.
-5. Lifecycle: no explicit "mark pending response" action with SLA start in the UI; reopen is not permission-gated; closed threads are not hard-locked against new messages at the database level.
-6. Notifications: no events for internal colleague added/messaged, thread awaiting response, SLA near breach, SLA breached; no cron sweep for correspondence SLA.
-7. Audit action vocabulary is not the FRD set (`THREAD_CREATED`, `MESSAGE_DRAFT_SAVED`, `MESSAGE_SENT`, `MESSAGE_DELIVERY_CONFIRMED`, `MESSAGE_DELIVERY_FAILED`, `THREAD_STATUS_CHANGED`, `THREAD_CLOSED`, `THREAD_EXPORTED`).
-8. No case-screen integration: no Communications tab on application, complaint, return, enforcement, inspection or licensee detail screens.
-9. RBAC: routes are gated on `settings`, not on the existing `correspondence_management` module; export/reopen/internal-post actions are ungated.
-10. No pgTAP tests for correspondence RLS, internal-message leakage, or export scope.
+Today escalations live in five disconnected places: `complaint_escalation_cases` / `complaint_escalation_rules` / `complaint_escalation_log` (with the `complaint-escalation-sweep` job), `prudential_escalations` (2 live rows), `coordination_escalations` (empty), `conduct_alerts` + `conduct_alert_thresholds` (11 rows), and workflow SLA tiers driven by `sla-escalation-sweep` / `sla_escalation_dispatches`. Each has its own UI (`/complaints/escalations`, `/prudential/escalations`) and its own status vocabulary.
 
-## Implementation plan
+The approach is **one shared spine, module tables kept as satellites**:
 
-### Phase 1 — Schema and data model (migration A)
-- Add to `correspondence_threads`: `module text` (derived/normalised: licensing, complaints, returns, enforcement, inspections, conduct, general), `assigned_team text`, `sla_hours int`, `sla_breached_at timestamptz`, `sla_warned_at timestamptz`, `last_message_preview text`, `last_message_kind text`, `reopened_count int`, `closed_by uuid`.
-- Add to `correspondence_messages`: `linked_document_ids uuid[]`, `body_format text` ('plain' | 'rich'), `sent_by_system boolean`.
-- Add `correspondence_thread_participants.is_internal boolean` and `unread_count` derivation via a view/function `correspondence_thread_unread(_user_id)`.
-- Backfill `module` from existing `source_type`/`category`; keep existing columns untouched for compatibility.
-- Trigger: block INSERT/UPDATE of messages on a `closed` thread unless the actor holds `correspondence_management.approve`; block editing of any non-draft message (immutability).
-- Normalise `correspondence_events.action` values to the FRD vocabulary, with a mapping of legacy values retained for history.
+1. New canonical tables `escalations`, `escalation_tier_events`, `escalation_ownership_events`, `escalation_notification_events`, `escalation_rules`.
+2. Every existing module table gets a nullable `escalation_id` pointing at the spine. Module sweeps stop writing status/tier logic themselves and instead call one RPC, `escalation_raise(...)`, which creates or reuses the spine record and links back.
+3. Module screens (`EscalationHub`, prudential `EscalationsList`) keep their layout but read tier/status/ownership from the spine through a compatibility view (`v_module_escalations`), so nothing existing breaks visually while there is a single source of truth.
+4. The new central manager at `/admin/escalations` is a view over the spine — not a new silo.
 
-### Phase 2 — RPCs and RLS (migration B)
-- `correspondence_thread_feed(_filters jsonb, _limit, _offset)` — single SECURITY DEFINER read returning list rows with parties, preview, unread count, assignee, module, direction, SLA state; enforces `correspondence_thread_visible` plus record-assignment checks and case-level access (`can_read_application`, `can_read_complaint`, `can_view_entity_returns`, `can_read_enforcement`).
-- `correspondence_thread_link_case(_thread_id, _module, _source_type, _source_id)` — validates the caller may read that case before linking.
-- `correspondence_set_pending_response(_thread_id, _due_at)` — starts the SLA clock, writes `THREAD_STATUS_CHANGED`.
-- `correspondence_reopen_thread(_thread_id, _reason)` — permission-gated reopen, increments `reopened_count`.
-- `correspondence_export_manifest(_thread_id)` — returns only messages/attachments the caller may see and logs `THREAD_EXPORTED`; export UI must consume this instead of local state.
-- `correspondence_link_documents(_message_id, _document_ids)` — verifies each document is readable by the caller and belongs to the linked case.
-- Tighten message insert policy so external users can never set `is_internal_note = true`.
+## Shared model
 
-### Phase 3 — SLA + notification integration (migration C + edge function)
-- New notification events, seeded into `notification_event_configs` with templates: `correspondence.message_sent_external`, `correspondence.external_response_received`, `correspondence.internal_participant_added`, `correspondence.awaiting_response`, `correspondence.sla_near_breach` (high), `correspondence.sla_breached` (critical).
-- `correspondence_sla_sweep()` SQL function + `pg_cron` job (hourly) marking near-breach (80% of window) and breach, dispatching via the existing notification pipeline.
-- `record_correspondence_delivery` extended to emit `MESSAGE_DELIVERY_CONFIRMED` / `MESSAGE_DELIVERY_FAILED` audit rows and a failure notification.
-- Keep `notification_forward` as the Notification Centre entry point, but route its result to the new thread detail deep link.
+`public.escalations`
+- identity/source: `escalation_ref` (ESC-YYYY-NNNNNN), `source_module`, `source_event`, `source_rule_id`, `source_entity_type`, `source_entity_id`, `source_reference`, `correlation_id`, `metadata jsonb`
+- classification: `escalation_type` (enum below), `severity` (critical/high/medium/low), `current_tier` (0–3), `status` (open, acknowledged, in_progress, escalated, resolved, closed)
+- ownership: `assigned_role`, `assigned_user_id`
+- timing: `created_at`, `acknowledgement_deadline`, `acknowledged_at/by`, `resolution_deadline`, `resolved_at/by`, `auto_escalate_paused_at`, `next_auto_escalation_at`
+- outcome: `root_cause`, `resolution_narrative`
 
-### Phase 4 — Frontend: unified thread list and detail
-- Rewrite `ThreadList` to a full data table/list with all FRD columns, unread badge, direction and module chips, assignee, last-message preview and relative activity; wire `useCorrespondenceThreadFeed` to the new RPC with keyset paging.
-- Filter bar: status, module, direction, unread-only, assigned user/team (visible only when permitted), thread type; search across title, entity, case reference and participant.
-- `ThreadDetail`: message list showing sender name, role, timestamp, direction, body, attachments, delivery status, internal/external marker, system-generated badge; participants panel with read receipts; SLA banner; lifecycle actions (Mark pending response, Close, Reopen, Export) each gated with `data-rbac`.
-- Composer (`ThreadComposer`, replacing the split MessageThreadPanel/ResponseComposer duplication): controlled rich formatting (bold/italic/lists via a sanitised subset), attachments, case-document picker, template select with token preview, Preview / Send / Save Draft, internal-external radio shown only for thread types that permit both, participants fixed after creation.
-- New Thread dialog: thread type first, mandatory case picker (searchable, RBAC-filtered) for regulatory types, recipient selection from authorised entity users/internal colleagues, internal-only enforcement for `internal_discussion`.
+Enum `escalation_type`: `sla_warning`, `sla_breach`, `threshold_breach`, `fp_adverse_finding`, `pattern_alert`, `overdue_condition`, `investigation_delay`, `workflow_blockage`, `integration_failure`, `scheduler_failure`, `notification_delivery_failure`, `system_health_alert`.
 
-### Phase 5 — Case-screen integration
-- Shared `<CaseCommunicationsTab module source_type source_id source_reference licensee_id />` rendering the filtered thread list plus inline detail and "New thread" prefilled with the case link.
-- Embed in: application detail, complaint detail, return detail, enforcement case, inspection detail, licensee detail, and the applicant/licensee portal equivalents (read-only where appropriate).
-- Replace the RFI ad-hoc messaging entry point with a thread of type `rfi_response` linked to the RFI record, preserving existing RFI data by linking rather than migrating.
+History tables are append-only (BEFORE UPDATE/DELETE guard trigger raising an exception), covering tier history, ownership history, and notification history (each notification dispatch row id + channel + tier + outcome).
 
-### Phase 6 — RBAC, routes, tests
-- Re-point `/correspondence/*` routes and navigation from `settings` to `correspondence_management`; add `manage_threads`, `send_external`, `post_internal`, `export`, `reopen` actions to the RBAC catalog and grant to appropriate role templates.
-- pgTAP suite `supabase/tests/rbac/300_correspondence_threads.sql` proving: cross-entity thread isolation; internal messages invisible to external users; case-assignment restriction; attachment access follows document rules; deep-link protection; export manifest excludes unauthorised content; closed-thread immutability without permission.
-- Run the security linter and typecheck; report results.
+## Rules & routing configuration (`escalation_rules`)
 
-## Technical notes and risks
+Per rule: `source_module`, `escalation_type`, `initial_recipient_role`, `tier1/2/3_recipient_role`, `tier1/2/3_ack_threshold_minutes`, `tier1/2/3_template_id`, `tier1/2/3_channels text[]`, `business_hours_only`, `business_calendar_profile_id` (reuses existing `business_calendar_profiles`), `create_task`, `create_case`, `is_active`.
 
-- `correspondence_threads` already carries legacy lifecycle (`status`, `received_at`, routing rules). The plan keeps both models: `status` remains the intake workflow, `thread_state` remains the FRD status. Risk of confusion in reporting — the new feed exposes `thread_state` as the single FRD "status" and maps legacy values.
-- Two overloads each exist for `create_correspondence_thread` and `post_correspondence_message`; the older overloads will be dropped only after call-site verification to avoid breaking `notification_forward` and complaint correspondence.
-- `correspondence_thread_participants` policies currently target `public` role — they will be re-scoped to `authenticated`.
-- Backfilling `module` on existing rows is heuristic where `source_type` is null; those rows default to `general`.
-- Audit action renaming touches historical rows; legacy values are preserved and mapped in the UI rather than rewritten in place.
+Constraints enforced in DB:
+- every configured tier must have a recipient role (trigger validation, not CHECK, since it spans columns/tiers);
+- all thresholds strictly positive;
+- resolution narrative ≥ 50 characters on resolve (RPC + trigger);
+- acknowledgement sets `auto_escalate_paused_at` and clears `next_auto_escalation_at` where the tier config requires pause-on-ack;
+- unresolved escalations past `next_auto_escalation_at` advance one tier (max 3) via sweep;
+- resolve notifies every recipient recorded in tier history;
+- history immutable; resolving/closing never touches the source alert row.
+
+Deadline maths uses the existing business-calendar helpers when `business_hours_only` is on (add `escalation_business_deadline(profile_id, from_ts, minutes)` on top of `business_calendar_profiles`).
+
+## RPCs (all SECURITY DEFINER + `enforce_permission`)
+
+`escalation_raise`, `escalation_acknowledge`, `escalation_take_ownership`, `escalation_escalate_tier` (manual), `escalation_resolve`, `escalation_close`, `escalation_feed` (filters + keyset paging), `escalation_detail` (record + tier/ownership/notification history + source event + related `notification_dispatch_log` rows), `escalation_sweep` (auto tier progression + deadline evaluation), `escalation_health_report`.
+
+New permission module `escalation_management` with actions `view`, `acknowledge`, `own`, `escalate`, `resolve`, `configure`, `view_system_health`; granted to super_admin/admin/supervisor by default. Module isolation: non-admins only see escalations for modules they hold permission on plus records assigned to them (reuses `user_scope_for` / `is_record_assigned_to_user`).
+
+## Central manager screen
+
+Route `/admin/escalations` (sidebar under Admin), `EscalationManager.tsx`:
+- KPI strip (open, unacknowledged past deadline, tier 3, breached resolution);
+- active escalations table: ref, module, type, severity, tier, source reference (deep link to the case screen), owner, age (hours < 48, else days), acknowledgement status chip, resolution status chip;
+- filters: module, type, severity, tier, status, owner, date range, plus text search on reference;
+- detail drawer `EscalationDetailDrawer.tsx`: source event details, full tier history, ownership history, related notification delivery records, root-cause textarea, resolution narrative (with live 50-char counter), and the four actions — Take Ownership, Acknowledge, Escalate to Next Tier, Resolve — each permission-gated;
+- tabs: **Active**, **Resolved**, **Rules** (`EscalationRulesAdmin` — full R-01 config form), **System Health** (R-01 only).
+
+## System health
+
+`escalation_health_signals` view aggregating existing signals: `integration_logs` failures, `job_queue` failed rows, `notification_outbox`/`notification_dispatch_log` failures (repeated email failures, SMS provider failures), scheduler misses from sweep run tables. `escalation_raise` is called with `severity='critical'` for these, dispatching immediately (bypassing digest deferral) via `dispatch-notification-event`, and a configured IT-leadership role receives the tier escalation when a critical health alert stays unresolved beyond its threshold.
+
+## Migration & compatibility
+
+- Backfill: 2 `prudential_escalations`, 11 `conduct_alerts`, 0 complaint cases, 0 coordination rows → spine rows with mapped type/severity/tier/status, `source_module` set accordingly, `escalation_id` written back.
+- `v_module_escalations` compatibility view + adapter hooks so existing module screens read from the spine.
+- `complaint-escalation-sweep`, `prudential-monitoring-sweep`, `sla-escalation-sweep`, `overdue-action-sweep`, `notification-failure-sweep` updated to call `escalation_raise` instead of writing bespoke escalation rows; a new `escalation-sweep` function (pg_cron every 15 min) handles tier progression and deadline evaluation.
+
+## Tests
+
+pgTAP `supabase/tests/escalations/`: auto tier progression, acknowledgement, timer pause, manual tier escalation, ownership transfer, resolution validation (<50 chars rejected), resolution notifications to all tier recipients, RBAC per persona, module isolation, system-health alert creation + IT escalation, business-calendar timing, and compatibility regressions for complaint + prudential flows. Vitest unit tests for the frontend filter/age helpers.
+
+## Technical notes
+
+- Enum values are additive; no existing enum is altered.
+- History immutability via triggers keeps `audit_logs` writes as-is (new actions: ESCALATION_RAISED / ACKNOWLEDGED / OWNED / TIER_ADVANCED / RESOLVED / CLOSED).
+- Every new public table ships with GRANTs + RLS in the same migration.
+- Known risks: sweep double-firing during the cutover window (mitigated by a unique key on `source_module + source_event + source_entity_id + source_rule_id + current_tier` for open records), and business-hours deadline drift for profiles without holidays configured.
