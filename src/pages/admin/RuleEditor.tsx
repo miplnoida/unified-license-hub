@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Play, Plus, Save, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, History, Loader2, Play, Plus, RotateCcw, Save, Trash2, XCircle } from 'lucide-react';
 import {
   ACTION_TYPES, EngineRule, OPERATORS, PATTERN_EVENT_TYPES, PATTERN_GROUPINGS,
   RULE_MODULES, RULE_TYPES, RuleAction, RuleConditions, RuleType, SCHEDULE_EVENTS,
