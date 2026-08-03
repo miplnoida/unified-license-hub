@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
 import { requireUserPermission } from "../_shared/authz.ts";
+import { enqueueNotificationEvent } from "../_shared/notification-dispatch.ts";
 
 // Produces 3-5 narrative bullet insights + top 3 recommended actions for the
 // Executive Dashboard. Reads current cross-module metrics, feeds them to the
