@@ -76,8 +76,11 @@ export function IntakeForm({
   const reset = () => {
     setChannel('email'); setCategory('General'); setPriority('normal');
     setSenderName(''); setSenderOrg(''); setSenderEmail(''); setSubject('');
-    setSummary(''); setBody(''); setTags(''); setLicenseeId('none'); setFiles([]);
-    setThreadType('general_correspondence'); setSourceType('none'); setSourceReference('');
+    setSummary(''); setBody(''); setTags(''); setFiles([]);
+    setThreadType('general_correspondence');
+    setSourceType(caseContext?.sourceType ?? 'none');
+    setSourceReference(caseContext?.sourceReference ?? '');
+    setLicenseeId(caseContext?.licenseeId ?? 'none');
   };
 
   const submit = async () => {
@@ -85,7 +88,8 @@ export function IntakeForm({
       toast.error('Sender name and subject are required.');
       return;
     }
-    if (threadType !== 'general_correspondence' && threadType !== 'internal_discussion' && !sourceReference.trim()) {
+    if (threadType !== 'general_correspondence' && threadType !== 'internal_discussion'
+        && !sourceReference.trim() && !caseContext?.sourceId) {
       toast.error('This thread type must be linked to a case reference.');
       return;
     }
@@ -105,6 +109,7 @@ export function IntakeForm({
         body: body.trim() || undefined,
         thread_type: threadType,
         source_type: sourceType === 'none' ? null : sourceType,
+        source_id: caseContext?.sourceId ?? null,
         source_reference: sourceReference.trim() || null,
         is_entity_facing: threadType !== 'internal_discussion',
       });
@@ -115,9 +120,13 @@ export function IntakeForm({
       toast.success('Correspondence captured and routed');
       setOpen(false);
       reset();
-      navigate(`/correspondence/${id}`);
+      if (onCreated) onCreated(id);
+      else navigate(`/correspondence/${id}`);
     } catch (e: any) {
-      toast.error(e?.message ?? 'Could not capture correspondence');
+      const msg = String(e?.message ?? '');
+      if (msg.includes('case_not_accessible')) toast.error('You are not authorised to link a thread to this case.');
+      else if (msg.includes('linked_case_required')) toast.error('This thread type must be linked to a case.');
+      else toast.error(msg || 'Could not capture correspondence');
     } finally {
       setSaving(false);
     }
@@ -126,10 +135,14 @@ export function IntakeForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-rbac="correspondence_management.approve"><Inbox className="h-4 w-4 mr-2" />Capture correspondence</Button>
+        <Button variant={triggerVariant} data-rbac="correspondence_management.approve">
+          <Inbox className="h-4 w-4 mr-2" />{triggerLabel ?? 'Capture correspondence'}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Capture incoming correspondence</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{caseContext ? 'New thread on this case' : 'Capture incoming correspondence'}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -145,7 +158,7 @@ export function IntakeForm({
             </div>
             <div>
               <Label className="text-xs">Linked case type</Label>
-              <Select value={sourceType} onValueChange={setSourceType}>
+              <Select value={sourceType} onValueChange={setSourceType} disabled={!!caseContext}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Not linked</SelectItem>
@@ -154,14 +167,22 @@ export function IntakeForm({
                   <SelectItem value="return">Return</SelectItem>
                   <SelectItem value="license">Licence</SelectItem>
                   <SelectItem value="enforcement">Enforcement</SelectItem>
+                  <SelectItem value="inspection">Inspection</SelectItem>
+                  <SelectItem value="licensee">Entity</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label className="text-xs">Case reference</Label>
-              <Input value={sourceReference} onChange={(e) => setSourceReference(e.target.value)} placeholder="e.g. APP-2026-000123" />
+              <Input
+                value={sourceReference}
+                onChange={(e) => setSourceReference(e.target.value)}
+                placeholder="e.g. APP-2026-000123"
+                readOnly={!!caseContext?.sourceReference}
+              />
             </div>
           </div>
+
           <div className="grid grid-cols-3 gap-3">
 
             <div>
