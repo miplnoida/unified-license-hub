@@ -386,7 +386,6 @@ export function useTransitionAssessment() {
       };
       if (eventMap[to] && before?.entity_id) {
         const ent = (await sb.from('licensees').select('name').eq('id', before.entity_id).maybeSingle()).data;
-        await notify(eventMap[to], 'prudential_assessment', id, { entity_name: ent?.name, entity_id: before.entity_id, assessment_id: id });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
@@ -445,9 +444,6 @@ export function useCreateAction() {
 
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
       if (data.assigned_to) {
-        await notify('prudential_action_assigned', 'prudential_action', data.id, {
-          action_title: data.title, entity_name: ent?.name, entity_id: data.entity_id, assigned_to: data.assigned_to,
-        });
       }
       return data;
     },
@@ -486,14 +482,9 @@ export function useUpdateAction() {
       if (error) throw error;
       await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
       if (patch.status === 'completed') {
-        await notify('prudential_action_completed', 'prudential_action', id, { action_title: before?.title, entity_name: before?.licensees?.name, entity_id: before?.entity_id });
       }
       // Re-notify the new assignee if assignment changed.
       if (patch.assigned_to && before?.assigned_to !== patch.assigned_to) {
-        await notify('prudential_action_assigned', 'prudential_action', id, {
-          action_title: before?.title, entity_name: before?.licensees?.name,
-          entity_id: before?.entity_id, assigned_to: patch.assigned_to, reassigned: true,
-        });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
@@ -513,7 +504,6 @@ export function useMarkOverdue() {
       if (error) throw error;
       for (const a of (candidates ?? [])) {
         await audit('UPDATE', 'prudential_action', a.id, { status: 'open_or_in_progress' }, { status: 'overdue' }, 'Automated overdue sweep');
-        await notify('prudential_action_overdue', 'prudential_action', a.id, { action_title: a.title, entity_name: a.licensees?.name, entity_id: a.entity_id, assigned_to: a.assigned_to });
       }
       return n as number;
     },
@@ -547,7 +537,6 @@ export function useCreateEscalation() {
       if (error) throw error;
       await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      await notify('prudential_escalation_created', 'prudential_escalation', data.id, { entity_name: ent?.name, entity_id: data.entity_id, reason: data.reason });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
@@ -572,9 +561,7 @@ export function useUpdateEscalation() {
       if (error) throw error;
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
       if (patch.status === 'resolved') {
-        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision });
       } else if (patch.status === 'withdrawn') {
-        await notify('prudential_escalation_resolved', 'prudential_escalation', id, { entity_name: before?.licensees?.name, entity_id: before?.entity_id, decision: patch.decision, outcome: 'withdrawn' });
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
@@ -646,9 +633,6 @@ export function useEvaluateStressForReturn() {
       for (const ev of newEvents) {
         const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
         await audit('CREATE', 'prudential_stress_event', ev.event_id, null, ev, 'Auto-triggered by supervisor stress re-run');
-        await notify('prudential_stress_indicator_triggered', 'prudential_stress_event', ev.event_id, {
-          ...ev, entity_name: ent?.name,
-        });
         try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }
       }
       return { new: newEvents.length, updated: updatedEvents.length };

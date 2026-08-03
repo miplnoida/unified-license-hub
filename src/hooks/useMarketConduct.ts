@@ -126,13 +126,7 @@ export function useCreateInvestigation() {
       const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();
       if (error) throw new Error(error.message);
       await audit('CREATE', 'conduct_investigation', data.id, null, data);
-      await notify('conduct_investigation_opened', 'conduct_investigation', data.id, {
-        allegation: data.allegation, licensee_id: data.licensee_id,
-      });
       if (data.assigned_investigator) {
-        await notify('conduct_investigation_assigned', 'conduct_investigation', data.id, {
-          investigation_id: data.id, assigned_to: data.assigned_investigator,
-        });
       }
       return data;
     },
@@ -151,14 +145,8 @@ export function useUpdateInvestigation() {
       const closing = patch.status === 'closed' && before?.status !== 'closed';
       await audit(closing ? 'APPROVE' : 'UPDATE', 'conduct_investigation', id, before, data, justification);
       if (closing) {
-        await notify('conduct_investigation_closed', 'conduct_investigation', id, {
-          investigation_id: id, outcome: data.outcome,
-        });
       }
       if (patch.assigned_investigator && patch.assigned_investigator !== before?.assigned_investigator) {
-        await notify('conduct_investigation_assigned', 'conduct_investigation', id, {
-          investigation_id: id, assigned_to: patch.assigned_investigator,
-        });
       }
       return data;
     },
@@ -197,9 +185,6 @@ export function useUploadEvidence() {
         .select('*').single();
       if (error) throw new Error(error.message);
       await audit('CREATE', 'conduct_evidence', data.id, null, data);
-      await notify('conduct_evidence_uploaded', 'conduct_evidence', data.id, {
-        title: data.title, context: data.investigation_id ? 'investigation' : data.complaint_id ? 'complaint' : 'entity',
-      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-evidence'] }); toast.success('Evidence uploaded'); },
@@ -244,7 +229,6 @@ export async function logEvidenceAccessDenied(evidenceId: string, reason: string
   try {
     await sb.rpc('log_conduct_evidence_access', { _evidence_id: evidenceId, _action: 'denied', _reason: reason });
     await audit('ACCESS_DENIED', 'conduct_evidence', evidenceId, null, null, reason);
-    await notify('conduct_evidence_access_denied', 'conduct_evidence', evidenceId, { evidence_id: evidenceId, reason });
   } catch (e) {
     if (import.meta.env.DEV) console.warn('[evidence denied] failed', e);
   }
@@ -305,7 +289,6 @@ export function useAcknowledgeAlert() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('UPDATE', 'conduct_alert', id, before, data);
-      await notify('conduct_alert_acknowledged', 'conduct_alert', id, { title: data.title, alert_id: id });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['conduct-alerts'] }),
@@ -326,7 +309,6 @@ export function useCloseAlert() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit(before?.status === 'open' ? 'OVERRIDE' : 'UPDATE', 'conduct_alert', id, before, data, reason);
-      await notify('conduct_alert_closed', 'conduct_alert', id, { title: data.title, alert_id: id, closure_reason: reason });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['conduct-alerts'] }),
@@ -348,10 +330,6 @@ export function useCompleteAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('UPDATE', 'conduct_action', id, before, data);
-      await notify('conduct_action_completed', 'conduct_action', id, {
-        title: data.title, action_type: data.action_type, outcome, completion_notes,
-        assigned_to: data.assigned_to, created_by: data.created_by,
-      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action completed'); },
@@ -370,10 +348,6 @@ export function useWaiveAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('OVERRIDE', 'conduct_action', id, before, data, waiver_reason);
-      await notify('conduct_action_waived', 'conduct_action', id, {
-        title: data.title, action_type: data.action_type, waiver_reason,
-        assigned_to: data.assigned_to, created_by: data.created_by,
-      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action waived'); },
@@ -392,10 +366,6 @@ export function useCancelAction() {
       }).eq('id', id).select('*').single();
       if (error) throw new Error(error.message);
       await audit('OVERRIDE', 'conduct_action', id, before, data, cancellation_reason);
-      await notify('conduct_action_cancelled', 'conduct_action', id, {
-        title: data.title, action_type: data.action_type, cancellation_reason,
-        assigned_to: data.assigned_to, created_by: data.created_by,
-      });
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action cancelled'); },

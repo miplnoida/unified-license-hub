@@ -72,12 +72,6 @@ export default function MyCorrespondenceDetail() {
                   messages={messages}
                   replyLabel="Write a reply to the regulator"
                   onSent={(body) => {
-                    void dispatchNotificationEvent({
-                      event_key: 'correspondence.reply_received',
-                      entity_type: 'correspondence',
-                      entity_id: c.id,
-                      payload: { reference: c.reference, subject: c.subject, body, sender_name: c.sender_name },
-                    });
                   }}
                 />
               </CardContent>

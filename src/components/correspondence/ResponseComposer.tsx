@@ -75,17 +75,6 @@ export function ResponseComposer({ thread }: { thread: CorrespondenceThread }) {
         channel,
         is_internal_note: false,
       });
-      await dispatchNotificationEvent({
-        event_key: 'correspondence.response_sent',
-        entity_type: 'correspondence',
-        entity_id: thread.id,
-        payload: {
-          reference: thread.reference,
-          subject: thread.subject,
-          body: body.trim(),
-          recipient_email: recipient || thread.sender_email,
-        },
-      });
       toast.success('Response recorded and sent');
       setBody('');
       setTemplateId('none');
