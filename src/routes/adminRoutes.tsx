@@ -25,6 +25,7 @@ const AuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
 const ComplianceAuditLogs = lazy(() => import('@/pages/admin/ComplianceAuditLogs'));
 const IntegrationLogs = lazy(() => import('@/pages/admin/IntegrationLogs'));
 const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTemplates'));
+const NotificationEvents = lazy(() => import('@/pages/admin/NotificationEvents'));
 const NotificationHistory = lazy(() => import('@/pages/admin/NotificationHistory'));
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
