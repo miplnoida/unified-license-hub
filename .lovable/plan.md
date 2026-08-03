@@ -1,46 +1,86 @@
-# NOT-CEN-001 — Notification Centre
 
-Builds on the Phase 2 notification model (`notifications.status/severity/category/module/preview/source_reference/source_route`, audited RPCs `notification_mark_read`, `notification_mark_all_read`, `notification_dismiss`, `notification_archive`, `notification_mark_actioned`, `notification_counts`, `notification_record_delivery`, `log_notification_audit`).
+# Functional Notification Preferences + Digest Workers
 
-## Canonical route and deprecation
+## Current state (verified)
 
-- Canonical route: `/notifications` → `src/pages/notifications/NotificationCenter.tsx` (registered in `src/routes/dashboardRoutes.tsx`).
-- Canonical state: the existing single `NotificationsContext` (`src/contexts/NotificationsContext.tsx`) + `useNotifications`. No second context or page will be created.
-- `src/pages/Notifications.tsx` (hardcoded array) has no importers anywhere in `src/` — it will be deleted after a repeat reference check.
-- New admin route: `/admin/notification-history` in `src/routes/adminRoutes.tsx`, gated by the `settings` module permission (same gate as notification templates).
+- `notification_user_event_preferences` exists (in_app/email/sms/digest_frequency/muted/effective_from/updated_by) with a validation trigger `trg_validate_user_event_preference`, and `notification_effective_preference()` resolves a user's effective settings. **0 rows exist today** — nothing writes to it.
+- `notification_event_configs` holds **150 active events** (56 critical/high) with `severity`, `system_required`, `allow_mute`, `channels`, `description` — the real source for the preference list.
+- `src/pages/settings/NotificationSettings.tsx` (route `/settings/notifications`) is fully static: 5 hardcoded rows, `defaultChecked`, a Save button with no handler, plus fake quiet-hours/timing inputs.
+- `src/pages/profile/NotificationPreferences.tsx` writes the *legacy* category-based `notification_preferences` table.
+- `supabase/functions/notification-digest` is legacy: it re-queries domain tables (breaches, complaints, returns…) instead of pending notifications, has no hourly/daily period concept, no duplicate protection, no per-notification inclusion record. Its cron job `notification-digest-daily` actually runs hourly (`0 * * * *`).
+- SMS: `site_settings.email_sms_settings.sms.enabled` defaults to false and **no dispatch path ever sends SMS** — `notification_dispatch_log` only contains `email` and `in_app`. So SMS must be presented as unavailable.
 
-## Backend additions (one migration)
+## 1. Preference model (no new model invented)
 
-1. `notification_feed(_tab, _module, _severity, _type, _status, _from, _to, _search, _cursor_created_at, _cursor_id, _limit)` — SECURITY DEFINER, scoped to `auth.uid()`, keyset pagination (`created_at desc, id desc`), tab semantics (all/unread/action_required/alerts/system/archived), search over title/message/source_reference/entity_id with a 3-char minimum.
-2. `notification_delivery_for(_notification_id)` — returns the user's own dispatch rows (channel, status, timestamps, retry count, failure reason).
-3. `notification_bulk_export_intent(_ids)` — authorises + audit-logs an export, returns only rows the caller may see.
-4. `notification_forward(_notification_id, _to_user_id, _note)` — creates an internal forward record/draft, writes `NOTIFICATION_FORWARDED` audit, and returns the target thread/draft reference. If the thread manager write path is unavailable it returns an explicit `not_available` result so the UI shows a real failure rather than a fake success.
-5. `notification_history(...)` for R-01/authorised admins — joins `notification_dispatch_log` with recipient/event/template/channel/status/retry/error/source, with filters, search and keyset pagination; permission-gated via `enforce_permission`.
+Canonical model stays `public.notification_user_event_preferences`, one row per (user, event_key). Absent row = event config defaults. Additions:
 
-All new tables/functions get GRANTs to `authenticated` (+ `service_role`) and re-use existing RLS.
+- Extend the validation trigger to enforce, on insert/update, against the event's config row:
+  - critical → `in_app_enabled` forced true, `muted` forced false, `digest_frequency` forced `immediate`;
+  - high → `digest_frequency` must be `immediate`, cannot be muted;
+  - `system_required` events → channels declared in the config cannot be disabled, `muted` false;
+  - `muted = true` allowed only when `severity = 'low'` **and** `allow_mute = true`;
+  - `sms_enabled` rejected while SMS is not operational (site settings flag off) — raises a clear message;
+  - channel toggles rejected for channels the event config does not support.
+- `effective_from` set to `now()` on every write so preferences only affect **future** dispatches (dispatch already filters by preference at send time; it will read `effective_from <= now()`).
+- New RPCs (SECURITY DEFINER, pinned search_path, `anon` revoked):
+  - `notification_preference_matrix()` → per-event rows joining config + the caller's saved row, plus computed `locks` (which controls are forced/disabled and why) and `sms_available`.
+  - `notification_preferences_save(_items jsonb)` → validates and upserts the caller's rows atomically, computes before/after diffs, writes an `audit_logs` entry with action `NOTIFICATION_PREFERENCES_UPDATED` containing before/after per changed event, returns updated rows + `updated_at`.
 
-## Frontend
+## 2. Preference screen
 
-**Bell (`src/components/layout/Header.tsx`)**
-Real unread count from context; destructive/red styling when any unread critical or high exists; pulse animation on a newly arrived critical (realtime INSERT); last 20 in the drawer with loading, error and empty states; Mark All Read; View All Notifications; safe navigation via `notificationLink` (RBAC/RLS still enforced by the destination route). Shown for any authenticated role with notification access.
+Rewrite `src/pages/settings/NotificationSettings.tsx` (and point `src/pages/profile/NotificationPreferences.tsx` at the same component/hook so both surfaces share one implementation; the legacy category form is retired, the legacy table is left untouched).
 
-**Context (`NotificationsContext.tsx`)**
-Add a 60s polling fallback that engages when the realtime channel does not reach `SUBSCRIBED` (or errors), plus a `realtimeHealthy` flag. Keep existing action APIs; add `forward`, `exportSelected`, and paginated feed access via a new `useNotificationFeed` hook (TanStack `useInfiniteQuery` over `notification_feed`).
+- New hook `src/hooks/useNotificationPreferences.ts`: loads the matrix, tracks dirty state per row, save/reset mutations, toast success/error.
+- New component `src/components/notifications/PreferenceMatrix.tsx`: grouped by module, searchable, each row shows name, module, severity badge, description, "System required" / "Mandatory — overrides preferences" indicators, In-App / Email / SMS switches, frequency select (Immediate / Hourly digest / Daily digest), Mute switch.
+- Locked controls are disabled **with an inline reason tooltip** ("Critical alerts are always delivered in-app", "SMS unavailable — administrator must configure an SMS provider", etc.).
+- Sticky footer: dirty count, `Save Changes`, `Reset`; unsaved-changes guard on navigation; "Last updated <timestamp>" from the newest `updated_at`.
+- Quiet hours: **removed** from this page — not backed by the FRD flow and would risk delaying critical items.
 
-**Notification Centre page**
-Tabs: All / Unread / Action Required / Alerts / System / Archived. Filters: module, severity, type, status, date range. Search (min 3 chars, debounced). Cursor pagination with "Load more" — no 100-row ceiling.
-List item: module indicator, severity badge, title, preview, relative time (absolute on hover via tooltip), source module, source reference, status, action-required flag, unread styling, selection checkbox.
-Detail drawer: full content, severity, type, module, created timestamp, source reference, role-appropriate metadata, delivery channels/status (where permitted), and actions — Open Source Record (marks actioned), Mark as Read, Dismiss (optional note), Forward to Colleague.
-Bulk bar: Mark selected read, Dismiss selected, Export selected (CSV via the audited export intent).
-All mutations: progress state, disabled-while-pending (no duplicate clicks), optimistic update with rollback on failure, toast with a meaningful error message.
+## 3. Digest workers
 
-**Admin history (`src/pages/admin/NotificationHistory.tsx`)**
-Table of recipient, event key, type, template, channel, status, date/time, retry count, failure reason, source reference; filters + search; delivery-detail drawer; Retry/Resend for failed rows (invokes `notification-retry` with `x-triggered-by: admin`), each retry audit-logged. Non-authorised users never see the route or the nav entry.
+New Edge Function `supabase/functions/notification-digest-run` (period-aware) replacing the legacy body; keep the old function name as a thin delegate so the existing cron/test-digest call sites don't break.
 
-## Tests (Vitest, `src/test/`)
+Backing schema:
+- `notification_digest_runs` (user_id, channel, period `hourly|daily`, period_start, period_end, status, item_count, error, attempts, dispatch_log_id) with a unique index on (user_id, channel, period, period_start) → **duplicate digest sends impossible**.
+- `notification_digest_items` (run_id, notification_id) unique on (run_id, notification_id) and a unique partial index on (notification_id, period) → **no notification included twice**.
 
-`notificationFeed.test.ts` (tab filtering, severity filter, search min-length, cursor pagination), `notificationBell.test.tsx` (realtime insert, polling fallback, critical styling), `notificationActions.test.ts` (mark read, mark all read, dismiss + note, archive visibility, bulk actions audit, API failure rollback), `notificationDeepLink.test.ts` (deep-link action marks actioned; blocked source access surfaces a denial, not data), `notificationHistoryRbac.test.tsx` (admin history RBAC, retry permission gating). Run with `bunx vitest run`.
+Selection logic per user/channel/period:
+- pending notifications created in the period, still active (not dismissed/archived), whose effective preference for that event is `hourly`/`daily` matching the period and the channel enabled;
+- **excludes** critical + high severity, excludes `system_required` immediate events, excludes muted events, excludes anything already recorded in `notification_digest_items`;
+- sends exactly one email via the existing `send-notification` path, records `notification_dispatch_log` + digest run status, logs failures with `attempts` so `notification-failure-sweep` retries safely;
+- the individual in-app `notifications` rows are **never modified**.
 
-## Out of scope this phase
+Cron (via insert tool, project-specific URL/key):
+- rename/replace `notification-digest-daily` → `notification-digest-hourly` at `10 * * * *` with body `{"period":"hourly"}`;
+- add `notification-digest-daily` at `0 6 * * *` with body `{"period":"daily"}`.
 
-NOT-THR-001 (Communication Threads — only the forward integration contract is implemented) and NOT-ESC-001 (Escalation Manager). Preference UI/digest scheduling remains for the preference phase.
+## 4. SMS
+
+- `sms_available` derived server-side from `site_settings.email_sms_settings` (`sms.enabled` + provider credentials present). Currently false.
+- UI: SMS column rendered but disabled with "SMS delivery is not yet configured. Ask an administrator to enable an SMS provider in Settings → Email & SMS."
+- Backend rejects `sms_enabled = true` while unavailable, and no dispatch writes a `sent` SMS row — failing loudly instead of recording false success.
+
+## 5. Tests
+
+pgTAP `supabase/tests/notifications/07_preferences_matrix.sql` and `08_digest.sql`:
+- matrix returns all active events with lock metadata; save persists and round-trips;
+- system-required channel cannot be disabled; critical cannot be muted or un-in-app'd;
+- critical/high rejected for hourly/daily;
+- low + `allow_mute` can be muted; low without `allow_mute` cannot;
+- hourly digest picks only eligible rows (severity, system-required, mute, period) — same for daily;
+- immediate preferences never appear in a digest;
+- second run for the same (user, channel, period, period_start) is a no-op;
+- forced failure marks status `failed`, increments attempts, stays retryable;
+- `NOTIFICATION_PREFERENCES_UPDATED` audit row written with before/after values.
+
+Vitest `src/test/notificationPreferences.test.ts`: dirty-state tracking, lock computation, reset, SMS-unavailable rendering rules.
+
+## Technical notes
+
+- All new RPCs SECURITY DEFINER with `set search_path = public`, execute granted to `authenticated`/`service_role` only.
+- Digest tables get GRANTs + RLS (users read their own runs; service_role full).
+- No changes to workflow, complaints, correspondence, or existing dispatch triggers beyond reading `effective_from`.
+
+## Out of scope (explicitly not claimed as compliance)
+
+Communication Threads (NOT-THR-001), Escalation Manager (NOT-ESC-001) and full trigger coverage remain open; this phase does not close notification-module compliance.
