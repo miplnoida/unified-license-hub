@@ -148,6 +148,37 @@ Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /
     }
 
     CACHE.set(regulatorKey, { at: Date.now(), payload });
+
+    // Insight notifications: one per generation window, critical insights escalate.
+    const windowBucket = payload.generated_at.slice(0, 13);
+    const top = payload.insights[0];
+    if (top) {
+      await enqueueNotificationEvent(supa, {
+        event_key: 'ai.insight_generated',
+        entity_type: 'report',
+        payload: {
+          insight_title: `${payload.insights.length} supervisory insight(s)`,
+          insight_summary: top.text,
+          requested_by: null,
+          module: top.module || 'reporting',
+        },
+        idempotency_suffix: `${regulatorKey}:${windowBucket}`,
+      });
+    }
+    const critical = payload.insights.find((i) => i.severity === 'critical');
+    if (critical) {
+      await enqueueNotificationEvent(supa, {
+        event_key: 'ai.critical_insight',
+        entity_type: 'report',
+        payload: {
+          insight_title: 'Critical supervisory insight',
+          insight_summary: critical.text,
+          module: critical.module || 'reporting',
+        },
+        idempotency_suffix: `${regulatorKey}:critical:${windowBucket}`,
+      });
+    }
+
     return new Response(JSON.stringify({ ok: true, cached: false, ...payload }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
