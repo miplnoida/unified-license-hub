@@ -145,6 +145,7 @@ describe('Sidebar persona audit', () => {
     state.portal.isInternal = true;
     state.permsByModule = ALL_KNOWN_VIEW;
     renderSidebar();
+    console.log('LABELS', JSON.stringify(labels()));
     expect(has('Dashboard')).toBe(true);
     expect(has('Admin Control Panel')).toBe(true);
     expect(has('Returns Queue')).toBe(true);
