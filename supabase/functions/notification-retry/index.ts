@@ -70,15 +70,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Re-render in case templates changed since the original attempt
+    // The stored subject/rendered_content is the immutable record of what was
+    // (or would have been) sent. Retries MUST reuse it; only rows that never had
+    // content rendered fall back to the current template.
     const { data: cfg } = await admin
       .from("notification_event_configs")
       .select("*")
       .eq("event_key", row.event_key)
       .maybeSingle();
     const vars = (row.payload?.vars as Record<string, any>) || {};
-    const subject = stripUnresolvedTemplateTokens(row.subject || render(cfg?.email_subject_template, vars) || render(cfg?.title_template, vars) || row.event_key);
-    const body = stripUnresolvedTemplateTokens(render(cfg?.email_body_template, vars) || render(cfg?.message_template, vars) || "");
+    const subject = row.subject
+      || stripUnresolvedTemplateTokens(render(cfg?.email_subject_template, vars) || render(cfg?.title_template, vars) || row.event_key);
+    const body = row.rendered_content
+      || stripUnresolvedTemplateTokens(render(cfg?.email_body_template, vars) || render(cfg?.message_template, vars) || "");
 
     // Immutable audit trail for the retry itself (admin-triggered vs sweep).
     const adminTriggered = Boolean((await req.headers.get("x-triggered-by")) === "admin");
@@ -107,6 +111,14 @@ Deno.serve(async (req) => {
         ctaLabel: typeof vars.cta_label === 'string' ? vars.cta_label : 'Open Portal',
         supportEmail: typeof vars.support_email === 'string' ? vars.support_email : '',
       });
+      // An operator-initiated resend clears the poison flag so the row can be
+      // re-attempted, and marks it processing for the duration of the send.
+      await admin.from("notification_dispatch_log").update({
+        status: "processing",
+        poisoned: false,
+        next_attempt_at: null,
+        last_attempt_at: new Date().toISOString(),
+      }).eq("id", log_id);
       const { data: sendRes, error: sendErr } = await admin.functions.invoke("send-notification", {
         body: { type: "email", to, subject, body, html, dispatch_log_id: log_id },
       });

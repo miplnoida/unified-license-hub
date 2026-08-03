@@ -22,6 +22,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
 import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { SMS_UNAVAILABLE_REASON } from "../_shared/smsProvider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1232,6 +1233,34 @@ Deno.serve(async (req) => {
               });
             }
             summary.sent++;
+          } else if (channel === "sms") {
+            // No SMS provider is configured for this deployment. Record the
+            // attempt honestly as skipped rather than leaving a queued row that
+            // would look like a pending or successful send.
+            summary.skipped++;
+            await admin
+              .from("notification_dispatch_log")
+              .update({
+                status: "skipped",
+                provider: "none",
+                error: SMS_UNAVAILABLE_REASON,
+                error_details: { reason: SMS_UNAVAILABLE_REASON, channel: "sms" },
+                last_attempt_at: new Date().toISOString(),
+              })
+              .eq("id", logId);
+            continue;
+          } else {
+            summary.skipped++;
+            await admin
+              .from("notification_dispatch_log")
+              .update({
+                status: "skipped",
+                error: "unsupported_channel",
+                error_details: { reason: "unsupported_channel", channel },
+                last_attempt_at: new Date().toISOString(),
+              })
+              .eq("id", logId);
+            continue;
           }
 
         } catch (e: any) {

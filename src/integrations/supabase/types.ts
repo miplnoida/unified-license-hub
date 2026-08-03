@@ -9425,7 +9425,10 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          attempts: number
           channel: string
+          claimed_at: string | null
+          claimed_by: string | null
           created_at: string
           dedupe_key: string
           delivered_at: string | null
@@ -9437,8 +9440,10 @@ export type Database = {
           failed_at: string | null
           id: string
           last_attempt_at: string | null
+          next_attempt_at: string | null
           notification_id: string | null
           payload: Json | null
+          poisoned: boolean
           provider: string | null
           provider_message_id: string | null
           queued_at: string | null
@@ -9458,7 +9463,10 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          attempts?: number
           channel?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
           created_at?: string
           dedupe_key: string
           delivered_at?: string | null
@@ -9470,8 +9478,10 @@ export type Database = {
           failed_at?: string | null
           id?: string
           last_attempt_at?: string | null
+          next_attempt_at?: string | null
           notification_id?: string | null
           payload?: Json | null
+          poisoned?: boolean
           provider?: string | null
           provider_message_id?: string | null
           queued_at?: string | null
@@ -9491,7 +9501,10 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          attempts?: number
           channel?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
           created_at?: string
           dedupe_key?: string
           delivered_at?: string | null
@@ -9503,8 +9516,10 @@ export type Database = {
           failed_at?: string | null
           id?: string
           last_attempt_at?: string | null
+          next_attempt_at?: string | null
           notification_id?: string | null
           payload?: Json | null
+          poisoned?: boolean
           provider?: string | null
           provider_message_id?: string | null
           queued_at?: string | null
@@ -17542,6 +17557,53 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      claim_email_retry_batch: {
+        Args: { _limit?: number; _worker?: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          attempts: number
+          channel: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          dedupe_key: string
+          delivered_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          error_details: Json | null
+          event_key: string
+          failed_at: string | null
+          id: string
+          last_attempt_at: string | null
+          next_attempt_at: string | null
+          notification_id: string | null
+          payload: Json | null
+          poisoned: boolean
+          provider: string | null
+          provider_message_id: string | null
+          queued_at: string | null
+          recipient_email: string | null
+          recipient_phone: string | null
+          recipient_user_id: string | null
+          reminder_window: string | null
+          rendered_content: string | null
+          rendered_content_ref: string | null
+          retry_count: number
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          template_version: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_dispatch_log"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_notification_event_queue: {
         Args: { _limit?: number; _worker?: string }
         Returns: {
@@ -18990,6 +19052,7 @@ export type Database = {
         Args: { _event_key: string; _type: string }
         Returns: Database["public"]["Enums"]["notification_category"]
       }
+      notification_channel_health: { Args: never; Returns: Json }
       notification_counts: { Args: never; Returns: Json }
       notification_delivery_for: {
         Args: { _notification_id: string }
