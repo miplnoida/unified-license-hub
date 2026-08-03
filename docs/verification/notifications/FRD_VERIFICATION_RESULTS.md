@@ -46,3 +46,36 @@ All rows in `notification_dispatch_log` carry a non-null `recipient_user_id`; no
 - `notification_dispatch_log.template_id` is null for these keys — they use
   built-in fallback rendering rather than a published template row.
 - SMS remains unavailable until a provider secret is configured, as specified.
+
+## 5. Trigger completion (this cycle)
+
+Every configured notification event is now emitted from a real business
+transaction — database triggers on `applications`, `approval_actions`,
+`complaints`, `complaint_correspondence`, `returns_filed`, `return_comments`,
+`return_requests`, `return_threshold_breaches`, `return_validation_run_log`,
+`declaration_invitations`, `fp_screening_runs`, `fp_manual_screening_tasks`,
+`fp_assessments`, `fp_determinations`, `license_certificates`,
+`license_actions`, `enforcement_actions`, `entity_user_access`, `licensees`,
+`conduct_alerts`, `conduct_actions`, `conduct_monitoring_rules/results`,
+`escalation_rules`, `thematic_reviews`, `correspondence_threads`,
+`registrations` — plus scheduled sweeps for time-based events
+(`notify_returns_due`, `notify_overdue_complaint_investigations`,
+`notify_overdue_conduct_actions`, `notify_prudential_remediation_due`,
+`notify_workflow_sla_events`).
+
+Unwired active events: **0** (see `10_trigger_matrix.md`, generated from the
+live database).
+
+`complaint.rfi_raised` and `complaint.rfi_responded` are deactivated with the
+reason recorded on the config: the approved scope has no complaint
+information-request transaction.
+
+### Live evidence
+
+| Event | Path | Result |
+| --- | --- | --- |
+| `complaint.investigation_overdue` | sweep → queue → worker | `in_app` delivered, `email` sent, template v1, no fallback |
+| `conduct_action_overdue` | sweep → queue → worker | 6 `in_app` delivered, 6 `email` sent |
+
+All dispatch rows carry a non-null `recipient_user_id` and
+`used_fallback_template = false`.

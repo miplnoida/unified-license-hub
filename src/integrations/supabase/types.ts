@@ -19350,6 +19350,11 @@ export type Database = {
         Args: { _function_name: string }
         Returns: number
       }
+      notify_overdue_complaint_investigations: { Args: never; Returns: number }
+      notify_overdue_conduct_actions: { Args: never; Returns: number }
+      notify_prudential_remediation_due: { Args: never; Returns: number }
+      notify_returns_due: { Args: never; Returns: number }
+      notify_workflow_sla_events: { Args: never; Returns: number }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
         Returns: Json
