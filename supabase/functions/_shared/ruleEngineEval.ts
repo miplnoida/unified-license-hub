@@ -63,6 +63,17 @@ async function fetchMetricSeries(
   return (data as MetricRow[]) || [];
 }
 
+async function resolveLicenseeNames(supa: Any, ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const clean = [...new Set(ids.filter(Boolean))];
+  for (let i = 0; i < clean.length; i += 200) {
+    const { data } = await supa.from('licensees').select('id, name').in('id', clean.slice(i, i + 200));
+    for (const r of (data as Any[]) || []) map.set(r.id, r.name);
+  }
+  return map;
+}
+
+
 function groupByEntity(rows: MetricRow[]): Map<string, MetricRow[]> {
   const m = new Map<string, MetricRow[]>();
   for (const r of rows) {
