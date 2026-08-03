@@ -333,7 +333,7 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
         const matched = logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
         return {
           entity_id: r.licensee_id,
-          entity_label: r.complaint_number || r.licensees?.name || 'Record',
+          entity_label: r.complaint_number || 'Record',
           matched,
           metrics: { record_id: r.id, evaluated: preds.map((p, i) => ({ field: p.field, passed: results[i] })) },
           reason: matched
