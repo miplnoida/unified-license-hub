@@ -19388,6 +19388,13 @@ export type Database = {
         | "role"
         | "admin"
         | "custom_email"
+        | "assigned_officer"
+        | "next_step_role"
+        | "supervisor"
+        | "named_user"
+        | "entity_primary_users"
+        | "entity_secondary_users"
+        | "regulator_team"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -19590,6 +19597,13 @@ export const Constants = {
         "role",
         "admin",
         "custom_email",
+        "assigned_officer",
+        "next_step_role",
+        "supervisor",
+        "named_user",
+        "entity_primary_users",
+        "entity_secondary_users",
+        "regulator_team",
       ],
     },
   },
