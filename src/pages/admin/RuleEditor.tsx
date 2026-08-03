@@ -668,6 +668,67 @@ export default function RuleEditor() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="versions" className="pt-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Version history</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Versions are immutable. Restoring a version copies its configuration into a new draft
+                  version — no historical record is altered or deleted.
+                </p>
+                {versions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Only version {rule.version} exists. Editing an active rule creates the next version.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Version</TableHead><TableHead>Snapshot taken</TableHead>
+                        <TableHead>Name at the time</TableHead><TableHead>Type</TableHead>
+                        <TableHead>Severity</TableHead><TableHead>Note</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {versions.map((v) => {
+                          const s = v.snapshot || {};
+                          return (
+                            <TableRow key={v.id}>
+                              <TableCell className="font-mono text-xs">
+                                v{v.version}{v.version === rule.version && <Badge variant="outline" className="ml-2">current</Badge>}
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{new Date(v.created_at).toLocaleString()}</TableCell>
+                              <TableCell className="text-sm">{s.name || '—'}</TableCell>
+                              <TableCell className="text-xs">{RULE_TYPES.find((t) => t.value === s.rule_type)?.label || s.rule_type || '—'}</TableCell>
+                              <TableCell className="text-xs capitalize">{s.severity || '—'}</TableCell>
+                              <TableCell className="text-xs">{v.note || '—'}</TableCell>
+                              <TableCell className="text-right">
+                                <Button data-rbac="rule_engine.edit" size="sm" variant="ghost"
+                                  disabled={restoring !== null || v.version === rule.version}
+                                  onClick={() => restoreVersion(v.version)}>
+                                  {restoring === v.version
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <><RotateCcw className="h-4 w-4 mr-1" /> Restore as new</>}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {!isNew && (
+                  <Button variant="ghost" size="sm" className="text-xs px-0" onClick={() => setTab('history')}>
+                    <History className="h-3.5 w-3.5 mr-1" /> View execution history
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+
+
           <TabsContent value="history" className="pt-4">
             <Card>
               <CardHeader><CardTitle className="text-base">Execution history</CardTitle></CardHeader>
