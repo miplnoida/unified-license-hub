@@ -81,6 +81,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     load();
     if (!user) return;
 
+    // Realtime is primary; a 60s poll keeps counts fresh if the socket drops.
+    const poll = setInterval(() => { load(); }, 60_000);
+
     const channel = supabase
       .channel('notif-' + user.id)
       .on('postgres_changes', {
@@ -92,6 +95,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         const n = payload.new as AppNotification;
         if (n.channel === 'in_app' && isActiveNotification(n)) {
           setNotifications(prev => (prev.some(p => p.id === n.id) ? prev : [n, ...prev]));
+          if (n.severity === 'critical' || n.severity === 'high') {
+            setLastUrgentAt(Date.now());
+          }
           loadCounts();
         }
       })
@@ -111,8 +117,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(poll); supabase.removeChannel(channel); };
   }, [user, load, loadCounts]);
+
 
   const unreadCount = counts.unread
     || notifications.filter(n => resolveNotificationStatus(n) === 'unread').length;
