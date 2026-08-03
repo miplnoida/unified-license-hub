@@ -46,6 +46,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'ai_management',
   'license_appeals',
   'escalation_management',
+  'rule_engine',
 ] as const;
 
 /**
@@ -53,6 +54,9 @@ export const KNOWN_PERMISSION_MODULES = [
  * Order matters: more specific prefixes come first.
  */
 const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
+  // ─── Rule engine ───────────────────────────────────────────────────────
+  ['/admin/rule-engine', 'rule_engine'],
+
   // ─── Forms ─────────────────────────────────────────────────────────────
   ['/admin/forms', 'form_management'],
   ['/admin/registration-forms', 'form_management'],
