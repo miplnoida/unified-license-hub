@@ -1,80 +1,83 @@
-# Notifications & Communications — Completion Plan (In-App + Email only)
+# Notifications & Communications — Completion and Proof (In-App + Email only)
 
-SMS is out of scope and excluded from implementation, tests and the completion percentage. Nothing is rebuilt: all work extends the existing dispatcher (`dispatch-notification-event`), queue (`notification_event_queue` + worker), template model (`notification_templates` / `notification_template_versions` / `notification_event_channel_templates`), correspondence spine (`correspondence_threads`), and escalation spine (`escalations`).
+SMS is excluded from implementation, tests, reports and all completion percentages.
 
-## Verified current state (measured, not assumed)
+## Verified baseline (queried live, not copied from earlier docs)
 
-| Signal | Value |
+| Measure | Value |
 | --- | --- |
-| Active event configs | 214 |
-| Active events with zero dispatch history | 161 |
-| Of those, **no code wiring at all** (config-only) | 73 |
-| Of those, wired in code but never exercised | 88 |
-| Dispatch rows using fallback rendering | 0 (Phase B foundation already holds) |
-| Template versions / channel bindings | 419 / 398 |
-| Correspondence threads in DB | 0 (feature never exercised) |
-| Escalations in DB | 13 |
+| Active event configurations | 212 |
+| Active events with empty recipient rules | 0 |
+| Active events never dispatched (no delivery row ever) | 157 |
+| Distinct event keys ever dispatched | 56 |
+| Event/channel template bindings | 398 |
+| Template versions | 419 |
+| Dispatch rows total | 814 |
+| Dispatch rows with null template ID / version | 788 (legacy rows predating snapshotting) |
+| Dispatch rows using fallback rendering | 0 |
+| Poisoned dispatch rows / dead queue rows | 0 / 0 |
+| Correspondence threads | 0 |
+| Escalation records | 13 |
+| In-app notification rows | 951 |
 
-So the two real remaining gaps are: (1) 73 configured events that no business transaction ever raises, and (2) absence of executed end-to-end evidence for triggers, threads, escalations, email lifecycle, audit and RLS.
+The earlier "73 unwired / 88 untested" figures do not match the database. The real gap is **157 active events with no executed evidence**. The plan works from the measured numbers.
 
-## Phase 1 — Authoritative trigger matrix
+## Phase 1 — Authoritative baseline artefacts
 
-Generate `docs/verification/notifications/10_trigger_matrix.{md,csv}` from the database plus a repo scan: for every active event key record module, the business transaction that raises it, the call site (DB trigger / RPC / edge function / sweep), recipient rules, bound template + version, and dispatch history. This matrix is the single source of truth for the rest of the work and for the final report.
+Build a single SQL baseline view/function that emits every metric the brief lists (trigger call site presence, recipient resolvability, channel bindings, published versions, placeholder resolution, source routes, threads, escalations, audit counts by action, email status counts, failed/poison counts). Export to:
 
-## Phase 2 — Wire the 73 unwired events
+- `docs/verification/notifications/20_current_baseline.md`
+- `docs/verification/notifications/20_current_baseline.csv`
 
-Each one is attached to the real business transaction, at the transaction boundary, via `notification_enqueue_event` (DB triggers/RPCs) or `enqueueNotificationEvent` (edge functions). No frontend inserts, no direct writes to `notifications`.
+Trigger call-site detection is derived from a repository scan script (`scripts/notification-trigger-scan.mjs`) that greps DB trigger/sweep functions and `enqueueNotificationEvent` / `dispatchNotificationEvent` call sites, joined against `notification_event_configs`. This script becomes the source of truth for the trigger matrix and a CI check.
 
-- Licensing: analyst/officer assignment, routed-to-legal, legal review completed, escalated to supervisor, decision ready/dispatched, certificate issued, licence varied.
-- Registration/Entity/Users: regulator assignment changed, entity user access revoked, entity user role changed, user role changed.
-- Complaints: acknowledged, investigation started, investigation overdue, RFI raised/responded, complainant update, priority changed, escalated to enforcement, outcome released, closed.
-- Market Conduct: complaint created/triaged, high-severity, action assigned/overdue, thematic review created/assigned/closed, pattern alert, systemic flag.
-- Fit & Proper: PQ invitation, PQ submitted, screening completed, assessment assigned, committee ready, committee decision, determination dispatched.
-- Prudential/Returns: return due, return reviewed, return rejected/changes requested, validation failure, breach detected, early warning, remediation due, examination notice/assigned/finding, group contagion, supervisory plan created, return RFI, regulator comment/query.
-- Enforcement: notice issued, response received, decision recorded, case closed, case withdrawn.
-- Correspondence: external message sent, external response received, internal message posted, internal participant added, awaiting response, SLA near-breach, SLA breach.
-- Escalation & config governance: tier advanced, ownership assigned, escalation rule changed, rule activated, rule first fired, workflow published, notification template published.
+## Phase 2 — Classify and resolve every unexercised active event
 
-Events that turn out to have no owning transaction in the approved scope are **deactivated with a recorded reason** rather than left active and dead — the completion criterion "no active event without a real trigger" is met either by wiring or by explicit deactivation.
+For each of the 157 events, one of exactly two outcomes:
 
-## Phase 3 — Template & rendering enforcement
+1. **Wire** — locate the owning business transaction and enqueue at the successful transaction boundary (DB trigger/RPC for backend-owned state changes; existing scheduled sweep for time-based events). Every enqueue carries entity type, entity ID, source reference, safe source route, correlation ID, dedupe key and the full template variable payload.
+2. **Deactivate** — event has no business action in the approved scope. Deactivate with a recorded reason, audited, and excluded from active-compliance maths.
 
-- Extend `notification_event_config_validate()` to also fail on unresolved placeholders and on variables the trigger payload never supplies.
-- Publish-time gate: a template version cannot be published if a required placeholder for its bound events is missing; activation stays blocked without a published binding (existing trigger).
-- Assert `fallback_allowed = false` for every regulatory event and that each dispatch row records `template_id`, `template_version`, `used_fallback_template = false`, `correlation_id` and the rendered body.
+Rules honoured: no dispatch from presentational components, no direct writes to `notifications`, no email from frontend, no duplicated frontend+backend emission, no artificial background trigger for an action-owned event.
 
-## Phase 4 — Centre, Bell, Preferences hardening
+Output: `21_trigger_matrix.md` / `.csv` with event key, module, source transaction, previous state, resolution, call site, recipients, template, test, result.
 
-Close the residual UX/behavioural items against the existing components (no new pages): pagination/filters/sort/search, unread/archive/dismiss (soft-state only, never delete), export, detail drawer, deep link RBAC re-check on open, forward, optimistic update with rollback, loading/retry/error states; bell unread + critical indicator, realtime with polling fallback, reconnect and duplicate suppression, mark-all-read; server-side preference locks (critical always on/immediate, mandatory not disableable), future-effect-only semantics with before/after audit, digest workers with no duplicate sends.
+## Phase 3 — Activation validation (server-side gate)
 
-## Phase 5 — Communication Thread Manager
+Strengthen `notification_event_config_validate()` and enforce it in the activation RPC. Activation fails with a specific validation error unless: verified trigger, recipient rules present and every rule type supported and resolvable in context, at least one approved channel enabled, in-app/email template binding present per enabled channel, bound templates have published immutable versions, required variables covered by the trigger payload contract, valid severity/category, consistent mandatory-vs-mute rules, valid dedupe settings, failure escalation configured where required. Result: `22_event_validation.md`.
 
-Exercise and complete the existing correspondence module: unified feed, pagination, search, filters, drafts, attachments, participants, internal/external visibility, response SLA sweeps, export, history, notifications. Threads are currently unexercised (0 rows), so this phase creates threads through the real UI/RPC path and proves entity isolation, internal-note isolation, attachment and source-record permissions, immutable history and controlled reopen.
+## Phase 4 — Rendering integrity
 
-## Phase 6 — Escalation Manager
+Every new dispatch records template ID, template version, rendered subject/title, rendered body (or immutable ref), correlation ID and fallback flag. Publishing fails when required placeholders are not satisfied by the payload contract of bound events. Test-send targets only the authenticated authorised administrator and never uses production recipient rules. Legacy dispatch rows with null template IDs are backfilled where derivable and otherwise flagged as pre-snapshot legacy in the baseline so they cannot be mistaken for fallback rendering.
 
-Complete tier management, acknowledgement, ownership transfer, automatic advancement, resolution, routing, rule configuration, business calendar and immutable history on the existing `escalations` spine, and prove each escalation produces notification evidence.
+## Phase 5 — Communication Thread Manager end to end (currently 0 threads)
 
-## Phase 7 — Email delivery lifecycle
+Drive the full lifecycle through real RPC/UI flows: external + internal thread creation, participants, draft save/resume, outbound send, inbound reply, attachment, linked case document, pending-response, response warning, SLA breach, close, controlled reopen, PDF export, chronological history. Security proofs: external users blocked from internal messages, cross-entity isolation, attachment permission inheritance, linked documents not bypassing document access, closed-thread immutability without reopen permission, controlled participant changes, exports excluding inaccessible content, deep links enforcing source RBAC/RLS. Verify notification events and audit rows for each step. Result: `24_thread_security_results.md`.
 
-Verify and complete the state machine: `queued → processing → sent (SMTP accepted) → delivered (only on provider confirmation) | bounced | failed | skipped`, plus retry with backoff, poison handling, admin resend, and channel health. SMTP acceptance is never reported as Delivered. Persist provider message id, timestamps, retry count, correlation id, template version and rendered content.
+## Phase 6 — Escalation Manager end to end
 
-## Phase 8 — Audit & security proof
+Exercise creation, routing, ownership, acknowledgement and deadline, automatic Tier 1/2/3 progression, manual escalation, pause-on-acknowledgement, business-calendar behaviour, resolution validation including the 50-character narrative minimum, recipient notification, and immutable tier/ownership/notification history with source alert retention. Exercise rule administration (create, edit, activate, deactivate, tier recipients, thresholds, channels, templates, business hours, pause, task creation, case creation) with audit on every action. Result: `25_escalation_results.md`.
 
-- pgTAP: immutable audit rows for every notification, template, event-config, thread and escalation action listed in the scope.
-- pgTAP RLS: cross-user notification reads blocked, protected fields not editable, deletes blocked, source-record permissions not bypassable, thread/escalation/export permissions enforced, forwarding cannot leak data. Server-side enforcement only.
+## Phase 7 — Email delivery state model
 
-## Phase 9 — End-to-end execution and final report
+Adopt the explicit state model: `queued`, `processing`, `accepted_by_provider`, `delivered`, `bounced`, `failed`, `skipped`, `poison`. SMTP acceptance maps to `accepted_by_provider`; `delivered`/`bounced` only on provider callback; no `opened` state without callback support; permanent failures move to `poison` at max attempts. Persist recipient, provider, provider message ID, template ID/version, rendered subject and body reference, queued/processing/acceptance/delivered-or-bounced/failed timestamps, retry count, last attempt, error details, correlation ID and dedupe key. Verify backoff retry, max attempts, poison handling, manual retry, admin resend, queue depth, oldest pending, last successful send, recent failure count and persistent-failure escalation. Result: `26_email_delivery_results.md`.
 
-Execute real business scenarios through the actual application paths (no manual notification inserts) covering every module above. For each: source action, workflow transition, event key, recipient, queue row, in-app row, email row, audit row, template id + version, correlation id, expected vs actual, pass/fail.
+## Phase 8 — Notification Centre and bell (executable tests)
 
-Deliverables written to `docs/verification/notifications/`:
-FRD traceability matrix · files changed · migrations added · triggers verified · E2E execution report · audit verification report · security verification report · regression report · remaining risks · exact completion percentage for In-App + Email scope.
+Vitest + Playwright coverage for pagination, total count, stable sort, tabs, filters, search, mark read, mark all read, dismiss with note, archive, bulk actions, export, detail drawer, forwarding, source navigation, loading/error/retry and optimistic rollback on backend failure. Source-record opening checks access, rejects unauthorised navigation and records the notification action only after successful authorised navigation. Bell: unread count, urgent count, critical indicator, realtime insert/update, disconnect/reconnect, polling fallback, duplicate suppression, last-20 tray, mark-all-read rollback.
 
-## Technical notes
+## Phase 9 — Preferences and digests
 
-- New wiring uses `notification_enqueue_event` inside the business transaction so a delivery failure can never roll back a regulatory decision; sweeps continue to use direct dispatch.
-- Recipient rules reuse the existing rule types (including `record_assignee`, `thread_participants`, `thread_assigned_officer`); no new resolution mechanism.
-- Migrations are additive; no existing table, RPC or function signature is removed or repurposed.
-- Regression coverage: existing vitest suites plus the pgTAP suites under `supabase/tests/` (notifications, complaints, rbac, regulator_access) must pass unchanged.
-- Reporting will state a measured percentage; anything not proven by executed evidence is reported as incomplete rather than assumed.
+Prove Critical stays in-app, Critical/High stay immediate, mandatory cannot be disabled, optional Low mutable only where allowed, preference changes affect future delivery only with before/after audit rows, and failed saves leave no false UI state. Run the real hourly and daily digest jobs and prove eligibility filtering, Critical/High and mandatory-immediate exclusion, single inclusion per notification, retained digest item records, retained original in-app rows, retryable failures and blocked duplicate sends.
+
+## Phase 10 — Audit, RLS/RBAC, regression, CI
+
+- Append-only audit coverage for every listed notification, configuration, thread and escalation action, each row carrying actor ID, actor role, timestamp, module, source entity, correlation ID, before/after where applicable, success/failure and failure reason. Result: `27_audit_results.md`.
+- pgTAP suite for the full RLS/RBAC list (own-notification visibility, protected field immutability, no deletes, thread isolation, internal-message shielding, escalation access, source links granting no extra access, export parity with UI permissions, forwarding leak prevention, service-role-only functions not client callable, explicit permissions for administration, retry/resend, template/event management and escalation rules). Frontend guards are not accepted as evidence. Result: `28_rls_rbac_results.md`.
+- Real business flow suite across registration, licensing, F&P, prudential, returns, complaints, market conduct, enforcement, correspondence, escalation, reporting, system health, preferences, digests and email failure/retry — each row recording test name, user, role, action, transaction result, event key, queue row ID, notification row ID, email delivery row ID, recipients, template ID/version, correlation ID, source route, audit row ID, expected, actual, pass/fail. Manual queue/notification inserts are never accepted. Results: `23_e2e_results.md`, `29_regression_results.md`.
+- CI (`.github/workflows/ci.yml`) gains: TypeScript compile, frontend unit tests, notification vitest suite, migration validation, notification pgTAP, RLS tests, template validation, event-config validation and the trigger-matrix consistency check.
+- `30_final_acceptance.md` reports scope totals, fully implemented, implemented-but-untested, partial, missing, deactivated out-of-scope events, exact completion percentage, failed tests, unresolved defects, environment dependencies, migration and regression risks and CI status. 100% is claimed only when every gate in the brief is green.
+
+## Sequencing note
+
+Phases 1–4 are backend correctness and must land before the evidence phases, because the e2e records depend on template/version and validation guarantees. Phases 5–9 are independent of each other and can be executed in any order. Phase 10 closes last.
