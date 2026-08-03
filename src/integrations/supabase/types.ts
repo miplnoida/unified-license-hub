@@ -8806,6 +8806,38 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_digest_items: {
+        Row: {
+          created_at: string
+          id: string
+          notification_id: string
+          period: string
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_id: string
+          period: string
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_id?: string
+          period?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_digest_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "notification_digest_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_digest_log: {
         Row: {
           categories_included: string[]
@@ -8841,6 +8873,57 @@ export type Database = {
           payload?: Json | null
           sent_at?: string
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_digest_runs: {
+        Row: {
+          attempts: number
+          channel: string
+          created_at: string
+          dispatch_log_id: string | null
+          error: string | null
+          id: string
+          item_count: number
+          period: string
+          period_end: string
+          period_start: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          dispatch_log_id?: string | null
+          error?: string | null
+          id?: string
+          item_count?: number
+          period: string
+          period_end: string
+          period_start: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          dispatch_log_id?: string | null
+          error?: string | null
+          id?: string
+          item_count?: number
+          period?: string
+          period_end?: string
+          period_start?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -17885,6 +17968,23 @@ export type Database = {
           status: string
         }[]
       }
+      notification_digest_build: {
+        Args: { _channel?: string; _period: string; _period_start?: string }
+        Returns: Json
+      }
+      notification_digest_dispatch: {
+        Args: { _period: string; _period_start?: string }
+        Returns: Json
+      }
+      notification_digest_mark: {
+        Args: {
+          _dispatch_log_id?: string
+          _error?: string
+          _run_id: string
+          _status: string
+        }
+        Returns: undefined
+      }
       notification_dismiss: {
         Args: { _ids: string[]; _note?: string }
         Returns: number
@@ -18015,6 +18115,8 @@ export type Database = {
         Args: { _entity_type: string; _event_key: string }
         Returns: string
       }
+      notification_preference_matrix: { Args: never; Returns: Json }
+      notification_preferences_save: { Args: { _items: Json }; Returns: Json }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
@@ -18046,6 +18148,7 @@ export type Database = {
         Args: { _event_key: string; _type: string }
         Returns: Database["public"]["Enums"]["notification_severity"]
       }
+      notification_sms_available: { Args: never; Returns: boolean }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
         Returns: Json
