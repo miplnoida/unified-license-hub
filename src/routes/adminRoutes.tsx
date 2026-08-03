@@ -26,6 +26,7 @@ const ComplianceAuditLogs = lazy(() => import('@/pages/admin/ComplianceAuditLogs
 const IntegrationLogs = lazy(() => import('@/pages/admin/IntegrationLogs'));
 const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTemplates'));
 const NotificationEvents = lazy(() => import('@/pages/admin/NotificationEvents'));
+const EscalationManager = lazy(() => import('@/pages/admin/EscalationManager'));
 const NotificationHistory = lazy(() => import('@/pages/admin/NotificationHistory'));
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
@@ -108,6 +109,7 @@ export const adminRoutes = (
     <Route path="/admin/audit-logs" element={<M module="settings"><AuditLogs /></M>} />
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />
     <Route path="/admin/integration-logs" element={<M module="settings"><IntegrationLogs /></M>} />
+    <Route path="/admin/escalations" element={<M module="escalation_management"><EscalationManager /></M>} />
     <Route path="/admin/notification-templates" element={<M module="notification_management"><NotificationTemplates /></M>} />
     <Route path="/admin/notification-events" element={<M module="notification_management"><NotificationEvents /></M>} />
     <Route path="/admin/notification-history" element={<M module="notification_management"><NotificationHistory /></M>} />
