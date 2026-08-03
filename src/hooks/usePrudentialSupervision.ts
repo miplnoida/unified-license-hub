@@ -426,8 +426,6 @@ export function useCreateAction() {
       await audit('CREATE', 'prudential_action', data.id, null, data);
 
       const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      if (data.assigned_to) {
-      }
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
@@ -464,11 +462,7 @@ export function useUpdateAction() {
       const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
       if (error) throw error;
       await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
-      if (patch.status === 'completed') {
-      }
       // Re-notify the new assignee if assignment changed.
-      if (patch.assigned_to && before?.assigned_to !== patch.assigned_to) {
-      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -544,8 +538,6 @@ export function useUpdateEscalation() {
       if (error) throw error;
       await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
       if (patch.status === 'resolved') {
-      } else if (patch.status === 'withdrawn') {
-      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),

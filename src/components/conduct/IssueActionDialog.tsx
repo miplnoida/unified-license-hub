@@ -87,8 +87,6 @@ export function IssueActionDialog({
         });
       } catch { /* swallow */ }
 
-      try {
-      } catch { /* swallow */ }
       return data;
     },
     onSuccess: () => {

@@ -121,8 +121,6 @@ export function useCreateInvestigation() {
       const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();
       if (error) throw new Error(error.message);
       await audit('CREATE', 'conduct_investigation', data.id, null, data);
-      if (data.assigned_investigator) {
-      }
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-investigations'] }); toast.success('Investigation opened'); },
@@ -139,10 +137,6 @@ export function useUpdateInvestigation() {
       if (error) throw new Error(error.message);
       const closing = patch.status === 'closed' && before?.status !== 'closed';
       await audit(closing ? 'APPROVE' : 'UPDATE', 'conduct_investigation', id, before, data, justification);
-      if (closing) {
-      }
-      if (patch.assigned_investigator && patch.assigned_investigator !== before?.assigned_investigator) {
-      }
       return data;
     },
     onSuccess: (_d, v) => {
