@@ -1,6 +1,6 @@
 # Notifications & Communications — Measured Baseline
 
-Generated: 2026-08-03T10:19:05.662Z
+Generated: 2026-08-03T10:19:54.025Z
 Generator: `scripts/notification-trigger-scan.mjs` (queries the live database; no figures copied from earlier documents)
 Approved scope: In-App + Email. SMS is excluded from implementation, testing and all percentages.
 

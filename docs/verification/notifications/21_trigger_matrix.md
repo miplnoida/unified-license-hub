@@ -1,6 +1,6 @@
 # Notification Trigger Matrix (authoritative)
 
-Generated: 2026-08-03T10:19:05.662Z
+Generated: 2026-08-03T10:19:54.025Z
 Generator: `scripts/notification-trigger-scan.mjs`
 
 "Wired" means a backend call site exists (database function/trigger body or edge
@@ -493,7 +493,7 @@ function). Frontend-only references never count as wiring.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `ai.critical_insight` | active | wired | edge:generate-dashboard-insights/index.ts | 2 | y | y | y | n |
 | `ai.insight_generated` | active | wired | edge:generate-dashboard-insights/index.ts | 2 | y | n | y | n |
-| `ai.processing_failed` | active | wired | edge:notification-system-health-monitor/index.ts,generate-dashboard-insights/index.ts | 1 | y | y | y | n |
+| `ai.processing_failed` | active | wired | edge:generate-dashboard-insights/index.ts,notification-system-health-monitor/index.ts | 1 | y | y | y | n |
 | `report.delivery_failed` | active | wired | edge:run-scheduled-reports/index.ts | 2 | y | y | y | n |
 | `report.first_delivery_success` | active | wired | edge:run-scheduled-reports/index.ts | 1 | y | y | y | n |
 | `report.scheduled_delivered` | active | wired | edge:run-scheduled-reports/index.ts | 2 | y | y | y | n |
@@ -504,7 +504,7 @@ function). Frontend-only references never count as wiring.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `return.analysis_complete` | active | wired | edge:generate-return-analysis/index.ts | 1 | y | y | y | n |
 | `return.approved` | active | wired | db:perform_return_workflow_transition | 3 | y | y | y | y |
-| `return.approved_step` | active | wired | edge:perform-return-workflow-action/index.ts,_shared/return-notification-payload.ts | 2 | y | y | y | y |
+| `return.approved_step` | active | wired | edge:_shared/return-notification-payload.ts,perform-return-workflow-action/index.ts | 2 | y | y | y | y |
 | `return.breach_critical` | active | wired | edge:evaluate-return-prudential/index.ts | 3 | y | y | y | n |
 | `return.breach_warning` | active | wired | edge:evaluate-return-prudential/index.ts | 2 | y | y | y | n |
 | `return.comment_added` | active | wired | db:tg_return_comment_added_audit | 4 | y | y | y | y |
@@ -540,7 +540,7 @@ function). Frontend-only references never count as wiring.
 | `escalation.resolved` | active | wired | db:escalation_resolve,trg_escalation_notifications | 2 | y | y | y | n |
 | `escalation.tier_advanced` | active | wired | db:escalation_advance_tier,trg_escalation_notifications | 3 | y | y | y | n |
 | `system_health.cron_failure` | active | wired | edge:notification-system-health-monitor/index.ts | 1 | y | y | y | n |
-| `system_health.dispatch_failure_repeated` | active | wired | edge:notification-email-retry-worker/index.ts,notification-event-queue-worker/index.ts | 1 | y | y | y | n |
+| `system_health.dispatch_failure_repeated` | active | wired | edge:notification-event-queue-worker/index.ts,notification-email-retry-worker/index.ts | 1 | y | y | y | n |
 | `system_health.integration_failure` | active | wired | edge:notification-system-health-monitor/index.ts | 1 | y | y | y | n |
 | `system_health.notification_queue_backlog` | active | wired | edge:notification-system-health-monitor/index.ts | 1 | y | y | y | n |
 | `system_health.scheduler_failure` | active | wired | edge:notification-system-health-monitor/index.ts | 1 | y | y | y | n |
