@@ -317,8 +317,9 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
 
     case 'routing': {
       const { data, error } = await supa.from('complaints')
-        .select('id, complaint_number, severity, priority, assigned_team, investigator_id, licensee_id, licensees:licensee_id(name)')
+        .select('id, complaint_number, severity, priority, assigned_team, investigator_id, licensee_id')
         .is('investigator_id', null).limit(2000);
+
       if (error) throw new Error(error.message);
       const logic = (c.logic || 'AND').toUpperCase();
       return ((data as Any[]) || []).map((r) => {
