@@ -1,86 +1,46 @@
-## Goal
+# NOT-CEN-001 — Notification Centre
 
-Complete the backend data model behind NOT-CEN-001. No Notification Centre redesign, no Communication Threads, no Escalation Manager. Nothing working is removed.
+Builds on the Phase 2 notification model (`notifications.status/severity/category/module/preview/source_reference/source_route`, audited RPCs `notification_mark_read`, `notification_mark_all_read`, `notification_dismiss`, `notification_archive`, `notification_mark_actioned`, `notification_counts`, `notification_record_delivery`, `log_notification_audit`).
 
-## What already exists (verified)
+## Canonical route and deprecation
 
-- `notifications` already has `severity`, `category`, `module`, `action_required`, `dismissed_at`, `dismiss_note`, `actioned_at`, `template_id`, `event_key`, `correlation_id`, `metadata`, plus a delete-blocking trigger and audited RPCs (`notification_mark_read`, `notification_mark_all_read`, `notification_dismiss`, `notification_mark_actioned`, `notification_counts`, `search_notifications`, `log_notification_audit`).
-- `notification_dispatch_log` has channel, dedupe_key, status, error, retry_count, sent_at, last_attempt_at, provider_message_id, recipient_email, subject, payload.
-- `notification_outbox`, `notification_event_configs`, `notification_templates`, `notification_digest_log` all exist and are wired to `dispatch-notification-event`, `process-notification-outbox`, `notification-retry`, `notification-failure-sweep`, `notification-digest`.
-- `notification_preferences` is a single row per user with JSONB `channels` / `categories` / `type_settings` — not per-event rows.
-- RLS on `notifications` currently lets a user UPDATE any column on their own rows; no per-column protection. Audit uses `public.audit_logs`.
+- Canonical route: `/notifications` → `src/pages/notifications/NotificationCenter.tsx` (registered in `src/routes/dashboardRoutes.tsx`).
+- Canonical state: the existing single `NotificationsContext` (`src/contexts/NotificationsContext.tsx`) + `useNotifications`. No second context or page will be created.
+- `src/pages/Notifications.tsx` (hardcoded array) has no importers anywhere in `src/` — it will be deleted after a repeat reference check.
+- New admin route: `/admin/notification-history` in `src/routes/adminRoutes.tsx`, gated by the `settings` module permission (same gate as notification templates).
 
-So Phase 2 is extension and hardening, not new tables (except one per-event preference table).
+## Backend additions (one migration)
 
-## 1. Notification record model (migration)
+1. `notification_feed(_tab, _module, _severity, _type, _status, _from, _to, _search, _cursor_created_at, _cursor_id, _limit)` — SECURITY DEFINER, scoped to `auth.uid()`, keyset pagination (`created_at desc, id desc`), tab semantics (all/unread/action_required/alerts/system/archived), search over title/message/source_reference/entity_id with a 3-char minimum.
+2. `notification_delivery_for(_notification_id)` — returns the user's own dispatch rows (channel, status, timestamps, retry count, failure reason).
+3. `notification_bulk_export_intent(_ids)` — authorises + audit-logs an export, returns only rows the caller may see.
+4. `notification_forward(_notification_id, _to_user_id, _note)` — creates an internal forward record/draft, writes `NOTIFICATION_FORWARDED` audit, and returns the target thread/draft reference. If the thread manager write path is unavailable it returns an explicit `not_available` result so the UI shows a real failure rather than a fake success.
+5. `notification_history(...)` for R-01/authorised admins — joins `notification_dispatch_log` with recipient/event/template/channel/status/retry/error/source, with filters, search and keyset pagination; permission-gated via `enforce_permission`.
 
-Add to `public.notifications`, all nullable/defaulted so existing rows stay valid:
+All new tables/functions get GRANTs to `authenticated` (+ `service_role`) and re-use existing RLS.
 
-- `recipient_role text`, `recipient_group text` (role/group context)
-- `preview text` (short preview; backfilled from `message`, maintained by trigger when null)
-- `status` — new enum `notification_status` (`unread`, `read`, `actioned`, `dismissed`, `archived`), derived from existing `read` / `actioned_at` / `dismissed_at` on backfill; a trigger keeps `read` boolean and `status` in sync so all current code paths keep working
-- `read_at timestamptz`, `archived_at timestamptz`
-- `system_required boolean not null default false`
-- `source_reference text` (human-readable, e.g. `APP-2026-000131`), `source_route text`, `route_params jsonb`
-- `template_version integer`, `rendered_content_ref text`
-- `dedupe_key text`, `expires_at timestamptz`
+## Frontend
 
-Indexes: `(user_id, status, created_at desc)`, unique partial on `dedupe_key` where not null, index on `expires_at`.
+**Bell (`src/components/layout/Header.tsx`)**
+Real unread count from context; destructive/red styling when any unread critical or high exists; pulse animation on a newly arrived critical (realtime INSERT); last 20 in the drawer with loading, error and empty states; Mark All Read; View All Notifications; safe navigation via `notificationLink` (RBAC/RLS still enforced by the destination route). Shown for any authenticated role with notification access.
 
-Keep `notifications_block_delete`; extend it so only `service_role` may hard-delete.
+**Context (`NotificationsContext.tsx`)**
+Add a 60s polling fallback that engages when the realtime channel does not reach `SUBSCRIBED` (or errors), plus a `realtimeHealthy` flag. Keep existing action APIs; add `forward`, `exportSelected`, and paginated feed access via a new `useNotificationFeed` hook (TanStack `useInfiniteQuery` over `notification_feed`).
 
-## 2. Preferences
+**Notification Centre page**
+Tabs: All / Unread / Action Required / Alerts / System / Archived. Filters: module, severity, type, status, date range. Search (min 3 chars, debounced). Cursor pagination with "Load more" — no 100-row ceiling.
+List item: module indicator, severity badge, title, preview, relative time (absolute on hover via tooltip), source module, source reference, status, action-required flag, unread styling, selection checkbox.
+Detail drawer: full content, severity, type, module, created timestamp, source reference, role-appropriate metadata, delivery channels/status (where permitted), and actions — Open Source Record (marks actioned), Mark as Read, Dismiss (optional note), Forward to Colleague.
+Bulk bar: Mark selected read, Dismiss selected, Export selected (CSV via the audited export intent).
+All mutations: progress state, disabled-while-pending (no duplicate clicks), optimistic update with rollback on failure, toast with a meaningful error message.
 
-New `public.notification_user_event_preferences` (per user + event key):
-`user_id`, `event_key`, `in_app_enabled`, `email_enabled`, `sms_enabled`, `digest_frequency` (new enum `notification_digest_frequency`: immediate/hourly/daily), `muted`, `effective_from`, `updated_by`, `created_at`, `updated_at`; unique `(user_id, event_key)`. GRANTs for `authenticated` + `service_role`, RLS scoped to `auth.uid()`.
+**Admin history (`src/pages/admin/NotificationHistory.tsx`)**
+Table of recipient, event key, type, template, channel, status, date/time, retry count, failure reason, source reference; filters + search; delivery-detail drawer; Retry/Resend for failed rows (invokes `notification-retry` with `x-triggered-by: admin`), each retry audit-logged. Non-authorised users never see the route or the nav entry.
 
-Add `severity_floor`/`allow_mute boolean` and `system_required boolean` to `notification_event_configs` so mute eligibility is config-driven.
+## Tests (Vitest, `src/test/`)
 
-Validation trigger enforces:
-- critical → `in_app_enabled` forced true
-- critical/high → `digest_frequency` forced `immediate`
-- system-required events → cannot disable any channel, cannot mute
-- `muted` allowed only for low severity where `allow_mute` is true
+`notificationFeed.test.ts` (tab filtering, severity filter, search min-length, cursor pagination), `notificationBell.test.tsx` (realtime insert, polling fallback, critical styling), `notificationActions.test.ts` (mark read, mark all read, dismiss + note, archive visibility, bulk actions audit, API failure rollback), `notificationDeepLink.test.ts` (deep-link action marks actioned; blocked source access surfaces a denial, not data), `notificationHistoryRbac.test.tsx` (admin history RBAC, retry permission gating). Run with `bunx vitest run`.
 
-The existing single-row `notification_preferences` table and `save_notification_preferences` RPC stay untouched and functional; a resolver function `notification_effective_preference(user, event_key)` reads the new table first and falls back to the legacy JSONB, so dispatch keeps working either way.
+## Out of scope this phase
 
-## 3. Delivery records
-
-Extend `notification_dispatch_log` (no replacement): `notification_id uuid`, `provider text`, `recipient_phone text`, `queued_at`, `delivered_at`, `failed_at`, `template_id`, `template_version`, `rendered_content`/`rendered_content_ref`, `error_details jsonb`. Widen `status` to the required set via a check constraint (`queued|processing|sent|delivered|failed|bounced|skipped`) that also accepts existing values.
-
-Add `notification_record_delivery(...)` service RPC used by the Edge Functions so every attempt (including `skipped` due to preferences) is logged, and wire it into `dispatch-notification-event`, `process-notification-outbox`, `notification-retry`, `notification-status`.
-
-## 4. Audit events
-
-Reuse `public.audit_logs` via an extended `log_notification_audit`, covering: `NOTIFICATION_CREATED`, `NOTIFICATION_SENT`, `NOTIFICATION_DELIVERY_FAILED`, `NOTIFICATION_READ`, `NOTIFICATIONS_BULK_MARKED_READ`, `NOTIFICATION_DISMISSED`, `NOTIFICATION_ACTIONED`, `NOTIFICATION_FORWARDED`, `NOTIFICATION_PREFERENCES_UPDATED`, `NOTIFICATION_RETRIED`, `NOTIFICATION_RESENT_BY_ADMIN`. Audit rows stay immutable (existing `audit_logs_prevent_mutation`). No competing audit system.
-
-## 5. RLS and security
-
-- Replace the permissive `notifications` UPDATE policy with a `BEFORE UPDATE` guard trigger that rejects changes to `user_id`, `severity`, `category`, `module`, `title`, `message`, `preview`, `event_key`, `template_id`, `entity_type`, `entity_id`, `source_reference`, `system_required`, `correlation_id`, `dedupe_key` unless the caller is `service_role`. Users may only move status/read/actioned/dismissed/archived fields.
-- Role/group notifications are still materialised per-recipient row, so `auth.uid() = user_id` remains the only read path — no group leakage.
-- Delivery history read policy on `notification_dispatch_log` moves from hardcoded admin roles to `has_permission(auth.uid(),'notification_management','view_delivery_history')`, keeping admin/super_admin working through the RBAC catalogue.
-- Deep links stay metadata only: `source_route` is resolved client-side and target routes keep their own RBAC/RLS, so no bypass. Notification content stores only recipient-safe text (documented rule; no schema change).
-
-## 6. Compatibility
-
-- Regenerate `src/integrations/supabase/types.ts`.
-- Add `src/types/notifications.ts` with the canonical `NotificationRecord` / status / preference types, and update `NotificationsContext` + `notificationLinks` to read `status`, `preview`, `source_route` with fallbacks to the legacy fields.
-- No page or component removed. Obsolete items recorded in `docs/notifications/phase2-obsolete.md`.
-
-## Verification
-
-New pgTAP suite `supabase/tests/notifications/` (run in CI alongside complaints/rbac):
-1. user cannot read another user's notification
-2. user cannot alter protected fields (severity/recipient/content/event key)
-3. critical in-app preference cannot be disabled
-4. critical/high cannot be placed into a digest
-5. dismissed and archived notifications remain stored
-6. delivery attempts are logged (including `skipped`)
-7. read and dismiss produce audit rows
-8. duplicate dispatch prevented by dedupe key
-
-Plus Vitest coverage for the preference resolver and status/preview fallbacks, and a live check that existing in-app notifications load and one email dispatch still succeeds end-to-end.
-
-## Deliverable at completion
-
-Files changed, migrations added, table/policy summary, tests added and results, and the remaining Phase 3 gaps (Notification Centre UX, SMS provider, digest scheduling, unified Escalation Manager, full trigger coverage). Phase 2 does not complete the notification module.
+NOT-THR-001 (Communication Threads — only the forward integration contract is implemented) and NOT-ESC-001 (Escalation Manager). Preference UI/digest scheduling remains for the preference phase.
