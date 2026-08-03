@@ -148,7 +148,7 @@ const metrics = {
   ),
   notifications_rows: one("count(*) from notifications"),
   notifications_missing_source_route: one(
-    "count(*) from notifications where coalesce(action_url,'') = ''",
+    "count(*) from notifications where coalesce(source_route,'') = ''",
   ),
   correspondence_threads: one("count(*) from correspondence_threads"),
   correspondence_messages: one("count(*) from correspondence_messages"),
