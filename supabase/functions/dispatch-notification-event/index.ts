@@ -960,8 +960,15 @@ Deno.serve(async (req) => {
         ? `rw:${reminder_window}`
         : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
 
-      const title = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey));
-      const message = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.message_template, vars) || "");
+      const inAppTpl = channelTemplates.get("in_app");
+      const emailTpl = channelTemplates.get("email");
+      const smsTpl = channelTemplates.get("sms");
+      const title = stripUnresolvedTemplateTokens(
+        render(inAppTpl?.subject || dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey),
+      );
+      const message = stripUnresolvedTemplateTokens(
+        render(inAppTpl?.body || dispatchCfg.cfg.message_template, vars) || "",
+      );
       // Reviewer-supplied subject/body overrides take precedence when the
       // workflow action was confirmed through the Email Preview dialog.
       const subjectOverride = typeof vars.subject_override === "string" && vars.subject_override.length > 0
@@ -970,8 +977,17 @@ Deno.serve(async (req) => {
       const bodyOverride = typeof vars.body_override === "string" && vars.body_override.length > 0
         ? stripUnresolvedTemplateTokens(render(vars.body_override, vars))
         : null;
-      const emailSubject = subjectOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
-      const emailBody = bodyOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
+      const emailSubject = subjectOverride
+        ?? stripUnresolvedTemplateTokens(render(emailTpl?.subject || dispatchCfg.cfg.email_subject_template, vars) || title);
+      const emailBody = bodyOverride
+        ?? stripUnresolvedTemplateTokens(render(emailTpl?.body || dispatchCfg.cfg.email_body_template, vars) || message);
+      const templateForChannel = (channel: string): ChannelTemplate | undefined =>
+        channel === "email" ? emailTpl : channel === "sms" ? smsTpl : inAppTpl;
+      const templateIdFor = (channel: string): string | null =>
+        templateForChannel(channel)?.template_id
+        ?? (typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null);
+      const templateVersionFor = (channel: string): number | null =>
+        templateForChannel(channel)?.template_version ?? null;
       const emailHtml = renderBrandedEmail({
         appName: String(vars.app_name || "Unified License Hub"),
         heading: emailSubject,
