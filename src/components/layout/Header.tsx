@@ -93,21 +93,36 @@ export function Header() {
         )}
         <HoverCard openDelay={100} closeDelay={150}>
           <HoverCardTrigger asChild>
-            <Button data-rbac="notification_management.view" variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
-              <Bell className="h-4 w-4" />
+            <Button
+              data-rbac="notification_management.view"
+              variant="ghost"
+              size="icon"
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+              className="relative h-9 w-9"
+              onClick={() => navigate('/notifications')}
+            >
+              <Bell className={`h-4 w-4 ${hasUrgent ? 'text-destructive' : ''} ${pulse ? 'animate-pulse' : ''}`} />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <span
+                  className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-0.5 items-center justify-center rounded-full text-[10px] font-bold ${
+                    hasUrgent
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-primary text-primary-foreground'
+                  } ${pulse ? 'animate-pulse' : ''}`}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Button>
           </HoverCardTrigger>
-          <HoverCardContent align="end" className="w-80 p-0 z-50">
+          <HoverCardContent align="end" className="w-96 p-0 z-50">
             <div className="flex items-center justify-between px-3 py-2 border-b">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold">Notifications</span>
                 {unreadCount > 0 && (
-                  <Badge variant="default" className="text-[10px] px-1.5">{unreadCount} new</Badge>
+                  <Badge variant={hasUrgent ? 'destructive' : 'default'} className="text-[10px] px-1.5">
+                    {unreadCount} new
+                  </Badge>
                 )}
               </div>
               {unreadCount > 0 && (
@@ -119,34 +134,50 @@ export function Header() {
                 </button>
               )}
             </div>
-            <div>
-              {recent.length === 0 ? (
+            <div className="max-h-96 overflow-y-auto">
+              {loading ? (
+                <div className="px-3 py-8 flex justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : recent.length === 0 ? (
                 <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                  No notifications yet
+                  You have no notifications
                 </div>
               ) : (
-                recent.map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => {
-                      if (!n.read) markRead(n.id);
-                      navigate(notificationLink(n.entity_type, n.entity_id, n.metadata) || '/notifications');
-                    }}
-                    className={`w-full text-left flex items-start gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
-                  >
-                    <div className="mt-0.5 shrink-0">{notifTypeIcon[n.type] || notifTypeIcon.info}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs truncate ${!n.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                        {n.title}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground truncate">{n.message}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                    {!n.read && <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />}
-                  </button>
-                ))
+                recent.map((n) => {
+                  const urgent = n.severity === 'critical' || n.severity === 'high';
+                  return (
+                    <button
+                      key={n.id}
+                      onClick={() => {
+                        if (!n.read) markRead(n.id);
+                        navigate(
+                          n.source_route
+                          || notificationLink(n.entity_type, n.entity_id, n.metadata)
+                          || '/notifications',
+                        );
+                      }}
+                      className={`w-full text-left flex items-start gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}
+                    >
+                      <div className="mt-0.5 shrink-0">
+                        {urgent
+                          ? <AlertTriangle className="h-4 w-4 text-destructive" />
+                          : notifTypeIcon[n.type] || notifTypeIcon.info}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs truncate ${!n.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          {n.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">{n.preview || n.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                          {n.source_reference ? ` · ${n.source_reference}` : ''}
+                        </p>
+                      </div>
+                      {!n.read && <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />}
+                    </button>
+                  );
+                })
               )}
             </div>
             <div className="border-t px-3 py-2">
@@ -158,6 +189,7 @@ export function Header() {
               </button>
             </div>
           </HoverCardContent>
+
         </HoverCard>
         {user && (
           <DropdownMenu>
