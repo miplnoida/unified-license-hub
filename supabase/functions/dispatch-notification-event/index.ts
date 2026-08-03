@@ -484,6 +484,47 @@ async function previousWorkflowActors(admin: SupabaseClient, applicationId: stri
   return Array.from(out);
 }
 
+/** FRD recipient rule: the officer a record is currently assigned to. */
+async function assignedOfficer(
+  ctx: { payload: Record<string, any>; app?: any; entity_type?: string; entity_id?: string },
+): Promise<string[]> {
+  const candidate = ctx.payload?.assigned_officer_id
+    || ctx.payload?.assigned_to
+    || ctx.payload?.assigned_user_id
+    || ctx.app?.assigned_to;
+  return candidate ? [String(candidate)] : [];
+}
+
+/** FRD recipient rule: approvers of the role that owns the NEXT workflow step. */
+async function nextStepRoleRecipients(
+  admin: SupabaseClient,
+  rule: Rule,
+  ctx: { payload: Record<string, any> },
+): Promise<string[]> {
+  const stepId = ctx.payload?.new_step_id || ctx.payload?.next_step_id;
+  if (stepId) {
+    const approvers = await workflowStepApprovers(admin, String(stepId));
+    if (approvers.length > 0) return approvers;
+  }
+  if (rule.role) return await recipientsForRole(admin, String(rule.role));
+  return [];
+}
+
+/** FRD recipient rule: supervisory staff (app_role = supervisor). */
+async function supervisorRecipients(admin: SupabaseClient): Promise<string[]> {
+  return await recipientsForRole(admin, "supervisor");
+}
+
+/** FRD recipient rule: every internal user attached to a regulator division. */
+async function regulatorTeam(
+  admin: SupabaseClient,
+  regulatorId: string | null | undefined,
+): Promise<string[]> {
+  if (!regulatorId) return [];
+  const { data } = await admin.from("profiles").select("id").eq("regulator_id", regulatorId);
+  return (data || []).map((r: any) => r.id).filter(Boolean);
+}
+
 async function resolveRecipients(
   admin: SupabaseClient,
   rules: Rule[],
