@@ -759,6 +759,74 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Channel -> template bindings configured in the Notification Event admin screen.
+    // The published template snapshot wins over the event config's inline templates,
+    // and the resolved (template_id, template_version) is stamped on every audit row
+    // so historical notifications keep the exact wording that was dispatched.
+    type ChannelTemplate = {
+      template_id: string;
+      template_version: number | null;
+      subject: string | null;
+      body: string | null;
+    };
+    const channelTemplates = new Map<string, ChannelTemplate>();
+    try {
+      const { data: bindings } = await admin
+        .from("notification_event_channel_templates")
+        .select("channel, template_id, template_version")
+        .eq("event_config_id", (cfg as any).id);
+      for (const b of bindings || []) {
+        const version = b.template_version ?? null;
+        let snapshot: any = null;
+        if (version != null) {
+          const { data: v } = await admin
+            .from("notification_template_versions")
+            .select("subject, body, version")
+            .eq("template_id", b.template_id)
+            .eq("version", version)
+            .maybeSingle();
+          snapshot = v;
+        }
+        if (!snapshot) {
+          const { data: v } = await admin
+            .from("notification_template_versions")
+            .select("subject, body, version")
+            .eq("template_id", b.template_id)
+            .order("version", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          snapshot = v;
+        }
+        if (!snapshot) {
+          const { data: t } = await admin
+            .from("notification_templates")
+            .select("subject, body, published_version, status")
+            .eq("id", b.template_id)
+            .maybeSingle();
+          if (t && t.status === "active") {
+            snapshot = { subject: t.subject, body: t.body, version: t.published_version };
+          }
+        }
+        if (snapshot) {
+          channelTemplates.set(String(b.channel), {
+            template_id: String(b.template_id),
+            template_version: snapshot.version ?? null,
+            subject: snapshot.subject ?? null,
+            body: snapshot.body ?? null,
+          });
+        }
+      }
+    } catch (bindErr: any) {
+      console.error("channel template binding lookup failed", bindErr?.message || bindErr);
+    }
+
+    const deliveryFrequency = String((cfg as any).delivery_frequency || "immediate");
+    const failureEscalation = (cfg as any).failure_escalation && typeof (cfg as any).failure_escalation === "object"
+      ? (cfg as any).failure_escalation as Record<string, any>
+      : {};
+
+
+
     let app: any = null;
     let ret: any = null;
     let registration: any = null;
