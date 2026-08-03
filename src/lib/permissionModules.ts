@@ -148,6 +148,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/notification-templates', 'notification_management'],
   ['/admin/notification-events', 'notification_management'],
   ['/admin/notification-history', 'notification_management'],
+  ['/admin/notification-channel-health', 'notification_management'],
   ['/admin/master-data', 'settings'],
   ['/admin/masters', 'settings'],
   ['/admin/regulators', 'settings'],

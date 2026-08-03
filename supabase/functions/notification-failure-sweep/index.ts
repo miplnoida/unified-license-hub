@@ -27,15 +27,23 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: failures, count } = await admin
       .from("notification_dispatch_log")
-      .select("event_key, error, created_at", { count: "exact" })
-      .eq("status", "failed")
+      .select("event_key, error, created_at, channel, status", { count: "exact" })
+      .in("status", ["failed", "bounced"])
       .eq("channel", "email")
       .gte("created_at", since)
       .order("created_at", { ascending: false });
 
+    // Poison rows (retries exhausted) always warrant an alert regardless of volume.
+    const { count: poisonedCount } = await admin
+      .from("notification_dispatch_log")
+      .select("id", { count: "exact", head: true })
+      .eq("channel", "email")
+      .eq("poisoned", true)
+      .gte("created_at", since);
+
     const failureCount = count ?? (failures?.length ?? 0);
-    if (failureCount < FAILURE_THRESHOLD) {
-      return new Response(JSON.stringify({ ok: true, failure_count: failureCount, alerted: false }), {
+    if (failureCount < FAILURE_THRESHOLD && (poisonedCount ?? 0) === 0) {
+      return new Response(JSON.stringify({ ok: true, failure_count: failureCount, poisoned: poisonedCount ?? 0, alerted: false }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

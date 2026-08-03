@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { isHardFailure, maskEmail, redact } from "../_shared/notification-redact.ts";
 
 interface SmtpConfig {
   host: string;
@@ -28,7 +29,13 @@ async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
   return smtp;
 }
 
-async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text: string, html?: string): Promise<void> {
+async function sendSmtpEmail(
+  smtp: SmtpConfig,
+  to: string,
+  subject: string,
+  text: string,
+  html?: string,
+): Promise<{ messageId: string | null }> {
   // Use nodemailer for proper STARTTLS handling (denomailer fails the TLS
   // handshake on common providers like Gmail/Office365 on port 587).
   const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
@@ -46,13 +53,16 @@ async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text
     socketTimeout: 20000,
   });
   try {
-    await transporter.sendMail({
+    const info: any = await transporter.sendMail({
       from: `"${smtp.fromName || "Notifications"}" <${smtp.fromEmail}>`,
       to,
       subject,
       text,
       html: html || undefined,
     });
+    // SMTP acceptance only. Delivery is NOT confirmed here — see
+    // notification-delivery-webhook for provider-confirmed states.
+    return { messageId: typeof info?.messageId === "string" ? info.messageId : null };
   } catch (e: any) {
     const raw = e?.message || String(e);
     const code = e?.code || "";
@@ -64,7 +74,7 @@ async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text
     } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
       friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
     }
-    throw new Error(friendly);
+    throw new Error(redact(friendly));
   }
 }
 
@@ -113,16 +123,23 @@ serve(async (req) => {
         });
       }
       const smtpStarted = Date.now();
+      const attemptNo = Number(body.attempt ?? 0) || null;
       try {
-        await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "", body.html);
+        const { messageId } = await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "", body.html);
         if (logId) {
           await supabase
             .from("notification_dispatch_log")
             .update({
+              // SMTP accepted the message. This is `sent`, never `delivered`:
+              // delivery confirmation can only come from a provider callback.
               status: "sent",
               provider: "smtp",
+              provider_message_id: messageId,
               sent_at: new Date().toISOString(),
               last_attempt_at: new Date().toISOString(),
+              next_attempt_at: null,
+              claimed_at: null,
+              claimed_by: null,
               error: null,
               error_details: null,
             })
@@ -135,31 +152,40 @@ serve(async (req) => {
           status: "success",
           entityType: entity_type ?? null,
           entityId: entity_id ?? null,
-          requestSummary: `Email to ${body.to}: ${body.subject}`,
+          requestSummary: `Email to ${maskEmail(body.to)}: ${body.subject}`,
           durationMs: Date.now() - smtpStarted,
         });
-        return new Response(JSON.stringify({ success: true }), {
+        return new Response(JSON.stringify({ success: true, provider_message_id: messageId }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e: any) {
-        const errMsg = String(e?.message || e).slice(0, 500);
+        const errMsg = redact(e?.message || e);
         console.error("send-notification SMTP send failed:", errMsg);
+        const hard = isHardFailure(errMsg);
         if (logId) {
-          // increment retry_count atomically via RPC-less read-modify-write
           const { data: row } = await supabase
             .from("notification_dispatch_log")
-            .select("retry_count")
+            .select("retry_count, attempts")
             .eq("id", logId)
             .maybeSingle();
+          const attempts = attemptNo ?? ((row?.attempts ?? row?.retry_count ?? 0) + 1);
+          const delayMinutes = Math.min(60, Math.pow(2, attempts));
           await supabase
             .from("notification_dispatch_log")
             .update({
-              status: /bounce|no such user|mailbox unavailable|recipient rejected/i.test(errMsg) ? "bounced" : "failed",
+              status: hard ? "bounced" : "failed",
               error: errMsg,
-              error_details: { message: errMsg, channel: "email", provider: "smtp" },
+              error_details: { message: errMsg, channel: "email", provider: "smtp", attempts, hard_failure: hard },
               failed_at: new Date().toISOString(),
               last_attempt_at: new Date().toISOString(),
-              retry_count: (row?.retry_count ?? 0) + 1,
+              retry_count: attempts,
+              attempts,
+              poisoned: hard || attempts >= 5,
+              next_attempt_at: hard || attempts >= 5
+                ? null
+                : new Date(Date.now() + delayMinutes * 60_000).toISOString(),
+              claimed_at: null,
+              claimed_by: null,
             })
             .eq("id", logId);
 

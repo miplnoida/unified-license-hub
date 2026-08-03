@@ -28,6 +28,7 @@ const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTempl
 const NotificationEvents = lazy(() => import('@/pages/admin/NotificationEvents'));
 const EscalationManager = lazy(() => import('@/pages/admin/EscalationManager'));
 const NotificationHistory = lazy(() => import('@/pages/admin/NotificationHistory'));
+const NotificationChannelHealth = lazy(() => import('@/pages/admin/NotificationChannelHealth'));
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
 const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFormBuilder'));
@@ -113,6 +114,7 @@ export const adminRoutes = (
     <Route path="/admin/notification-templates" element={<M module="notification_management"><NotificationTemplates /></M>} />
     <Route path="/admin/notification-events" element={<M module="notification_management"><NotificationEvents /></M>} />
     <Route path="/admin/notification-history" element={<M module="notification_management"><NotificationHistory /></M>} />
+    <Route path="/admin/notification-channel-health" element={<M module="notification_management"><NotificationChannelHealth /></M>} />
     <Route path="/admin/complaint-types" element={<M module="complaint_type"><ComplaintTypes /></M>} />
     <Route path="/admin/approved-licensees" element={<M module="license_management"><ApprovedLicensees /></M>} />
     <Route path="/admin/registration-forms" element={<M module="form_management"><RegistrationFormBuilder /></M>} />

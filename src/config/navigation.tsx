@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel,
+  Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -62,6 +62,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Escalation & Alerts', href: '/admin/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'escalation_management' as PermissionModule },
       { label: 'Notification Events', href: '/admin/notification-events', icon: <Bell className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
       { label: 'Notification History', href: '/admin/notification-history', icon: <Bell className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
+      { label: 'Channel Health', href: '/admin/notification-channel-health', icon: <Activity className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'notification_management' as PermissionModule },
       { label: 'Activity Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Audit Logs', href: '/admin/compliance-audit-logs', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },

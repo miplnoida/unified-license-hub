@@ -119,3 +119,59 @@ If workflow approval actions (approve/reject/correction/resubmission) are not ge
 2. Query `notification_dispatch_log` filtered by the expected `event_key` (e.g. `registration.resubmission_requested`). If there is **no row at all** (not even `failed`), the dispatch was never invoked — the edge function (`perform-registration-workflow-action` / `perform-workflow-action`) needs to be redeployed.
 3. Check `supabase--edge_function_logs perform-registration-workflow-action` for `[perform-registration-workflow-action] dispatch...` lines.
 4. SMTP working + `notification_event_configs` populated does NOT prove dispatch is working. Always check the dispatch log first.
+
+## Delivery channels (production semantics)
+
+### Email status model
+
+`notification_dispatch_log.status` is never optimistic:
+
+| Status | Meaning |
+|---|---|
+| `queued` | Row created, not yet handed to SMTP. |
+| `processing` | Claimed by `send-notification` or the retry worker. |
+| `sent` | SMTP accepted the message. `provider_message_id` is stored. **Not** proof of delivery. |
+| `delivered` | Confirmed by a provider callback (`notification-delivery-webhook`). |
+| `bounced` | Hard failure (unknown mailbox, rejected recipient, auth failure). No retry. |
+| `failed` | Soft failure; retried with exponential backoff (2/4/8/16/32/60 min, max 5 attempts). |
+| `skipped` | Deliberately not sent (opt-out, deferred to digest, no address, SMS unavailable). |
+
+Retries are claimed atomically via `claim_email_retry_batch()` (`FOR UPDATE SKIP LOCKED`), so
+concurrent workers cannot double-send. After 5 attempts a row is marked `poisoned = true`,
+stops retrying, and raises a `system_health.dispatch_failure_repeated` escalation.
+
+Rendered `subject` / `rendered_content` are write-once (immutability trigger), so the audit
+record always shows exactly what was sent. Manual resend reuses the stored content and only
+falls back to the current template when nothing was ever rendered.
+
+### SMS
+
+No SMS provider is configured for this deployment. `_shared/smsProvider.ts` is the extension
+point; until a provider is wired, SMS-selected notifications are logged as `skipped` with
+`sms_provider_not_configured` and the in-app channel always still fires. No false success
+records are ever written.
+
+### Channel health
+
+`public.notification_channel_health()` (SECURITY DEFINER, requires
+`notification_management.view`) returns SMTP/SMS configuration state, last successful send,
+recent failure counts, queue depth and oldest pending item, cron/worker status, and recent
+provider errors with masked recipients and redacted error text. Surfaced at
+**Admin → Channel Health** (`/admin/notification-channel-health`) with per-row resend.
+
+### Failure handling
+
+* `notification-email-retry-worker` — every 2 minutes, backoff-aware retries.
+* `notification-failure-sweep` — hourly threshold alert; also alerts on any poisoned row.
+* `notification-delivery-webhook` — HMAC-verified provider callbacks for delivered/bounced/opened.
+* Logs and health output pass through `_shared/notification-redact.ts`; credentials and
+  message bodies are never logged.
+
+### Environment configuration
+
+| Variable | Purpose |
+|---|---|
+| SMTP settings (`site_settings.email_sms_settings`) | Host/port/credentials/from address. Configured in Settings UI. |
+| `ADMIN_NOTIFICATION_EMAILS` | Recipients of failure-threshold alerts. |
+| `APP_BASE_URL` | CTA links in emails. |
+| `NOTIFICATION_WEBHOOK_SECRET` | HMAC secret for provider delivery callbacks (optional until a provider supports them). |
