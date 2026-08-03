@@ -1,86 +1,60 @@
+# Notification Template & Event Configuration Administration
 
-# Functional Notification Preferences + Digest Workers
+## What already exists (verified)
 
-## Current state (verified)
+- `notification_templates` (112 rows): `name, event_type, channel, subject, body, variables, is_active, regulator_id, created_by`. Already referenced by `approval_action_notifications.template_id` (65 rows), `approval_step_entry_notifications.template_id` (0 rows), and read by the dispatcher and `send-notification`.
+- `notification_event_configs` (150 rows): `event_key, description, title_template, message_template, email_subject_template, email_body_template, channels[], recipient_rules jsonb, notification_type, severity, dedupe_window_seconds, allow_mute, system_required, is_active`.
+- Dispatcher `dispatch-notification-event` resolves 25 recipient rule types (applicant, entity primary/secondary users, role, admin, current_approver, workflow_step_approvers, previous_workflow_actors, sector_regulators, custom_email/direct_email, payload_user, return-specific variants, actor_excluded, sla_process_team_leads), renders `{{tokens}}`, dedupes per `(event_key, entity_id, recipient, channel)`, writes `notifications` + email queue.
+- Delivery audit already has the right columns: `notification_dispatch_log.template_id, template_version, rendered_content, rendered_content_ref`; `notifications.template_id, template_version, rendered_content_ref`. There is **no** template versions table yet, and nothing populates `template_version`.
+- Admin screen `/admin/notification-templates` (377 lines) is a thin editor that reads/writes `notification_event_configs` and fakes per-channel "templates"; it does not touch `notification_templates` at all. No event-configuration screen exists.
+- Workflow designer already has `ActionNotificationsEditor` and `StepEntryNotificationsEditor` bound to `notification_templates`; recipient options there are limited to 6 types.
+- RBAC: module `notification_management` has only `view` + `dispatch`; the templates route is currently gated on `settings`.
 
-- `notification_user_event_preferences` exists (in_app/email/sms/digest_frequency/muted/effective_from/updated_by) with a validation trigger `trg_validate_user_event_preference`, and `notification_effective_preference()` resolves a user's effective settings. **0 rows exist today** — nothing writes to it.
-- `notification_event_configs` holds **150 active events** (56 critical/high) with `severity`, `system_required`, `allow_mute`, `channels`, `description` — the real source for the preference list.
-- `src/pages/settings/NotificationSettings.tsx` (route `/settings/notifications`) is fully static: 5 hardcoded rows, `defaultChecked`, a Save button with no handler, plus fake quiet-hours/timing inputs.
-- `src/pages/profile/NotificationPreferences.tsx` writes the *legacy* category-based `notification_preferences` table.
-- `supabase/functions/notification-digest` is legacy: it re-queries domain tables (breaches, complaints, returns…) instead of pending notifications, has no hourly/daily period concept, no duplicate protection, no per-notification inclusion record. Its cron job `notification-digest-daily` actually runs hourly (`0 * * * *`).
-- SMS: `site_settings.email_sms_settings.sms.enabled` defaults to false and **no dispatch path ever sends SMS** — `notification_dispatch_log` only contains `email` and `in_app`. So SMS must be presented as unavailable.
+## Duplication to consolidate
 
-## 1. Preference model (no new model invented)
+`notification_templates` becomes the **single** template store. `notification_event_configs` keeps event behaviour but its inline `title/message/email_*` templates become fallbacks only — each active channel gets a template binding. No new template table is introduced; `correspondence_templates` and `return_notification_templates` are separate features and are left untouched.
 
-Canonical model stays `public.notification_user_event_preferences`, one row per (user, event_key). Absent row = event config defaults. Additions:
+## Plan
 
-- Extend the validation trigger to enforce, on insert/update, against the event's config row:
-  - critical → `in_app_enabled` forced true, `muted` forced false, `digest_frequency` forced `immediate`;
-  - high → `digest_frequency` must be `immediate`, cannot be muted;
-  - `system_required` events → channels declared in the config cannot be disabled, `muted` false;
-  - `muted = true` allowed only when `severity = 'low'` **and** `allow_mute = true`;
-  - `sms_enabled` rejected while SMS is not operational (site settings flag off) — raises a clear message;
-  - channel toggles rejected for channels the event config does not support.
-- `effective_from` set to `now()` on every write so preferences only affect **future** dispatches (dispatch already filters by preference at send time; it will read `effective_from <= now()`).
-- New RPCs (SECURITY DEFINER, pinned search_path, `anon` revoked):
-  - `notification_preference_matrix()` → per-event rows joining config + the caller's saved row, plus computed `locks` (which controls are forced/disabled and why) and `sms_available`.
-  - `notification_preferences_save(_items jsonb)` → validates and upserts the caller's rows atomically, computes before/after diffs, writes an `audit_logs` entry with action `NOTIFICATION_PREFERENCES_UPDATED` containing before/after per changed event, returns updated rows + `updated_at`.
+### 1. Schema (one migration)
 
-## 2. Preference screen
+- Extend `notification_templates`: `template_code` (human ID, unique), `module`, `event_key`, `severity`, `status` (draft/active/archived, backfilled from `is_active`), `version int default 1`, `published_version`, `updated_by`, `archived_at`.
+- New `notification_template_versions` (immutable): template_id, version, name, subject, body, channel, variables, severity, module, event_key, published_by, published_at, content_hash. Insert-only — a trigger blocks UPDATE/DELETE. Publishing bumps `version` and writes the row.
+- New `notification_event_channel_templates`: event_config_id, channel, template_id (+ template_version pin), unique per (event, channel).
+- Extend `notification_event_configs`: `category`, `action_required`, `delivery_frequency` (immediate/hourly/daily), `failure_escalation` (jsonb: max_attempts, escalate_after, escalate_to rule), `module`.
+- RPCs (SECURITY DEFINER, permission-gated, all writing `audit_logs`): `notification_template_save`, `notification_template_publish`, `notification_template_archive`, `notification_template_clone`, `notification_template_versions_for`, `notification_event_config_save`, `notification_event_config_set_active`, `notification_recipient_rules_validate`, `notification_template_render_preview`, `notification_test_send`.
+- `notification_recipient_rules_validate` validates against the dispatcher's real rule vocabulary (see list above) plus required config (role exists, named user exists, email approved/valid) and **rejects activation** of an event whose rules or channels the dispatcher cannot execute.
+- RBAC: add `notification_management.manage_templates`, `manage_events`, `test_send`; re-gate `/admin/notification-templates` from `settings` to `notification_management`.
 
-Rewrite `src/pages/settings/NotificationSettings.tsx` (and point `src/pages/profile/NotificationPreferences.tsx` at the same component/hook so both surfaces share one implementation; the legacy category form is retired, the legacy table is left untouched).
+### 2. Dispatcher / delivery (reuse, no rewrite)
 
-- New hook `src/hooks/useNotificationPreferences.ts`: loads the matrix, tracks dirty state per row, save/reset mutations, toast success/error.
-- New component `src/components/notifications/PreferenceMatrix.tsx`: grouped by module, searchable, each row shows name, module, severity badge, description, "System required" / "Mandatory — overrides preferences" indicators, In-App / Email / SMS switches, frequency select (Immediate / Hourly digest / Daily digest), Mute switch.
-- Locked controls are disabled **with an inline reason tooltip** ("Critical alerts are always delivered in-app", "SMS unavailable — administrator must configure an SMS provider", etc.).
-- Sticky footer: dirty count, `Save Changes`, `Reset`; unsaved-changes guard on navigation; "Last updated <timestamp>" from the newest `updated_at`.
-- Quiet hours: **removed** from this page — not backed by the FRD flow and would risk delaying critical items.
+- Resolve channel template from `notification_event_channel_templates` → published version snapshot → event-config inline fallback.
+- Persist `template_id`, `template_version` and rendered subject/body into `notification_dispatch_log` and `notifications` at dispatch time, so historical records keep the exact content used even after the template changes.
+- Honour `delivery_frequency` (feeds the existing digest path) and `failure_escalation` in `notification-retry`/failure sweep.
+- Add the missing recipient rules the FRD asks for and the dispatcher lacks: `assigned_officer`, `next_step_role`, `supervisor`, `named_user`, `regulator_team`.
 
-## 3. Digest workers
+### 3. Screens
 
-New Edge Function `supabase/functions/notification-digest-run` (period-aware) replacing the legacy body; keep the old function name as a thin delegate so the existing cron/test-digest call sites don't break.
+**R-01 `/admin/notification-templates`** — rewrite: list (name, template ID, module, event key, channel, severity, status, version, last modified by/date) with filters; editor drawer with variable palette inserted from the event's known tokens; actions Preview, Test send, Clone, Publish, Archive, Version history (side-by-side diff, read-only).
 
-Backing schema:
-- `notification_digest_runs` (user_id, channel, period `hourly|daily`, period_start, period_end, status, item_count, error, attempts, dispatch_log_id) with a unique index on (user_id, channel, period, period_start) → **duplicate digest sends impossible**.
-- `notification_digest_items` (run_id, notification_id) unique on (run_id, notification_id) and a unique partial index on (notification_id, period) → **no notification included twice**.
+**New `/admin/notification-events`** — event configuration list + editor: event key, source module, notification type, category, severity, action-required, system-required, channels, template per channel, recipient rules builder (typed rows from the supported vocabulary), dedupe window, delivery frequency, failure escalation, active toggle. "Validate" runs the server validator; activation is blocked on failure.
 
-Selection logic per user/channel/period:
-- pending notifications created in the period, still active (not dismissed/archived), whose effective preference for that event is `hourly`/`daily` matching the period and the channel enabled;
-- **excludes** critical + high severity, excludes `system_required` immediate events, excludes muted events, excludes anything already recorded in `notification_digest_items`;
-- sends exactly one email via the existing `send-notification` path, records `notification_dispatch_log` + digest run status, logs failures with `attempts` so `notification-failure-sweep` retries safely;
-- the individual in-app `notifications` rows are **never modified**.
+**Workflow designer** — `ActionNotificationsEditor` / `StepEntryNotificationsEditor` keep their tables but select from the same event configs + templates, expose the full recipient vocabulary, and cover stage entry, stage exit, transition, assignment, SLA warning, SLA breach, and external applicant/entity notification. Only event keys the dispatcher can execute are selectable.
 
-Cron (via insert tool, project-specific URL/key):
-- rename/replace `notification-digest-daily` → `notification-digest-hourly` at `10 * * * *` with body `{"period":"hourly"}`;
-- add `notification-digest-daily` at `0 6 * * *` with body `{"period":"daily"}`.
+**Preview & test** — shared `TemplatePreviewDialog`: safe sample values, unresolved-token warning list, channel availability (SMS shown unavailable while no provider is configured), SMTP/SMS health indicator, recipient-rule validation result, and test send hard-coded server-side to the calling administrator only (never production recipients, logged as a test dispatch).
 
-## 4. SMS
+### 4. Audit
 
-- `sms_available` derived server-side from `site_settings.email_sms_settings` (`sms.enabled` + provider credentials present). Currently false.
-- UI: SMS column rendered but disabled with "SMS delivery is not yet configured. Ask an administrator to enable an SMS provider in Settings → Email & SMS."
-- Backend rejects `sms_enabled = true` while unavailable, and no dispatch writes a `sent` SMS row — failing loudly instead of recording false success.
+`audit_logs` entries for: template created / updated / published / archived, event config created / updated / activated / deactivated, test notification sent — each with actor, before/after and template version.
 
-## 5. Tests
+### 5. Tests
 
-pgTAP `supabase/tests/notifications/07_preferences_matrix.sql` and `08_digest.sql`:
-- matrix returns all active events with lock metadata; save persists and round-trips;
-- system-required channel cannot be disabled; critical cannot be muted or un-in-app'd;
-- critical/high rejected for hourly/daily;
-- low + `allow_mute` can be muted; low without `allow_mute` cannot;
-- hourly digest picks only eligible rows (severity, system-required, mute, period) — same for daily;
-- immediate preferences never appear in a digest;
-- second run for the same (user, channel, period, period_start) is a no-op;
-- forced failure marks status `failed`, increments attempts, stays retryable;
-- `NOTIFICATION_PREFERENCES_UPDATED` audit row written with before/after values.
+- pgTAP `supabase/tests/notifications/09_template_versioning.sql`: publish creates immutable version, version rows cannot be updated/deleted, clone starts at draft v1, archive blocks dispatch.
+- pgTAP `10_event_config.sql`: invalid/unknown recipient rule rejected, activation blocked when a channel has no template, inactive config dispatches nothing, dedupe window respected, audit rows written, RBAC (non-privileged role denied on every RPC).
+- pgTAP `11_historical_content.sql`: dispatch stores template_version + rendered content; editing the template afterwards does not change the historical record.
+- Vitest `src/test/notificationTemplateAdmin.test.ts`: token extraction and unresolved-token warnings, test-send recipient forced to self, workflow stage → event-key mapping table, template/channel option gating.
+- Register all new files in `.github/workflows/ci.yml`.
 
-Vitest `src/test/notificationPreferences.test.ts`: dirty-state tracking, lock computation, reset, SMS-unavailable rendering rules.
+## Reporting at completion
 
-## Technical notes
-
-- All new RPCs SECURITY DEFINER with `set search_path = public`, execute granted to `authenticated`/`service_role` only.
-- Digest tables get GRANTs + RLS (users read their own runs; service_role full).
-- No changes to workflow, complaints, correspondence, or existing dispatch triggers beyond reading `effective_from`.
-
-## Out of scope (explicitly not claimed as compliance)
-
-Communication Threads (NOT-THR-001), Escalation Manager (NOT-ESC-001) and full trigger coverage remain open; this phase does not close notification-module compliance.
+Existing systems reused, duplicate template paths consolidated, screens added, test results, and any remaining trigger-wiring gaps (event keys configurable but not yet raised by a module) will be listed explicitly.
