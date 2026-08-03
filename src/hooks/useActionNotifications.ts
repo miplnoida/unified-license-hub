@@ -17,7 +17,14 @@ export type ActionNotificationRecipientType =
   | 'previous_actor'
   | 'role'
   | 'admin'
-  | 'custom_email';
+  | 'custom_email'
+  | 'assigned_officer'
+  | 'next_step_role'
+  | 'supervisor'
+  | 'named_user'
+  | 'entity_primary_users'
+  | 'entity_secondary_users'
+  | 'regulator_team';
 
 export interface ActionNotification {
   id: string;
