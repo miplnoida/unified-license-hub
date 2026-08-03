@@ -9030,19 +9030,72 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_event_channel_templates: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          event_config_id: string
+          id: string
+          template_id: string
+          template_version: number | null
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          event_config_id: string
+          id?: string
+          template_id: string
+          template_version?: number | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          event_config_id?: string
+          id?: string
+          template_id?: string
+          template_version?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_event_channel_templates_event_config_id_fkey"
+            columns: ["event_config_id"]
+            isOneToOne: false
+            referencedRelation: "notification_event_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_event_channel_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_event_configs: {
         Row: {
+          action_required: boolean
           allow_mute: boolean
+          category: Database["public"]["Enums"]["notification_category"] | null
           channels: string[]
           created_at: string
           dedupe_window_seconds: number
+          delivery_frequency: string
           description: string | null
           email_body_template: string | null
           email_subject_template: string | null
           event_key: string
+          failure_escalation: Json
           id: string
           is_active: boolean
           message_template: string
+          module: string | null
           notification_type: string
           recipient_rules: Json
           severity: Database["public"]["Enums"]["notification_severity"] | null
@@ -9051,17 +9104,22 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_required?: boolean
           allow_mute?: boolean
+          category?: Database["public"]["Enums"]["notification_category"] | null
           channels?: string[]
           created_at?: string
           dedupe_window_seconds?: number
+          delivery_frequency?: string
           description?: string | null
           email_body_template?: string | null
           email_subject_template?: string | null
           event_key: string
+          failure_escalation?: Json
           id?: string
           is_active?: boolean
           message_template: string
+          module?: string | null
           notification_type?: string
           recipient_rules?: Json
           severity?: Database["public"]["Enums"]["notification_severity"] | null
@@ -9070,17 +9128,22 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_required?: boolean
           allow_mute?: boolean
+          category?: Database["public"]["Enums"]["notification_category"] | null
           channels?: string[]
           created_at?: string
           dedupe_window_seconds?: number
+          delivery_frequency?: string
           description?: string | null
           email_body_template?: string | null
           email_subject_template?: string | null
           event_key?: string
+          failure_escalation?: Json
           id?: string
           is_active?: boolean
           message_template?: string
+          module?: string | null
           notification_type?: string
           recipient_rules?: Json
           severity?: Database["public"]["Enums"]["notification_severity"] | null
@@ -9207,48 +9270,140 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_template_versions: {
+        Row: {
+          body: string | null
+          channel: string | null
+          content_hash: string | null
+          created_at: string
+          event_key: string | null
+          id: string
+          module: string | null
+          name: string | null
+          published_at: string
+          published_by: string | null
+          severity: Database["public"]["Enums"]["notification_severity"] | null
+          subject: string | null
+          template_code: string | null
+          template_id: string
+          variables: Json
+          version: number
+        }
+        Insert: {
+          body?: string | null
+          channel?: string | null
+          content_hash?: string | null
+          created_at?: string
+          event_key?: string | null
+          id?: string
+          module?: string | null
+          name?: string | null
+          published_at?: string
+          published_by?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"] | null
+          subject?: string | null
+          template_code?: string | null
+          template_id: string
+          variables?: Json
+          version: number
+        }
+        Update: {
+          body?: string | null
+          channel?: string | null
+          content_hash?: string | null
+          created_at?: string
+          event_key?: string | null
+          id?: string
+          module?: string | null
+          name?: string | null
+          published_at?: string
+          published_by?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"] | null
+          subject?: string | null
+          template_code?: string | null
+          template_id?: string
+          variables?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_templates: {
         Row: {
+          archived_at: string | null
           body: string
           channel: string
           created_at: string
           created_by: string | null
+          event_key: string | null
           event_type: string
           id: string
           is_active: boolean
+          module: string | null
           name: string
+          published_version: number | null
           regulator_id: string | null
+          severity: Database["public"]["Enums"]["notification_severity"]
+          status: string
           subject: string | null
+          template_code: string | null
           updated_at: string
+          updated_by: string | null
           variables: Json
+          version: number
         }
         Insert: {
+          archived_at?: string | null
           body: string
           channel?: string
           created_at?: string
           created_by?: string | null
+          event_key?: string | null
           event_type: string
           id?: string
           is_active?: boolean
+          module?: string | null
           name: string
+          published_version?: number | null
           regulator_id?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          status?: string
           subject?: string | null
+          template_code?: string | null
           updated_at?: string
+          updated_by?: string | null
           variables?: Json
+          version?: number
         }
         Update: {
+          archived_at?: string | null
           body?: string
           channel?: string
           created_at?: string
           created_by?: string | null
+          event_key?: string | null
           event_type?: string
           id?: string
           is_active?: boolean
+          module?: string | null
           name?: string
+          published_version?: number | null
           regulator_id?: string | null
+          severity?: Database["public"]["Enums"]["notification_severity"]
+          status?: string
           subject?: string | null
+          template_code?: string | null
           updated_at?: string
+          updated_by?: string | null
           variables?: Json
+          version?: number
         }
         Relationships: [
           {
