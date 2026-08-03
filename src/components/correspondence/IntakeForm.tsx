@@ -19,7 +19,24 @@ import {
 } from '@/hooks/useCorrespondence';
 
 
-export function IntakeForm() {
+export interface IntakeCaseContext {
+  sourceType: string;
+  sourceId: string;
+  sourceReference?: string | null;
+  licenseeId?: string | null;
+}
+
+export function IntakeForm({
+  caseContext,
+  triggerLabel,
+  triggerVariant,
+  onCreated,
+}: {
+  caseContext?: IntakeCaseContext;
+  triggerLabel?: string;
+  triggerVariant?: 'default' | 'outline' | 'secondary';
+  onCreated?: (threadId: string) => void;
+} = {}) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const create = useCreateCorrespondenceThread();
@@ -35,12 +52,13 @@ export function IntakeForm() {
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
   const [threadType, setThreadType] = useState<ThreadType>('general_correspondence');
-  const [sourceType, setSourceType] = useState('none');
-  const [sourceReference, setSourceReference] = useState('');
-  const [licenseeId, setLicenseeId] = useState('none');
+  const [sourceType, setSourceType] = useState(caseContext?.sourceType ?? 'none');
+  const [sourceReference, setSourceReference] = useState(caseContext?.sourceReference ?? '');
+  const [licenseeId, setLicenseeId] = useState(caseContext?.licenseeId ?? 'none');
   const [licenseeQuery, setLicenseeQuery] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+
 
 
   const { data: licensees = [] } = useQuery({
