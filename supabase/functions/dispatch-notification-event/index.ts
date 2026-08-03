@@ -1076,6 +1076,9 @@ Deno.serve(async (req) => {
         ?? (typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null);
       const templateVersionFor = (channel: string): number | null =>
         templateForChannel(channel)?.template_version ?? null;
+      // FRD: every audit row must state whether a published template was used or
+      // whether the built-in emergency wording had to be substituted.
+      const usedFallbackFor = (channel: string): boolean => !templateForChannel(channel);
       const emailHtml = renderBrandedEmail({
         appName: String(vars.app_name || "Unified License Hub"),
         heading: emailSubject,
@@ -1114,6 +1117,7 @@ Deno.serve(async (req) => {
             rendered_content: channel === "email" ? emailBody : message,
             template_id: templateIdFor(channel),
             template_version: templateVersionFor(channel),
+            used_fallback_template: usedFallbackFor(channel),
             payload: {
               vars,
               event_key: dispatchCfg.eventKey,
