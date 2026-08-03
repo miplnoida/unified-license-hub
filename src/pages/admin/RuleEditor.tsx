@@ -230,8 +230,8 @@ export default function RuleEditor() {
               <Button data-rbac="rule_engine.edit" variant="outline" onClick={runTest} disabled={testing || isNew}>
                 {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />} Test rule
               </Button>
-              <Button data-rbac="rule_engine.edit" onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save
+              <Button data-rbac="rule_engine.edit" onClick={() => save('draft')} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Save draft
               </Button>
               {!isNew && rule.status !== 'active' && (
                 <Button data-rbac="rule_engine.activate" variant="secondary" onClick={activate}>Activate</Button>
@@ -240,12 +240,14 @@ export default function RuleEditor() {
           }
         />
 
-        <Tabs defaultValue="configure">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="configure">Configuration</TabsTrigger>
             <TabsTrigger value="test">Test (sandbox)</TabsTrigger>
+            <TabsTrigger value="versions" disabled={isNew}>Version history</TabsTrigger>
             <TabsTrigger value="history" disabled={isNew}>Execution history</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="configure" className="space-y-4 pt-4">
             <Card>
