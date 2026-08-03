@@ -227,15 +227,15 @@ export default function NotificationTemplates() {
         <RowActionsMenu
           actions={[
             { label: 'Edit', onClick: () => openEdit(row) },
-            { label: 'Preview / test send', icon: <Eye className="h-4 w-4" />, onClick: () => setPreviewTarget(row) },
-            { label: 'Version history', icon: <History className="h-4 w-4" />, onClick: () => setVersionsFor(row) },
-            { label: 'Clone', icon: <Copy className="h-4 w-4" />, onClick: () => handleClone(row) },
+            { label: 'Preview / test send', icon: Eye, onClick: () => setPreviewTarget(row) },
+            { label: 'Version history', icon: History, onClick: () => setVersionsFor(row) },
+            { label: 'Clone', icon: Copy, onClick: () => handleClone(row) },
             ...(row.status !== 'active'
-              ? [{ label: 'Publish', icon: <CheckCircle2 className="h-4 w-4" />, onClick: () => handlePublish(row) }]
+              ? [{ label: 'Publish', icon: CheckCircle2, onClick: () => handlePublish(row) }]
               : []),
             row.status === 'archived'
-              ? { label: 'Restore to draft', icon: <Archive className="h-4 w-4" />, onClick: () => handleArchive(row, false) }
-              : { label: 'Archive', icon: <Archive className="h-4 w-4" />, onClick: () => handleArchive(row, true), destructive: true },
+              ? { label: 'Restore to draft', icon: Archive, onClick: () => handleArchive(row, false) }
+              : { label: 'Archive', icon: Archive, onClick: () => handleArchive(row, true), destructive: true },
           ]}
         />
       ),
