@@ -343,6 +343,27 @@ function buildRecipientRulesForOverride(row: {
       const email = typeof cfg.email === "string" ? cfg.email.trim().toLowerCase() : "";
       return email ? [{ type: "direct_email", email }] : [];
     }
+    // FRD recipient vocabulary now selectable in the workflow designer.
+    case "assigned_officer":
+      return [{ type: "assigned_officer" }];
+    case "next_step_role": {
+      const role = typeof cfg.role === "string" ? cfg.role : typeof cfg.role_name === "string" ? cfg.role_name : "";
+      return [{ type: "next_step_role", ...(role ? { role } : {}) } as Rule];
+    }
+    case "supervisor":
+      return [{ type: "supervisor" }];
+    case "named_user": {
+      const userId = typeof cfg.user_id === "string" ? cfg.user_id : "";
+      return userId ? [{ type: "named_user", user_id: userId } as Rule] : [];
+    }
+    case "entity_primary_users":
+      return [{ type: "entity_primary_users" }];
+    case "entity_secondary_users":
+      return [{ type: "entity_secondary_users" }];
+    case "regulator_team": {
+      const regulatorId = typeof cfg.regulator_id === "string" ? cfg.regulator_id : "";
+      return [{ type: "regulator_team", ...(regulatorId ? { regulator_id: regulatorId } : {}) } as Rule];
+    }
     default:
       return [];
   }
@@ -482,6 +503,47 @@ async function previousWorkflowActors(admin: SupabaseClient, applicationId: stri
   const out = new Set<string>();
   (data || []).forEach((a: any) => a.actor_id && out.add(a.actor_id));
   return Array.from(out);
+}
+
+/** FRD recipient rule: the officer a record is currently assigned to. */
+async function assignedOfficer(
+  ctx: { payload: Record<string, any>; app?: any; entity_type?: string; entity_id?: string },
+): Promise<string[]> {
+  const candidate = ctx.payload?.assigned_officer_id
+    || ctx.payload?.assigned_to
+    || ctx.payload?.assigned_user_id
+    || ctx.app?.assigned_to;
+  return candidate ? [String(candidate)] : [];
+}
+
+/** FRD recipient rule: approvers of the role that owns the NEXT workflow step. */
+async function nextStepRoleRecipients(
+  admin: SupabaseClient,
+  rule: Rule,
+  ctx: { payload: Record<string, any> },
+): Promise<string[]> {
+  const stepId = ctx.payload?.new_step_id || ctx.payload?.next_step_id;
+  if (stepId) {
+    const approvers = await workflowStepApprovers(admin, String(stepId));
+    if (approvers.length > 0) return approvers;
+  }
+  if (rule.role) return await recipientsForRole(admin, String(rule.role));
+  return [];
+}
+
+/** FRD recipient rule: supervisory staff (app_role = supervisor). */
+async function supervisorRecipients(admin: SupabaseClient): Promise<string[]> {
+  return await recipientsForRole(admin, "supervisor");
+}
+
+/** FRD recipient rule: every internal user attached to a regulator division. */
+async function regulatorTeam(
+  admin: SupabaseClient,
+  regulatorId: string | null | undefined,
+): Promise<string[]> {
+  if (!regulatorId) return [];
+  const { data } = await admin.from("profiles").select("id").eq("regulator_id", regulatorId);
+  return (data || []).map((r: any) => r.id).filter(Boolean);
 }
 
 async function resolveRecipients(
@@ -626,6 +688,34 @@ async function resolveRecipients(
           (await previousWorkflowActors(admin, aid)).forEach((u) => out.add(u));
           break;
         }
+        case "assigned_officer": {
+          (await assignedOfficer(ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+        case "next_step_role": {
+          (await nextStepRoleRecipients(admin, rule, ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+        case "supervisor": {
+          (await supervisorRecipients(admin)).forEach((u) => out.add(u));
+          break;
+        }
+        case "named_user": {
+          if (rule.user_id) out.add(String(rule.user_id));
+          break;
+        }
+        case "regulator_team": {
+          const rid = rule.regulator_id
+            || ctx.payload?.regulator_id
+            || ctx.app?.regulator_id;
+          (await regulatorTeam(admin, rid)).forEach((u) => out.add(u));
+          break;
+        }
+        case "custom_email": {
+          const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
+          if (email) out.add(`email:${email}`);
+          break;
+        }
         default:
           console.warn("Unknown recipient rule type", rule.type);
       }
@@ -689,6 +779,74 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Channel -> template bindings configured in the Notification Event admin screen.
+    // The published template snapshot wins over the event config's inline templates,
+    // and the resolved (template_id, template_version) is stamped on every audit row
+    // so historical notifications keep the exact wording that was dispatched.
+    type ChannelTemplate = {
+      template_id: string;
+      template_version: number | null;
+      subject: string | null;
+      body: string | null;
+    };
+    const channelTemplates = new Map<string, ChannelTemplate>();
+    try {
+      const { data: bindings } = await admin
+        .from("notification_event_channel_templates")
+        .select("channel, template_id, template_version")
+        .eq("event_config_id", (cfg as any).id);
+      for (const b of bindings || []) {
+        const version = b.template_version ?? null;
+        let snapshot: any = null;
+        if (version != null) {
+          const { data: v } = await admin
+            .from("notification_template_versions")
+            .select("subject, body, version")
+            .eq("template_id", b.template_id)
+            .eq("version", version)
+            .maybeSingle();
+          snapshot = v;
+        }
+        if (!snapshot) {
+          const { data: v } = await admin
+            .from("notification_template_versions")
+            .select("subject, body, version")
+            .eq("template_id", b.template_id)
+            .order("version", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          snapshot = v;
+        }
+        if (!snapshot) {
+          const { data: t } = await admin
+            .from("notification_templates")
+            .select("subject, body, published_version, status")
+            .eq("id", b.template_id)
+            .maybeSingle();
+          if (t && t.status === "active") {
+            snapshot = { subject: t.subject, body: t.body, version: t.published_version };
+          }
+        }
+        if (snapshot) {
+          channelTemplates.set(String(b.channel), {
+            template_id: String(b.template_id),
+            template_version: snapshot.version ?? null,
+            subject: snapshot.subject ?? null,
+            body: snapshot.body ?? null,
+          });
+        }
+      }
+    } catch (bindErr: any) {
+      console.error("channel template binding lookup failed", bindErr?.message || bindErr);
+    }
+
+    const deliveryFrequency = String((cfg as any).delivery_frequency || "immediate");
+    const failureEscalation = (cfg as any).failure_escalation && typeof (cfg as any).failure_escalation === "object"
+      ? (cfg as any).failure_escalation as Record<string, any>
+      : {};
+
+
 
     let app: any = null;
     let ret: any = null;
@@ -823,8 +981,15 @@ Deno.serve(async (req) => {
         ? `rw:${reminder_window}`
         : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
 
-      const title = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey));
-      const message = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.message_template, vars) || "");
+      const inAppTpl = channelTemplates.get("in_app");
+      const emailTpl = channelTemplates.get("email");
+      const smsTpl = channelTemplates.get("sms");
+      const title = stripUnresolvedTemplateTokens(
+        render(inAppTpl?.subject || dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey),
+      );
+      const message = stripUnresolvedTemplateTokens(
+        render(inAppTpl?.body || dispatchCfg.cfg.message_template, vars) || "",
+      );
       // Reviewer-supplied subject/body overrides take precedence when the
       // workflow action was confirmed through the Email Preview dialog.
       const subjectOverride = typeof vars.subject_override === "string" && vars.subject_override.length > 0
@@ -833,8 +998,17 @@ Deno.serve(async (req) => {
       const bodyOverride = typeof vars.body_override === "string" && vars.body_override.length > 0
         ? stripUnresolvedTemplateTokens(render(vars.body_override, vars))
         : null;
-      const emailSubject = subjectOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
-      const emailBody = bodyOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
+      const emailSubject = subjectOverride
+        ?? stripUnresolvedTemplateTokens(render(emailTpl?.subject || dispatchCfg.cfg.email_subject_template, vars) || title);
+      const emailBody = bodyOverride
+        ?? stripUnresolvedTemplateTokens(render(emailTpl?.body || dispatchCfg.cfg.email_body_template, vars) || message);
+      const templateForChannel = (channel: string): ChannelTemplate | undefined =>
+        channel === "email" ? emailTpl : channel === "sms" ? smsTpl : inAppTpl;
+      const templateIdFor = (channel: string): string | null =>
+        templateForChannel(channel)?.template_id
+        ?? (typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null);
+      const templateVersionFor = (channel: string): number | null =>
+        templateForChannel(channel)?.template_version ?? null;
       const emailHtml = renderBrandedEmail({
         appName: String(vars.app_name || "Unified License Hub"),
         heading: emailSubject,
@@ -871,8 +1045,16 @@ Deno.serve(async (req) => {
             reminder_window: reminder_window || null,
             subject: channel === "email" ? emailSubject : title,
             rendered_content: channel === "email" ? emailBody : message,
-            template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
-            payload: { vars, event_key: dispatchCfg.eventKey, entity_type, entity_id },
+            template_id: templateIdFor(channel),
+            template_version: templateVersionFor(channel),
+            payload: {
+              vars,
+              event_key: dispatchCfg.eventKey,
+              entity_type,
+              entity_id,
+              delivery_frequency: deliveryFrequency,
+              failure_escalation: failureEscalation,
+            },
           })
           .select("id")
           .maybeSingle();
@@ -896,6 +1078,30 @@ Deno.serve(async (req) => {
             .eq("id", logId);
           continue;
         }
+
+        // Delivery frequency rule from the event configuration. Non-immediate
+        // frequencies hand the email off to the hourly/daily digest worker; the
+        // in-app record is still written so the inbox stays current. Critical and
+        // high severity events are always immediate (regulatory requirement).
+        if (
+          channel === "email"
+          && deliveryFrequency !== "immediate"
+          && severity !== "critical"
+          && severity !== "high"
+        ) {
+          summary.skipped++;
+          await admin
+            .from("notification_dispatch_log")
+            .update({
+              status: "skipped",
+              error: "deferred_to_digest",
+              error_details: { reason: "deferred_to_digest", frequency: deliveryFrequency, channel },
+              last_attempt_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+          continue;
+        }
+
 
         try {
           if (channel === "in_app") {
@@ -927,7 +1133,8 @@ Deno.serve(async (req) => {
               module,
               system_required: pref?.system_required === true,
               action_required: category === "action_required",
-              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              template_id: templateIdFor("in_app"),
+              template_version: templateVersionFor("in_app"),
               metadata: { event_key: dispatchCfg.eventKey, reminder_window: reminder_window || null },
             }).select("id").maybeSingle();
             if (error) throw error;
@@ -1012,7 +1219,8 @@ Deno.serve(async (req) => {
               category,
               module,
               system_required: pref?.system_required === true,
-              template_id: typeof dispatchCfg.cfg.template_id === "string" ? dispatchCfg.cfg.template_id : null,
+              template_id: templateIdFor("email"),
+              template_version: templateVersionFor("email"),
               metadata: { event_key: dispatchCfg.eventKey, recipient_email: email },
             }).select("id").maybeSingle();
             if (emailRow?.id) {

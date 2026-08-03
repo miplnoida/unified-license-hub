@@ -39,6 +39,13 @@ const RECIPIENT_OPTIONS: ActionNotificationRecipientType[] = [
   'role',
   'admin',
   'custom_email',
+  'assigned_officer',
+  'next_step_role',
+  'supervisor',
+  'named_user',
+  'entity_primary_users',
+  'entity_secondary_users',
+  'regulator_team',
 ];
 
 const DEFAULT_EVENT_KEY = 'application.step_assigned';

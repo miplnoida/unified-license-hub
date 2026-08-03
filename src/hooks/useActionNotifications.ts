@@ -17,7 +17,14 @@ export type ActionNotificationRecipientType =
   | 'previous_actor'
   | 'role'
   | 'admin'
-  | 'custom_email';
+  | 'custom_email'
+  | 'assigned_officer'
+  | 'next_step_role'
+  | 'supervisor'
+  | 'named_user'
+  | 'entity_primary_users'
+  | 'entity_secondary_users'
+  | 'regulator_team';
 
 export interface ActionNotification {
   id: string;
@@ -249,4 +256,11 @@ export const RECIPIENT_LABELS: Record<ActionNotificationRecipientType, string> =
   role: 'Users with Role',
   admin: 'Admin Users',
   custom_email: 'Custom Email',
+  assigned_officer: 'Assigned Officer',
+  next_step_role: 'Next-Step Role',
+  supervisor: 'Supervisor',
+  named_user: 'Named User',
+  entity_primary_users: 'Entity Primary Users',
+  entity_secondary_users: 'Entity Secondary Users',
+  regulator_team: 'Regulator Division Team',
 };
