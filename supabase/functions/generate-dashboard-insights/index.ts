@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
 import { requireUserPermission } from "../_shared/authz.ts";
+import { enqueueNotificationEvent } from "../_shared/notification-dispatch.ts";
 
 // Produces 3-5 narrative bullet insights + top 3 recommended actions for the
 // Executive Dashboard. Reads current cross-module metrics, feeds them to the
@@ -144,10 +145,50 @@ Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /
           error: (_e as Error)?.message ?? String(_e),
           durationMs: Date.now() - aiStarted,
         });
+        await enqueueNotificationEvent(supa, {
+          event_key: 'ai.processing_failed',
+          entity_type: 'report',
+          payload: {
+            job_label: 'ai-gateway.dashboard-insights',
+            error_message: String((_e as Error)?.message ?? _e).slice(0, 300),
+          },
+          idempotency_suffix: `${regulatorKey}:${new Date().toISOString().slice(0, 13)}`,
+        });
       }
     }
 
     CACHE.set(regulatorKey, { at: Date.now(), payload });
+
+    // Insight notifications: one per generation window, critical insights escalate.
+    const windowBucket = payload.generated_at.slice(0, 13);
+    const top = payload.insights[0];
+    if (top) {
+      await enqueueNotificationEvent(supa, {
+        event_key: 'ai.insight_generated',
+        entity_type: 'report',
+        payload: {
+          insight_title: `${payload.insights.length} supervisory insight(s)`,
+          insight_summary: top.text,
+          requested_by: null,
+          module: top.module || 'reporting',
+        },
+        idempotency_suffix: `${regulatorKey}:${windowBucket}`,
+      });
+    }
+    const critical = payload.insights.find((i) => i.severity === 'critical');
+    if (critical) {
+      await enqueueNotificationEvent(supa, {
+        event_key: 'ai.critical_insight',
+        entity_type: 'report',
+        payload: {
+          insight_title: 'Critical supervisory insight',
+          insight_summary: critical.text,
+          module: critical.module || 'reporting',
+        },
+        idempotency_suffix: `${regulatorKey}:critical:${windowBucket}`,
+      });
+    }
+
     return new Response(JSON.stringify({ ok: true, cached: false, ...payload }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -57,3 +57,40 @@ export function requireWorkerInvocation(req: Request): WorkerAuthResult {
 
   return { ok: false, response: deny() };
 }
+
+/**
+ * Same as `requireWorkerInvocation`, but additionally accepts a single-use
+ * token issued by the database (`public.issue_worker_token`) so pg_cron jobs
+ * never need to embed a long-lived credential in their schedule definition.
+ */
+export async function requireWorkerInvocationAsync(
+  req: Request,
+  purpose: string,
+): Promise<WorkerAuthResult> {
+  const direct = requireWorkerInvocation(req);
+  if (direct.ok) return direct;
+
+  const supplied = req.headers.get('x-worker-token') || '';
+  const url = Deno.env.get('SUPABASE_URL') || '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (!supplied || !url || !serviceKey) return direct;
+
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/consume_worker_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ _token: supplied, _purpose: purpose }),
+    });
+    const consumed = await res.json().catch(() => false);
+    if (res.ok && consumed === true) return { ok: true };
+  } catch {
+    // fall through to deny
+  }
+
+  return { ok: false, response: deny() };
+}
+

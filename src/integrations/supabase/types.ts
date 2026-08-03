@@ -9646,6 +9646,66 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_event_queue: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          claimed_by: string | null
+          correlation_id: string | null
+          created_at: string
+          dispatched_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          reminder_window: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dispatched_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_key: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          reminder_window?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dispatched_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_key?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          reminder_window?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_outbox: {
         Row: {
           action_history_id: string | null
@@ -16387,6 +16447,30 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_invocation_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          purpose: string
+          token: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          purpose: string
+          token: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          purpose?: string
+          token?: string
+        }
+        Relationships: []
+      }
       workflow_instances: {
         Row: {
           assigned_role: string | null
@@ -17458,6 +17542,34 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      claim_notification_event_queue: {
+        Args: { _limit?: number; _worker?: string }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          claimed_by: string | null
+          correlation_id: string | null
+          created_at: string
+          dispatched_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_key: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          reminder_window: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_event_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_notification_outbox: {
         Args: { _limit?: number; _worker?: string }
         Returns: {
@@ -17661,6 +17773,10 @@ export type Database = {
       confirm_complaint_duplicate: {
         Args: { _notes?: string; _pair_id: string; _parent_id: string }
         Returns: Json
+      }
+      consume_worker_token: {
+        Args: { _purpose: string; _token: string }
+        Returns: boolean
       }
       copy_review_step_permissions: {
         Args: { _from_step: string; _to_step: string }
@@ -18659,6 +18775,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      issue_worker_token: { Args: { _purpose: string }; Returns: string }
       latest_return_analysis: {
         Args: { _return_id: string }
         Returns: {
@@ -18913,6 +19030,18 @@ export type Database = {
         Args: { _event_key: string; _user_id: string }
         Returns: Json
       }
+      notification_enqueue_event: {
+        Args: {
+          _correlation_id?: string
+          _entity_id?: string
+          _entity_type?: string
+          _event_key: string
+          _idempotency_suffix?: string
+          _payload?: Json
+          _reminder_window?: string
+        }
+        Returns: string
+      }
       notification_event_config_save: {
         Args: { _payload: Json }
         Returns: string
@@ -19045,6 +19174,14 @@ export type Database = {
       }
       notification_preference_matrix: { Args: never; Returns: Json }
       notification_preferences_save: { Args: { _items: Json }; Returns: Json }
+      notification_recent_cron_failures: {
+        Args: { _since_minutes?: number }
+        Returns: {
+          end_time: string
+          jobname: string
+          return_message: string
+        }[]
+      }
       notification_recipient_rule_types: { Args: never; Returns: Json }
       notification_recipient_rules_validate: {
         Args: { _rules: Json }
@@ -19114,6 +19251,10 @@ export type Database = {
       notification_unresolved_tokens: {
         Args: { _text: string }
         Returns: string[]
+      }
+      notification_worker_kick: {
+        Args: { _function_name: string }
+        Returns: number
       }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
@@ -19259,6 +19400,7 @@ export type Database = {
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
+      reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
       record_correspondence_delivery: {
