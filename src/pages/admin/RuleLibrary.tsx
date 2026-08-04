@@ -19,6 +19,8 @@ import {
   Loader2, Plus, ExternalLink, PauseCircle, PlayCircle, Copy, Download, Play, History,
 } from 'lucide-react';
 import { RULE_TYPES } from '@/lib/ruleEngine';
+import { MODULE_TESTER_SPECS, isModuleFamily } from '@/lib/moduleRuleTester';
+
 import {
   FAMILY_KEYS, FAMILY_LABELS, InventoryRule, RuleInventoryFacets, RuleInventoryKpis,
   inventoryCsv, searchRuleInventory,
