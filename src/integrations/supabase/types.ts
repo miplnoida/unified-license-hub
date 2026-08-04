@@ -18526,6 +18526,10 @@ export type Database = {
         Args: { _notes?: string; _thread_id: string }
         Returns: undefined
       }
+      complaint_intake_decide: {
+        Args: { _payload: Json; _regulator_id: string; _variant: string }
+        Returns: Json
+      }
       complaint_sla_status: {
         Args: {
           _created_at: string
@@ -18641,6 +18645,15 @@ export type Database = {
       correspondence_reopen_thread: {
         Args: { _reason: string; _thread_id: string }
         Returns: undefined
+      }
+      correspondence_route_decide: {
+        Args: {
+          _category: string
+          _channel: string
+          _priority: string
+          _subject: string
+        }
+        Returns: Json
       }
       correspondence_set_pending_response: {
         Args: { _due_at?: string; _note?: string; _thread_id: string }
