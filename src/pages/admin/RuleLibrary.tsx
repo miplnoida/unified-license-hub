@@ -216,7 +216,10 @@ export default function RuleLibrary() {
                 <SelectTrigger><SelectValue placeholder="Rule type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All types</SelectItem>
-                  {RULE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  {(facets.rule_types.length
+                    ? facets.rule_types.map((v) => ({ value: v, label: typeLabel(v) }))
+                    : RULE_TYPES.map((t) => ({ value: t.value, label: t.label }))
+                  ).map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -232,10 +235,51 @@ export default function RuleLibrary() {
                 <SelectTrigger><SelectValue placeholder="Severity" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All severities</SelectItem>
-                  {['low', 'medium', 'high', 'critical'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {(facets.severities.length ? facets.severities : ['low', 'medium', 'high', 'critical'])
+                    .map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All modules</SelectItem>
+                  {facets.modules.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">{m.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={subModuleFilter} onValueChange={setSubModuleFilter}>
+                <SelectTrigger><SelectValue placeholder="Sub-module" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sub-modules</SelectItem>
+                  {facets.sub_modules.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">{m.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tagFilter} onValueChange={setTagFilter}>
+                <SelectTrigger><SelectValue placeholder="Tag" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All tags</SelectItem>
+                  {facets.tags.length === 0 && <SelectItem value="__none" disabled>No tags in use</SelectItem>}
+                  {facets.tags.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Label className="text-[11px] text-muted-foreground">Triggered from</Label>
+                  <Input type="date" value={triggeredFrom} onChange={(e) => setTriggeredFrom(e.target.value)} />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-[11px] text-muted-foreground">to</Label>
+                  <Input type="date" value={triggeredTo} onChange={(e) => setTriggeredTo(e.target.value)} />
+                </div>
+              </div>
             </div>
+            <div className="flex justify-end">
+              <Button size="sm" variant="ghost" onClick={resetFilters}>Reset filters</Button>
+            </div>
+
 
             {loading ? (
               <div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
