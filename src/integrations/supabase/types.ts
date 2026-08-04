@@ -9897,6 +9897,57 @@ export type Database = {
         }
         Relationships: []
       }
+      module_rule_tests: {
+        Row: {
+          correlation_id: string
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          family: string
+          id: string
+          inputs: Json
+          matched: boolean | null
+          mode: string
+          output: Json
+          passed: boolean
+          rule_code: string | null
+          rule_id: string
+          tested_by: string | null
+        }
+        Insert: {
+          correlation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          family: string
+          id?: string
+          inputs?: Json
+          matched?: boolean | null
+          mode?: string
+          output?: Json
+          passed?: boolean
+          rule_code?: string | null
+          rule_id: string
+          tested_by?: string | null
+        }
+        Update: {
+          correlation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          family?: string
+          id?: string
+          inputs?: Json
+          matched?: boolean | null
+          mode?: string
+          output?: Json
+          passed?: boolean
+          rule_code?: string | null
+          rule_id?: string
+          tested_by?: string | null
+        }
+        Relationships: []
+      }
       notification_digest_items: {
         Row: {
           created_at: string
@@ -17622,6 +17673,34 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_inventory_ext: {
+        Row: {
+          active_version: number | null
+          capabilities: Json | null
+          description: string | null
+          family: string | null
+          family_label: string | null
+          last_modified_at: string | null
+          last_modified_by: string | null
+          last_tested_at: string | null
+          last_triggered_at: string | null
+          module: string | null
+          name: string | null
+          owner_user_id: string | null
+          rule_code: string | null
+          rule_id: string | null
+          rule_type: string | null
+          runtime_owner: string | null
+          severity: string | null
+          source_screen: string | null
+          status: string | null
+          sub_module: string | null
+          tags: string[] | null
+          trigger_count: number | null
+          version: number | null
+        }
+        Relationships: []
+      }
       v_engine_metric_series: {
         Row: {
           computed_at: string | null
@@ -20690,6 +20769,14 @@ export type Database = {
           _triggered_to?: string
         }
         Returns: Json
+      }
+      rule_module_test: {
+        Args: { _family: string; _inputs?: Json; _rule_id: string }
+        Returns: Json
+      }
+      rule_test_compare: {
+        Args: { _actual: Json; _expected: Json; _op: string }
+        Returns: boolean
       }
       run_complaint_escalation_sweep: { Args: never; Returns: Json }
       safe_uuid: { Args: { _value: string }; Returns: string }

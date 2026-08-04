@@ -45,6 +45,8 @@ const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
 const RuleEditor = lazy(() => import('@/pages/admin/RuleEditor'));
+const ModuleRuleTester = lazy(() => import('@/pages/admin/ModuleRuleTester'));
+
 const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
 const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
 const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
@@ -143,7 +145,9 @@ export const adminRoutes = (
     <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
     <Route path="/admin/rule-engine" element={<M module="rule_engine"><RuleLibrary /></M>} />
     <Route path="/admin/rule-engine/new" element={<M module="rule_engine"><RuleEditor /></M>} />
+    <Route path="/admin/rule-engine/test/:family/:id" element={<M module="rule_engine"><ModuleRuleTester /></M>} />
     <Route path="/admin/rule-engine/:id" element={<M module="rule_engine"><RuleEditor /></M>} />
+
     <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
     
     
