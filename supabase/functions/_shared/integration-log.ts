@@ -9,9 +9,14 @@
 
 type LogClient = {
   from: (t: string) => {
-    insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+    insert: (v: Record<string, unknown>) => {
+      select: (cols: string) => {
+        maybeSingle: () => Promise<{ data: { id: string } | null; error: unknown }>;
+      };
+    };
   };
 };
+
 
 export interface IntegrationLogEntry {
   direction: 'inbound' | 'outbound';
