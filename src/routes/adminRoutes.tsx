@@ -143,7 +143,9 @@ export const adminRoutes = (
     <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
     <Route path="/admin/rule-engine" element={<M module="rule_engine"><RuleLibrary /></M>} />
     <Route path="/admin/rule-engine/new" element={<M module="rule_engine"><RuleEditor /></M>} />
+    <Route path="/admin/rule-engine/test/:family/:id" element={<M module="rule_engine"><ModuleRuleTester /></M>} />
     <Route path="/admin/rule-engine/:id" element={<M module="rule_engine"><RuleEditor /></M>} />
+
     <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
     
     
