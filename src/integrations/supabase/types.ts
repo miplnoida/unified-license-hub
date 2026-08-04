@@ -17889,6 +17889,10 @@ export type Database = {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
       }
+      can_deactivate_rule_engine: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
       can_manage_fp_config: { Args: { _user: string }; Returns: boolean }
       can_manage_prudential_config: {
         Args: { _user: string }
