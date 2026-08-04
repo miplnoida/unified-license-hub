@@ -54,6 +54,8 @@ export default function RuleEditor() {
   const [testResult, setTestResult] = useState<any | null>(null);
   const [testHistory, setTestHistory] = useState<any[]>([]);
   const [executions, setExecutions] = useState<any[]>([]);
+  const [versionNote, setVersionNote] = useState('');
+
 
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function RuleEditor() {
         supabase.from('roles' as any).select('name').order('name'),
         supabase.from('notification_event_configs' as any).select('event_key, description').eq('is_active', true).order('event_key'),
         supabase.from('approval_workflows' as any).select('id, name, current_published_version_id').eq('is_active', true).order('name'),
-        supabase.from('profiles' as any).select('id, full_name, email').order('full_name').limit(500),
+        supabase.rpc('engine_rule_owner_candidates' as any),
       ]);
       const seen = new Set<string>();
       setMetrics(((mRes.data as any[]) || []).filter((m) => {
@@ -74,7 +76,7 @@ export default function RuleEditor() {
       setRoles(((rRes.data as any[]) || []).map((r) => ({ value: r.name, label: r.name })));
       setEvents(((eRes.data as any[]) || []).map((e) => ({ value: e.event_key, label: e.event_key })));
       setWorkflows(((wRes.data as any[]) || []).filter((w) => w.current_published_version_id).map((w) => ({ value: w.id, label: w.name })));
-      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.id, label: p.full_name || p.email || p.id })));
+      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.user_id, label: p.full_name || p.email || p.user_id })));
     })();
   }, []);
 
@@ -131,6 +133,8 @@ export default function RuleEditor() {
     owner_user_id: (rule as any).owner_user_id || null,
     effective_from: (rule as any).effective_from || null,
     effective_to: (rule as any).effective_to || null,
+    on_action_failure: (rule as any).on_action_failure || 'continue',
+    version_note: versionNote.trim() || null,
   });
 
   const save = async (intent: 'draft' | 'activate' = 'draft') => {
@@ -145,9 +149,11 @@ export default function RuleEditor() {
     if (res?.ok === false) return toast.error((res.errors || ['Rule could not be saved'])[0]);
     const savedId = res?.rule?.id;
     toast.success(res?.new_version ? `Saved as version ${res.rule.version} (draft)` : isNew ? 'Rule created as draft' : 'Rule saved');
+    setVersionNote('');
     if (isNew && savedId) navigate(`/admin/rule-engine/${savedId}`, { replace: true });
     else loadRule();
   };
+
 
   const restoreVersion = async (version: number) => {
     setRestoring(version);
@@ -183,9 +189,14 @@ export default function RuleEditor() {
   };
 
   const activate = async () => {
-    const { error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: id });
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.rpc('engine_rule_activate' as any, {
+      _rule_id: id, _note: versionNote.trim() || null,
+    });
+    if (error) return toast.error(error.message === 'forbidden' ? 'You are not permitted to activate rules.' : error.message);
+    const res = data as any;
+    if (res?.ok === false) return toast.error((res.errors || ['Rule could not be activated'])[0]);
     toast.success('Rule activated');
+    setVersionNote('');
     loadRule();
   };
 
@@ -264,6 +275,22 @@ export default function RuleEditor() {
                 </div>
                 <div className="md:col-span-2"><Label>Description</Label>
                   <Textarea rows={2} value={rule.description || ''} onChange={(e) => setRule({ ...rule, description: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label>Change note {isNew ? '(optional)' : ''}</Label>
+                  <Textarea rows={2} value={versionNote} onChange={(e) => setVersionNote(e.target.value)}
+                    placeholder="Why is this change being made?" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Required when conditions, actions, severity, owner, effective dates or suppression change. Stored with the new version and the audit trail.
+                  </p></div>
+                <div><Label>If an action fails</Label>
+                  <Select value={(rule as any).on_action_failure || 'continue'}
+                    onValueChange={(v) => setRule({ ...rule, on_action_failure: v } as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="continue">Continue with the remaining actions</SelectItem>
+                      <SelectItem value="stop">Stop and record the failure</SelectItem>
+                    </SelectContent>
+                  </Select></div>
+
                 <div><Label>Module</Label>
                   <Select value={rule.module} onValueChange={(v) => setRule({ ...rule, module: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
