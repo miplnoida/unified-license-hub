@@ -189,9 +189,14 @@ export default function RuleEditor() {
   };
 
   const activate = async () => {
-    const { error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: id });
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.rpc('engine_rule_activate' as any, {
+      _rule_id: id, _note: versionNote.trim() || null,
+    });
+    if (error) return toast.error(error.message === 'forbidden' ? 'You are not permitted to activate rules.' : error.message);
+    const res = data as any;
+    if (res?.ok === false) return toast.error((res.errors || ['Rule could not be activated'])[0]);
     toast.success('Rule activated');
+    setVersionNote('');
     loadRule();
   };
 
