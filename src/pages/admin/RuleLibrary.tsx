@@ -371,6 +371,14 @@ export default function RuleLibrary() {
                                 <Play className="h-4 w-4" />
                               </Button>
                             )}
+                            {r.capabilities?.test && !r.capabilities?.edit_central && isModuleFamily(r.family) && (
+                              <Button data-rbac="rule_engine.test" size="sm" variant="ghost"
+                                title={`${MODULE_TESTER_SPECS[r.family].label} (dry run)`}
+                                onClick={() => navigate(`/admin/rule-engine/test/${r.family}/${r.rule_id}`)}>
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            )}
+
                             {r.capabilities?.executions && r.capabilities?.edit_central && (
                               <Button data-rbac="rule_engine.view_executions" size="sm" variant="ghost" title="Execution history"
                                 onClick={() => navigate(`/admin/rule-engine/${r.rule_id}?tab=history`)}>
