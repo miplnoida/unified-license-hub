@@ -76,7 +76,7 @@ export default function RuleEditor() {
       setRoles(((rRes.data as any[]) || []).map((r) => ({ value: r.name, label: r.name })));
       setEvents(((eRes.data as any[]) || []).map((e) => ({ value: e.event_key, label: e.event_key })));
       setWorkflows(((wRes.data as any[]) || []).filter((w) => w.current_published_version_id).map((w) => ({ value: w.id, label: w.name })));
-      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.id, label: p.full_name || p.email || p.id })));
+      setOwners(((oRes.data as any[]) || []).map((p) => ({ value: p.user_id, label: p.full_name || p.email || p.user_id })));
     })();
   }, []);
 
