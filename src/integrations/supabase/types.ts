@@ -8619,6 +8619,7 @@ export type Database = {
           auth_type: string
           avg_latency_ms: number | null
           base_url: string | null
+          business_critical: boolean
           category: string | null
           circuit_cooloff_seconds: number
           circuit_failure_count: number
@@ -8636,6 +8637,16 @@ export type Database = {
           enabled: boolean
           environment: string
           error_rate: number | null
+          fallback_alert_threshold: number
+          fallback_allowed_categories: string[]
+          fallback_approval_status: string
+          fallback_count: number
+          fallback_enabled: boolean
+          fallback_implementation_key: string | null
+          fallback_max_duration_hours: number
+          fallback_recovery_policy: string
+          fallback_since: string | null
+          fallback_strategy: string
           id: string
           integration_key: string
           last_error: string | null
@@ -8665,6 +8676,7 @@ export type Database = {
           auth_type?: string
           avg_latency_ms?: number | null
           base_url?: string | null
+          business_critical?: boolean
           category?: string | null
           circuit_cooloff_seconds?: number
           circuit_failure_count?: number
@@ -8682,6 +8694,16 @@ export type Database = {
           enabled?: boolean
           environment?: string
           error_rate?: number | null
+          fallback_alert_threshold?: number
+          fallback_allowed_categories?: string[]
+          fallback_approval_status?: string
+          fallback_count?: number
+          fallback_enabled?: boolean
+          fallback_implementation_key?: string | null
+          fallback_max_duration_hours?: number
+          fallback_recovery_policy?: string
+          fallback_since?: string | null
+          fallback_strategy?: string
           id?: string
           integration_key: string
           last_error?: string | null
@@ -8711,6 +8733,7 @@ export type Database = {
           auth_type?: string
           avg_latency_ms?: number | null
           base_url?: string | null
+          business_critical?: boolean
           category?: string | null
           circuit_cooloff_seconds?: number
           circuit_failure_count?: number
@@ -8728,6 +8751,16 @@ export type Database = {
           enabled?: boolean
           environment?: string
           error_rate?: number | null
+          fallback_alert_threshold?: number
+          fallback_allowed_categories?: string[]
+          fallback_approval_status?: string
+          fallback_count?: number
+          fallback_enabled?: boolean
+          fallback_implementation_key?: string | null
+          fallback_max_duration_hours?: number
+          fallback_recovery_policy?: string
+          fallback_since?: string | null
+          fallback_strategy?: string
           id?: string
           integration_key?: string
           last_error?: string | null
@@ -8804,6 +8837,95 @@ export type Database = {
           },
         ]
       }
+      integration_fallback_events: {
+        Row: {
+          actor_id: string | null
+          adapter_key: string | null
+          business_critical: boolean
+          business_event: string
+          connection_id: string | null
+          correlation_id: string | null
+          created_at: string
+          environment: string | null
+          execution_mode: string
+          fallback_implementation: string | null
+          fallback_reason: string
+          id: string
+          idempotency_fingerprint: string | null
+          integration_key: string
+          integration_log_id: string | null
+          operation: string
+          original_error: string | null
+          original_error_category: string | null
+          recovered_at: string | null
+          recovery_state: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          adapter_key?: string | null
+          business_critical?: boolean
+          business_event: string
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          environment?: string | null
+          execution_mode?: string
+          fallback_implementation?: string | null
+          fallback_reason: string
+          id?: string
+          idempotency_fingerprint?: string | null
+          integration_key: string
+          integration_log_id?: string | null
+          operation: string
+          original_error?: string | null
+          original_error_category?: string | null
+          recovered_at?: string | null
+          recovery_state?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          adapter_key?: string | null
+          business_critical?: boolean
+          business_event?: string
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          environment?: string | null
+          execution_mode?: string
+          fallback_implementation?: string | null
+          fallback_reason?: string
+          id?: string
+          idempotency_fingerprint?: string | null
+          integration_key?: string
+          integration_log_id?: string | null
+          operation?: string
+          original_error?: string | null
+          original_error_category?: string | null
+          recovered_at?: string | null
+          recovery_state?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_fallback_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_logs: {
         Row: {
           actor_id: string | null
@@ -8818,11 +8940,15 @@ export type Database = {
           environment: string | null
           error: string | null
           error_category: string | null
+          execution_mode: string | null
+          fallback_reason: string | null
           http_status: number | null
           id: string
+          idempotency_fingerprint: string | null
           integration_key: string
           metadata: Json
           method: string | null
+          operation: string | null
           request_bytes: number | null
           request_summary: string | null
           response_bytes: number | null
@@ -8844,11 +8970,15 @@ export type Database = {
           environment?: string | null
           error?: string | null
           error_category?: string | null
+          execution_mode?: string | null
+          fallback_reason?: string | null
           http_status?: number | null
           id?: string
+          idempotency_fingerprint?: string | null
           integration_key: string
           metadata?: Json
           method?: string | null
+          operation?: string | null
           request_bytes?: number | null
           request_summary?: string | null
           response_bytes?: number | null
@@ -8870,11 +9000,15 @@ export type Database = {
           environment?: string | null
           error?: string | null
           error_category?: string | null
+          execution_mode?: string | null
+          fallback_reason?: string | null
           http_status?: number | null
           id?: string
+          idempotency_fingerprint?: string | null
           integration_key?: string
           metadata?: Json
           method?: string | null
+          operation?: string | null
           request_bytes?: number | null
           request_summary?: string | null
           response_bytes?: number | null
@@ -19961,6 +20095,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      integration_fallback_metrics: { Args: { _days?: number }; Returns: Json }
       integration_health_summary: {
         Args: never
         Returns: {
@@ -19996,6 +20131,26 @@ export type Database = {
           success_rate: number
           type: string
         }[]
+      }
+      integration_record_fallback: {
+        Args: {
+          _actor_id?: string
+          _business_event: string
+          _correlation_id?: string
+          _execution_mode?: string
+          _fallback_implementation?: string
+          _fallback_reason: string
+          _idempotency_fingerprint?: string
+          _integration_key: string
+          _integration_log_id?: string
+          _operation: string
+          _original_error?: string
+          _original_error_category?: string
+          _source_entity_id?: string
+          _source_entity_type?: string
+          _source_module: string
+        }
+        Returns: string
       }
       integration_record_outcome: {
         Args: {

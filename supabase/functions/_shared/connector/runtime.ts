@@ -98,7 +98,12 @@ export interface ExecuteOptions {
   requestOverride?: ConnectorRequest;
   /** Skip persisting a log row / health mutation (tester dry runs). */
   dryRun?: boolean;
+  /** Safe hash of the idempotency key, written to the log row. */
+  idempotencyFingerprint?: string | null;
+  /** Per-call timeout override, clamped by the runtime. */
+  timeoutOverrideMs?: number | null;
 }
+
 
 /**
  * Execute one connector operation. Never throws: failures come back as a
@@ -129,7 +134,7 @@ export async function executeConnector<T = unknown>(
     responseSummary: string | null,
   ): Promise<ConnectorResult<T>> => {
     if (!dryRun) {
-      await logIntegration(admin, {
+      const logId = await logIntegration(admin, {
         direction: 'outbound',
         integrationKey: connection.integration_key,
         endpoint,
@@ -143,6 +148,11 @@ export async function executeConnector<T = unknown>(
         responseSummary,
         error: result.error ? redact(result.error) : null,
         durationMs: result.latencyMs,
+        operation,
+        executionMode: result.ok
+          ? (connection.provider_verified ? 'real' : 'mock')
+          : null,
+        idempotencyFingerprint: opts.idempotencyFingerprint ?? null,
         metadata: {
           correlation_id: correlationId,
           environment: connection.environment,
@@ -152,12 +162,13 @@ export async function executeConnector<T = unknown>(
           error_category: result.errorCategory,
           source_module: ctx.sourceModule,
           business_event: ctx.businessEvent,
-          idempotency_key: ctx.idempotencyKey ?? null,
           credential_version: credential?.version ?? 0,
           adapter: adapter.key,
           operation,
         },
       });
+      result.integrationLogId = logId;
+
       // Only real attempts move health/circuit state.
       if (
         result.errorCategory !== 'not_configured' &&
@@ -241,7 +252,11 @@ export async function executeConnector<T = unknown>(
   };
 
   const maxAttempts = Math.max(1, Math.min(connection.retry_count + 1, 6));
-  const timeout = Math.min(Math.max(connection.timeout_ms, 1000), 120_000);
+  const timeout = Math.min(
+    Math.max(opts.timeoutOverrideMs ?? connection.timeout_ms, 1000),
+    120_000,
+  );
+
   const started = Date.now();
 
   let attempts = 0;
