@@ -21,6 +21,8 @@ import {
   RULE_MODULES, RULE_TYPES, RuleAction, RuleConditions, RuleType, SCHEDULE_EVENTS,
   describeRule, emptyConditions, validateRule,
 } from '@/lib/ruleEngine';
+import { RuleTesterPanel } from '@/components/admin/rule-engine/RuleTesterPanel';
+
 
 interface Option { value: string; label: string }
 
@@ -85,7 +87,7 @@ export default function RuleEditor() {
     setLoading(true);
     const [{ data, error }, tests, execs, vers] = await Promise.all([
       supabase.from('engine_rules' as any).select('*').eq('id', id).maybeSingle(),
-      supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(10),
+      supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(50),
       supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('executed_at', { ascending: false }).limit(50),
       supabase.from('engine_rule_versions' as any).select('*').eq('rule_id', id).order('version', { ascending: false }),
     ]);
@@ -619,81 +621,18 @@ export default function RuleEditor() {
           </TabsContent>
 
           <TabsContent value="test" className="space-y-4 pt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Sandbox test</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Runs the saved rule against live data without creating alerts, tasks, notifications or workflows.
-                  A rule must record a passing test before it can be activated.
-                </p>
-                <Button data-rbac="rule_engine.edit" onClick={runTest} disabled={testing || isNew}>
-                  {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />} Run test
-                </Button>
-
-                {testResult && (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      {testResult.passed
-                        ? <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Passed</Badge>
-                        : <Badge variant="destructive" className="gap-1"><XCircle className="h-3.5 w-3.5" /> Not passed</Badge>}
-                      <span className="font-mono text-xs">{testResult.candidates ?? 0} records evaluated</span>
-                      <span className="font-mono text-xs">{testResult.matched ?? 0} matched</span>
-                    </div>
-                    {(testResult.errors || []).length > 0 && (
-                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
-                        {(testResult.errors as string[]).join('; ')}
-                      </div>
-                    )}
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader><TableRow>
-                          <TableHead>Entity</TableHead><TableHead>Match</TableHead>
-                          <TableHead>Why</TableHead><TableHead>Actions that would fire</TableHead>
-                        </TableRow></TableHeader>
-                        <TableBody>
-                          {(testResult.results?.[0]?.preview || []).map((row: any, i: number) => (
-                            <TableRow key={i}>
-                              <TableCell className="text-sm">{row.entity_label || '—'}</TableCell>
-                              <TableCell>{row.matched ? <Badge variant="approved">Match</Badge> : <Badge variant="outline">No</Badge>}</TableCell>
-                              <TableCell className="text-xs">{row.reason}</TableCell>
-                              <TableCell className="text-xs">
-                                {(row.would_do || []).length === 0 ? '—'
-                                  : (row.would_do as any[]).map((w, wi) => (
-                                    <div key={wi}>{w.type}{w.alert_text ? `: ${w.alert_text}` : ''}{w.event_key ? `: ${w.event_key}` : ''}</div>
-                                  ))}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
-
-                {testHistory.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Previous tests</h4>
-                    <Table>
-                      <TableHeader><TableRow>
-                        <TableHead>Run at</TableHead><TableHead>Evaluated</TableHead>
-                        <TableHead>Matched</TableHead><TableHead>Result</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {testHistory.map((t) => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-xs font-mono">{new Date(t.created_at).toLocaleString()}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.evaluated_count}</TableCell>
-                            <TableCell className="text-xs font-mono">{t.matched_count}</TableCell>
-                            <TableCell>{t.passed ? <Badge variant="approved">Passed</Badge> : <Badge variant="destructive">Failed</Badge>}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <RuleTesterPanel
+              ruleId={isNew ? undefined : id}
+              isNew={isNew}
+              ruleCode={rule.rule_code}
+              currentVersion={rule.version}
+              activeVersion={(rule as any).active_version ?? null}
+              versions={versions as any}
+              history={testHistory}
+              onRan={loadRule}
+            />
           </TabsContent>
+
 
           <TabsContent value="versions" className="pt-4">
             <Card>

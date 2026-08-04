@@ -445,3 +445,77 @@ export function bandToScore(band: string): number {
 export function currentPeriodKey(d = new Date()): string {
   return `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
 }
+
+/* ============================================================
+ * ADM-RE-003 — condition-level explanation and override runs
+ * ============================================================ */
+
+export interface ConditionResult {
+  index: number;
+  metric: string;
+  operator: string;
+  operator_symbol: string;
+  expected: unknown;
+  actual: unknown;
+  passed: boolean;
+  reason: string;
+}
+
+/**
+ * Re-states every configured predicate against the metric values a candidate
+ * carried, so the tester can show metric / actual / operator / expected /
+ * pass-fail / reason per condition rather than a single reason string.
+ */
+export function explainConditions(rule: Any, metrics: Record<string, unknown>): ConditionResult[] {
+  const c = rule?.conditions || {};
+  const preds: Any[] = c.predicates || [];
+  return preds.map((p, index) => {
+    const key = String(p.metric_key || p.field || '');
+    const actual = metrics?.[key] ?? metrics?.[`${key}`] ?? null;
+    const expected = p.compare_metric_key ? (metrics?.[p.compare_metric_key] ?? p.compare_metric_key) : p.value;
+    const op = String(p.operator || 'eq');
+    let passed = false;
+    const l = Number(actual);
+    const r = Number(expected);
+    if (Number.isFinite(l) && Number.isFinite(r)) passed = compare(l, op, r);
+    else if (op === 'eq') passed = String(actual ?? '') === String(expected ?? '');
+    else if (op === 'neq') passed = String(actual ?? '') !== String(expected ?? '');
+    const sym = OP_TEXT[op] ?? op;
+    return {
+      index,
+      metric: key || '(unset)',
+      operator: op,
+      operator_symbol: sym,
+      expected: expected ?? null,
+      actual: actual ?? null,
+      passed,
+      reason: actual === null || actual === undefined
+        ? `no value available for ${key || 'the configured metric'}`
+        : `${key} = ${actual} ${sym} ${expected ?? '—'} → ${passed ? 'pass' : 'fail'}`,
+    };
+  });
+}
+
+/**
+ * Builds a single candidate purely from manual metric overrides. Used by the
+ * tester's override mode so a rule can be exercised without waiting for real
+ * data to reach the threshold. Never touches production data.
+ */
+export function overrideCandidate(
+  rule: Any,
+  overrides: Record<string, unknown>,
+  entityLabel = 'Manual override',
+): Candidate {
+  const conds = explainConditions(rule, overrides);
+  const logic = String(rule?.conditions?.logic || 'AND').toUpperCase();
+  const matched = conds.length === 0
+    ? false
+    : logic === 'OR' ? conds.some((x) => x.passed) : conds.every((x) => x.passed);
+  return {
+    entity_id: null,
+    entity_label: entityLabel,
+    matched,
+    metrics: { ...overrides },
+    reason: conds.map((x) => x.reason).join(logic === 'OR' ? ' OR ' : ' AND ') || 'no conditions configured',
+  };
+}
