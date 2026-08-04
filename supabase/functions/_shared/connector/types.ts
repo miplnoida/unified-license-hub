@@ -43,7 +43,20 @@ export interface ResolvedConnection {
   /** Name of the backend secret holding the credential — not the value. */
   secret_ref: string | null;
   credential_version: number;
+  /** True once the connection has been proven against the real provider. */
+  provider_verified?: boolean;
+  business_critical?: boolean;
+  /** Fallback governance — owned by Integration Manager, never by modules. */
+  fallback_enabled?: boolean;
+  fallback_strategy?: 'internal_logic' | 'queue' | 'pending_state' | 'none';
+  fallback_implementation_key?: string | null;
+  fallback_allowed_categories?: string[];
+  fallback_max_duration_hours?: number;
+  fallback_alert_threshold?: number;
+  fallback_recovery_policy?: 'automatic' | 'manual';
+  fallback_approval_status?: 'approved' | 'pending' | 'rejected';
 }
+
 
 /** Credential material read from the backend secret store at call time. */
 export interface ConnectorCredential {
