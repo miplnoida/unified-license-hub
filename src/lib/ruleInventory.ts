@@ -149,15 +149,17 @@ export async function searchRuleInventory(f: RuleInventoryFilters): Promise<Rule
 
 export function inventoryCsv(rows: InventoryRule[]): string {
   const head = [
-    'Rule ID', 'Name', 'Family', 'Module', 'Sub-module', 'Type', 'Severity', 'Status',
-    'Version', 'Trigger count', 'Last triggered', 'Last tested', 'Owner', 'Runtime owner',
-    'Last modified by', 'Last modified at',
+    'Rule Code', 'Name', 'Description', 'Family', 'Module', 'Sub Module', 'Rule Type', 'Severity',
+    'Status', 'Active Version', 'Current Version', 'Trigger Count', 'Last Triggered', 'Last Tested',
+    'Owner', 'Runtime Owner', 'Last Modified By', 'Last Modified', 'Source Screen',
   ];
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = rows.map((r) => [
-    r.rule_code, r.name, r.family_label, r.module, r.sub_module, r.rule_type, r.severity,
-    r.status, r.version, r.trigger_count, r.last_triggered_at, r.last_tested_at,
-    r.owner_name, r.runtime_owner, r.modified_by_name, r.last_modified_at,
+    r.rule_code, r.name, r.description, r.family_label, r.module, r.sub_module, r.rule_type,
+    r.severity, r.status, r.active_version, r.version, r.trigger_count, r.last_triggered_at,
+    r.last_tested_at, r.owner_name, r.runtime_owner, r.modified_by_name, r.last_modified_at,
+    r.source_screen,
   ].map(esc).join(','));
   return [head.map(esc).join(','), ...lines].join('\n');
 }
+
