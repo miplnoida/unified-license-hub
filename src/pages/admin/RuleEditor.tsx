@@ -133,6 +133,8 @@ export default function RuleEditor() {
     owner_user_id: (rule as any).owner_user_id || null,
     effective_from: (rule as any).effective_from || null,
     effective_to: (rule as any).effective_to || null,
+    on_action_failure: (rule as any).on_action_failure || 'continue',
+    version_note: versionNote.trim() || null,
   });
 
   const save = async (intent: 'draft' | 'activate' = 'draft') => {
@@ -147,9 +149,11 @@ export default function RuleEditor() {
     if (res?.ok === false) return toast.error((res.errors || ['Rule could not be saved'])[0]);
     const savedId = res?.rule?.id;
     toast.success(res?.new_version ? `Saved as version ${res.rule.version} (draft)` : isNew ? 'Rule created as draft' : 'Rule saved');
+    setVersionNote('');
     if (isNew && savedId) navigate(`/admin/rule-engine/${savedId}`, { replace: true });
     else loadRule();
   };
+
 
   const restoreVersion = async (version: number) => {
     setRestoring(version);
