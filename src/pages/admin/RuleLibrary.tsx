@@ -102,11 +102,21 @@ export default function RuleLibrary() {
     else { setSort(col); setDir('desc'); }
   };
 
+  const rpcErrors = (data: any): string | null => {
+    const errs = (data as any)?.errors;
+    if (data && (data as any).ok === false) {
+      return Array.isArray(errs) && errs.length ? errs.join(' ') : 'Operation not permitted.';
+    }
+    return null;
+  };
+
   const activate = async (r: InventoryRule) => {
     setBusy(true);
-    const { error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: r.rule_id });
+    const { data, error } = await supabase.rpc('engine_rule_activate' as any, { _rule_id: r.rule_id });
     setBusy(false);
     if (error) return toast.error(error.message);
+    const failed = rpcErrors(data);
+    if (failed) return toast.error(failed);
     toast.success(`${r.rule_code} activated`);
     load();
   };
@@ -114,11 +124,13 @@ export default function RuleLibrary() {
   const deactivate = async () => {
     if (justification.trim().length < 10) return toast.error('Justification must be at least 10 characters.');
     setBusy(true);
-    const { error } = await supabase.rpc('engine_rule_deactivate' as any, {
+    const { data, error } = await supabase.rpc('engine_rule_deactivate' as any, {
       _rule_id: deactivating!.rule_id, _justification: justification.trim(),
     });
     setBusy(false);
     if (error) return toast.error(error.message);
+    const failed = rpcErrors(data);
+    if (failed) return toast.error(failed);
     toast.success(`${deactivating!.rule_code} deactivated`);
     setDeactivating(null); setJustification(''); load();
   };
@@ -128,17 +140,21 @@ export default function RuleLibrary() {
       .from('engine_rules' as any).select('*').eq('id', r.rule_id).maybeSingle();
     if (readErr || !src) return toast.error(readErr?.message || 'Rule not found');
     const s = src as any;
-    const { error } = await supabase.rpc('engine_rule_save' as any, {
+    const { data, error } = await supabase.rpc('engine_rule_save' as any, {
       _payload: {
         name: `${s.name} (copy)`, description: s.description, rule_type: s.rule_type,
         module: s.module, sub_module: s.sub_module, tags: s.tags, severity: s.severity,
         conditions: s.conditions, actions: s.actions, suppression_days: s.suppression_days,
+        intent: 'draft',
       } as any,
     });
     if (error) return toast.error(error.message);
+    const failed = rpcErrors(data);
+    if (failed) return toast.error(failed);
     toast.success('Rule cloned as draft');
     load();
   };
+
 
   const exportCsv = async () => {
     try {
