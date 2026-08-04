@@ -108,7 +108,39 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
+  rule-engine:
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      - name: Runtime ownership oracle (one runtime owner per rule family)
+        run: node scripts/verify-runtime-ownership.mjs
+
+      - name: Rule tester + runtime ownership tests
+        run: bunx vitest run src/test/ruleTester.test.ts src/test/ruleEngineRuntimeOwnership.test.ts
+
+      - name: Assert rule-engine evidence artefacts exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            docs/rule-engine/runtime-ownership.json \
+            docs/rule-engine/overlap-matrix.md \
+            supabase/tests/rule_engine/300_runtime_governance.sql; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required rule-engine artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
   db-tests:
+
     runs-on: ubuntu-latest
     needs: frontend
     steps:
