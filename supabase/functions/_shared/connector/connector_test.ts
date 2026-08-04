@@ -217,6 +217,7 @@ Deno.test('timeouts are categorised and surfaced as fallback', async () => {
 });
 
 Deno.test('disabled, unconfigured and open-circuit connections short-circuit to fallback', async () => {
+  Deno.env.set('TEST_AML_KEY', 'k');
   const admin = stubAdmin();
   const base = {
     admin,
@@ -245,6 +246,7 @@ Deno.test('disabled, unconfigured and open-circuit connections short-circuit to 
 
   // No provider call attempted, so no health mutation was recorded.
   assertEquals(admin.outcomes.length, 0);
+  Deno.env.delete('TEST_AML_KEY');
 });
 
 Deno.test('circuit breaker reopens for traffic after the cool-off window', () => {
