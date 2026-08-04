@@ -42,14 +42,22 @@ export interface IntegrationLogEntry {
   errorCategory?: string | null;
   sourceModule?: string | null;
   businessEvent?: string | null;
+  /** real | mock | fallback | blocked — set by the Integration Manager. */
+  executionMode?: string | null;
+  fallbackReason?: string | null;
+  /** Adapter operation, e.g. `screen_individual`. */
+  operation?: string | null;
+  /** Hashed representation of the idempotency key — never the raw key. */
+  idempotencyFingerprint?: string | null;
 }
 
+/** Returns the inserted log row id (null when logging failed). */
 export async function logIntegration(
   client: LogClient,
   entry: IntegrationLogEntry,
-): Promise<void> {
+): Promise<string | null> {
   try {
-    const { error } = await client.from('integration_logs').insert({
+    const { data, error } = await client.from('integration_logs').insert({
       direction: entry.direction,
       integration_key: entry.integrationKey,
       endpoint: entry.endpoint ?? null,
@@ -73,13 +81,24 @@ export async function logIntegration(
       error_category: entry.errorCategory ?? (entry.metadata?.error_category as string | undefined) ?? null,
       source_module: entry.sourceModule ?? (entry.metadata?.source_module as string | undefined) ?? null,
       business_event: entry.businessEvent ?? (entry.metadata?.business_event as string | undefined) ?? null,
+      execution_mode: entry.executionMode ?? (entry.metadata?.execution_mode as string | undefined) ?? null,
+      fallback_reason: entry.fallbackReason ?? null,
+      operation: entry.operation ?? (entry.metadata?.operation as string | undefined) ?? null,
+      idempotency_fingerprint: entry.idempotencyFingerprint ?? null,
       metadata: {
         ...(entry.metadata ?? {}),
         logged_at: new Date().toISOString(),
       },
-    });
-    if (error) console.warn('[integration-log] insert failed:', error);
+    }).select('id').maybeSingle();
+    if (error) {
+      console.warn('[integration-log] insert failed:', error);
+      return null;
+    }
+    return data?.id ?? null;
   } catch (error) {
     console.warn('[integration-log] insert failed:', error);
+    return null;
   }
+}
+
 }
