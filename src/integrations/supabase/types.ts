@@ -5304,6 +5304,8 @@ export type Database = {
           acknowledged_at: string | null
           acknowledged_by: string | null
           action_index: number | null
+          assigned_at: string | null
+          assigned_by: string | null
           assigned_to: string | null
           closed_at: string | null
           closed_by: string | null
@@ -5313,6 +5315,8 @@ export type Database = {
           entity_id: string | null
           execution_id: string | null
           id: string
+          resolved_at: string | null
+          resolved_by: string | null
           rule_id: string
           severity: string
           source_event_id: string | null
@@ -5325,6 +5329,8 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           action_index?: number | null
+          assigned_at?: string | null
+          assigned_by?: string | null
           assigned_to?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -5334,6 +5340,8 @@ export type Database = {
           entity_id?: string | null
           execution_id?: string | null
           id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           rule_id: string
           severity?: string
           source_event_id?: string | null
@@ -5346,6 +5354,8 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           action_index?: number | null
+          assigned_at?: string | null
+          assigned_by?: string | null
           assigned_to?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -5355,6 +5365,8 @@ export type Database = {
           entity_id?: string | null
           execution_id?: string | null
           id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
           rule_id?: string
           severity?: string
           source_event_id?: string | null
@@ -5448,6 +5460,59 @@ export type Database = {
           },
         ]
       }
+      engine_rule_lifecycle_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          correlation_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          rule_id: string | null
+          target_id: string
+          target_type: string
+          to_status: string
+          version: number | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          rule_id?: string | null
+          target_id: string
+          target_type: string
+          to_status: string
+          version?: number | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          rule_id?: string | null
+          target_id?: string
+          target_type?: string
+          to_status?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_rule_lifecycle_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "engine_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_rule_suppressions: {
         Row: {
           created_at: string
@@ -5494,6 +5559,8 @@ export type Database = {
           action_index: number | null
           assigned_role: string | null
           assigned_to: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           completed_at: string | null
           completed_by: string | null
           correlation_id: string | null
@@ -5504,6 +5571,8 @@ export type Database = {
           id: string
           rule_id: string
           source_event_id: string | null
+          started_at: string | null
+          started_by: string | null
           status: string
           title: string
           updated_at: string
@@ -5513,6 +5582,8 @@ export type Database = {
           action_index?: number | null
           assigned_role?: string | null
           assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           correlation_id?: string | null
@@ -5523,6 +5594,8 @@ export type Database = {
           id?: string
           rule_id: string
           source_event_id?: string | null
+          started_at?: string | null
+          started_by?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -5532,6 +5605,8 @@ export type Database = {
           action_index?: number | null
           assigned_role?: string | null
           assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           correlation_id?: string | null
@@ -5542,6 +5617,8 @@ export type Database = {
           id?: string
           rule_id?: string
           source_event_id?: string | null
+          started_at?: string | null
+          started_by?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -5566,42 +5643,57 @@ export type Database = {
       }
       engine_rule_tests: {
         Row: {
+          correlation_id: string | null
           created_at: string
+          duration_ms: number | null
           error: string | null
           evaluated_count: number
           id: string
+          label: string | null
           matched_count: number
           params: Json
           passed: boolean
           results: Json
           rule_id: string
           run_by: string | null
+          run_mode: string
+          target_version: number | null
           version: number
         }
         Insert: {
+          correlation_id?: string | null
           created_at?: string
+          duration_ms?: number | null
           error?: string | null
           evaluated_count?: number
           id?: string
+          label?: string | null
           matched_count?: number
           params?: Json
           passed?: boolean
           results?: Json
           rule_id: string
           run_by?: string | null
+          run_mode?: string
+          target_version?: number | null
           version: number
         }
         Update: {
+          correlation_id?: string | null
           created_at?: string
+          duration_ms?: number | null
           error?: string | null
           evaluated_count?: number
           id?: string
+          label?: string | null
           matched_count?: number
           params?: Json
           passed?: boolean
           results?: Json
           rule_id?: string
           run_by?: string | null
+          run_mode?: string
+          target_version?: number | null
           version?: number
         }
         Relationships: [
@@ -18771,6 +18863,15 @@ export type Database = {
         Args: { _note?: string; _rule_id: string }
         Returns: Json
       }
+      engine_rule_alert_transition: {
+        Args: {
+          _alert_id: string
+          _assign_to?: string
+          _note?: string
+          _to_status: string
+        }
+        Returns: Json
+      }
       engine_rule_deactivate: {
         Args: { _justification: string; _rule_id: string }
         Returns: Json
@@ -18807,12 +18908,26 @@ export type Database = {
         }
         Returns: string
       }
+      engine_rule_record_test_run: { Args: { _payload: Json }; Returns: string }
       engine_rule_restore_version: {
         Args: { _note?: string; _rule_id: string; _version: number }
         Returns: Json
       }
       engine_rule_save: {
         Args: { _payload: Json; _rule_id?: string }
+        Returns: Json
+      }
+      engine_rule_suppression_state: {
+        Args: { _at?: string; _entity_key: string; _rule_id: string }
+        Returns: Json
+      }
+      engine_rule_task_transition: {
+        Args: {
+          _assign_to?: string
+          _note?: string
+          _task_id: string
+          _to_status: string
+        }
         Returns: Json
       }
       engine_rule_validate: {
