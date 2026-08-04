@@ -112,10 +112,25 @@ export async function runRuleTest(p: TesterRunParams): Promise<TesterRunResult> 
   return data as TesterRunResult;
 }
 
-/** Parses `metric_key=value` lines into an override map. */
+/**
+ * Parses manual metric overrides. Accepts either a JSON object
+ * (`{"car": 8}`) or `metric_key=value` lines / comma-separated pairs.
+ */
 export function parseOverrides(text: string): Record<string, unknown> {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return {};
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      /* fall through to key=value parsing */
+    }
+  }
   const out: Record<string, unknown> = {};
-  for (const line of (text || '').split(/[\n,]/)) {
+  for (const line of trimmed.split(/[\n,]/)) {
     const [k, ...rest] = line.split('=');
     const key = (k || '').trim();
     if (!key || !rest.length) continue;
@@ -125,6 +140,7 @@ export function parseOverrides(text: string): Record<string, unknown> {
   }
   return out;
 }
+
 
 export function overridesToText(o: Record<string, unknown>): string {
   return Object.entries(o || {}).map(([k, v]) => `${k}=${v}`).join('\n');
