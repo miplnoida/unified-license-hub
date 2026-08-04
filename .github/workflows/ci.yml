@@ -182,9 +182,27 @@ jobs:
           missing=0
           for f in \
             supabase/functions/complaint-escalation-sweep/index_test.ts \
-            supabase/functions/complaint-storage-cleanup/index_test.ts; do
+            supabase/functions/complaint-storage-cleanup/index_test.ts \
+            supabase/functions/tests/integration_governance_test.ts \
+            supabase/functions/tests/integration_retry_queue_test.ts; do
             if [ ! -f "$f" ]; then
               echo "::error::Required edge-function test missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Assert Integration Manager evidence artefacts exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/integrations/400_retry_queue.sql \
+            docs/verification/integrations/03_invocation_service.md \
+            docs/verification/integrations/04_retry_queue.md \
+            docs/verification/integrations/05_dead_letter_queue.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required integration artefact missing: $f"
               missing=1
             fi
           done

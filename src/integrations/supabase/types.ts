@@ -8837,6 +8837,123 @@ export type Database = {
           },
         ]
       }
+      integration_dead_letter: {
+        Row: {
+          actor_id: string | null
+          attempt_history: Json
+          attempts: number
+          business_event: string | null
+          connection_id: string | null
+          correlation_id: string | null
+          created_at: string
+          error_category: string | null
+          error_message: string | null
+          id: string
+          idempotency_fingerprint: string | null
+          idempotency_key: string | null
+          integration_key: string
+          integration_log_id: string | null
+          last_retried_at: string | null
+          last_retried_by: string | null
+          metadata: Json
+          operation: string
+          payload: Json
+          provider_response: Json
+          provider_status: number | null
+          redacted_fields: string[]
+          resolution_note: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          retry_queue_id: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          attempt_history?: Json
+          attempts?: number
+          business_event?: string | null
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_category?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_fingerprint?: string | null
+          idempotency_key?: string | null
+          integration_key: string
+          integration_log_id?: string | null
+          last_retried_at?: string | null
+          last_retried_by?: string | null
+          metadata?: Json
+          operation: string
+          payload?: Json
+          provider_response?: Json
+          provider_status?: number | null
+          redacted_fields?: string[]
+          resolution_note?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_queue_id?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          attempt_history?: Json
+          attempts?: number
+          business_event?: string | null
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          error_category?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_fingerprint?: string | null
+          idempotency_key?: string | null
+          integration_key?: string
+          integration_log_id?: string | null
+          last_retried_at?: string | null
+          last_retried_by?: string | null
+          metadata?: Json
+          operation?: string
+          payload?: Json
+          provider_response?: Json
+          provider_status?: number | null
+          redacted_fields?: string[]
+          resolution_note?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_queue_id?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_dead_letter_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_dead_letter_retry_queue_id_fkey"
+            columns: ["retry_queue_id"]
+            isOneToOne: false
+            referencedRelation: "integration_retry_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_fallback_events: {
         Row: {
           actor_id: string | null
@@ -9018,6 +9135,140 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      integration_retry_queue: {
+        Row: {
+          actor_id: string | null
+          attempt_history: Json
+          attempts: number
+          backoff_base_ms: number
+          backoff_strategy: string
+          business_event: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_reason: string | null
+          completed_at: string | null
+          connection_id: string | null
+          correlation_id: string | null
+          created_at: string
+          dead_lettered_at: string | null
+          enqueued_reason: string | null
+          fallback_policy: string
+          id: string
+          idempotency_fingerprint: string | null
+          idempotency_key: string | null
+          integration_key: string
+          last_error: string | null
+          last_error_category: string | null
+          last_integration_log_id: string | null
+          last_provider_status: number | null
+          lease_owner: string | null
+          leased_until: string | null
+          max_attempts: number
+          metadata: Json
+          next_attempt_at: string
+          operation: string
+          payload: Json
+          redacted_fields: string[]
+          required_capability: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string
+          status: string
+          timeout_override_ms: number | null
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          attempt_history?: Json
+          attempts?: number
+          backoff_base_ms?: number
+          backoff_strategy?: string
+          business_event?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          enqueued_reason?: string | null
+          fallback_policy?: string
+          id?: string
+          idempotency_fingerprint?: string | null
+          idempotency_key?: string | null
+          integration_key: string
+          last_error?: string | null
+          last_error_category?: string | null
+          last_integration_log_id?: string | null
+          last_provider_status?: number | null
+          lease_owner?: string | null
+          leased_until?: string | null
+          max_attempts?: number
+          metadata?: Json
+          next_attempt_at?: string
+          operation: string
+          payload?: Json
+          redacted_fields?: string[]
+          required_capability?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module: string
+          status?: string
+          timeout_override_ms?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          attempt_history?: Json
+          attempts?: number
+          backoff_base_ms?: number
+          backoff_strategy?: string
+          business_event?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_reason?: string | null
+          completed_at?: string | null
+          connection_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dead_lettered_at?: string | null
+          enqueued_reason?: string | null
+          fallback_policy?: string
+          id?: string
+          idempotency_fingerprint?: string | null
+          idempotency_key?: string | null
+          integration_key?: string
+          last_error?: string | null
+          last_error_category?: string | null
+          last_integration_log_id?: string | null
+          last_provider_status?: number | null
+          lease_owner?: string | null
+          leased_until?: string | null
+          max_attempts?: number
+          metadata?: Json
+          next_attempt_at?: string
+          operation?: string
+          payload?: Json
+          redacted_fields?: string[]
+          required_capability?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          source_module?: string
+          status?: string
+          timeout_override_ms?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_retry_queue_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_queue: {
         Row: {
@@ -20095,6 +20346,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      integration_dlq_resolve: {
+        Args: { _id: string; _note: string }
+        Returns: string
+      }
+      integration_dlq_retry: {
+        Args: { _id: string; _justification: string }
+        Returns: string
+      }
       integration_fallback_metrics: { Args: { _days?: number }; Returns: Json }
       integration_health_summary: {
         Args: never
@@ -20164,6 +20423,112 @@ export type Database = {
       integration_resolve_connection: {
         Args: { _integration_key: string }
         Returns: Json
+      }
+      integration_retry_assert_operator: { Args: never; Returns: undefined }
+      integration_retry_cancel: {
+        Args: { _id: string; _justification: string }
+        Returns: string
+      }
+      integration_retry_claim: {
+        Args: { _lease_seconds?: number; _limit?: number; _worker: string }
+        Returns: {
+          actor_id: string | null
+          attempt_history: Json
+          attempts: number
+          backoff_base_ms: number
+          backoff_strategy: string
+          business_event: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_reason: string | null
+          completed_at: string | null
+          connection_id: string | null
+          correlation_id: string | null
+          created_at: string
+          dead_lettered_at: string | null
+          enqueued_reason: string | null
+          fallback_policy: string
+          id: string
+          idempotency_fingerprint: string | null
+          idempotency_key: string | null
+          integration_key: string
+          last_error: string | null
+          last_error_category: string | null
+          last_integration_log_id: string | null
+          last_provider_status: number | null
+          lease_owner: string | null
+          leased_until: string | null
+          max_attempts: number
+          metadata: Json
+          next_attempt_at: string
+          operation: string
+          payload: Json
+          redacted_fields: string[]
+          required_capability: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          source_module: string
+          status: string
+          timeout_override_ms: number | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "integration_retry_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      integration_retry_enqueue: {
+        Args: {
+          _actor_id?: string
+          _business_event?: string
+          _correlation_id?: string
+          _error?: string
+          _error_category?: string
+          _fallback_policy?: string
+          _idempotency_fingerprint?: string
+          _idempotency_key?: string
+          _integration_key: string
+          _integration_log_id?: string
+          _metadata?: Json
+          _operation: string
+          _payload?: Json
+          _provider_status?: number
+          _redacted_fields?: string[]
+          _required_capability?: string
+          _source_entity_id?: string
+          _source_entity_type?: string
+          _source_module: string
+          _timeout_override_ms?: number
+        }
+        Returns: string
+      }
+      integration_retry_heartbeat: {
+        Args: { _id: string; _lease_seconds?: number; _worker: string }
+        Returns: boolean
+      }
+      integration_retry_is_retryable: {
+        Args: { _error_category: string }
+        Returns: boolean
+      }
+      integration_retry_metrics: { Args: never; Returns: Json }
+      integration_retry_now: {
+        Args: { _id: string; _justification: string }
+        Returns: string
+      }
+      integration_retry_record_outcome: {
+        Args: {
+          _error?: string
+          _error_category?: string
+          _execution_mode?: string
+          _id: string
+          _integration_log_id?: string
+          _ok: boolean
+          _provider_response?: Json
+          _provider_status?: number
+        }
+        Returns: string
       }
       is_assignment_only_regulator: {
         Args: { _user_id: string }
