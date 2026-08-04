@@ -66,7 +66,7 @@ export default function RuleEditor() {
         supabase.from('roles' as any).select('name').order('name'),
         supabase.from('notification_event_configs' as any).select('event_key, description').eq('is_active', true).order('event_key'),
         supabase.from('approval_workflows' as any).select('id, name, current_published_version_id').eq('is_active', true).order('name'),
-        supabase.from('profiles' as any).select('id, full_name, email').order('full_name').limit(500),
+        supabase.rpc('engine_rule_owner_candidates' as any),
       ]);
       const seen = new Set<string>();
       setMetrics(((mRes.data as any[]) || []).filter((m) => {
