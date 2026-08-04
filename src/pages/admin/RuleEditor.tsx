@@ -275,6 +275,22 @@ export default function RuleEditor() {
                 </div>
                 <div className="md:col-span-2"><Label>Description</Label>
                   <Textarea rows={2} value={rule.description || ''} onChange={(e) => setRule({ ...rule, description: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label>Change note {isNew ? '(optional)' : ''}</Label>
+                  <Textarea rows={2} value={versionNote} onChange={(e) => setVersionNote(e.target.value)}
+                    placeholder="Why is this change being made?" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Required when conditions, actions, severity, owner, effective dates or suppression change. Stored with the new version and the audit trail.
+                  </p></div>
+                <div><Label>If an action fails</Label>
+                  <Select value={(rule as any).on_action_failure || 'continue'}
+                    onValueChange={(v) => setRule({ ...rule, on_action_failure: v } as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="continue">Continue with the remaining actions</SelectItem>
+                      <SelectItem value="stop">Stop and record the failure</SelectItem>
+                    </SelectContent>
+                  </Select></div>
+
                 <div><Label>Module</Label>
                   <Select value={rule.module} onValueChange={(v) => setRule({ ...rule, module: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
