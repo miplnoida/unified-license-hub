@@ -21,8 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, Plug, RefreshCw, Activity, KeyRound, BellRing, Zap } from 'lucide-react';
+import { ArrowLeft, Loader2, Plug, RefreshCw, Activity, KeyRound, BellRing, Zap, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { RetryQueuePanel } from '@/components/settings/integrations/RetryQueuePanel';
+
 
 type Health = {
   connection_id: string;
@@ -283,8 +285,15 @@ export default function IntegrationSettings() {
           <TabsList>
             <TabsTrigger value="connections"><Plug className="h-4 w-4 mr-2" />Connections</TabsTrigger>
             <TabsTrigger value="events"><Activity className="h-4 w-4 mr-2" />Event Log</TabsTrigger>
+            <TabsTrigger value="retries"><RotateCcw className="h-4 w-4 mr-2" />Retry Queue / Dead Letter</TabsTrigger>
             <TabsTrigger value="alerts"><BellRing className="h-4 w-4 mr-2" />Alerts</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="retries" className="mt-4">
+            <RetryQueuePanel />
+          </TabsContent>
+
+
 
           <TabsContent value="connections" className="mt-4">
             <Card>

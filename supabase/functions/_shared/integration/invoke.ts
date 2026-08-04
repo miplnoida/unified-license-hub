@@ -48,7 +48,15 @@ export interface IntegrationRequest {
   fallbackPolicy?: FallbackPolicy;
   timeoutOverrideMs?: number | null;
   metadata?: Record<string, unknown>;
+  /**
+   * Opt in to the durable retry queue. When true, a *technically* retryable
+   * failure is enqueued in `integration_retry_queue` under the SAME
+   * idempotency fingerprint. Permanent business rejections are never enqueued
+   * (the enqueue RPC refuses them).
+   */
+  retryQueue?: boolean;
 }
+
 
 export interface IntegrationResult<T = unknown> {
   success: boolean;
@@ -70,8 +78,11 @@ export interface IntegrationResult<T = unknown> {
   errorMessage: string | null;
   providerMessage: string | null;
   providerReference: string | null;
+  /** Durable retry-queue row when the failure was enqueued, else null. */
+  retryQueueId: string | null;
   respondedAt: string;
 }
+
 
 /**
  * Categories that represent a provider *decision*, not a transport problem.
@@ -190,7 +201,9 @@ export async function invokeIntegration<T = unknown>(
     providerMessage: null as string | null,
     providerReference: null as string | null,
     integrationLogId: null as string | null,
+    retryQueueId: null as string | null,
   };
+
 
   /** Governance-only outcome (no provider call was made). */
   const governed = async (
@@ -235,6 +248,14 @@ export async function invokeIntegration<T = unknown>(
       fingerprint,
       logId,
     });
+    const retryQueueId = await maybeEnqueueRetry(admin, request, {
+      category,
+      message,
+      correlationId,
+      fingerprint,
+      logId,
+      providerStatus: null,
+    });
     return {
       ...base,
       success: false,
@@ -249,9 +270,11 @@ export async function invokeIntegration<T = unknown>(
       errorCategory: category,
       errorMessage: message,
       integrationLogId: logId,
+      retryQueueId,
       respondedAt: respondedAt(),
     };
   };
+
 
   if (!connection) {
     return await governed(
@@ -354,6 +377,15 @@ export async function invokeIntegration<T = unknown>(
     logId: result.integrationLogId ?? null,
   });
 
+  const retryQueueId = await maybeEnqueueRetry(admin, request, {
+    category,
+    message: result.error ?? 'Provider call failed.',
+    correlationId,
+    fingerprint,
+    logId: result.integrationLogId ?? null,
+    providerStatus: result.httpStatus ?? null,
+  });
+
   return {
     ...base,
     success: false,
@@ -370,9 +402,65 @@ export async function invokeIntegration<T = unknown>(
     errorCategory: category,
     errorMessage: result.error ?? null,
     integrationLogId: result.integrationLogId ?? null,
+    retryQueueId,
     respondedAt: respondedAt(),
   };
 }
+
+/**
+ * Durable retry enqueue. Only reached when the caller opted in with
+ * `retryQueue: true`. The RPC itself refuses permanent business rejections, so
+ * an adverse provider decision can never be silently re-attempted.
+ * Only the REDACTED request shape is stored — never a raw payload.
+ */
+async function maybeEnqueueRetry(
+  admin: any,
+  request: IntegrationRequest,
+  info: {
+    category: ErrorCategory;
+    message: string;
+    correlationId: string;
+    fingerprint: string | null;
+    logId: string | null;
+    providerStatus: number | null;
+  },
+): Promise<string | null> {
+  if (!request.retryQueue) return null;
+  if (BUSINESS_DECISION_CATEGORIES.has(info.category)) return null;
+  try {
+    const { data, error } = await admin.rpc('integration_retry_enqueue', {
+      _integration_key: request.integrationKey,
+      _operation: request.operation,
+      _source_module: request.sourceModule,
+      _business_event: request.businessEvent,
+      _payload: redactPayload(request.payload ?? {}),
+      _redacted_fields: redactedKeys(request.payload ?? {}),
+      _source_entity_type: request.sourceEntityType ?? null,
+      _source_entity_id: request.sourceEntityId ?? null,
+      _actor_id: request.actorId ?? null,
+      _correlation_id: info.correlationId,
+      _idempotency_key: request.idempotencyKey ?? null,
+      _idempotency_fingerprint: info.fingerprint,
+      _error_category: info.category,
+      _error: info.message,
+      _provider_status: info.providerStatus,
+      _integration_log_id: info.logId,
+      _required_capability: request.requiredCapability ?? null,
+      _fallback_policy: request.fallbackPolicy ?? 'auto',
+      _timeout_override_ms: request.timeoutOverrideMs ?? null,
+      _metadata: request.metadata ?? {},
+    });
+    if (error) {
+      console.warn('[integration-manager] retry enqueue failed:', error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (error) {
+    console.warn('[integration-manager] retry enqueue threw:', error);
+    return null;
+  }
+}
+
 
 async function recordGovernanceEvent(
   admin: any,
