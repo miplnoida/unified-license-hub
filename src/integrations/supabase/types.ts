@@ -8615,90 +8615,138 @@ export type Database = {
       }
       integration_connections: {
         Row: {
+          adapter_key: string | null
           auth_type: string
+          avg_latency_ms: number | null
           base_url: string | null
           category: string | null
+          circuit_cooloff_seconds: number
+          circuit_failure_count: number
+          circuit_failure_threshold: number
+          circuit_opened_at: string | null
+          circuit_state: string
           created_at: string
           created_by: string | null
+          credential_version: number
           data_mapping: Json
           description: string | null
           disabled_at: string | null
           disabled_by: string | null
           disabled_reason: string | null
           enabled: boolean
+          environment: string
+          error_rate: number | null
           id: string
           integration_key: string
           last_error: string | null
           last_error_at: string | null
+          last_recovery_at: string | null
           last_success_at: string | null
           last_test_at: string | null
           last_test_latency_ms: number | null
           name: string
+          owner_team: string | null
+          owner_user_id: string | null
           protocol: string
+          provider_verified: boolean
+          rate_limit_per_minute: number | null
           requires_credentials: boolean
           retry_backoff_ms: number
           retry_count: number
           status: string
+          success_rate: number | null
           timeout_ms: number
           type: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          adapter_key?: string | null
           auth_type?: string
+          avg_latency_ms?: number | null
           base_url?: string | null
           category?: string | null
+          circuit_cooloff_seconds?: number
+          circuit_failure_count?: number
+          circuit_failure_threshold?: number
+          circuit_opened_at?: string | null
+          circuit_state?: string
           created_at?: string
           created_by?: string | null
+          credential_version?: number
           data_mapping?: Json
           description?: string | null
           disabled_at?: string | null
           disabled_by?: string | null
           disabled_reason?: string | null
           enabled?: boolean
+          environment?: string
+          error_rate?: number | null
           id?: string
           integration_key: string
           last_error?: string | null
           last_error_at?: string | null
+          last_recovery_at?: string | null
           last_success_at?: string | null
           last_test_at?: string | null
           last_test_latency_ms?: number | null
           name: string
+          owner_team?: string | null
+          owner_user_id?: string | null
           protocol?: string
+          provider_verified?: boolean
+          rate_limit_per_minute?: number | null
           requires_credentials?: boolean
           retry_backoff_ms?: number
           retry_count?: number
           status?: string
+          success_rate?: number | null
           timeout_ms?: number
           type?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          adapter_key?: string | null
           auth_type?: string
+          avg_latency_ms?: number | null
           base_url?: string | null
           category?: string | null
+          circuit_cooloff_seconds?: number
+          circuit_failure_count?: number
+          circuit_failure_threshold?: number
+          circuit_opened_at?: string | null
+          circuit_state?: string
           created_at?: string
           created_by?: string | null
+          credential_version?: number
           data_mapping?: Json
           description?: string | null
           disabled_at?: string | null
           disabled_by?: string | null
           disabled_reason?: string | null
           enabled?: boolean
+          environment?: string
+          error_rate?: number | null
           id?: string
           integration_key?: string
           last_error?: string | null
           last_error_at?: string | null
+          last_recovery_at?: string | null
           last_success_at?: string | null
           last_test_at?: string | null
           last_test_latency_ms?: number | null
           name?: string
+          owner_team?: string | null
+          owner_user_id?: string | null
           protocol?: string
+          provider_verified?: boolean
+          rate_limit_per_minute?: number | null
           requires_credentials?: boolean
           retry_backoff_ms?: number
           retry_count?: number
           status?: string
+          success_rate?: number | null
           timeout_ms?: number
           type?: string
           updated_at?: string
@@ -8759,56 +8807,80 @@ export type Database = {
       integration_logs: {
         Row: {
           actor_id: string | null
+          business_event: string | null
+          correlation_id: string | null
           created_at: string
           direction: string
           duration_ms: number | null
           endpoint: string | null
           entity_id: string | null
           entity_type: string | null
+          environment: string | null
           error: string | null
+          error_category: string | null
           http_status: number | null
           id: string
           integration_key: string
           metadata: Json
           method: string | null
+          request_bytes: number | null
           request_summary: string | null
+          response_bytes: number | null
           response_summary: string | null
+          retry_attempt: number
+          source_module: string | null
           status: string
         }
         Insert: {
           actor_id?: string | null
+          business_event?: string | null
+          correlation_id?: string | null
           created_at?: string
           direction: string
           duration_ms?: number | null
           endpoint?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          environment?: string | null
           error?: string | null
+          error_category?: string | null
           http_status?: number | null
           id?: string
           integration_key: string
           metadata?: Json
           method?: string | null
+          request_bytes?: number | null
           request_summary?: string | null
+          response_bytes?: number | null
           response_summary?: string | null
+          retry_attempt?: number
+          source_module?: string | null
           status: string
         }
         Update: {
           actor_id?: string | null
+          business_event?: string | null
+          correlation_id?: string | null
           created_at?: string
           direction?: string
           duration_ms?: number | null
           endpoint?: string | null
           entity_id?: string | null
           entity_type?: string | null
+          environment?: string | null
           error?: string | null
+          error_category?: string | null
           http_status?: number | null
           id?: string
           integration_key?: string
           metadata?: Json
           method?: string | null
+          request_bytes?: number | null
           request_summary?: string | null
+          response_bytes?: number | null
           response_summary?: string | null
+          retry_attempt?: number
+          source_module?: string | null
           status?: string
         }
         Relationships: []
@@ -19892,26 +19964,51 @@ export type Database = {
       integration_health_summary: {
         Args: never
         Returns: {
+          adapter_key: string
           auth_type: string
+          avg_latency_ms: number
           base_url: string
+          circuit_failure_count: number
+          circuit_opened_at: string
+          circuit_state: string
           connection_id: string
           credential_masked_hint: string
           credential_rotated_at: string
+          credential_version: number
           disabled_reason: string
           enabled: boolean
+          environment: string
           error_count_24h: number
+          error_rate: number
           event_count_24h: number
           integration_key: string
           last_error: string
           last_error_at: string
+          last_recovery_at: string
           last_success_at: string
           last_test_at: string
           last_test_latency_ms: number
           name: string
+          owner_team: string
           protocol: string
+          provider_verified: boolean
           status: string
+          success_rate: number
           type: string
         }[]
+      }
+      integration_record_outcome: {
+        Args: {
+          _error?: string
+          _integration_key: string
+          _latency_ms?: number
+          _ok: boolean
+        }
+        Returns: Json
+      }
+      integration_resolve_connection: {
+        Args: { _integration_key: string }
+        Returns: Json
       }
       is_assignment_only_regulator: {
         Args: { _user_id: string }
