@@ -45,6 +45,8 @@ const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
 const RuleEditor = lazy(() => import('@/pages/admin/RuleEditor'));
+const ModuleRuleTester = lazy(() => import('@/pages/admin/ModuleRuleTester'));
+
 const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
 const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
 const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
