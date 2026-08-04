@@ -291,17 +291,21 @@ export default function RuleLibrary() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_code')}>Rule ID</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_code')}>Rule Code</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('name')}>Rule</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('family')}>Family</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_type')}>Type</TableHead>
-                    <TableHead>Module</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('module')}>Module</TableHead>
+                    <TableHead>Sub module</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('severity')}>Severity</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('status')}>Status</TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_triggered_at')}>Last triggered</TableHead>
+                    <TableHead>Version</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('trigger_count')}>Fires</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_triggered_at')}>Last triggered</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('last_tested_at')}>Last tested</TableHead>
-                    <TableHead>Last modified</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Runtime owner</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_modified_at')}>Last modified</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
@@ -320,15 +324,29 @@ export default function RuleLibrary() {
                         </TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{typeLabel(r.rule_type)}</Badge></TableCell>
                         <TableCell className="text-xs capitalize">{r.module?.replace(/_/g, ' ') || '—'}</TableCell>
+                        <TableCell className="text-xs capitalize">{r.sub_module?.replace(/_/g, ' ') || '—'}</TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{r.severity || '—'}</Badge></TableCell>
                         <TableCell><Badge variant={statusVariant(r.status) as any} className="capitalize">{r.status}</Badge></TableCell>
-                        <TableCell className="text-xs font-mono">{fmtDate(r.last_triggered_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {r.capabilities?.versions
+                            ? <>v{r.version ?? '—'}<div className="text-[11px] text-muted-foreground">active v{r.active_version ?? '—'}</div></>
+                            : <span className="text-muted-foreground">n/a</span>}
+                        </TableCell>
                         <TableCell className="text-xs font-mono">{r.trigger_count ?? 0}</TableCell>
-                        <TableCell className="text-xs font-mono">{fmtDate(r.last_tested_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">{fmtDate(r.last_triggered_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {r.capabilities?.test ? fmtDate(r.last_tested_at) : <span className="text-muted-foreground">n/a</span>}
+                        </TableCell>
+                        <TableCell className="text-xs">{r.owner_name || '—'}</TableCell>
+                        <TableCell className="text-[11px] font-mono">{r.runtime_owner || '—'}</TableCell>
                         <TableCell className="text-xs">
                           <div>{fmtDate(r.last_modified_at)}</div>
                           <div className="text-[11px] text-muted-foreground">{r.modified_by_name || '—'}</div>
+                          {r.source_screen && (
+                            <div className="text-[11px] text-muted-foreground">{r.source_screen}</div>
+                          )}
                         </TableCell>
+
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             {r.capabilities?.test && r.capabilities?.edit_central && (
