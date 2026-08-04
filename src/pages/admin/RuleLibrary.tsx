@@ -35,6 +35,9 @@ export default function RuleLibrary() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<InventoryRule[]>([]);
   const [kpis, setKpis] = useState<RuleInventoryKpis | null>(null);
+  const [facets, setFacets] = useState<RuleInventoryFacets>({
+    modules: [], sub_modules: [], rule_types: [], severities: [], tags: [],
+  });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -44,6 +47,11 @@ export default function RuleLibrary() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [subModuleFilter, setSubModuleFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [triggeredFrom, setTriggeredFrom] = useState('');
+  const [triggeredTo, setTriggeredTo] = useState('');
   const [sort, setSort] = useState('last_modified_at');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
 
@@ -56,25 +64,38 @@ export default function RuleLibrary() {
     try {
       const res = await searchRuleInventory({
         search, family, rule_type: typeFilter, status: statusFilter, severity: severityFilter,
+        module: moduleFilter, sub_module: subModuleFilter, tag: tagFilter,
+        triggered_from: triggeredFrom ? new Date(triggeredFrom).toISOString() : null,
+        triggered_to: triggeredTo ? new Date(`${triggeredTo}T23:59:59`).toISOString() : null,
         sort, dir, limit: PAGE_SIZE, offset: page * PAGE_SIZE,
       });
       setRows(res.rows);
       setTotal(res.total);
       setKpis(res.kpis);
+      setFacets(res.facets);
     } catch (e: any) {
       toast.error(e.message === 'forbidden' ? 'You do not have access to the Rule Engine.' : e.message);
     }
     setLoading(false);
-  }, [search, family, typeFilter, statusFilter, severityFilter, sort, dir, page]);
+  }, [search, family, typeFilter, statusFilter, severityFilter, moduleFilter, subModuleFilter,
+      tagFilter, triggeredFrom, triggeredTo, sort, dir, page]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(0); }, [search, family, typeFilter, statusFilter, severityFilter]);
+  useEffect(() => { setPage(0); }, [search, family, typeFilter, statusFilter, severityFilter,
+    moduleFilter, subModuleFilter, tagFilter, triggeredFrom, triggeredTo]);
 
+  // All nine governed families always render — an empty family is still governed.
   const families = useMemo(() => {
     const counts = kpis?.families || {};
-    const keys = Object.keys(FAMILY_LABELS).filter((k) => counts[k] !== undefined || k === 'shared');
-    return keys.map((k) => ({ key: k, label: FAMILY_LABELS[k], count: counts[k] ?? 0 }));
+    return FAMILY_KEYS.map((k) => ({ key: k, label: FAMILY_LABELS[k], count: counts[k] ?? 0 }));
   }, [kpis]);
+
+  const resetFilters = () => {
+    setSearch(''); setTypeFilter('all'); setStatusFilter('all'); setSeverityFilter('all');
+    setModuleFilter('all'); setSubModuleFilter('all'); setTagFilter('all');
+    setTriggeredFrom(''); setTriggeredTo('');
+  };
+
 
   const toggleSort = (col: string) => {
     if (sort === col) setDir(dir === 'asc' ? 'desc' : 'asc');
