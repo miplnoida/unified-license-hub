@@ -100,5 +100,3 @@ export async function logIntegration(
     return null;
   }
 }
-
-}
