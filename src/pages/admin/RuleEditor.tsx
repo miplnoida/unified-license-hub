@@ -54,6 +54,8 @@ export default function RuleEditor() {
   const [testResult, setTestResult] = useState<any | null>(null);
   const [testHistory, setTestHistory] = useState<any[]>([]);
   const [executions, setExecutions] = useState<any[]>([]);
+  const [versionNote, setVersionNote] = useState('');
+
 
 
   useEffect(() => {
