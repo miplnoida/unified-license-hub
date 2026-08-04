@@ -131,7 +131,8 @@ jobs:
           for f in \
             docs/rule-engine/runtime-ownership.json \
             docs/rule-engine/overlap-matrix.md \
-            supabase/tests/rule_engine/300_runtime_governance.sql; do
+            supabase/tests/rule_engine/300_runtime_governance.sql \
+            supabase/tests/rule_engine/330_tester_parity.sql; do
             if [ ! -f "$f" ]; then
               echo "::error::Required rule-engine artefact missing: $f"
               missing=1
