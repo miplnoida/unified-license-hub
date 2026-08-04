@@ -78,22 +78,42 @@ export interface RuleInventoryFilters {
   offset?: number;
 }
 
+export interface RuleInventoryFacets {
+  modules: string[];
+  sub_modules: string[];
+  rule_types: string[];
+  severities: string[];
+  tags: string[];
+}
+
 export interface RuleInventoryResult {
   rows: InventoryRule[];
   total: number;
   kpis: RuleInventoryKpis;
+  facets: RuleInventoryFacets;
 }
 
+/**
+ * The nine governed rule families. Keys match `public.rule_inventory.family`
+ * exactly — the library always renders all nine, even at zero rows, because an
+ * empty family is still a governed family.
+ */
 export const FAMILY_LABELS: Record<string, string> = {
-  shared: 'Shared Rule Engine',
-  prudential: 'Prudential Thresholds',
+  shared_engine: 'Shared Engine',
+  return_validation: 'Return Validation',
+  prudential: 'Prudential Threshold',
   conduct: 'Conduct Monitoring',
   complaint_triage: 'Complaint Triage',
+  sufficiency: 'Sufficiency',
+  rfi_auto: 'RFI Auto Rules',
   correspondence: 'Correspondence Routing',
   escalation: 'Escalation Rules',
-  return_validation: 'Return Validation',
-  sufficiency: 'Sufficiency Rules',
-  rfi_auto: 'RFI Auto-Rules',
+};
+
+export const FAMILY_KEYS = Object.keys(FAMILY_LABELS);
+
+const EMPTY_FACETS: RuleInventoryFacets = {
+  modules: [], sub_modules: [], rule_types: [], severities: [], tags: [],
 };
 
 export async function searchRuleInventory(f: RuleInventoryFilters): Promise<RuleInventoryResult> {
@@ -122,20 +142,24 @@ export async function searchRuleInventory(f: RuleInventoryFilters): Promise<Rule
       total: 0, active: 0, draft: 0, inactive: 0,
       never_executed: 0, never_tested: 0, stale_tests: 0, failing: 0, families: null,
     },
+    facets: { ...EMPTY_FACETS, ...((payload.facets as Partial<RuleInventoryFacets>) || {}) },
   };
 }
 
+
 export function inventoryCsv(rows: InventoryRule[]): string {
   const head = [
-    'Rule ID', 'Name', 'Family', 'Module', 'Sub-module', 'Type', 'Severity', 'Status',
-    'Version', 'Trigger count', 'Last triggered', 'Last tested', 'Owner', 'Runtime owner',
-    'Last modified by', 'Last modified at',
+    'Rule Code', 'Name', 'Description', 'Family', 'Module', 'Sub Module', 'Rule Type', 'Severity',
+    'Status', 'Active Version', 'Current Version', 'Trigger Count', 'Last Triggered', 'Last Tested',
+    'Owner', 'Runtime Owner', 'Last Modified By', 'Last Modified', 'Source Screen',
   ];
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = rows.map((r) => [
-    r.rule_code, r.name, r.family_label, r.module, r.sub_module, r.rule_type, r.severity,
-    r.status, r.version, r.trigger_count, r.last_triggered_at, r.last_tested_at,
-    r.owner_name, r.runtime_owner, r.modified_by_name, r.last_modified_at,
+    r.rule_code, r.name, r.description, r.family_label, r.module, r.sub_module, r.rule_type,
+    r.severity, r.status, r.active_version, r.version, r.trigger_count, r.last_triggered_at,
+    r.last_tested_at, r.owner_name, r.runtime_owner, r.modified_by_name, r.last_modified_at,
+    r.source_screen,
   ].map(esc).join(','));
   return [head.map(esc).join(','), ...lines].join('\n');
 }
+

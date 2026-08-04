@@ -20,8 +20,10 @@ import {
 } from 'lucide-react';
 import { RULE_TYPES } from '@/lib/ruleEngine';
 import {
-  FAMILY_LABELS, InventoryRule, RuleInventoryKpis, inventoryCsv, searchRuleInventory,
+  FAMILY_KEYS, FAMILY_LABELS, InventoryRule, RuleInventoryFacets, RuleInventoryKpis,
+  inventoryCsv, searchRuleInventory,
 } from '@/lib/ruleInventory';
+
 
 const PAGE_SIZE = 50;
 
@@ -33,6 +35,9 @@ export default function RuleLibrary() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<InventoryRule[]>([]);
   const [kpis, setKpis] = useState<RuleInventoryKpis | null>(null);
+  const [facets, setFacets] = useState<RuleInventoryFacets>({
+    modules: [], sub_modules: [], rule_types: [], severities: [], tags: [],
+  });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -42,6 +47,11 @@ export default function RuleLibrary() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [subModuleFilter, setSubModuleFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [triggeredFrom, setTriggeredFrom] = useState('');
+  const [triggeredTo, setTriggeredTo] = useState('');
   const [sort, setSort] = useState('last_modified_at');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
 
@@ -54,25 +64,38 @@ export default function RuleLibrary() {
     try {
       const res = await searchRuleInventory({
         search, family, rule_type: typeFilter, status: statusFilter, severity: severityFilter,
+        module: moduleFilter, sub_module: subModuleFilter, tag: tagFilter,
+        triggered_from: triggeredFrom ? new Date(triggeredFrom).toISOString() : null,
+        triggered_to: triggeredTo ? new Date(`${triggeredTo}T23:59:59`).toISOString() : null,
         sort, dir, limit: PAGE_SIZE, offset: page * PAGE_SIZE,
       });
       setRows(res.rows);
       setTotal(res.total);
       setKpis(res.kpis);
+      setFacets(res.facets);
     } catch (e: any) {
       toast.error(e.message === 'forbidden' ? 'You do not have access to the Rule Engine.' : e.message);
     }
     setLoading(false);
-  }, [search, family, typeFilter, statusFilter, severityFilter, sort, dir, page]);
+  }, [search, family, typeFilter, statusFilter, severityFilter, moduleFilter, subModuleFilter,
+      tagFilter, triggeredFrom, triggeredTo, sort, dir, page]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(0); }, [search, family, typeFilter, statusFilter, severityFilter]);
+  useEffect(() => { setPage(0); }, [search, family, typeFilter, statusFilter, severityFilter,
+    moduleFilter, subModuleFilter, tagFilter, triggeredFrom, triggeredTo]);
 
+  // All nine governed families always render — an empty family is still governed.
   const families = useMemo(() => {
     const counts = kpis?.families || {};
-    const keys = Object.keys(FAMILY_LABELS).filter((k) => counts[k] !== undefined || k === 'shared');
-    return keys.map((k) => ({ key: k, label: FAMILY_LABELS[k], count: counts[k] ?? 0 }));
+    return FAMILY_KEYS.map((k) => ({ key: k, label: FAMILY_LABELS[k], count: counts[k] ?? 0 }));
   }, [kpis]);
+
+  const resetFilters = () => {
+    setSearch(''); setTypeFilter('all'); setStatusFilter('all'); setSeverityFilter('all');
+    setModuleFilter('all'); setSubModuleFilter('all'); setTagFilter('all');
+    setTriggeredFrom(''); setTriggeredTo('');
+  };
+
 
   const toggleSort = (col: string) => {
     if (sort === col) setDir(dir === 'asc' ? 'desc' : 'asc');
@@ -193,7 +216,10 @@ export default function RuleLibrary() {
                 <SelectTrigger><SelectValue placeholder="Rule type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All types</SelectItem>
-                  {RULE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  {(facets.rule_types.length
+                    ? facets.rule_types.map((v) => ({ value: v, label: typeLabel(v) }))
+                    : RULE_TYPES.map((t) => ({ value: t.value, label: t.label }))
+                  ).map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -209,10 +235,51 @@ export default function RuleLibrary() {
                 <SelectTrigger><SelectValue placeholder="Severity" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All severities</SelectItem>
-                  {['low', 'medium', 'high', 'critical'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {(facets.severities.length ? facets.severities : ['low', 'medium', 'high', 'critical'])
+                    .map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                <SelectTrigger><SelectValue placeholder="Module" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All modules</SelectItem>
+                  {facets.modules.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">{m.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={subModuleFilter} onValueChange={setSubModuleFilter}>
+                <SelectTrigger><SelectValue placeholder="Sub-module" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sub-modules</SelectItem>
+                  {facets.sub_modules.map((m) => (
+                    <SelectItem key={m} value={m} className="capitalize">{m.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tagFilter} onValueChange={setTagFilter}>
+                <SelectTrigger><SelectValue placeholder="Tag" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All tags</SelectItem>
+                  {facets.tags.length === 0 && <SelectItem value="__none" disabled>No tags in use</SelectItem>}
+                  {facets.tags.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Label className="text-[11px] text-muted-foreground">Triggered from</Label>
+                  <Input type="date" value={triggeredFrom} onChange={(e) => setTriggeredFrom(e.target.value)} />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-[11px] text-muted-foreground">to</Label>
+                  <Input type="date" value={triggeredTo} onChange={(e) => setTriggeredTo(e.target.value)} />
+                </div>
+              </div>
             </div>
+            <div className="flex justify-end">
+              <Button size="sm" variant="ghost" onClick={resetFilters}>Reset filters</Button>
+            </div>
+
 
             {loading ? (
               <div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
@@ -224,17 +291,21 @@ export default function RuleLibrary() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_code')}>Rule ID</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_code')}>Rule Code</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('name')}>Rule</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('family')}>Family</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('rule_type')}>Type</TableHead>
-                    <TableHead>Module</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('module')}>Module</TableHead>
+                    <TableHead>Sub module</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('severity')}>Severity</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('status')}>Status</TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_triggered_at')}>Last triggered</TableHead>
+                    <TableHead>Version</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('trigger_count')}>Fires</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_triggered_at')}>Last triggered</TableHead>
                     <TableHead className="cursor-pointer" onClick={() => toggleSort('last_tested_at')}>Last tested</TableHead>
-                    <TableHead>Last modified</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Runtime owner</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => toggleSort('last_modified_at')}>Last modified</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
@@ -253,15 +324,29 @@ export default function RuleLibrary() {
                         </TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{typeLabel(r.rule_type)}</Badge></TableCell>
                         <TableCell className="text-xs capitalize">{r.module?.replace(/_/g, ' ') || '—'}</TableCell>
+                        <TableCell className="text-xs capitalize">{r.sub_module?.replace(/_/g, ' ') || '—'}</TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{r.severity || '—'}</Badge></TableCell>
                         <TableCell><Badge variant={statusVariant(r.status) as any} className="capitalize">{r.status}</Badge></TableCell>
-                        <TableCell className="text-xs font-mono">{fmtDate(r.last_triggered_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {r.capabilities?.versions
+                            ? <>v{r.version ?? '—'}<div className="text-[11px] text-muted-foreground">active v{r.active_version ?? '—'}</div></>
+                            : <span className="text-muted-foreground">n/a</span>}
+                        </TableCell>
                         <TableCell className="text-xs font-mono">{r.trigger_count ?? 0}</TableCell>
-                        <TableCell className="text-xs font-mono">{fmtDate(r.last_tested_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">{fmtDate(r.last_triggered_at)}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {r.capabilities?.test ? fmtDate(r.last_tested_at) : <span className="text-muted-foreground">n/a</span>}
+                        </TableCell>
+                        <TableCell className="text-xs">{r.owner_name || '—'}</TableCell>
+                        <TableCell className="text-[11px] font-mono">{r.runtime_owner || '—'}</TableCell>
                         <TableCell className="text-xs">
                           <div>{fmtDate(r.last_modified_at)}</div>
                           <div className="text-[11px] text-muted-foreground">{r.modified_by_name || '—'}</div>
+                          {r.source_screen && (
+                            <div className="text-[11px] text-muted-foreground">{r.source_screen}</div>
+                          )}
                         </TableCell>
+
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             {r.capabilities?.test && r.capabilities?.edit_central && (
