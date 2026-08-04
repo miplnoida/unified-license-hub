@@ -20,8 +20,10 @@ import {
 } from 'lucide-react';
 import { RULE_TYPES } from '@/lib/ruleEngine';
 import {
-  FAMILY_LABELS, InventoryRule, RuleInventoryKpis, inventoryCsv, searchRuleInventory,
+  FAMILY_KEYS, FAMILY_LABELS, InventoryRule, RuleInventoryFacets, RuleInventoryKpis,
+  inventoryCsv, searchRuleInventory,
 } from '@/lib/ruleInventory';
+
 
 const PAGE_SIZE = 50;
 
