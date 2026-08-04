@@ -8563,6 +8563,199 @@ export type Database = {
           },
         ]
       }
+      integration_alert_rules: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          error_count_threshold: number
+          id: string
+          last_fired_at: string | null
+          recipient_emails: string[]
+          recipient_user_ids: string[]
+          updated_at: string
+          window_minutes: number
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          error_count_threshold?: number
+          id?: string
+          last_fired_at?: string | null
+          recipient_emails?: string[]
+          recipient_user_ids?: string[]
+          updated_at?: string
+          window_minutes?: number
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          error_count_threshold?: number
+          id?: string
+          last_fired_at?: string | null
+          recipient_emails?: string[]
+          recipient_user_ids?: string[]
+          updated_at?: string
+          window_minutes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_alert_rules_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_connections: {
+        Row: {
+          auth_type: string
+          base_url: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          data_mapping: Json
+          description: string | null
+          disabled_at: string | null
+          disabled_by: string | null
+          disabled_reason: string | null
+          enabled: boolean
+          id: string
+          integration_key: string
+          last_error: string | null
+          last_error_at: string | null
+          last_success_at: string | null
+          last_test_at: string | null
+          last_test_latency_ms: number | null
+          name: string
+          protocol: string
+          requires_credentials: boolean
+          retry_backoff_ms: number
+          retry_count: number
+          status: string
+          timeout_ms: number
+          type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auth_type?: string
+          base_url?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_mapping?: Json
+          description?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
+          disabled_reason?: string | null
+          enabled?: boolean
+          id?: string
+          integration_key: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          last_test_at?: string | null
+          last_test_latency_ms?: number | null
+          name: string
+          protocol?: string
+          requires_credentials?: boolean
+          retry_backoff_ms?: number
+          retry_count?: number
+          status?: string
+          timeout_ms?: number
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auth_type?: string
+          base_url?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_mapping?: Json
+          description?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
+          disabled_reason?: string | null
+          enabled?: boolean
+          id?: string
+          integration_key?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          last_test_at?: string | null
+          last_test_latency_ms?: number | null
+          name?: string
+          protocol?: string
+          requires_credentials?: boolean
+          retry_backoff_ms?: number
+          retry_count?: number
+          status?: string
+          timeout_ms?: number
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      integration_credentials: {
+        Row: {
+          connection_id: string
+          created_at: string
+          id: string
+          is_current: boolean
+          key_prefix: string | null
+          masked_hint: string | null
+          rotated_at: string
+          rotated_by: string | null
+          secret_ref: string
+          superseded_at: string | null
+          version: number
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          key_prefix?: string | null
+          masked_hint?: string | null
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref: string
+          superseded_at?: string | null
+          version?: number
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          key_prefix?: string | null
+          masked_hint?: string | null
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref?: string
+          superseded_at?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_logs: {
         Row: {
           actor_id: string | null
@@ -19671,6 +19864,53 @@ export type Database = {
         Returns: {
           forms_touched: string[]
           values_written: number
+        }[]
+      }
+      integration_alert_rule_save: { Args: { _payload: Json }; Returns: string }
+      integration_alert_sweep: { Args: never; Returns: Json }
+      integration_connection_dependencies: {
+        Args: { _connection_id: string }
+        Returns: Json
+      }
+      integration_connection_save: { Args: { _payload: Json }; Returns: string }
+      integration_connection_set_enabled: {
+        Args: {
+          _connection_id: string
+          _enabled: boolean
+          _justification?: string
+        }
+        Returns: undefined
+      }
+      integration_credentials_rotate: {
+        Args: {
+          _connection_id: string
+          _key_prefix?: string
+          _secret_ref: string
+        }
+        Returns: undefined
+      }
+      integration_health_summary: {
+        Args: never
+        Returns: {
+          auth_type: string
+          base_url: string
+          connection_id: string
+          credential_masked_hint: string
+          credential_rotated_at: string
+          disabled_reason: string
+          enabled: boolean
+          error_count_24h: number
+          event_count_24h: number
+          integration_key: string
+          last_error: string
+          last_error_at: string
+          last_success_at: string
+          last_test_at: string
+          last_test_latency_ms: number
+          name: string
+          protocol: string
+          status: string
+          type: string
         }[]
       }
       is_assignment_only_regulator: {
