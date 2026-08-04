@@ -13,7 +13,7 @@ SELECT plan(14);
 CREATE TEMP TABLE re_fx(k text primary key, v text);
 
 DO $$
-DECLARE v_user uuid := '00000000-0000-0000-0000-0000000re001'; v_rule uuid;
+DECLARE v_user uuid := '00000000-0000-0000-0000-00000000e001'; v_rule uuid;
 BEGIN
   INSERT INTO public.user_roles(user_id, role) VALUES (v_user, 'super_admin')
     ON CONFLICT DO NOTHING;
