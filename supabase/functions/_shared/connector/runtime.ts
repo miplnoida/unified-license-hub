@@ -129,7 +129,7 @@ export async function executeConnector<T = unknown>(
     responseSummary: string | null,
   ): Promise<ConnectorResult<T>> => {
     if (!dryRun) {
-      await logIntegration(admin, {
+      const logId = await logIntegration(admin, {
         direction: 'outbound',
         integrationKey: connection.integration_key,
         endpoint,
@@ -143,6 +143,11 @@ export async function executeConnector<T = unknown>(
         responseSummary,
         error: result.error ? redact(result.error) : null,
         durationMs: result.latencyMs,
+        operation,
+        executionMode: result.ok
+          ? (connection.provider_verified ? 'real' : 'mock')
+          : null,
+        idempotencyFingerprint: opts.idempotencyFingerprint ?? null,
         metadata: {
           correlation_id: correlationId,
           environment: connection.environment,
@@ -152,12 +157,13 @@ export async function executeConnector<T = unknown>(
           error_category: result.errorCategory,
           source_module: ctx.sourceModule,
           business_event: ctx.businessEvent,
-          idempotency_key: ctx.idempotencyKey ?? null,
           credential_version: credential?.version ?? 0,
           adapter: adapter.key,
           operation,
         },
       });
+      result.integrationLogId = logId;
+
       // Only real attempts move health/circuit state.
       if (
         result.errorCategory !== 'not_configured' &&
