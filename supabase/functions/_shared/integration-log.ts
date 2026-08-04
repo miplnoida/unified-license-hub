@@ -28,6 +28,15 @@ export interface IntegrationLogEntry {
   error?: string | null;
   durationMs?: number | null;
   metadata?: Record<string, unknown> | null;
+  /** Ties every call raised by one business action together (ADM-INT-001). */
+  correlationId?: string | null;
+  environment?: string | null;
+  requestBytes?: number | null;
+  responseBytes?: number | null;
+  retryAttempt?: number | null;
+  errorCategory?: string | null;
+  sourceModule?: string | null;
+  businessEvent?: string | null;
 }
 
 export async function logIntegration(
@@ -49,6 +58,16 @@ export async function logIntegration(
       response_summary: entry.responseSummary ?? null,
       error: entry.error ?? null,
       duration_ms: entry.durationMs ?? null,
+      // First-class observability columns (also mirrored in metadata so
+      // existing readers keep working).
+      correlation_id: entry.correlationId ?? (entry.metadata?.correlation_id as string | undefined) ?? null,
+      environment: entry.environment ?? (entry.metadata?.environment as string | undefined) ?? null,
+      request_bytes: entry.requestBytes ?? (entry.metadata?.request_bytes as number | undefined) ?? null,
+      response_bytes: entry.responseBytes ?? (entry.metadata?.response_bytes as number | undefined) ?? null,
+      retry_attempt: entry.retryAttempt ?? (entry.metadata?.retry_attempt as number | undefined) ?? 0,
+      error_category: entry.errorCategory ?? (entry.metadata?.error_category as string | undefined) ?? null,
+      source_module: entry.sourceModule ?? (entry.metadata?.source_module as string | undefined) ?? null,
+      business_event: entry.businessEvent ?? (entry.metadata?.business_event as string | undefined) ?? null,
       metadata: {
         ...(entry.metadata ?? {}),
         logged_at: new Date().toISOString(),
