@@ -252,7 +252,11 @@ export async function executeConnector<T = unknown>(
   };
 
   const maxAttempts = Math.max(1, Math.min(connection.retry_count + 1, 6));
-  const timeout = Math.min(Math.max(connection.timeout_ms, 1000), 120_000);
+  const timeout = Math.min(
+    Math.max(opts.timeoutOverrideMs ?? connection.timeout_ms, 1000),
+    120_000,
+  );
+
   const started = Date.now();
 
   let attempts = 0;
