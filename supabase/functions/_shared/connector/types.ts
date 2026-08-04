@@ -102,7 +102,10 @@ export interface ConnectorResult<T = unknown> {
   /** True when the connection is off/unconfigured and the caller must fall back. */
   fallback: boolean;
   raw?: unknown;
+  /** Row id of the `integration_logs` entry written for this attempt. */
+  integrationLogId?: string | null;
 }
+
 
 /**
  * One adapter per integration key. Each declares how to authenticate, how to
