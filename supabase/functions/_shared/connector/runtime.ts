@@ -98,7 +98,12 @@ export interface ExecuteOptions {
   requestOverride?: ConnectorRequest;
   /** Skip persisting a log row / health mutation (tester dry runs). */
   dryRun?: boolean;
+  /** Safe hash of the idempotency key, written to the log row. */
+  idempotencyFingerprint?: string | null;
+  /** Per-call timeout override, clamped by the runtime. */
+  timeoutOverrideMs?: number | null;
 }
+
 
 /**
  * Execute one connector operation. Never throws: failures come back as a
