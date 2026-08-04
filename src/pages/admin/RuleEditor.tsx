@@ -21,6 +21,8 @@ import {
   RULE_MODULES, RULE_TYPES, RuleAction, RuleConditions, RuleType, SCHEDULE_EVENTS,
   describeRule, emptyConditions, validateRule,
 } from '@/lib/ruleEngine';
+import { RuleTesterPanel } from '@/components/admin/rule-engine/RuleTesterPanel';
+
 
 interface Option { value: string; label: string }
 
@@ -85,7 +87,7 @@ export default function RuleEditor() {
     setLoading(true);
     const [{ data, error }, tests, execs, vers] = await Promise.all([
       supabase.from('engine_rules' as any).select('*').eq('id', id).maybeSingle(),
-      supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(10),
+      supabase.from('engine_rule_tests' as any).select('*').eq('rule_id', id).order('created_at', { ascending: false }).limit(50),
       supabase.from('engine_rule_executions' as any).select('*').eq('rule_id', id).order('executed_at', { ascending: false }).limit(50),
       supabase.from('engine_rule_versions' as any).select('*').eq('rule_id', id).order('version', { ascending: false }),
     ]);
