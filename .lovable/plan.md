@@ -1,28 +1,54 @@
-# Fix: Notification Templates page fails to open
+# OLRAS Deck vs Platform — Capability Gap Tracker (Excel)
 
-## What I verified
+No code changes. The only output is a downloadable Excel workbook shared in chat.
 
-- The page itself is healthy. Loaded `/admin/notification-templates` in a real browser against the running app: it renders, and every backend call it makes returns success (template list, event configs, event/channel templates, `notification_recipient_rule_types`, `notification_template_render_preview`, `notification_template_versions_for`).
-- TypeScript compiles clean, and a full production build succeeds and does emit the page's chunk — as `NotificationTemplates-Cickf9ZH.js`.
-- The browser in your session requested a **different, older** filename: `NotificationTemplates-o0acv5D4.js`, and that request failed ("Failed to fetch dynamically imported module"). A failed asset fetch on the hosted preview surfaces as "Internal Server Error".
+## What the deck claims (from reading the file)
 
-Conclusion: this is a stale-deploy / stale-cache problem, not a bug in the page. Your browser is running an old `index.html` that points at asset filenames that no longer exist in the current build, so the lazily loaded Notification Templates chunk 404/500s and the route dies. Every lazily loaded admin route is exposed to the same failure mode, not just this one.
+`OLRAS_Integrated_Regulatory_Supervisory_Technology_Platform_4.pptx` is a 29-slide capability pitch, not a screen-level spec. It splits the offering into two editions and 15 capability slides that each state concrete promises:
 
-## Fix
+| Area | Deck slides |
+| --- | --- |
+| Editions & vision (Professional vs AI Advance) | 1, 4, 5, 6, 7, 8, 9 |
+| Platform architecture | 10 |
+| Licensing & registration lifecycle | 11 |
+| Entity 360-degree profile | 12 |
+| Fit & Proper assessment | 13 |
+| Regulatory returns & filings | 14 |
+| Risk monitoring & early-warning indicators | 15 |
+| Inspection & examination management | 16 |
+| Supervisory actions & enforcement | 17 |
+| Market conduct & complaints | 18 |
+| Role-based dashboards | 19 |
+| AI-assisted supervisory intelligence | 20 |
+| No-code configuration | 21 |
+| Security, audit & governance | 22 |
+| Notifications & SLA automation | 23 |
+| Reporting & analytics | 24 |
+| Integration readiness | 25 |
+| Business value, implementation, closing | 26–29 |
 
-1. **Republish the app** so the hosted `index.html` and the asset filenames it references come from the same build. That alone restores the page.
-2. **Make the app self-heal from stale chunks** so this class of error stops being a dead end for any lazy route:
-   - Add a small `lazyWithReload` helper that wraps `React.lazy` imports. On a chunk-load / dynamic-import failure it triggers exactly one automatic page reload (guarded by a `sessionStorage` flag so it can never loop), which fetches the fresh `index.html` and the current asset names.
-   - Use it for the lazily loaded route components in the admin/settings route files so any route hit after a deploy recovers instead of showing a hard error.
-   - Keep the existing route `ErrorBoundary` as the final fallback, but give its message a "Reload" action for the case where the single retry has already been used.
+Every bullet on those slides becomes one tracked capability row, so the tracker is claim-level (what a buyer would expect to be demonstrable), not slide-level.
 
-## Technical notes
+## Workbook: `OLRAS_Deck_Gap_Tracker_v1.xlsx`
 
-- Helper location: `src/lib/lazyWithReload.tsx`; detection matches the known Vite messages (`Failed to fetch dynamically imported module`, `error loading dynamically imported module`, `Importing a module script failed`).
-- Only the `React.lazy(...)` call sites in the route files change — no page logic, no data hooks, no backend changes.
-- No migrations and no edge-function changes; nothing on the backend was implicated by the checks above.
+Sheets:
 
-## Out of scope
+1. **Summary** — per-slide-area counts (Done / Partial / Missing / Not applicable), % ready, overall demo-readiness score, plus a split of readiness for OLRAS Professional scope vs AI Advance scope (the deck's own two editions).
+2. **Tracker** — one row per deck claim: `Item ID | Deck Slide | Slide Title | Edition (Professional / AI Advance / Both) | Capability Claim (deck wording) | Status | % Complete | Evidence in system (route / component / table / function) | Gap detail (exactly what is missing) | Risk if demoed as-is | Effort (S/M/L) | Priority (P1/P2/P3) | Owner | Notes`.
+3. **Gaps only** — Partial + Missing rows sorted by priority, for sprint planning.
+4. **Demo risk register** — claims that would fail or look thin in a live demo, with the safest framing or the minimum work to make them true.
 
-- No redesign of the Notification Templates screen or its RPCs.
-- The unrelated `DialogContent` missing-description warning and the React `forwardRef` warnings already present in the console.
+## How status is decided (evidence-based)
+
+Each claim is checked against the repository and live database before scoring:
+
+- routes in `src/routes/*` and pages under `src/pages/**` for screen existence and role gating,
+- hooks/services in `src/hooks/**`, `src/lib/**`, `src/platform/**` for the behaviour the claim implies,
+- database objects (tables, RPCs, triggers, RLS, cron jobs) and edge functions in `supabase/functions/**` for automation, notifications and audit claims,
+- existing verification artefacts under `docs/verification/**`, `docs/rbac/**` and the earlier `FRD_Gap_Tracker_v4` findings where they already prove behaviour.
+
+Rules: **Done** only when the screen, the stated behaviour and its audit/notification side effects all exist; **Partial** when it exists but a named element of the claim is absent (e.g. AI advisory panels, PFMI oversight, onsite examination lifecycle, thematic surveillance, data lineage); **Missing** when nothing backs it. Anything that cannot be confirmed by reading the repo is marked Partial with an explicit "unverified" note rather than assumed Done.
+
+## Formatting
+
+Arial throughout, frozen header row, autofilter, colour-coded status (green/amber/red), print-set column widths, and real numeric percentage formats so the Summary formulas compute. Written to `/mnt/documents/OLRAS_Deck_Gap_Tracker_v1.xlsx` and shared as a chat artefact. No application code, migrations or configuration are touched.
