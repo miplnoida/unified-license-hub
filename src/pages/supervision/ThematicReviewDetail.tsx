@@ -17,6 +17,8 @@ import { logAction } from '@/hooks/useAuditLog';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { Loader2, Plus, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { THEMATIC_STATUSES } from './ThematicReviews';
+import { ThematicClosurePanel } from '@/components/supervision/ThematicClosurePanel';
+import { ThematicFollowUpRegister } from '@/components/supervision/ThematicFollowUpRegister';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft', scoped: 'Scoped', evidence_collection: 'Evidence Collection',
