@@ -371,7 +371,9 @@ Deno.serve(async (req) => {
       status: 'completed',
       completed_at: new Date().toISOString(),
       total_hits: findings.length,
+      provider_outcomes: providerOutcomes,
     }).eq('id', runRow.id);
+
 
     if (findings.length > 0) {
       await supa.from('fp_assessments').update({ status: 'screening' }).eq('id', assessmentId);
