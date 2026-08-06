@@ -108,6 +108,7 @@ const ConductActions = lazy(() => import('@/pages/conduct/ConductActions'));
 const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews'));
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
+const ThematicClosureQueue = lazy(() => import('@/pages/supervision/ThematicClosureQueue'));
 const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
 const ConductEntitiesList = lazy(() => import('@/pages/conduct/ConductEntitiesList'));
 const ConductEntityProfile = lazy(() => import('@/pages/conduct/ConductEntityProfile'));
