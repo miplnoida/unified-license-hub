@@ -6,11 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Loader2, AlertTriangle, ShieldAlert, Users, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConductTrendsPanel } from '@/components/conduct/analytics/ConductTrendsPanel';
+import { ConductDrillthroughPanel } from '@/components/conduct/analytics/ConductDrillthroughPanel';
+import { ConductPeerComparisonPanel } from '@/components/conduct/analytics/ConductPeerComparisonPanel';
+import { SavedViewsBar } from '@/components/conduct/analytics/SavedViewsBar';
+import { useConductSavedViews } from '@/hooks/useConductSavedViews';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--info))', 'hsl(var(--success))', '#8b5cf6', '#ec4899'];
 
@@ -23,6 +29,25 @@ export default function ConductDashboard() {
   const [f, setF] = useState({ product_id: 'all', channel_id: 'all', category_id: 'all', licensee_id: 'all', days: '90', severity: 'all', priority: 'all', customer_type: 'all', vulnerable: 'all', alert_status: 'all' });
   const [complaints, setComplaints] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [tab, setTab] = useState('overview');
+  const [peerEntityId, setPeerEntityId] = useState('');
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const [defaultApplied, setDefaultApplied] = useState(false);
+
+  const { data: savedViews } = useConductSavedViews();
+
+  // Default saved view auto-applies once; explicit URL params still win.
+  useEffect(() => {
+    if (defaultApplied || !savedViews) return;
+    setDefaultApplied(true);
+    if (window.location.search) return;
+    const def = savedViews.find((v) => v.is_default);
+    if (!def) return;
+    setActiveViewId(def.id);
+    if (def.config?.filters) setF((prev) => ({ ...prev, ...def.config.filters }));
+    if (def.config?.tab) setTab(def.config.tab);
+    if (typeof def.config?.peerEntityId === 'string') setPeerEntityId(def.config.peerEntityId);
+  }, [savedViews, defaultApplied]);
 
   useEffect(() => {
     (async () => {
@@ -30,11 +55,19 @@ export default function ConductDashboard() {
         supabase.from('conduct_products').select('id,name').eq('active', true).order('name'),
         supabase.from('conduct_channels').select('id,name').eq('active', true).order('name'),
         supabase.from('conduct_risk_categories').select('id,name,code').eq('active', true).order('name'),
-        supabase.from('licensees').select('id,name').order('name').limit(500),
+        supabase.from('licensees').select('id,name,sector_id,sub_sector_id').order('name').limit(500),
       ]);
       setProducts(p.data || []); setChannels(c.data || []); setCategories(cat.data || []); setLicensees(lic.data || []);
     })();
   }, []);
+
+  const labels = useMemo(() => ({
+    product: (id?: string | null) => products.find(p => p.id === id)?.name || '—',
+    channel: (id?: string | null) => channels.find(p => p.id === id)?.name || '—',
+    category: (id?: string | null) => categories.find(p => p.id === id)?.name || '—',
+    licensee: (id?: string | null) => licensees.find(p => p.id === id)?.name || '—',
+  }), [products, channels, categories, licensees]);
+
 
   const load = async () => {
     setLoading(true);
