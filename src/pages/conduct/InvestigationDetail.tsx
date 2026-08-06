@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useInvestigation, useUpdateInvestigation } from '@/hooks/useMarketConduct';
 import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
+import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
+
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
@@ -89,9 +91,12 @@ export default function InvestigationDetail() {
         <Tabs defaultValue="evidence">
           <TabsList>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="interviews">Interviews</TabsTrigger>
           </TabsList>
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
+          <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
         </Tabs>
+
       </div>
     </DashboardLayout>
   );

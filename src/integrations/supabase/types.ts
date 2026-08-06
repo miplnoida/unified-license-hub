@@ -3208,6 +3208,246 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_interview_attachments: {
+        Row: {
+          created_at: string
+          evidence_id: string | null
+          exhibit_reference: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          interview_id: string
+          mime_type: string | null
+          produced_by_interviewee: boolean
+          size_bytes: number | null
+          storage_bucket: string | null
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          evidence_id?: string | null
+          exhibit_reference?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          interview_id: string
+          mime_type?: string | null
+          produced_by_interviewee?: boolean
+          size_bytes?: number | null
+          storage_bucket?: string | null
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          evidence_id?: string | null
+          exhibit_reference?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          interview_id?: string
+          mime_type?: string | null
+          produced_by_interviewee?: boolean
+          size_bytes?: number | null
+          storage_bucket?: string | null
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_interview_attachments_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interview_attachments_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_interview_participants: {
+        Row: {
+          created_at: string
+          id: string
+          interview_id: string
+          name: string
+          organisation: string | null
+          participant_type: string
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interview_id: string
+          name: string
+          organisation?: string | null
+          participant_type?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interview_id?: string
+          name?: string
+          organisation?: string | null
+          participant_type?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_interview_participants_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_interviews: {
+        Row: {
+          admissions: string | null
+          amendments: Json
+          attestation_at: string | null
+          attestation_captured_by: string | null
+          attestation_name: string | null
+          attestation_outcome: string
+          cancellation_reason: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          finalised_at: string | null
+          finalised_by: string | null
+          follow_up_actions: string | null
+          id: string
+          interview_type: string
+          interviewee_name: string
+          interviewee_organisation: string | null
+          interviewee_role: string | null
+          investigation_id: string
+          key_information: string | null
+          licensee_id: string | null
+          location: string | null
+          metadata: Json
+          purpose: string | null
+          reference_code: string | null
+          refusal_reason: string | null
+          refusal_witnessed_by: string | null
+          scheduled_at: string | null
+          signed_document_url: string | null
+          started_at: string | null
+          status: string
+          topics_covered: string | null
+          updated_at: string
+        }
+        Insert: {
+          admissions?: string | null
+          amendments?: Json
+          attestation_at?: string | null
+          attestation_captured_by?: string | null
+          attestation_name?: string | null
+          attestation_outcome?: string
+          cancellation_reason?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          finalised_at?: string | null
+          finalised_by?: string | null
+          follow_up_actions?: string | null
+          id?: string
+          interview_type?: string
+          interviewee_name: string
+          interviewee_organisation?: string | null
+          interviewee_role?: string | null
+          investigation_id: string
+          key_information?: string | null
+          licensee_id?: string | null
+          location?: string | null
+          metadata?: Json
+          purpose?: string | null
+          reference_code?: string | null
+          refusal_reason?: string | null
+          refusal_witnessed_by?: string | null
+          scheduled_at?: string | null
+          signed_document_url?: string | null
+          started_at?: string | null
+          status?: string
+          topics_covered?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admissions?: string | null
+          amendments?: Json
+          attestation_at?: string | null
+          attestation_captured_by?: string | null
+          attestation_name?: string | null
+          attestation_outcome?: string
+          cancellation_reason?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          finalised_at?: string | null
+          finalised_by?: string | null
+          follow_up_actions?: string | null
+          id?: string
+          interview_type?: string
+          interviewee_name?: string
+          interviewee_organisation?: string | null
+          interviewee_role?: string | null
+          investigation_id?: string
+          key_information?: string | null
+          licensee_id?: string | null
+          location?: string | null
+          metadata?: Json
+          purpose?: string | null
+          reference_code?: string | null
+          refusal_reason?: string | null
+          refusal_witnessed_by?: string | null
+          scheduled_at?: string | null
+          signed_document_url?: string | null
+          started_at?: string | null
+          status?: string
+          topics_covered?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_interviews_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interviews_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interviews_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       conduct_investigations: {
         Row: {
           allegation: string
@@ -20371,6 +20611,10 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      can_manage_conduct_investigation: {
+        Args: { _investigation_id: string }
+        Returns: boolean
+      }
       can_manage_financial_group: { Args: { _user: string }; Returns: boolean }
       can_manage_fp_config: { Args: { _user: string }; Returns: boolean }
       can_manage_prudential_config: {
@@ -20488,6 +20732,10 @@ export type Database = {
       }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_conduct_investigation: {
+        Args: { _investigation_id: string }
         Returns: boolean
       }
       can_view_entity_returns:
@@ -20763,6 +21011,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      conduct_amend_interview: {
+        Args: { _interview_id: string; _justification: string; _patch: Json }
+        Returns: Json
+      }
       conduct_entity_audit_history: {
         Args: { _entity_id: string }
         Returns: {
@@ -20778,6 +21030,17 @@ export type Database = {
       }
       conduct_entity_profile_summary: {
         Args: { _entity_id: string }
+        Returns: Json
+      }
+      conduct_finalise_interview: {
+        Args: {
+          _attestation_name?: string
+          _attestation_outcome: string
+          _interview_id: string
+          _refusal_reason?: string
+          _refusal_witnessed_by?: string
+          _signed_document_url?: string
+        }
         Returns: Json
       }
       configure_application_form: {
