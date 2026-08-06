@@ -115,6 +115,8 @@ const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalCo
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
 const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
+const FinancialGroupsList = lazy(() => import('@/pages/prudential/FinancialGroupsList'));
+const FinancialGroupProfile = lazy(() => import('@/pages/prudential/FinancialGroupProfile'));
 const AssessmentsList = lazy(() => import('@/pages/prudential/AssessmentsList'));
 const AssessmentDetail = lazy(() => import('@/pages/prudential/AssessmentDetail'));
 const ActionsList = lazy(() => import('@/pages/prudential/ActionsList'));
@@ -243,6 +245,8 @@ export const dashboardRoutes = (
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
     <Route path="/prudential/entities/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />
+    <Route path="/prudential/groups" element={<M module="prudential_supervision"><FinancialGroupsList /></M>} />
+    <Route path="/prudential/groups/:groupId" element={<M module="prudential_supervision"><FinancialGroupProfile /></M>} />
     <Route path="/prudential/assessments" element={<M module="prudential_supervision"><AssessmentsList /></M>} />
     <Route path="/prudential/assessments/:id" element={<M module="prudential_supervision"><AssessmentDetail /></M>} />
     <Route path="/prudential/actions" element={<M module="prudential_supervision"><ActionsList /></M>} />
