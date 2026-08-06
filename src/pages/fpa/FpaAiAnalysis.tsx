@@ -43,6 +43,8 @@ import {
   ExternalLink,
   History,
   ListChecks,
+  Radio,
+  FlaskConical,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
