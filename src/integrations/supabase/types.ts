@@ -4609,6 +4609,60 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_supervision_annotations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_ref_id: string | null
+          event_ref_type: string | null
+          id: string
+          label: string
+          licensee_id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          event_ref_id?: string | null
+          event_ref_type?: string | null
+          id?: string
+          label: string
+          licensee_id: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_ref_id?: string | null
+          event_ref_type?: string | null
+          id?: string
+          label?: string
+          licensee_id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_supervision_annotations_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_supervision_annotations_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       conduct_triage_audit_events: {
         Row: {
           actor_id: string | null
@@ -22231,6 +22285,42 @@ export type Database = {
           _review_id: string
         }
         Returns: undefined
+      }
+      conduct_supervision_learning: { Args: { _limit?: number }; Returns: Json }
+      conduct_supervision_log_export: {
+        Args: { _scope?: Json }
+        Returns: undefined
+      }
+      conduct_supervision_log_view: {
+        Args: { _scope?: Json }
+        Returns: undefined
+      }
+      conduct_supervision_loop_cases: {
+        Args: {
+          _entity_id?: string
+          _from?: string
+          _sector_id?: string
+          _stage: string
+          _to?: string
+        }
+        Returns: Json
+      }
+      conduct_supervision_loop_summary: {
+        Args: {
+          _entity_id?: string
+          _from?: string
+          _sector_id?: string
+          _to?: string
+        }
+        Returns: Json
+      }
+      conduct_supervision_timeline: {
+        Args: { _entity_id: string; _from?: string; _to?: string }
+        Returns: Json
+      }
+      conduct_supervision_unresolved_risks: {
+        Args: { _entity_id?: string; _sector_id?: string }
+        Returns: Json
       }
       configure_application_form: {
         Args: { _config: Json; _form_config_id: string }

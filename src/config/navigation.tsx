@@ -136,6 +136,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'RFI Approvals', href: '/complaints/rfi-approvals', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_type', adminOnly: true },
       { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Supervision Loop', href: '/conduct/supervision-loop', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Entities', href: '/conduct/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
