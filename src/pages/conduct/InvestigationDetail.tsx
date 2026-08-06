@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useInvestigation, useUpdateInvestigation } from '@/hooks/useMarketConduct';
 import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
+import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
+
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
