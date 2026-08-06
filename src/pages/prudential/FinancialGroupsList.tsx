@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { bandTone } from '@/lib/groupConsolidation';
 import { useCan } from '@/hooks/useCan';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useFinancialGroups, useCreateFinancialGroup } from '@/hooks/useFinancialGroups';
 
 /** PRU-GRP-001 — register of supervised financial groups. */
@@ -43,6 +44,7 @@ export default function FinancialGroupsList() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -146,5 +148,6 @@ export default function FinancialGroupsList() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

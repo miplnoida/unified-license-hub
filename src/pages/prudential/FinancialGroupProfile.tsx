@@ -21,6 +21,7 @@ import { SubsidiaryRiskHeatmap } from '@/components/prudential/SubsidiaryRiskHea
 import { GroupEwiPanel, GroupBreachesPanel } from '@/components/prudential/GroupEwiPanel';
 import { GroupContagionPanel } from '@/components/prudential/GroupContagionPanel';
 import { useCan } from '@/hooks/useCan';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   useGroupConsolidated, useGroupPeriods, useGroupExposures, useGroupSnapshots,
   useSaveGroupMember, useRemoveGroupMember, useSaveExposure, useDeleteExposure,
@@ -113,6 +114,7 @@ export default function FinancialGroupProfile() {
   if (!data) return <div className="p-6 text-sm text-muted-foreground">Group not found or not accessible.</div>;
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
@@ -588,6 +590,7 @@ export default function FinancialGroupProfile() {
         saving={saveMethod.isPending}
       />
     </div>
+    </DashboardLayout>
   );
 }
 
