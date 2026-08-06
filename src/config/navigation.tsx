@@ -211,6 +211,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Notif Templates', href: '/admin/returns/notifications/templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
       { label: 'Notif Log', href: '/admin/returns/notifications/log', icon: <FileBarChart className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'returns_management', adminOnly: true },
       { label: 'Supervised Entities', href: '/prudential/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { label: 'Financial Groups', href: '/prudential/groups', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Assessments', href: '/prudential/assessments', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Actions Ledger', href: '/prudential/actions', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Escalations', href: '/prudential/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
