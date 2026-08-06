@@ -17,6 +17,7 @@ import { CreatePrudentialEscalationDialog } from '@/components/prudential/Create
 import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -218,6 +219,7 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
           <TabsTrigger value="stress">Stress Events</TabsTrigger>
           <TabsTrigger value="peers">Peer Comparison</TabsTrigger>
+          <TabsTrigger value="group">Group Structure</TabsTrigger>
           <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
 
@@ -588,6 +590,10 @@ export default function PrudentialEntityProfile() {
           />
         </TabsContent>
 
+        <TabsContent value="group">
+          <GroupMembershipCard licenseeId={e.id} />
+        </TabsContent>
+
         <TabsContent value="audit">
           <Card><CardContent className="pt-4">
             <div className="text-sm">
@@ -776,5 +782,33 @@ function PeerRow({ row, entity, period }: { row: any; entity: any; period?: stri
         ) : '—'}
       </TableCell>
     </TableRow>
+  );
+}
+
+/** Group membership summary with a link into the consolidated group profile. */
+function GroupMembershipCard({ licenseeId }: { licenseeId: string }) {
+  const { data, isLoading } = useLicenseeGroupMembership(licenseeId);
+  if (isLoading) return <Card><CardContent className="pt-4 text-sm text-muted-foreground">Loading group membership…</CardContent></Card>;
+  if (!data?.is_member) {
+    return <Card><CardContent className="pt-4 text-sm text-muted-foreground">This entity is not part of a supervised financial group.</CardContent></Card>;
+  }
+  if (data.authorised === false) {
+    return <Card><CardContent className="pt-4 text-sm text-muted-foreground">This entity belongs to a financial group you are not authorised to view.</CardContent></Card>;
+  }
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">{data.group_name}</CardTitle>
+        <CardDescription className="font-mono text-xs">{data.group_code}</CardDescription></CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline">{String(data.member_role || '').replace(/_/g, ' ')}</Badge>
+          {data.ownership_percentage != null && <Badge variant="outline">{Number(data.ownership_percentage).toFixed(2)}% owned</Badge>}
+          <Badge variant="outline">{String(data.consolidation_treatment || '')} consolidation</Badge>
+        </div>
+        <Link className="text-primary underline" to={`/prudential/groups/${data.group_id}`}>
+          Open consolidated group risk profile
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
