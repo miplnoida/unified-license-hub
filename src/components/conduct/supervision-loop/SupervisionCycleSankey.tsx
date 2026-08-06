@@ -16,6 +16,11 @@ const NODE_COLORS = [
 
 function NodeShape(props: any) {
   const { x, y, width, height, index, payload, onStageClick } = props;
+  // Eight stages sit side by side, so horizontal labels collide. Stack the
+  // stage name vertically alongside its column and stagger alternate stages.
+  const labelX = x + width / 2;
+  const labelY = y + height + 14 + (index % 2 === 0 ? 0 : 16);
+  const click = () => onStageClick?.(payload.stageKey);
   return (
     <Layer key={`node-${index}`}>
       <Rectangle
@@ -23,22 +28,33 @@ function NodeShape(props: any) {
         fill={NODE_COLORS[index % NODE_COLORS.length]}
         fillOpacity={0.9}
         className="cursor-pointer"
-        onClick={() => onStageClick?.(payload.stageKey)}
+        onClick={click}
       />
       <text
-        textAnchor={x > 400 ? 'end' : 'start'}
-        x={x > 400 ? x - 6 : x + width + 6}
-        y={y + height / 2}
-        fontSize={11}
-        dy="0.35em"
-        className="fill-foreground cursor-pointer"
-        onClick={() => onStageClick?.(payload.stageKey)}
+        textAnchor="middle"
+        x={labelX}
+        y={labelY}
+        fontSize={10}
+        className="fill-muted-foreground cursor-pointer"
+        onClick={click}
       >
-        {payload.name} ({payload.count ?? 0})
+        {payload.name}
+      </text>
+      <text
+        textAnchor="middle"
+        x={labelX}
+        y={labelY + 12}
+        fontSize={11}
+        fontWeight={600}
+        className="fill-foreground cursor-pointer"
+        onClick={click}
+      >
+        {payload.count ?? 0}
       </text>
     </Layer>
   );
 }
+
 
 export function SupervisionCycleSankey({ funnel, onStageClick }: Props) {
   const data = buildSankeyData(funnel);
