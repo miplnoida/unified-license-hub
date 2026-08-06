@@ -104,13 +104,15 @@ async function buildDraftCertificate(opts: {
   label("Preview Generated", rightX, y);
   value(opts.previewDate, rightX, y - 18);
 
-  // Watermark
+  // Watermark — centred on the page so the rotated text stays inside the border.
   const wm = "PREVIEW";
-  const wmSize = 130;
+  const wmSize = 100;
   const wmWidth = bold.widthOfTextAtSize(wm, wmSize);
+  const cos30 = Math.cos(Math.PI / 6);
+  const sin30 = Math.sin(Math.PI / 6);
   page.drawText(wm, {
-    x: (width - wmWidth) / 2 + 110,
-    y: height / 2 - 130,
+    x: width / 2 - (wmWidth * cos30) / 2,
+    y: height / 2 + (wmWidth * sin30) / 2,
     size: wmSize,
     font: bold,
     color: rgb(0.85, 0.1, 0.1),
