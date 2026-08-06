@@ -243,6 +243,8 @@ export const dashboardRoutes = (
     <Route path="/supervision/thematic-reviews" element={<M module="market_conduct"><ThematicReviews /></M>} />
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
     <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />
+    <Route path="/supervision/thematic-closure-approvals" element={<M module="market_conduct"><ThematicClosureQueue /></M>} />
+
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
     <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
     <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
