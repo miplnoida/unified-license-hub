@@ -363,7 +363,17 @@ Deno.serve(async (req) => {
     }
 
     if (findings.length) {
-      const { error: fErr } = await supa.from('fp_findings').insert(findings);
+      // Batch inserts send the UNION of all row keys, so any key that only
+      // some rows carry arrives as an explicit NULL for the rest and defeats
+      // the column default (this broke NOT NULL resolution_status once the
+      // provider stage started emitting richer rows). Normalise explicitly.
+      const normalised = findings.map((f: Any) => ({
+        resolution_status: 'pending',
+        citations: [],
+        confidence_score: null,
+        ...f,
+      }));
+      const { error: fErr } = await supa.from('fp_findings').insert(normalised);
       if (fErr) throw new Error(fErr.message);
     }
 
