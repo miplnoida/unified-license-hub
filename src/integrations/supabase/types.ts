@@ -3480,6 +3480,231 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_intelligence_report_recipients: {
+        Row: {
+          created_at: string
+          id: string
+          licensee_id: string
+          report_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          licensee_id: string
+          report_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          licensee_id?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_intelligence_report_recipients_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_intelligence_report_recipients_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "conduct_intelligence_report_recipients_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_intelligence_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_intelligence_report_versions: {
+        Row: {
+          ai_draft: Json
+          change_note: string | null
+          created_at: string
+          generated_by: string | null
+          id: string
+          metrics: Json
+          report_id: string
+          sections: Json
+          version: number
+        }
+        Insert: {
+          ai_draft?: Json
+          change_note?: string | null
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          report_id: string
+          sections?: Json
+          version: number
+        }
+        Update: {
+          ai_draft?: Json
+          change_note?: string | null
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          metrics?: Json
+          report_id?: string
+          sections?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_intelligence_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_intelligence_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_intelligence_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approver_id: string | null
+          created_at: string
+          created_by: string | null
+          current_version: number
+          id: string
+          period_end: string
+          period_start: string
+          publish_to_sector: boolean
+          published_at: string | null
+          published_by: string | null
+          regulator_id: string | null
+          rejection_reason: string | null
+          sector_id: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          superseded_at: string | null
+          supersedes_report_id: string | null
+          template_code: string
+          template_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          period_end: string
+          period_start: string
+          publish_to_sector?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          regulator_id?: string | null
+          rejection_reason?: string | null
+          sector_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_at?: string | null
+          supersedes_report_id?: string | null
+          template_code?: string
+          template_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          period_end?: string
+          period_start?: string
+          publish_to_sector?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          regulator_id?: string | null
+          rejection_reason?: string | null
+          sector_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_at?: string | null
+          supersedes_report_id?: string | null
+          template_code?: string
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_intelligence_reports_supersedes_report_id_fkey"
+            columns: ["supersedes_report_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_intelligence_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_intelligence_reports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_intelligence_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_intelligence_templates: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          recommended_period_days: number
+          sections: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          recommended_period_days?: number
+          sections?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          recommended_period_days?: number
+          sections?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conduct_interview_attachments: {
         Row: {
           created_at: string
@@ -21375,6 +21600,7 @@ export type Database = {
         Args: { _closure_id: string }
         Returns: boolean
       }
+      can_approve_conduct_intelligence: { Args: never; Returns: boolean }
       can_approve_thematic_closure: {
         Args: { _review_id: string }
         Returns: boolean
@@ -21387,6 +21613,7 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      can_manage_conduct_intelligence: { Args: never; Returns: boolean }
       can_manage_conduct_investigation: {
         Args: { _investigation_id: string }
         Returns: boolean
@@ -21515,6 +21742,7 @@ export type Database = {
         Returns: boolean
       }
       can_view_complaint_rfi: { Args: { _rfi_id: string }; Returns: boolean }
+      can_view_conduct_intelligence: { Args: never; Returns: boolean }
       can_view_conduct_investigation: {
         Args: { _investigation_id: string }
         Returns: boolean
@@ -21926,6 +22154,59 @@ export type Database = {
           _signed_document_url?: string
         }
         Returns: Json
+      }
+      conduct_intel_aggregate: {
+        Args: {
+          _period_end: string
+          _period_start: string
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
+      conduct_intel_approve_report: {
+        Args: { _report_id: string }
+        Returns: undefined
+      }
+      conduct_intel_create_report: {
+        Args: {
+          _period_end: string
+          _period_start: string
+          _regulator_id?: string
+          _sector_id?: string
+          _template_code: string
+          _title: string
+        }
+        Returns: string
+      }
+      conduct_intel_log_export: {
+        Args: { _format: string; _report_id: string }
+        Returns: undefined
+      }
+      conduct_intel_publish_report: {
+        Args: { _report_id: string }
+        Returns: number
+      }
+      conduct_intel_reject_report: {
+        Args: { _reason: string; _report_id: string }
+        Returns: undefined
+      }
+      conduct_intel_save_version: {
+        Args: {
+          _ai_draft?: Json
+          _change_note?: string
+          _regenerate?: boolean
+          _report_id: string
+          _sections: Json
+        }
+        Returns: number
+      }
+      conduct_intel_submit_for_approval: {
+        Args: {
+          _approver_id?: string
+          _publish_to_sector?: boolean
+          _report_id: string
+        }
+        Returns: undefined
       }
       conduct_monitoring_directive_upsert: {
         Args: {
