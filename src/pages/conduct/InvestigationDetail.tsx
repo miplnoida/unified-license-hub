@@ -21,35 +21,28 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
-const STATUSES = ['opened','evidence_gathering','analysis','proposed_outcome','closed'];
+// 'closed' and 'discontinued' are reached only through the formal closure gate.
+const STATUSES = ['opened','evidence_gathering','analysis','proposed_outcome'];
+const CONCLUDED = ['closed','discontinued'];
 
 export default function InvestigationDetail() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, refetch } = useInvestigation(id);
   const update = useUpdateInvestigation();
   const [status, setStatus] = useState<string>('');
-  const [outcome, setOutcome] = useState('');
 
   if (isLoading || !data) {
     return <DashboardLayout><div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div></DashboardLayout>;
   }
 
+  const concluded = CONCLUDED.includes(data.status);
+
   const saveStatus = async () => {
     const s = status || data.status;
-    if (s === 'closed') {
-      const res = await Swal.fire({
-        title: 'Close investigation?', input: 'textarea',
-        inputLabel: 'Outcome / closure reason (min 10 chars)',
-        inputValue: outcome,
-        inputValidator: v => (!v || v.trim().length < 10) ? 'Required' : null,
-        showCancelButton: true, confirmButtonText: 'Close investigation',
-      });
-      if (!res.isConfirmed) return;
-      await update.mutateAsync({ id: id!, patch: { status: 'closed', outcome: res.value, closure_reason: res.value }, justification: res.value });
-    } else {
-      await update.mutateAsync({ id: id!, patch: { status: s as any } });
-    }
+    if (s === data.status) { toast.info('Status unchanged'); return; }
+    await update.mutateAsync({ id: id!, patch: { status: s as any } });
     refetch();
+
   };
 
   return (
