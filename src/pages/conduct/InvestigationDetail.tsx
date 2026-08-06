@@ -18,7 +18,7 @@ import { ClosurePanel } from '@/components/conduct/ClosurePanel';
 
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { toast } from 'sonner';
-import Swal from 'sweetalert2';
+
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 // 'closed' and 'discontinued' are reached only through the formal closure gate.
