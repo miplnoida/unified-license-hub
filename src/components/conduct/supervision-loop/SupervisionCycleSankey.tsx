@@ -34,7 +34,7 @@ function NodeShape(props: any) {
         className="fill-foreground cursor-pointer"
         onClick={() => onStageClick?.(payload.stageKey)}
       >
-        {payload.name} ({payload.value})
+        {payload.name} ({payload.count ?? 0})
       </text>
     </Layer>
   );
