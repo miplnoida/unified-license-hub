@@ -206,7 +206,7 @@ export function useSaveExposure(groupId?: string | null) {
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
       const { data: auth } = await supabase.auth.getUser();
-      const payload = { ...row, group_id: groupId, captured_by: auth?.user?.id ?? null };
+      const payload: Record<string, any> = { ...row, group_id: groupId, captured_by: auth?.user?.id ?? null };
       if (row.id) {
         const { id, ...rest } = payload;
         const { error } = await sb.from('intragroup_exposures').update(rest).eq('id', id);
