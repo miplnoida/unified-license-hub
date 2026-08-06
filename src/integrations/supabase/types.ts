@@ -2195,6 +2195,180 @@ export type Database = {
           },
         ]
       }
+      complaint_rfi_items: {
+        Row: {
+          created_at: string
+          id: string
+          ordinal: number
+          prompt: string
+          question_type: string
+          required: boolean
+          response_status: string
+          returned_reason: string | null
+          rfi_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordinal?: number
+          prompt: string
+          question_type?: string
+          required?: boolean
+          response_status?: string
+          returned_reason?: string | null
+          rfi_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordinal?: number
+          prompt?: string
+          question_type?: string
+          required?: boolean
+          response_status?: string
+          returned_reason?: string | null
+          rfi_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_rfi_items_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_rfi_responses: {
+        Row: {
+          created_at: string
+          file_upload_ids: string[]
+          id: string
+          is_draft: boolean
+          response_text: string | null
+          rfi_item_id: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_upload_ids?: string[]
+          id?: string
+          is_draft?: boolean
+          response_text?: string | null
+          rfi_item_id: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_upload_ids?: string[]
+          id?: string
+          is_draft?: boolean
+          response_text?: string | null
+          rfi_item_id?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_rfi_responses_rfi_item_id_fkey"
+            columns: ["rfi_item_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_rfi_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_rfis: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          closure_notes: string | null
+          complaint_id: string
+          created_at: string
+          due_at: string | null
+          id: string
+          licensee_id: string
+          raised_at: string
+          raised_by: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          complaint_id: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          licensee_id: string
+          raised_at?: string
+          raised_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          complaint_id?: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          licensee_id?: string
+          raised_at?: string
+          raised_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_rfis_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_rfis_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_rfis_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_rfis_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       complaint_status_catalogue: {
         Row: {
           code: string
@@ -20734,6 +20908,7 @@ export type Database = {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_complaint_rfi: { Args: { _rfi_id: string }; Returns: boolean }
       can_view_conduct_investigation: {
         Args: { _investigation_id: string }
         Returns: boolean
@@ -20987,6 +21162,36 @@ export type Database = {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
       }
+      complaint_rfi_cancel: {
+        Args: { p_reason: string; p_rfi_id: string }
+        Returns: undefined
+      }
+      complaint_rfi_close: {
+        Args: { p_notes: string; p_rfi_id: string }
+        Returns: undefined
+      }
+      complaint_rfi_raise: {
+        Args: {
+          p_complaint_id: string
+          p_due_at: string
+          p_items: Json
+          p_summary: string
+        }
+        Returns: string
+      }
+      complaint_rfi_return_item: {
+        Args: { p_item_id: string; p_reason: string }
+        Returns: undefined
+      }
+      complaint_rfi_save_draft: {
+        Args: {
+          p_file_upload_ids: string[]
+          p_item_id: string
+          p_response_text: string
+        }
+        Returns: string
+      }
+      complaint_rfi_submit: { Args: { p_rfi_id: string }; Returns: Json }
       complaint_sla_status: {
         Args: {
           _created_at: string
@@ -22413,6 +22618,10 @@ export type Database = {
         Returns: boolean
       }
       is_collab_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_complaint_rfi_entity_user: {
+        Args: { _rfi_id: string }
+        Returns: boolean
+      }
       is_coordination_participant: {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean

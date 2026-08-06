@@ -34,6 +34,7 @@ import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
+import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
@@ -356,6 +357,7 @@ export default function ComplaintDetail() {
             <TabsTrigger value="investigation">Investigation</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
             <TabsTrigger value="communications">Communications</TabsTrigger>
+            <TabsTrigger value="rfis">Information Requests</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
 
           </TabsList>
@@ -566,6 +568,17 @@ export default function ComplaintDetail() {
               title="Complaint communications"
             />
           </TabsContent>
+
+          <TabsContent value="rfis" className="space-y-4">
+            <ComplaintRfiTab
+              complaintId={complaint.id}
+              complaintNumber={complaint.complaint_number}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              licenseeName={linkedLicenseeQ.data?.name ?? null}
+            />
+          </TabsContent>
+
+
 
           <TabsContent value="tracking" className="space-y-4">
             <WorkflowActionPanel complaintId={complaint.id} />

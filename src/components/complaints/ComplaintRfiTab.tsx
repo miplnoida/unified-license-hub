@@ -1,0 +1,231 @@
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, MessageSquarePlus, RotateCcw, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import {
+  useComplaintRfis,
+  useCloseComplaintRfi,
+  useReturnComplaintRfiItem,
+  type ComplaintRfi,
+  type ComplaintRfiItem,
+} from '@/hooks/useComplaintRfis';
+import { RaiseComplaintRfiDialog } from './RaiseComplaintRfiDialog';
+import { RfiAttachmentList } from './RfiAttachmentList';
+
+const statusVariant: Record<string, any> = {
+  open: 'secondary',
+  submitted: 'default',
+  closed: 'outline',
+  cancelled: 'outline',
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  text: 'Written answer',
+  document: 'Document',
+  both: 'Written answer + document',
+};
+
+export function ComplaintRfiTab({
+  complaintId,
+  complaintNumber,
+  licenseeId,
+  licenseeName,
+}: {
+  complaintId: string;
+  complaintNumber: string;
+  licenseeId: string | null;
+  licenseeName?: string | null;
+}) {
+  const { data: rfis = [], isLoading, refetch } = useComplaintRfis(complaintId);
+  const [raiseOpen, setRaiseOpen] = useState(false);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const closeRfi = useCloseComplaintRfi(complaintId);
+  const returnItem = useReturnComplaintRfiItem(complaintId);
+
+  const doClose = async (rfi: ComplaintRfi, cancel = false) => {
+    try {
+      await closeRfi.mutateAsync({ rfi_id: rfi.id, notes: notes[rfi.id]?.trim() || undefined, cancel });
+      toast.success(cancel ? 'Request cancelled' : 'Request closed');
+      setNotes((n) => ({ ...n, [rfi.id]: '' }));
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Action failed');
+    }
+  };
+
+  const doReturn = async (item: ComplaintRfiItem) => {
+    const reason = reasons[item.id]?.trim();
+    if (!reason) {
+      toast.error('Give a reason for the clarification request');
+      return;
+    }
+    try {
+      await returnItem.mutateAsync({ item_id: item.id, reason });
+      toast.success('Question returned to the entity for clarification');
+      setReasons((r) => ({ ...r, [item.id]: '' }));
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Could not return the question');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading requests…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-muted-foreground">
+          Information requests issued to {licenseeName || 'the regulated entity'}. Draft answers stay private to the
+          entity until they submit.
+        </p>
+        <Button data-rbac="complaint_management.edit" size="sm" onClick={() => setRaiseOpen(true)}>
+          <MessageSquarePlus className="h-4 w-4 mr-1" />Raise information request
+        </Button>
+      </div>
+
+      {rfis.length === 0 && (
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+          No information requests raised on this complaint yet.
+        </CardContent></Card>
+      )}
+
+      {rfis.map((rfi) => {
+        const answered = rfi.items.filter((i) => i.response_status === 'responded').length;
+        return (
+          <Card key={rfi.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <CardTitle className="text-base">Request raised {format(new Date(rfi.raised_at), 'PP')}</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {rfi.items.length} question(s) · {answered} answered
+                    {rfi.due_at ? ` · due ${format(new Date(rfi.due_at), 'PP')}` : ''}
+                    {rfi.submitted_at ? ` · submitted ${format(new Date(rfi.submitted_at), 'PPp')}` : ''}
+                  </p>
+                </div>
+                <Badge variant={statusVariant[rfi.status] ?? 'outline'} className="capitalize">{rfi.status}</Badge>
+              </div>
+              {rfi.summary && <p className="text-sm mt-2">{rfi.summary}</p>}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {rfi.items.map((item) => {
+                const submitted = item.responses.filter((r) => !r.is_draft);
+                return (
+                  <div key={item.id} className="rounded-md border p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <p className="text-sm font-medium">
+                        <span className="font-mono text-xs text-muted-foreground mr-2">Q{item.ordinal}</span>
+                        {item.prompt}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">{TYPE_LABEL[item.question_type]}</Badge>
+                        {item.required && <Badge variant="secondary" className="text-[10px]">Mandatory</Badge>}
+                        <Badge variant="outline" className="text-[10px] capitalize">{item.response_status}</Badge>
+                      </div>
+                    </div>
+
+                    {item.returned_reason && (
+                      <p className="text-xs text-muted-foreground">Returned for clarification: {item.returned_reason}</p>
+                    )}
+
+                    {submitted.length === 0 ? (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Lock className="h-3 w-3" />No submitted response yet.
+                      </p>
+                    ) : (
+                      submitted.map((r) => (
+                        <div key={r.id} className="rounded-md bg-muted/50 p-2 space-y-2">
+                          {r.response_text && <p className="text-sm whitespace-pre-wrap">{r.response_text}</p>}
+                          <RfiAttachmentList fileIds={r.file_upload_ids ?? []} />
+                          <p className="text-[11px] text-muted-foreground">
+                            Submitted {format(new Date(r.submitted_at), 'PPp')}
+                          </p>
+                        </div>
+                      ))
+                    )}
+
+                    {rfi.status !== 'closed' && rfi.status !== 'cancelled' && submitted.length > 0 && (
+                      <div className="flex items-end gap-2 flex-wrap">
+                        <div className="flex-1 min-w-[220px]">
+                          <Label className="text-xs">Request clarification</Label>
+                          <Textarea
+                            rows={2}
+                            value={reasons[item.id] ?? ''}
+                            onChange={(e) => setReasons((s) => ({ ...s, [item.id]: e.target.value }))}
+                            placeholder="Why this answer is insufficient"
+                          />
+                        </div>
+                        <Button
+                          data-rbac="complaint_management.edit"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => doReturn(item)}
+                          disabled={returnItem.isPending}
+                        >
+                          <RotateCcw className="h-4 w-4 mr-1" />Return question
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {rfi.status !== 'closed' && rfi.status !== 'cancelled' && (
+                <>
+                  <Separator />
+                  <div className="flex items-end gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[220px]">
+                      <Label className="text-xs">Closure notes</Label>
+                      <Textarea
+                        rows={2}
+                        value={notes[rfi.id] ?? ''}
+                        onChange={(e) => setNotes((n) => ({ ...n, [rfi.id]: e.target.value }))}
+                        placeholder="Optional notes recorded in the audit trail"
+                      />
+                    </div>
+                    <Button data-rbac="complaint_management.edit" size="sm" onClick={() => doClose(rfi)} disabled={closeRfi.isPending}>
+                      <CheckCircle2 className="h-4 w-4 mr-1" />Close request
+                    </Button>
+                    <Button
+                      data-rbac="complaint_management.edit"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => doClose(rfi, true)}
+                      disabled={closeRfi.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />Cancel request
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {rfi.closure_notes && <p className="text-xs text-muted-foreground">Closure notes: {rfi.closure_notes}</p>}
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      <RaiseComplaintRfiDialog
+        open={raiseOpen}
+        onOpenChange={setRaiseOpen}
+        complaintId={complaintId}
+        complaintNumber={complaintNumber}
+        licenseeId={licenseeId}
+        onRaised={() => refetch()}
+      />
+    </div>
+  );
+}
+
+export default ComplaintRfiTab;
