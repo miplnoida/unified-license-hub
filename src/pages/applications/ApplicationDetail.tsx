@@ -881,7 +881,7 @@ export default function ApplicationDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Forms and Documents tabs - always visible */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full justify-start">
+              <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
