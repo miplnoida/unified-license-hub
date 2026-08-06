@@ -217,6 +217,7 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="assessments">Assessments</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
+          <TabsTrigger value="examinations">Examinations</TabsTrigger>
           <TabsTrigger value="stress">Stress Events</TabsTrigger>
           <TabsTrigger value="peers">Peer Comparison</TabsTrigger>
           <TabsTrigger value="group">Group Structure</TabsTrigger>
