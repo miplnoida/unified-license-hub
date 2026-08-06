@@ -79,9 +79,9 @@ export function SupervisionCycleSankey({ funnel, onStageClick }: Props) {
           <ResponsiveContainer width="100%" height={420}>
             <Sankey
               data={data}
-              nodeWidth={12}
+              nodeWidth={14}
               nodePadding={26}
-              margin={{ top: 12, right: 180, bottom: 12, left: 12 }}
+              margin={{ top: 12, right: 40, bottom: 56, left: 40 }}
               link={{ stroke: 'hsl(var(--primary))', strokeOpacity: 0.18, fill: 'hsl(var(--primary))', fillOpacity: 0.18 }}
               node={<NodeShape onStageClick={onStageClick} />}
             >
