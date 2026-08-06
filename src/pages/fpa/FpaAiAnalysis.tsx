@@ -457,6 +457,8 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
             {severityBadge(finding.severity)}
             {confidenceBadge(finding.confidence_score)}
             {checkTypeBadge(finding.check_type)}
+            {sourceBadge(finding)}
+            {matchScoreBadge(finding.raw_payload)}
           </div>
         </div>
 
@@ -593,6 +595,8 @@ function FindingCard({ finding, inconsistency, onOverride, onViewIndividual }: F
           <div className="flex flex-wrap gap-1.5">
             {severityBadge(finding.severity)}
             {checkTypeBadge(finding.check_type)}
+            {sourceBadge(finding)}
+            {matchScoreBadge(finding.raw_payload)}
             {confidenceBadge(finding.confidence_score)}
           </div>
 
