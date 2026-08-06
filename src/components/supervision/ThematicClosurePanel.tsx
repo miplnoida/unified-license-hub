@@ -83,7 +83,10 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
   }, [selected?.id]);
 
   const approverOptions = (approvers.data || []).map((a: any) => ({
-    id: a.id, full_name: a.full_name, email: a.email, department: a.department, designation: a.designation,
+    id: a.id,
+    label: a.full_name || a.email || a.id,
+    sublabel: [a.designation, a.department, a.email].filter(Boolean).join(' · ') || null,
+    inactive: a.status ? a.status !== 'active' : false,
   }));
 
   const prefill = () => {
