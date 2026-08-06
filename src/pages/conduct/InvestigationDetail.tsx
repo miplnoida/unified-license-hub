@@ -89,9 +89,12 @@ export default function InvestigationDetail() {
         <Tabs defaultValue="evidence">
           <TabsList>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger value="interviews">Interviews</TabsTrigger>
           </TabsList>
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
+          <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
         </Tabs>
+
       </div>
     </DashboardLayout>
   );
