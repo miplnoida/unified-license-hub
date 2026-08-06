@@ -3582,6 +3582,39 @@ export type Database = {
           },
         ]
       }
+      conduct_saved_views: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_default: boolean
+          is_shared: boolean
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_shared?: boolean
+          name: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_shared?: boolean
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conduct_triage_audit_events: {
         Row: {
           actor_id: string | null
