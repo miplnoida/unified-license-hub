@@ -81,7 +81,7 @@ export function SupervisionCycleSankey({ funnel, onStageClick }: Props) {
               data={data}
               nodeWidth={14}
               nodePadding={26}
-              margin={{ top: 12, right: 40, bottom: 56, left: 40 }}
+              margin={{ top: 12, right: 80, bottom: 56, left: 70 }}
               link={{ stroke: 'hsl(var(--primary))', strokeOpacity: 0.18, fill: 'hsl(var(--primary))', fillOpacity: 0.18 }}
               node={<NodeShape onStageClick={onStageClick} />}
             >
