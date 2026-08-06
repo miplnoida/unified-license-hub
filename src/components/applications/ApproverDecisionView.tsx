@@ -9,7 +9,8 @@
  * Purely a composition + presentation layer: every panel keeps its own data
  * loading and business rules.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -66,6 +67,27 @@ export function ApproverDecisionView({
   onJumpToFormsTab,
   actions,
 }: Props) {
+  // Fall back to resolving the applicant's name from their account when the
+  // application payload does not carry one.
+  const [resolvedName, setResolvedName] = useState(applicantName);
+  useEffect(() => {
+    setResolvedName(applicantName);
+    const applicantId = application?.applicant_id as string | undefined;
+    if (applicantName || !applicantId) return;
+    let alive = true;
+    (async () => {
+      const [{ data: profile }, { data: preUser }] = await Promise.all([
+        supabase.from('profiles').select('full_name, email').eq('id', applicantId).maybeSingle(),
+        supabase.from('pre_license_users').select('full_name, email').eq('id', applicantId).maybeSingle(),
+      ]);
+      const name =
+        (profile as any)?.full_name || (preUser as any)?.full_name ||
+        (profile as any)?.email || (preUser as any)?.email || '';
+      if (alive && name) setResolvedName(name);
+    })();
+    return () => { alive = false; };
+  }, [applicantName, application?.applicant_id]);
+
   return (
     <div className="space-y-4">
       <Card className="border-primary/30">
@@ -91,7 +113,7 @@ export function ApproverDecisionView({
         <CardContent>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <Fact label="Application" value={application?.application_number ?? '—'} />
-            <Fact label="Applicant" value={applicantName || '—'} />
+            <Fact label="Applicant" value={resolvedName || '—'} />
             <Fact label="Licence type" value={application?.license_type ?? '—'} />
             <Fact label="Submitted" value={fmtDate(application?.submitted_at)} />
           </div>
@@ -128,7 +150,7 @@ export function ApproverDecisionView({
       <DecisionDocumentPreview
         applicationId={application.id}
         applicationNumber={application.application_number ?? ''}
-        applicantName={applicantName}
+        applicantName={resolvedName}
         licenseType={application.license_type ?? ''}
         submittedAt={application.submitted_at ?? null}
         defaultRationale={application.decision_rationale ?? ''}
