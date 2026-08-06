@@ -222,6 +222,53 @@ Deno.serve(async (req) => {
       return null;
     }
 
+    // ── External screening provider stage ────────────────────────────────────
+    // Sanctions, PEP and adverse-media checks are executed against the
+    // registered provider through the ONE canonical Integration Manager entry
+    // point. Fallback is forbidden: a sanctions/AML answer may never be
+    // substituted by internal logic. Every outcome (hit / clean /
+    // not_configured / failed) is recorded on the run so a broken check can
+    // never be mistaken for a clean subject. The keyword and self-declaration
+    // logic below still runs alongside it, unchanged.
+    const providerOutcomes: Any[] = [];
+    const envCache = new Map<string, string | null>();
+    async function environmentOf(key: string): Promise<string | null> {
+      if (!envCache.has(key)) {
+        const conn = await resolveConnection(supa as Any, key);
+        envCache.set(key, conn?.environment ?? null);
+      }
+      return envCache.get(key) ?? null;
+    }
+
+    async function runProviderCheck(cfg: Any, base: Any, checkType: ProviderCheckType) {
+      const call = providerCallFor(checkType, person as Any, `fp:${runRow.id}:${checkType}`);
+      if (!call) return;
+      const result = await invokeIntegration(supa as Any, {
+        integrationKey: call.integrationKey,
+        operation: call.operation,
+        sourceModule: 'fit_and_proper',
+        businessEvent: `fp.screening.${checkType}`,
+        sourceEntityType: 'fp_assessment',
+        sourceEntityId: assessmentId!,
+        actorId: triggeredBy,
+        idempotencyKey: `fp:${runRow.id}:${checkType}`,
+        payload: call.payload,
+        fallbackPolicy: 'forbid',
+        retryQueue: true,
+        metadata: { individual_id: person.id, run_id: runRow.id, check_type: checkType },
+      });
+      const mapped = mapProviderResult({
+        checkType,
+        integrationKey: call.integrationKey,
+        environment: await environmentOf(call.integrationKey),
+        result: result as Any,
+        base: { ...base, config_id: cfg.id },
+        defaultSeverity: cfg.severity_default ?? null,
+      });
+      providerOutcomes.push(mapped.outcome);
+      for (const f of mapped.findings) findings.push(f);
+    }
+
     for (const cfg of activeConfigs) {
       const base = {
         assessment_id: assessmentId,
@@ -231,6 +278,11 @@ Deno.serve(async (req) => {
         check_type: cfg.check_type,
         source: cfg.provider || 'internal',
       };
+
+      if (cfg.check_type === 'sanctions' || cfg.check_type === 'pep' || cfg.check_type === 'adverse_media') {
+        await runProviderCheck(cfg, base, cfg.check_type as ProviderCheckType);
+      }
+
 
       if (cfg.check_type === 'sanctions') {
         // Keyword scan across full declaration text + name
