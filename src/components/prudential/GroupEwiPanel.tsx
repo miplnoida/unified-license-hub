@@ -6,19 +6,19 @@ import { bandTone, formatRatioValue } from '@/lib/groupConsolidation';
 
 export interface GroupAlert {
   id: string;
-  indicator_code: string;
-  title: string;
-  detail: string | null;
+  rule_code: string;
+  rule_name: string;
   severity: string;
   status: string;
-  period_key: string | null;
-  triggered_at: string;
+  details?: Record<string, any> | null;
+  fired_at: string;
 }
 
 export interface GroupBreach {
   metric_key: string;
   label?: string | null;
   licensee_id?: string | null;
+  name?: string | null;
   entity_name?: string | null;
   value: number | null;
   threshold_value: number | null;
@@ -26,6 +26,14 @@ export interface GroupBreach {
   risk_level: string | null;
   display_format?: string | null;
   scope?: string;
+}
+
+function describeDetails(details?: Record<string, any> | null): string | null {
+  if (!details) return null;
+  const parts = Object.entries(details)
+    .filter(([k]) => k !== 'period_key')
+    .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+  return parts.length ? parts.join(' · ') : null;
 }
 
 /** Group-level early-warning alerts with acknowledgement. */
@@ -37,25 +45,29 @@ export function GroupEwiPanel({ alerts, onAcknowledge, canAct }: {
   if (!alerts?.length) return <p className="text-sm text-muted-foreground">No group early-warning alerts raised.</p>;
   return (
     <div className="space-y-2">
-      {alerts.map((a) => (
-        <div key={a.id} className="flex flex-wrap items-start gap-3 rounded-md border border-border/60 bg-card p-3">
-          <Badge variant="outline" className={cn('text-[11px]', bandTone(a.severity))}>{a.severity}</Badge>
-          <div className="min-w-[240px] flex-1">
-            <p className="text-sm font-medium">{a.title}</p>
-            {a.detail && <p className="text-xs text-muted-foreground">{a.detail}</p>}
-            <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-              {a.indicator_code}{a.period_key ? ` · ${a.period_key}` : ''} · {new Date(a.triggered_at).toLocaleString()}
-            </p>
+      {alerts.map((a) => {
+        const detail = describeDetails(a.details);
+        return (
+          <div key={a.id} className="flex flex-wrap items-start gap-3 rounded-md border border-border/60 bg-card p-3">
+            <Badge variant="outline" className={cn('text-[11px]', bandTone(a.severity))}>{a.severity}</Badge>
+            <div className="min-w-[240px] flex-1">
+              <p className="text-sm font-medium">{a.rule_name}</p>
+              {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                {a.rule_code}{a.details?.period_key ? ` · ${a.details.period_key}` : ''} · {new Date(a.fired_at).toLocaleString()}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[11px]">{a.status}</Badge>
+            {canAct && a.status === 'open' && (
+              <Button size="sm" variant="outline" onClick={() => onAcknowledge?.(a.id)}>Acknowledge</Button>
+            )}
           </div>
-          <Badge variant="outline" className="text-[11px]">{a.status}</Badge>
-          {canAct && a.status === 'open' && (
-            <Button size="sm" variant="outline" onClick={() => onAcknowledge?.(a.id)}>Acknowledge</Button>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+
 
 /** Consolidated + member threshold breaches in one view. */
 export function GroupBreachesPanel({ breaches }: { breaches: GroupBreach[] }) {
