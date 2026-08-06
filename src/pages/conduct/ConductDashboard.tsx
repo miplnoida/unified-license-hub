@@ -108,107 +108,158 @@ export default function ConductDashboard() {
           </CardContent>
         </Card>
 
-        {(kpis.critical > 0 || kpis.slaBreached > 0 || kpis.openAlerts > 0) && (
-          <Card className="border-destructive/60 bg-destructive/5">
-            <CardContent className="p-4 flex flex-wrap items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <span className="font-semibold text-destructive">Attention required</span>
-              {kpis.critical > 0 && (
-                <Link to="/complaints?severity=critical" className="text-sm underline">
-                  {kpis.critical} critical complaint{kpis.critical > 1 ? 's' : ''}
-                </Link>
-              )}
-              {kpis.slaBreached > 0 && (
-                <Link to="/complaints?sla=breached" className="text-sm underline">
-                  {kpis.slaBreached} SLA breached
-                </Link>
-              )}
-              {kpis.openAlerts > 0 && (
-                <Link to="/conduct/alerts?status=open" className="text-sm underline">
-                  {kpis.openAlerts} open alert{kpis.openAlerts > 1 ? 's' : ''}
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <SavedViewsBar
+          currentConfig={{ filters: f, tab, peerEntityId }}
+          activeViewId={activeViewId}
+          onLoad={(v) => {
+            setActiveViewId(v.id);
+            if (v.config?.filters) setF((prev) => ({ ...prev, ...v.config.filters }));
+            if (v.config?.tab) setTab(v.config.tab);
+            if (typeof v.config?.peerEntityId === 'string') setPeerEntityId(v.config.peerEntityId);
+          }}
+        />
 
-        <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
-          <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Complaints" value={kpis.total} />
-          <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Open" value={kpis.openComplaints} />
-          <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" tone={kpis.openAlerts > 0 ? 'warn' : undefined} />
-          <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} tone={kpis.critical > 0 ? 'danger' : undefined} />
-          <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} tone={kpis.vulnerable > 0 ? 'warn' : undefined} />
-          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} tone={kpis.slaBreached > 0 ? 'danger' : undefined} />
-          <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} tone={kpis.slaAtRisk > 0 ? 'warn' : undefined} />
-          <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} tone={kpis.repeat > 0 ? 'warn' : undefined} />
-        </div>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="trends">Trends &amp; patterns</TabsTrigger>
+            <TabsTrigger value="drillthrough">Drill-through</TabsTrigger>
+            <TabsTrigger value="peers">Peer comparison</TabsTrigger>
+          </TabsList>
 
-        {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
-              <ChartCard title="By Product"><BarChart data={byProduct}>{barLayout()}</BarChart></ChartCard>
-              <ChartCard title="By Channel"><BarChart data={byChannel}>{barLayout()}</BarChart></ChartCard>
-              <ChartCard title="By Risk Category"><BarChart data={byCategory}>{barLayout()}</BarChart></ChartCard>
-              <PieCard title="By Severity" data={bySeverity} />
+          <TabsContent value="overview" className="space-y-6 mt-4">
+            {(kpis.critical > 0 || kpis.slaBreached > 0 || kpis.openAlerts > 0) && (
+              <Card className="border-destructive/60 bg-destructive/5">
+                <CardContent className="p-4 flex flex-wrap items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  <span className="font-semibold text-destructive">Attention required</span>
+                  {kpis.critical > 0 && (
+                    <Link to="/complaints?severity=critical" className="text-sm underline">
+                      {kpis.critical} critical complaint{kpis.critical > 1 ? 's' : ''}
+                    </Link>
+                  )}
+                  {kpis.slaBreached > 0 && (
+                    <Link to="/complaints?sla=breached" className="text-sm underline">
+                      {kpis.slaBreached} SLA breached
+                    </Link>
+                  )}
+                  {kpis.openAlerts > 0 && (
+                    <Link to="/conduct/alerts?status=open" className="text-sm underline">
+                      {kpis.openAlerts} open alert{kpis.openAlerts > 1 ? 's' : ''}
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-8">
+              <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Complaints" value={kpis.total} />
+              <Kpi icon={<TrendingUp className="h-4 w-4" />} label="Open" value={kpis.openComplaints} />
+              <Kpi icon={<Bell />} label="Open Alerts" value={kpis.openAlerts} to="/conduct/alerts" tone={kpis.openAlerts > 0 ? 'warn' : undefined} />
+              <Kpi icon={<ShieldAlert className="h-4 w-4" />} label="Critical" value={kpis.critical} tone={kpis.critical > 0 ? 'danger' : undefined} />
+              <Kpi icon={<Users className="h-4 w-4" />} label="Vulnerable" value={kpis.vulnerable} tone={kpis.vulnerable > 0 ? 'warn' : undefined} />
+              <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA Breached" value={kpis.slaBreached} tone={kpis.slaBreached > 0 ? 'danger' : undefined} />
+              <Kpi icon={<AlertTriangle className="h-4 w-4" />} label="SLA At Risk" value={kpis.slaAtRisk} tone={kpis.slaAtRisk > 0 ? 'warn' : undefined} />
+              <Kpi icon={<Users className="h-4 w-4" />} label="Repeat (≥3/12m)" value={kpis.repeat} tone={kpis.repeat > 0 ? 'warn' : undefined} />
             </div>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">Top licensees (by complaint volume in window)</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader><TableRow><TableHead>Licensee</TableHead><TableHead className="text-right">Complaints</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {topLicensees.map(r => (
-                      <TableRow key={r.name}><TableCell className="font-medium">{r.name}</TableCell><TableCell className="text-right"><Badge>{r.value}</Badge></TableCell></TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <ChartCard title="By Product"><BarChart data={byProduct}>{barLayout()}</BarChart></ChartCard>
+                  <ChartCard title="By Channel"><BarChart data={byChannel}>{barLayout()}</BarChart></ChartCard>
+                  <ChartCard title="By Risk Category"><BarChart data={byCategory}>{barLayout()}</BarChart></ChartCard>
+                  <PieCard title="By Severity" data={bySeverity} />
+                </div>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">Recent complaints in scope</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Subject</TableHead><TableHead>Severity</TableHead><TableHead>Status</TableHead><TableHead>Priority</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {complaints.slice(0, 25).map(c => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-mono text-xs"><Link className="text-primary hover:underline" to={`/complaints/${c.id}`}>{c.complaint_number}</Link></TableCell>
-                        <TableCell className="max-w-xs truncate">{c.subject}</TableCell>
-                        <TableCell><Badge variant="outline" className="capitalize">{c.severity}</Badge></TableCell>
-                        <TableCell><Badge variant="secondary" className="capitalize">{c.status?.replace('_', ' ')}</Badge></TableCell>
-                        <TableCell className="uppercase">{c.priority || '—'}</TableCell>
-                        <TableCell className="text-xs">{new Date(c.created_at).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Top licensees (by complaint volume in window)</CardTitle></CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Licensee</TableHead><TableHead className="text-right">Complaints</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {topLicensees.map(r => (
+                          <TableRow key={r.name}><TableCell className="font-medium">{r.name}</TableCell><TableCell className="text-right"><Badge>{r.value}</Badge></TableCell></TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">Recent conduct alerts in scope</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Kind</TableHead><TableHead>Severity</TableHead><TableHead>Title</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {alerts.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No alerts in scope.</TableCell></TableRow> :
-                      alerts.slice(0, 25).map(a => (
-                        <TableRow key={a.id}>
-                          <TableCell className="text-xs">{new Date(a.created_at).toLocaleString()}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize">{a.kind?.replace('_', ' ')}</Badge></TableCell>
-                          <TableCell><Badge variant={a.severity === 'critical' ? 'destructive' : 'outline'} className="capitalize">{a.severity}</Badge></TableCell>
-                          <TableCell className="max-w-md truncate">{a.complaint_id ? <Link className="text-primary hover:underline" to={`/complaints/${a.complaint_id}`}>{a.title}</Link> : a.title}</TableCell>
-                          <TableCell><Badge variant="secondary" className="capitalize">{a.status}</Badge></TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </>
-        )}
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Recent complaints in scope</CardTitle></CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Subject</TableHead><TableHead>Severity</TableHead><TableHead>Status</TableHead><TableHead>Priority</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {complaints.slice(0, 25).map(c => (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-mono text-xs"><Link className="text-primary hover:underline" to={`/complaints/${c.id}`}>{c.complaint_number}</Link></TableCell>
+                            <TableCell className="max-w-xs truncate">{c.subject}</TableCell>
+                            <TableCell><Badge variant="outline" className="capitalize">{c.severity}</Badge></TableCell>
+                            <TableCell><Badge variant="secondary" className="capitalize">{c.status?.replace('_', ' ')}</Badge></TableCell>
+                            <TableCell className="uppercase">{c.priority || '—'}</TableCell>
+                            <TableCell className="text-xs">{new Date(c.created_at).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Recent conduct alerts in scope</CardTitle></CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Kind</TableHead><TableHead>Severity</TableHead><TableHead>Title</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {alerts.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No alerts in scope.</TableCell></TableRow> :
+                          alerts.slice(0, 25).map(a => (
+                            <TableRow key={a.id}>
+                              <TableCell className="text-xs">{new Date(a.created_at).toLocaleString()}</TableCell>
+                              <TableCell><Badge variant="outline" className="capitalize">{a.kind?.replace('_', ' ')}</Badge></TableCell>
+                              <TableCell><Badge variant={a.severity === 'critical' ? 'destructive' : 'outline'} className="capitalize">{a.severity}</Badge></TableCell>
+                              <TableCell className="max-w-md truncate">{a.complaint_id ? <Link className="text-primary hover:underline" to={`/complaints/${a.complaint_id}`}>{a.title}</Link> : a.title}</TableCell>
+                              <TableCell><Badge variant="secondary" className="capitalize">{a.status}</Badge></TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="trends" className="mt-4">
+            {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
+              <ConductTrendsPanel complaints={complaints} alerts={alerts} days={Number(f.days)} labels={labels} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="drillthrough" className="mt-4">
+            {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
+              <ConductDrillthroughPanel
+                complaints={complaints}
+                labels={labels}
+                onApplyFilters={(patch) => setF(prev => ({ ...prev, ...patch }))}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="peers" className="mt-4">
+            {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
+              <ConductPeerComparisonPanel
+                complaints={complaints}
+                alerts={alerts}
+                licensees={licensees}
+                entityId={peerEntityId}
+                onEntityChange={setPeerEntityId}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+
       </div>
     </DashboardLayout>
   );
