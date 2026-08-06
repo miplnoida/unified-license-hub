@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useInvestigation, useUpdateInvestigation } from '@/hooks/useMarketConduct';
 import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
 import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
+import { ClosurePanel } from '@/components/conduct/ClosurePanel';
+
 
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { toast } from 'sonner';
