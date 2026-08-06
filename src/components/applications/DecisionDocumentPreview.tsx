@@ -1,0 +1,343 @@
+/**
+ * Decision Letter & License Certificate Preview
+ *
+ * Lets an approver see the exact decision letter wording and a draft (watermarked)
+ * licence certificate BEFORE the decision is committed. Read-only:
+ *  - letter wording comes from `correspondence_templates` (category `decision_letter`)
+ *    with `{{token}}` substitution — no dispatch, no record written
+ *  - the certificate PDF is rendered by the `preview-decision-documents` edge
+ *    function and never stored; the real certificate is still produced only after
+ *    the licence is issued.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { useRegulator } from '@/contexts/RegulatorContext';
+import { toast } from 'sonner';
+import { Copy, Download, FileText, Info, Loader2, Printer, Stamp } from 'lucide-react';
+
+interface LetterTemplate {
+  id: string;
+  code: string;
+  name: string;
+  subject: string | null;
+  body: string;
+}
+
+interface Props {
+  applicationId: string;
+  applicationNumber: string;
+  applicantName: string;
+  licenseType: string;
+  submittedAt: string | null;
+  defaultRationale?: string | null;
+}
+
+const OUTCOMES: Array<{ value: string; label: string; templateCode: string; certificate: boolean }> = [
+  { value: 'approve', label: 'Approval', templateCode: 'DEC_LETTER_APPROVAL', certificate: true },
+  { value: 'conditional_approve', label: 'Approval with conditions', templateCode: 'DEC_LETTER_CONDITIONAL', certificate: true },
+  { value: 'reject', label: 'Rejection', templateCode: 'DEC_LETTER_REJECTION', certificate: false },
+  { value: 'return', label: 'Request resubmission', templateCode: 'DEC_LETTER_RESUBMISSION', certificate: false },
+  { value: 'defer', label: 'Deferral', templateCode: 'DEC_LETTER_DEFERRAL', certificate: false },
+];
+
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+export function DecisionDocumentPreview({
+  applicationId,
+  applicationNumber,
+  applicantName,
+  licenseType,
+  submittedAt,
+  defaultRationale,
+}: Props) {
+  const { general, branding } = useSiteSettings();
+  const { activeRegulator } = useRegulator();
+
+  const [templates, setTemplates] = useState<LetterTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [outcome, setOutcome] = useState<string>('approve');
+  const [templateId, setTemplateId] = useState<string>('');
+  const [rationale, setRationale] = useState<string>(defaultRationale ?? '');
+  const [conditions, setConditions] = useState<string>('');
+  const [signatory, setSignatory] = useState<{ name: string; title: string } | null>(null);
+
+  const [certBusy, setCertBusy] = useState(false);
+  const [certUrl, setCertUrl] = useState<string | null>(null);
+  const [certFilename, setCertFilename] = useState<string>('draft-certificate.pdf');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [{ data: tpls }, { data: sig }] = await Promise.all([
+        supabase
+          .from('correspondence_templates' as any)
+          .select('id, code, name, subject, body')
+          .eq('category', 'decision_letter')
+          .eq('is_active', true)
+          .order('code'),
+        supabase.from('site_settings' as any).select('value').eq('key', 'license_certificate_signatory').maybeSingle(),
+      ]);
+      if (!alive) return;
+      setTemplates(((tpls as any[]) ?? []) as LetterTemplate[]);
+      const sv = (sig as any)?.value ?? null;
+      if (sv?.is_active && sv?.name && sv?.title) setSignatory({ name: String(sv.name), title: String(sv.title) });
+      setLoadingTemplates(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // Auto-select the template that matches the chosen outcome.
+  useEffect(() => {
+    if (templates.length === 0) return;
+    const wanted = OUTCOMES.find((o) => o.value === outcome)?.templateCode;
+    const match = templates.find((t) => t.code === wanted) ?? templates[0];
+    setTemplateId(match.id);
+  }, [outcome, templates]);
+
+  useEffect(() => { setCertUrl(null); }, [outcome, applicationId]);
+  useEffect(() => () => { if (certUrl) URL.revokeObjectURL(certUrl); }, [certUrl]);
+
+  const template = templates.find((t) => t.id === templateId) ?? null;
+  const outcomeMeta = OUTCOMES.find((o) => o.value === outcome)!;
+
+  const vars = useMemo(() => ({
+    application_number: applicationNumber || '—',
+    applicant_name: applicantName || '—',
+    license_type: licenseType || '—',
+    submitted_date: fmtDate(submittedAt),
+    decision_date: fmtDate(new Date().toISOString()),
+    rationale: rationale.trim() || '[Decision rationale to be recorded]',
+    conditions: conditions.trim()
+      ? conditions.split('\n').filter((l) => l.trim()).map((l, i) => `${i + 1}. ${l.trim()}`).join('\n')
+      : '[Conditions to be specified]',
+    signatory_name: signatory?.name || '[Authorised signatory not configured]',
+    signatory_title: signatory?.title || '',
+    regulator_name: activeRegulator?.name || general?.org_name || branding?.site_name || 'Regulatory Authority',
+  }), [applicationNumber, applicantName, licenseType, submittedAt, rationale, conditions, signatory, activeRegulator, general, branding]);
+
+  const letterSubject = template?.subject ? renderRationaleTemplate(template.subject, vars) : '';
+  const letterBody = template?.body ? renderRationaleTemplate(template.body, vars) : '';
+
+  const letterHtml = useMemo(() => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(letterSubject || 'Decision letter')}</title>
+<style>
+ body{font-family:Georgia,'Times New Roman',serif;max-width:760px;margin:48px auto;padding:0 32px;color:#111;line-height:1.6}
+ .hdr{border-bottom:3px solid #1E3A8A;padding-bottom:12px;margin-bottom:28px}
+ .hdr h1{font-size:18px;margin:0;color:#1E3A8A;letter-spacing:.5px}
+ .hdr p{margin:4px 0 0;font-size:12px;color:#555}
+ .subject{font-weight:bold;margin-bottom:20px}
+ pre{font-family:inherit;white-space:pre-wrap;margin:0}
+ .draft{margin-top:36px;font-size:11px;color:#888;border-top:1px solid #ddd;padding-top:10px}
+</style></head><body>
+ <div class="hdr"><h1>${esc(vars.regulator_name.toUpperCase())}</h1><p>${esc(general?.address || '')}</p></div>
+ <p>${esc(fmtDate(new Date().toISOString()))}</p>
+ ${letterSubject ? `<p class="subject">${esc(letterSubject)}</p>` : ''}
+ <pre>${esc(letterBody)}</pre>
+ <div class="draft">DRAFT PREVIEW — generated for internal review of application ${esc(applicationNumber)}. Not a served determination.</div>
+</body></html>`;
+  }, [letterSubject, letterBody, vars, general, applicationNumber]);
+
+  function printLetter() {
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { toast.error('Allow pop-ups to print the letter preview'); return; }
+    w.document.write(letterHtml);
+    w.document.close();
+    w.focus();
+  }
+
+  function downloadLetter() {
+    const blob = new Blob([letterHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `decision-letter-${applicationNumber || applicationId}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyLetter() {
+    try {
+      await navigator.clipboard.writeText(`${letterSubject}\n\n${letterBody}`);
+      toast.success('Letter copied to clipboard');
+    } catch {
+      toast.error('Clipboard unavailable');
+    }
+  }
+
+  async function buildCertificate() {
+    setCertBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('preview-decision-documents', {
+        body: {
+          application_id: applicationId,
+          outcome,
+          conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const b64 = (data as any).pdf_base64 as string;
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      if (certUrl) URL.revokeObjectURL(certUrl);
+      setCertUrl(URL.createObjectURL(blob));
+      setCertFilename((data as any).filename || 'draft-certificate.pdf');
+    } catch (e: any) {
+      toast.error(`Certificate preview failed: ${e.message ?? e}`);
+    } finally {
+      setCertBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Decision Letter &amp; Certificate Preview
+        </CardTitle>
+        <CardDescription>
+          Preview the determination letter and the draft licence certificate before recording the decision.
+          Nothing here is served, dispatched or stored.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Intended outcome</Label>
+            <Select value={outcome} onValueChange={setOutcome}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {OUTCOMES.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Letter template</Label>
+            <Select value={templateId} onValueChange={setTemplateId} disabled={loadingTemplates || templates.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={loadingTemplates ? 'Loading…' : 'No decision letter templates'} />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Grounds / rationale</Label>
+            <Textarea rows={4} value={rationale} onChange={(e) => setRationale(e.target.value)}
+              placeholder="Grounds for the determination as they will appear in the letter…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Conditions <span className="text-muted-foreground">(one per line)</span></Label>
+            <Textarea rows={4} value={conditions} onChange={(e) => setConditions(e.target.value)}
+              placeholder={'Submit audited accounts within 90 days\nMaintain minimum capital of …'} />
+          </div>
+        </div>
+
+        {!loadingTemplates && templates.length === 0 && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              No decision letter templates are configured. Add templates under Admin → Correspondence Templates
+              with category <span className="font-mono">decision_letter</span>.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Tabs defaultValue="letter">
+          <TabsList>
+            <TabsTrigger value="letter">Decision letter</TabsTrigger>
+            <TabsTrigger value="certificate">Licence certificate</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="letter" className="mt-3 space-y-3">
+            {template ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={printLetter}><Printer className="h-4 w-4 mr-1.5" />Print</Button>
+                  <Button size="sm" variant="outline" onClick={downloadLetter}><Download className="h-4 w-4 mr-1.5" />Download</Button>
+                  <Button size="sm" variant="ghost" onClick={copyLetter}><Copy className="h-4 w-4 mr-1.5" />Copy text</Button>
+                </div>
+                <div className="rounded-md border border-border/60 bg-card">
+                  {letterSubject && (
+                    <div className="border-b border-border/60 px-4 py-2 text-sm font-medium">{letterSubject}</div>
+                  )}
+                  <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap px-4 py-3 font-serif text-sm leading-relaxed">
+                    {letterBody}
+                  </pre>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Draft preview only — the letter is served through the correspondence workflow once the decision is recorded.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a letter template to preview the wording.</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="certificate" className="mt-3 space-y-3">
+            {!outcomeMeta.certificate ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  A licence certificate is only issued for approval outcomes. Switch the intended outcome to
+                  “Approval” or “Approval with conditions” to preview the certificate.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" onClick={buildCertificate} disabled={certBusy}>
+                    {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
+                    {certUrl ? 'Regenerate draft certificate' : 'Generate draft certificate'}
+                  </Button>
+                  {certUrl && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={certUrl} download={certFilename}><Download className="h-4 w-4 mr-1.5" />Download PDF</a>
+                    </Button>
+                  )}
+                  <Badge variant="outline">Watermarked · not stored</Badge>
+                  {!signatory && <Badge variant="outline">Signatory not configured</Badge>}
+                </div>
+                {certUrl ? (
+                  <iframe
+                    title="Draft licence certificate preview"
+                    src={certUrl}
+                    className="h-[520px] w-full rounded-md border border-border/60 bg-muted/20"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Generates a watermarked draft of the certificate that would be issued on approval, including any
+                    conditions entered above. The licence number and signature are applied only at issue.
+                  </p>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default DecisionDocumentPreview;

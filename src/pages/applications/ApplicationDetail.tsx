@@ -27,8 +27,6 @@ import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
-import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
-import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
 
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
@@ -54,9 +52,8 @@ import { LicenseAppealPanel } from '@/components/appeals/LicenseAppealPanel';
 import { ReinstatedAfterAppealBanner } from '@/components/appeals/ReinstatedAfterAppealBanner';
 
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
-import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
-import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
+import { ApproverDecisionView } from '@/components/applications/ApproverDecisionView';
 import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
@@ -899,6 +896,7 @@ export default function ApplicationDetail() {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="communications">Communications</TabsTrigger>
+                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision">Decision</TabsTrigger>}
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
 
@@ -1194,6 +1192,29 @@ export default function ApplicationDetail() {
                 )}
               </TabsContent>
 
+              {isInternal && app.status !== 'draft' && (
+                <TabsContent value="decision" className="mt-4">
+                  {activeTab === 'decision' && (
+                    <ApproverDecisionView
+                      application={app as any}
+                      events={events}
+                      templateNames={templateNames}
+                      paymentComplete={paymentComplete}
+                      applicantName={
+                        (app as any).applicant_name ||
+                        (app as any).data?.applicant_name ||
+                        (app as any).data?.entity_name ||
+                        (app as any).data?.full_name ||
+                        (app as any).data?.company_name ||
+                        ''
+                      }
+                      currentUserId={user?.id ?? null}
+                      onJumpToFormsTab={() => setActiveTab('form')}
+                    />
+                  )}
+                </TabsContent>
+              )}
+
               {isInternal && (
 
                 <TabsContent value="consolidated" className="mt-4">
@@ -1263,24 +1284,22 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Advisory AI Analyst Assessment — internal staff only, post-draft. */}
-            {isInternal && app.status !== 'draft' && user && (
-              <ApplicationAiAssessmentPanel applicationId={app.id} currentUserId={user.id} />
-            )}
-
-            {/* Consolidated read-only decision support — internal staff only, post-draft. */}
-            {isInternal && app.status !== 'draft' && (
-              <>
-                <SufficiencyPanel applicationId={app.id} />
-                <TwinPeaksPanel applicationId={app.id} />
-                <DecisionReadySummary
-                  application={app as any}
-                  events={events}
-                  templateNames={templateNames}
-                  paymentComplete={paymentComplete}
-                  onJumpToFormsTab={() => setActiveTab('form')}
-                />
-              </>
+            {/* Decision support (AI assessment, sufficiency, twin-peaks, readiness) now
+                lives in the consolidated "Decision" tab above for internal staff. */}
+            {isInternal && app.status !== 'draft' && activeTab !== 'decision' && (
+              <Card className="border-primary/30">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div>
+                    <p className="text-sm font-medium">Decision-ready view</p>
+                    <p className="text-sm text-muted-foreground">
+                      Readiness, sufficiency, twin-peaks clearances, AI assessment and document previews in one place.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab('decision')}>
+                    Open Decision view
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
 
