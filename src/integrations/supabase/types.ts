@@ -12592,6 +12592,91 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_oversight_config: {
+        Row: {
+          created_at: string
+          id: number
+          incident_notification_hours: number
+          pfmi_assessment_frequency_months: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          incident_notification_hours?: number
+          pfmi_assessment_frequency_months?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          incident_notification_hours?: number
+          pfmi_assessment_frequency_months?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      payment_oversight_events: {
+        Row: {
+          actor_id: string | null
+          assessment_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          incident_id: string | null
+          metadata: Json
+          notes: string | null
+          operator_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          assessment_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          incident_id?: string | null
+          metadata?: Json
+          notes?: string | null
+          operator_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          assessment_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          incident_id?: string | null
+          metadata?: Json
+          notes?: string | null
+          operator_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_oversight_events_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "pfmi_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_oversight_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "payment_system_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_oversight_events_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "payment_system_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_receipts: {
         Row: {
           amount: number
@@ -12699,6 +12784,211 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_retail_volumes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          operator_id: string
+          payment_type: string
+          period_end: string
+          period_start: string
+          source: string
+          transaction_count: number
+          transaction_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          operator_id: string
+          payment_type: string
+          period_end: string
+          period_start: string
+          source?: string
+          transaction_count?: number
+          transaction_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          operator_id?: string
+          payment_type?: string
+          period_end?: string
+          period_start?: string
+          source?: string
+          transaction_count?: number
+          transaction_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_retail_volumes_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "payment_system_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_system_incidents: {
+        Row: {
+          affected_transactions: number | null
+          affected_value: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          incident_type: string
+          linked_action_id: string | null
+          notification_delay_minutes: number | null
+          notification_received_at: string | null
+          occurred_at: string
+          operator_id: string
+          reference: string
+          resolution_notes: string | null
+          resolution_status: string
+          resolved_at: string | null
+          severity: string
+          sla_breached: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_transactions?: number | null
+          affected_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          incident_type: string
+          linked_action_id?: string | null
+          notification_delay_minutes?: number | null
+          notification_received_at?: string | null
+          occurred_at: string
+          operator_id: string
+          reference: string
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          severity?: string
+          sla_breached?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_transactions?: number | null
+          affected_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          incident_type?: string
+          linked_action_id?: string | null
+          notification_delay_minutes?: number | null
+          notification_received_at?: string | null
+          occurred_at?: string
+          operator_id?: string
+          reference?: string
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          severity?: string
+          sla_breached?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_system_incidents_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "payment_system_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_system_operators: {
+        Row: {
+          active_agents_count: number | null
+          aml_compliance_status: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          designation_date: string | null
+          entity_id: string | null
+          id: string
+          last_pfmi_assessment_date: string | null
+          licence_number: string | null
+          license_status: string
+          notes: string | null
+          operator_name: string
+          operator_type: string
+          pfmi_compliance_level: string | null
+          reference: string
+          regulator_id: string | null
+          status: string
+          systemically_important: boolean
+          updated_at: string
+        }
+        Insert: {
+          active_agents_count?: number | null
+          aml_compliance_status?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          designation_date?: string | null
+          entity_id?: string | null
+          id?: string
+          last_pfmi_assessment_date?: string | null
+          licence_number?: string | null
+          license_status?: string
+          notes?: string | null
+          operator_name: string
+          operator_type?: string
+          pfmi_compliance_level?: string | null
+          reference: string
+          regulator_id?: string | null
+          status?: string
+          systemically_important?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active_agents_count?: number | null
+          aml_compliance_status?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          designation_date?: string | null
+          entity_id?: string | null
+          id?: string
+          last_pfmi_assessment_date?: string | null
+          licence_number?: string | null
+          license_status?: string
+          notes?: string | null
+          operator_name?: string
+          operator_type?: string
+          pfmi_compliance_level?: string | null
+          reference?: string
+          regulator_id?: string | null
+          status?: string
+          systemically_important?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -12963,6 +13253,160 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pfmi_assessment_principles: {
+        Row: {
+          assessed_at: string | null
+          assessed_by: string | null
+          assessment_id: string
+          created_at: string
+          evidence: Json
+          id: string
+          narrative: string | null
+          principle_number: number
+          regulatory_score: string | null
+          self_score: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_id: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          narrative?: string | null
+          principle_number: number
+          regulatory_score?: string | null
+          self_score?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_id?: string
+          created_at?: string
+          evidence?: Json
+          id?: string
+          narrative?: string | null
+          principle_number?: number
+          regulatory_score?: string | null
+          self_score?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pfmi_assessment_principles_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "pfmi_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pfmi_assessments: {
+        Row: {
+          assessment_year: number
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          operator_id: string
+          overall_rating: string | null
+          reference: string
+          started_at: string
+          started_by: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_year: number
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          operator_id: string
+          overall_rating?: string | null
+          reference: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_year?: number
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          operator_id?: string
+          overall_rating?: string | null
+          reference?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pfmi_assessments_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "payment_system_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pfmi_principle_applicability: {
+        Row: {
+          created_at: string
+          id: string
+          operator_type: string
+          principle_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operator_type: string
+          principle_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operator_type?: string
+          principle_number?: number
+        }
+        Relationships: []
+      }
+      pfmi_principles: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          principle_number: number
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          principle_number: number
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          principle_number?: number
+          title?: string
+        }
+        Relationships: []
       }
       ppoc_entity_mappings: {
         Row: {
@@ -19877,6 +20321,10 @@ export type Database = {
         Args: { _action: string; _user_id: string }
         Returns: boolean
       }
+      can_act_on_payment_oversight: {
+        Args: { _action: string; _user_id: string }
+        Returns: boolean
+      }
       can_act_on_prudential: { Args: { _user: string }; Returns: boolean }
       can_activate_rule_engine: {
         Args: { _user_id?: string }
@@ -19965,6 +20413,10 @@ export type Database = {
       }
       can_read_licensee: {
         Args: { _licensee_id: string; _user: string }
+        Returns: boolean
+      }
+      can_read_payment_oversight: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       can_read_prudential_entity: {
@@ -22232,6 +22684,24 @@ export type Database = {
       notify_returns_due: { Args: never; Returns: number }
       notify_upcoming_form_versions: { Args: never; Returns: number }
       notify_workflow_sla_events: { Args: never; Returns: number }
+      payment_incident_record: {
+        Args: {
+          _affected_transactions?: number
+          _affected_value?: number
+          _description?: string
+          _incident_type: string
+          _notification_received_at?: string
+          _occurred_at: string
+          _operator_id: string
+          _severity?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      payment_incident_resolve: {
+        Args: { _incident_id: string; _notes?: string }
+        Returns: Json
+      }
       peer_ratio_snapshot: {
         Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
         Returns: Json
@@ -22286,6 +22756,25 @@ export type Database = {
         Returns: Json
       }
       permission_has_dependency: { Args: { _action: string }; Returns: boolean }
+      pfmi_complete_assessment: {
+        Args: { _assessment_id: string; _summary?: string }
+        Returns: Json
+      }
+      pfmi_save_principle: {
+        Args: {
+          _assessment_id: string
+          _evidence?: Json
+          _narrative?: string
+          _principle_number: number
+          _regulatory_score?: string
+          _self_score?: string
+        }
+        Returns: Json
+      }
+      pfmi_start_assessment: {
+        Args: { _operator_id: string; _year?: number }
+        Returns: Json
+      }
       portal_application_entity_ids: {
         Args: { _application_id: string }
         Returns: string[]
