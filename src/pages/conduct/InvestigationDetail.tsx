@@ -68,17 +68,25 @@ export default function InvestigationDetail() {
               <div><span className="text-muted-foreground">Source:</span> {data.source_type}</div>
               <div><span className="text-muted-foreground">Due:</span> {data.due_date || '—'}</div>
               <div><span className="text-muted-foreground">Allegation:</span><br />{data.allegation}</div>
+              {(data as any).discontinuation_ground && (
+                <div><span className="text-muted-foreground">Discontinuation ground:</span> {(data as any).discontinuation_ground.replace(/_/g, ' ')}</div>
+              )}
               {data.outcome && <div><span className="text-muted-foreground">Outcome:</span><br />{data.outcome}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle className="text-base">Change status</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <Select value={status || data.status} onValueChange={setStatus}>
+              <Select value={status || data.status} onValueChange={setStatus} disabled={concluded}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
+                <SelectContent>{(concluded ? [...STATUSES, data.status] : STATUSES).map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
-              <Button data-rbac="market_conduct.edit" onClick={saveStatus} disabled={update.isPending} className="w-full">Save</Button>
+              <Button data-rbac="market_conduct.edit" onClick={saveStatus} disabled={update.isPending || concluded} className="w-full">Save</Button>
+              <p className="text-xs text-muted-foreground">
+                {concluded
+                  ? 'This investigation has been concluded through the closure gate.'
+                  : 'Closure and discontinuation are handled on the Closure tab and require supervisory approval.'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -87,10 +95,13 @@ export default function InvestigationDetail() {
           <TabsList>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
+            <TabsTrigger value="closure">Closure</TabsTrigger>
           </TabsList>
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
+          <TabsContent value="closure"><ClosurePanel investigationId={data.id} investigation={data} /></TabsContent>
         </Tabs>
+
 
       </div>
     </DashboardLayout>
