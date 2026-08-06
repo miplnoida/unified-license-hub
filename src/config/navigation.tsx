@@ -141,6 +141,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Conduct Entities', href: '/conduct/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Investigations', href: '/conduct/investigations', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Thematic Reviews', href: '/supervision/thematic-reviews', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Thematic Closure Approvals', href: '/supervision/thematic-closure-approvals', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Risk Taxonomy', href: '/admin/conduct/risk-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
       { label: 'Products & Channels', href: '/admin/conduct/products-channels', icon: <Boxes className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
       { label: 'Triage Rules', href: '/admin/conduct/triage-rules', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'market_conduct', adminOnly: true },
