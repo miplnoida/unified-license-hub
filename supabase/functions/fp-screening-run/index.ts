@@ -2,6 +2,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
 import { requireUserPermission } from "../_shared/authz.ts";
+import { invokeIntegration } from '../_shared/integration/invoke.ts';
+import { resolveConnection } from '../_shared/connector/runtime.ts';
+import {
+  mapProviderResult,
+  providerCallFor,
+  type ProviderCheckType,
+} from '../_shared/fp/screeningProvider.ts';
+
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -222,6 +230,53 @@ Deno.serve(async (req) => {
       return null;
     }
 
+    // ── External screening provider stage ────────────────────────────────────
+    // Sanctions, PEP and adverse-media checks are executed against the
+    // registered provider through the ONE canonical Integration Manager entry
+    // point. Fallback is forbidden: a sanctions/AML answer may never be
+    // substituted by internal logic. Every outcome (hit / clean /
+    // not_configured / failed) is recorded on the run so a broken check can
+    // never be mistaken for a clean subject. The keyword and self-declaration
+    // logic below still runs alongside it, unchanged.
+    const providerOutcomes: Any[] = [];
+    const envCache = new Map<string, string | null>();
+    async function environmentOf(key: string): Promise<string | null> {
+      if (!envCache.has(key)) {
+        const conn = await resolveConnection(supa as Any, key);
+        envCache.set(key, conn?.environment ?? null);
+      }
+      return envCache.get(key) ?? null;
+    }
+
+    async function runProviderCheck(cfg: Any, base: Any, checkType: ProviderCheckType) {
+      const call = providerCallFor(checkType, person as Any, `fp:${runRow.id}:${checkType}`);
+      if (!call) return;
+      const result = await invokeIntegration(supa as Any, {
+        integrationKey: call.integrationKey,
+        operation: call.operation,
+        sourceModule: 'fit_and_proper',
+        businessEvent: `fp.screening.${checkType}`,
+        sourceEntityType: 'fp_assessment',
+        sourceEntityId: assessmentId!,
+        actorId: triggeredBy,
+        idempotencyKey: `fp:${runRow.id}:${checkType}`,
+        payload: call.payload,
+        fallbackPolicy: 'forbid',
+        retryQueue: true,
+        metadata: { individual_id: person.id, run_id: runRow.id, check_type: checkType },
+      });
+      const mapped = mapProviderResult({
+        checkType,
+        integrationKey: call.integrationKey,
+        environment: await environmentOf(call.integrationKey),
+        result: result as Any,
+        base: { ...base, config_id: cfg.id },
+        defaultSeverity: cfg.severity_default ?? null,
+      });
+      providerOutcomes.push(mapped.outcome);
+      for (const f of mapped.findings) findings.push(f);
+    }
+
     for (const cfg of activeConfigs) {
       const base = {
         assessment_id: assessmentId,
@@ -231,6 +286,11 @@ Deno.serve(async (req) => {
         check_type: cfg.check_type,
         source: cfg.provider || 'internal',
       };
+
+      if (cfg.check_type === 'sanctions' || cfg.check_type === 'pep' || cfg.check_type === 'adverse_media') {
+        await runProviderCheck(cfg, base, cfg.check_type as ProviderCheckType);
+      }
+
 
       if (cfg.check_type === 'sanctions') {
         // Keyword scan across full declaration text + name
@@ -303,7 +363,17 @@ Deno.serve(async (req) => {
     }
 
     if (findings.length) {
-      const { error: fErr } = await supa.from('fp_findings').insert(findings);
+      // Batch inserts send the UNION of all row keys, so any key that only
+      // some rows carry arrives as an explicit NULL for the rest and defeats
+      // the column default (this broke NOT NULL resolution_status once the
+      // provider stage started emitting richer rows). Normalise explicitly.
+      const normalised = findings.map((f: Any) => ({
+        resolution_status: 'pending',
+        citations: [],
+        confidence_score: null,
+        ...f,
+      }));
+      const { error: fErr } = await supa.from('fp_findings').insert(normalised);
       if (fErr) throw new Error(fErr.message);
     }
 
@@ -311,7 +381,9 @@ Deno.serve(async (req) => {
       status: 'completed',
       completed_at: new Date().toISOString(),
       total_hits: findings.length,
+      provider_outcomes: providerOutcomes,
     }).eq('id', runRow.id);
+
 
     if (findings.length > 0) {
       await supa.from('fp_assessments').update({ status: 'screening' }).eq('id', assessmentId);
