@@ -133,6 +133,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: [...ALL_INTERNAL, ...LICENSEE_ALL, ...PRE_LICENSEE, 'applicant'], module: 'complaint_management' },
       { label: 'Duplicate Detection', href: '/complaints/duplicates', icon: <Layers className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Auto-Escalation', href: '/complaints/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
+      { label: 'RFI Approvals', href: '/complaints/rfi-approvals', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_type', adminOnly: true },
       { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },

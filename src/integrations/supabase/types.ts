@@ -2286,55 +2286,106 @@ export type Database = {
           },
         ]
       }
+      complaint_rfi_settings: {
+        Row: {
+          approval_required: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_required?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_required?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       complaint_rfis: {
         Row: {
+          approval_notes: string | null
+          approval_state: string
+          approved_at: string | null
+          approved_by: string | null
+          approver_id: string | null
           closed_at: string | null
           closed_by: string | null
           closure_notes: string | null
           complaint_id: string
           created_at: string
+          dispatched_at: string | null
           due_at: string | null
           id: string
           licensee_id: string
           raised_at: string
           raised_by: string | null
+          rejection_reason: string | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
+          submitted_for_approval_at: string | null
+          submitted_for_approval_by: string | null
           summary: string | null
           updated_at: string
         }
         Insert: {
+          approval_notes?: string | null
+          approval_state?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closure_notes?: string | null
           complaint_id: string
           created_at?: string
+          dispatched_at?: string | null
           due_at?: string | null
           id?: string
           licensee_id: string
           raised_at?: string
           raised_by?: string | null
+          rejection_reason?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
+          submitted_for_approval_at?: string | null
+          submitted_for_approval_by?: string | null
           summary?: string | null
           updated_at?: string
         }
         Update: {
+          approval_notes?: string | null
+          approval_state?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closure_notes?: string | null
           complaint_id?: string
           created_at?: string
+          dispatched_at?: string | null
           due_at?: string | null
           id?: string
           licensee_id?: string
           raised_at?: string
           raised_by?: string | null
+          rejection_reason?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
+          submitted_for_approval_at?: string | null
+          submitted_for_approval_by?: string | null
           summary?: string | null
           updated_at?: string
         }
@@ -20777,6 +20828,10 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      can_approve_complaint_rfi: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -21162,6 +21217,10 @@ export type Database = {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
       }
+      complaint_rfi_approve: {
+        Args: { p_due_at?: string; p_notes?: string; p_rfi_id: string }
+        Returns: Json
+      }
       complaint_rfi_cancel: {
         Args: { p_reason: string; p_rfi_id: string }
         Returns: undefined
@@ -21172,12 +21231,18 @@ export type Database = {
       }
       complaint_rfi_raise: {
         Args: {
+          p_approver_id?: string
+          p_as_draft?: boolean
           p_complaint_id: string
           p_due_at: string
           p_items: Json
           p_summary: string
         }
         Returns: string
+      }
+      complaint_rfi_reject: {
+        Args: { p_reason: string; p_rfi_id: string }
+        Returns: Json
       }
       complaint_rfi_return_item: {
         Args: { p_item_id: string; p_reason: string }
@@ -21191,7 +21256,24 @@ export type Database = {
         }
         Returns: string
       }
+      complaint_rfi_set_approval_required: {
+        Args: { p_required: boolean }
+        Returns: undefined
+      }
       complaint_rfi_submit: { Args: { p_rfi_id: string }; Returns: Json }
+      complaint_rfi_submit_for_approval: {
+        Args: { p_approver_id?: string; p_rfi_id: string }
+        Returns: undefined
+      }
+      complaint_rfi_update_draft: {
+        Args: {
+          p_due_at: string
+          p_items: Json
+          p_rfi_id: string
+          p_summary: string
+        }
+        Returns: undefined
+      }
       complaint_sla_status: {
         Args: {
           _created_at: string
