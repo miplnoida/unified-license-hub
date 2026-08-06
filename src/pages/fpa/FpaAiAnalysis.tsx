@@ -90,7 +90,10 @@ interface ScreeningRunInfo {
   total_checks: number | null;
   total_hits: number | null;
   config_snapshot: any;
+  /** Per-check external provider outcome written by fp-screening-run. */
+  provider_outcomes: any;
 }
+
 
 // Mirrors the self-declaration keys fp-screening-run itself checks per
 // check_type (see supabase/functions/fp-screening-run/index.ts) — used here to
