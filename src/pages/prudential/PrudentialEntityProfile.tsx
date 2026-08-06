@@ -18,6 +18,7 @@ import { PrudentialEntityHistoryDrawer } from '@/components/prudential/Prudentia
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
+import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
