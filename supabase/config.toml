@@ -3,3 +3,9 @@ project_id = "sndfttzqmbkmkcnrvpfn"
 verify_jwt = false
 [functions.developer-api]
 verify_jwt = false
+# Called by the connector runtime with the provider credential in the
+# Authorization header (a provider API key, not a Supabase JWT). The function
+# validates that credential itself.
+[functions.screening-sandbox]
+verify_jwt = false
+
