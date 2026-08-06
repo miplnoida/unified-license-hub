@@ -755,7 +755,7 @@ export default function FpaAiAnalysis() {
     queryFn: async (): Promise<ScreeningRunInfo | null> => {
       const { data, error } = await supabase
         .from('fp_screening_runs')
-        .select('id, run_type, status, started_at, completed_at, total_checks, total_hits, config_snapshot')
+        .select('id, run_type, status, started_at, completed_at, total_checks, total_hits, config_snapshot, provider_outcomes')
         .eq('assessment_id', selectedAssessmentId!)
         .order('started_at', { ascending: false })
         .limit(1)
