@@ -124,6 +124,9 @@ const EscalationsList = lazy(() => import('@/pages/prudential/EscalationsList'))
 const StressIndicatorsAdmin = lazy(() => import('@/pages/prudential/StressIndicatorsAdmin'));
 const ExaminationsList = lazy(() => import('@/pages/prudential/ExaminationsList'));
 const ExaminationWorkspace = lazy(() => import('@/pages/prudential/ExaminationWorkspace'));
+const PaymentSystemsOversight = lazy(() => import('@/pages/prudential/PaymentSystemsOversight'));
+const PaymentOperatorProfile = lazy(() => import('@/pages/prudential/PaymentOperatorProfile'));
+const PfmiAssessmentWizard = lazy(() => import('@/pages/prudential/PfmiAssessmentWizard'));
 const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
