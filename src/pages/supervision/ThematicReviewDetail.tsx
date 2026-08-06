@@ -128,10 +128,13 @@ export default function ThematicReviewDetail() {
                   <ArrowLeft className="h-4 w-4 mr-1" /> Move back
                 </Button>
               )}
-              {forwardStatus && (
+              {forwardStatus && forwardStatus !== 'closed' && (
                 <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setTransition({ to: forwardStatus, needsOverride: false })}>
                   Advance → {STATUS_LABEL[forwardStatus]} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
+              )}
+              {forwardStatus === 'closed' && (
+                <Badge variant="outline" className="self-center">Closure requires report publication & approval</Badge>
               )}
             </div>
           }
