@@ -15,7 +15,7 @@ const C = (over: Partial<ComplaintRow>): ComplaintRow => ({
   severity: over.severity ?? 'medium',
   status: over.status ?? 'open',
   product_id: over.product_id ?? 'p1',
-  channel_id: over.channel_id ?? 'ch1',
+  channel_id: 'channel_id' in over ? (over.channel_id as string | null) : 'ch1',
   conduct_risk_category_id: over.conduct_risk_category_id ?? 'cat1',
   licensee_id: over.licensee_id ?? 'L1',
   vulnerability_indicator: over.vulnerability_indicator ?? false,
