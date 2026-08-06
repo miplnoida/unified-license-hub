@@ -20727,6 +20727,24 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      group_consolidated_recompute: {
+        Args: { _group_id: string; _period_key: string }
+        Returns: Json
+      }
+      group_ewi_evaluate: {
+        Args: { _group_id: string; _period_key?: string }
+        Returns: number
+      }
+      group_member_ratios: {
+        Args: { _group_id: string; _period_key: string }
+        Returns: {
+          display_format: string
+          label: string
+          licensee_id: string
+          ratio_key: string
+          value: number
+        }[]
+      }
       has_any_internal_role: { Args: { _user_id: string }; Returns: boolean }
       has_any_permission: {
         Args: { _keys: string[]; _user_id: string }
@@ -21005,6 +21023,10 @@ export type Database = {
         }
         Returns: string
       }
+      intragroup_exposure_matrix: {
+        Args: { _group_id: string; _period_key: string }
+        Returns: Json
+      }
       is_assignment_only_regulator: {
         Args: { _user_id: string }
         Returns: boolean
@@ -21073,6 +21095,10 @@ export type Database = {
           email: string
           user_id: string
         }[]
+      }
+      licensee_group_membership: {
+        Args: { _licensee_id: string }
+        Returns: Json
       }
       licensee_ids_for_license: {
         Args: { _license_id: string }
@@ -21678,6 +21704,10 @@ export type Database = {
           user_id: string
           user_role: string
         }[]
+      }
+      prudential_group_consolidated: {
+        Args: { _group_id: string; _period_key?: string }
+        Returns: Json
       }
       prudential_sector_risk_distribution: {
         Args: never
