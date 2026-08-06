@@ -18,6 +18,7 @@ import { PrudentialEntityHistoryDrawer } from '@/components/prudential/Prudentia
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
+import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -217,6 +218,7 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="assessments">Assessments</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
+          <TabsTrigger value="examinations">Examinations</TabsTrigger>
           <TabsTrigger value="stress">Stress Events</TabsTrigger>
           <TabsTrigger value="peers">Peer Comparison</TabsTrigger>
           <TabsTrigger value="group">Group Structure</TabsTrigger>
@@ -590,9 +592,14 @@ export default function PrudentialEntityProfile() {
           />
         </TabsContent>
 
+        <TabsContent value="examinations">
+          <EntityExaminationsTab entityId={e.id} />
+        </TabsContent>
+
         <TabsContent value="group">
           <GroupMembershipCard licenseeId={e.id} />
         </TabsContent>
+
 
         <TabsContent value="audit">
           <Card><CardContent className="pt-4">

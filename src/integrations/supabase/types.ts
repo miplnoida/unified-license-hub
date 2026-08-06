@@ -6427,6 +6427,594 @@ export type Database = {
           },
         ]
       }
+      examination_data_requests: {
+        Row: {
+          created_at: string
+          data_format: string | null
+          description: string | null
+          due_date: string | null
+          entity_response: string | null
+          examination_id: string
+          file_upload_id: string | null
+          id: string
+          issued_at: string | null
+          item_no: number | null
+          received_at: string | null
+          requested_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_format?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_response?: string | null
+          examination_id: string
+          file_upload_id?: string | null
+          id?: string
+          issued_at?: string | null
+          item_no?: number | null
+          received_at?: string | null
+          requested_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_format?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_response?: string | null
+          examination_id?: string
+          file_upload_id?: string | null
+          id?: string
+          issued_at?: string | null
+          item_no?: number | null
+          received_at?: string | null
+          requested_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_data_requests_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          examination_id: string
+          from_stage: string | null
+          id: string
+          metadata: Json
+          notes: string | null
+          to_stage: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          examination_id: string
+          from_stage?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          to_stage?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          examination_id?: string
+          from_stage?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          to_stage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_events_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_exit_meetings: {
+        Row: {
+          agreed_timelines: string | null
+          created_at: string
+          entity_attendees: string[]
+          entity_initial_response: string | null
+          examination_id: string
+          id: string
+          location: string | null
+          matters_discussed: string | null
+          meeting_date: string | null
+          minutes_file_upload_id: string | null
+          recorded_by: string | null
+          regulator_attendees: string[]
+          updated_at: string
+        }
+        Insert: {
+          agreed_timelines?: string | null
+          created_at?: string
+          entity_attendees?: string[]
+          entity_initial_response?: string | null
+          examination_id: string
+          id?: string
+          location?: string | null
+          matters_discussed?: string | null
+          meeting_date?: string | null
+          minutes_file_upload_id?: string | null
+          recorded_by?: string | null
+          regulator_attendees?: string[]
+          updated_at?: string
+        }
+        Update: {
+          agreed_timelines?: string | null
+          created_at?: string
+          entity_attendees?: string[]
+          entity_initial_response?: string | null
+          examination_id?: string
+          id?: string
+          location?: string | null
+          matters_discussed?: string | null
+          meeting_date?: string | null
+          minutes_file_upload_id?: string | null
+          recorded_by?: string | null
+          regulator_attendees?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_exit_meetings_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: true
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_findings: {
+        Row: {
+          category: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          criteria_breached: string | null
+          entity_response: string | null
+          examination_id: string
+          id: string
+          observation: string | null
+          recommendation: string | null
+          reference: string | null
+          remediation_action_id: string | null
+          root_cause: string | null
+          severity: string
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          workpaper_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          criteria_breached?: string | null
+          entity_response?: string | null
+          examination_id: string
+          id?: string
+          observation?: string | null
+          recommendation?: string | null
+          reference?: string | null
+          remediation_action_id?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          workpaper_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          criteria_breached?: string | null
+          entity_response?: string | null
+          examination_id?: string
+          id?: string
+          observation?: string | null
+          recommendation?: string | null
+          reference?: string | null
+          remediation_action_id?: string | null
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          workpaper_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_findings_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_findings_remediation_action_id_fkey"
+            columns: ["remediation_action_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_findings_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "examination_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          content: string | null
+          created_at: string
+          examination_id: string
+          executive_summary: string | null
+          file_upload_id: string | null
+          id: string
+          issued_at: string | null
+          management_response: string | null
+          management_response_at: string | null
+          management_response_by: string | null
+          prepared_at: string | null
+          prepared_by: string | null
+          report_type: string
+          response_due_date: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: string | null
+          created_at?: string
+          examination_id: string
+          executive_summary?: string | null
+          file_upload_id?: string | null
+          id?: string
+          issued_at?: string | null
+          management_response?: string | null
+          management_response_at?: string | null
+          management_response_by?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          report_type?: string
+          response_due_date?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: string | null
+          created_at?: string
+          examination_id?: string
+          executive_summary?: string | null
+          file_upload_id?: string | null
+          id?: string
+          issued_at?: string | null
+          management_response?: string | null
+          management_response_at?: string | null
+          management_response_by?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          report_type?: string
+          response_due_date?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_reports_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_scoping: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          budget_days: number | null
+          created_at: string
+          examination_id: string
+          id: string
+          legal_basis: string | null
+          methodology: string | null
+          objectives: string | null
+          prepared_at: string | null
+          prepared_by: string | null
+          risk_focus_areas: string[]
+          scope_exclusions: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_days?: number | null
+          created_at?: string
+          examination_id: string
+          id?: string
+          legal_basis?: string | null
+          methodology?: string | null
+          objectives?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          risk_focus_areas?: string[]
+          scope_exclusions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_days?: number | null
+          created_at?: string
+          examination_id?: string
+          id?: string
+          legal_basis?: string | null
+          methodology?: string | null
+          objectives?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          risk_focus_areas?: string[]
+          scope_exclusions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_scoping_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: true
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_team_members: {
+        Row: {
+          allocated_days: number | null
+          conflict_declared: boolean
+          conflict_notes: string | null
+          created_at: string
+          created_by: string | null
+          examination_id: string
+          id: string
+          member_name: string
+          specialisation: string | null
+          team_role: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          allocated_days?: number | null
+          conflict_declared?: boolean
+          conflict_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          examination_id: string
+          id?: string
+          member_name: string
+          specialisation?: string | null
+          team_role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          allocated_days?: number | null
+          conflict_declared?: boolean
+          conflict_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          examination_id?: string
+          id?: string
+          member_name?: string
+          specialisation?: string | null
+          team_role?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_team_members_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_workpapers: {
+        Row: {
+          area: string
+          conclusion: string | null
+          created_at: string
+          evidence_reference: string | null
+          examination_id: string
+          file_upload_id: string | null
+          id: string
+          prepared_at: string | null
+          prepared_by: string | null
+          procedure_performed: string | null
+          reference: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          conclusion?: string | null
+          created_at?: string
+          evidence_reference?: string | null
+          examination_id: string
+          file_upload_id?: string | null
+          id?: string
+          prepared_at?: string | null
+          prepared_by?: string | null
+          procedure_performed?: string | null
+          reference?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          conclusion?: string | null
+          created_at?: string
+          evidence_reference?: string | null
+          examination_id?: string
+          file_upload_id?: string | null
+          id?: string
+          prepared_at?: string | null
+          prepared_by?: string | null
+          procedure_performed?: string | null
+          reference?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_workpapers_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examinations: {
+        Row: {
+          cancellation_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          examination_type: string
+          fieldwork_end: string | null
+          fieldwork_start: string | null
+          id: string
+          lead_examiner_id: string | null
+          overall_conclusion: string | null
+          period_under_review_end: string | null
+          period_under_review_start: string | null
+          reference: string
+          regulator_id: string | null
+          risk_rating: string | null
+          sector_id: string | null
+          stage: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          examination_type?: string
+          fieldwork_end?: string | null
+          fieldwork_start?: string | null
+          id?: string
+          lead_examiner_id?: string | null
+          overall_conclusion?: string | null
+          period_under_review_end?: string | null
+          period_under_review_start?: string | null
+          reference: string
+          regulator_id?: string | null
+          risk_rating?: string | null
+          sector_id?: string | null
+          stage?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          examination_type?: string
+          fieldwork_end?: string | null
+          fieldwork_start?: string | null
+          id?: string
+          lead_examiner_id?: string | null
+          overall_conclusion?: string | null
+          period_under_review_end?: string | null
+          period_under_review_start?: string | null
+          reference?: string
+          regulator_id?: string | null
+          risk_rating?: string | null
+          sector_id?: string | null
+          stage?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fee_components: {
         Row: {
           amount: number
@@ -19280,6 +19868,10 @@ export type Database = {
         Args: { _action: string; _user_id: string }
         Returns: boolean
       }
+      can_act_on_examination: {
+        Args: { _action: string; _user_id: string }
+        Returns: boolean
+      }
       can_act_on_fp: { Args: { _user: string }; Returns: boolean }
       can_act_on_inspection: {
         Args: { _action: string; _user_id: string }
@@ -19336,6 +19928,10 @@ export type Database = {
         Returns: boolean
       }
       can_read_enforcement: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_read_examination: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
@@ -20334,6 +20930,24 @@ export type Database = {
       }
       evaluate_stress_indicators_for_return: {
         Args: { _return_id: string }
+        Returns: Json
+      }
+      examination_create_remediation_action: {
+        Args: {
+          _assigned_to?: string
+          _description?: string
+          _due_date: string
+          _entity_contact?: string
+          _finding_id: string
+        }
+        Returns: Json
+      }
+      examination_signoff_workpaper: {
+        Args: { _notes?: string; _role: string; _workpaper_id: string }
+        Returns: Json
+      }
+      examination_transition_stage: {
+        Args: { _examination_id: string; _notes?: string; _to_stage: string }
         Returns: Json
       }
       execute_complaint_workflow_action: {
