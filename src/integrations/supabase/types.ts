@@ -19178,14 +19178,24 @@ export type Database = {
           created_by: string | null
           description: string | null
           due_date: string | null
+          entity_contact: string | null
           evidence_of_completion: string | null
+          extension_count: number
+          extension_reason: string | null
           finding_id: string | null
+          follow_up_due_date: string | null
           id: string
           licensee_id: string | null
+          original_due_date: string | null
+          responsible_officer_id: string | null
           review_id: string
           status: string
           title: string
           updated_at: string
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
           waiver_override_id: string | null
         }
         Insert: {
@@ -19197,14 +19207,24 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          entity_contact?: string | null
           evidence_of_completion?: string | null
+          extension_count?: number
+          extension_reason?: string | null
           finding_id?: string | null
+          follow_up_due_date?: string | null
           id?: string
           licensee_id?: string | null
+          original_due_date?: string | null
+          responsible_officer_id?: string | null
           review_id: string
           status?: string
           title: string
           updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           waiver_override_id?: string | null
         }
         Update: {
@@ -19216,14 +19236,24 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          entity_contact?: string | null
           evidence_of_completion?: string | null
+          extension_count?: number
+          extension_reason?: string | null
           finding_id?: string | null
+          follow_up_due_date?: string | null
           id?: string
           licensee_id?: string | null
+          original_due_date?: string | null
+          responsible_officer_id?: string | null
           review_id?: string
           status?: string
           title?: string
           updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           waiver_override_id?: string | null
         }
         Relationships: [
@@ -19447,6 +19477,92 @@ export type Database = {
           },
         ]
       }
+      thematic_review_letters: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          dispatch_id: string | null
+          dispatched_at: string | null
+          dispatched_by: string | null
+          error_message: string | null
+          id: string
+          licensee_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          report_id: string | null
+          review_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          dispatch_id?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          error_message?: string | null
+          id?: string
+          licensee_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          report_id?: string | null
+          review_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          dispatch_id?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          error_message?: string | null
+          id?: string
+          licensee_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          report_id?: string | null
+          review_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_letters_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_letters_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "thematic_review_letters_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_review_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_letters_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thematic_review_products: {
         Row: {
           channel_id: string | null
@@ -19489,6 +19605,98 @@ export type Database = {
           },
           {
             foreignKeyName: "thematic_review_products_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approver_id: string | null
+          background: string | null
+          created_at: string
+          executive_summary: string | null
+          file_path: string | null
+          file_upload_id: string | null
+          id: string
+          key_findings: string | null
+          prepared_at: string
+          prepared_by: string | null
+          published_at: string | null
+          published_by: string | null
+          regulatory_learning: string | null
+          rejection_reason: string | null
+          report_type: string
+          required_actions: string | null
+          review_id: string
+          scope_methodology: string | null
+          status: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          background?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          key_findings?: string | null
+          prepared_at?: string
+          prepared_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          regulatory_learning?: string | null
+          rejection_reason?: string | null
+          report_type?: string
+          required_actions?: string | null
+          review_id: string
+          scope_methodology?: string | null
+          status?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          background?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          file_path?: string | null
+          file_upload_id?: string | null
+          id?: string
+          key_findings?: string | null
+          prepared_at?: string
+          prepared_by?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          regulatory_learning?: string | null
+          rejection_reason?: string | null
+          report_type?: string
+          required_actions?: string | null
+          review_id?: string
+          scope_methodology?: string | null
+          status?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_reports_review_id_fkey"
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "thematic_reviews"
@@ -19550,6 +19758,14 @@ export type Database = {
       thematic_reviews: {
         Row: {
           closed_at: string | null
+          closure_approved_at: string | null
+          closure_approved_by: string | null
+          closure_approver_id: string | null
+          closure_override_id: string | null
+          closure_rejection_reason: string | null
+          closure_requested_at: string | null
+          closure_requested_by: string | null
+          closure_state: string
           closure_summary: string | null
           code: string | null
           created_at: string
@@ -19561,6 +19777,7 @@ export type Database = {
           methodology: Json
           opened_at: string | null
           regulator_id: string | null
+          regulatory_learning: Json
           risk_category_id: string | null
           scope_end: string | null
           scope_start: string | null
@@ -19570,6 +19787,14 @@ export type Database = {
         }
         Insert: {
           closed_at?: string | null
+          closure_approved_at?: string | null
+          closure_approved_by?: string | null
+          closure_approver_id?: string | null
+          closure_override_id?: string | null
+          closure_rejection_reason?: string | null
+          closure_requested_at?: string | null
+          closure_requested_by?: string | null
+          closure_state?: string
           closure_summary?: string | null
           code?: string | null
           created_at?: string
@@ -19581,6 +19806,7 @@ export type Database = {
           methodology?: Json
           opened_at?: string | null
           regulator_id?: string | null
+          regulatory_learning?: Json
           risk_category_id?: string | null
           scope_end?: string | null
           scope_start?: string | null
@@ -19590,6 +19816,14 @@ export type Database = {
         }
         Update: {
           closed_at?: string | null
+          closure_approved_at?: string | null
+          closure_approved_by?: string | null
+          closure_approver_id?: string | null
+          closure_override_id?: string | null
+          closure_rejection_reason?: string | null
+          closure_requested_at?: string | null
+          closure_requested_by?: string | null
+          closure_state?: string
           closure_summary?: string | null
           code?: string | null
           created_at?: string
@@ -19601,6 +19835,7 @@ export type Database = {
           methodology?: Json
           opened_at?: string | null
           regulator_id?: string | null
+          regulatory_learning?: Json
           risk_category_id?: string | null
           scope_end?: string | null
           scope_start?: string | null
@@ -20832,6 +21067,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_approve_thematic_closure: {
+        Args: { _review_id: string }
+        Returns: boolean
+      }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -20851,6 +21090,10 @@ export type Database = {
         Returns: boolean
       }
       can_manage_rule_engine: { Args: { _user_id?: string }; Returns: boolean }
+      can_manage_thematic_review: {
+        Args: { _review_id?: string }
+        Returns: boolean
+      }
       can_mutate_application: {
         Args: { _application_id: string; _user: string }
         Returns: boolean
@@ -24199,6 +24442,79 @@ export type Database = {
           p_token: string
         }
         Returns: Json
+      }
+      thematic_action_extend_due_date: {
+        Args: { _action_id: string; _new_due_date: string; _reason: string }
+        Returns: undefined
+      }
+      thematic_action_record_verification: {
+        Args: {
+          _action_id: string
+          _evidence?: string
+          _notes?: string
+          _verification_status: string
+        }
+        Returns: undefined
+      }
+      thematic_action_set_follow_up: {
+        Args: {
+          _action_id: string
+          _entity_contact?: string
+          _follow_up_due_date?: string
+          _responsible_officer_id?: string
+        }
+        Returns: undefined
+      }
+      thematic_report_approve: {
+        Args: { _report_id: string }
+        Returns: undefined
+      }
+      thematic_report_publish: { Args: { _report_id: string }; Returns: number }
+      thematic_report_reject: {
+        Args: { _reason: string; _report_id: string }
+        Returns: undefined
+      }
+      thematic_report_submit_for_approval: {
+        Args: { _approver_id?: string; _report_id: string }
+        Returns: undefined
+      }
+      thematic_report_upsert_draft: {
+        Args: {
+          _background?: string
+          _executive_summary?: string
+          _key_findings?: string
+          _regulatory_learning?: string
+          _report_id?: string
+          _report_type?: string
+          _required_actions?: string
+          _review_id: string
+          _scope_methodology?: string
+          _title?: string
+        }
+        Returns: string
+      }
+      thematic_review_approve_closure: {
+        Args: { _note?: string; _review_id: string }
+        Returns: undefined
+      }
+      thematic_review_closure_readiness: {
+        Args: { _review_id: string }
+        Returns: Json
+      }
+      thematic_review_reject_closure: {
+        Args: { _reason: string; _review_id: string }
+        Returns: undefined
+      }
+      thematic_review_request_closure: {
+        Args: {
+          _approver_id?: string
+          _closure_summary: string
+          _override_id?: string
+          _override_reason?: string
+          _regulatory_learning?: Json
+          _review_id: string
+        }
+        Returns: undefined
       }
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }

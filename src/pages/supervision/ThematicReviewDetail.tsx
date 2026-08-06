@@ -17,11 +17,17 @@ import { logAction } from '@/hooks/useAuditLog';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { Loader2, Plus, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { THEMATIC_STATUSES } from './ThematicReviews';
+import { ThematicClosurePanel } from '@/components/supervision/ThematicClosurePanel';
+import { ThematicFollowUpRegister } from '@/components/supervision/ThematicFollowUpRegister';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft', scoped: 'Scoped', evidence_collection: 'Evidence Collection',
   analysis: 'Analysis', findings_issued: 'Findings Issued',
   actions_required: 'Actions Required', monitoring: 'Monitoring', closed: 'Closed',
+};
+const CLOSURE_LABEL: Record<string, string> = {
+  not_requested: 'Not requested', pending_approval: 'Pending approval',
+  approved: 'Approved', rejected: 'Rejected',
 };
 
 export default function ThematicReviewDetail() {
@@ -126,10 +132,13 @@ export default function ThematicReviewDetail() {
                   <ArrowLeft className="h-4 w-4 mr-1" /> Move back
                 </Button>
               )}
-              {forwardStatus && (
+              {forwardStatus && forwardStatus !== 'closed' && (
                 <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setTransition({ to: forwardStatus, needsOverride: false })}>
                   Advance → {STATUS_LABEL[forwardStatus]} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
+              )}
+              {forwardStatus === 'closed' && (
+                <Badge variant="outline" className="self-center">Closure requires report publication & approval</Badge>
               )}
             </div>
           }
@@ -153,6 +162,8 @@ export default function ThematicReviewDetail() {
             <TabsTrigger value="findings">Findings ({findings.length})</TabsTrigger>
             <TabsTrigger value="actions">Actions ({actions.length})</TabsTrigger>
             <TabsTrigger value="monitoring">Monitoring ({monResults.length})</TabsTrigger>
+            <TabsTrigger value="followup">Follow-up register</TabsTrigger>
+            <TabsTrigger value="closure">Report & Closure</TabsTrigger>
             <TabsTrigger value="history">History ({history.length})</TabsTrigger>
           </TabsList>
 
@@ -164,11 +175,24 @@ export default function ThematicReviewDetail() {
               <Info label="Opened" value={review.opened_at ? new Date(review.opened_at).toLocaleString() : '—'} />
               <Info label="Closed" value={review.closed_at ? new Date(review.closed_at).toLocaleString() : '—'} />
               <Info label="Lead officer" value={leadOfficer?.full_name || leadOfficer?.email || '—'} />
+              <Info label="Closure state" value={CLOSURE_LABEL[review.closure_state] || review.closure_state || '—'} />
+              <Info label="Closure requested" value={review.closure_requested_at ? new Date(review.closure_requested_at).toLocaleString() : '—'} />
               <div className="md:col-span-2"><Info label="Hypothesis" value={review.hypothesis || '—'} /></div>
               <div className="md:col-span-2"><Info label="Description" value={review.description || '—'} /></div>
               {review.closure_summary && <div className="md:col-span-2"><Info label="Closure summary" value={review.closure_summary} /></div>}
+              {review.closure_rejection_reason && review.closure_state === 'rejected' && (
+                <div className="md:col-span-2"><Info label="Closure rejection reason" value={review.closure_rejection_reason} /></div>
+              )}
             </CardContent></Card>
           </TabsContent>
+
+          <TabsContent value="followup" className="mt-4">
+            <ThematicFollowUpRegister reviewId={id} rows={actions} onChange={load} />
+          </TabsContent>
+          <TabsContent value="closure" className="mt-4">
+            <ThematicClosurePanel reviewId={id} review={review} findings={findings} actions={actions} onChange={load} />
+          </TabsContent>
+
 
           <TabsContent value="scope" className="mt-4"><ScopeTab reviewId={id} entities={entities} products={products} onChange={load} /></TabsContent>
           <TabsContent value="evidence" className="mt-4"><EvidenceTab reviewId={id} rows={evidence} findings={findings} onChange={load} /></TabsContent>
