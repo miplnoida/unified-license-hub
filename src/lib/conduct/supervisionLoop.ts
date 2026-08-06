@@ -116,7 +116,10 @@ export const EMPTY_SUMMARY: LoopSummary = {
 
 /** Recharts Sankey input derived from the funnel counts. */
 export function buildSankeyData(funnel: LoopFunnel) {
-  const nodes = STAGES.map((s) => ({ name: s.label, stageKey: s.key, value: funnel[s.key] ?? 0 }));
+  // `count` carries the true stage total: Recharts overwrites `value` on nodes
+  // with the summed link volume (including the epsilon used to keep the cycle
+  // visible when a stage is empty).
+  const nodes = STAGES.map((s) => ({ name: s.label, stageKey: s.key, count: funnel[s.key] ?? 0, value: funnel[s.key] ?? 0 }));
   const links: { source: number; target: number; value: number }[] = [];
   for (let i = 0; i < STAGES.length - 1; i++) {
     // Sankey requires strictly positive link values; keep a hairline link so the
