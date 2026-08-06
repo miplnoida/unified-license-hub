@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
+import { FpScreeningProviderBanner } from '@/components/fit-and-proper/FpScreeningProviderBanner';
 import {
   Loader2,
   Brain,
@@ -872,8 +873,12 @@ export default function FpaAiAnalysis() {
       <div className="space-y-6">
         <PageHeader
           title="AI Analysis"
-          description="AI-generated adverse media analysis with human override — FPA-009"
+          description="External sanctions/PEP/AML screening and AI adverse-media analysis with human override — FPA-009"
         />
+
+        {/* Where the findings below actually came from, and whether the
+            external screening path is live, sandboxed or unavailable. */}
+        <FpScreeningProviderBanner />
 
         {/* Assessment Selector */}
         <Card>
@@ -948,6 +953,42 @@ export default function FpaAiAnalysis() {
                   </span>
                 </span>
               </div>
+              {Array.isArray(latestRun.provider_outcomes) && latestRun.provider_outcomes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    External provider calls in this run
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {latestRun.provider_outcomes.map((o: any, i: number) => {
+                      const ok = o.outcome === 'screened_hits' || o.outcome === 'screened_clean';
+                      const cls = o.outcome === 'screened_hits'
+                        ? 'bg-red-100 text-red-800 border-red-200'
+                        : o.outcome === 'screened_clean'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : o.outcome === 'not_configured'
+                        ? 'bg-slate-100 text-slate-700 border-slate-200'
+                        : 'bg-amber-100 text-amber-900 border-amber-200';
+                      return (
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className={`text-xs font-mono ${cls}`}
+                          title={[
+                            `provider: ${o.integration_key}`,
+                            `mode: ${o.execution_mode ?? '—'}`,
+                            o.provider_reference ? `reference: ${o.provider_reference}` : null,
+                            o.error_message ? `error: ${o.error_message}` : null,
+                            o.correlation_id ? `correlation: ${o.correlation_id}` : null,
+                          ].filter(Boolean).join('\n')}
+                        >
+                          {o.check_type} · {String(o.outcome).replace(/_/g, ' ')}
+                          {ok && o.outcome === 'screened_hits' ? ` (${o.hits})` : ''}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {Array.isArray(latestRun.config_snapshot) && latestRun.config_snapshot.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">Data sources / screening processes used in this run</p>
