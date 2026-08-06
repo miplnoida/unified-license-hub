@@ -105,13 +105,13 @@ const EXTERNAL_ROLE_DEFAULTS: Record<string, Partial<Record<PortalArea, PortalCa
   licensee_primary: {
     licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
     returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
     fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
   },
   licensee_secondary: {
     licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
     returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
     fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
   },
 };
