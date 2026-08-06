@@ -91,7 +91,7 @@ export function GroupBreachesPanel({ breaches }: { breaches: GroupBreach[] }) {
               <TableCell>
                 <Badge variant="outline" className="text-[11px]">{b.scope === 'group' ? 'Consolidated' : 'Member'}</Badge>
               </TableCell>
-              <TableCell className="text-sm">{b.entity_name ?? 'Group'}</TableCell>
+              <TableCell className="text-sm">{b.entity_name ?? b.name ?? 'Group'}</TableCell>
               <TableCell className="text-sm font-medium">{b.label || b.metric_key}</TableCell>
               <TableCell className="text-right font-mono text-xs">{formatRatioValue(b.value, b.display_format)}</TableCell>
               <TableCell className="text-right font-mono text-xs">
