@@ -3323,6 +3323,53 @@ export type Database = {
           },
         ]
       }
+      conduct_closure_breaches: {
+        Row: {
+          closure_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          evidence_reference: string | null
+          id: string
+          provision: string
+          severity: string
+          substantiated: boolean
+          updated_at: string
+        }
+        Insert: {
+          closure_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evidence_reference?: string | null
+          id?: string
+          provision: string
+          severity?: string
+          substantiated?: boolean
+          updated_at?: string
+        }
+        Update: {
+          closure_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evidence_reference?: string | null
+          id?: string
+          provision?: string
+          severity?: string
+          substantiated?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_closure_breaches_closure_id_fkey"
+            columns: ["closure_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigation_closures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_evidence: {
         Row: {
           action_id: string | null
@@ -3673,8 +3720,117 @@ export type Database = {
           },
         ]
       }
+      conduct_investigation_closures: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approver_id: string | null
+          created_at: string
+          determination_type: string
+          discontinuation_detail: string | null
+          discontinuation_ground: string | null
+          enforcement_action_id: string | null
+          entity_letter_required: boolean
+          evidence_relied_upon: string | null
+          findings_summary: string | null
+          id: string
+          investigation_id: string
+          metadata: Json
+          next_steps: string | null
+          override_reason: string | null
+          prepared_by: string | null
+          rationale: string | null
+          readiness_snapshot: Json
+          regulatory_learning: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          created_at?: string
+          determination_type?: string
+          discontinuation_detail?: string | null
+          discontinuation_ground?: string | null
+          enforcement_action_id?: string | null
+          entity_letter_required?: boolean
+          evidence_relied_upon?: string | null
+          findings_summary?: string | null
+          id?: string
+          investigation_id: string
+          metadata?: Json
+          next_steps?: string | null
+          override_reason?: string | null
+          prepared_by?: string | null
+          rationale?: string | null
+          readiness_snapshot?: Json
+          regulatory_learning?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_id?: string | null
+          created_at?: string
+          determination_type?: string
+          discontinuation_detail?: string | null
+          discontinuation_ground?: string | null
+          enforcement_action_id?: string | null
+          entity_letter_required?: boolean
+          evidence_relied_upon?: string | null
+          findings_summary?: string | null
+          id?: string
+          investigation_id?: string
+          metadata?: Json
+          next_steps?: string | null
+          override_reason?: string | null
+          prepared_by?: string | null
+          rationale?: string | null
+          readiness_snapshot?: Json
+          regulatory_learning?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_investigation_closures_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_investigation_closures_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_investigations: {
         Row: {
+          active_closure_id: string | null
           allegation: string
           assigned_investigator: string | null
           closed_at: string | null
@@ -3682,6 +3838,9 @@ export type Database = {
           closure_reason: string | null
           code: string | null
           created_at: string
+          discontinuation_ground: string | null
+          discontinued_at: string | null
+          discontinued_by: string | null
           due_date: string | null
           id: string
           licensee_id: string | null
@@ -3697,6 +3856,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_closure_id?: string | null
           allegation: string
           assigned_investigator?: string | null
           closed_at?: string | null
@@ -3704,6 +3864,9 @@ export type Database = {
           closure_reason?: string | null
           code?: string | null
           created_at?: string
+          discontinuation_ground?: string | null
+          discontinued_at?: string | null
+          discontinued_by?: string | null
           due_date?: string | null
           id?: string
           licensee_id?: string | null
@@ -3719,6 +3882,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_closure_id?: string | null
           allegation?: string
           assigned_investigator?: string | null
           closed_at?: string | null
@@ -3726,6 +3890,9 @@ export type Database = {
           closure_reason?: string | null
           code?: string | null
           created_at?: string
+          discontinuation_ground?: string | null
+          discontinued_at?: string | null
+          discontinued_by?: string | null
           due_date?: string | null
           id?: string
           licensee_id?: string | null
@@ -3845,6 +4012,59 @@ export type Database = {
           },
         ]
       }
+      conduct_monitoring_reviews: {
+        Row: {
+          created_at: string
+          due_date: string
+          escalated: boolean
+          id: string
+          metadata: Json
+          monitoring_id: string
+          observations: string | null
+          outcome: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          escalated?: boolean
+          id?: string
+          metadata?: Json
+          monitoring_id: string
+          observations?: string | null
+          outcome?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          escalated?: boolean
+          id?: string
+          metadata?: Json
+          monitoring_id?: string
+          observations?: string | null
+          outcome?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_monitoring_reviews_monitoring_id_fkey"
+            columns: ["monitoring_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_post_closure_monitoring"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_monitoring_rule_runs: {
         Row: {
           alerts_created: number
@@ -3928,6 +4148,90 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      conduct_post_closure_monitoring: {
+        Row: {
+          activated_at: string | null
+          closed_at: string | null
+          closure_id: string | null
+          closure_note: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          entity_reporting_requirement: string | null
+          focus_areas: string
+          frequency: string
+          id: string
+          indicators: string | null
+          investigation_id: string
+          licensee_id: string | null
+          metadata: Json
+          next_review_date: string | null
+          owner_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          closed_at?: string | null
+          closure_id?: string | null
+          closure_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entity_reporting_requirement?: string | null
+          focus_areas: string
+          frequency?: string
+          id?: string
+          indicators?: string | null
+          investigation_id: string
+          licensee_id?: string | null
+          metadata?: Json
+          next_review_date?: string | null
+          owner_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          closed_at?: string | null
+          closure_id?: string | null
+          closure_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entity_reporting_requirement?: string | null
+          focus_areas?: string
+          frequency?: string
+          id?: string
+          indicators?: string | null
+          investigation_id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          next_review_date?: string | null
+          owner_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_post_closure_monitoring_closure_id_fkey"
+            columns: ["closure_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigation_closures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_post_closure_monitoring_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conduct_products: {
         Row: {
@@ -21067,6 +21371,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_approve_conduct_closure: {
+        Args: { _closure_id: string }
+        Returns: boolean
+      }
       can_approve_thematic_closure: {
         Args: { _review_id: string }
         Returns: boolean
@@ -21545,6 +21853,52 @@ export type Database = {
         Args: { _interview_id: string; _justification: string; _patch: Json }
         Returns: Json
       }
+      conduct_closure_approve: {
+        Args: { _closure_id: string; _decision_note?: string }
+        Returns: undefined
+      }
+      conduct_closure_link_enforcement: {
+        Args: {
+          _closure_id: string
+          _create_new?: boolean
+          _enforcement_action_id?: string
+          _enforcement_type?: string
+        }
+        Returns: string
+      }
+      conduct_closure_readiness: {
+        Args: { _investigation_id: string }
+        Returns: Json
+      }
+      conduct_closure_reject: {
+        Args: { _closure_id: string; _reason: string }
+        Returns: undefined
+      }
+      conduct_closure_submit: {
+        Args: {
+          _approver_id?: string
+          _closure_id: string
+          _override_reason?: string
+        }
+        Returns: undefined
+      }
+      conduct_closure_upsert_draft: {
+        Args: {
+          _approver_id?: string
+          _closure_id?: string
+          _determination_type?: string
+          _discontinuation_detail?: string
+          _discontinuation_ground?: string
+          _entity_letter_required?: boolean
+          _evidence_relied_upon?: string
+          _findings_summary?: string
+          _investigation_id: string
+          _next_steps?: string
+          _rationale?: string
+          _regulatory_learning?: string
+        }
+        Returns: string
+      }
       conduct_entity_audit_history: {
         Args: { _entity_id: string }
         Returns: {
@@ -21572,6 +21926,30 @@ export type Database = {
           _signed_document_url?: string
         }
         Returns: Json
+      }
+      conduct_monitoring_directive_upsert: {
+        Args: {
+          _closure_id?: string
+          _end_date?: string
+          _entity_reporting_requirement?: string
+          _focus_areas?: string
+          _frequency?: string
+          _indicators?: string
+          _investigation_id: string
+          _monitoring_id?: string
+          _owner_id?: string
+          _start_date?: string
+        }
+        Returns: string
+      }
+      conduct_monitoring_review_record: {
+        Args: {
+          _escalate?: boolean
+          _observations: string
+          _outcome?: string
+          _review_id: string
+        }
+        Returns: undefined
       }
       configure_application_form: {
         Args: { _config: Json; _form_config_id: string }

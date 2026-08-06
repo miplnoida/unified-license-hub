@@ -114,6 +114,8 @@ const ConductEntitiesList = lazy(() => import('@/pages/conduct/ConductEntitiesLi
 const ConductEntityProfile = lazy(() => import('@/pages/conduct/ConductEntityProfile'));
 const Investigations = lazy(() => import('@/pages/conduct/Investigations'));
 const InvestigationDetail = lazy(() => import('@/pages/conduct/InvestigationDetail'));
+const InvestigationClosureQueue = lazy(() => import('@/pages/conduct/InvestigationClosureQueue'));
+
 const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
@@ -249,7 +251,9 @@ export const dashboardRoutes = (
     <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
     <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
     <Route path="/conduct/investigations" element={<M module="market_conduct"><Investigations /></M>} />
+    <Route path="/conduct/closure-approvals" element={<M module="market_conduct"><InvestigationClosureQueue /></M>} />
     <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
+
     <Route path="/complaints/internal/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />

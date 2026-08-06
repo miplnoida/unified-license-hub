@@ -13,41 +13,36 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useInvestigation, useUpdateInvestigation } from '@/hooks/useMarketConduct';
 import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepositoryPanel';
 import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
+import { ClosurePanel } from '@/components/conduct/ClosurePanel';
+
 
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { toast } from 'sonner';
-import Swal from 'sweetalert2';
+
 import { Loader2, ArrowLeft } from 'lucide-react';
 
-const STATUSES = ['opened','evidence_gathering','analysis','proposed_outcome','closed'];
+// 'closed' and 'discontinued' are reached only through the formal closure gate.
+const STATUSES = ['opened','evidence_gathering','analysis','proposed_outcome'];
+const CONCLUDED = ['closed','discontinued'];
 
 export default function InvestigationDetail() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, refetch } = useInvestigation(id);
   const update = useUpdateInvestigation();
   const [status, setStatus] = useState<string>('');
-  const [outcome, setOutcome] = useState('');
 
   if (isLoading || !data) {
     return <DashboardLayout><div className="p-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div></DashboardLayout>;
   }
 
+  const concluded = CONCLUDED.includes(data.status);
+
   const saveStatus = async () => {
     const s = status || data.status;
-    if (s === 'closed') {
-      const res = await Swal.fire({
-        title: 'Close investigation?', input: 'textarea',
-        inputLabel: 'Outcome / closure reason (min 10 chars)',
-        inputValue: outcome,
-        inputValidator: v => (!v || v.trim().length < 10) ? 'Required' : null,
-        showCancelButton: true, confirmButtonText: 'Close investigation',
-      });
-      if (!res.isConfirmed) return;
-      await update.mutateAsync({ id: id!, patch: { status: 'closed', outcome: res.value, closure_reason: res.value }, justification: res.value });
-    } else {
-      await update.mutateAsync({ id: id!, patch: { status: s as any } });
-    }
+    if (s === data.status) { toast.info('Status unchanged'); return; }
+    await update.mutateAsync({ id: id!, patch: { status: s as any } });
     refetch();
+
   };
 
   return (
@@ -73,17 +68,25 @@ export default function InvestigationDetail() {
               <div><span className="text-muted-foreground">Source:</span> {data.source_type}</div>
               <div><span className="text-muted-foreground">Due:</span> {data.due_date || '—'}</div>
               <div><span className="text-muted-foreground">Allegation:</span><br />{data.allegation}</div>
+              {(data as any).discontinuation_ground && (
+                <div><span className="text-muted-foreground">Discontinuation ground:</span> {(data as any).discontinuation_ground.replace(/_/g, ' ')}</div>
+              )}
               {data.outcome && <div><span className="text-muted-foreground">Outcome:</span><br />{data.outcome}</div>}
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle className="text-base">Change status</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <Select value={status || data.status} onValueChange={setStatus}>
+              <Select value={status || data.status} onValueChange={setStatus} disabled={concluded}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
+                <SelectContent>{(concluded ? [...STATUSES, data.status] : STATUSES).map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
-              <Button data-rbac="market_conduct.edit" onClick={saveStatus} disabled={update.isPending} className="w-full">Save</Button>
+              <Button data-rbac="market_conduct.edit" onClick={saveStatus} disabled={update.isPending || concluded} className="w-full">Save</Button>
+              <p className="text-xs text-muted-foreground">
+                {concluded
+                  ? 'This investigation has been concluded through the closure gate.'
+                  : 'Closure and discontinuation are handled on the Closure tab and require supervisory approval.'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -92,10 +95,13 @@ export default function InvestigationDetail() {
           <TabsList>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
+            <TabsTrigger value="closure">Closure</TabsTrigger>
           </TabsList>
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
+          <TabsContent value="closure"><ClosurePanel investigationId={data.id} investigation={data} /></TabsContent>
         </Tabs>
+
 
       </div>
     </DashboardLayout>
