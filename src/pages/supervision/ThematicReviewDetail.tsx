@@ -25,6 +25,10 @@ const STATUS_LABEL: Record<string, string> = {
   analysis: 'Analysis', findings_issued: 'Findings Issued',
   actions_required: 'Actions Required', monitoring: 'Monitoring', closed: 'Closed',
 };
+const CLOSURE_LABEL: Record<string, string> = {
+  not_requested: 'Not requested', pending_approval: 'Pending approval',
+  approved: 'Approved', rejected: 'Rejected',
+};
 
 export default function ThematicReviewDetail() {
   const { id = '' } = useParams();
