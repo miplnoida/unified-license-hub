@@ -64,9 +64,10 @@ export interface MapOutput {
   outcome: ProviderOutcome;
 }
 
-function scoreToSeverity(score: number): 'low' | 'medium' | 'high' {
-  if (score >= 0.85 || score >= 85) return 'high';
-  if (score >= 0.6 || score >= 60) return 'medium';
+/** Input is always a 0-100 percentage (normalise with `pct` first). */
+function scoreToSeverity(scorePct: number): 'low' | 'medium' | 'high' {
+  if (scorePct >= 85) return 'high';
+  if (scorePct >= 60) return 'medium';
   return 'low';
 }
 
