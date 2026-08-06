@@ -5,7 +5,7 @@
 // summary, so conduct supervisors are prompted even if nobody opens the board.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { requireWorkerInvocation } from '../_shared/workerAuth.ts';
+import { requireWorkerInvocationAsync } from '../_shared/workerAuth.ts';
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -20,7 +20,7 @@ function json(body: unknown, status = 200) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const gate = requireWorkerInvocation(req);
+  const gate = await requireWorkerInvocationAsync(req, 'conduct-supervision-loop-digest');
   if (!gate.ok) return gate.response;
 
   const supa = createClient(
