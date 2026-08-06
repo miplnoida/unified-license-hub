@@ -719,8 +719,11 @@ export default function FpaAiAnalysis() {
           // findings that need a human review/override," not "AI-generated
           // only." A criminal_history hit produced by the adverse-media AI
           // check itself is also covered by source.ilike.%ai% below.
-          'source.ilike.%ai%,check_type.in.(adverse_media,sanctions,pep,criminal_history)'
+          // source.ilike.%provider% picks up findings produced by the external
+          // sanctions/PEP/AML screening providers via invokeIntegration().
+          'source.ilike.%ai%,source.ilike.%provider%,check_type.in.(adverse_media,sanctions,pep,criminal_history)'
         )
+
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as AiFinding[];
