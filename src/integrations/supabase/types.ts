@@ -6772,6 +6772,144 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_group_members: {
+        Row: {
+          consolidation_treatment: string
+          created_at: string
+          effective_date: string | null
+          end_date: string | null
+          group_id: string
+          id: string
+          licensee_id: string
+          member_role: string
+          notes: string | null
+          ownership_percentage: number | null
+          parent_member_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          consolidation_treatment?: string
+          created_at?: string
+          effective_date?: string | null
+          end_date?: string | null
+          group_id: string
+          id?: string
+          licensee_id: string
+          member_role?: string
+          notes?: string | null
+          ownership_percentage?: number | null
+          parent_member_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consolidation_treatment?: string
+          created_at?: string
+          effective_date?: string | null
+          end_date?: string | null
+          group_id?: string
+          id?: string
+          licensee_id?: string
+          member_role?: string
+          notes?: string | null
+          ownership_percentage?: number | null
+          parent_member_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_group_members_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_group_members_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "financial_group_members_parent_member_id_fkey"
+            columns: ["parent_member_id"]
+            isOneToOne: false
+            referencedRelation: "financial_group_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          group_code: string
+          holding_entity_id: string | null
+          id: string
+          name: string
+          notes: string | null
+          sector_id: string | null
+          status: string
+          supervisory_lead_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          group_code: string
+          holding_entity_id?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          sector_id?: string | null
+          status?: string
+          supervisory_lead_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          group_code?: string
+          holding_entity_id?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          sector_id?: string | null
+          status?: string
+          supervisory_lead_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_groups_holding_entity_id_fkey"
+            columns: ["holding_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_groups_holding_entity_id_fkey"
+            columns: ["holding_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "financial_groups_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_field_dependencies: {
         Row: {
           created_at: string
@@ -8419,6 +8557,251 @@ export type Database = {
           },
         ]
       }
+      group_consolidated_snapshots: {
+        Row: {
+          computed_at: string
+          computed_by: string | null
+          created_at: string
+          eliminations: Json
+          group_id: string
+          id: string
+          member_count: number
+          methodology_version: number | null
+          period_key: string
+          ratios: Json
+          updated_at: string
+        }
+        Insert: {
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          eliminations?: Json
+          group_id: string
+          id?: string
+          member_count?: number
+          methodology_version?: number | null
+          period_key: string
+          ratios?: Json
+          updated_at?: string
+        }
+        Update: {
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          eliminations?: Json
+          group_id?: string
+          id?: string
+          member_count?: number
+          methodology_version?: number | null
+          period_key?: string
+          ratios?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_consolidated_snapshots_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_consolidation_methods: {
+        Row: {
+          capital_ratio_key: string | null
+          created_at: string
+          created_by: string | null
+          eliminate_exposure_types: string[]
+          group_id: string
+          id: string
+          is_active: boolean
+          large_exposure_pct: number
+          notes: string | null
+          ratio_rules: Json
+          total_assets_ratio_key: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          capital_ratio_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          eliminate_exposure_types?: string[]
+          group_id: string
+          id?: string
+          is_active?: boolean
+          large_exposure_pct?: number
+          notes?: string | null
+          ratio_rules?: Json
+          total_assets_ratio_key?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          capital_ratio_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          eliminate_exposure_types?: string[]
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          large_exposure_pct?: number
+          notes?: string | null
+          ratio_rules?: Json
+          total_assets_ratio_key?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_consolidation_methods_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_ewi_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          details: Json
+          fired_at: string
+          group_id: string
+          id: string
+          rule_code: string
+          rule_name: string
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          details?: Json
+          fired_at?: string
+          group_id: string
+          id?: string
+          rule_code: string
+          rule_name: string
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          details?: Json
+          fired_at?: string
+          group_id?: string
+          id?: string
+          rule_code?: string
+          rule_name?: string
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_ewi_alerts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_ewi_rules: {
+        Row: {
+          code: string
+          condition: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      group_risk_scores: {
+        Row: {
+          band: string
+          components: Json
+          computed_at: string
+          computed_by: string | null
+          created_at: string
+          group_id: string
+          id: string
+          is_current: boolean
+          period_key: string
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          band?: string
+          components?: Json
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          is_current?: boolean
+          period_key: string
+          score?: number
+          updated_at?: string
+        }
+        Update: {
+          band?: string
+          components?: Json
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_current?: boolean
+          period_key?: string
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_risk_scores_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_findings: {
         Row: {
           category: string
@@ -9267,6 +9650,93 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "integration_connections"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      intragroup_exposures: {
+        Row: {
+          amount: number
+          captured_by: string | null
+          created_at: string
+          currency: string
+          exposure_type: string
+          from_entity_id: string
+          group_id: string
+          id: string
+          notes: string | null
+          period_key: string
+          source: string
+          source_ref: string | null
+          to_entity_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          captured_by?: string | null
+          created_at?: string
+          currency?: string
+          exposure_type?: string
+          from_entity_id: string
+          group_id: string
+          id?: string
+          notes?: string | null
+          period_key: string
+          source?: string
+          source_ref?: string | null
+          to_entity_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          captured_by?: string | null
+          created_at?: string
+          currency?: string
+          exposure_type?: string
+          from_entity_id?: string
+          group_id?: string
+          id?: string
+          notes?: string | null
+          period_key?: string
+          source?: string
+          source_ref?: string | null
+          to_entity_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intragroup_exposures_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intragroup_exposures_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "intragroup_exposures_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "financial_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intragroup_exposures_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intragroup_exposures_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -18825,6 +19295,7 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      can_manage_financial_group: { Args: { _user: string }; Returns: boolean }
       can_manage_fp_config: { Args: { _user: string }; Returns: boolean }
       can_manage_prudential_config: {
         Args: { _user: string }
@@ -18863,6 +19334,10 @@ export type Database = {
       }
       can_read_enforcement: {
         Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_read_financial_group: {
+        Args: { _group_id: string; _user: string }
         Returns: boolean
       }
       can_read_fp_assessment: {
