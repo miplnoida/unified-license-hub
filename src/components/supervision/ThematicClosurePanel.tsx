@@ -199,7 +199,7 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
 
           <div className="grid gap-3">
             <div><Label>Report title</Label><Input disabled={!editable} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Thematic review report" /></div>
-            <Field label="Executive summary" v={form.title !== undefined ? form.executive_summary : ''} rows={4} disabled={!editable} onChange={v => setForm({ ...form, executive_summary: v })} />
+            <Field label="Executive summary" v={form.executive_summary} rows={4} disabled={!editable} onChange={v => setForm({ ...form, executive_summary: v })} />
             <Field label="Background" v={form.background} rows={3} disabled={!editable} onChange={v => setForm({ ...form, background: v })} />
             <Field label="Scope and methodology" v={form.scope_methodology} rows={3} disabled={!editable} onChange={v => setForm({ ...form, scope_methodology: v })} />
             <Field label="Key findings" v={form.key_findings} rows={5} disabled={!editable} onChange={v => setForm({ ...form, key_findings: v })} />
