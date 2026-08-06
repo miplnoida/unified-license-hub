@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, MessageSquarePlus, RotateCcw, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { Loader2, MessageSquarePlus, RotateCcw, CheckCircle2, XCircle, Lock, ShieldCheck, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import {
@@ -15,7 +15,9 @@ import {
   type ComplaintRfi,
   type ComplaintRfiItem,
 } from '@/hooks/useComplaintRfis';
+import { useCan } from '@/hooks/useCan';
 import { RaiseComplaintRfiDialog } from './RaiseComplaintRfiDialog';
+import { ReviewRfiDialog } from './ReviewRfiDialog';
 import { RfiAttachmentList } from './RfiAttachmentList';
 
 const statusVariant: Record<string, any> = {
@@ -23,6 +25,20 @@ const statusVariant: Record<string, any> = {
   submitted: 'default',
   closed: 'outline',
   cancelled: 'outline',
+};
+
+const APPROVAL_VARIANT: Record<string, any> = {
+  draft: 'outline',
+  pending_approval: 'secondary',
+  rejected: 'destructive',
+  dispatched: 'default',
+};
+
+const APPROVAL_LABEL: Record<string, string> = {
+  draft: 'Internal draft',
+  pending_approval: 'Awaiting approval',
+  rejected: 'Returned for rework',
+  dispatched: 'Dispatched to entity',
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -44,6 +60,8 @@ export function ComplaintRfiTab({
 }) {
   const { data: rfis = [], isLoading, refetch } = useComplaintRfis(complaintId);
   const [raiseOpen, setRaiseOpen] = useState(false);
+  const [reviewRfi, setReviewRfi] = useState<ComplaintRfi | null>(null);
+  const canApprove = useCan('complaint_management', 'approve_rfi');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const closeRfi = useCloseComplaintRfi(complaintId);
@@ -114,9 +132,38 @@ export function ComplaintRfiTab({
                     {rfi.submitted_at ? ` · submitted ${format(new Date(rfi.submitted_at), 'PPp')}` : ''}
                   </p>
                 </div>
-                <Badge variant={statusVariant[rfi.status] ?? 'outline'} className="capitalize">{rfi.status}</Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant={APPROVAL_VARIANT[rfi.approval_state] ?? 'outline'}>
+                    {APPROVAL_LABEL[rfi.approval_state] ?? rfi.approval_state}
+                  </Badge>
+                  {rfi.approval_state === 'dispatched' && (
+                    <Badge variant={statusVariant[rfi.status] ?? 'outline'} className="capitalize">{rfi.status}</Badge>
+                  )}
+                  {rfi.approval_state !== 'dispatched' && (
+                    <Button
+                      data-rbac="complaint_management.edit"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setReviewRfi(rfi)}
+                    >
+                      {canApprove && rfi.approval_state === 'pending_approval' ? (
+                        <><ShieldCheck className="h-4 w-4 mr-1" />Review &amp; approve</>
+                      ) : (
+                        <><Pencil className="h-4 w-4 mr-1" />Open draft</>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
               {rfi.summary && <p className="text-sm mt-2">{rfi.summary}</p>}
+              {rfi.approval_state === 'rejected' && rfi.rejection_reason && (
+                <p className="text-xs text-destructive mt-2">Returned by the approver: {rfi.rejection_reason}</p>
+              )}
+              {rfi.approval_state === 'pending_approval' && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Not yet visible to the entity — awaiting supervisory approval.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {rfi.items.map((item) => {
@@ -155,7 +202,7 @@ export function ComplaintRfiTab({
                       ))
                     )}
 
-                    {rfi.status !== 'closed' && rfi.status !== 'cancelled' && submitted.length > 0 && (
+                    {rfi.approval_state === 'dispatched' && rfi.status !== 'closed' && rfi.status !== 'cancelled' && submitted.length > 0 && (
                       <div className="flex items-end gap-2 flex-wrap">
                         <div className="flex-1 min-w-[220px]">
                           <Label className="text-xs">Request clarification</Label>
@@ -181,7 +228,7 @@ export function ComplaintRfiTab({
                 );
               })}
 
-              {rfi.status !== 'closed' && rfi.status !== 'cancelled' && (
+              {rfi.approval_state === 'dispatched' && rfi.status !== 'closed' && rfi.status !== 'cancelled' && (
                 <>
                   <Separator />
                   <div className="flex items-end gap-2 flex-wrap">
@@ -223,6 +270,14 @@ export function ComplaintRfiTab({
         complaintNumber={complaintNumber}
         licenseeId={licenseeId}
         onRaised={() => refetch()}
+      />
+
+      <ReviewRfiDialog
+        open={!!reviewRfi}
+        onOpenChange={(o) => !o && setReviewRfi(null)}
+        rfi={reviewRfi}
+        canApprove={canApprove}
+        onDone={() => refetch()}
       />
     </div>
   );

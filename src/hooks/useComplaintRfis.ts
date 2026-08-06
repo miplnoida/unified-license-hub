@@ -8,7 +8,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export type ComplaintRfiStatus = 'open' | 'submitted' | 'closed' | 'cancelled';
+export type ComplaintRfiStatus = 'draft' | 'open' | 'submitted' | 'closed' | 'cancelled';
+export type ComplaintRfiApprovalState = 'draft' | 'pending_approval' | 'rejected' | 'dispatched';
 export type ComplaintRfiItemStatus = 'pending' | 'draft' | 'responded' | 'returned';
 export type ComplaintRfiQuestionType = 'text' | 'document' | 'both';
 
@@ -43,14 +44,25 @@ export interface ComplaintRfi {
   due_at: string | null;
   summary: string | null;
   status: ComplaintRfiStatus;
+  approval_state: ComplaintRfiApprovalState;
+  approver_id: string | null;
+  submitted_for_approval_at: string | null;
+  submitted_for_approval_by: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  approval_notes: string | null;
+  rejection_reason: string | null;
+  dispatched_at: string | null;
   submitted_at: string | null;
   closure_notes: string | null;
   closed_at: string | null;
   items: ComplaintRfiItem[];
-  /** Present on the entity workbench listing only. */
+  /** Present on the entity workbench + approval queue listings only. */
   complaint_number?: string | null;
   complaint_subject?: string | null;
+  licensee_name?: string | null;
 }
+
 
 export interface RfiFileMeta {
   id: string;
@@ -150,17 +162,29 @@ export interface RaiseRfiQuestion {
 export function useRaiseComplaintRfi(complaintId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { summary?: string; due_at?: string | null; items: RaiseRfiQuestion[] }) => {
+    mutationFn: async (input: {
+      summary?: string;
+      due_at?: string | null;
+      items: RaiseRfiQuestion[];
+      as_draft?: boolean;
+      approver_id?: string | null;
+    }) => {
       const { data, error } = await supabase.rpc('complaint_rfi_raise' as any, {
         p_complaint_id: complaintId,
         p_summary: input.summary ?? null,
         p_due_at: input.due_at ?? null,
         p_items: input.items as any,
+        p_as_draft: input.as_draft ?? null,
+        p_approver_id: input.approver_id ?? null,
       });
       if (error) throw error;
       return data as string;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['complaint-rfis', complaintId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['complaint-rfis', complaintId] });
+      qc.invalidateQueries({ queryKey: ['complaint-rfi-queue'] });
+    },
+
   });
 }
 
@@ -219,5 +243,137 @@ export function useCloseComplaintRfi(complaintId: string) {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['complaint-rfis', complaintId] }),
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Approval & oversight (RFI Approval Queue)
+ * ------------------------------------------------------------------ */
+
+export interface ComplaintRfiSettings {
+  approval_required: boolean;
+}
+
+export function useComplaintRfiSettings() {
+  return useQuery({
+    queryKey: ['complaint-rfi-settings'],
+    queryFn: async (): Promise<ComplaintRfiSettings> => {
+      const { data, error } = await supabase
+        .from('complaint_rfi_settings' as any)
+        .select('approval_required')
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return { approval_required: (data as any)?.approval_required ?? true };
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSetComplaintRfiApprovalRequired() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (required: boolean) => {
+      const { error } = await supabase.rpc('complaint_rfi_set_approval_required' as any, {
+        p_required: required,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['complaint-rfi-settings'] }),
+  });
+}
+
+/** Every RFI the caller can see, hydrated with complaint + entity labels. */
+export function useComplaintRfiQueue() {
+  return useQuery({
+    queryKey: ['complaint-rfi-queue'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('complaint_rfis' as any)
+        .select('*, complaints(complaint_number, subject), licensees(name)')
+        .order('submitted_for_approval_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const rows = ((data as any[]) || []).map((r) => ({
+        ...r,
+        complaint_number: r.complaints?.complaint_number ?? null,
+        complaint_subject: r.complaints?.subject ?? null,
+        licensee_name: r.licensees?.name ?? null,
+      }));
+      return hydrate(rows);
+    },
+  });
+}
+
+function invalidateRfiCaches(qc: ReturnType<typeof useQueryClient>, complaintId?: string) {
+  qc.invalidateQueries({ queryKey: ['complaint-rfi-queue'] });
+  qc.invalidateQueries({ queryKey: ['my-complaint-rfis'] });
+  if (complaintId) qc.invalidateQueries({ queryKey: ['complaint-rfis', complaintId] });
+  else qc.invalidateQueries({ queryKey: ['complaint-rfis'] });
+}
+
+export function useUpdateComplaintRfiDraft(complaintId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      rfi_id: string;
+      summary: string | null;
+      due_at: string | null;
+      items: RaiseRfiQuestion[];
+    }) => {
+      const { error } = await supabase.rpc('complaint_rfi_update_draft' as any, {
+        p_rfi_id: input.rfi_id,
+        p_summary: input.summary,
+        p_due_at: input.due_at,
+        p_items: input.items as any,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateRfiCaches(qc, complaintId),
+  });
+}
+
+export function useSubmitComplaintRfiForApproval(complaintId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { rfi_id: string; approver_id?: string | null }) => {
+      const { error } = await supabase.rpc('complaint_rfi_submit_for_approval' as any, {
+        p_rfi_id: input.rfi_id,
+        p_approver_id: input.approver_id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateRfiCaches(qc, complaintId),
+  });
+}
+
+export function useApproveComplaintRfi(complaintId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { rfi_id: string; notes?: string | null; due_at?: string | null }) => {
+      const { data, error } = await supabase.rpc('complaint_rfi_approve' as any, {
+        p_rfi_id: input.rfi_id,
+        p_notes: input.notes ?? null,
+        p_due_at: input.due_at ?? null,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; questions: number; licensee_id: string; complaint_id: string; due_at: string | null };
+    },
+    onSuccess: () => invalidateRfiCaches(qc, complaintId),
+  });
+}
+
+export function useRejectComplaintRfi(complaintId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { rfi_id: string; reason: string }) => {
+      const { data, error } = await supabase.rpc('complaint_rfi_reject' as any, {
+        p_rfi_id: input.rfi_id,
+        p_reason: input.reason,
+      });
+      if (error) throw error;
+      return data as { ok: boolean; drafter_id: string | null; complaint_id: string };
+    },
+    onSuccess: () => invalidateRfiCaches(qc, complaintId),
   });
 }
