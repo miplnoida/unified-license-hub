@@ -171,11 +171,12 @@ export function useSaveGroupMember(groupId?: string | null) {
   const invalidate = useInvalidateGroup(groupId);
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
-      const payload = { ...row, group_id: groupId };
+      const payload: Record<string, any> = { ...row, group_id: groupId };
       if (row.id) {
         const { id, ...rest } = payload;
         const { error } = await sb.from('financial_group_members').update(rest).eq('id', id);
         if (error) throw error;
+
       } else {
         const { error } = await sb.from('financial_group_members').insert(payload);
         if (error) throw error;
