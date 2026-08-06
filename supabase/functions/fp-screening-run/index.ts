@@ -2,6 +2,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { logIntegration } from '../_shared/integration-log.ts';
 import { requireUserPermission } from "../_shared/authz.ts";
+import { invokeIntegration } from '../_shared/integration/invoke.ts';
+import { resolveConnection } from '../_shared/connector/runtime.ts';
+import {
+  mapProviderResult,
+  providerCallFor,
+  type ProviderCheckType,
+} from '../_shared/fp/screeningProvider.ts';
+
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
