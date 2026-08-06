@@ -8403,6 +8403,7 @@ export type Database = {
           error: string | null
           id: string
           individual_id: string
+          provider_outcomes: Json
           run_type: string
           started_at: string
           status: string
@@ -8417,6 +8418,7 @@ export type Database = {
           error?: string | null
           id?: string
           individual_id: string
+          provider_outcomes?: Json
           run_type?: string
           started_at?: string
           status?: string
@@ -8431,6 +8433,7 @@ export type Database = {
           error?: string | null
           id?: string
           individual_id?: string
+          provider_outcomes?: Json
           run_type?: string
           started_at?: string
           status?: string
@@ -20438,6 +20441,22 @@ export type Database = {
       fp_regulator_visible: {
         Args: { _row_regulator_id: string }
         Returns: boolean
+      }
+      fp_screening_provider_status: {
+        Args: never
+        Returns: {
+          circuit_state: string
+          enabled: boolean
+          environment: string
+          has_credential: boolean
+          integration_key: string
+          last_error: string
+          last_error_at: string
+          last_success_at: string
+          name: string
+          provider_verified: boolean
+          status: string
+        }[]
       }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
