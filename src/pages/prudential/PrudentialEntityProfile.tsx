@@ -591,9 +591,14 @@ export default function PrudentialEntityProfile() {
           />
         </TabsContent>
 
+        <TabsContent value="examinations">
+          <EntityExaminationsTab entityId={e.id} />
+        </TabsContent>
+
         <TabsContent value="group">
           <GroupMembershipCard licenseeId={e.id} />
         </TabsContent>
+
 
         <TabsContent value="audit">
           <Card><CardContent className="pt-4">
