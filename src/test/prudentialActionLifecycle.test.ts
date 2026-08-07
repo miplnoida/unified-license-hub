@@ -12,10 +12,15 @@ describe('supervisory action drill-through', () => {
     expect(sourceLink({ ...base, source_type: 'escalation', source_id: 'x1' })).toBe('/prudential/escalations');
   });
 
+  it('links an examination finding to the examinations register', () => {
+    expect(sourceLink({ ...base, source_type: 'examination_finding', source_id: 'f1' })).toBe('/prudential/examinations');
+  });
+
   it('falls back to the entity profile for return breaches and stress indicators', () => {
     expect(sourceLink({ ...base, source_type: 'return_breach', source_id: 'r1' })).toBe('/prudential/entities/e1');
     expect(sourceLink({ ...base, source_type: 'stress_indicator', source_id: 's1' })).toBe('/prudential/entities/e1');
   });
+
 
   it('returns null when there is no source and no entity', () => {
     expect(sourceLink({ entity_id: null, source_type: 'manual', source_id: null })).toBeNull();
