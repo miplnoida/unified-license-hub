@@ -163,17 +163,34 @@ export function useReturnBreaches(returnId?: string | null) {
   });
 }
 
-/** Peer snapshot for a ratio at a specific period end. */
-export function usePeerSnapshot(ratioKey?: string | null, periodEnd?: string | null, sectorId?: string | null) {
+/**
+ * Peer snapshot for a ratio at a specific period end.
+ *
+ * The RPC enforces a minimum peer sample (default 5) and returns
+ * `state: 'INSUFFICIENT_PEER_DATA'` rather than misleading statistics.
+ * Passing `entityId` narrows the peer group to the entity's sector + category
+ * and returns the entity's own value and percentile.
+ */
+export function usePeerSnapshot(
+  ratioKey?: string | null,
+  periodEnd?: string | null,
+  sectorId?: string | null,
+  entityId?: string | null,
+  minPeers = 5,
+) {
   return useQuery({
-    queryKey: ['peer_ratio_snapshot', ratioKey, periodEnd, sectorId ?? null],
+    queryKey: ['peer_ratio_snapshot', ratioKey, periodEnd, sectorId ?? null, entityId ?? null, minPeers],
     enabled: !!ratioKey && !!periodEnd,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('peer_ratio_snapshot', {
-        _period_end: periodEnd, _ratio_key: ratioKey, _sector_id: sectorId ?? null,
+        _period_end: periodEnd,
+        _ratio_key: ratioKey,
+        _sector_id: sectorId ?? null,
+        _entity_id: entityId ?? null,
+        _min_peers: minPeers,
       });
       if (error) throw error;
-      return data as { ratio_key: string; period_end: string; count: number; min?: number; median?: number; p90?: number; max?: number };
+      return data as PeerSnapshot;
     },
   });
 }
