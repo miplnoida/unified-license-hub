@@ -217,7 +217,7 @@ SELECT ok((SELECT count(DISTINCT event_type)::int FROM public.sla_stage_events
           'event ledger records started/paused/resumed/breached/completed');
 
 SELECT is(
-  (SELECT string_agg(event_type, ',' ORDER BY created_at, id)
+  (SELECT string_agg(event_type, ',' ORDER BY occurred_at, id)
      FROM public.sla_stage_events
     WHERE stage_instance_id = (SELECT stage_id FROM _sla_probe)
       AND event_type IN ('started', 'breached', 'escalated', 'completed')),
