@@ -61,6 +61,7 @@ import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfi
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 

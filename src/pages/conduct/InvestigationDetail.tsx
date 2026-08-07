@@ -15,6 +15,7 @@ import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepository
 import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
 import { ClosurePanel } from '@/components/conduct/ClosurePanel';
 import { InvestigationCaseFilePanel } from '@/components/conduct/InvestigationCaseFilePanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 import { HistoryButton } from '@/components/audit/HistoryButton';

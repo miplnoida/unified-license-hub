@@ -22,6 +22,7 @@ import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
 import { EnforcementLifecyclePanel } from '@/components/enforcement/EnforcementLifecyclePanel';
 import { EnforcementObligationsPanel } from '@/components/enforcement/EnforcementObligationsPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 export default function EnforcementDetail() {
   const { id } = useParams<{ id: string }>();

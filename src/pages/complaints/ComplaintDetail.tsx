@@ -44,6 +44,7 @@ import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
