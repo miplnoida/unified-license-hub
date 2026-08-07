@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SENSITIVE_COLUMNS } from '../reportDefinitions';
+import { provenanceLines, type ExportProvenance } from '../lib/reportProvenance';
 
 export function sanitizeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -53,10 +54,18 @@ function relabel(rows: Record<string, unknown>[], labels?: Record<string, string
   });
 }
 
-export function exportToCsv(data: Record<string, unknown>[], filename: string, labels?: Record<string, string>) {
+export function exportToCsv(
+  data: Record<string, unknown>[],
+  filename: string,
+  labels?: Record<string, string>,
+  provenance?: ExportProvenance,
+) {
   const rows = relabel(safeRows(data), labels);
+  const header = provenance
+    ? provenanceLines(provenance).map(([k, v]) => `${sanitizeCsvValue(`# ${k}`)},${sanitizeCsvValue(v)}`).concat([''])
+    : [];
   if (!rows.length) {
-    download(new Blob([''], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
+    download(new Blob([header.join('\n')], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
     return;
   }
   const headers = Array.from(rows.reduce((set, r) => {
@@ -64,21 +73,37 @@ export function exportToCsv(data: Record<string, unknown>[], filename: string, l
     return set;
   }, new Set<string>()));
   const lines = [
+    ...header,
     headers.map(sanitizeCsvValue).join(','),
     ...rows.map((r) => headers.map((h) => sanitizeCsvValue(r[h])).join(',')),
   ];
   download(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
 }
 
-export function exportToXlsx(data: Record<string, unknown>[], filename: string, labels?: Record<string, string>) {
+export function exportToXlsx(
+  data: Record<string, unknown>[],
+  filename: string,
+  labels?: Record<string, string>,
+  provenance?: ExportProvenance,
+) {
   const rows = relabel(safeRows(data), labels);
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  if (provenance) {
+    const pws = XLSX.utils.aoa_to_sheet([['Field', 'Value'], ...provenanceLines(provenance)]);
+    XLSX.utils.book_append_sheet(wb, pws, 'Provenance');
+  }
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-export function exportToPdf(data: Record<string, unknown>[], filename: string, title: string, labels?: Record<string, string>) {
+export function exportToPdf(
+  data: Record<string, unknown>[],
+  filename: string,
+  title: string,
+  labels?: Record<string, string>,
+  provenance?: ExportProvenance,
+) {
   const rows = relabel(safeRows(data), labels);
   const doc = new jsPDF({ orientation: rows.length && Object.keys(rows[0]).length > 6 ? 'landscape' : 'portrait' });
 
@@ -88,17 +113,28 @@ export function exportToPdf(data: Record<string, unknown>[], filename: string, t
   doc.setTextColor(120);
   doc.text(`Generated ${new Date().toLocaleString()} — ${rows.length} record${rows.length === 1 ? '' : 's'}`, 14, 21);
 
+  let cursor = 26;
+  if (provenance) {
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    for (const [k, v] of provenanceLines(provenance)) {
+      doc.text(`${k}: ${v}`.slice(0, 180), 14, cursor);
+      cursor += 4;
+    }
+    cursor += 3;
+  }
+
   if (rows.length === 0) {
     doc.setFontSize(11);
     doc.setTextColor(0);
-    doc.text('No records.', 14, 32);
+    doc.text('No records.', 14, cursor + 6);
   } else {
     const headers = Array.from(rows.reduce((set, r) => {
       Object.keys(r).forEach((k) => set.add(k));
       return set;
     }, new Set<string>()));
     autoTable(doc, {
-      startY: 26,
+      startY: cursor,
       head: [headers],
       body: rows.map((r) => headers.map((h) => {
         const v = r[h];
@@ -107,17 +143,22 @@ export function exportToPdf(data: Record<string, unknown>[], filename: string, t
       })),
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [30, 58, 138] },
-      margin: { top: 26 },
+      margin: { top: cursor },
     });
   }
 
   doc.save(`${filename}.pdf`);
 }
 
-export function exportToJson(data: Record<string, unknown>[], filename: string) {
+export function exportToJson(
+  data: Record<string, unknown>[],
+  filename: string,
+  provenance?: ExportProvenance,
+) {
   const rows = safeRows(data);
+  const body = provenance ? { provenance, rows } : rows;
   download(
-    new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' }),
+    new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' }),
     `${filename}.json`,
   );
 }
