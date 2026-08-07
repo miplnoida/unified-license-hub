@@ -92,6 +92,32 @@ export default function InvestigationDetail() {
           </Card>
         </div>
 
+        {data.source_type === 'surveillance_signal' && data.metadata?.signal_id && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Surveillance provenance</CardTitle></CardHeader>
+            <CardContent className="grid gap-2 text-sm md:grid-cols-2">
+              <div><span className="text-muted-foreground">Signal kind:</span> {String(data.metadata.signal_kind || '—').replace(/_/g, ' ')}</div>
+              <div><span className="text-muted-foreground">Rule version:</span> {data.metadata.signal_rule_version ?? '—'}</div>
+              <div><span className="text-muted-foreground">Threshold:</span> {data.metadata.signal_threshold ?? '—'}</div>
+              <div>
+                <span className="text-muted-foreground">Observation window:</span>{' '}
+                {data.metadata.signal_observation_start
+                  ? `${new Date(data.metadata.signal_observation_start).toLocaleDateString()} → ${
+                      data.metadata.signal_observation_end
+                        ? new Date(data.metadata.signal_observation_end).toLocaleDateString()
+                        : 'open'
+                    }`
+                  : '—'}
+              </div>
+              <div className="md:col-span-2"><span className="text-muted-foreground">Signal explanation:</span> {data.metadata.signal_explanation || '—'}</div>
+              <div className="md:col-span-2"><span className="text-muted-foreground">Referral reason:</span> {data.metadata.referral_reason || '—'}</div>
+              <div className="md:col-span-2">
+                <Link className="text-primary hover:underline text-sm" to="/conduct/surveillance">Open Market Surveillance workspace</Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="evidence">
           <TabsList>
             <TabsTrigger value="casefile">Case file</TabsTrigger>
