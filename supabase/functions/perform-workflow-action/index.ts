@@ -179,7 +179,84 @@ export async function handler(req: Request): Promise<Response> {
       }
     }
 
+    // LIC-DEC-001 — mandatory decision gates. A final approval is refused while a
+    // blocking gate (unresolved sufficiency blocker, open SLA-pausing RFI) is unmet.
+    if (raw_action === "approve" && step_id) {
+      const { data: stepMeta } = await admin
+        .from("approval_steps")
+        .select("workflow_id, step_order, is_terminal")
+        .eq("id", step_id)
+        .maybeSingle();
+      let isFinalStep = (stepMeta as any)?.is_terminal === true;
+      if (!isFinalStep && (stepMeta as any)?.workflow_id) {
+        const { data: lastStep } = await admin
+          .from("approval_steps")
+          .select("step_order")
+          .eq("workflow_id", (stepMeta as any).workflow_id)
+          .order("step_order", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        isFinalStep = (lastStep as any)?.step_order === (stepMeta as any)?.step_order;
+      }
+
+      if (isFinalStep) {
+        const { data: gateRes, error: gateErr } = await admin.rpc("decision_gate_status", {
+          _application_id: application_id,
+        });
+        if (gateErr) {
+          console.warn("decision_gate_status failed:", gateErr.message);
+        } else if (gateRes && (gateRes as any).ready === false) {
+          const unmet = ((gateRes as any).gates ?? []).filter(
+            (g: any) => g.blocking && !g.passed,
+          );
+          const detail = {
+            user_id: caller.id,
+            application_id,
+            step_id,
+            action_type: raw_action,
+            reason: "decision_gates_unmet",
+            unmet_gates: unmet,
+          };
+          try {
+            await logSecurityEvent(admin, {
+              actorId: caller.id,
+              eventType: "ACCESS_DENIED",
+              targetResource: `application:${application_id}:final_decision`,
+              userAgent: req.headers.get("user-agent"),
+              detail,
+              severity: "high",
+              module: "licensing_decision",
+              action: "final_approval",
+              objectType: "application",
+              objectId: application_id,
+              metadata: { edge_function: "perform-workflow-action" },
+            });
+
+            await logComplianceAudit(admin, {
+              actorId: caller.id,
+              actionType: "ACCESS_DENIED",
+              objectType: "application",
+              objectId: application_id,
+              afterValue: detail,
+              userAgent: req.headers.get("user-agent"),
+              metadata: { edge_function: "perform-workflow-action", step_id },
+            });
+          } catch (e) {
+            console.warn("decision gate denial audit failed:", e);
+          }
+          return errorResponse(
+            req,
+            422,
+            `Final approval blocked — ${unmet.map((g: any) => g.label).join("; ")}`,
+            "DECISION_GATES_UNMET",
+            { gates: unmet },
+          );
+        }
+      }
+    }
+
     // Atomic transition — lock + validate + write happens in one transaction.
+
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,

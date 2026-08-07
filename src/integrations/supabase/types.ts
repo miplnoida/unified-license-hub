@@ -5686,6 +5686,84 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_artifacts: {
+        Row: {
+          application_id: string
+          artifact_type: string
+          checksum: string | null
+          conditions: Json
+          created_at: string
+          decision: string | null
+          effective_date: string | null
+          expiry_date: string | null
+          id: string
+          issued_at: string
+          issued_by: string
+          issuing_regulator_id: string | null
+          merge_data: Json
+          rationale: string | null
+          rendered_html: string | null
+          template_id: string | null
+          template_version: string | null
+          version: number
+        }
+        Insert: {
+          application_id: string
+          artifact_type: string
+          checksum?: string | null
+          conditions?: Json
+          created_at?: string
+          decision?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          issued_at?: string
+          issued_by: string
+          issuing_regulator_id?: string | null
+          merge_data?: Json
+          rationale?: string | null
+          rendered_html?: string | null
+          template_id?: string | null
+          template_version?: string | null
+          version: number
+        }
+        Update: {
+          application_id?: string
+          artifact_type?: string
+          checksum?: string | null
+          conditions?: Json
+          created_at?: string
+          decision?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          issuing_regulator_id?: string | null
+          merge_data?: Json
+          rationale?: string | null
+          rendered_html?: string | null
+          template_id?: string | null
+          template_version?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_artifacts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_artifacts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_options: {
         Row: {
           applies_to: Json
@@ -18806,9 +18884,11 @@ export type Database = {
       }
       rule_overrides: {
         Row: {
+          correlation_id: string | null
           created_at: string
           entity_id: string
           entity_type: string
+          evidence_refs: Json
           id: string
           metadata: Json
           module: string
@@ -18816,13 +18896,16 @@ export type Database = {
           overridden_value: Json | null
           reason: string
           rule_key: string
+          source_route: string | null
           user_id: string | null
           user_role: string | null
         }
         Insert: {
+          correlation_id?: string | null
           created_at?: string
           entity_id: string
           entity_type: string
+          evidence_refs?: Json
           id?: string
           metadata?: Json
           module: string
@@ -18830,13 +18913,16 @@ export type Database = {
           overridden_value?: Json | null
           reason: string
           rule_key: string
+          source_route?: string | null
           user_id?: string | null
           user_role?: string | null
         }
         Update: {
+          correlation_id?: string | null
           created_at?: string
           entity_id?: string
           entity_type?: string
+          evidence_refs?: Json
           id?: string
           metadata?: Json
           module?: string
@@ -18844,6 +18930,7 @@ export type Database = {
           overridden_value?: Json | null
           reason?: string
           rule_key?: string
+          source_route?: string | null
           user_id?: string | null
           user_role?: string | null
         }
@@ -18883,7 +18970,9 @@ export type Database = {
       }
       security_event_logs: {
         Row: {
+          action: string | null
           actor_role: string | null
+          correlation_id: string | null
           created_at: string
           detail: Json | null
           event_time: string
@@ -18891,13 +18980,19 @@ export type Database = {
           id: string
           ip_address: unknown
           metadata: Json | null
+          module: string | null
+          object_id: string | null
+          object_type: string | null
+          severity: string
           target_resource: string | null
           user_agent: string | null
           user_id: string | null
           user_role: string | null
         }
         Insert: {
+          action?: string | null
           actor_role?: string | null
+          correlation_id?: string | null
           created_at?: string
           detail?: Json | null
           event_time?: string
@@ -18905,13 +19000,19 @@ export type Database = {
           id?: string
           ip_address?: unknown
           metadata?: Json | null
+          module?: string | null
+          object_id?: string | null
+          object_type?: string | null
+          severity?: string
           target_resource?: string | null
           user_agent?: string | null
           user_id?: string | null
           user_role?: string | null
         }
         Update: {
+          action?: string | null
           actor_role?: string | null
+          correlation_id?: string | null
           created_at?: string
           detail?: Json | null
           event_time?: string
@@ -18919,6 +19020,10 @@ export type Database = {
           id?: string
           ip_address?: unknown
           metadata?: Json | null
+          module?: string | null
+          object_id?: string | null
+          object_type?: string | null
+          severity?: string
           target_resource?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -22798,6 +22903,7 @@ export type Database = {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
+      decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       detect_complaint_duplicates: {
         Args: { _complaint_id?: string; _window_days?: number }
@@ -23858,6 +23964,23 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      issue_decision_artifact: {
+        Args: {
+          _application_id: string
+          _artifact_type: string
+          _conditions?: Json
+          _decision?: string
+          _effective_date?: string
+          _expiry_date?: string
+          _issuing_regulator_id?: string
+          _merge_data?: Json
+          _rationale?: string
+          _rendered_html: string
+          _template_id?: string
+          _template_version?: string
+        }
+        Returns: Json
+      }
       issue_worker_token: { Args: { _purpose: string }; Returns: string }
       latest_return_analysis: {
         Args: { _return_id: string }
@@ -23999,29 +24122,66 @@ export type Database = {
         }
         Returns: string
       }
-      log_security_event: {
-        Args: {
-          _detail?: Json
-          _event_type: Database["public"]["Enums"]["security_event_type"]
-          _ip_address?: string
-          _metadata?: Json
-          _target_resource?: string
-          _user_agent?: string
-        }
-        Returns: string
-      }
-      log_security_event_as_actor: {
-        Args: {
-          _actor_id: string
-          _detail?: Json
-          _event_type: Database["public"]["Enums"]["security_event_type"]
-          _ip_address?: string
-          _metadata?: Json
-          _target_resource?: string
-          _user_agent?: string
-        }
-        Returns: string
-      }
+      log_security_event:
+        | {
+            Args: {
+              _action?: string
+              _correlation_id?: string
+              _detail?: Json
+              _event_type: Database["public"]["Enums"]["security_event_type"]
+              _ip_address?: unknown
+              _metadata?: Json
+              _module?: string
+              _object_id?: string
+              _object_type?: string
+              _severity?: string
+              _target_resource?: string
+              _user_agent?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _detail?: Json
+              _event_type: Database["public"]["Enums"]["security_event_type"]
+              _ip_address?: string
+              _metadata?: Json
+              _target_resource?: string
+              _user_agent?: string
+            }
+            Returns: string
+          }
+      log_security_event_as_actor:
+        | {
+            Args: {
+              _action?: string
+              _actor_id: string
+              _correlation_id?: string
+              _detail?: Json
+              _event_type: Database["public"]["Enums"]["security_event_type"]
+              _ip_address?: unknown
+              _metadata?: Json
+              _module?: string
+              _object_id?: string
+              _object_type?: string
+              _severity?: string
+              _target_resource?: string
+              _user_agent?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _actor_id: string
+              _detail?: Json
+              _event_type: Database["public"]["Enums"]["security_event_type"]
+              _ip_address?: string
+              _metadata?: Json
+              _target_resource?: string
+              _user_agent?: string
+            }
+            Returns: string
+          }
       log_self_audit: {
         Args: {
           _action: string
@@ -24626,6 +24786,7 @@ export type Database = {
         }
         Returns: string
       }
+      redact_sensitive_jsonb: { Args: { _payload: Json }; Returns: Json }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
         Returns: Json

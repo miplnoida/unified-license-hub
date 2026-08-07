@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Gavel } from 'lucide-react';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
+import { DecisionGatesPanel } from '@/components/applications/DecisionGatesPanel';
+
 import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
@@ -126,8 +128,10 @@ export function ApproverDecisionView({
       </Card>
 
       {/* 1 — Gates */}
+      <DecisionGatesPanel applicationId={application.id} />
       <SufficiencyPanel applicationId={application.id} />
       <TwinPeaksPanel applicationId={application.id} />
+
 
       {/* 2 — Advisory AI assessment */}
       {currentUserId && (

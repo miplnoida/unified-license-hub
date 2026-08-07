@@ -26,7 +26,12 @@ type EventRow = {
   user_agent: string | null;
   target_resource: string | null;
   detail: Record<string, unknown> | null;
+  severity: string | null;
+  module: string | null;
+  action: string | null;
+  correlation_id: string | null;
 };
+
 
 const EVENT_TYPES = [
   'all',
@@ -45,22 +50,27 @@ const SEVERITY_TONE: Record<string, string> = {
 
 export default function SecurityEvents() {
   const [eventType, setEventType] = useState<string>('all');
+  const [severity, setSeverity] = useState<string>('all');
+  const [moduleFilter, setModuleFilter] = useState('');
   const [userFilter, setUserFilter] = useState('');
   const [routeFilter, setRouteFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
   const { data = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['security_event_logs', eventType, userFilter, routeFilter, fromDate, toDate],
+    queryKey: ['security_event_logs', eventType, severity, moduleFilter, userFilter, routeFilter, fromDate, toDate],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let q: any = (supabase.from('security_event_logs') as any)
         .select('*').order('event_time', { ascending: false }).limit(500);
       if (eventType !== 'all') q = q.eq('event_type', eventType);
+      if (severity !== 'all') q = q.eq('severity', severity);
+      if (moduleFilter.trim()) q = q.ilike('module', `%${moduleFilter.trim()}%`);
       if (userFilter.trim()) q = q.eq('user_id', userFilter.trim());
       if (routeFilter.trim()) q = q.ilike('target_resource', `%${routeFilter.trim()}%`);
       if (fromDate) q = q.gte('event_time', new Date(fromDate).toISOString());
       if (toDate) q = q.lte('event_time', new Date(toDate + 'T23:59:59').toISOString());
+
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as EventRow[];
@@ -142,6 +152,22 @@ export default function SecurityEvents() {
             <Label>To</Label>
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
+          <div>
+            <Label>Severity</Label>
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['all', 'critical', 'high', 'medium', 'low'].map((s) => (
+                  <SelectItem key={s} value={s}>{s === 'all' ? 'All severities' : s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Module</Label>
+            <Input value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} placeholder="licensing_decision" />
+          </div>
+
           <div className="md:col-span-6 flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
               {isFetching ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
@@ -178,6 +204,8 @@ export default function SecurityEvents() {
                   <TableRow>
                     <TableHead>When</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Severity</TableHead>
+                    <TableHead>Module / action</TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>IP</TableHead>
                     <TableHead>Target</TableHead>
@@ -195,6 +223,14 @@ export default function SecurityEvents() {
                           {r.event_type.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant={r.severity === 'critical' || r.severity === 'high' ? 'destructive' : 'outline'}>
+                          {r.severity ?? 'medium'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {r.module ?? '—'}{r.action ? ` · ${r.action}` : ''}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">
                         {r.user_id ? r.user_id.slice(0, 8) : 'anon'}
                       </TableCell>
@@ -209,9 +245,10 @@ export default function SecurityEvents() {
                   ))}
                   {data.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                         No security events match the current filters.
                       </TableCell>
+
                     </TableRow>
                   )}
                 </TableBody>
