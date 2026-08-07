@@ -23905,6 +23905,10 @@ export type Database = {
           title: string
         }[]
       }
+      fp_can_read_evidence_object: {
+        Args: { _name: string; _user: string }
+        Returns: boolean
+      }
       fp_find_duplicate_candidates: {
         Args: {
           _date_of_birth?: string
@@ -23924,6 +23928,19 @@ export type Database = {
           national_id: string
           status: string
         }[]
+      }
+      fp_normalise_provider_state: {
+        Args: {
+          _environment?: string
+          _error_category?: string
+          _execution_mode?: string
+          _outcome: string
+        }
+        Returns: string
+      }
+      fp_provider_state_conclusive: {
+        Args: { _state: string }
+        Returns: boolean
       }
       fp_record_committee_decision: {
         Args: { _assessment_id: string }
@@ -23948,6 +23965,7 @@ export type Database = {
         Args: { _row_regulator_id: string }
         Returns: boolean
       }
+      fp_run_is_conclusive: { Args: { _run_id: string }; Returns: boolean }
       fp_screening_provider_status: {
         Args: never
         Returns: {
