@@ -310,6 +310,7 @@ export const dashboardRoutes = (
     <Route path="/entity/correspondence" element={<MyCorrespondence />} />
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
+    <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
 
   </>
 );
