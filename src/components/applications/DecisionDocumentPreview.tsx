@@ -405,6 +405,61 @@ export function DecisionDocumentPreview({
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Immutable issuance record (LIC-DEC-002) */}
+        <div className="space-y-3 rounded-md border border-border/60 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Issued artefacts</p>
+              <p className="text-xs text-muted-foreground">
+                Recording an artefact stores an immutable version with the rendered document, merge data,
+                rationale and conditions. Later template edits create new versions only.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled={issuing !== null}
+                onClick={() => issue('decision_letter')}>
+                {issuing === 'decision_letter' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileText className="h-4 w-4 mr-1.5" />}
+                Record decision letter
+              </Button>
+              {outcomeMeta.certificate && (
+                <Button size="sm" variant="outline" disabled={issuing !== null}
+                  onClick={() => issue('license_certificate')}>
+                  {issuing === 'license_certificate' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
+                  Record certificate
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {missing.length > 0 && (
+            <Alert variant="destructive">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Issuance blocked — missing required merge fields: {missing.join(', ')}.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {artifacts.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No artefacts issued for this application yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/60 text-sm">
+              {artifacts.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                  <span className="font-medium">
+                    {a.artifact_type === 'decision_letter' ? 'Decision letter' : 'Licence certificate'} · v{a.version}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {a.decision ? `${a.decision} · ` : ''}issued {fmtDate(a.issued_at)}
+                    {a.effective_date ? ` · effective ${fmtDate(a.effective_date)}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
       </CardContent>
     </Card>
   );
