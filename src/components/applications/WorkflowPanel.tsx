@@ -1091,9 +1091,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             <div className="mt-1 grid gap-1 sm:grid-cols-2">
               <span>Workflow: {workflow?.name || 'Unknown'}</span>
               <span>Steps loaded: {steps.length}</span>
-              <span>Instance: {(liveInstance as any)?.id || 'none'}</span>
               <span>Entity type: {(liveInstance as any)?.entity_type || entityType}</span>
-              <span>Workflow ID: {effectiveWorkflowId || 'none'}</span>
+
               <span>Current step: {currentStep?.name || (liveInstance as any)?.current_step_id || 'none'}</span>
             </div>
           </div>
