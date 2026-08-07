@@ -227,7 +227,22 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
-      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-9)
+      - name: Assert required Phase 10 (Lineage & Export Governance) pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase10/01_record_lineage.sql \
+            supabase/tests/phase10/02_export_governance.sql \
+            docs/verification/phase10/manual-verification.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 10 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-10)
         run: supabase test db
 
 

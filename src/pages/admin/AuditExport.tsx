@@ -25,6 +25,9 @@ type Job = {
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+  justification?: string | null;
+  retention_expires_at?: string | null;
+  download_count?: number | null;
 };
 
 export default function AuditExport() {
@@ -33,6 +36,7 @@ export default function AuditExport() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [justification, setJustification] = useState('');
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['audit_export_jobs'],
@@ -47,6 +51,9 @@ export default function AuditExport() {
 
   const run = useMutation({
     mutationFn: async () => {
+      if (justification.trim().length < 10) {
+        throw new Error('Provide a justification of at least 10 characters before exporting regulated data.');
+      }
       const { data, error } = await supabase.functions.invoke('audit-export', {
         body: {
           action: 'run',
@@ -54,20 +61,44 @@ export default function AuditExport() {
           from_date: fromDate ? new Date(fromDate).toISOString() : null,
           to_date: toDate ? new Date(toDate + 'T23:59:59').toISOString() : null,
           module_filter: moduleFilter.trim() || null,
+          justification: justification.trim(),
         },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
+      // Governance record: justification + retention are enforced server-side.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).rpc('request_export_job', {
+          _source: source,
+          _justification: justification.trim(),
+          _from_date: fromDate ? new Date(fromDate).toISOString() : null,
+          _to_date: toDate ? new Date(toDate + 'T23:59:59').toISOString() : null,
+          _module_filter: moduleFilter.trim() || null,
+          _export_format: 'csv',
+          _row_count: data?.row_count ?? 0,
+          _file_path: data?.file_path ?? null,
+        });
+      } catch {
+        /* export already succeeded; governance row failure must not break UX */
+      }
       toast.success(`Exported ${data.row_count} rows`);
+      setJustification('');
       qc.invalidateQueries({ queryKey: ['audit_export_jobs'] });
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const download = async (filePath: string) => {
+  const download = async (filePath: string, jobId: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('log_export_download', { _job_id: jobId });
+    } catch {
+      /* download register failure must not block the download itself */
+    }
     const { data, error } = await supabase.functions.invoke('audit-export', {
       body: { action: 'download_url', file_path: filePath },
     });
@@ -87,7 +118,7 @@ export default function AuditExport() {
 
       <Card>
         <CardHeader><CardTitle>New export</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-5">
+        <CardContent className="grid gap-3 md:grid-cols-6">
           <div>
             <Label>Source</Label>
             <Select value={source} onValueChange={setSource}>
@@ -110,6 +141,14 @@ export default function AuditExport() {
             <Label>Module / table (optional)</Label>
             <Input value={moduleFilter} onChange={e => setModuleFilter(e.target.value)} placeholder="e.g. applications" />
           </div>
+          <div>
+            <Label>Justification (required)</Label>
+            <Input
+              value={justification}
+              onChange={e => setJustification(e.target.value)}
+              placeholder="Reason for this export"
+            />
+          </div>
           <div className="flex items-end">
             <Button data-rbac="audit_management.export" onClick={() => run.mutate()} disabled={run.isPending} className="w-full">
               {run.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
@@ -130,6 +169,9 @@ export default function AuditExport() {
                   <TableHead>Source</TableHead>
                   <TableHead>Range</TableHead>
                   <TableHead>Rows</TableHead>
+                  <TableHead>Justification</TableHead>
+                  <TableHead>Retention until</TableHead>
+                  <TableHead>Downloads</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Download</TableHead>
                 </TableRow>
@@ -144,6 +186,9 @@ export default function AuditExport() {
                       {j.to_date ? new Date(j.to_date).toLocaleDateString() : '—'}
                     </TableCell>
                     <TableCell>{j.row_count ?? '—'}</TableCell>
+                    <TableCell className="text-xs max-w-[220px] truncate" title={j.justification ?? ''}>{j.justification ?? '—'}</TableCell>
+                    <TableCell className="text-xs">{j.retention_expires_at ? new Date(j.retention_expires_at).toLocaleDateString() : '—'}</TableCell>
+                    <TableCell className="text-xs">{j.download_count ?? 0}</TableCell>
                     <TableCell>
                       <Badge variant={j.status === 'completed' ? 'default' : j.status === 'failed' ? 'destructive' : 'secondary'}>
                         {j.status}
@@ -151,7 +196,7 @@ export default function AuditExport() {
                     </TableCell>
                     <TableCell className="text-right">
                       {j.file_path && j.status === 'completed' && (
-                        <Button data-rbac="audit_management.export" size="sm" variant="outline" onClick={() => download(j.file_path!)}>
+                        <Button data-rbac="audit_management.export" size="sm" variant="outline" onClick={() => download(j.file_path!, j.id)}>
                           <Download className="h-3 w-3 mr-1" />CSV
                         </Button>
                       )}
@@ -159,7 +204,7 @@ export default function AuditExport() {
                   </TableRow>
                 ))}
                 {jobs.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No exports yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">No exports yet</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

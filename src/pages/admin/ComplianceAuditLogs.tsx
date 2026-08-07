@@ -19,6 +19,7 @@ import { Download, Loader2, FileWarning, History } from 'lucide-react';
 import { logExport, type ComplianceAuditAction } from '@/lib/complianceAudit';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { toast } from 'sonner';
+import { LineageViewer } from '@/components/audit/LineageViewer';
 
 interface AuditRow {
   source: 'legacy' | 'compliance' | 'security' | string;
@@ -301,10 +302,11 @@ export default function ComplianceAuditLogs() {
         />
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-5 max-w-3xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-4xl">
             <TabsTrigger value="all">All Entries</TabsTrigger>
             <TabsTrigger value="case">Case-Centric</TabsTrigger>
             <TabsTrigger value="versions">Version History</TabsTrigger>
+            <TabsTrigger value="lineage">Lineage</TabsTrigger>
             <TabsTrigger value="security">Security Events</TabsTrigger>
             <TabsTrigger value="exports">Exports Log</TabsTrigger>
           </TabsList>
@@ -484,6 +486,15 @@ export default function ComplianceAuditLogs() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ---------- Data Lineage ---------- */}
+          <TabsContent value="lineage" className="space-y-4">
+            <LineageViewer
+              objectType={caseObjectType}
+              objectId={caseObjectId}
+              title="Record data lineage (field-level)"
+            />
           </TabsContent>
 
           {/* ---------- Security Events ---------- */}
