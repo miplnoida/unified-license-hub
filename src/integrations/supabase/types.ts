@@ -21281,6 +21281,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pg_all_foreign_keys: {
+        Row: {
+          fk_columns: unknown[] | null
+          fk_constraint_name: unknown
+          fk_schema_name: unknown
+          fk_table_name: unknown
+          fk_table_oid: unknown
+          is_deferrable: boolean | null
+          is_deferred: boolean | null
+          match_type: string | null
+          on_delete: string | null
+          on_update: string | null
+          pk_columns: unknown[] | null
+          pk_constraint_name: unknown
+          pk_index_name: unknown
+          pk_schema_name: unknown
+          pk_table_name: unknown
+          pk_table_oid: unknown
+        }
+        Relationships: []
+      }
       report_runs: {
         Row: {
           category: string | null
@@ -21677,6 +21698,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tap_funky: {
+        Row: {
+          args: string | null
+          is_definer: boolean | null
+          is_strict: boolean | null
+          is_visible: boolean | null
+          kind: unknown
+          langoid: unknown
+          name: unknown
+          oid: unknown
+          owner: unknown
+          returns: string | null
+          returns_set: boolean | null
+          schema: unknown
+          volatility: string | null
+        }
+        Relationships: []
+      }
       v_engine_metric_series: {
         Row: {
           computed_at: string | null
@@ -21864,6 +21903,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      _cleanup: { Args: never; Returns: boolean }
+      _contract_on: { Args: { "": string }; Returns: unknown }
+      _currtest: { Args: never; Returns: number }
+      _db_privs: { Args: never; Returns: unknown[] }
+      _extensions: { Args: never; Returns: unknown[] }
+      _get: { Args: { "": string }; Returns: number }
+      _get_latest: { Args: { "": string }; Returns: number[] }
+      _get_note: { Args: { "": string }; Returns: string }
+      _is_verbose: { Args: never; Returns: boolean }
+      _prokind: { Args: { p_oid: unknown }; Returns: unknown }
+      _query: { Args: { "": string }; Returns: string }
+      _refine_vol: { Args: { "": string }; Returns: string }
       _resolve_application_workflow:
         | {
             Args: {
@@ -21898,6 +21949,9 @@ export type Database = {
         }
         Returns: string
       }
+      _table_privs: { Args: never; Returns: unknown[] }
+      _temptypes: { Args: { "": string }; Returns: string }
+      _todo: { Args: never; Returns: string }
       accept_review_suggestion: {
         Args: { _suggestion_id: string }
         Returns: {
@@ -22551,6 +22605,42 @@ export type Database = {
         Args: { _notes?: string; _thread_id: string }
         Returns: undefined
       }
+      col_is_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
+      col_not_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
       complaint_intake_decide: {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
@@ -23173,6 +23263,20 @@ export type Database = {
         Args: { _complaint_id?: string; _window_days?: number }
         Returns: Json
       }
+      diag:
+        | {
+            Args: { msg: unknown }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { msg: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+      diag_test_name: { Args: { "": string }; Returns: string }
       dismiss_complaint_duplicate: {
         Args: { _pair_id: string; _reason?: string }
         Returns: Json
@@ -23181,6 +23285,9 @@ export type Database = {
         Args: { _case_id: string; _reason?: string }
         Returns: Json
       }
+      do_tap:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
       duplicate_hub_stats: { Args: never; Returns: Json }
       enforce_action: {
         Args: { _action: string; _meta?: Json; _module: string }
@@ -23585,10 +23692,15 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      fail:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
       finalize_complaint_with_attachments: {
         Args: { p_complaint_id: string; p_file_upload_ids: string[] }
         Returns: Json
       }
+      findfuncs: { Args: { "": string }; Returns: string[] }
+      finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
       fp_regulator_visible: {
         Args: { _row_regulator_id: string }
         Returns: boolean
@@ -23982,6 +24094,7 @@ export type Database = {
             }
             Returns: boolean
           }
+      has_unique: { Args: { "": string }; Returns: string }
       import_applications_bulk: { Args: { _payload: Json }; Returns: Json }
       import_return_form_data: {
         Args: { _return_id: string; _rows: Json; _strategy: string }
@@ -23990,6 +24103,7 @@ export type Database = {
           values_written: number
         }[]
       }
+      in_todo: { Args: never; Returns: boolean }
       integration_alert_rule_save: { Args: { _payload: Json }; Returns: string }
       integration_alert_sweep: { Args: never; Returns: Json }
       integration_connection_dependencies: {
@@ -24219,6 +24333,7 @@ export type Database = {
         Args: { _existing_mapping_id?: string; _user_id: string }
         Returns: boolean
       }
+      is_empty: { Args: { "": string }; Returns: string }
       is_fp_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
@@ -24232,6 +24347,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      isnt_empty: { Args: { "": string }; Returns: string }
       issue_decision_artifact: {
         Args: {
           _application_id: string
@@ -24322,6 +24438,7 @@ export type Database = {
       }
       list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
       list_permission_dependent_actions: { Args: never; Returns: string[] }
+      lives_ok: { Args: { "": string }; Returns: string }
       log_compliance_audit: {
         Args: {
           _action_type: Database["public"]["Enums"]["compliance_audit_action"]
@@ -24485,6 +24602,7 @@ export type Database = {
       }
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      no_plan: { Args: never; Returns: boolean[] }
       notif_enqueue: {
         Args: {
           _entity_id: string
@@ -24831,6 +24949,11 @@ export type Database = {
       notify_returns_due: { Args: never; Returns: number }
       notify_upcoming_form_versions: { Args: never; Returns: number }
       notify_workflow_sla_events: { Args: never; Returns: number }
+      num_failed: { Args: never; Returns: number }
+      os_name: { Args: never; Returns: string }
+      pass:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
       payment_incident_record: {
         Args: {
           _affected_transactions?: number
@@ -24928,6 +25051,9 @@ export type Database = {
         Args: { _operator_id: string; _year?: number }
         Returns: Json
       }
+      pg_version: { Args: never; Returns: string }
+      pg_version_num: { Args: never; Returns: number }
+      pgtap_version: { Args: never; Returns: number }
       portal_application_entity_ids: {
         Args: { _application_id: string }
         Returns: string[]
@@ -25489,6 +25615,9 @@ export type Database = {
         Returns: boolean
       }
       run_complaint_escalation_sweep: { Args: never; Returns: Json }
+      runtests:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
       safe_uuid: { Args: { _value: string }; Returns: string }
       save_notification_event_preference: {
         Args: {
@@ -25663,6 +25792,9 @@ export type Database = {
         Args: { _criterion: string; _thresholds: Json }
         Returns: Json
       }
+      skip:
+        | { Args: { "": string }; Returns: string }
+        | { Args: { how_many: number; why: string }; Returns: string }
       sla_add_duration: {
         Args: { _calendar_profile_id?: string; _hours: number; _start: string }
         Returns: string
@@ -25956,6 +26088,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      throws_ok: { Args: { "": string }; Returns: string }
+      todo:
+        | { Args: { how_many: number }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+        | { Args: { why: string }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+      todo_end: { Args: never; Returns: boolean[] }
+      todo_start:
+        | { Args: never; Returns: boolean[] }
+        | { Args: { "": string }; Returns: boolean[] }
       toggle_ppoc_mapping_status: {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
@@ -26141,7 +26283,9 @@ export type Database = {
         | "regulator_team"
     }
     CompositeTypes: {
-      [_ in never]: never
+      _time_trial_type: {
+        a_time: number | null
+      }
     }
   }
 }
