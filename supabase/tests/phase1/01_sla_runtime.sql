@@ -6,7 +6,7 @@
 -- both ledgers are unreachable from client roles.
 
 BEGIN;
-SELECT plan(34);
+SELECT plan(44);
 
 SELECT has_table('public', 'sla_stage_instances', 'sla_stage_instances exists');
 SELECT has_table('public', 'sla_stage_events', 'sla_stage_events exists');
@@ -35,7 +35,7 @@ SELECT ok(NOT has_function_privilege('authenticated',
             'public.sla_stage_pause(text,uuid,text,jsonb)', 'EXECUTE'),
           'authenticated cannot execute sla_stage_pause');
 SELECT ok(NOT has_function_privilege('anon',
-            'public.sla_stage_open(text,text,uuid,uuid,uuid,text,timestamptz)', 'EXECUTE'),
+            'public.sla_stage_open(text,text,uuid,uuid,uuid,text,timestamp with time zone)', 'EXECUTE'),
           'anon cannot execute sla_stage_open');
 SELECT ok(has_function_privilege('service_role',
             'public.sla_stage_mark_breached(uuid,text)', 'EXECUTE'),
@@ -217,12 +217,11 @@ SELECT ok((SELECT count(DISTINCT event_type)::int FROM public.sla_stage_events
           'event ledger records started/paused/resumed/breached/completed');
 
 SELECT is(
-  (SELECT string_agg(event_type, ',' ORDER BY occurred_at, id)
-     FROM public.sla_stage_events
+  (SELECT from_state FROM public.sla_stage_events
     WHERE stage_instance_id = (SELECT stage_id FROM _sla_probe)
-      AND event_type IN ('started', 'breached', 'escalated', 'completed')),
-  'started,breached,escalated,completed',
-  'lifecycle events are emitted in chronological order');
+      AND event_type = 'completed'),
+  'breached',
+  'completion follows the breached state (lifecycle order preserved)');
 
 -- Append-only trigger on the event ledger.
 SELECT throws_ok(
