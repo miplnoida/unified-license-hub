@@ -13,18 +13,18 @@ INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000f9001','p9-owner@test')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.applications (id, user_id, status)
-VALUES ('00000000-0000-0000-0000-0000000f9010','00000000-0000-0000-0000-0000000f9001','draft')
+INSERT INTO public.applications (id, applicant_id, license_type, status)
+VALUES ('00000000-0000-0000-0000-0000000f9010','00000000-0000-0000-0000-0000000f9001','P9 Test Licence','draft')
 ON CONFLICT (id) DO NOTHING;
 
 -- 1. Queue creation ---------------------------------------------------------
 INSERT INTO public.notification_dispatch_log
   (id, channel, event_key, status, recipient_email, entity_type, entity_id,
-   module, correlation_id, template_version, rendered_content, subject)
+   module, correlation_id, template_version, rendered_content, subject, dedupe_key)
 VALUES
   ('00000000-0000-0000-0000-0000000f9101','email','application.submitted','queued',
    'p9-owner@test','application','00000000-0000-0000-0000-0000000f9010',
-   'licensing','p9-corr-1', 3, '<p>Snapshot at send time</p>', 'Application received');
+   'licensing','p9-corr-1', 3, '<p>Snapshot at send time</p>', 'Application received', 'p9-dedupe-1');
 
 SELECT is((SELECT communication_state::text FROM public.notification_dispatch_log
            WHERE id='00000000-0000-0000-0000-0000000f9101'),
@@ -73,11 +73,11 @@ SELECT is((SELECT rendered_content FROM public.notification_dispatch_log
 -- 5. Provider not configured is stated truthfully ---------------------------
 INSERT INTO public.notification_dispatch_log
   (id, channel, event_key, status, recipient_email, entity_type, entity_id,
-   failed_at, error, module)
+   failed_at, error, module, dedupe_key)
 VALUES
   ('00000000-0000-0000-0000-0000000f9102','sms','application.submitted','failed',
    'p9-owner@test','application','00000000-0000-0000-0000-0000000f9010',
-   now(), 'sms provider not configured', 'licensing');
+   now(), 'sms provider not configured', 'licensing', 'p9-dedupe-2');
 
 SELECT is((SELECT communication_state::text FROM public.notification_dispatch_log
            WHERE id='00000000-0000-0000-0000-0000000f9102'),
@@ -91,11 +91,11 @@ SELECT is((SELECT failure_category FROM public.notification_dispatch_log
 -- 6. Transient failure scheduled for retry ---------------------------------
 INSERT INTO public.notification_dispatch_log
   (id, channel, event_key, status, recipient_email, entity_type, entity_id,
-   failed_at, error, retry_count, next_attempt_at, module)
+   failed_at, error, retry_count, next_attempt_at, module, dedupe_key)
 VALUES
   ('00000000-0000-0000-0000-0000000f9103','email','application.submitted','failed',
    'p9-owner@test','application','00000000-0000-0000-0000-0000000f9010',
-   now(), 'connection refused', 1, now() + interval '5 minutes', 'licensing');
+   now(), 'connection refused', 1, now() + interval '5 minutes', 'licensing', 'p9-dedupe-3');
 
 SELECT is((SELECT communication_state::text FROM public.notification_dispatch_log
            WHERE id='00000000-0000-0000-0000-0000000f9103'),
@@ -103,7 +103,7 @@ SELECT is((SELECT communication_state::text FROM public.notification_dispatch_lo
 
 -- 7. Retry exhaustion is dead-lettered, never dropped ----------------------
 UPDATE public.notification_dispatch_log
-   SET retry_count = 6, next_attempt_at = NULL, dead_letter = true
+   SET retry_count = 6, next_attempt_at = NULL, poisoned = true
  WHERE id='00000000-0000-0000-0000-0000000f9103';
 
 SELECT is((SELECT communication_state::text FROM public.notification_dispatch_log
