@@ -50,22 +50,27 @@ const SEVERITY_TONE: Record<string, string> = {
 
 export default function SecurityEvents() {
   const [eventType, setEventType] = useState<string>('all');
+  const [severity, setSeverity] = useState<string>('all');
+  const [moduleFilter, setModuleFilter] = useState('');
   const [userFilter, setUserFilter] = useState('');
   const [routeFilter, setRouteFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
   const { data = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['security_event_logs', eventType, userFilter, routeFilter, fromDate, toDate],
+    queryKey: ['security_event_logs', eventType, severity, moduleFilter, userFilter, routeFilter, fromDate, toDate],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let q: any = (supabase.from('security_event_logs') as any)
         .select('*').order('event_time', { ascending: false }).limit(500);
       if (eventType !== 'all') q = q.eq('event_type', eventType);
+      if (severity !== 'all') q = q.eq('severity', severity);
+      if (moduleFilter.trim()) q = q.ilike('module', `%${moduleFilter.trim()}%`);
       if (userFilter.trim()) q = q.eq('user_id', userFilter.trim());
       if (routeFilter.trim()) q = q.ilike('target_resource', `%${routeFilter.trim()}%`);
       if (fromDate) q = q.gte('event_time', new Date(fromDate).toISOString());
       if (toDate) q = q.lte('event_time', new Date(toDate + 'T23:59:59').toISOString());
+
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as EventRow[];
