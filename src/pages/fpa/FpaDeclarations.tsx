@@ -909,6 +909,13 @@ export default function FpaDeclarations() {
                                   <span className="ml-1">Remind</span>
                                 </Button>
                                 <AssessmentDetailDialog row={row} />
+                                {pq === 'submitted' && (
+                                  <FpPqAmendmentDialog
+                                    assessmentId={row.id}
+                                    invalidateKeys={[['fpa_declaration_queue'], ['fpa_declaration_stats']]}
+                                  />
+                                )}
+
                                 <HistoryButton
                                   entityType="fp_assessment"
                                   entityId={row.id}
