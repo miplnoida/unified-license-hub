@@ -242,8 +242,24 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
-      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-10)
+      - name: Assert required Phase 11 (Dashboards & Governed Reporting) pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase11/01_prudential_sector_risk.sql \
+            supabase/tests/phase11/02_kpi_reconciliation.sql \
+            docs/verification/phase11/manual-verification.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 11 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-11)
         run: supabase test db
+
 
 
       - name: Assert required edge-function tests exist
