@@ -204,6 +204,8 @@ export default function SecurityEvents() {
                   <TableRow>
                     <TableHead>When</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Severity</TableHead>
+                    <TableHead>Module / action</TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>IP</TableHead>
                     <TableHead>Target</TableHead>
@@ -221,6 +223,14 @@ export default function SecurityEvents() {
                           {r.event_type.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant={r.severity === 'critical' || r.severity === 'high' ? 'destructive' : 'outline'}>
+                          {r.severity ?? 'medium'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {r.module ?? '—'}{r.action ? ` · ${r.action}` : ''}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">
                         {r.user_id ? r.user_id.slice(0, 8) : 'anon'}
                       </TableCell>
@@ -235,9 +245,10 @@ export default function SecurityEvents() {
                   ))}
                   {data.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                         No security events match the current filters.
                       </TableCell>
+
                     </TableRow>
                   )}
                 </TableBody>
