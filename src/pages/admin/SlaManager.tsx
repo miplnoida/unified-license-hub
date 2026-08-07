@@ -119,18 +119,21 @@ export default function SlaManager() {
         />
 
         <Tabs defaultValue="sla">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="sla">SLA Configuration</TabsTrigger>
             <TabsTrigger value="calendar">Business Calendar</TabsTrigger>
             <TabsTrigger value="escalation">Escalation Chains</TabsTrigger>
+            <TabsTrigger value="monitor">Live Stages &amp; Breaches</TabsTrigger>
             <TabsTrigger value="summary">Performance Summary</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sla" className="mt-4"><SlaConfigTab /></TabsContent>
           <TabsContent value="calendar" className="mt-4"><CalendarTab /></TabsContent>
           <TabsContent value="escalation" className="mt-4"><EscalationTab /></TabsContent>
+          <TabsContent value="monitor" className="mt-4"><StageMonitorTab /></TabsContent>
           <TabsContent value="summary" className="mt-4"><SummaryTab /></TabsContent>
         </Tabs>
+
       </div>
     </DashboardLayout>
   );
