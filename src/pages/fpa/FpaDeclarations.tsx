@@ -871,6 +871,17 @@ export default function FpaDeclarations() {
                               </Badge>
                             </TableCell>
                             <TableCell>
+                              <Badge variant="outline" className={`text-xs ${pqMeta.className}`}>
+                                {pqMeta.label}
+                              </Badge>
+                              {pq === 'amendment_required' && row.pq_amendment_reason && (
+                                <span className="block text-xs text-muted-foreground mt-0.5 max-w-[220px] truncate">
+                                  {row.pq_amendment_reason}
+                                </span>
+                              )}
+                            </TableCell>
+
+                            <TableCell>
                               {row.declaration_data ? (
                                 <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
                                   <CheckCheck className="h-3 w-3" />
