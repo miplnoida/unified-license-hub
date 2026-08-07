@@ -97,6 +97,7 @@ const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/Rou
 const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
 const MyCorrespondenceDetail = lazy(() => import('@/pages/entity/correspondence/MyCorrespondenceDetail'));
 const MyComplaintRfis = lazy(() => import('@/pages/entity/complaint-rfis/MyComplaintRfis'));
+const MySupervisoryActions = lazy(() => import('@/pages/entity/MySupervisoryActions'));
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
