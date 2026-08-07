@@ -22,6 +22,8 @@ import { Loader2, RotateCcw, Search, ShieldAlert, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { DeadLetterQueue } from '@/components/notifications/DeadLetterQueue';
+
 
 interface HistoryRow {
   id: string;
