@@ -209,12 +209,18 @@ export function SignalDetailDrawer({
                   </Link>
                   .
                 </p>
+              ) : signal.disposition !== 'UNDER_REVIEW' ? (
+                <p className="text-sm text-muted-foreground">
+                  A signal must be marked <strong>Under review</strong> before it can be referred to a formal
+                  investigation.
+                </p>
               ) : (
                 <>
                   <div>
                     <Label>Allegation</Label>
                     <Textarea rows={3} value={allegation} onChange={(e) => setAllegation(e.target.value)} />
                   </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Priority</Label>
