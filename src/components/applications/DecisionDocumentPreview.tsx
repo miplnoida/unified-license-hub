@@ -397,8 +397,9 @@ export function DecisionDocumentPreview({
             {template ? (
               <>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={printLetter}><Printer className="h-4 w-4 mr-1.5" />Print</Button>
-                  <Button size="sm" variant="outline" onClick={downloadLetter}><Download className="h-4 w-4 mr-1.5" />Download</Button>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={printLetter}><Printer className="h-4 w-4 mr-1.5" />Print</Button>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={downloadLetter}><Download className="h-4 w-4 mr-1.5" />Download</Button>
+
                   <Button size="sm" variant="ghost" onClick={copyLetter}><Copy className="h-4 w-4 mr-1.5" />Copy text</Button>
                 </div>
                 <div className="rounded-md border border-border/60 bg-card">
