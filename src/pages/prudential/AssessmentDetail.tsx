@@ -13,6 +13,8 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { CamelsComponentsPanel } from '@/components/prudential/CamelsComponentsPanel';
+import { isAssessmentEditable, isAssessmentFinal } from '@/lib/prudentialPhase2';
 
 const CATEGORIES = ['capital', 'liquidity', 'asset_quality', 'profitability', 'concentration', 'governance', 'operational_resilience'];
 const RATINGS = ['1 - Strong', '2 - Satisfactory', '3 - Fair', '4 - Marginal', '5 - Unsatisfactory'];
