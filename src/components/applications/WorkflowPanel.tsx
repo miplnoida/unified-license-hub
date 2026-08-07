@@ -1365,7 +1365,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </DialogContent>
       </Dialog>
 
+      {isInternal && (
+        <div className="mt-4">
+          <SlaStageTimeline entityType={entityType} entityId={applicationId} />
+        </div>
+      )}
+
       {isInternal && entityType === 'application' && steps.some(s => s.is_legal_compliance_stage) && (
+
         <LegalNotesMount
           applicationId={applicationId}
           workflowInstanceId={liveInstance?.id ?? null}
