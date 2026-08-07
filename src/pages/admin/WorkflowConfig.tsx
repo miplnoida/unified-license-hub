@@ -1,3 +1,4 @@
+import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';

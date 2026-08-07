@@ -1,3 +1,4 @@
+import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
