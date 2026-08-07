@@ -33,6 +33,17 @@ interface LetterTemplate {
   body: string;
 }
 
+interface ArtifactRow {
+  id: string;
+  artifact_type: string;
+  version: number;
+  decision: string | null;
+  issued_at: string;
+  effective_date: string | null;
+  expiry_date: string | null;
+}
+
+
 interface Props {
   applicationId: string;
   applicationNumber: string;
@@ -75,6 +86,10 @@ export function DecisionDocumentPreview({
   const [certBusy, setCertBusy] = useState(false);
   const [certUrl, setCertUrl] = useState<string | null>(null);
   const [certFilename, setCertFilename] = useState<string>('draft-certificate.pdf');
+  const [artifacts, setArtifacts] = useState<ArtifactRow[]>([]);
+  const [issuing, setIssuing] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string[]>([]);
+
 
   useEffect(() => {
     let alive = true;
@@ -200,6 +215,61 @@ export function DecisionDocumentPreview({
       setCertBusy(false);
     }
   }
+
+  // ---- LIC-DEC-002 — immutable issuance ---------------------------------
+  async function loadArtifacts() {
+    const { data } = await supabase
+      .from('decision_artifacts' as any)
+      .select('id, artifact_type, version, decision, issued_at, effective_date, expiry_date')
+      .eq('application_id', applicationId)
+      .order('issued_at', { ascending: false });
+    setArtifacts(((data as any[]) ?? []) as ArtifactRow[]);
+  }
+
+  useEffect(() => { void loadArtifacts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [applicationId]);
+
+  async function issue(artifactType: 'decision_letter' | 'license_certificate') {
+    setIssuing(artifactType);
+    setMissing([]);
+    try {
+      const { data, error } = await supabase.rpc('issue_decision_artifact' as any, {
+        _application_id: applicationId,
+        _artifact_type: artifactType,
+        _rendered_html: artifactType === 'decision_letter' ? letterHtml : (certUrl ? letterHtml : ''),
+        _merge_data: {
+          application_number: applicationNumber,
+          applicant_name: applicantName,
+          license_type: licenseType,
+          submitted_at: submittedAt,
+          template_code: template?.code ?? null,
+          signatory: signatory ?? null,
+          regulator_name: vars.regulator_name,
+        } as any,
+        _decision: outcome,
+        _template_id: artifactType === 'decision_letter' ? (templateId || null) : null,
+        _template_version: null,
+        _rationale: rationale.trim() || null,
+        _conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean) as any,
+        _issuing_regulator_id: activeRegulator?.id ?? null,
+        _effective_date: artifactType === 'license_certificate' ? new Date().toISOString().slice(0, 10) : null,
+        _expiry_date: null,
+      });
+      if (error) throw error;
+      const res = data as any;
+      if (res?.success === false) {
+        setMissing((res.missing ?? []) as string[]);
+        toast.error('Issuance blocked — required fields are missing');
+        return;
+      }
+      toast.success(`Recorded ${artifactType.replace('_', ' ')} v${res.version} (immutable)`);
+      await loadArtifacts();
+    } catch (e: any) {
+      toast.error(`Issuance failed: ${e.message ?? e}`);
+    } finally {
+      setIssuing(null);
+    }
+  }
+
 
   return (
     <Card>
