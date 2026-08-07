@@ -66,6 +66,8 @@ export function sourceLink(row: Pick<MonitoredAction, 'source_type' | 'source_id
       return `/prudential/assessments/${row.source_id}`;
     case 'escalation':
       return '/prudential/escalations';
+    case 'examination_finding':
+      return '/prudential/examinations';
     case 'return_breach':
     case 'stress_indicator':
       return row.entity_id ? `/prudential/entities/${row.entity_id}` : null;
