@@ -35,6 +35,7 @@ import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrac
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
+import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
@@ -359,6 +360,7 @@ export default function ComplaintDetail() {
             <TabsTrigger value="communications">Communications</TabsTrigger>
             <TabsTrigger value="rfis">Information Requests</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
+            <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
 
           </TabsList>
 
@@ -587,6 +589,10 @@ export default function ComplaintDetail() {
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
             />
+          </TabsContent>
+
+          <TabsContent value="closure" className="space-y-4">
+            <ClosureQaPanel complaintId={complaint.id} />
           </TabsContent>
         </Tabs>
 

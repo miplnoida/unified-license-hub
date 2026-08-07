@@ -14,6 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_insight_actions: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          follow_up_id: string | null
+          follow_up_type: string | null
+          id: string
+          insight_id: string
+          justification: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string
+          created_at?: string
+          follow_up_id?: string | null
+          follow_up_type?: string | null
+          id?: string
+          insight_id: string
+          justification?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          follow_up_id?: string | null
+          follow_up_type?: string | null
+          id?: string
+          insight_id?: string
+          justification?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insight_actions_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "ai_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_insights: {
+        Row: {
+          citations: Json
+          confidence: number | null
+          created_at: string
+          entity_id: string | null
+          explanation: string | null
+          generated_at: string
+          generated_by: string | null
+          id: string
+          insight_kind: string
+          model: string | null
+          module: string
+          object_id: string | null
+          object_type: string | null
+          provider: string | null
+          provider_state: string
+          recommendation: string | null
+          regulator_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          source_records: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          citations?: Json
+          confidence?: number | null
+          created_at?: string
+          entity_id?: string | null
+          explanation?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          insight_kind?: string
+          model?: string | null
+          module: string
+          object_id?: string | null
+          object_type?: string | null
+          provider?: string | null
+          provider_state?: string
+          recommendation?: string | null
+          regulator_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          source_records?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          citations?: Json
+          confidence?: number | null
+          created_at?: string
+          entity_id?: string | null
+          explanation?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          insight_kind?: string
+          model?: string | null
+          module?: string
+          object_id?: string | null
+          object_type?: string | null
+          provider?: string | null
+          provider_state?: string
+          recommendation?: string | null
+          regulator_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          source_records?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       api_key_usage: {
         Row: {
           api_key_id: string | null
@@ -1605,6 +1724,75 @@ export type Database = {
           },
         ]
       }
+      complaint_closure_reviews: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          decided_at: string
+          decided_by: string
+          decision: string
+          evidence_complete: boolean
+          final_communication_ref: string | null
+          id: string
+          outcome_category: string | null
+          qa_required: boolean
+          rationale: string | null
+          resolution_summary: string | null
+          reviewer_id: string | null
+          stage: string
+          superseded: boolean
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          decided_at?: string
+          decided_by?: string
+          decision: string
+          evidence_complete?: boolean
+          final_communication_ref?: string | null
+          id?: string
+          outcome_category?: string | null
+          qa_required?: boolean
+          rationale?: string | null
+          resolution_summary?: string | null
+          reviewer_id?: string | null
+          stage?: string
+          superseded?: boolean
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          evidence_complete?: boolean
+          final_communication_ref?: string | null
+          id?: string
+          outcome_category?: string | null
+          qa_required?: boolean
+          rationale?: string | null
+          resolution_summary?: string | null
+          reviewer_id?: string | null
+          stage?: string
+          superseded?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_closure_reviews_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_closure_reviews_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_correspondence: {
         Row: {
           attachments: Json
@@ -2087,6 +2275,135 @@ export type Database = {
             columns: ["file_upload_id"]
             isOneToOne: false
             referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_import_batches: {
+        Row: {
+          created_at: string
+          created_by: string
+          duplicate_rows: number
+          file_name: string | null
+          id: string
+          imported_rows: number
+          invalid_rows: number
+          notes: string | null
+          regulator_id: string | null
+          source: string
+          status: string
+          total_rows: number
+          updated_at: string
+          valid_rows: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          duplicate_rows?: number
+          file_name?: string | null
+          id?: string
+          imported_rows?: number
+          invalid_rows?: number
+          notes?: string | null
+          regulator_id?: string | null
+          source?: string
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          valid_rows?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duplicate_rows?: number
+          file_name?: string | null
+          id?: string
+          imported_rows?: number
+          invalid_rows?: number
+          notes?: string | null
+          regulator_id?: string | null
+          source?: string
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          valid_rows?: number
+        }
+        Relationships: []
+      }
+      complaint_import_rows: {
+        Row: {
+          batch_id: string
+          complaint_id: string | null
+          complaint_number: string | null
+          created_at: string
+          duplicate_of_complaint_id: string | null
+          id: string
+          outcome: string
+          raw_data: Json
+          rejection_reason: string | null
+          row_number: number
+          validation_errors: Json
+        }
+        Insert: {
+          batch_id: string
+          complaint_id?: string | null
+          complaint_number?: string | null
+          created_at?: string
+          duplicate_of_complaint_id?: string | null
+          id?: string
+          outcome?: string
+          raw_data?: Json
+          rejection_reason?: string | null
+          row_number: number
+          validation_errors?: Json
+        }
+        Update: {
+          batch_id?: string
+          complaint_id?: string | null
+          complaint_number?: string | null
+          created_at?: string
+          duplicate_of_complaint_id?: string | null
+          id?: string
+          outcome?: string
+          raw_data?: Json
+          rejection_reason?: string | null
+          row_number?: number
+          validation_errors?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_import_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_import_rows_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_import_rows_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_import_rows_duplicate_of_complaint_id_fkey"
+            columns: ["duplicate_of_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_import_rows_duplicate_of_complaint_id_fkey"
+            columns: ["duplicate_of_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
             referencedColumns: ["id"]
           },
         ]
@@ -3126,14 +3443,17 @@ export type Database = {
           dedupe_key: string | null
           detail: Json
           escalation_id: string | null
+          explanation: string | null
           generated_by: string
           id: string
           kind: string
           licensee_id: string | null
           product_id: string | null
           regulator_id: string | null
+          rule_snapshot: Json | null
           severity: string
           source: string | null
+          source_record_ids: string[]
           status: string
           title: string
           triage_rule_id: string | null
@@ -3155,14 +3475,17 @@ export type Database = {
           dedupe_key?: string | null
           detail?: Json
           escalation_id?: string | null
+          explanation?: string | null
           generated_by?: string
           id?: string
           kind: string
           licensee_id?: string | null
           product_id?: string | null
           regulator_id?: string | null
+          rule_snapshot?: Json | null
           severity?: string
           source?: string | null
+          source_record_ids?: string[]
           status?: string
           title: string
           triage_rule_id?: string | null
@@ -3184,14 +3507,17 @@ export type Database = {
           dedupe_key?: string | null
           detail?: Json
           escalation_id?: string | null
+          explanation?: string | null
           generated_by?: string
           id?: string
           kind?: string
           licensee_id?: string | null
           product_id?: string | null
           regulator_id?: string | null
+          rule_snapshot?: Json | null
           severity?: string
           source?: string | null
+          source_record_ids?: string[]
           status?: string
           title?: string
           triage_rule_id?: string | null
@@ -4068,12 +4394,17 @@ export type Database = {
           discontinued_by: string | null
           due_date: string | null
           id: string
+          investigation_plan: string | null
+          legal_basis: string | null
           licensee_id: string | null
           metadata: Json
+          milestones: Json
           opened_by: string | null
           outcome: string | null
           priority: string
           product_id: string | null
+          restricted_notes: string | null
+          scope: string | null
           severity: string
           source_id: string | null
           source_type: string
@@ -4094,12 +4425,17 @@ export type Database = {
           discontinued_by?: string | null
           due_date?: string | null
           id?: string
+          investigation_plan?: string | null
+          legal_basis?: string | null
           licensee_id?: string | null
           metadata?: Json
+          milestones?: Json
           opened_by?: string | null
           outcome?: string | null
           priority?: string
           product_id?: string | null
+          restricted_notes?: string | null
+          scope?: string | null
           severity?: string
           source_id?: string | null
           source_type: string
@@ -4120,12 +4456,17 @@ export type Database = {
           discontinued_by?: string | null
           due_date?: string | null
           id?: string
+          investigation_plan?: string | null
+          legal_basis?: string | null
           licensee_id?: string | null
           metadata?: Json
+          milestones?: Json
           opened_by?: string | null
           outcome?: string | null
           priority?: string
           product_id?: string | null
+          restricted_notes?: string | null
+          scope?: string | null
           severity?: string
           source_id?: string | null
           source_type?: string
@@ -6261,6 +6602,9 @@ export type Database = {
       enforcement_actions: {
         Row: {
           appeal_deadline: string | null
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
           case_number: string
           closed_at: string | null
           closed_by: string | null
@@ -6270,19 +6614,32 @@ export type Database = {
           decision_outcome: string | null
           decision_rationale: string | null
           description: string | null
+          effective_date: string | null
           enforcement_type: string
           entity_id: string
           findings: string | null
           id: string
           linked_document_ids: string[] | null
+          monitoring_state: string
+          non_compliance_flag: boolean
+          non_compliance_note: string | null
           notice_issued_at: string | null
           opened_by: string | null
           penalty_amount: number | null
           penalty_currency: string | null
           penalty_paid_amount: number | null
+          proposal_rationale: string | null
+          proposed_action: string | null
+          proposed_at: string | null
+          proposed_by: string | null
           resolution_date: string | null
           response_received_at: string | null
           response_summary: string | null
+          review_notes: string | null
+          review_state: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_investigation_id: string | null
           source_reference_id: string | null
           source_type: string | null
           status: string
@@ -6290,6 +6647,9 @@ export type Database = {
         }
         Insert: {
           appeal_deadline?: string | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           case_number?: string
           closed_at?: string | null
           closed_by?: string | null
@@ -6299,19 +6659,32 @@ export type Database = {
           decision_outcome?: string | null
           decision_rationale?: string | null
           description?: string | null
+          effective_date?: string | null
           enforcement_type?: string
           entity_id: string
           findings?: string | null
           id?: string
           linked_document_ids?: string[] | null
+          monitoring_state?: string
+          non_compliance_flag?: boolean
+          non_compliance_note?: string | null
           notice_issued_at?: string | null
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
           penalty_paid_amount?: number | null
+          proposal_rationale?: string | null
+          proposed_action?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
           resolution_date?: string | null
           response_received_at?: string | null
           response_summary?: string | null
+          review_notes?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_investigation_id?: string | null
           source_reference_id?: string | null
           source_type?: string | null
           status?: string
@@ -6319,6 +6692,9 @@ export type Database = {
         }
         Update: {
           appeal_deadline?: string | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           case_number?: string
           closed_at?: string | null
           closed_by?: string | null
@@ -6328,19 +6704,32 @@ export type Database = {
           decision_outcome?: string | null
           decision_rationale?: string | null
           description?: string | null
+          effective_date?: string | null
           enforcement_type?: string
           entity_id?: string
           findings?: string | null
           id?: string
           linked_document_ids?: string[] | null
+          monitoring_state?: string
+          non_compliance_flag?: boolean
+          non_compliance_note?: string | null
           notice_issued_at?: string | null
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
           penalty_paid_amount?: number | null
+          proposal_rationale?: string | null
+          proposed_action?: string | null
+          proposed_at?: string | null
+          proposed_by?: string | null
           resolution_date?: string | null
           response_received_at?: string | null
           response_summary?: string | null
+          review_notes?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_investigation_id?: string | null
           source_reference_id?: string | null
           source_type?: string | null
           status?: string
@@ -6394,6 +6783,125 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "enforcement_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enforcement_compliance_evidence: {
+        Row: {
+          accepted: boolean | null
+          case_id: string
+          created_at: string
+          description: string
+          evidence_type: string | null
+          file_upload_id: string | null
+          id: string
+          obligation_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          storage_path: string | null
+          submitted_at: string
+          submitted_by: string
+        }
+        Insert: {
+          accepted?: boolean | null
+          case_id: string
+          created_at?: string
+          description: string
+          evidence_type?: string | null
+          file_upload_id?: string | null
+          id?: string
+          obligation_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by?: string
+        }
+        Update: {
+          accepted?: boolean | null
+          case_id?: string
+          created_at?: string
+          description?: string
+          evidence_type?: string | null
+          file_upload_id?: string | null
+          id?: string
+          obligation_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_compliance_evidence_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_compliance_evidence_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enforcement_obligations: {
+        Row: {
+          breach_note: string | null
+          case_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          deadline: string | null
+          detail: string | null
+          id: string
+          obligation: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          breach_note?: string | null
+          case_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          detail?: string | null
+          id?: string
+          obligation: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          breach_note?: string | null
+          case_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          detail?: string | null
+          id?: string
+          obligation?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_obligations_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
@@ -22237,6 +22745,16 @@ export type Database = {
         }
         Returns: Json
       }
+      ai_insight_review: {
+        Args: {
+          _action: string
+          _follow_up_id?: string
+          _follow_up_type?: string
+          _insight_id: string
+          _justification?: string
+        }
+        Returns: Json
+      }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -22832,9 +23350,32 @@ export type Database = {
             }
             Returns: string
           }
+      complaint_bulk_import: {
+        Args: {
+          _file_name: string
+          _regulator_id?: string
+          _rows: Json
+          _source: string
+        }
+        Returns: Json
+      }
       complaint_intake_decide: {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
+      }
+      complaint_record_closure_review: {
+        Args: {
+          _complaint_id: string
+          _decision: string
+          _evidence_complete?: boolean
+          _final_communication_ref?: string
+          _outcome_category?: string
+          _qa_required?: boolean
+          _rationale?: string
+          _resolution_summary?: string
+          _reviewer_id?: string
+        }
+        Returns: string
       }
       complaint_rfi_approve: {
         Args: { p_due_at?: string; p_notes?: string; p_rfi_id: string }
@@ -23510,6 +24051,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      enforcement_lifecycle_action: {
+        Args: { _action: string; _case_id: string; _payload?: Json }
+        Returns: Json
+      }
       engine_rule_activate: {
         Args: { _note?: string; _rule_id: string }
         Returns: Json
@@ -23792,6 +24337,10 @@ export type Database = {
           _expected_updated_at?: string
           _payload?: Json
         }
+        Returns: Json
+      }
+      executive_conduct_summary: {
+        Args: { _from?: string; _to?: string }
         Returns: Json
       }
       expire_delegation_rules: { Args: never; Returns: number }

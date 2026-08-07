@@ -581,6 +581,9 @@ export default function ComplaintsList() {
                   <Button data-rbac="complaint_management.view" variant="outline" size="sm" asChild>
                     <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
                   </Button>
+                  <Button data-rbac="complaint_management.create" variant="outline" size="sm" asChild>
+                    <Link to="/complaints/bulk-intake">Bulk intake</Link>
+                  </Button>
                   <Button data-rbac="complaint_management.create" size="sm" asChild>
                     <Link to="/complaints/internal/new"><PlusCircle className="h-4 w-4 mr-2" />New Complaint</Link>
                   </Button>
