@@ -13,6 +13,14 @@ import { Label } from '@/components/ui/label';
 import { logAction } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { RaiseRfiDialog, type RfiInitialItem } from '@/components/applications/RaiseRfiDialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import {
+  SUFFICIENCY_CHECKLIST,
+  useSufficiencyDeterminations,
+  useRecordSufficiencyDetermination,
+  type SufficiencyDecision,
+} from '@/hooks/useSufficiencyDetermination';
 
 interface Props { applicationId: string }
 
@@ -31,6 +39,13 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const [running, setRunning] = useState(false);
   const [override, setOverride] = useState<{ result: ResultRow | null; reason: string }>({ result: null, reason: '' });
   const [rfiOpen, setRfiOpen] = useState(false);
+  const [determineOpen, setDetermineOpen] = useState(false);
+  const [decision, setDecision] = useState<SufficiencyDecision>('sufficient');
+  const [determinationReason, setDeterminationReason] = useState('');
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const { data: determinations = [] } = useSufficiencyDeterminations(applicationId);
+  const recordDetermination = useRecordSufficiencyDetermination(applicationId);
+  const latestDetermination = determinations[0] ?? null;
 
   const { data: latest } = useQuery({
     queryKey: ['sufficiency_latest', applicationId],
@@ -94,6 +109,39 @@ export function SufficiencyPanel({ applicationId }: Props) {
     qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
   };
 
+  const submitDetermination = async () => {
+    if (determinationReason.trim().length < 10) {
+      toast.error('Reason must be at least 10 characters');
+      return;
+    }
+    if (decision === 'sufficient' && SUFFICIENCY_CHECKLIST.some((c) => !checklist[c.key])) {
+      toast.error('Confirm every checklist item before declaring the application sufficient');
+      return;
+    }
+    try {
+      await recordDetermination.mutateAsync({
+        decision,
+        reason: determinationReason.trim(),
+        checklist: SUFFICIENCY_CHECKLIST.map((c) => ({
+          key: c.key,
+          label: c.label,
+          checked: !!checklist[c.key],
+        })),
+      });
+      toast.success('Sufficiency determination recorded');
+      setDetermineOpen(false);
+      setDeterminationReason('');
+      setChecklist({});
+    } catch (e) {
+      const err = e as Error & { code?: string };
+      toast.error(
+        err.code === 'SUFFICIENCY_GATES_UNMET'
+          ? err.message
+          : err.message || 'Failed to record determination',
+      );
+    }
+  };
+
   const autoRfiCandidates = useMemo(() => {
     return results.filter(
       (r) => (r.status === 'fail' || r.status === 'warning') && r.rule_snapshot?.auto_rfi === true,
@@ -124,6 +172,11 @@ export function SufficiencyPanel({ applicationId }: Props) {
             <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={() => setRfiOpen(true)}>
               <MessageSquarePlus className="h-4 w-4 mr-2" />
               Create RFI from Failed Rules ({autoRfiCandidates.length})
+            </Button>
+          )}
+          {latest && (
+            <Button data-rbac="application_management.approve" size="sm" variant="outline" onClick={() => setDetermineOpen(true)}>
+              Record determination
             </Button>
           )}
           <Button size="sm" onClick={run} disabled={running}>
@@ -172,6 +225,40 @@ export function SufficiencyPanel({ applicationId }: Props) {
             </Table>
           </>
         )}
+
+        {determinations.length > 0 && (
+          <>
+            <Separator className="my-4" />
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Reviewer determinations ({determinations.length})
+            </p>
+            <div className="space-y-2">
+              {determinations.map((d) => (
+                <div key={d.id} className="rounded-md border p-3 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={d.decision === 'sufficient' ? 'default' : d.decision === 'deferred' ? 'secondary' : 'destructive'}>
+                      {d.decision}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {new Date(d.determined_at).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground ml-auto">
+                      Blockers at decision: {d.unresolved_blocker_count} · Open RFIs: {d.open_rfi_count}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap">{d.reason}</p>
+                  {Array.isArray(d.checklist) && d.checklist.length > 0 && (
+                    <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                      {d.checklist.map((c) => (
+                        <li key={c.key}>{c.checked ? '✓' : '✗'} {c.label}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
 
       <Dialog open={!!override.result} onOpenChange={(v) => !v && setOverride({ result: null, reason: '' })}>
@@ -185,6 +272,57 @@ export function SufficiencyPanel({ applicationId }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOverride({ result: null, reason: '' })}>Cancel</Button>
             <Button data-rbac="application_management.approve" onClick={submitOverride}>Record Override</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={determineOpen} onOpenChange={setDetermineOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Record Sufficiency Determination</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted/40 border p-3 text-xs text-muted-foreground">
+              The outcome is validated on the server: a “sufficient” determination is rejected while
+              unresolved blockers or open RFIs remain, even if every box below is ticked.
+            </div>
+            <div className="space-y-2">
+              <Label>Reviewer checklist</Label>
+              {SUFFICIENCY_CHECKLIST.map((c) => (
+                <label key={c.key} className="flex items-start gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={!!checklist[c.key]}
+                    onCheckedChange={(v) => setChecklist((prev) => ({ ...prev, [c.key]: !!v }))}
+                  />
+                  <span>{c.label}</span>
+                </label>
+              ))}
+            </div>
+            <div>
+              <Label>Determination</Label>
+              <div className="flex gap-2 mt-1">
+                {(['sufficient', 'insufficient', 'deferred'] as SufficiencyDecision[]).map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    size="sm"
+                    variant={decision === d ? 'default' : 'outline'}
+                    onClick={() => setDecision(d)}
+                  >
+                    {d}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Reason (minimum 10 characters, audited)</Label>
+              <Textarea rows={3} value={determinationReason} onChange={(e) => setDeterminationReason(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetermineOpen(false)}>Cancel</Button>
+            <Button data-rbac="application_management.approve" onClick={submitDetermination} disabled={recordDetermination.isPending}>
+              {recordDetermination.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Record determination
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
