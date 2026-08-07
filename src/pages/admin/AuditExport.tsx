@@ -93,8 +93,12 @@ export default function AuditExport() {
   });
 
   const download = async (filePath: string, jobId: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).rpc('log_export_download', { _job_id: jobId }).catch?.(() => {});
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('log_export_download', { _job_id: jobId });
+    } catch {
+      /* download register failure must not block the download itself */
+    }
     const { data, error } = await supabase.functions.invoke('audit-export', {
       body: { action: 'download_url', file_path: filePath },
     });
