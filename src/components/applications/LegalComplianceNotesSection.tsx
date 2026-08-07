@@ -54,7 +54,6 @@ export function LegalComplianceNotesSection({
   // legal step, so the section renders whenever a referral exists.
   const { data: referrals = [] } = useLegalReferrals(applicationId, true);
   const openReferrals = referrals.filter(r => r.status === 'referred' || r.status === 'in_review');
-  if (!workflowHasLegalStep && referrals.length === 0) return null;
 
   // Probe access (also logs denial server-side if not allowed).
   const { data: allowed, isLoading: accessLoading } = useLegalNotesAccess(applicationId, true);
@@ -68,7 +67,10 @@ export function LegalComplianceNotesSection({
   const [recommendation, setRecommendation] = useState<LegalRecommendation | ''>('');
   const [referralId, setReferralId] = useState<string>('none');
 
+  // Hooks above must run unconditionally; visibility gates come after.
+  if (!workflowHasLegalStep && referrals.length === 0) return null;
   if (accessLoading) return null;
+
 
   if (!allowed) {
     return (
