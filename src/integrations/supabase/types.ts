@@ -1656,10 +1656,49 @@ export type Database = {
           },
         ]
       }
+      audit_export_downloads: {
+        Row: {
+          created_at: string
+          downloaded_at: string
+          downloaded_by: string | null
+          id: string
+          ip_address: unknown
+          job_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          downloaded_at?: string
+          downloaded_by?: string | null
+          id?: string
+          ip_address?: unknown
+          job_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          downloaded_at?: string
+          downloaded_by?: string | null
+          id?: string
+          ip_address?: unknown
+          job_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_export_downloads_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "audit_export_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_export_jobs: {
         Row: {
           completed_at: string | null
           created_at: string
+          download_count: number
           error_message: string | null
           export_format: string | null
           file_hash: string | null
@@ -1667,8 +1706,11 @@ export type Database = {
           filters: Json | null
           from_date: string | null
           id: string
+          justification: string | null
+          last_downloaded_at: string | null
           module_filter: string | null
           requested_by: string | null
+          retention_expires_at: string | null
           row_count: number | null
           source: string
           status: string
@@ -1677,6 +1719,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          download_count?: number
           error_message?: string | null
           export_format?: string | null
           file_hash?: string | null
@@ -1684,8 +1727,11 @@ export type Database = {
           filters?: Json | null
           from_date?: string | null
           id?: string
+          justification?: string | null
+          last_downloaded_at?: string | null
           module_filter?: string | null
           requested_by?: string | null
+          retention_expires_at?: string | null
           row_count?: number | null
           source?: string
           status?: string
@@ -1694,6 +1740,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          download_count?: number
           error_message?: string | null
           export_format?: string | null
           file_hash?: string | null
@@ -1701,8 +1748,11 @@ export type Database = {
           filters?: Json | null
           from_date?: string | null
           id?: string
+          justification?: string | null
+          last_downloaded_at?: string | null
           module_filter?: string | null
           requested_by?: string | null
+          retention_expires_at?: string | null
           row_count?: number | null
           source?: string
           status?: string
@@ -23675,6 +23725,7 @@ export type Database = {
             }
             Returns: boolean
           }
+      can_view_lineage: { Args: { _user_id: string }; Returns: boolean }
       can_view_return_filed: {
         Args: { _return_id: string; _user_id: string }
         Returns: boolean
@@ -25839,6 +25890,10 @@ export type Database = {
         Returns: Json
       }
       issue_worker_token: { Args: { _purpose: string }; Returns: string }
+      jsonb_changed_fields: {
+        Args: { _after: Json; _before: Json }
+        Returns: string[]
+      }
       latest_return_analysis: {
         Args: { _return_id: string }
         Returns: {
@@ -25954,6 +26009,7 @@ export type Database = {
         Args: { _action: string; _details?: Json; _group_id: string }
         Returns: undefined
       }
+      log_export_download: { Args: { _job_id: string }; Returns: string }
       log_notification_audit: {
         Args: { _action: string; _metadata?: Json; _notification_ids: string[] }
         Returns: undefined
@@ -26682,6 +26738,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      purge_expired_audit_exports: { Args: never; Returns: number }
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
@@ -26699,6 +26756,21 @@ export type Database = {
       record_export_intent: {
         Args: { _action: string; _meta?: Json; _module: string }
         Returns: Json
+      }
+      record_lineage: {
+        Args: { _limit?: number; _object_id: string; _object_type: string }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_role: string
+          after_value: Json
+          before_value: Json
+          changed_fields: string[]
+          event_at: string
+          justification: string
+          metadata: Json
+          source: string
+        }[]
       }
       record_return_breach: {
         Args: {
@@ -26807,6 +26879,22 @@ export type Database = {
       repair_application_workflow: {
         Args: { _application_id: string }
         Returns: Json
+      }
+      request_export_job: {
+        Args: {
+          _export_format?: string
+          _file_hash?: string
+          _file_path?: string
+          _filters?: Json
+          _from_date?: string
+          _justification: string
+          _module_filter?: string
+          _retention_days?: number
+          _row_count?: number
+          _source: string
+          _to_date?: string
+        }
+        Returns: string
       }
       request_legal_notes_access: {
         Args: { _application_id: string }
