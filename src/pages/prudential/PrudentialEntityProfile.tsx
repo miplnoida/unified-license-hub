@@ -18,6 +18,8 @@ import { PrudentialEntityHistoryDrawer } from '@/components/prudential/Prudentia
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
+import { EwiPanel } from '@/components/prudential/EwiPanel';
+import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 
 const RISK_TONE: Record<string, string> = {
