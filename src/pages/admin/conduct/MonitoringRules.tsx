@@ -122,23 +122,31 @@ export default function MonitoringRules() {
           : (
             <Table>
               <TableHeader><TableRow>
-                <TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Scope</TableHead>
-                <TableHead>Frequency</TableHead><TableHead>Risk Δ</TableHead><TableHead>Active</TableHead>
+                <TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Metric / threshold</TableHead>
+                <TableHead>Lookback</TableHead><TableHead>Scope</TableHead>
+                <TableHead>Frequency</TableHead><TableHead>Risk Δ</TableHead><TableHead>Version</TableHead><TableHead>Active</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>{rows.map(r => (
                 <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{r.code || '—'}</TableCell>
                   <TableCell><div className="font-medium">{r.name}</div>{r.description && <div className="text-xs text-muted-foreground line-clamp-1">{r.description}</div>}</TableCell>
-                  <TableCell><Badge variant="outline">{r.rule_type}</Badge></TableCell>
+                  <TableCell className="text-xs">
+                    {r.metric ? <><span className="font-mono">{r.metric}</span> {r.comparison_operator} {r.threshold_value}</> : <Badge variant="outline">{r.rule_type}</Badge>}
+                  </TableCell>
+                  <TableCell className="text-xs">{r.lookback_days != null ? `${r.lookback_days}d` : '—'}</TableCell>
                   <TableCell><Badge variant="outline">{r.scope}</Badge></TableCell>
                   <TableCell className="text-xs">{r.frequency}</TableCell>
                   <TableCell className="text-xs">{r.risk_delta}</TableCell>
+                  <TableCell className="text-xs">v{r.current_version ?? 1}</TableCell>
                   <TableCell><Switch checked={r.active} onCheckedChange={() => toggle(r)} /></TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button size="sm" variant="ghost" onClick={() => openVersions(r)}><History className="h-3 w-3 mr-1" />Versions</Button>
                     <Button data-rbac="market_conduct.edit" size="sm" variant="ghost" onClick={() => setEdit({ ...r, definition: JSON.stringify(r.definition || {}, null, 2) })}>Edit</Button>
                   </TableCell>
                 </TableRow>
               ))}</TableBody>
+
             </Table>
           )}
         </CardContent></Card>
