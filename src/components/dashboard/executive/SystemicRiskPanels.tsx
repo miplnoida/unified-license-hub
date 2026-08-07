@@ -138,7 +138,7 @@ export function SystemicRiskHeatmap() {
                         {p && p.evidence_count > 0 && (
                           <>
                             {r.conduct > 0 && ' · '}
-                            <Link className="underline" to="/supervision/risk-heatmap">prudential</Link>
+                            <Link className="underline" to="/supervision/risk">prudential</Link>
                           </>
                         )}
                       </td>
