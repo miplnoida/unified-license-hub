@@ -15,6 +15,7 @@ import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
+import { FpConditionEvidencePanel } from '@/components/fit-and-proper/FpConditionEvidencePanel';
 
 const NONE_SENTINEL = '__none__';
 
@@ -33,6 +34,7 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   overdue: { label: 'Overdue', className: 'bg-red-100 text-red-800' },
   satisfied: { label: 'Satisfied', className: 'bg-green-100 text-green-800' },
   waived: { label: 'Waived', className: 'bg-slate-100 text-slate-700' },
+  breached: { label: 'Breached', className: 'bg-destructive/15 text-destructive border-destructive/30' },
 };
 
 interface Props { individualId: string }
