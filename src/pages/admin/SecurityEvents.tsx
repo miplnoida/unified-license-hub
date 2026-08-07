@@ -26,7 +26,12 @@ type EventRow = {
   user_agent: string | null;
   target_resource: string | null;
   detail: Record<string, unknown> | null;
+  severity: string | null;
+  module: string | null;
+  action: string | null;
+  correlation_id: string | null;
 };
+
 
 const EVENT_TYPES = [
   'all',
