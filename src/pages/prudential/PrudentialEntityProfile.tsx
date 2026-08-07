@@ -217,6 +217,7 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
           <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
           <TabsTrigger value="breaches">Breaches</TabsTrigger>
+          <TabsTrigger value="ewi">Early Warning</TabsTrigger>
           <TabsTrigger value="assessments">Assessments</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
           <TabsTrigger value="escalations">Escalations</TabsTrigger>
