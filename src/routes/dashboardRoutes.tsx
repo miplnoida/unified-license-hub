@@ -120,6 +120,7 @@ const Investigations = lazy(() => import('@/pages/conduct/Investigations'));
 const InvestigationDetail = lazy(() => import('@/pages/conduct/InvestigationDetail'));
 const InvestigationClosureQueue = lazy(() => import('@/pages/conduct/InvestigationClosureQueue'));
 const SupervisionLoop = lazy(() => import('@/pages/conduct/SupervisionLoop'));
+const SurveillanceWorkspace = lazy(() => import('@/pages/conduct/SurveillanceWorkspace'));
 
 const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
@@ -249,7 +250,9 @@ export const dashboardRoutes = (
     <Route path="/admin/sla-manager" element={<M module="settings"><SlaManager /></M>} />
     <Route path="/conduct" element={<M module="market_conduct"><ConductDashboard /></M>} />
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
+    <Route path="/conduct/surveillance" element={<M module="market_conduct"><SurveillanceWorkspace /></M>} />
     <Route path="/conduct/actions" element={<M module="market_conduct"><ConductActions /></M>} />
+
     <Route path="/supervision/thematic-reviews" element={<M module="market_conduct"><ThematicReviews /></M>} />
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
     <Route path="/supervision/thematic-reviews/:id" element={<M module="market_conduct"><ThematicReviewDetail /></M>} />

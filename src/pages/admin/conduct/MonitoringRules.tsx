@@ -13,17 +13,29 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { Loader2, Plus, Play } from 'lucide-react';
+import { Loader2, Plus, Play, History } from 'lucide-react';
 
-const RULE_TYPES = ['complaint_volume', 'complaint_upheld_rate', 'sla_breach_rate', 'repeat_offender', 'monitoring_signal', 'custom'];
+const RULE_TYPES = ['complaint_volume', 'complaint_upheld_rate', 'sla_breach_rate', 'repeat_offender', 'monitoring_signal', 'metric_threshold', 'custom'];
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'on_demand'];
 const SCOPES = ['entity', 'product', 'sector', 'global'];
+const OPERATORS = ['>=', '>', '=', '<', '<='];
+const METRICS = [
+  'open_complaints_rolling',
+  'complaints_by_channel',
+  'post_remediation_complaint_count',
+  'upheld_rate',
+  'sla_breach_rate',
+  'repeat_complaint_count',
+];
 
 export default function MonitoringRules() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<any | null>(null);
   const [running, setRunning] = useState(false);
+  const [versionsFor, setVersionsFor] = useState<any | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -33,11 +45,22 @@ export default function MonitoringRules() {
   };
   useEffect(() => { load(); }, []);
 
+  const openVersions = async (r: any) => {
+    setVersionsFor(r); setVersions([]); setVersionsLoading(true);
+    const { data, error } = await supabase.from('conduct_monitoring_rule_versions' as any)
+      .select('*').eq('rule_id', r.id).order('version', { ascending: false });
+    if (error) toast.error(error.message); else setVersions((data as any[]) || []);
+    setVersionsLoading(false);
+  };
+
   const save = async () => {
     if (!edit.name?.trim()) return toast.error('Name required');
     let defn: any = {};
     try { defn = typeof edit.definition === 'string' ? JSON.parse(edit.definition || '{}') : (edit.definition || {}); }
     catch { return toast.error('Definition must be valid JSON'); }
+    if (edit.threshold_value !== '' && edit.threshold_value != null && isNaN(Number(edit.threshold_value))) {
+      return toast.error('Threshold must be numeric');
+    }
     const payload: any = {
       name: edit.name.trim(),
       description: edit.description || null,
@@ -47,6 +70,11 @@ export default function MonitoringRules() {
       active: !!edit.active,
       risk_delta: Number(edit.risk_delta) || 0,
       definition: defn,
+      metric: edit.metric || null,
+      source_dataset: edit.source_dataset || null,
+      threshold_value: edit.threshold_value === '' || edit.threshold_value == null ? null : Number(edit.threshold_value),
+      comparison_operator: edit.comparison_operator || null,
+      lookback_days: edit.lookback_days === '' || edit.lookback_days == null ? null : Number(edit.lookback_days),
     };
     let error;
     if (edit.id) ({ error } = await supabase.from('conduct_monitoring_rules' as any).update(payload).eq('id', edit.id));
@@ -62,6 +90,7 @@ export default function MonitoringRules() {
     await logAction('monitoring_rule.toggled', 'conduct_monitoring_rule', r.id, { before: { active: r.active }, after: { active: !r.active } });
     load();
   };
+
 
   const runNow = async () => {
     setRunning(true);
@@ -93,23 +122,31 @@ export default function MonitoringRules() {
           : (
             <Table>
               <TableHeader><TableRow>
-                <TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Scope</TableHead>
-                <TableHead>Frequency</TableHead><TableHead>Risk Δ</TableHead><TableHead>Active</TableHead>
+                <TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Metric / threshold</TableHead>
+                <TableHead>Lookback</TableHead><TableHead>Scope</TableHead>
+                <TableHead>Frequency</TableHead><TableHead>Risk Δ</TableHead><TableHead>Version</TableHead><TableHead>Active</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>{rows.map(r => (
                 <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{r.code || '—'}</TableCell>
                   <TableCell><div className="font-medium">{r.name}</div>{r.description && <div className="text-xs text-muted-foreground line-clamp-1">{r.description}</div>}</TableCell>
-                  <TableCell><Badge variant="outline">{r.rule_type}</Badge></TableCell>
+                  <TableCell className="text-xs">
+                    {r.metric ? <><span className="font-mono">{r.metric}</span> {r.comparison_operator} {r.threshold_value}</> : <Badge variant="outline">{r.rule_type}</Badge>}
+                  </TableCell>
+                  <TableCell className="text-xs">{r.lookback_days != null ? `${r.lookback_days}d` : '—'}</TableCell>
                   <TableCell><Badge variant="outline">{r.scope}</Badge></TableCell>
                   <TableCell className="text-xs">{r.frequency}</TableCell>
                   <TableCell className="text-xs">{r.risk_delta}</TableCell>
+                  <TableCell className="text-xs">v{r.current_version ?? 1}</TableCell>
                   <TableCell><Switch checked={r.active} onCheckedChange={() => toggle(r)} /></TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button size="sm" variant="ghost" onClick={() => openVersions(r)}><History className="h-3 w-3 mr-1" />Versions</Button>
                     <Button data-rbac="market_conduct.edit" size="sm" variant="ghost" onClick={() => setEdit({ ...r, definition: JSON.stringify(r.definition || {}, null, 2) })}>Edit</Button>
                   </TableCell>
                 </TableRow>
               ))}</TableBody>
+
             </Table>
           )}
         </CardContent></Card>
@@ -129,10 +166,28 @@ export default function MonitoringRules() {
                 <div><Label>Risk delta (Δ score on match)</Label><Input type="number" value={edit.risk_delta} onChange={e => setEdit({ ...edit, risk_delta: e.target.value })} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={edit.active} onCheckedChange={v => setEdit({ ...edit, active: v })} /><Label>Active</Label></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Metric</Label>
+                  <select className="w-full h-10 rounded-md border bg-background px-3" value={edit.metric || ''} onChange={e => setEdit({ ...edit, metric: e.target.value })}>
+                    <option value="">— none —</option>
+                    {METRICS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label>Comparison</Label>
+                  <select className="w-full h-10 rounded-md border bg-background px-3" value={edit.comparison_operator || '>='} onChange={e => setEdit({ ...edit, comparison_operator: e.target.value })}>
+                    {OPERATORS.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div><Label>Threshold value</Label><Input type="number" value={edit.threshold_value ?? ''} onChange={e => setEdit({ ...edit, threshold_value: e.target.value })} /></div>
+                <div><Label>Lookback (days)</Label><Input type="number" value={edit.lookback_days ?? ''} onChange={e => setEdit({ ...edit, lookback_days: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Source dataset</Label><Input value={edit.source_dataset || ''} onChange={e => setEdit({ ...edit, source_dataset: e.target.value })} placeholder="e.g. complaints" /></div>
+              </div>
               <div>
                 <Label>Definition (JSON)</Label>
-                <Textarea rows={8} className="font-mono text-xs" value={edit.definition} onChange={e => setEdit({ ...edit, definition: e.target.value })} />
-                <p className="text-xs text-muted-foreground mt-1">Interpreted by the evaluate-conduct-monitoring function. Common keys: <code>window_days</code>, <code>threshold</code>, <code>severity_min</code>, <code>product_ids</code>.</p>
+                <Textarea rows={6} className="font-mono text-xs" value={edit.definition} onChange={e => setEdit({ ...edit, definition: e.target.value })} />
+                <p className="text-xs text-muted-foreground mt-1">Extra parameters for the evaluate-conduct-monitoring function. Saving creates a new immutable rule version.</p>
               </div>
             </div>
           )}
@@ -142,6 +197,28 @@ export default function MonitoringRules() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!versionsFor} onOpenChange={o => !o && setVersionsFor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Version history — {versionsFor?.name}</DialogTitle></DialogHeader>
+          {versionsLoading ? <div className="p-6 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
+          : versions.length === 0 ? <p className="text-sm text-muted-foreground">No versions recorded.</p>
+          : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {versions.map(v => (
+                <div key={v.id} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Badge variant={v.version === versionsFor?.current_version ? 'default' : 'outline'}>v{v.version}{v.version === versionsFor?.current_version ? ' · current' : ''}</Badge>
+                    <span className="text-xs text-muted-foreground">Effective {new Date(v.effective_from).toLocaleString()}</span>
+                  </div>
+                  <pre className="mt-2 text-xs font-mono whitespace-pre-wrap">{JSON.stringify(v.snapshot, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
+

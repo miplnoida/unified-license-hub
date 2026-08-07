@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck,
+  Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -138,6 +138,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_type', adminOnly: true },
       { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Supervision Loop', href: '/conduct/supervision-loop', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Market Surveillance', href: '/conduct/surveillance', icon: <Radar className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Entities', href: '/conduct/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
