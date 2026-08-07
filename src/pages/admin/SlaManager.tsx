@@ -144,6 +144,8 @@ export default function SlaManager() {
 function SlaConfigTab() {
   const [rows, setRows] = useState<SlaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Real workflow stage names per process type, so config keys match runtime. */
+  const [stageOptions, setStageOptions] = useState<Record<string, string[]>>({});
   // Freshest row keyed by id so onBlur reads up-to-date values (no stale closure).
   const latestRef = useRef<Record<string, SlaRow>>({});
   // JSON snapshot of last successfully-persisted row state — drives no-op detection.
@@ -155,23 +157,52 @@ function SlaConfigTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('sla_configurations')
-      .select('*')
-      .order('process_type', { ascending: true })
-      .order('stage_name', { ascending: true });
-    if (error) toast({ title: 'Failed to load SLA configs', description: error.message, variant: 'destructive' });
+    const [cfgRes, wfRes] = await Promise.all([
+      supabase
+        .from('sla_configurations')
+        .select('*')
+        .order('process_type', { ascending: true })
+        .order('stage_name', { ascending: true }),
+      supabase.from('approval_workflows').select('id, entity_type').eq('is_active', true),
+    ]);
+    if (cfgRes.error) toast({ title: 'Failed to load SLA configs', description: cfgRes.error.message, variant: 'destructive' });
     else {
-      const list = (data ?? []) as unknown as SlaRow[];
+      const list = (cfgRes.data ?? []) as unknown as SlaRow[];
       setRows(list);
       syncLatest(list);
       // Initialise persisted snapshots so the first onBlur after load is a no-op.
       lastPersisted.current = Object.fromEntries(list.map(r => [r.id, JSON.stringify(r)]));
     }
+
+    const workflows = (wfRes.data ?? []) as Array<{ id: string; entity_type: string }>;
+    if (workflows.length > 0) {
+      const { data: steps } = await supabase
+        .from('approval_steps')
+        .select('workflow_id, name')
+        .in('workflow_id', workflows.map(w => w.id));
+      const entityByWorkflow = new Map(workflows.map(w => [w.id, w.entity_type]));
+      const namesByEntity = new Map<string, Set<string>>();
+      ((steps ?? []) as Array<{ workflow_id: string; name: string | null }>).forEach(s => {
+        const ent = entityByWorkflow.get(s.workflow_id);
+        if (!ent || !s.name) return;
+        const set = namesByEntity.get(ent) ?? new Set<string>();
+        set.add(s.name);
+        namesByEntity.set(ent, set);
+      });
+      const byProcess: Record<string, string[]> = {};
+      RUNTIME_PROCESS_TYPES.forEach(({ value }) => {
+        const ents = WORKFLOW_ENTITY_TYPES_FOR_PROCESS[value] ?? [value];
+        const merged = new Set<string>();
+        ents.forEach(e => (namesByEntity.get(e) ?? new Set<string>()).forEach(n => merged.add(n)));
+        byProcess[value] = Array.from(merged).sort();
+      });
+      setStageOptions(byProcess);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
 
   const validate = (r: Partial<SlaRow>): string | null => {
     if (!r.process_type?.trim()) return 'Process Type is required';
