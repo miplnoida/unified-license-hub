@@ -208,6 +208,23 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
+      - name: Assert required Phase 1 pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase1/01_sla_runtime.sql \
+            supabase/tests/phase1/02_decision_gates_artifacts.sql \
+            supabase/tests/phase1/03_audit_appendonly.sql; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 1 pgTAP file missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+
+
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
