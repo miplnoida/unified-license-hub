@@ -1417,8 +1417,21 @@ interface LegalNotesMountProps {
 
 function LegalNotesMount(props: LegalNotesMountProps) {
   const { data: isLegalReviewer = false } = useIsLegalComplianceUser();
+  const { user } = useAuth();
+  // Case owners/reviewers with workflow rights may raise and close referrals;
+  // the RLS policies remain the authority on both reads and writes.
+  const canRefer = useHasPermission('application_management', 'workflow_action')
+    || useHasPermission('application_management', 'edit');
   return (
-    <div className="mt-4">
+    <div className="mt-4 space-y-4">
+      <LegalReferralPanel
+        applicationId={props.applicationId}
+        workflowInstanceId={props.workflowInstanceId}
+        currentStepId={props.currentStepId}
+        canRefer={canRefer}
+        isLegalReviewer={isLegalReviewer}
+        currentUserId={user?.id ?? null}
+      />
       <LegalComplianceNotesSection
         {...props}
         isLegalReviewer={isLegalReviewer}
@@ -1426,5 +1439,6 @@ function LegalNotesMount(props: LegalNotesMountProps) {
     </div>
   );
 }
+
 
 
