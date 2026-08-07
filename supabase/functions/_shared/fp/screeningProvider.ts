@@ -343,7 +343,18 @@ export function mapProviderResult(input: MapInput): MapOutput {
   });
 
   return {
-    outcome: { ...outcomeBase, outcome: 'screened_hits', hits: findings.length, error_category: null, error_message: null },
+    outcome: {
+      ...outcomeBase,
+      outcome: 'screened_hits',
+      state: deriveProviderState({
+        success: true, executionMode: result.executionMode, environment,
+        providerVerified: result.providerVerified, sandbox, hits: findings.length,
+      }),
+      conclusive: !sandbox,
+      hits: findings.length,
+      error_category: null,
+      error_message: null,
+    },
     findings,
   };
 }
