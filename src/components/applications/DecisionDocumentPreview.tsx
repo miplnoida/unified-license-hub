@@ -284,7 +284,7 @@ export function DecisionDocumentPreview({
       const { data, error } = await supabase.rpc('issue_decision_artifact' as any, {
         _application_id: applicationId,
         _artifact_type: artifactType,
-        _rendered_html: artifactType === 'decision_letter' ? letterHtml : (certUrl ? letterHtml : ''),
+        _rendered_html: artifactType === 'decision_letter' ? letterHtml : certificateHtml,
         _merge_data: {
           application_number: applicationNumber,
           applicant_name: applicantName,
@@ -293,6 +293,9 @@ export function DecisionDocumentPreview({
           template_code: template?.code ?? null,
           signatory: signatory ?? null,
           regulator_name: vars.regulator_name,
+          ...(artifactType === 'license_certificate'
+            ? { effective_date: effectiveDate, expiry_date: expiryDate || null, license_reference: applicationNumber }
+            : {}),
         } as any,
         _decision: outcome,
         _template_id: artifactType === 'decision_letter' ? (templateId || null) : null,
@@ -300,8 +303,8 @@ export function DecisionDocumentPreview({
         _rationale: rationale.trim() || null,
         _conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean) as any,
         _issuing_regulator_id: activeRegulator?.id ?? null,
-        _effective_date: artifactType === 'license_certificate' ? new Date().toISOString().slice(0, 10) : null,
-        _expiry_date: null,
+        _effective_date: artifactType === 'license_certificate' ? (effectiveDate || null) : null,
+        _expiry_date: artifactType === 'license_certificate' ? (expiryDate || null) : null,
       });
       if (error) throw error;
       const res = data as any;
