@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ExternalLink, Loader2, ShieldCheck, XCircle } from 'lucide-react';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import {
   useActionEvents,
   useActionResponses,
@@ -169,6 +170,8 @@ export function PrudentialActionDrawer({ action, onOpenChange }: Props) {
               {events.length === 0 && <div className="text-muted-foreground text-xs">No events recorded.</div>}
             </div>
           </div>
+
+          <CommunicationTimeline objectType="prudential_action" objectId={action.id} />
         </div>
       </SheetContent>
     </Sheet>
