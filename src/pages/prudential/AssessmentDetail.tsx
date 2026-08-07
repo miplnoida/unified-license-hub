@@ -46,7 +46,8 @@ export default function AssessmentDetail() {
   const autoRating = { critical: RATINGS[4], high: RATINGS[3], medium: RATINGS[2], low: RATINGS[1] }[worst as string] || RATINGS[1];
 
   const isOverride = form.overall_rating && form.overall_rating !== autoRating;
-  const canEdit = ['draft','submitted'].includes(form.status);
+  const canEdit = isAssessmentEditable(form.status);
+  const isFinal = isAssessmentFinal(form.status);
 
   const save = async () => {
     if (upsert.isPending) return;
