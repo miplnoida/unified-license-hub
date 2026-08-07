@@ -131,10 +131,12 @@ SELECT is(
     WHERE individual_id = '00000000-0000-0000-0000-0000000f3020'),
   0, 'unrelated authenticated user cannot enumerate role history');
 
-SELECT throws_ok(
-  $$ UPDATE public.fp_individuals SET full_name = 'tampered'
-       WHERE id = '00000000-0000-0000-0000-0000000f3020' RETURNING 1 $$,
-  NULL, NULL, 'unrelated authenticated user cannot update the individual');
+SELECT is(
+  (WITH u AS (
+     UPDATE public.fp_individuals SET full_name = 'tampered'
+      WHERE id = '00000000-0000-0000-0000-0000000f3020' RETURNING 1
+   ) SELECT count(*)::int FROM u),
+  0, 'unrelated authenticated user cannot update the individual');
 
 RESET ROLE;
 SELECT is(
