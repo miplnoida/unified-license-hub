@@ -24,6 +24,8 @@ import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
+import { SlaStageTimeline } from '@/components/workflows/SlaStageTimeline';
+
 import { LegalComplianceNotesSection } from '@/components/applications/LegalComplianceNotesSection';
 import { useIsLegalComplianceUser } from '@/hooks/useApplicationLegalNotes';
 
@@ -1365,7 +1367,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </DialogContent>
       </Dialog>
 
+      {isInternal && (
+        <div className="mt-4">
+          <SlaStageTimeline entityType={entityType} entityId={applicationId} />
+        </div>
+      )}
+
       {isInternal && entityType === 'application' && steps.some(s => s.is_legal_compliance_stage) && (
+
         <LegalNotesMount
           applicationId={applicationId}
           workflowInstanceId={liveInstance?.id ?? null}

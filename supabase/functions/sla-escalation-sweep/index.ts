@@ -1,15 +1,18 @@
 // SLA Escalation Sweep
 // -------------------------------------------------------------------
-// Scans every active workflow_instance whose current approval_action is
-// past its sla_deadline. For each overdue instance it looks up the
-// matching sla_escalation_tiers (keyed by process_type) and, if the
-// overdue duration passes tier.delay_days AND that tier has not already
-// fired for this instance, dispatches the escalation notification.
+// Stage-driven sweep over public.sla_stage_instances (Phase 1A).
 //
-// Idempotency is enforced by inserting a row into
-// sla_escalation_dispatches (unique (workflow_instance_id, tier)) — a
-// unique-violation is treated as "already sent, skip".
+// 1. Every `active` stage whose `due_at` has passed is marked `breached`
+//    via sla_stage_mark_breached(), which is itself idempotent (it only
+//    transitions active -> breached) and writes the breach event + audit row.
+//    A `workflow.sla_breached` notification is emitted exactly once, on the
+//    transition returning true.
+// 2. Every breached stage is then matched against sla_escalation_tiers
+//    (keyed by process_type) and newly-eligible tiers are dispatched.
+//    Idempotency: unique (workflow_instance_id, tier) on
+//    sla_escalation_dispatches — a 23505 means "already sent, skip".
 //
+// Legacy behaviour retained: process_type is the workflow entity_type.
 // Intended to be invoked by pg_cron every 15 minutes.
 // Returns HTTP 200 with a summary body (per project convention).
 
@@ -22,20 +25,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-type WorkflowInstance = {
+type StageInstance = {
   id: string;
+  process_type: string;
   entity_type: string;
   entity_id: string;
-  current_step_id: string | null;
-  status: string;
-  started_at: string;
-};
-
-type LatestAction = {
-  workflow_instance_id: string;
-  sla_deadline: string | null;
+  workflow_instance_id: string | null;
   step_id: string | null;
-  action_type: string | null;
+  stage_name: string | null;
+  due_at: string | null;
+  state: string;
+  first_breach_notified_at: string | null;
 };
 
 type SlaTier = {
@@ -50,7 +50,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
 
-
   const __workerGate = requireWorkerInvocation(req);
   if (!__workerGate.ok) return __workerGate.response;
   const startedAt = Date.now();
@@ -61,38 +60,72 @@ Deno.serve(async (req) => {
   const nowIso = new Date().toISOString();
 
   try {
-    // 1. Load active workflow instances.
-    const { data: instances, error: instErr } = await admin
-      .from("workflow_instances")
-      .select("id, entity_type, entity_id, current_step_id, status, started_at")
-      .eq("status", "active");
+    const STAGE_SELECT =
+      "id, process_type, entity_type, entity_id, workflow_instance_id, step_id, stage_name, due_at, state, first_breach_notified_at";
 
-    if (instErr) throw instErr;
-    if (!instances || instances.length === 0) {
-      return respond({ ok: true, scanned: 0, escalated: 0 });
-    }
+    // 1. Newly overdue active stages -> breached (once).
+    const { data: overdueActive, error: overdueErr } = await admin
+      .from("sla_stage_instances")
+      .select(STAGE_SELECT)
+      .eq("state", "active")
+      .not("due_at", "is", null)
+      .lt("due_at", nowIso);
+    if (overdueErr) throw overdueErr;
 
-    // 2. Load the latest open approval_action per instance to find sla_deadline.
-    const instanceIds = instances.map((i: WorkflowInstance) => i.id);
-    const { data: openActions, error: actErr } = await admin
-      .from("approval_actions")
-      .select("workflow_instance_id, sla_deadline, step_id, action_type, created_at")
-      .in("workflow_instance_id", instanceIds)
-      .is("responded_at", null)
-      .not("sla_deadline", "is", null)
-      .lt("sla_deadline", nowIso)
-      .order("created_at", { ascending: false });
+    let breached = 0;
+    for (const stage of (overdueActive ?? []) as StageInstance[]) {
+      const { data: didBreach, error: breachErr } = await admin.rpc(
+        "sla_stage_mark_breached",
+        { _stage_instance_id: stage.id, _reason: "sla_sweep" },
+      );
+      if (breachErr) {
+        console.warn("[sla-escalation-sweep] breach failed:", breachErr);
+        continue;
+      }
+      if (didBreach !== true) continue;
+      breached++;
 
-    if (actErr) throw actErr;
-
-    const latestByInstance = new Map<string, LatestAction>();
-    for (const a of openActions ?? []) {
-      if (!latestByInstance.has(a.workflow_instance_id)) {
-        latestByInstance.set(a.workflow_instance_id, a as LatestAction);
+      // Breach notification — emitted only on the state transition.
+      try {
+        await admin.functions.invoke("dispatch-notification-event", {
+          body: {
+            event_key: "workflow.sla_breached",
+            entity_type: stage.entity_type,
+            entity_id: stage.entity_id,
+            payload: {
+              process_type: stage.process_type,
+              stage_name: stage.stage_name,
+              sla_deadline: stage.due_at,
+              workflow_instance_id: stage.workflow_instance_id,
+              stage_instance_id: stage.id,
+            },
+          },
+        });
+      } catch (notifyErr) {
+        console.warn("[sla-escalation-sweep] breach notify failed:", notifyErr);
       }
     }
 
-    // 3. Load all active escalation tiers up-front and index by process_type.
+    // 2. Escalate breached stages by tier.
+    const { data: breachedStages, error: breachedErr } = await admin
+      .from("sla_stage_instances")
+      .select(STAGE_SELECT)
+      .eq("state", "breached")
+      .not("due_at", "is", null)
+      .not("workflow_instance_id", "is", null);
+    if (breachedErr) throw breachedErr;
+
+    const stages = (breachedStages ?? []) as StageInstance[];
+    if (stages.length === 0) {
+      return respond({
+        ok: true,
+        scanned: 0,
+        breached,
+        escalated: 0,
+        duration_ms: Date.now() - startedAt,
+      });
+    }
+
     const { data: tiers, error: tierErr } = await admin
       .from("sla_escalation_tiers")
       .select("process_type, tier, delay_days, recipients, notify_roles")
@@ -106,7 +139,10 @@ Deno.serve(async (req) => {
       tiersByProcess.set(t.process_type, arr);
     }
 
-    // 4. Load already-dispatched (instance,tier) pairs so we can skip them.
+    const instanceIds = stages
+      .map((s) => s.workflow_instance_id)
+      .filter((id): id is string => !!id);
+
     const { data: dispatched, error: dispErr } = await admin
       .from("sla_escalation_dispatches")
       .select("workflow_instance_id, tier")
@@ -120,43 +156,40 @@ Deno.serve(async (req) => {
       ),
     );
 
-    // 5. Walk each overdue instance and dispatch newly-eligible tiers.
     let escalated = 0;
     let scanned = 0;
     const results: unknown[] = [];
 
-    for (const inst of instances as WorkflowInstance[]) {
-      const openAction = latestByInstance.get(inst.id);
-      if (!openAction || !openAction.sla_deadline) continue;
+    for (const stage of stages) {
+      if (!stage.workflow_instance_id || !stage.due_at) continue;
       scanned++;
 
-      const processType = inst.entity_type; // process_type keyed by entity_type
+      const processType = stage.process_type || stage.entity_type;
       const applicable = tiersByProcess.get(processType);
       if (!applicable || applicable.length === 0) continue;
 
-      const overdueMs =
-        Date.now() - new Date(openAction.sla_deadline).getTime();
+      const overdueMs = Date.now() - new Date(stage.due_at).getTime();
       const overdueDays = overdueMs / (1000 * 60 * 60 * 24);
 
       for (const tier of applicable) {
         if (overdueDays < tier.delay_days) continue;
-        if (alreadySent.has(`${inst.id}::${tier.tier}`)) continue;
+        if (alreadySent.has(`${stage.workflow_instance_id}::${tier.tier}`)) continue;
 
-        // Attempt idempotent insert first — unique(workflow_instance_id,tier)
-        // guarantees only one dispatch even under a concurrent invocation.
         const { error: insertErr } = await admin
           .from("sla_escalation_dispatches")
           .insert({
-            workflow_instance_id: inst.id,
-            entity_type: inst.entity_type,
-            entity_id: inst.entity_id,
+            workflow_instance_id: stage.workflow_instance_id,
+            entity_type: stage.entity_type,
+            entity_id: stage.entity_id,
             process_type: processType,
             tier: tier.tier,
             recipients: tier.recipients,
-            sla_deadline: openAction.sla_deadline,
+            sla_deadline: stage.due_at,
             overdue_by_seconds: Math.floor(overdueMs / 1000),
             metadata: {
-              step_id: openAction.step_id,
+              step_id: stage.step_id,
+              stage_instance_id: stage.id,
+              stage_name: stage.stage_name,
               notify_roles: tier.notify_roles,
             },
           });
@@ -164,46 +197,52 @@ Deno.serve(async (req) => {
         if (insertErr) {
           // Unique violation = another sweep beat us; treat as success.
           if ((insertErr as { code?: string }).code !== "23505") {
-            console.warn(
-              "[sla-escalation-sweep] insert failed:",
-              insertErr,
-            );
+            console.warn("[sla-escalation-sweep] insert failed:", insertErr);
           }
           continue;
         }
 
-        // Dispatch the escalation notification. Event key is generic; each
-        // process/domain can add its own recipient rules in
-        // notification_event_configs.
+        alreadySent.add(`${stage.workflow_instance_id}::${tier.tier}`);
+
         try {
           await admin.functions.invoke("dispatch-notification-event", {
             body: {
               event_key: "workflow.sla_escalation",
-              entity_type: inst.entity_type,
-              entity_id: inst.entity_id,
+              entity_type: stage.entity_type,
+              entity_id: stage.entity_id,
               payload: {
                 tier: tier.tier,
                 process_type: processType,
-                sla_deadline: openAction.sla_deadline,
+                stage_name: stage.stage_name,
+                sla_deadline: stage.due_at,
                 overdue_days: Math.round(overdueDays * 100) / 100,
                 notify_roles: tier.notify_roles,
                 recipients: tier.recipients,
-                workflow_instance_id: inst.id,
+                workflow_instance_id: stage.workflow_instance_id,
+                stage_instance_id: stage.id,
               },
             },
           });
           escalated++;
           results.push({
-            workflow_instance_id: inst.id,
-            entity_type: inst.entity_type,
-            entity_id: inst.entity_id,
+            workflow_instance_id: stage.workflow_instance_id,
+            stage_instance_id: stage.id,
+            entity_type: stage.entity_type,
+            entity_id: stage.entity_id,
             tier: tier.tier,
           });
         } catch (dispatchErr) {
-          console.warn(
-            "[sla-escalation-sweep] dispatch failed:",
-            dispatchErr,
-          );
+          console.warn("[sla-escalation-sweep] dispatch failed:", dispatchErr);
+        }
+
+        // Stage-level escalation evidence.
+        const { error: markErr } = await admin.rpc("sla_stage_mark_escalated", {
+          _stage_instance_id: stage.id,
+          _tier: tier.tier,
+          _recipients: tier.recipients,
+        });
+        if (markErr) {
+          console.warn("[sla-escalation-sweep] mark escalated failed:", markErr);
         }
       }
     }
@@ -211,6 +250,7 @@ Deno.serve(async (req) => {
     return respond({
       ok: true,
       scanned,
+      breached,
       escalated,
       duration_ms: Date.now() - startedAt,
       results,
