@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
+import { renderLicenseCertificateHtml } from '@/lib/licensing/decisionDocuments';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
