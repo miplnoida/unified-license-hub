@@ -57,6 +57,48 @@ export interface WorkflowSlaActionRecord {
   created_at: string | null;
 }
 
+/**
+ * Phase 1A: persisted per-stage SLA record (`public.sla_stage_instances`).
+ * When present it is the authoritative clock, because its `sla_hours` /
+ * `due_at` were resolved server-side from the SLA Manager configuration
+ * (including business-calendar working days) with the workflow step SLA as
+ * fallback.
+ */
+export interface SlaStageInstanceRow {
+  id: string;
+  process_type: string;
+  entity_type: string;
+  entity_id: string;
+  workflow_instance_id: string | null;
+  step_id: string | null;
+  stage_name: string | null;
+  sla_hours: number | null;
+  sla_source: string | null;
+  started_at: string;
+  due_at: string | null;
+  paused_at: string | null;
+  pause_seconds: number | null;
+  state: 'active' | 'paused' | 'breached' | 'completed' | string;
+  breached_at: string | null;
+}
+
+export function resolveSlaInputFromStage(
+  stage: SlaStageInstanceRow,
+  warningThresholdPercent?: number | null,
+): UseWorkflowSLAInput {
+  const paused = stage.state === 'paused';
+  return {
+    startedAt: stage.started_at,
+    slaHours: stage.sla_hours ?? null,
+    warningThresholdPercent: warningThresholdPercent ?? 80,
+    escalationAfterHours: null,
+    paused,
+    pauseSeconds: stage.pause_seconds ?? 0,
+    pausedSince: paused ? stage.paused_at : null,
+  };
+}
+
+
 const STEP_ADVANCE_ACTIONS = new Set([
   'approve',
   'reject',
