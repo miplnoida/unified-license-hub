@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { FpDuplicateCandidates } from '@/components/fit-and-proper/FpDuplicateCandidates';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
