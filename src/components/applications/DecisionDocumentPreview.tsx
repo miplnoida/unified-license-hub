@@ -491,14 +491,15 @@ export function DecisionDocumentPreview({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" disabled={issuing !== null}
+              <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                 onClick={() => issue('decision_letter')}>
                 {issuing === 'decision_letter' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileText className="h-4 w-4 mr-1.5" />}
                 Record decision letter
               </Button>
               {outcomeMeta.certificate && (
-                <Button size="sm" variant="outline" disabled={issuing !== null}
+                <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                   onClick={() => issue('license_certificate')}>
+
                   {issuing === 'license_certificate' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
                   Record certificate
                 </Button>
