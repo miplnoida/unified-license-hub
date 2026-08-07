@@ -223,7 +223,8 @@ export default function FpaDeclarations() {
       const [withDecl, byStatus] = await Promise.all([
         supabase
           .from('fp_assessments' as any)
-          .select('id, individual_id, assessment_type, status, declaration_data, created_at, fp_individuals(full_name, national_id)')
+          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, created_at, fp_individuals(full_name, national_id)')
+
           .not('declaration_data', 'is', null)
           .order('created_at', { ascending: false })
           .limit(50),
