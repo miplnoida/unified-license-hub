@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ValidationRule } from '@/lib/returnsValidation';
 import type { PrudentialRatio, PrudentialThreshold, ComputedRatio, DetectedBreach } from '@/lib/returnsRatios';
+import type { PeerSnapshot } from '@/lib/prudentialPhase2';
 
 // ---------------- Validation rules ----------------
 export function useValidationRules(configId?: string | null) {
