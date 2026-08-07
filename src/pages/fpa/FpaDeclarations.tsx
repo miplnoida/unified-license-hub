@@ -27,6 +27,9 @@ import {
 } from 'lucide-react';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { PQ_STATE_META, type PqState } from '@/lib/fp/pqState';
+import { FpPqAmendmentDialog } from '@/components/fit-and-proper/FpPqAmendmentDialog';
+
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
