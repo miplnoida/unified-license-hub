@@ -56,6 +56,12 @@ export async function logSecurityEvent(
     userAgent?: string | null;
     detail?: Record<string, unknown> | null;
     metadata?: Record<string, unknown> | null;
+    severity?: 'critical' | 'high' | 'medium' | 'low';
+    module?: string | null;
+    action?: string | null;
+    objectType?: string | null;
+    objectId?: string | null;
+    correlationId?: string | null;
   },
 ): Promise<void> {
   try {
@@ -67,6 +73,12 @@ export async function logSecurityEvent(
       _user_agent: args.userAgent ?? null,
       _detail: args.detail ?? null,
       _metadata: bestEffortMetadata(args.metadata),
+      _severity: args.severity ?? 'medium',
+      _module: args.module ?? null,
+      _action: args.action ?? null,
+      _object_type: args.objectType ?? null,
+      _object_id: args.objectId ?? null,
+      _correlation_id: args.correlationId ?? null,
     });
     if (error) console.warn('[audit] security event failed:', error.message ?? error);
   } catch (error) {

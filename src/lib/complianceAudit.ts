@@ -68,7 +68,17 @@ export async function logComplianceAudit(entry: ComplianceAuditInput): Promise<v
 
 export async function logSecurityEvent(
   event_type: SecurityEventType,
-  opts: { target_resource?: string; detail?: Record<string, unknown>; metadata?: Record<string, unknown> } = {},
+  opts: {
+    target_resource?: string;
+    detail?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    severity?: 'critical' | 'high' | 'medium' | 'low';
+    module?: string;
+    action?: string;
+    object_type?: string;
+    object_id?: string;
+    correlation_id?: string;
+  } = {},
 ): Promise<void> {
   const ip = await resolveIp();
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
@@ -80,11 +90,18 @@ export async function logSecurityEvent(
     _user_agent: ua,
     _detail: (opts.detail ?? null) as any,
     _metadata: metadata as any,
+    _severity: opts.severity ?? 'medium',
+    _module: opts.module ?? null,
+    _action: opts.action ?? null,
+    _object_type: opts.object_type ?? null,
+    _object_id: opts.object_id ?? null,
+    _correlation_id: opts.correlation_id ?? null,
   });
   if (error && import.meta.env.DEV) {
     console.warn('[logSecurityEvent] failed:', error.message);
   }
 }
+
 
 export async function logExport(args: {
   object_type: string;
