@@ -47,6 +47,11 @@ DECLARE
   v_app uuid;
   v_num text;
 BEGIN
+  INSERT INTO auth.users (id, email) VALUES
+    (v_officer, 'phase6.officer@example.test'),
+    (v_applicant, 'phase6.applicant@example.test')
+  ON CONFLICT (id) DO NOTHING;
+
   INSERT INTO public.user_roles (user_id, role) VALUES (v_officer, 'super_admin')
     ON CONFLICT DO NOTHING;
 
