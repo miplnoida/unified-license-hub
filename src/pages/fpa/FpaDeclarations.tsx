@@ -230,7 +230,7 @@ export default function FpaDeclarations() {
           .limit(50),
         supabase
           .from('fp_assessments' as any)
-          .select('id, individual_id, assessment_type, status, declaration_data, created_at, fp_individuals(full_name, national_id)')
+          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, created_at, fp_individuals(full_name, national_id)')
           .in('status', ['draft', 'submitted'])
           .order('created_at', { ascending: false })
           .limit(50),
