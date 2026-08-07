@@ -22,6 +22,8 @@ import {
   getWorkflowSlaStepConfig,
   resolveCurrentStepStartedAt,
   resolveSlaInputFromInstance,
+  resolveSlaInputFromStage,
+  type SlaStageInstanceRow,
   type WorkflowInstanceRow,
   type WorkflowSlaActionRecord,
   type WorkflowSlaStepConfig,
@@ -35,6 +37,10 @@ export interface WorkflowSlaEntry {
   status: SlaStatus;
   percentConsumed: number;
   remainingHours: number;
+  /** Persisted stage record when one exists (Phase 1A). */
+  stage?: SlaStageInstanceRow | null;
+  /** Where the SLA duration came from: 'configuration' | 'step' | null. */
+  slaSource?: string | null;
 }
 
 export interface WorkflowSlaOverview {
@@ -52,6 +58,8 @@ interface Options {
 }
 
 const SELECT = 'id,workflow_id,entity_type,entity_id,status,current_step_id,current_step_key,started_at,created_at,updated_at,version_snapshot,paused_at,resumed_at,paused_reason,total_pause_seconds';
+const STAGE_SELECT = 'id,process_type,entity_type,entity_id,workflow_instance_id,step_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at';
+
 
 interface ApplicationClockRow {
   id: string;
