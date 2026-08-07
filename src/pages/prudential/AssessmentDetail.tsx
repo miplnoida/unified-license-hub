@@ -178,7 +178,7 @@ export default function AssessmentDetail() {
         <div className="md:col-span-2 md:order-last">
           <CamelsComponentsPanel
             assessmentId={id!}
-            sectorId={assessment.licensees?.sector_id ?? null}
+            sectorId={(assessment.licensees as any)?.sector_id ?? null}
             status={form.status}
             suggestions={{ C: { rating: autoRating, source: { basis: 'worst_breach_severity', severity: worst } } }}
           />
