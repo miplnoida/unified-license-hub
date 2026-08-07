@@ -165,15 +165,25 @@ export default function AssessmentDetail() {
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Closing…</>) : 'Close'}
                 </Button>
               )}
-              {form.status === 'submitted' && (
+              {['submitted','reviewed'].includes(form.status) && (
                 <div className="w-full">
-                  <Label>Review notes {form.status === 'submitted' && <span className="text-destructive">*</span>}</Label>
+                  <Label>Review notes <span className="text-destructive">*</span></Label>
                   <Textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} rows={2} />
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
+
+        <div className="md:col-span-2 md:order-last">
+          <CamelsComponentsPanel
+            assessmentId={id!}
+            sectorId={assessment.licensees?.sector_id ?? null}
+            status={form.status}
+            suggestions={{ C: { rating: autoRating, source: { basis: 'worst_breach_severity', severity: worst } } }}
+          />
+        </div>
+
 
         <Card>
           <CardHeader><CardTitle>Signals</CardTitle></CardHeader>
