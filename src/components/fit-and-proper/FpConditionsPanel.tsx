@@ -182,6 +182,33 @@ export function FpConditionsPanel({ individualId }: Props) {
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
+  // Phase 3H — breach is a distinct lifecycle state (not "overdue"): the DB
+  // lifecycle trigger requires a rationale of at least 5 characters and the
+  // append-only fp_condition_events log records the transition.
+  const breach = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      if (!reason || reason.trim().length < 5) throw new Error('Breach rationale required (min 5 chars)');
+      const { error } = await supabase.from('fp_conditions').update({
+        status: 'breached', satisfaction_note: reason.trim(),
+      }).eq('id', id);
+      if (error) throw error;
+      await logFpAction('fp.condition.breached', 'fp_condition', id, {
+        after: { status: 'breached' },
+        context: { individualId, conditionId: id },
+        justification: reason.trim(),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Condition marked breached');
+      setBreachFor(null); setBreachNote('');
+      qc.invalidateQueries({ queryKey: ['fp_conditions', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_condition_events'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+
+
   return (
     <div className="space-y-3">
       <Card>
