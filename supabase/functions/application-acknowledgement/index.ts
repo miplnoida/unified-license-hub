@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
 
     // Access control: reuse the canonical DB predicate. No UI-only gating.
     const { data: canRead, error: aclErr } = await admin.rpc("can_read_application", {
-      _user_id: user.id,
+      _user: user.id,
       _application_id: applicationId,
     } as never);
     if (aclErr) return json(req, 403, { error: "Access check failed" });
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
     const { data: app } = await admin
       .from("applications")
-      .select("id, application_number, applicant_id, license_type, status, submitted_at, current_step_id, data")
+      .select("id, application_number, applicant_id, license_type, status, submitted_at, current_step_id, data, ack_text")
       .eq("id", applicationId)
       .maybeSingle();
     if (!app) return json(req, 404, { error: "Application not found" });
@@ -217,8 +217,8 @@ Deno.serve(async (req) => {
     // ---------- ensure / reconcile ----------
     const appData = (app.data as Record<string, unknown> | null) || {};
     const [profile, preUser, sectorRow, subSectorRow, categoryRow, siteRow] = await Promise.all([
-      admin.from("profiles").select("email, full_name, organization_name").eq("id", app.applicant_id).maybeSingle(),
-      admin.from("pre_license_users").select("email, full_name, company_name").eq("id", app.applicant_id).maybeSingle(),
+      admin.from("profiles").select("email, full_name").eq("id", app.applicant_id).maybeSingle(),
+      admin.from("pre_license_users").select("email, full_name").eq("id", app.applicant_id).maybeSingle(),
       appData.sector_id ? admin.from("sectors").select("name").eq("id", appData.sector_id as string).maybeSingle() : Promise.resolve({ data: null }),
       appData.sub_sector_id ? admin.from("sub_sectors").select("name").eq("id", appData.sub_sector_id as string).maybeSingle() : Promise.resolve({ data: null }),
       appData.category_id ? admin.from("categories").select("name").eq("id", appData.category_id as string).maybeSingle() : Promise.resolve({ data: null }),
@@ -230,8 +230,6 @@ Deno.serve(async (req) => {
     const entityName =
       (appData.entity_name as string)
       || (appData.company_name as string)
-      || (profile.data as any)?.organization_name
-      || (preUser.data as any)?.company_name
       || applicantName;
     const appNameSetting = ((siteRow.data as any)?.value?.app_name as string) || "Unified License Hub";
     const sectorPath = [
@@ -249,7 +247,7 @@ Deno.serve(async (req) => {
     if (action === "ensure") {
       const { data: ensured, error: ensureErr } = await admin.rpc("ensure_submission_acknowledgement", {
         _application_id: applicationId,
-        _ack_text: null,
+        _ack_text: (app as any).ack_text ?? null,
         _applicant_name: applicantName,
         _applicant_email: applicantEmail,
         _entity_name: entityName,
