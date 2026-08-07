@@ -374,6 +374,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                     </div>
                   </div>
                 )}
+                <FpConditionEvidencePanel conditionId={c.id} individualId={individualId} />
               </div>
             );
           })}
