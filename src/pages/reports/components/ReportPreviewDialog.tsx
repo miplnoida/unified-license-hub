@@ -13,6 +13,8 @@ import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useToast } from '@/hooks/use-toast';
 import { useReportSources, useReportOptions, useReportSourceColumns } from '../hooks/useReportMetadata';
 import { buildLabelMap, labelFor } from '../lib/columnLabels';
+import { buildReportProvenance, reconcileExport } from '../lib/reportProvenance';
+import { logExport as logExportRegistry } from '@/lib/exportAudit';
 
 interface Props {
   run: ReportRun | null;
@@ -74,10 +76,29 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
       toast({ title: 'Not authorized', description: e?.message || 'You lack permission to export reports.', variant: 'destructive' });
       return;
     }
-    if (fmt === 'csv') exportToCsv(run.rows, fname, labels);
-    else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels);
-    else if (fmt === 'pdf') exportToPdf(run.rows, fname, run.name, labels);
-    else exportToJson(run.rows, fname);
+    const provenance = await buildReportProvenance(run);
+    const recon = reconcileExport(rows, safeRows(run.rows));
+    if (!recon.ok) {
+      toast({
+        title: 'Export blocked',
+        description: `Payload does not match the screen (screen ${recon.screenRows} rows vs payload ${recon.payloadRows} rows).`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (fmt === 'csv') exportToCsv(run.rows, fname, labels, provenance);
+    else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels, provenance);
+    else if (fmt === 'pdf') exportToPdf(run.rows, fname, run.name, labels, provenance);
+    else exportToJson(run.rows, fname, provenance);
+    await logExportRegistry({
+      dataset: (run.source as string) || 'report_runs',
+      format: fmt,
+      rowCount: run.rowCount,
+      filters: { ...(run.filters || {}), report: run.name, as_of: provenance.asOfPeriod },
+      moduleKey: 'report_management',
+      justification: `Governed report export: ${run.name} (${fmt.toUpperCase()}), as-of ${provenance.asOfPeriod}`,
+      payload: JSON.stringify({ provenance, rowCount: run.rowCount }),
+    });
     const logged = await logExport(run.id, fmt, run.rowCount);
     if (!logged) {
       toast({ title: 'Export completed', description: 'The file downloaded, but the audit log entry failed to record.', variant: 'destructive' });

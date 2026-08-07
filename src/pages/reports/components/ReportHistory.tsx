@@ -13,6 +13,8 @@ import { Eye, Trash2, FileBarChart, RefreshCw, Search, FileSpreadsheet, FileJson
 import { useReports } from '../hooks/useReports';
 import type { ReportRun } from '../types';
 import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename } from '../services/exportService';
+import { buildReportProvenance } from '../lib/reportProvenance';
+import { logExport as logExportRegistry } from '@/lib/exportAudit';
 import { fetchRunRows, generateReport, logExport } from '../services/reportService';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import { useToast } from '@/hooks/use-toast';
@@ -90,10 +92,20 @@ export function ReportHistory({ onPreview }: Props) {
     }
     const full = await loadFullRun(run);
     const fname = sanitizeFilename(run.name);
-    if (fmt === 'csv') exportToCsv(full.rows, fname);
-    else if (fmt === 'xlsx') exportToXlsx(full.rows, fname);
-    else if (fmt === 'pdf') exportToPdf(full.rows, fname, run.name);
-    else exportToJson(full.rows, fname);
+    const provenance = await buildReportProvenance(full);
+    if (fmt === 'csv') exportToCsv(full.rows, fname, undefined, provenance);
+    else if (fmt === 'xlsx') exportToXlsx(full.rows, fname, undefined, provenance);
+    else if (fmt === 'pdf') exportToPdf(full.rows, fname, run.name, undefined, provenance);
+    else exportToJson(full.rows, fname, provenance);
+    await logExportRegistry({
+      dataset: (run.source as string) || 'report_runs',
+      format: fmt,
+      rowCount: full.rowCount,
+      filters: { ...(run.filters || {}), report: run.name, as_of: provenance.asOfPeriod },
+      moduleKey: 'report_management',
+      justification: `Governed report export from history: ${run.name} (${fmt.toUpperCase()})`,
+      payload: JSON.stringify({ provenance, rowCount: full.rowCount }),
+    });
     const logged = await logExport(run.id, fmt, run.rowCount);
     if (!logged) {
       toast({ title: 'Export completed', description: 'The file downloaded, but the audit log entry failed to record.', variant: 'destructive' });
