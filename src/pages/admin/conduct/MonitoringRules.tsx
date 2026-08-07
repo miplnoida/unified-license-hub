@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
-import { Loader2, Plus, Play } from 'lucide-react';
+import { Loader2, Plus, Play, History } from 'lucide-react';
 
 const RULE_TYPES = ['complaint_volume', 'complaint_upheld_rate', 'sla_breach_rate', 'repeat_offender', 'monitoring_signal', 'metric_threshold', 'custom'];
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'on_demand'];
