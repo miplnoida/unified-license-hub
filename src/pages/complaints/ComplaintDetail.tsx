@@ -646,7 +646,7 @@ export default function ComplaintDetail() {
           />
         )}
 
-        {id && (
+        {COLLAB_REVIEW_ENABLED && id && (
           <CollaborativeReview
             entityType="complaint"
             entityId={id}

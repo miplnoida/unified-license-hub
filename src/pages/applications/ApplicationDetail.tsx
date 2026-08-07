@@ -1320,9 +1320,8 @@ export default function ApplicationDetail() {
               />
             )}
 
-            {/* Collaborative Review — placed next to the workflow review so
-                reviewers see comments/suggestions alongside the workflow steps. */}
-            {id && (
+            {/* Collaborative Review — hidden behind COLLAB_REVIEW_ENABLED. */}
+            {COLLAB_REVIEW_ENABLED && id && (
               <CollaborativeReview
                 entityType="application"
                 entityId={id}

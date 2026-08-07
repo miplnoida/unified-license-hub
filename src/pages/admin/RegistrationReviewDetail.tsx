@@ -367,7 +367,7 @@ export default function RegistrationReviewDetail() {
           </Card>
         </div>
 
-        {registrationId && (
+        {COLLAB_REVIEW_ENABLED && registrationId && (
           <CollaborativeReview
             entityType="registration"
             entityId={registrationId}

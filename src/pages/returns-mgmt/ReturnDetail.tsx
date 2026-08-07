@@ -1030,7 +1030,7 @@ export default function ReturnDetail() {
         returnId={returnData.id}
         title={`Return history — ${returnData.unique_id}`}
       />
-      {returnData?.id && (
+      {COLLAB_REVIEW_ENABLED && returnData?.id && (
         <CollaborativeReview
           entityType="return"
           entityId={returnData.id}
