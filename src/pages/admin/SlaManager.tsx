@@ -58,11 +58,37 @@ type Assignment = { id: string; profile_id: string; process_type: string };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * Process types the SLA runtime actually opens stages for
+ * (`sla_stage_open(_process_type => …)`). Configuration must use exactly these
+ * keys, otherwise `resolve_stage_sla` never matches and every stage silently
+ * falls back to the workflow step default.
+ */
+const RUNTIME_PROCESS_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'application', label: 'application — Licence applications' },
+  { value: 'pre_application', label: 'pre_application — Pre-application / registration intake' },
+  { value: 'registration', label: 'registration — Entity registration review' },
+  { value: 'return', label: 'return — Regulatory return filings' },
+  { value: 'complaint', label: 'complaint — Complaint cases' },
+];
+
+/** Workflow entity_type(s) whose steps are valid stage names for a process type. */
+const WORKFLOW_ENTITY_TYPES_FOR_PROCESS: Record<string, string[]> = {
+  application: ['pre_application', 'post_application'],
+  pre_application: ['pre_application'],
+  registration: ['registration'],
+  return: ['return'],
+  complaint: ['complaint'],
+};
+
+const CUSTOM_STAGE = '__custom__';
+
 const TIER_DEFAULTS: Array<{ tier: number; label: string; delay_days: number; recipients: string }> = [
   { tier: 1, label: 'Tier 1 — immediate', delay_days: 0, recipients: 'assigned_officer, team_lead' },
   { tier: 2, label: 'Tier 2 — escalation', delay_days: 3, recipients: 'deputy_director' },
   { tier: 3, label: 'Tier 3 — senior escalation', delay_days: 7, recipients: 'director' },
 ];
+
 
 const RetroNotice = () => (
   <Alert className="mb-4">
