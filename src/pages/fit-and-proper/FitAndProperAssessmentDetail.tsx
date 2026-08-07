@@ -111,6 +111,12 @@ export default function FitAndProperAssessmentDetail() {
         {/* D1 — AI analysis card */}
         <AiAnalysisCard assessmentId={assessment.id} individualId={assessment.individual_id} />
 
+        {/* Phase 3D — what changed since the previous assessment for this individual */}
+        <FpAssessmentComparisonPanel
+          assessmentId={assessment.id}
+          individualId={assessment.individual_id}
+        />
+
         {hasPinnedForm ? (
           <PinnedPqForm
             assessmentId={assessment.id}
