@@ -11,7 +11,7 @@
 --   P7 unauthorised internal user (no roles)
 
 BEGIN;
-SELECT plan(28);
+SELECT plan(31);
 
 -- ---------------------------------------------------------------------------
 -- Personas and fixtures

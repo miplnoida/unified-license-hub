@@ -2,7 +2,7 @@
 -- immutability and override evidence.
 
 BEGIN;
-SELECT plan(26);
+SELECT plan(27);
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000d2001', 'p2-camels-super@test')

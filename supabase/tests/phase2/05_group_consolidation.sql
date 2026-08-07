@@ -11,7 +11,7 @@
 -- Expected data_state = PARTIAL_GROUP_DATA with S2 in excluded_members.
 
 BEGIN;
-SELECT plan(24);
+SELECT plan(25);
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000e2001', 'p2-grp-super@test'),
