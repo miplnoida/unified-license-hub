@@ -513,6 +513,17 @@ export default function PrudentialEntityProfile() {
           </CardContent></Card>
         </TabsContent>
 
+        <TabsContent value="ewi">
+          <EwiPanel
+            entityId={e.id}
+            availablePeriods={Array.from(new Set(
+              (data.returns || [])
+                .map((r: any) => r.period_end_date)
+                .filter(Boolean),
+            )) as string[]}
+          />
+        </TabsContent>
+
         <TabsContent value="assessments">
           <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Assessments</CardTitle>
             <Link className="text-primary text-sm underline" to={`/prudential/assessments?entity=${e.id}`}>New assessment</Link>
