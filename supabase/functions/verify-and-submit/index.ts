@@ -339,6 +339,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4a2. Submission acknowledgement (FRD 6.1).
+    //      Idempotent: one acknowledgement per (application, submitted_at), so
+    //      retries/refreshes cannot create duplicates. Non-fatal for submission.
+    try {
+      const { error: ackErr } = await userClient.functions.invoke("application-acknowledgement", {
+        body: { action: "ensure", application_id },
+      });
+      if (ackErr) {
+        console.error("[acknowledgement] ensure failed (non-fatal):", ackErr.message);
+      }
+    } catch (ackEx) {
+      console.error(
+        "[acknowledgement] ensure threw (non-fatal):",
+        ackEx instanceof Error ? ackEx.message : ackEx,
+      );
+    }
+
     // 4b. Advisory AI Analyst Assessment.
     //     Non-blocking for the applicant: failures are swallowed.
     //     Reliability pattern: insert a `pending` row synchronously so the
