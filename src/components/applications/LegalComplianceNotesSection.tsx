@@ -16,6 +16,7 @@ import {
   type LegalRecommendation,
   type LegalSeverity,
 } from '@/hooks/useApplicationLegalNotes';
+import { useLegalReferrals } from '@/hooks/useApplicationLegalReferrals';
 
 interface Props {
   applicationId: string;
@@ -49,7 +50,11 @@ export function LegalComplianceNotesSection({
   workflowHasLegalStep,
   isLegalReviewer,
 }: Props) {
-  if (!workflowHasLegalStep) return null;
+  // Referral-driven reviews are valid even when the workflow has no dedicated
+  // legal step, so the section renders whenever a referral exists.
+  const { data: referrals = [] } = useLegalReferrals(applicationId, true);
+  const openReferrals = referrals.filter(r => r.status === 'referred' || r.status === 'in_review');
+  if (!workflowHasLegalStep && referrals.length === 0) return null;
 
   // Probe access (also logs denial server-side if not allowed).
   const { data: allowed, isLoading: accessLoading } = useLegalNotesAccess(applicationId, true);
@@ -61,6 +66,7 @@ export function LegalComplianceNotesSection({
   const [severity, setSeverity] = useState<LegalSeverity | ''>('');
   const [conditions, setConditions] = useState('');
   const [recommendation, setRecommendation] = useState<LegalRecommendation | ''>('');
+  const [referralId, setReferralId] = useState<string>('none');
 
   if (accessLoading) return null;
 
@@ -75,25 +81,28 @@ export function LegalComplianceNotesSection({
     );
   }
 
-  const canWrite = isLegalReviewer && currentStepIsLegal && !!currentStepId;
+  // Legal reviewers may record an opinion while the case sits on a legal step,
+  // or in answer to an open legal/specialist referral.
+  const canWrite = isLegalReviewer && ((currentStepIsLegal && !!currentStepId) || openReferrals.length > 0);
 
   const submit = async () => {
-    if (!canWrite || !currentStepId) return;
+    if (!canWrite) return;
     if (!noteText.trim()) { toast.error('Legal note text is required'); return; }
     if (!recommendation) { toast.error('Select a recommendation'); return; }
     if (hasConcern && !severity) { toast.error('Select severity for the flagged concern'); return; }
     try {
       await createNote.mutateAsync({
         workflow_instance_id: workflowInstanceId,
-        step_id: currentStepId,
+        step_id: currentStepId as string,
         note_text: noteText.trim(),
+        referral_id: referralId === 'none' ? null : referralId,
         has_legal_concern: hasConcern,
         concern_severity: hasConcern ? (severity as LegalSeverity) : null,
         recommended_conditions: conditions.trim() || null,
         recommendation: recommendation as LegalRecommendation,
       });
       toast.success('Legal note saved');
-      setNoteText(''); setHasConcern(false); setSeverity(''); setConditions(''); setRecommendation('');
+      setNoteText(''); setHasConcern(false); setSeverity(''); setConditions(''); setRecommendation(''); setReferralId('none');
     } catch (e: any) {
       toast.error(e?.message || 'Failed to save legal note');
     }
@@ -111,6 +120,26 @@ export function LegalComplianceNotesSection({
       <CardContent className="space-y-4">
         {canWrite && (
           <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3">
+            {openReferrals.length > 0 && (
+              <div>
+                <Label className="text-xs">Answering referral (optional)</Label>
+                <Select value={referralId} onValueChange={setReferralId} disabled={createNote.isPending}>
+                  <SelectTrigger><SelectValue placeholder="Not linked to a referral" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not linked to a referral</SelectItem>
+                    {openReferrals.map(r => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.specialism.toUpperCase()} — {r.referral_reason.slice(0, 60)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  A referral can only be returned once at least one opinion is linked to it.
+                </p>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="legal-note-text" className="text-xs">Legal note</Label>
               <Textarea
