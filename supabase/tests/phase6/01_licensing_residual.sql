@@ -48,10 +48,23 @@ DECLARE
   v_app uuid;
   v_num text;
 BEGIN
-  -- Reuse real accounts: user_roles/profiles reference auth.users, which the
-  -- test role cannot write to.
+  -- Prefer an existing super_admin (restricted test roles cannot write to the
+  -- auth schema); on a freshly reset database create the fixture accounts.
   SELECT user_id INTO v_officer FROM public.user_roles WHERE role = 'super_admin' LIMIT 1;
-  SELECT id INTO v_applicant FROM public.profiles WHERE id <> v_officer LIMIT 1;
+
+  IF v_officer IS NULL THEN
+    v_officer := '00000000-0000-0000-0000-0000000e0001';
+    v_applicant := '00000000-0000-0000-0000-0000000e0002';
+    INSERT INTO auth.users (id, email) VALUES
+      (v_officer, 'phase6.officer@example.test'),
+      (v_applicant, 'phase6.applicant@example.test')
+    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.user_roles (user_id, role) VALUES (v_officer, 'super_admin')
+      ON CONFLICT DO NOTHING;
+  ELSE
+    SELECT id INTO v_applicant FROM public.profiles WHERE id <> v_officer LIMIT 1;
+  END IF;
+
 
   INSERT INTO public.applications (applicant_id, license_type, status, submitted_at)
   VALUES (coalesce(v_applicant, v_officer), 'Phase6 Test Licence', 'under_review', now())
