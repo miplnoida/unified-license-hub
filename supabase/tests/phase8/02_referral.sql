@@ -22,7 +22,7 @@ SELECT is(
   (SELECT pg_get_function_identity_arguments(p.oid)
      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public' AND p.proname='refer_conduct_signal_to_investigation'),
-  'uuid, text, text, text, date',
+  '_signal_id uuid, _allegation text, _reason text, _priority text, _due_date date',
   'referral RPC accepts no caller-supplied actor'
 );
 
