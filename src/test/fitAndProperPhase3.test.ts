@@ -57,7 +57,8 @@ describe('fp provider state vocabulary', () => {
   });
 
   it('maps the legacy outcomes onto the canonical states', () => {
-    expect(normalizeProviderState('screened_clean'.replace('screened_', 'no_'))).toBe('SUCCESS_NO_MATCH');
+    expect(normalizeProviderState('screened_clean')).toBe('SUCCESS_NO_MATCH');
+    expect(normalizeProviderState('screened_hits')).toBe('SUCCESS_HIT');
     expect(normalizeProviderState('clean')).toBe('SUCCESS_NO_MATCH');
     expect(normalizeProviderState('hit')).toBe('SUCCESS_HIT');
     expect(normalizeProviderState('match')).toBe('SUCCESS_HIT');
