@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
+import { renderLicenseCertificateHtml } from '@/lib/licensing/decisionDocuments';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
@@ -82,6 +84,8 @@ export function DecisionDocumentPreview({
   const [rationale, setRationale] = useState<string>(defaultRationale ?? '');
   const [conditions, setConditions] = useState<string>('');
   const [signatory, setSignatory] = useState<{ name: string; title: string } | null>(null);
+  const [effectiveDate, setEffectiveDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [expiryDate, setExpiryDate] = useState<string>('');
 
   const [certBusy, setCertBusy] = useState(false);
   const [certUrl, setCertUrl] = useState<string | null>(null);
@@ -164,6 +168,29 @@ export function DecisionDocumentPreview({
 </body></html>`;
   }, [letterSubject, letterBody, vars, general, applicationNumber]);
 
+  /**
+   * Certificate-specific rendered content (LIC-DEC-002). This is what gets
+   * persisted when a licence certificate is issued — never the letter markup.
+   */
+  const certificateHtml = useMemo(
+    () =>
+      renderLicenseCertificateHtml({
+        regulatorName: vars.regulator_name,
+        regulatorAddress: general?.address ?? null,
+        entityName: applicantName || '—',
+        applicationNumber: applicationNumber || '—',
+        licenseReference: applicationNumber || null,
+        licenseType: licenseType || '—',
+        decisionLabel: outcomeMeta.label,
+        effectiveDate: effectiveDate,
+        expiryDate: expiryDate || null,
+        conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean),
+        signatoryName: signatory?.name ?? null,
+        signatoryTitle: signatory?.title ?? null,
+      }),
+    [vars.regulator_name, general?.address, applicantName, applicationNumber, licenseType, outcomeMeta.label, effectiveDate, expiryDate, conditions, signatory]
+  );
+
   function printLetter() {
     const w = window.open('', '_blank', 'width=900,height=1000');
     if (!w) { toast.error('Allow pop-ups to print the letter preview'); return; }
@@ -182,6 +209,28 @@ export function DecisionDocumentPreview({
     URL.revokeObjectURL(url);
   }
 
+  function printCertificate() {
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { toast.error('Allow pop-ups to print the certificate preview'); return; }
+    w.document.write(renderLicenseCertificateHtml({
+      regulatorName: vars.regulator_name,
+      regulatorAddress: general?.address ?? null,
+      entityName: applicantName || '—',
+      applicationNumber: applicationNumber || '—',
+      licenseReference: applicationNumber || null,
+      licenseType: licenseType || '—',
+      decisionLabel: outcomeMeta.label,
+      effectiveDate,
+      expiryDate: expiryDate || null,
+      conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean),
+      signatoryName: signatory?.name ?? null,
+      signatoryTitle: signatory?.title ?? null,
+      draft: true,
+    }));
+    w.document.close();
+    w.focus();
+  }
+
   async function copyLetter() {
     try {
       await navigator.clipboard.writeText(`${letterSubject}\n\n${letterBody}`);
@@ -190,6 +239,7 @@ export function DecisionDocumentPreview({
       toast.error('Clipboard unavailable');
     }
   }
+
 
   async function buildCertificate() {
     setCertBusy(true);
@@ -235,7 +285,7 @@ export function DecisionDocumentPreview({
       const { data, error } = await supabase.rpc('issue_decision_artifact' as any, {
         _application_id: applicationId,
         _artifact_type: artifactType,
-        _rendered_html: artifactType === 'decision_letter' ? letterHtml : (certUrl ? letterHtml : ''),
+        _rendered_html: artifactType === 'decision_letter' ? letterHtml : certificateHtml,
         _merge_data: {
           application_number: applicationNumber,
           applicant_name: applicantName,
@@ -244,6 +294,9 @@ export function DecisionDocumentPreview({
           template_code: template?.code ?? null,
           signatory: signatory ?? null,
           regulator_name: vars.regulator_name,
+          ...(artifactType === 'license_certificate'
+            ? { effective_date: effectiveDate, expiry_date: expiryDate || null, license_reference: applicationNumber }
+            : {}),
         } as any,
         _decision: outcome,
         _template_id: artifactType === 'decision_letter' ? (templateId || null) : null,
@@ -251,8 +304,8 @@ export function DecisionDocumentPreview({
         _rationale: rationale.trim() || null,
         _conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean) as any,
         _issuing_regulator_id: activeRegulator?.id ?? null,
-        _effective_date: artifactType === 'license_certificate' ? new Date().toISOString().slice(0, 10) : null,
-        _expiry_date: null,
+        _effective_date: artifactType === 'license_certificate' ? (effectiveDate || null) : null,
+        _expiry_date: artifactType === 'license_certificate' ? (expiryDate || null) : null,
       });
       if (error) throw error;
       const res = data as any;
@@ -376,10 +429,23 @@ export function DecisionDocumentPreview({
               </Alert>
             ) : (
               <>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Effective date</Label>
+                    <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Expiry date <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                  </div>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={buildCertificate} disabled={certBusy}>
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
-                    {certUrl ? 'Regenerate draft certificate' : 'Generate draft certificate'}
+                    {certUrl ? 'Regenerate draft PDF' : 'Generate draft PDF'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={printCertificate}>
+                    <Printer className="h-4 w-4 mr-1.5" />Print certificate
                   </Button>
                   {certUrl && (
                     <Button size="sm" variant="outline" asChild>
@@ -389,18 +455,24 @@ export function DecisionDocumentPreview({
                   <Badge variant="outline">Watermarked · not stored</Badge>
                   {!signatory && <Badge variant="outline">Signatory not configured</Badge>}
                 </div>
-                {certUrl ? (
+                <iframe
+                  title="Licence certificate content preview"
+                  srcDoc={certificateHtml}
+                  className="h-[420px] w-full rounded-md border border-border/60 bg-card"
+                />
+
+                {certUrl && (
                   <iframe
-                    title="Draft licence certificate preview"
+                    title="Draft licence certificate PDF preview"
                     src={certUrl}
                     className="h-[520px] w-full rounded-md border border-border/60 bg-muted/20"
                   />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Generates a watermarked draft of the certificate that would be issued on approval, including any
-                    conditions entered above. The licence number and signature are applied only at issue.
-                  </p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  The content above is exactly what is stored when the certificate is issued. The PDF draft is
+                  watermarked and never stored.
+                </p>
+
               </>
             )}
           </TabsContent>
