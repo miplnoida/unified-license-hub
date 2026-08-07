@@ -164,6 +164,29 @@ export function DecisionDocumentPreview({
 </body></html>`;
   }, [letterSubject, letterBody, vars, general, applicationNumber]);
 
+  /**
+   * Certificate-specific rendered content (LIC-DEC-002). This is what gets
+   * persisted when a licence certificate is issued — never the letter markup.
+   */
+  const certificateHtml = useMemo(
+    () =>
+      renderLicenseCertificateHtml({
+        regulatorName: vars.regulator_name,
+        regulatorAddress: general?.address ?? null,
+        entityName: applicantName || '—',
+        applicationNumber: applicationNumber || '—',
+        licenseReference: applicationNumber || null,
+        licenseType: licenseType || '—',
+        decisionLabel: outcomeMeta.label,
+        effectiveDate: effectiveDate,
+        expiryDate: expiryDate || null,
+        conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean),
+        signatoryName: signatory?.name ?? null,
+        signatoryTitle: signatory?.title ?? null,
+      }),
+    [vars.regulator_name, general?.address, applicantName, applicationNumber, licenseType, outcomeMeta.label, effectiveDate, expiryDate, conditions, signatory]
+  );
+
   function printLetter() {
     const w = window.open('', '_blank', 'width=900,height=1000');
     if (!w) { toast.error('Allow pop-ups to print the letter preview'); return; }
@@ -182,6 +205,28 @@ export function DecisionDocumentPreview({
     URL.revokeObjectURL(url);
   }
 
+  function printCertificate() {
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { toast.error('Allow pop-ups to print the certificate preview'); return; }
+    w.document.write(renderLicenseCertificateHtml({
+      regulatorName: vars.regulator_name,
+      regulatorAddress: general?.address ?? null,
+      entityName: applicantName || '—',
+      applicationNumber: applicationNumber || '—',
+      licenseReference: applicationNumber || null,
+      licenseType: licenseType || '—',
+      decisionLabel: outcomeMeta.label,
+      effectiveDate,
+      expiryDate: expiryDate || null,
+      conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean),
+      signatoryName: signatory?.name ?? null,
+      signatoryTitle: signatory?.title ?? null,
+      draft: true,
+    }));
+    w.document.close();
+    w.focus();
+  }
+
   async function copyLetter() {
     try {
       await navigator.clipboard.writeText(`${letterSubject}\n\n${letterBody}`);
@@ -190,6 +235,7 @@ export function DecisionDocumentPreview({
       toast.error('Clipboard unavailable');
     }
   }
+
 
   async function buildCertificate() {
     setCertBusy(true);
