@@ -1,6 +1,6 @@
 -- Phase 3 / FP-SCR-001 — screening provider state honesty
 BEGIN;
-SELECT plan(28);
+SELECT plan(30);
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000f3201', 'p3-scr-super@test')

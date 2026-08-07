@@ -1,6 +1,6 @@
 -- Phase 3 / FP-REG-004 — PQ lifecycle, amendment and version integrity
 BEGIN;
-SELECT plan(20);
+SELECT plan(21);
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000f3101', 'p3-pq-super@test'),

@@ -1,6 +1,6 @@
 -- Phase 3 / FP-COM-001 — committee entitlement, quorum, weighting, immutability
 BEGIN;
-SELECT plan(22);
+SELECT plan(23);
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-0000000f3401', 'p3-com-super@test'),

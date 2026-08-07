@@ -3,7 +3,7 @@
 -- Seven personas exercised with a real `SET LOCAL ROLE authenticated` plus JWT
 -- claims, asserting access by direct id rather than by counting policies.
 BEGIN;
-SELECT plan(30);
+SELECT plan(35);
 
 -- Personas -------------------------------------------------------------------
 INSERT INTO auth.users (id, email) VALUES
