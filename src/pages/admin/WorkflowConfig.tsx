@@ -1,3 +1,4 @@
+import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -69,7 +70,7 @@ export default function WorkflowConfig() {
         <Tabs defaultValue="diagram" className="animate-slide-up delay-100">
           <TabsList>
             <TabsTrigger value="diagram">State Diagram</TabsTrigger>
-            <TabsTrigger value="collab">Collaborative Review</TabsTrigger>
+            {COLLAB_REVIEW_ENABLED && <TabsTrigger value="collab">Collaborative Review</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="diagram">
@@ -143,9 +144,11 @@ export default function WorkflowConfig() {
             </div>
           </TabsContent>
 
-          <TabsContent value="collab">
-            <CollabReviewConfigTab />
-          </TabsContent>
+          {COLLAB_REVIEW_ENABLED && (
+            <TabsContent value="collab">
+              <CollabReviewConfigTab />
+            </TabsContent>
+          )}
         </Tabs>
 
       </div>

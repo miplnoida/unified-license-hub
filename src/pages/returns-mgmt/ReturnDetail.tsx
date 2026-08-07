@@ -1,3 +1,4 @@
+import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1030,7 +1031,7 @@ export default function ReturnDetail() {
         returnId={returnData.id}
         title={`Return history — ${returnData.unique_id}`}
       />
-      {returnData?.id && (
+      {COLLAB_REVIEW_ENABLED && returnData?.id && (
         <CollaborativeReview
           entityType="return"
           entityId={returnData.id}

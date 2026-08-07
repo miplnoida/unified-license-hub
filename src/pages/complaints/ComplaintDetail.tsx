@@ -1,3 +1,4 @@
+import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -646,7 +647,7 @@ export default function ComplaintDetail() {
           />
         )}
 
-        {id && (
+        {COLLAB_REVIEW_ENABLED && id && (
           <CollaborativeReview
             entityType="complaint"
             entityId={id}
