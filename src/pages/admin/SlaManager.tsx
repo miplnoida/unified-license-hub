@@ -337,8 +337,56 @@ function SlaConfigTab() {
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">No SLA configurations yet. Click "Add SLA" to begin.</TableCell></TableRow>
               ) : rows.map(row => (
                 <TableRow key={row.id}>
-                  <TableCell><Input value={row.process_type} onChange={e => update(row.id, { process_type: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
-                  <TableCell><Input value={row.stage_name} onChange={e => update(row.id, { stage_name: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell className="min-w-[190px]">
+                    <Select
+                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : ''}
+                      onValueChange={v => update(row.id, { process_type: v }, true)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select process type" /></SelectTrigger>
+                      <SelectContent>
+                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {!RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) && (
+                      <p className="mt-1 text-xs text-destructive">
+                        "{row.process_type}" is not a runtime process type — this row is ignored by the SLA engine.
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="min-w-[220px]">
+                    {(() => {
+                      const options = stageOptions[row.process_type] ?? [];
+                      const isKnown = options.includes(row.stage_name);
+                      return (
+                        <>
+                          <Select
+                            value={isKnown ? row.stage_name : CUSTOM_STAGE}
+                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? row.stage_name : v }, v !== CUSTOM_STAGE)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
+                            <SelectContent>
+                              {options.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                              <SelectItem value={CUSTOM_STAGE}>Custom stage name…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {!isKnown && (
+                            <>
+                              <Input
+                                className="mt-1"
+                                value={row.stage_name}
+                                onChange={e => update(row.id, { stage_name: e.target.value })}
+                                onBlur={() => saveRow(row.id)}
+                              />
+                              <p className="mt-1 text-xs text-warning">
+                                No active workflow step named this — SLA will fall back to the step default.
+                              </p>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </TableCell>
+
                   <TableCell><Input type="number" min={1} value={row.sla_duration} onChange={e => update(row.id, { sla_duration: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell>
                     <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => update(row.id, { sla_unit: v }, true)}>
