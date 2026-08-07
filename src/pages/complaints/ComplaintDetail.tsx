@@ -44,6 +44,7 @@ import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
@@ -570,6 +571,7 @@ export default function ComplaintDetail() {
               licenseeId={(complaint as any).licensee_id ?? null}
               title="Complaint communications"
             />
+            <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
           </TabsContent>
 
           <TabsContent value="rfis" className="space-y-4">

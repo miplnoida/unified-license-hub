@@ -15,6 +15,7 @@ import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepository
 import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
 import { ClosurePanel } from '@/components/conduct/ClosurePanel';
 import { InvestigationCaseFilePanel } from '@/components/conduct/InvestigationCaseFilePanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 import { HistoryButton } from '@/components/audit/HistoryButton';
@@ -124,6 +125,7 @@ export default function InvestigationDetail() {
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="closure">Closure</TabsTrigger>
+            <TabsTrigger value="communications">Communications</TabsTrigger>
           </TabsList>
           <TabsContent value="casefile">
             <InvestigationCaseFilePanel investigation={data as any} locked={concluded} onSaved={refetch} />
@@ -131,6 +133,9 @@ export default function InvestigationDetail() {
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="closure"><ClosurePanel investigationId={data.id} investigation={data} /></TabsContent>
+          <TabsContent value="communications">
+            <CommunicationTimeline objectType="conduct_investigation" objectId={data.id} />
+          </TabsContent>
         </Tabs>
 
 

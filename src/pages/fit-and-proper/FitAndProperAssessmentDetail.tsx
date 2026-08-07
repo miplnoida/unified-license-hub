@@ -22,6 +22,7 @@ import type { FormSection } from '@/types/formBuilder';
 import { logAudit } from '@/hooks/useAuditLog';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { FpAssessmentComparisonPanel } from '@/components/fit-and-proper/FpAssessmentComparisonPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
@@ -130,6 +131,8 @@ export default function FitAndProperAssessmentDetail() {
         ) : (
           <LegacyDeclarationView assessment={assessment} isDraft={isDraft} onSaved={() => qc.invalidateQueries({ queryKey: ['fp_assessment', id] })} />
         )}
+
+        <CommunicationTimeline objectType="fp_assessment" objectId={assessment.id} />
 
         <div className="flex gap-2 justify-end">
           {nextActions.map((a) => (

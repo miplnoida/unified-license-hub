@@ -61,6 +61,7 @@ import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfi
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 
 
 
@@ -1188,8 +1189,10 @@ export default function ApplicationDetail() {
                 )}
               </TabsContent>
 
-              <TabsContent value="communications" className="mt-4">
+              <TabsContent value="communications" className="mt-4 space-y-4">
+                <CommunicationTimeline objectType="application" objectId={app.id} title="Outbound communications" />
                 {activeTab === 'communications' && (
+
                   <CaseThreadsPanel
                     sourceType="application"
                     sourceId={app.id}
