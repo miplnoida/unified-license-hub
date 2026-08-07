@@ -601,6 +601,43 @@ export default function FpaCommittee() {
     },
   });
 
+  // ── Phase 3F — final decision snapshot ────────────────────────────────────
+  // The committee's configuration (quorum, threshold, roster, weights) and the
+  // vote tally are frozen at the moment of decision so a later configuration
+  // change can never rewrite history.
+  const { data: decisionSnapshot } = useQuery({
+    queryKey: ['fp_committee_decision_snapshot', selectedAssessmentId],
+    enabled: !!selectedAssessmentId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('fp_committee_decision_snapshots')
+        .select('*')
+        .eq('assessment_id', selectedAssessmentId)
+        .order('decided_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any | null;
+    },
+  });
+
+  const recordDecision = useMutation({
+    mutationFn: async () => {
+      if (!selectedAssessmentId) throw new Error('Select an assessment first.');
+      const { error } = await (supabase as any).rpc('fp_record_committee_decision', {
+        _assessment_id: selectedAssessmentId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Committee decision recorded and frozen.');
+      qc.invalidateQueries({ queryKey: ['fp_committee_decision_snapshot', selectedAssessmentId] });
+      qc.invalidateQueries({ queryKey: ['fp_committee_assessments'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to record decision.'),
+  });
+
+
   // ── Open edit dialog ──────────────────────────────────────────────────────
 
   const openEditDialog = (committee: Committee) => {
