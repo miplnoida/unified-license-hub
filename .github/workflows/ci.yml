@@ -215,7 +215,8 @@ jobs:
           for f in \
             supabase/tests/phase1/01_sla_runtime.sql \
             supabase/tests/phase1/02_decision_gates_artifacts.sql \
-            supabase/tests/phase1/03_audit_appendonly.sql; do
+            supabase/tests/phase1/03_audit_appendonly.sql \
+            supabase/functions/tests/phase1_decision_gate_test.ts; do
             if [ ! -f "$f" ]; then
               echo "::error::Required Phase 1 pgTAP file missing: $f"
               missing=1
@@ -229,6 +230,19 @@ jobs:
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
+
+      - name: Phase 1 decision-gate end-to-end test (LIC-DEC-001)
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env | sed \
+            -e 's/^API_URL=/SUPABASE_URL=/' \
+            -e 's/^ANON_KEY=/SUPABASE_ANON_KEY=/' \
+            -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/')"
+          export SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
+          export PHASE1_E2E=1
+          deno test --allow-net --allow-env --allow-read \
+            supabase/functions/tests/phase1_decision_gate_test.ts
+
 
       - name: Edge Function tests
         run: deno test --allow-net --allow-env --allow-read supabase/functions/
