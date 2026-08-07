@@ -284,7 +284,6 @@ export function FpConditionsPanel({ individualId }: Props) {
                     </div>
                   </div>
                 )}
-                </div>
                 {reopenFor === c.id && (
                   <div className="mt-2 space-y-2">
                     <Textarea rows={2} placeholder="Reason for reopening (required)" value={reopenNote} onChange={(e) => setReopenNote(e.target.value)} />
