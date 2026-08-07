@@ -1251,7 +1251,50 @@ export default function FpaCommittee() {
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Projected:</span>
                                 <OutcomeBadge outcome={tally.outcome} />
-                              </div>
+                            </div>
+
+                            {/* Phase 3F — frozen decision record */}
+                            <div className="rounded-md border p-3 space-y-2">
+                              {decisionSnapshot ? (
+                                <>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                      Recorded decision:
+                                    </span>
+                                    <Badge variant="outline">{decisionSnapshot.outcome}</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(decisionSnapshot.decided_at).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Frozen at decision time — quorum {decisionSnapshot.quorum_at_decision}, threshold{' '}
+                                    {decisionSnapshot.approval_threshold_at_decision}%, {decisionSnapshot.votes_counted} vote(s)
+                                    counted. Later committee configuration changes do not alter this record.
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-muted-foreground">
+                                    No decision recorded yet. The tally above is a live projection, not a decision.
+                                  </p>
+                                  <Button
+                                    data-rbac="fit_and_proper.approve"
+                                    size="sm"
+                                    disabled={recordDecision.isPending || !tally.quorumMet}
+                                    onClick={() => recordDecision.mutate()}
+                                  >
+                                    {recordDecision.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                    Record final decision
+                                  </Button>
+                                  {!tally.quorumMet && (
+                                    <p className="text-xs text-amber-700">
+                                      Quorum must be met before a decision can be recorded.
+                                    </p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+
                             </div>
 
                             {/* Individual votes table */}
