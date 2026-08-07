@@ -1,8 +1,14 @@
 /**
- * Phase 5 — systemic risk heatmap and Twin Peaks executive summary.
- * Built from rows the caller can already read (complaints, conduct alerts,
- * prudential breaches, F&P assessments), so no aggregation bypasses RLS.
- * Cells with no underlying rows read "no data", never "low risk".
+ * Phase 5 / Phase 11 — systemic risk heatmap and Twin Peaks executive summary.
+ *
+ * The conduct column is built from complaints the caller can already read.
+ * The prudential column is no longer a conduct-alert proxy: it comes from
+ * `public.prudential_sector_risk()`, which scores each sector from
+ * unacknowledged return threshold breaches (w3), severe open EWI alerts (w4),
+ * adverse supervisory assessments (w5), high/critical group risk signals (w3)
+ * and open high-severity supervisory actions (w2), normalised per entity.
+ * Bands: CRITICAL >= 8, HIGH >= 4, MEDIUM >= 1.5, LOW > 0, and
+ * INSUFFICIENT_DATA when no evidence rows exist — never LOW by default.
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -11,7 +17,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
-type Row = { sector: string; sectorId: string | null; conduct: number; prudential: number; fp: number };
+type PrudentialBand = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT_DATA';
+
+interface PrudentialRow {
+  sector_id: string;
+  sector_name: string;
+  entity_count: number;
+  ratio_breaches: number;
+  severe_ewi: number;
+  adverse_assessments: number;
+  group_risk_signals: number;
+  open_actions: number;
+  evidence_count: number;
+  score: number | null;
+  band: PrudentialBand;
+}
+
+type Row = {
+  sector: string;
+  sectorId: string | null;
+  conduct: number;
+  prudential: PrudentialRow | null;
+};
 
 function tone(v: number, hasData: boolean) {
   if (!hasData) return 'bg-muted text-muted-foreground';
@@ -20,18 +47,34 @@ function tone(v: number, hasData: boolean) {
   return 'bg-primary/10 text-primary';
 }
 
+function bandTone(band: PrudentialBand) {
+  if (band === 'INSUFFICIENT_DATA') return 'bg-muted text-muted-foreground';
+  if (band === 'CRITICAL' || band === 'HIGH') return 'bg-destructive/15 text-destructive';
+  if (band === 'MEDIUM') return 'bg-accent text-accent-foreground';
+  return 'bg-primary/10 text-primary';
+}
+
+const BAND_LABEL: Record<PrudentialBand, string> = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
+  INSUFFICIENT_DATA: 'insufficient data',
+};
+
 export function SystemicRiskHeatmap() {
   const { data, isLoading } = useQuery({
     queryKey: ['systemic_risk_heatmap'],
     refetchInterval: 120_000,
     queryFn: async () => {
-      // Sector is resolved through the licensee, since complaints and alerts
-      // are entity-scoped rather than sector-scoped.
-      const [sectors, licensees, complaints, alerts] = await Promise.all([
+      // Sector is resolved through the licensee, since complaints are
+      // entity-scoped rather than sector-scoped.
+      const [sectors, licensees, complaints, prudential] = await Promise.all([
         supabase.from('sectors').select('id,name').limit(100),
         supabase.from('licensees').select('id,sector_id').limit(2000),
         supabase.from('complaints').select('id,licensee_id,severity').limit(2000),
-        supabase.from('conduct_alerts').select('id,licensee_id,closed_at').is('closed_at', null).limit(2000),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).rpc('prudential_sector_risk', { _lookback_days: 365 }),
       ]);
       const sectorOf = new Map<string, string | null>();
       for (const l of (licensees.data ?? []) as Array<{ id: string; sector_id: string | null }>) {
@@ -40,14 +83,20 @@ export function SystemicRiskHeatmap() {
       const countBy = (arr: Array<{ licensee_id: string | null }>, sectorId: string) =>
         arr.filter((r) => r.licensee_id && sectorOf.get(r.licensee_id) === sectorId).length;
 
+      const prudentialRows = (prudential?.error ? [] : ((prudential?.data ?? []) as PrudentialRow[]));
+      const prudentialBySector = new Map<string, PrudentialRow>();
+      prudentialRows.forEach((r) => prudentialBySector.set(r.sector_id, r));
+
       const rows: Row[] = ((sectors.data ?? []) as Array<{ id: string; name: string }>).map((s) => ({
         sector: s.name,
         sectorId: s.id,
         conduct: countBy((complaints.data ?? []) as Array<{ licensee_id: string | null }>, s.id),
-        prudential: countBy((alerts.data ?? []) as Array<{ licensee_id: string | null }>, s.id),
-        fp: 0,
+        prudential: prudentialBySector.get(s.id) ?? null,
       }));
-      return { rows, unscopedAlerts: (alerts.data ?? []).length };
+      return {
+        rows,
+        prudentialDenied: Boolean(prudential?.error),
+      };
     },
   });
 
@@ -62,21 +111,36 @@ export function SystemicRiskHeatmap() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground">
-                  <th className="py-2">Sector</th><th>Complaints</th><th>Open conduct alerts</th><th />
+                  <th className="py-2">Sector</th><th>Complaints</th><th>Prudential risk</th><th>Evidence</th><th />
                 </tr>
               </thead>
               <tbody>
                 {data.rows.map((r) => {
-                  const hasData = r.conduct + r.prudential > 0;
+                  const p = r.prudential;
+                  const band: PrudentialBand = p?.band ?? 'INSUFFICIENT_DATA';
                   return (
                     <tr key={r.sectorId ?? r.sector} className="border-t">
                       <td className="py-2">{r.sector}</td>
                       <td><span className={`inline-block rounded px-2 py-1 font-mono ${tone(r.conduct, r.conduct > 0)}`}>
                         {r.conduct > 0 ? r.conduct : 'no data'}</span></td>
-                      <td><span className={`inline-block rounded px-2 py-1 font-mono ${tone(r.prudential, r.prudential > 0)}`}>
-                        {r.prudential > 0 ? r.prudential : 'no data'}</span></td>
+                      <td>
+                        <span className={`inline-block rounded px-2 py-1 font-mono ${bandTone(band)}`}>
+                          {band === 'INSUFFICIENT_DATA' ? 'insufficient data' : `${BAND_LABEL[band]} · ${p?.score ?? 0}`}
+                        </span>
+                      </td>
+                      <td className="text-xs text-muted-foreground font-mono">
+                        {p && p.evidence_count > 0
+                          ? `br ${p.ratio_breaches} · ewi ${p.severe_ewi} · asmt ${p.adverse_assessments} · grp ${p.group_risk_signals} · act ${p.open_actions}`
+                          : '—'}
+                      </td>
                       <td className="text-xs">
-                        {hasData && <Link className="underline" to="/complaints">drill through</Link>}
+                        {r.conduct > 0 && <Link className="underline" to="/complaints">complaints</Link>}
+                        {p && p.evidence_count > 0 && (
+                          <>
+                            {r.conduct > 0 && ' · '}
+                            <Link className="underline" to="/supervision/risk-heatmap">prudential</Link>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
@@ -86,12 +150,16 @@ export function SystemicRiskHeatmap() {
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Cells show counts of records visible to you. Empty cells are reported as "no data" rather than as low risk.
+          Complaint counts reflect records visible to you. Prudential bands are computed from breach, early-warning,
+          assessment, group and supervisory-action evidence; sectors without evidence are reported as
+          "insufficient data" rather than as low risk.
+          {data?.prudentialDenied && ' Prudential scoring is hidden because your account lacks prudential supervision view rights.'}
         </p>
       </CardContent>
     </Card>
   );
 }
+
 
 export function TwinPeaksExecutivePanel() {
   const { data, isLoading } = useQuery({
