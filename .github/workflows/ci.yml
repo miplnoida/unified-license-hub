@@ -257,6 +257,25 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
+      - name: Assert required Phase 12 (FRD revalidation) artefacts exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            docs/frd/TRACEABILITY.csv \
+            docs/verification/phase12/frd-revalidation.md \
+            scripts/verify-traceability.mjs; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 12 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: FRD traceability gate (every Done requirement must cite a real artefact)
+        run: node scripts/verify-traceability.mjs
+
+
       - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-11)
         run: supabase test db
 
