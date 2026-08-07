@@ -838,6 +838,8 @@ export default function FpaDeclarations() {
                         <TableHead>Individual</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>PQ State</TableHead>
+
                         <TableHead>Declaration</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
