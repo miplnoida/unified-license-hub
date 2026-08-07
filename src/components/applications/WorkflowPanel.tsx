@@ -27,6 +27,7 @@ import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
 import { SlaStageTimeline } from '@/components/workflows/SlaStageTimeline';
 
 import { LegalComplianceNotesSection } from '@/components/applications/LegalComplianceNotesSection';
+import { LegalReferralPanel } from '@/components/applications/LegalReferralPanel';
 import { useIsLegalComplianceUser } from '@/hooks/useApplicationLegalNotes';
 
 function StepSlaBadge({

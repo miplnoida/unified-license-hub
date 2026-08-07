@@ -166,6 +166,11 @@ export function SufficiencyPanel({ applicationId }: Props) {
           {latest ? statusIcon(latest.overall_status) : <ShieldQuestion className="h-4 w-4" />}
           Sufficiency Review
           {latest && <Badge variant={latest.overall_status === 'sufficient' ? 'default' : latest.overall_status === 'warning' ? 'secondary' : 'destructive'}>{latest.overall_status}</Badge>}
+          {latestDetermination && (
+            <Badge variant="outline" className="text-[10px]">
+              Reviewer: {latestDetermination.decision}
+            </Badge>
+          )}
         </CardTitle>
         <div className="flex items-center gap-2">
           {autoRfiCandidates.length > 0 && (
