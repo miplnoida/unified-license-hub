@@ -224,13 +224,14 @@ export async function handler(req: Request): Promise<Response> {
               targetResource: `application:${application_id}:final_decision`,
               userAgent: req.headers.get("user-agent"),
               detail,
-              metadata: {
-                edge_function: "perform-workflow-action",
-                severity: "high",
-                module: "licensing_decision",
-                action: "final_approval",
-              },
+              severity: "high",
+              module: "licensing_decision",
+              action: "final_approval",
+              objectType: "application",
+              objectId: application_id,
+              metadata: { edge_function: "perform-workflow-action" },
             });
+
             await logComplianceAudit(admin, {
               actorId: caller.id,
               actionType: "ACCESS_DENIED",
