@@ -183,8 +183,9 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
           __currentStep: liveCurrentStep,
           __firstStepStartedAt: firstStepStartedAt,
           __currentStepStartedAt: currentStepStartedAt,
+          __stage: stageByInstanceId.get(wi.id) ?? null,
         };
-      }) as Array<WorkflowInstanceRow & { __currentStep?: WorkflowSlaStepConfig | null; __firstStepStartedAt?: string | null; __currentStepStartedAt?: string | null }>;
+      }) as Array<WorkflowInstanceRow & { __currentStep?: WorkflowSlaStepConfig | null; __firstStepStartedAt?: string | null; __currentStepStartedAt?: string | null; __stage?: SlaStageInstanceRow | null }>;
     },
   });
 
@@ -192,23 +193,34 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
     const list = query.data || [];
     const now = new Date();
     return list.map(wi => {
-      const slaInput = resolveSlaInputFromInstance(wi, {
-        currentStep: (wi as any).__currentStep ?? null,
-        currentStepStartedAt: (wi as any).__currentStepStartedAt ?? null,
-        firstStepStartedAt: (wi as any).__firstStepStartedAt ?? null,
-      });
+      const stage = ((wi as any).__stage as SlaStageInstanceRow | null) ?? null;
+      const step = ((wi as any).__currentStep as WorkflowSlaStepConfig | null) ?? null;
+      // Persisted stage record wins when it carries a resolved SLA duration.
+      const slaInput = stage && stage.sla_hours != null
+        ? resolveSlaInputFromStage(stage, step?.sla_warning_threshold_percent ?? null)
+        : resolveSlaInputFromInstance(wi, {
+            currentStep: step,
+            currentStepStartedAt: (wi as any).__currentStepStartedAt ?? null,
+            firstStepStartedAt: (wi as any).__firstStepStartedAt ?? null,
+          });
       const r = computeWorkflowSLA(slaInput, now);
+      // A persisted breach is evidence and must not be softened by recompute.
+      const status: SlaStatus = stage?.state === 'breached' ? 'breached' : r.status;
       return {
         entityId: wi.entity_id,
         entityType: wi.entity_type,
         instance: wi,
         slaInput,
-        status: r.status,
+        status,
         percentConsumed: r.percentConsumed,
         remainingHours: r.remainingHours,
+        stage,
+        slaSource: stage?.sla_source ?? (slaInput.slaHours ? 'step' : null),
       };
     });
   }, [query.data]);
+
+
 
   const byEntityId = useMemo(() => {
     const m = new Map<string, WorkflowSlaEntry>();
