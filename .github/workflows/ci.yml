@@ -211,7 +211,23 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
-      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-8)
+      - name: Assert required Phase 9 (Communication Registry) pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/notifications/10_communication_registry.sql \
+            supabase/tests/phase9/01_communication_lifecycle.sql \
+            supabase/tests/phase9/02_timeline_rls_personas.sql \
+            docs/verification/phase9/manual-verification.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 9 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-9)
         run: supabase test db
 
 
