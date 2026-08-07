@@ -50,6 +50,9 @@ export function FpConditionsPanel({ individualId }: Props) {
   const [satNote, setSatNote] = useState('');
   const [reopenFor, setReopenFor] = useState<string | null>(null);
   const [reopenNote, setReopenNote] = useState('');
+  const [breachFor, setBreachFor] = useState<string | null>(null);
+  const [breachNote, setBreachNote] = useState('');
+
 
   // fp_conditions.monitoring_owner is a UUID column (a real staff member),
   // not free text — a plain text Input here previously wrote arbitrary
@@ -263,8 +266,24 @@ export function FpConditionsPanel({ individualId }: Props) {
                   </div>
                   <div className="flex gap-1">
                     {isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
+                    {isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setBreachFor(c.id); setBreachNote(''); }}><AlertTriangle className="h-4 w-4 mr-1" /> Mark breached</Button>}
                     {!isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
                   </div>
+                </div>
+                {breachFor === c.id && (
+                  <div className="mt-2 space-y-2">
+                    <Textarea rows={2} placeholder="Breach rationale (required, min 5 chars)" value={breachNote} onChange={(e) => setBreachNote(e.target.value)} />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setBreachFor(null)}>Cancel</Button>
+                      <Button data-rbac="fit_and_proper.edit" size="sm" variant="destructive"
+                        disabled={breach.isPending || breachNote.trim().length < 5}
+                        onClick={() => breach.mutate({ id: c.id, reason: breachNote })}
+                      >
+                        {breach.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirm breach
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 </div>
                 {reopenFor === c.id && (
                   <div className="mt-2 space-y-2">
