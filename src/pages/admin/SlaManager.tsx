@@ -967,7 +967,7 @@ type StageMonitorRow = {
   pause_seconds: number | null;
   state: string;
   breached_at: string | null;
-  escalation_tiers_sent: number[] | null;
+  workflow_instance_id: string | null;
 };
 
 const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -985,6 +985,8 @@ const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'out
  */
 function StageMonitorTab() {
   const [rows, setRows] = useState<StageMonitorRow[]>([]);
+  /** Dispatched escalation tiers per workflow instance (sla_escalation_dispatches). */
+  const [tiersByInstance, setTiersByInstance] = useState<Record<string, number[]>>({});
   const [loading, setLoading] = useState(true);
   const [stateFilter, setStateFilter] = useState<string>('open');
   const [processFilter, setProcessFilter] = useState<string>('all');
@@ -994,11 +996,29 @@ function StageMonitorTab() {
       setLoading(true);
       const { data, error } = await (supabase as any)
         .from('sla_stage_instances')
-        .select('id,process_type,entity_type,entity_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at,escalation_tiers_sent')
+        .select('id,process_type,entity_type,entity_id,workflow_instance_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at')
         .order('due_at', { ascending: true, nullsFirst: false })
         .limit(500);
-      if (error) toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
-      else setRows((data ?? []) as StageMonitorRow[]);
+      if (error) {
+        toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+      const list = (data ?? []) as StageMonitorRow[];
+      setRows(list);
+
+      const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
+      if (instanceIds.length > 0) {
+        const { data: dispatches } = await (supabase as any)
+          .from('sla_escalation_dispatches')
+          .select('workflow_instance_id, tier')
+          .in('workflow_instance_id', instanceIds);
+        const map: Record<string, number[]> = {};
+        ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
+          map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
+        });
+        setTiersByInstance(map);
+      }
       setLoading(false);
     })();
   }, []);
@@ -1112,9 +1132,10 @@ function StageMonitorTab() {
                   <TableCell className="text-xs">{fmt(r.due_at)}</TableCell>
                   <TableCell className="text-xs">{Math.round((r.pause_seconds ?? 0) / 60)} min</TableCell>
                   <TableCell className="text-xs">
-                    {(r.escalation_tiers_sent ?? []).length > 0
-                      ? (r.escalation_tiers_sent ?? []).join(', ')
-                      : '—'}
+                    {(() => {
+                      const tiers = r.workflow_instance_id ? (tiersByInstance[r.workflow_instance_id] ?? []) : [];
+                      return tiers.length > 0 ? tiers.map(t => `Tier ${t}`).join(', ') : '—';
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}
