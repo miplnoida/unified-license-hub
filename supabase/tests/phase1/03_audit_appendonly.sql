@@ -4,7 +4,7 @@
 -- role, redact credential-like payload keys, and refuse actor spoofing.
 
 BEGIN;
-SELECT plan(21);
+SELECT plan(27);
 
 SELECT has_table('public', 'security_event_logs', 'security_event_logs exists');
 SELECT has_table('public', 'rule_overrides', 'rule_overrides exists');
@@ -87,6 +87,57 @@ SELECT is((SELECT correlation_id FROM public.security_event_logs
 SELECT throws_ok(
   $$DELETE FROM public.security_event_logs WHERE id = (SELECT event_id FROM _sec_probe)$$,
   NULL, NULL, 'security events cannot be deleted');
+
+
+-- ---------------------------------------------------------------------------
+-- AUD-OVR-001 — override registry: justified appends only, never mutations.
+-- ---------------------------------------------------------------------------
+SET LOCAL "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000f0001","role":"authenticated"}';
+
+CREATE TEMP TABLE _ovr_probe(override_id uuid);
+
+SELECT throws_ok(
+  $$SELECT public.log_rule_override('licensing', 'application',
+      '00000000-0000-0000-0000-0000000f0002', 'sufficiency.blocker',
+      '{"status":"fail"}'::jsonb, '{"status":"overridden"}'::jsonb, 'too short', '{}'::jsonb)$$,
+  NULL, NULL, 'an override without a substantive justification is refused');
+
+SELECT throws_ok(
+  $$SELECT public.log_rule_override('licensing', 'application',
+      '00000000-0000-0000-0000-0000000f0002', '   ',
+      '{"status":"fail"}'::jsonb, '{"status":"overridden"}'::jsonb,
+      'Supervisory committee accepted the residual risk.', '{}'::jsonb)$$,
+  NULL, NULL, 'an override without a rule key is refused');
+
+DO $$
+DECLARE v_id uuid;
+BEGIN
+  v_id := public.log_rule_override('licensing', 'application',
+    '00000000-0000-0000-0000-0000000f0002', 'sufficiency.blocker',
+    '{"status":"fail"}'::jsonb, '{"status":"overridden"}'::jsonb,
+    'Supervisory committee accepted the residual risk on file.',
+    jsonb_build_object('correlation_id', 'corr-phase1-ovr'));
+  INSERT INTO _ovr_probe(override_id) VALUES (v_id);
+END$$;
+
+SELECT is((SELECT user_id FROM public.rule_overrides
+           WHERE id = (SELECT override_id FROM _ovr_probe)),
+          '00000000-0000-0000-0000-0000000f0001'::uuid,
+          'override is attributed to the acting user, not the caller-supplied actor');
+
+SELECT is((SELECT count(*)::int FROM public.audit_logs
+           WHERE action = 'RULE_OVERRIDE'
+             AND metadata ->> 'override_id' = (SELECT override_id::text FROM _ovr_probe)),
+          1, 'override writes a matching audit trail entry');
+
+SELECT throws_ok(
+  $$UPDATE public.rule_overrides SET reason = 'rewritten justification'
+     WHERE id = (SELECT override_id FROM _ovr_probe)$$,
+  NULL, NULL, 'overrides cannot be updated');
+
+SELECT throws_ok(
+  $$DELETE FROM public.rule_overrides WHERE id = (SELECT override_id FROM _ovr_probe)$$,
+  NULL, NULL, 'overrides cannot be deleted');
 
 SELECT * FROM finish();
 ROLLBACK;

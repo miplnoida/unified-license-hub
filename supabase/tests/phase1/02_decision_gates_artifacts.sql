@@ -5,7 +5,7 @@
 -- immutability of issued artefacts.
 
 BEGIN;
-SELECT plan(20);
+SELECT plan(25);
 
 SELECT has_function('public', 'decision_gate_status', 'decision_gate_status exists');
 SELECT has_table('public', 'decision_artifacts', 'decision_artifacts exists');
@@ -138,6 +138,37 @@ SELECT ok(
     WHERE application_id = (SELECT application_id FROM _dec_probe)
       AND artifact_type = 'license_certificate' AND version = 1),
   'issued artefact carries a content checksum');
+
+
+-- ---------------------------------------------------------------------------
+-- Immutability: an issued artefact can never be edited or removed. Corrections
+-- are made by issuing a new version.
+-- ---------------------------------------------------------------------------
+SELECT is((SELECT count(*)::int FROM public.decision_artifacts
+           WHERE application_id = (SELECT application_id FROM _dec_probe)
+             AND artifact_type = 'decision_letter'),
+          2, 'v1 of the decision letter is retained alongside v2');
+
+SELECT ok((SELECT rendered_html FROM public.decision_artifacts
+           WHERE application_id = (SELECT application_id FROM _dec_probe)
+             AND artifact_type = 'decision_letter' AND version = 1)
+          NOT LIKE '%revised%',
+          'v1 content is untouched by the reissue');
+
+SELECT throws_ok(
+  $$UPDATE public.decision_artifacts SET rendered_html = '<p>tampered</p>'
+     WHERE application_id = (SELECT application_id FROM _dec_probe)
+       AND artifact_type = 'decision_letter' AND version = 1$$,
+  NULL, NULL, 'issued artefacts cannot be updated');
+
+SELECT throws_ok(
+  $$DELETE FROM public.decision_artifacts
+     WHERE application_id = (SELECT application_id FROM _dec_probe)$$,
+  NULL, NULL, 'issued artefacts cannot be deleted');
+
+SELECT is((SELECT count(*)::int FROM public.decision_artifacts
+           WHERE application_id = (SELECT application_id FROM _dec_probe)),
+          3, 'artefact ledger is intact after tamper attempts');
 
 SELECT * FROM finish();
 ROLLBACK;
