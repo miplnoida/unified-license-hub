@@ -166,10 +166,28 @@ export default function MonitoringRules() {
                 <div><Label>Risk delta (Δ score on match)</Label><Input type="number" value={edit.risk_delta} onChange={e => setEdit({ ...edit, risk_delta: e.target.value })} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={edit.active} onCheckedChange={v => setEdit({ ...edit, active: v })} /><Label>Active</Label></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Metric</Label>
+                  <select className="w-full h-10 rounded-md border bg-background px-3" value={edit.metric || ''} onChange={e => setEdit({ ...edit, metric: e.target.value })}>
+                    <option value="">— none —</option>
+                    {METRICS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label>Comparison</Label>
+                  <select className="w-full h-10 rounded-md border bg-background px-3" value={edit.comparison_operator || '>='} onChange={e => setEdit({ ...edit, comparison_operator: e.target.value })}>
+                    {OPERATORS.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div><Label>Threshold value</Label><Input type="number" value={edit.threshold_value ?? ''} onChange={e => setEdit({ ...edit, threshold_value: e.target.value })} /></div>
+                <div><Label>Lookback (days)</Label><Input type="number" value={edit.lookback_days ?? ''} onChange={e => setEdit({ ...edit, lookback_days: e.target.value })} /></div>
+                <div className="col-span-2"><Label>Source dataset</Label><Input value={edit.source_dataset || ''} onChange={e => setEdit({ ...edit, source_dataset: e.target.value })} placeholder="e.g. complaints" /></div>
+              </div>
               <div>
                 <Label>Definition (JSON)</Label>
-                <Textarea rows={8} className="font-mono text-xs" value={edit.definition} onChange={e => setEdit({ ...edit, definition: e.target.value })} />
-                <p className="text-xs text-muted-foreground mt-1">Interpreted by the evaluate-conduct-monitoring function. Common keys: <code>window_days</code>, <code>threshold</code>, <code>severity_min</code>, <code>product_ids</code>.</p>
+                <Textarea rows={6} className="font-mono text-xs" value={edit.definition} onChange={e => setEdit({ ...edit, definition: e.target.value })} />
+                <p className="text-xs text-muted-foreground mt-1">Extra parameters for the evaluate-conduct-monitoring function. Saving creates a new immutable rule version.</p>
               </div>
             </div>
           )}
@@ -179,6 +197,28 @@ export default function MonitoringRules() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!versionsFor} onOpenChange={o => !o && setVersionsFor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Version history — {versionsFor?.name}</DialogTitle></DialogHeader>
+          {versionsLoading ? <div className="p-6 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
+          : versions.length === 0 ? <p className="text-sm text-muted-foreground">No versions recorded.</p>
+          : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {versions.map(v => (
+                <div key={v.id} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Badge variant={v.version === versionsFor?.current_version ? 'default' : 'outline'}>v{v.version}{v.version === versionsFor?.current_version ? ' · current' : ''}</Badge>
+                    <span className="text-xs text-muted-foreground">Effective {new Date(v.effective_from).toLocaleString()}</span>
+                  </div>
+                  <pre className="mt-2 text-xs font-mono whitespace-pre-wrap">{JSON.stringify(v.snapshot, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
+
