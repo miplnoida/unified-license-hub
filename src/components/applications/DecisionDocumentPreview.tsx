@@ -461,18 +461,18 @@ export function DecisionDocumentPreview({
                   className="h-[420px] w-full rounded-md border border-border/60 bg-card"
                 />
 
-                {certUrl ? (
+                {certUrl && (
                   <iframe
-                    title="Draft licence certificate preview"
+                    title="Draft licence certificate PDF preview"
                     src={certUrl}
                     className="h-[520px] w-full rounded-md border border-border/60 bg-muted/20"
                   />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Generates a watermarked draft of the certificate that would be issued on approval, including any
-                    conditions entered above. The licence number and signature are applied only at issue.
-                  </p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  The content above is exactly what is stored when the certificate is issued. The PDF draft is
+                  watermarked and never stored.
+                </p>
+
               </>
             )}
           </TabsContent>
