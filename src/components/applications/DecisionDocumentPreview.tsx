@@ -397,8 +397,9 @@ export function DecisionDocumentPreview({
             {template ? (
               <>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={printLetter}><Printer className="h-4 w-4 mr-1.5" />Print</Button>
-                  <Button size="sm" variant="outline" onClick={downloadLetter}><Download className="h-4 w-4 mr-1.5" />Download</Button>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={printLetter}><Printer className="h-4 w-4 mr-1.5" />Print</Button>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={downloadLetter}><Download className="h-4 w-4 mr-1.5" />Download</Button>
+
                   <Button size="sm" variant="ghost" onClick={copyLetter}><Copy className="h-4 w-4 mr-1.5" />Copy text</Button>
                 </div>
                 <div className="rounded-md border border-border/60 bg-card">
@@ -444,14 +445,15 @@ export function DecisionDocumentPreview({
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
                     {certUrl ? 'Regenerate draft PDF' : 'Generate draft PDF'}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={printCertificate}>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={printCertificate}>
                     <Printer className="h-4 w-4 mr-1.5" />Print certificate
                   </Button>
                   {certUrl && (
-                    <Button size="sm" variant="outline" asChild>
+                    <Button data-rbac="application_management.view" size="sm" variant="outline" asChild>
                       <a href={certUrl} download={certFilename}><Download className="h-4 w-4 mr-1.5" />Download PDF</a>
                     </Button>
                   )}
+
                   <Badge variant="outline">Watermarked · not stored</Badge>
                   {!signatory && <Badge variant="outline">Signatory not configured</Badge>}
                 </div>
@@ -489,14 +491,15 @@ export function DecisionDocumentPreview({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" disabled={issuing !== null}
+              <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                 onClick={() => issue('decision_letter')}>
                 {issuing === 'decision_letter' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileText className="h-4 w-4 mr-1.5" />}
                 Record decision letter
               </Button>
               {outcomeMeta.certificate && (
-                <Button size="sm" variant="outline" disabled={issuing !== null}
+                <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                   onClick={() => issue('license_certificate')}>
+
                   {issuing === 'license_certificate' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
                   Record certificate
                 </Button>

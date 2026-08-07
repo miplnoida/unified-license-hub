@@ -161,6 +161,8 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/api-keys', 'settings'],
   ['/admin/audit-export', 'settings'],
   ['/admin/security-events', 'settings'],
+  ['/admin/sla-manager', 'settings'],
+
   ['/admin/document-intelligence', 'settings'],
   ['/admin/correspondence-templates', 'settings'],
   ['/admin/correspondence-routing', 'settings'],
