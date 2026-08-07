@@ -26703,6 +26703,22 @@ export type Database = {
         Args: { _group_id: string; _period_key?: string }
         Returns: Json
       }
+      prudential_sector_risk: {
+        Args: { _lookback_days?: number }
+        Returns: {
+          adverse_assessments: number
+          band: string
+          entity_count: number
+          evidence_count: number
+          group_risk_signals: number
+          open_actions: number
+          ratio_breaches: number
+          score: number
+          sector_id: string
+          sector_name: string
+          severe_ewi: number
+        }[]
+      }
       prudential_sector_risk_distribution: {
         Args: never
         Returns: {
