@@ -83,6 +83,8 @@ export function DecisionDocumentPreview({
   const [rationale, setRationale] = useState<string>(defaultRationale ?? '');
   const [conditions, setConditions] = useState<string>('');
   const [signatory, setSignatory] = useState<{ name: string; title: string } | null>(null);
+  const [effectiveDate, setEffectiveDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [expiryDate, setExpiryDate] = useState<string>('');
 
   const [certBusy, setCertBusy] = useState(false);
   const [certUrl, setCertUrl] = useState<string | null>(null);
