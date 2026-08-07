@@ -5,7 +5,7 @@
 -- immutability of issued artefacts.
 
 BEGIN;
-SELECT plan(25);
+SELECT plan(28);
 
 SELECT has_function('public', 'decision_gate_status', 'decision_gate_status exists');
 SELECT has_table('public', 'decision_artifacts', 'decision_artifacts exists');
@@ -60,15 +60,29 @@ SELECT ok(
   'gate status returns readiness');
 
 -- An open RFI is a blocking gate.
-DO $$
-DECLARE v_app uuid := (SELECT application_id FROM _dec_probe);
-BEGIN
-  INSERT INTO public.application_rfis (application_id, status, subject)
-    VALUES (v_app, 'sent', 'Phase 1 gate probe');
-EXCEPTION WHEN others THEN
-  -- Column set differs: skip seeding, the shape assertions above still hold.
-  NULL;
-END$$;
+INSERT INTO public.application_rfis (application_id, raised_by, status)
+VALUES ((SELECT application_id FROM _dec_probe),
+        '00000000-0000-0000-0000-0000000d0001', 'open');
+
+SELECT is(
+  (SELECT public.decision_gate_status((SELECT application_id FROM _dec_probe)) ->> 'ready'),
+  'false', 'an open RFI blocks decision readiness');
+
+SELECT ok(
+  (SELECT jsonb_path_exists(
+     public.decision_gate_status((SELECT application_id FROM _dec_probe)) -> 'gates',
+     '$[*] ? (@.key == "open_rfis" && @.blocking == true && @.passed == false)')),
+  'the open RFI is reported as an unmet blocking gate');
+
+-- Clearing the RFI and recording a clean sufficiency evaluation opens the gate.
+UPDATE public.application_rfis SET status = 'closed'
+ WHERE application_id = (SELECT application_id FROM _dec_probe);
+INSERT INTO public.sufficiency_evaluations (application_id, overall_status, blocker_count)
+VALUES ((SELECT application_id FROM _dec_probe), 'pass', 0);
+
+SELECT is(
+  (SELECT public.decision_gate_status((SELECT application_id FROM _dec_probe)) ->> 'ready'),
+  'true', 'resolving the blockers makes the application decision-ready');
 
 -- ---------------------------------------------------------------------------
 -- Issuance behaviour (as the approver).

@@ -88,7 +88,12 @@ async function seed(): Promise<Seed> {
   // Minimal single-step (terminal) workflow.
   const { data: wf, error: wfErr } = await admin
     .from('approval_workflows')
-    .insert({ name: `Phase1 Gate Workflow ${suffix}`, is_active: true })
+    .insert({
+      name: `Phase1 Gate Workflow ${suffix}`,
+      license_type: `Phase1 Gate Licence ${suffix}`,
+      entity_type: 'application',
+      is_active: true,
+    })
     .select('id')
     .single();
   if (wfErr) throw wfErr;
@@ -99,6 +104,7 @@ async function seed(): Promise<Seed> {
       workflow_id: (wf as any).id,
       name: 'Final Decision',
       step_order: 1,
+      approver_role: 'super_admin',
       is_terminal: true,
       allowed_actions: ['approve', 'reject'],
     })
@@ -111,8 +117,8 @@ async function seed(): Promise<Seed> {
     .from('application_rfis')
     .insert({
       application_id: (app as any).id,
+      raised_by: approverId,
       status: 'open',
-      subject: 'Phase 1 gate probe — outstanding information',
     })
     .select('id')
     .single();
@@ -123,10 +129,11 @@ async function seed(): Promise<Seed> {
   const { data: inst } = await admin
     .from('workflow_instances')
     .insert({
-      application_id: (app as any).id,
       workflow_id: (wf as any).id,
+      entity_type: 'application',
+      entity_id: (app as any).id,
       current_step_id: (step as any).id,
-      status: 'in_progress',
+      status: 'active',
     })
     .select('id')
     .maybeSingle();
@@ -222,7 +229,11 @@ Deno.test({
 
     const { data: evaluation } = await admin
       .from('sufficiency_evaluations')
-      .insert({ application_id: s.applicationId })
+      .insert({
+        application_id: s.applicationId,
+        overall_status: 'pass',
+        blocker_count: 0,
+      })
       .select('id')
       .maybeSingle();
     assert(evaluation, 'a clean sufficiency evaluation is required to clear the blocker gate');
