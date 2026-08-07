@@ -21,6 +21,8 @@ export interface LegalNote {
   concern_severity: LegalSeverity | null;
   recommended_conditions: string | null;
   recommendation: LegalRecommendation;
+  /** Set when the opinion answers a specific legal/specialist referral (FRD 6.3). */
+  referral_id: string | null;
   restricted: boolean;
   created_at: string;
   updated_at: string;
@@ -88,6 +90,7 @@ export function useCreateLegalNote(applicationId: string) {
       concern_severity: LegalSeverity | null;
       recommended_conditions: string | null;
       recommendation: LegalRecommendation;
+      referral_id?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not signed in');
@@ -106,6 +109,7 @@ export function useCreateLegalNote(applicationId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['application_legal_notes', applicationId] });
+      qc.invalidateQueries({ queryKey: ['application_legal_referrals', applicationId] });
     },
   });
 }
