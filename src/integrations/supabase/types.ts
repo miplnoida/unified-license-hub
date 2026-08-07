@@ -14032,6 +14032,10 @@ export type Database = {
           channel: string
           claimed_at: string | null
           claimed_by: string | null
+          communication_state:
+            | Database["public"]["Enums"]["communication_state"]
+            | null
+          correlation_id: string | null
           created_at: string
           dedupe_key: string
           delivered_at: string | null
@@ -14041,8 +14045,10 @@ export type Database = {
           error_details: Json | null
           event_key: string
           failed_at: string | null
+          failure_category: string | null
           id: string
           last_attempt_at: string | null
+          module: string | null
           next_attempt_at: string | null
           notification_id: string | null
           payload: Json | null
@@ -14056,8 +14062,10 @@ export type Database = {
           reminder_window: string | null
           rendered_content: string | null
           rendered_content_ref: string | null
+          requested_at: string | null
           retry_count: number
           sent_at: string | null
+          sent_to_provider_at: string | null
           status: string
           subject: string | null
           template_id: string | null
@@ -14072,6 +14080,10 @@ export type Database = {
           channel?: string
           claimed_at?: string | null
           claimed_by?: string | null
+          communication_state?:
+            | Database["public"]["Enums"]["communication_state"]
+            | null
+          correlation_id?: string | null
           created_at?: string
           dedupe_key: string
           delivered_at?: string | null
@@ -14081,8 +14093,10 @@ export type Database = {
           error_details?: Json | null
           event_key: string
           failed_at?: string | null
+          failure_category?: string | null
           id?: string
           last_attempt_at?: string | null
+          module?: string | null
           next_attempt_at?: string | null
           notification_id?: string | null
           payload?: Json | null
@@ -14096,8 +14110,10 @@ export type Database = {
           reminder_window?: string | null
           rendered_content?: string | null
           rendered_content_ref?: string | null
+          requested_at?: string | null
           retry_count?: number
           sent_at?: string | null
+          sent_to_provider_at?: string | null
           status?: string
           subject?: string | null
           template_id?: string | null
@@ -14112,6 +14128,10 @@ export type Database = {
           channel?: string
           claimed_at?: string | null
           claimed_by?: string | null
+          communication_state?:
+            | Database["public"]["Enums"]["communication_state"]
+            | null
+          correlation_id?: string | null
           created_at?: string
           dedupe_key?: string
           delivered_at?: string | null
@@ -14121,8 +14141,10 @@ export type Database = {
           error_details?: Json | null
           event_key?: string
           failed_at?: string | null
+          failure_category?: string | null
           id?: string
           last_attempt_at?: string | null
+          module?: string | null
           next_attempt_at?: string | null
           notification_id?: string | null
           payload?: Json | null
@@ -14136,8 +14158,10 @@ export type Database = {
           reminder_window?: string | null
           rendered_content?: string | null
           rendered_content_ref?: string | null
+          requested_at?: string | null
           retry_count?: number
           sent_at?: string | null
+          sent_to_provider_at?: string | null
           status?: string
           subject?: string | null
           template_id?: string | null
@@ -23630,6 +23654,10 @@ export type Database = {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_communications: {
+        Args: { _object_id: string; _object_type: string }
+        Returns: boolean
+      }
       can_view_complaint_rfi: { Args: { _rfi_id: string }; Returns: boolean }
       can_view_conduct_intelligence: { Args: never; Returns: boolean }
       can_view_conduct_investigation: {
@@ -23685,6 +23713,10 @@ export type Database = {
           channel: string
           claimed_at: string | null
           claimed_by: string | null
+          communication_state:
+            | Database["public"]["Enums"]["communication_state"]
+            | null
+          correlation_id: string | null
           created_at: string
           dedupe_key: string
           delivered_at: string | null
@@ -23694,8 +23726,10 @@ export type Database = {
           error_details: Json | null
           event_key: string
           failed_at: string | null
+          failure_category: string | null
           id: string
           last_attempt_at: string | null
+          module: string | null
           next_attempt_at: string | null
           notification_id: string | null
           payload: Json | null
@@ -23709,8 +23743,10 @@ export type Database = {
           reminder_window: string | null
           rendered_content: string | null
           rendered_content_ref: string | null
+          requested_at: string | null
           retry_count: number
           sent_at: string | null
+          sent_to_provider_at: string | null
           status: string
           subject: string | null
           template_id: string | null
@@ -23921,6 +23957,31 @@ export type Database = {
             }
             Returns: string
           }
+      communication_timeline: {
+        Args: { _object_id: string; _object_type: string }
+        Returns: {
+          channel: string
+          communication_state: Database["public"]["Enums"]["communication_state"]
+          delivered_at: string
+          direction: string
+          error: string
+          event_key: string
+          failed_at: string
+          failure_category: string
+          id: string
+          occurred_at: string
+          provider: string
+          provider_message_id: string
+          recipient: string
+          recipient_user_id: string
+          rendered_content_ref: string
+          retry_count: number
+          sent_to_provider_at: string
+          subject: string
+          template_id: string
+          template_version: number
+        }[]
+      }
       complaint_bulk_import: {
         Args: {
           _file_name: string
@@ -24558,6 +24619,18 @@ export type Database = {
       }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      derive_communication_state: {
+        Args: {
+          _delivered_at: string
+          _error: string
+          _failed_at: string
+          _next_attempt_at: string
+          _poisoned: boolean
+          _retry_count: number
+          _status: string
+        }
+        Returns: Database["public"]["Enums"]["communication_state"]
+      }
       derive_ratio_result_state: {
         Args: { _null_reason: string; _value: number }
         Returns: string
@@ -26039,6 +26112,30 @@ export type Database = {
       }
       notification_channel_health: { Args: never; Returns: Json }
       notification_counts: { Args: never; Returns: Json }
+      notification_dead_letters: {
+        Args: { _limit?: number; _offset?: number }
+        Returns: {
+          attempts: number
+          channel: string
+          communication_state: Database["public"]["Enums"]["communication_state"]
+          correlation_id: string
+          entity_id: string
+          entity_type: string
+          error: string
+          event_key: string
+          failed_at: string
+          failure_category: string
+          id: string
+          last_attempt_at: string
+          module: string
+          provider: string
+          provider_message_id: string
+          recipient_destination: string
+          recipient_user_id: string
+          requested_at: string
+          retry_count: number
+        }[]
+      }
       notification_delivery_for: {
         Args: { _notification_id: string }
         Returns: {
@@ -27649,6 +27746,15 @@ export type Database = {
         | "licensee_primary"
         | "licensee_secondary"
         | "legal_compliance"
+      communication_state:
+        | "QUEUED"
+        | "SENT_TO_PROVIDER"
+        | "DELIVERED"
+        | "FAILED"
+        | "RETRYING"
+        | "DEAD_LETTER"
+        | "PROVIDER_NOT_CONFIGURED"
+        | "SUPPRESSED"
       complaint_vulnerability_review_state:
         | "not_applicable"
         | "needs_remediation"
@@ -27875,6 +27981,16 @@ export const Constants = {
         "licensee_primary",
         "licensee_secondary",
         "legal_compliance",
+      ],
+      communication_state: [
+        "QUEUED",
+        "SENT_TO_PROVIDER",
+        "DELIVERED",
+        "FAILED",
+        "RETRYING",
+        "DEAD_LETTER",
+        "PROVIDER_NOT_CONFIGURED",
+        "SUPPRESSED",
       ],
       complaint_vulnerability_review_state: [
         "not_applicable",
