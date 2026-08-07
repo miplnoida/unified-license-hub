@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type ExportedFormat = 'csv' | 'pdf' | 'json' | 'xlsx';
 
 export interface LogExportInput {
+  justification?: string; // governance: reason for the export (>= 10 chars)
   dataset: string; // e.g. 'applications', 'returns_filed', 'complaints'
   format: ExportedFormat;
   rowCount: number;
@@ -41,6 +42,20 @@ export async function logExport(input: LogExportInput): Promise<void> {
     const { data: sess } = await supabase.auth.getUser();
     const userId = sess.user?.id ?? null;
     const hash = input.payload ? await sha256Hex(input.payload) : null;
+    const justification = (input.justification ?? `User-initiated ${input.format.toUpperCase()} export of ${input.dataset}`).trim();
+    // Governed path first: enforces justification + retention server-side.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: rpcError } = await (supabase as any).rpc('request_export_job', {
+      _source: input.dataset,
+      _justification: justification,
+      _module_filter: input.moduleKey ?? null,
+      _export_format: input.format,
+      _filters: input.filters ?? null,
+      _row_count: input.rowCount,
+      _file_path: input.filePath ?? null,
+      _file_hash: hash,
+    });
+    if (!rpcError) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('audit_export_jobs') as any).insert({
       requested_by: userId,
