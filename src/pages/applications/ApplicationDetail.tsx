@@ -55,6 +55,7 @@ import { ReinstatedAfterAppealBanner } from '@/components/appeals/ReinstatedAfte
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
 import { ApproverDecisionView } from '@/components/applications/ApproverDecisionView';
+import { SubmissionAcknowledgementPanel } from '@/components/applications/SubmissionAcknowledgementPanel';
 import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
@@ -906,6 +907,12 @@ export default function ApplicationDetail() {
 
 
               <TabsContent value="details" className="space-y-4 mt-4">
+                {activeTab === 'details' && (
+                  <SubmissionAcknowledgementPanel
+                    applicationId={app.id}
+                    submitted={!!(app as any).submitted_at}
+                  />
+                )}
                 {activeTab === 'details' && (
                   <Card>
                     <CardContent className="pt-6">
