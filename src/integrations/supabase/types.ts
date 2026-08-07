@@ -19153,6 +19153,146 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_stage_events: {
+        Row: {
+          actor_id: string | null
+          actor_kind: string
+          event_type: string
+          from_state: string | null
+          id: string
+          metadata: Json
+          occurred_at: string
+          reason: string | null
+          stage_instance_id: string
+          to_state: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_kind?: string
+          event_type: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          reason?: string | null
+          stage_instance_id: string
+          to_state?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_kind?: string
+          event_type?: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          reason?: string | null
+          stage_instance_id?: string
+          to_state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_stage_events_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "sla_stage_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_stage_instances: {
+        Row: {
+          active_seconds: number
+          breached_at: string | null
+          calendar_profile_id: string | null
+          completed_at: string | null
+          created_at: string
+          due_at: string | null
+          entity_id: string
+          entity_type: string
+          first_breach_notified_at: string | null
+          id: string
+          metadata: Json
+          pause_seconds: number
+          paused_at: string | null
+          process_type: string
+          sla_config_id: string | null
+          sla_hours: number | null
+          sla_source: string
+          stage_name: string | null
+          started_at: string
+          state: string
+          step_id: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          active_seconds?: number
+          breached_at?: string | null
+          calendar_profile_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          entity_id: string
+          entity_type: string
+          first_breach_notified_at?: string | null
+          id?: string
+          metadata?: Json
+          pause_seconds?: number
+          paused_at?: string | null
+          process_type: string
+          sla_config_id?: string | null
+          sla_hours?: number | null
+          sla_source?: string
+          stage_name?: string | null
+          started_at?: string
+          state?: string
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          active_seconds?: number
+          breached_at?: string | null
+          calendar_profile_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          first_breach_notified_at?: string | null
+          id?: string
+          metadata?: Json
+          pause_seconds?: number
+          paused_at?: string | null
+          process_type?: string
+          sla_config_id?: string | null
+          sla_hours?: number | null
+          sla_source?: string
+          stage_name?: string | null
+          started_at?: string
+          state?: string
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_stage_instances_calendar_profile_id_fkey"
+            columns: ["calendar_profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_calendar_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_stage_instances_sla_config_id_fkey"
+            columns: ["sla_config_id"]
+            isOneToOne: false
+            referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       states: {
         Row: {
           country_id: string
@@ -24790,6 +24930,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_stage_sla: {
+        Args: { _process_type: string; _stage_name: string; _step_id?: string }
+        Returns: {
+          calendar_profile_id: string
+          sla_config_id: string
+          sla_hours: number
+          sla_source: string
+        }[]
+      }
       resubmit_return: {
         Args: { _actor_id: string; _comments: string; _return_id: string }
         Returns: Json
@@ -25028,6 +25177,63 @@ export type Database = {
       simulate_escalation_rule: {
         Args: { _criterion: string; _thresholds: Json }
         Returns: Json
+      }
+      sla_add_duration: {
+        Args: { _calendar_profile_id?: string; _hours: number; _start: string }
+        Returns: string
+      }
+      sla_stage_complete: {
+        Args: { _reason?: string; _stage_instance_id: string }
+        Returns: undefined
+      }
+      sla_stage_log_event: {
+        Args: {
+          _event_type: string
+          _from_state: string
+          _metadata?: Json
+          _reason?: string
+          _stage_instance_id: string
+          _to_state: string
+        }
+        Returns: string
+      }
+      sla_stage_mark_breached: {
+        Args: { _reason?: string; _stage_instance_id: string }
+        Returns: boolean
+      }
+      sla_stage_mark_escalated: {
+        Args: { _recipients: string; _stage_instance_id: string; _tier: number }
+        Returns: undefined
+      }
+      sla_stage_open: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _process_type: string
+          _stage_name?: string
+          _started_at?: string
+          _step_id?: string
+          _workflow_instance_id?: string
+        }
+        Returns: string
+      }
+      sla_stage_pause: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _metadata?: Json
+          _reason?: string
+        }
+        Returns: undefined
+      }
+      sla_stage_resume: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _metadata?: Json
+          _reason?: string
+        }
+        Returns: undefined
       }
       snapshot_return_revision: {
         Args: {
