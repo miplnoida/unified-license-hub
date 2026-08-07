@@ -33,6 +33,8 @@ import {
 } from 'recharts';
 import { useMemo } from 'react';
 import { DashboardInsightsCard } from '@/components/analytics/DashboardInsightsCard';
+import { ConductExecutivePanel } from '@/components/dashboard/executive/ConductExecutivePanel';
+import { SystemicRiskHeatmap, TwinPeaksExecutivePanel } from '@/components/dashboard/executive/SystemicRiskPanels';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 const BAND_COLOR: Record<Band, string> = {
@@ -402,7 +404,15 @@ export function ExecutiveSupervisoryDashboard() {
         </Card>
       </div>
 
+      <ConductExecutivePanel />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SystemicRiskHeatmap />
+        <TwinPeaksExecutivePanel />
+      </div>
+
       <Card>
+
         <CardHeader>
           <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
@@ -430,6 +440,9 @@ export function ExecutiveSupervisoryDashboard() {
           </Button>
           <Button data-rbac="prudential_supervision.view" asChild variant="outline" size="sm">
             <Link to="/complaints/analytics">Complaints Analytics</Link>
+          </Button>
+          <Button data-rbac="report_management.view" asChild variant="outline" size="sm">
+            <Link to="/analytics/ai-insights">AI Insights Hub</Link>
           </Button>
         </CardContent>
       </Card>

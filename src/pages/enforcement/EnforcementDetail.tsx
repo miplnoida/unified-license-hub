@@ -20,6 +20,8 @@ import { HistoryButton } from '@/components/audit/HistoryButton';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
+import { EnforcementLifecyclePanel } from '@/components/enforcement/EnforcementLifecyclePanel';
+import { EnforcementObligationsPanel } from '@/components/enforcement/EnforcementObligationsPanel';
 
 export default function EnforcementDetail() {
   const { id } = useParams<{ id: string }>();
@@ -112,7 +114,11 @@ export default function EnforcementDetail() {
           <Card><CardContent className="p-4 text-sm"><div className="text-xs text-muted-foreground mb-1">Description</div>{caseRow.description}</CardContent></Card>
         )}
 
+        <EnforcementLifecyclePanel caseRow={caseRow} />
+        <EnforcementObligationsPanel caseId={caseRow.id} />
+
         {linkedComplaint?.id ? (
+
           <WorkflowActionPanel
             complaintId={linkedComplaint.id}
             instanceUpdatedAt={linkedComplaint.updated_at ?? null}
