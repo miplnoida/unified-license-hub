@@ -152,6 +152,22 @@ export default function SecurityEvents() {
             <Label>To</Label>
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
+          <div>
+            <Label>Severity</Label>
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['all', 'critical', 'high', 'medium', 'low'].map((s) => (
+                  <SelectItem key={s} value={s}>{s === 'all' ? 'All severities' : s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Module</Label>
+            <Input value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} placeholder="licensing_decision" />
+          </div>
+
           <div className="md:col-span-6 flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
               {isFetching ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
