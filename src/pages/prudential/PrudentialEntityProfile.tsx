@@ -779,22 +779,55 @@ function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: a
 }
 
 function PeerRow({ row, entity, period }: { row: any; entity: any; period?: string }) {
-  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null);
+  // Peer group is narrowed to the entity's sector + category server-side; the
+  // RPC refuses to publish statistics below the minimum peer sample.
+  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null, entity.id);
   const p = peer.data as any;
+  const peerState = readPeerState(p);
+  const resultState = deriveRatioResultState(row.value, row.null_reason);
   const entityVal = Number(row.value);
-  const delta = p?.median != null && Number.isFinite(entityVal)
+  const delta = peerState === 'OK' && p?.median != null && Number.isFinite(entityVal)
     ? entityVal - Number(p.median) : null;
+
+  if (peerState !== 'OK') {
+    return (
+      <TableRow>
+        <TableCell className="font-medium">{row.ratio_key}</TableCell>
+        <TableCell>{period || '—'}</TableCell>
+        <TableCell className="text-right tabular-nums">
+          {resultState === 'CALCULATED'
+            ? formatRatio(row.value, row.display_format)
+            : <span className="text-xs text-muted-foreground">{RATIO_RESULT_STATE_LABEL[resultState]}</span>}
+        </TableCell>
+        <TableCell colSpan={5} className="text-xs text-muted-foreground">
+          {peer.isLoading
+            ? 'Loading peer sample…'
+            : peerState === 'INSUFFICIENT_PEER_DATA'
+              ? `INSUFFICIENT_PEER_DATA — ${p?.peer_count ?? 0} peer(s) reported this ratio for the period (minimum ${p?.min_peers ?? 5}).`
+              : 'Peer comparison unavailable.'}
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   return (
     <TableRow>
       <TableCell className="font-medium">{row.ratio_key}</TableCell>
       <TableCell>{period || '—'}</TableCell>
-      <TableCell className="text-right tabular-nums">{formatRatio(row.value, row.display_format)}</TableCell>
-      <TableCell className="text-right tabular-nums">{p?.median != null ? formatRatio(p.median, row.display_format) : (peer.isLoading ? '…' : '—')}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {resultState === 'CALCULATED'
+          ? formatRatio(row.value, row.display_format)
+          : <span className="text-xs text-muted-foreground">{RATIO_RESULT_STATE_LABEL[resultState]}</span>}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">{p?.median != null ? formatRatio(p.median, row.display_format) : '—'}</TableCell>
       <TableCell className="text-right tabular-nums">{p?.p90 != null ? formatRatio(p.p90, row.display_format) : '—'}</TableCell>
       <TableCell className="text-right tabular-nums text-xs text-muted-foreground">
         {p?.min != null && p?.max != null ? `${formatRatio(p.min, row.display_format)} – ${formatRatio(p.max, row.display_format)}` : '—'}
       </TableCell>
-      <TableCell className="text-right tabular-nums">{p?.count ?? '—'}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {p?.peer_count ?? p?.count ?? '—'}
+        {p?.percentile != null && <span className="block text-xs text-muted-foreground">p{p.percentile}</span>}
+      </TableCell>
       <TableCell className="text-right tabular-nums">
         {delta != null ? (
           <Badge variant="outline" className={delta >= 0 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-amber-500/10 text-amber-700 border-amber-200'}>
