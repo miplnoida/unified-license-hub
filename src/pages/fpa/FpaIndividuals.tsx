@@ -400,6 +400,15 @@ export default function FpaIndividuals() {
                   </p>
                 )}
 
+                {/* Phase 3A — ranked soft duplicate candidates (name + DOB + identifier) */}
+                <FpDuplicateCandidates
+                  fullName={form.full_name}
+                  dateOfBirth={form.date_of_birth || null}
+                  nationalId={form.national_id || null}
+                  onOpenExisting={() => setOpen(false)}
+                />
+
+
                 <div className="space-y-4 py-1">
                   <div className="grid grid-cols-1 gap-3">
                     <div>
