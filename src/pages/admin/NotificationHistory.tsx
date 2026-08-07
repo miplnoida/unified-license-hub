@@ -254,7 +254,10 @@ export default function NotificationHistory() {
             </Button>
           </div>
         )}
+
+        <DeadLetterQueue />
       </div>
     </DashboardLayout>
   );
 }
+
