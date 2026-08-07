@@ -571,6 +571,7 @@ export default function ComplaintDetail() {
               licenseeId={(complaint as any).licensee_id ?? null}
               title="Complaint communications"
             />
+            <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
           </TabsContent>
 
           <TabsContent value="rfis" className="space-y-4">

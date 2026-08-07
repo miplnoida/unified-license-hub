@@ -134,6 +134,8 @@ export default function EnforcementDetail() {
           </Card>
         )}
 
+        <CommunicationTimeline objectType="enforcement_action" objectId={caseRow.id} />
+
         {linkedComplaint?.id && (
           <ComplaintTrackingTimeline
             complaintId={linkedComplaint.id}

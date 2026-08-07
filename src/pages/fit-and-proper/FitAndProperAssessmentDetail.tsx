@@ -132,6 +132,8 @@ export default function FitAndProperAssessmentDetail() {
           <LegacyDeclarationView assessment={assessment} isDraft={isDraft} onSaved={() => qc.invalidateQueries({ queryKey: ['fp_assessment', id] })} />
         )}
 
+        <CommunicationTimeline objectType="fp_assessment" objectId={assessment.id} />
+
         <div className="flex gap-2 justify-end">
           {nextActions.map((a) => (
             <Button key={a.to} onClick={() => transition.mutate(a.to)} disabled={transition.isPending}>
