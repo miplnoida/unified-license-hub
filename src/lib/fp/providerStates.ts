@@ -79,6 +79,8 @@ const ALIASES: Record<string, FpProviderState> = {
   screened_clean: 'SUCCESS_NO_MATCH',
   no_match: 'SUCCESS_NO_MATCH',
   no_hit: 'SUCCESS_NO_MATCH',
+  success_match: 'SUCCESS_HIT',
+  not_configured: 'NOT_CONFIGURED',
   unconfigured: 'NOT_CONFIGURED',
   sandbox: 'SANDBOX',
   failed: 'PROVIDER_FAILURE',
