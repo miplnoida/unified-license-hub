@@ -950,3 +950,178 @@ function SummaryTab() {
     </Card>
   );
 }
+
+/* -------------------- Live Stages & Breaches -------------------- */
+
+type StageMonitorRow = {
+  id: string;
+  process_type: string;
+  entity_type: string;
+  entity_id: string;
+  stage_name: string | null;
+  sla_hours: number | null;
+  sla_source: string | null;
+  started_at: string;
+  due_at: string | null;
+  paused_at: string | null;
+  pause_seconds: number | null;
+  state: string;
+  breached_at: string | null;
+  escalation_tiers_sent: number[] | null;
+};
+
+const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  active: 'default',
+  paused: 'secondary',
+  breached: 'destructive',
+  completed: 'outline',
+};
+
+/**
+ * Read-only evidence view over `sla_stage_instances`: what the SLA engine is
+ * actually tracking right now, where each duration came from (SLA Manager
+ * configuration vs workflow step default), and which escalation tiers have
+ * been dispatched by the sweep.
+ */
+function StageMonitorTab() {
+  const [rows, setRows] = useState<StageMonitorRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stateFilter, setStateFilter] = useState<string>('open');
+  const [processFilter, setProcessFilter] = useState<string>('all');
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any)
+        .from('sla_stage_instances')
+        .select('id,process_type,entity_type,entity_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at,escalation_tiers_sent')
+        .order('due_at', { ascending: true, nullsFirst: false })
+        .limit(500);
+      if (error) toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
+      else setRows((data ?? []) as StageMonitorRow[]);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = useMemo(() => rows.filter(r => {
+    const stateOk =
+      stateFilter === 'all' ? true :
+      stateFilter === 'open' ? ['active', 'paused', 'breached'].includes(r.state) :
+      r.state === stateFilter;
+    const processOk = processFilter === 'all' || r.process_type === processFilter;
+    return stateOk && processOk;
+  }), [rows, stateFilter, processFilter]);
+
+  const counts = useMemo(() => {
+    const c = { active: 0, paused: 0, breached: 0, completed: 0, unconfigured: 0 };
+    rows.forEach(r => {
+      if (r.state in c) (c as Record<string, number>)[r.state] += 1;
+      if (r.sla_hours == null && ['active', 'paused'].includes(r.state)) c.unconfigured += 1;
+    });
+    return c;
+  }, [rows]);
+
+  const fmt = (ts?: string | null) => (ts ? new Date(ts).toLocaleString() : '—');
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Stages &amp; Breaches</CardTitle>
+        <CardDescription>
+          What the SLA engine is tracking right now. Read-only — state changes are made by the
+          workflow engine and the escalation sweep.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="default">Active {counts.active}</Badge>
+          <Badge variant="secondary">Paused {counts.paused}</Badge>
+          <Badge variant="destructive">Breached {counts.breached}</Badge>
+          <Badge variant="outline">Completed {counts.completed}</Badge>
+        </div>
+
+        {counts.unconfigured > 0 && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{counts.unconfigured} open stage(s) have no SLA duration</AlertTitle>
+            <AlertDescription>
+              Neither an SLA Manager configuration nor a workflow step SLA resolved for these
+              stages, so no due date or breach can be computed. Add a configuration row for the
+              matching process type and stage name.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">State</Label>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open (active/paused/breached)</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="breached">Breached</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Process</Label>
+            <Select value={processFilter} onValueChange={setProcessFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All processes</SelectItem>
+                {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Process</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead>State</TableHead>
+                <TableHead>SLA</TableHead>
+                <TableHead>Started</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Paused</TableHead>
+                <TableHead>Escalations sent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
+              ) : filtered.map(r => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{r.process_type}</TableCell>
+                  <TableCell>{r.stage_name || '—'}</TableCell>
+                  <TableCell><Badge variant={STATE_BADGE[r.state] ?? 'outline'}>{r.state}</Badge></TableCell>
+                  <TableCell className="text-xs">
+                    {r.sla_hours != null
+                      ? `${r.sla_hours}h · ${r.sla_source === 'configuration' ? 'SLA Manager' : 'step default'}`
+                      : <span className="text-destructive">not configured</span>}
+                  </TableCell>
+                  <TableCell className="text-xs">{fmt(r.started_at)}</TableCell>
+                  <TableCell className="text-xs">{fmt(r.due_at)}</TableCell>
+                  <TableCell className="text-xs">{Math.round((r.pause_seconds ?? 0) / 60)} min</TableCell>
+                  <TableCell className="text-xs">
+                    {(r.escalation_tiers_sent ?? []).length > 0
+                      ? (r.escalation_tiers_sent ?? []).join(', ')
+                      : '—'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
