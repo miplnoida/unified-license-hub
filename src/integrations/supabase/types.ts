@@ -23965,6 +23965,10 @@ export type Database = {
         Args: { _row_regulator_id: string }
         Returns: boolean
       }
+      fp_request_pq_amendment: {
+        Args: { _assessment_id: string; _reason: string }
+        Returns: undefined
+      }
       fp_run_is_conclusive: { Args: { _run_id: string }; Returns: boolean }
       fp_screening_provider_status: {
         Args: never
