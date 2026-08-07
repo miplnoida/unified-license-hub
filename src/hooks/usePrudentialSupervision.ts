@@ -369,7 +369,7 @@ export function useTransitionAssessment() {
       if (to === 'closed') patch.closed_at = now;
       const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
       if (error) throw error;
-      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
+      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', returned_for_revision: 'REJECT', approved: 'APPROVE', closed: 'UPDATE' };
       await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
