@@ -53,9 +53,14 @@ SELECT ok((SELECT array_to_string(p.proconfig,',') LIKE '%search_path%'
              FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
             WHERE n.nspname='public' AND p.proname='set_conduct_signal_disposition'),
           'disposition RPC pins search_path');
-SELECT ok(NOT has_function_privilege('anon',
-            'public.set_conduct_signal_disposition(uuid,text,text)','EXECUTE'),
-          'anon may not disposition a surveillance signal');
+-- The RPC takes no actor argument: the reviewer can only come from auth.uid().
+SELECT is(
+  (SELECT pg_get_function_identity_arguments(p.oid)
+     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND p.proname='set_conduct_signal_disposition'),
+  'uuid, text, text',
+  'disposition RPC accepts no caller-supplied actor'
+);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures
