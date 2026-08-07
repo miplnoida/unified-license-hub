@@ -41,6 +41,7 @@ import { logComplianceAudit } from '@/lib/complianceAudit';
 import { logFpAction } from '@/lib/fpAudit';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
+import { FpRegulatorPositionsPanel } from '@/components/fit-and-proper/FpRegulatorPositionsPanel';
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
@@ -1245,7 +1246,9 @@ export default function FpaIndividualProfile() {
             <FpScreeningPanel individualId={id!} assessmentId={latestAssessmentId} />
           </TabsContent>
 
-          <TabsContent value="determinations">
+          <TabsContent value="determinations" className="space-y-4">
+            {/* Phase 3G — independent regulator positions (Twin Peaks) */}
+            <FpRegulatorPositionsPanel individualId={id!} />
             <FpDeterminationsPanel individualId={id!} assessmentId={latestAssessmentId} />
           </TabsContent>
 

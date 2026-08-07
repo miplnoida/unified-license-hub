@@ -15,6 +15,7 @@ import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
+import { FpConditionEvidencePanel } from '@/components/fit-and-proper/FpConditionEvidencePanel';
 
 const NONE_SENTINEL = '__none__';
 
@@ -33,6 +34,7 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   overdue: { label: 'Overdue', className: 'bg-red-100 text-red-800' },
   satisfied: { label: 'Satisfied', className: 'bg-green-100 text-green-800' },
   waived: { label: 'Waived', className: 'bg-slate-100 text-slate-700' },
+  breached: { label: 'Breached', className: 'bg-destructive/15 text-destructive border-destructive/30' },
 };
 
 interface Props { individualId: string }
@@ -48,6 +50,9 @@ export function FpConditionsPanel({ individualId }: Props) {
   const [satNote, setSatNote] = useState('');
   const [reopenFor, setReopenFor] = useState<string | null>(null);
   const [reopenNote, setReopenNote] = useState('');
+  const [breachFor, setBreachFor] = useState<string | null>(null);
+  const [breachNote, setBreachNote] = useState('');
+
 
   // fp_conditions.monitoring_owner is a UUID column (a real staff member),
   // not free text — a plain text Input here previously wrote arbitrary
@@ -177,6 +182,33 @@ export function FpConditionsPanel({ individualId }: Props) {
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
+  // Phase 3H — breach is a distinct lifecycle state (not "overdue"): the DB
+  // lifecycle trigger requires a rationale of at least 5 characters and the
+  // append-only fp_condition_events log records the transition.
+  const breach = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      if (!reason || reason.trim().length < 5) throw new Error('Breach rationale required (min 5 chars)');
+      const { error } = await supabase.from('fp_conditions').update({
+        status: 'breached', satisfaction_note: reason.trim(),
+      }).eq('id', id);
+      if (error) throw error;
+      await logFpAction('fp.condition.breached', 'fp_condition', id, {
+        after: { status: 'breached' },
+        context: { individualId, conditionId: id },
+        justification: reason.trim(),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Condition marked breached');
+      setBreachFor(null); setBreachNote('');
+      qc.invalidateQueries({ queryKey: ['fp_conditions', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_condition_events'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+
+
   return (
     <div className="space-y-3">
       <Card>
@@ -261,9 +293,24 @@ export function FpConditionsPanel({ individualId }: Props) {
                   </div>
                   <div className="flex gap-1">
                     {isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setSatisfyFor(c.id); setSatNote(''); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark satisfied</Button>}
+                    {isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setBreachFor(c.id); setBreachNote(''); }}><AlertTriangle className="h-4 w-4 mr-1" /> Mark breached</Button>}
                     {!isOpen && <Button data-rbac="fit_and_proper.edit" size="sm" variant="ghost" onClick={() => { setReopenFor(c.id); setReopenNote(''); }}>Reopen</Button>}
                   </div>
                 </div>
+                {breachFor === c.id && (
+                  <div className="mt-2 space-y-2">
+                    <Textarea rows={2} placeholder="Breach rationale (required, min 5 chars)" value={breachNote} onChange={(e) => setBreachNote(e.target.value)} />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setBreachFor(null)}>Cancel</Button>
+                      <Button data-rbac="fit_and_proper.edit" size="sm" variant="destructive"
+                        disabled={breach.isPending || breachNote.trim().length < 5}
+                        onClick={() => breach.mutate({ id: c.id, reason: breachNote })}
+                      >
+                        {breach.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Confirm breach
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {reopenFor === c.id && (
                   <div className="mt-2 space-y-2">
                     <Textarea rows={2} placeholder="Reason for reopening (required)" value={reopenNote} onChange={(e) => setReopenNote(e.target.value)} />
@@ -327,6 +374,7 @@ export function FpConditionsPanel({ individualId }: Props) {
                     </div>
                   </div>
                 )}
+                <FpConditionEvidencePanel conditionId={c.id} individualId={individualId} />
               </div>
             );
           })}

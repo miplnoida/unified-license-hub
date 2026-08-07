@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { FpDuplicateCandidates } from '@/components/fit-and-proper/FpDuplicateCandidates';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -399,6 +400,15 @@ export default function FpaIndividuals() {
                     Checking for duplicates…
                   </p>
                 )}
+
+                {/* Phase 3A — ranked soft duplicate candidates (name + DOB + identifier) */}
+                <FpDuplicateCandidates
+                  fullName={form.full_name}
+                  dateOfBirth={form.date_of_birth || null}
+                  nationalId={form.national_id || null}
+                  onOpenExisting={() => setOpen(false)}
+                />
+
 
                 <div className="space-y-4 py-1">
                   <div className="grid grid-cols-1 gap-3">

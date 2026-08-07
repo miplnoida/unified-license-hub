@@ -9223,6 +9223,9 @@ export type Database = {
           id: string
           individual_id: string
           licensee_id: string | null
+          pq_amendment_reason: string | null
+          pq_state: string
+          pq_state_changed_at: string
           regulator_id: string | null
           role_id: string | null
           status: string
@@ -9244,6 +9247,9 @@ export type Database = {
           id?: string
           individual_id: string
           licensee_id?: string | null
+          pq_amendment_reason?: string | null
+          pq_state?: string
+          pq_state_changed_at?: string
           regulator_id?: string | null
           role_id?: string | null
           status?: string
@@ -9265,6 +9271,9 @@ export type Database = {
           id?: string
           individual_id?: string
           licensee_id?: string | null
+          pq_amendment_reason?: string | null
+          pq_state?: string
+          pq_state_changed_at?: string
           regulator_id?: string | null
           role_id?: string | null
           status?: string
@@ -9327,6 +9336,69 @@ export type Database = {
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "fp_individual_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_committee_decision_snapshots: {
+        Row: {
+          approval_threshold_pct: number
+          assessment_id: string
+          committee_id: string
+          created_at: string
+          id: string
+          member_roster: Json
+          outcome: string
+          quorum: number
+          quorum_met: boolean
+          regulator_id: string | null
+          taken_at: string
+          taken_by: string | null
+          tally: Json
+        }
+        Insert: {
+          approval_threshold_pct: number
+          assessment_id: string
+          committee_id: string
+          created_at?: string
+          id?: string
+          member_roster?: Json
+          outcome: string
+          quorum: number
+          quorum_met: boolean
+          regulator_id?: string | null
+          taken_at?: string
+          taken_by?: string | null
+          tally?: Json
+        }
+        Update: {
+          approval_threshold_pct?: number
+          assessment_id?: string
+          committee_id?: string
+          created_at?: string
+          id?: string
+          member_roster?: Json
+          outcome?: string
+          quorum?: number
+          quorum_met?: boolean
+          regulator_id?: string | null
+          taken_at?: string
+          taken_by?: string | null
+          tally?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_committee_decision_snapshots_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_committee_decision_snapshots_committee_id_fkey"
+            columns: ["committee_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committees"
             referencedColumns: ["id"]
           },
         ]
@@ -9477,6 +9549,125 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_condition_events: {
+        Row: {
+          actor_id: string | null
+          condition_id: string
+          event_type: string
+          from_status: string | null
+          id: string
+          individual_id: string | null
+          occurred_at: string
+          reason: string | null
+          regulator_id: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          condition_id: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          individual_id?: string | null
+          occurred_at?: string
+          reason?: string | null
+          regulator_id?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          condition_id?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          individual_id?: string | null
+          occurred_at?: string
+          reason?: string | null
+          regulator_id?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_condition_events_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "fp_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_condition_evidence: {
+        Row: {
+          condition_id: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          individual_id: string | null
+          regulator_id: string | null
+          review_note: string | null
+          review_state: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition_id: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          individual_id?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          individual_id?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_condition_evidence_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "fp_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_condition_evidence_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
             referencedColumns: ["id"]
           },
         ]
@@ -23701,6 +23892,58 @@ export type Database = {
       }
       findfuncs: { Args: { "": string }; Returns: string[] }
       finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
+      fp_assessment_comparison: {
+        Args: { _assessment_id: string }
+        Returns: {
+          change_class: string
+          check_type: string
+          current_finding_id: string
+          current_severity: string
+          prior_assessment_id: string
+          prior_finding_id: string
+          prior_severity: string
+          title: string
+        }[]
+      }
+      fp_find_duplicate_candidates: {
+        Args: {
+          _date_of_birth?: string
+          _full_name: string
+          _limit?: number
+          _national_id?: string
+        }
+        Returns: {
+          date_of_birth: string
+          dob_match: boolean
+          full_name: string
+          id: string
+          id_match: boolean
+          match_reason: string
+          match_score: number
+          name_similarity: number
+          national_id: string
+          status: string
+        }[]
+      }
+      fp_record_committee_decision: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
+      fp_regulator_positions: {
+        Args: { _individual_id: string }
+        Returns: {
+          condition_count: number
+          coordination_state: string
+          determination_id: string
+          determined_at: string
+          determined_by: string
+          effective_from: string
+          outcome: string
+          rationale: string
+          regulator_id: string
+          regulator_name: string
+        }[]
+      }
       fp_regulator_visible: {
         Args: { _row_regulator_id: string }
         Returns: boolean
