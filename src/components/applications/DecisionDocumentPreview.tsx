@@ -428,10 +428,23 @@ export function DecisionDocumentPreview({
               </Alert>
             ) : (
               <>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Effective date</Label>
+                    <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Expiry date <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                  </div>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={buildCertificate} disabled={certBusy}>
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
-                    {certUrl ? 'Regenerate draft certificate' : 'Generate draft certificate'}
+                    {certUrl ? 'Regenerate draft PDF' : 'Generate draft PDF'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={printCertificate}>
+                    <Printer className="h-4 w-4 mr-1.5" />Print certificate
                   </Button>
                   {certUrl && (
                     <Button size="sm" variant="outline" asChild>
@@ -441,6 +454,12 @@ export function DecisionDocumentPreview({
                   <Badge variant="outline">Watermarked · not stored</Badge>
                   {!signatory && <Badge variant="outline">Signatory not configured</Badge>}
                 </div>
+                <iframe
+                  title="Licence certificate content preview"
+                  srcDoc={certificateHtml}
+                  className="h-[420px] w-full rounded-md border border-border/60 bg-card"
+                />
+
                 {certUrl ? (
                   <iframe
                     title="Draft licence certificate preview"
