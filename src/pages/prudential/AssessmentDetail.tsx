@@ -141,6 +141,20 @@ export default function AssessmentDetail() {
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Mark reviewed'}
                 </Button>
               )}
+              {['submitted','reviewed'].includes(form.status) && (
+                <Button variant="outline" disabled={!reviewNotes.trim() || transition.isPending}
+                  onClick={() => transition.mutate({ id: id!, to: 'returned_for_revision', reason: reviewNotes })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Returning…</>) : 'Return for revision'}
+                </Button>
+              )}
+              {form.status === 'returned_for_revision' && (
+                <Button variant="secondary" disabled={!form.rationale || upsert.isPending || transition.isPending} onClick={async () => {
+                  if (upsert.isPending || transition.isPending) return;
+                  try { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); } catch { /* toast */ }
+                }}>
+                  {(upsert.isPending || transition.isPending) ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resubmitting…</>) : 'Resubmit for review'}
+                </Button>
+              )}
               {form.status === 'reviewed' && (
                 <Button disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'approved' })}>
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Approving…</>) : 'Approve'}
