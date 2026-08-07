@@ -4,7 +4,7 @@
 -- role, redact credential-like payload keys, and refuse actor spoofing.
 
 BEGIN;
-SELECT plan(27);
+SELECT plan(29);
 
 SELECT has_table('public', 'security_event_logs', 'security_event_logs exists');
 SELECT has_table('public', 'rule_overrides', 'rule_overrides exists');
