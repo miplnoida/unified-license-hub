@@ -222,6 +222,105 @@ export type Database = {
         }
         Relationships: []
       }
+      application_acknowledgements: {
+        Row: {
+          ack_text: string | null
+          applicant_email: string | null
+          applicant_id: string | null
+          applicant_name: string | null
+          application_id: string
+          created_at: string
+          delivered_at: string | null
+          delivery_history: Json
+          delivery_requested_at: string | null
+          document_bucket: string | null
+          document_checksum: string | null
+          document_path: string | null
+          entity_name: string | null
+          failure_reason: string | null
+          id: string
+          is_resubmission: boolean
+          license_type: string | null
+          provider: string | null
+          provider_message_id: string | null
+          reference: string
+          retry_count: number
+          status: string
+          submission_version: number
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          ack_text?: string | null
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name?: string | null
+          application_id: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_history?: Json
+          delivery_requested_at?: string | null
+          document_bucket?: string | null
+          document_checksum?: string | null
+          document_path?: string | null
+          entity_name?: string | null
+          failure_reason?: string | null
+          id?: string
+          is_resubmission?: boolean
+          license_type?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          reference: string
+          retry_count?: number
+          status?: string
+          submission_version: number
+          submitted_at: string
+          updated_at?: string
+        }
+        Update: {
+          ack_text?: string | null
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name?: string | null
+          application_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_history?: Json
+          delivery_requested_at?: string | null
+          document_bucket?: string | null
+          document_checksum?: string | null
+          document_path?: string | null
+          entity_name?: string | null
+          failure_reason?: string | null
+          id?: string
+          is_resubmission?: boolean
+          license_type?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          reference?: string
+          retry_count?: number
+          status?: string
+          submission_version?: number
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_ai_assessments: {
         Row: {
           analyst_decision: string | null
@@ -428,6 +527,7 @@ export type Database = {
           note_text: string
           recommendation: string
           recommended_conditions: string | null
+          referral_id: string | null
           restricted: boolean
           step_id: string | null
           updated_at: string
@@ -443,6 +543,7 @@ export type Database = {
           note_text: string
           recommendation: string
           recommended_conditions?: string | null
+          referral_id?: string | null
           restricted?: boolean
           step_id?: string | null
           updated_at?: string
@@ -458,6 +559,7 @@ export type Database = {
           note_text?: string
           recommendation?: string
           recommended_conditions?: string | null
+          referral_id?: string | null
           restricted?: boolean
           step_id?: string | null
           updated_at?: string
@@ -465,7 +567,96 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "application_legal_notes_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "application_legal_referrals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_legal_notes_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_legal_referrals: {
+        Row: {
+          application_id: string
+          completion_notes: string | null
+          created_at: string
+          due_at: string | null
+          evidence: Json
+          id: string
+          referral_reason: string
+          referred_by: string
+          referred_to: string | null
+          requested_at: string
+          returned_at: string | null
+          returned_by: string | null
+          specialism: string
+          status: string
+          step_id: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          application_id: string
+          completion_notes?: string | null
+          created_at?: string
+          due_at?: string | null
+          evidence?: Json
+          id?: string
+          referral_reason: string
+          referred_by: string
+          referred_to?: string | null
+          requested_at?: string
+          returned_at?: string | null
+          returned_by?: string | null
+          specialism?: string
+          status?: string
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          application_id?: string
+          completion_notes?: string | null
+          created_at?: string
+          due_at?: string | null
+          evidence?: Json
+          id?: string
+          referral_reason?: string
+          referred_by?: string
+          referred_to?: string | null
+          requested_at?: string
+          returned_at?: string | null
+          returned_by?: string | null
+          specialism?: string
+          status?: string
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_legal_referrals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_legal_referrals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_legal_referrals_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "approval_steps"
@@ -20421,6 +20612,73 @@ export type Database = {
           },
         ]
       }
+      sufficiency_determinations: {
+        Row: {
+          application_id: string
+          checklist: Json
+          created_at: string
+          decision: string
+          determined_at: string
+          determined_by: string
+          evaluation_id: string | null
+          gate_snapshot: Json
+          id: string
+          open_rfi_count: number
+          reason: string
+          unresolved_blocker_count: number
+        }
+        Insert: {
+          application_id: string
+          checklist?: Json
+          created_at?: string
+          decision: string
+          determined_at?: string
+          determined_by: string
+          evaluation_id?: string | null
+          gate_snapshot?: Json
+          id?: string
+          open_rfi_count?: number
+          reason: string
+          unresolved_blocker_count?: number
+        }
+        Update: {
+          application_id?: string
+          checklist?: Json
+          created_at?: string
+          decision?: string
+          determined_at?: string
+          determined_by?: string
+          evaluation_id?: string | null
+          gate_snapshot?: Json
+          id?: string
+          open_rfi_count?: number
+          reason?: string
+          unresolved_blocker_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sufficiency_determinations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_determinations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_determinations_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sufficiency_evaluation_results: {
         Row: {
           auto_rfi_item_id: string | null
@@ -24139,6 +24397,17 @@ export type Database = {
         Args: { _payload: Json; _rule_id?: string }
         Returns: string[]
       }
+      ensure_submission_acknowledgement: {
+        Args: {
+          _ack_text?: string
+          _applicant_email?: string
+          _applicant_name?: string
+          _application_id: string
+          _entity_name?: string
+          _is_resubmission?: boolean
+        }
+        Returns: Json
+      }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
@@ -26050,6 +26319,15 @@ export type Database = {
             }
             Returns: string
           }
+      record_sufficiency_determination: {
+        Args: {
+          _application_id: string
+          _checklist?: Json
+          _decision: string
+          _reason: string
+        }
+        Returns: Json
+      }
       redact_sensitive_jsonb: { Args: { _payload: Json }; Returns: Json }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
@@ -26564,6 +26842,19 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      set_acknowledgement_delivery_state: {
+        Args: {
+          _acknowledgement_id: string
+          _document_bucket?: string
+          _document_checksum?: string
+          _document_path?: string
+          _failure_reason?: string
+          _provider?: string
+          _provider_message_id?: string
+          _status: string
+        }
+        Returns: Json
       }
       set_correspondence_thread_state: {
         Args: { _justification?: string; _state: string; _thread_id: string }
