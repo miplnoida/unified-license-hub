@@ -97,6 +97,7 @@ const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/Rou
 const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
 const MyCorrespondenceDetail = lazy(() => import('@/pages/entity/correspondence/MyCorrespondenceDetail'));
 const MyComplaintRfis = lazy(() => import('@/pages/entity/complaint-rfis/MyComplaintRfis'));
+const MySupervisoryActions = lazy(() => import('@/pages/entity/MySupervisoryActions'));
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
@@ -309,6 +310,7 @@ export const dashboardRoutes = (
     <Route path="/entity/correspondence" element={<MyCorrespondence />} />
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
+    <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
 
   </>
 );

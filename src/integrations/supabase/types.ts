@@ -15715,10 +15715,101 @@ export type Database = {
           },
         ]
       }
+      prudential_action_events: {
+        Row: {
+          action_id: string
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          reason: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action_id: string
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action_id?: string
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_action_events_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_action_responses: {
+        Row: {
+          action_id: string
+          created_at: string
+          decision: string | null
+          evidence_document_ids: string[]
+          id: string
+          kind: string
+          narrative: string | null
+          submitted_at: string
+          submitted_by: string | null
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          decision?: string | null
+          evidence_document_ids?: string[]
+          id?: string
+          kind: string
+          narrative?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          decision?: string | null
+          evidence_document_ids?: string[]
+          id?: string
+          kind?: string
+          narrative?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_action_responses_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_actions: {
         Row: {
+          action_reference: string
           action_type: string
           assigned_to: string | null
+          breach_after_days: number
+          breached_at: string | null
           cancellation_reason: string | null
           closed_at: string | null
           closed_by: string | null
@@ -15729,7 +15820,15 @@ export type Database = {
           due_date: string | null
           entity_contact: string | null
           entity_id: string
+          entity_owner_user_id: string | null
+          evidence_required: boolean
           id: string
+          progress_percent: number
+          response_due_at: string | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           severity: string
           source_id: string | null
           source_type: string
@@ -15739,8 +15838,11 @@ export type Database = {
           waiver_reason: string | null
         }
         Insert: {
+          action_reference?: string
           action_type: string
           assigned_to?: string | null
+          breach_after_days?: number
+          breached_at?: string | null
           cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -15751,7 +15853,15 @@ export type Database = {
           due_date?: string | null
           entity_contact?: string | null
           entity_id: string
+          entity_owner_user_id?: string | null
+          evidence_required?: boolean
           id?: string
+          progress_percent?: number
+          response_due_at?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           severity?: string
           source_id?: string | null
           source_type: string
@@ -15761,8 +15871,11 @@ export type Database = {
           waiver_reason?: string | null
         }
         Update: {
+          action_reference?: string
           action_type?: string
           assigned_to?: string | null
+          breach_after_days?: number
+          breached_at?: string | null
           cancellation_reason?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -15773,7 +15886,15 @@ export type Database = {
           due_date?: string | null
           entity_contact?: string | null
           entity_id?: string
+          entity_owner_user_id?: string | null
+          evidence_required?: boolean
           id?: string
+          progress_percent?: number
+          response_due_at?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           severity?: string
           source_id?: string | null
           source_type?: string
@@ -23572,6 +23693,10 @@ export type Database = {
         Args: { _notes?: string; _thread_id: string }
         Returns: undefined
       }
+      close_prudential_action: {
+        Args: { _action_id: string; _kind: string; _reason: string }
+        Returns: Json
+      }
       col_is_null:
         | {
             Args: {
@@ -25425,6 +25550,10 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      is_prudential_action_entity_user: {
+        Args: { _action_id: string; _user: string }
+        Returns: boolean
+      }
       is_record_assigned_to_user: {
         Args: { _module: string; _record_id: string; _user_id: string }
         Returns: boolean
@@ -25684,6 +25813,7 @@ export type Database = {
         Returns: undefined
       }
       mark_expired_licenses: { Args: never; Returns: number }
+      mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
       no_plan: { Args: never; Returns: boolean[] }
       notif_enqueue: {
@@ -26170,6 +26300,10 @@ export type Database = {
       }
       provision_application_entity: {
         Args: { _application_id: string }
+        Returns: Json
+      }
+      prudential_action_monitor: {
+        Args: { _due_soon_days?: number; _entity_id?: string }
         Returns: Json
       }
       prudential_assessment_finalisation_gaps: {
@@ -26663,6 +26797,10 @@ export type Database = {
         Args: { _status: string }
         Returns: boolean
       }
+      review_prudential_action_response: {
+        Args: { _action_id: string; _decision: string; _notes: string }
+        Returns: Json
+      }
       role_scope_for: {
         Args: { _module: string; _role_id: string }
         Returns: Json
@@ -27117,6 +27255,14 @@ export type Database = {
           p_form_data?: Json
           p_inv_id: string
           p_token: string
+        }
+        Returns: Json
+      }
+      submit_prudential_action_response: {
+        Args: {
+          _action_id: string
+          _document_ids?: string[]
+          _narrative: string
         }
         Returns: Json
       }
