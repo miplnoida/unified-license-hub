@@ -19,6 +19,55 @@
 
 export type ProviderCheckType = 'sanctions' | 'pep' | 'adverse_media';
 
+export type FpProviderState =
+  | 'SUCCESS_HIT'
+  | 'SUCCESS_NO_MATCH'
+  | 'NOT_CONFIGURED'
+  | 'SANDBOX'
+  | 'PROVIDER_FAILURE'
+  | 'TRANSPORT_FAILURE'
+  | 'RATE_LIMITED'
+  | 'MANUAL';
+
+const CONCLUSIVE_STATES: FpProviderState[] = ['SUCCESS_HIT', 'SUCCESS_NO_MATCH', 'MANUAL'];
+
+export function isConclusiveState(state: FpProviderState): boolean {
+  return CONCLUSIVE_STATES.includes(state);
+}
+
+/**
+ * Single source of truth for the state stamped on a provider outcome.
+ * Mirrors `public.fp_normalise_provider_state()`: a failure, an unconfigured
+ * provider or a sandbox/mock execution can NEVER collapse into a clean result.
+ */
+export function deriveProviderState(input: {
+  success: boolean;
+  errorCategory?: string | null;
+  executionMode?: string | null;
+  environment?: string | null;
+  providerVerified?: boolean;
+  sandbox?: boolean;
+  hits: number;
+}): FpProviderState {
+  const cat = String(input.errorCategory ?? '').toLowerCase();
+  if (!input.success) {
+    if (cat === 'not_configured') return 'NOT_CONFIGURED';
+    if (cat === 'rate_limited' || cat === 'throttled') return 'RATE_LIMITED';
+    if (['timeout', 'network', 'network_error', 'transport', 'transport_error', 'connection'].includes(cat)) {
+      return 'TRANSPORT_FAILURE';
+    }
+    return 'PROVIDER_FAILURE';
+  }
+  const mode = String(input.executionMode ?? '').toLowerCase();
+  const env = String(input.environment ?? '').toLowerCase();
+  const simulated = Boolean(input.sandbox)
+    || ['mock', 'simulated', 'sandbox'].includes(mode)
+    || ['sandbox', 'test', 'staging'].includes(env)
+    || input.providerVerified === false;
+  if (simulated) return 'SANDBOX';
+  return input.hits > 0 ? 'SUCCESS_HIT' : 'SUCCESS_NO_MATCH';
+}
+
 export interface ProviderOutcome {
   check_type: ProviderCheckType;
   integration_key: string;
@@ -27,6 +76,14 @@ export interface ProviderOutcome {
   environment: string | null;
   /** screened_hits | screened_clean | not_configured | failed */
   outcome: 'screened_hits' | 'screened_clean' | 'not_configured' | 'failed';
+  /**
+   * Canonical Phase 3C provider state — shared vocabulary with
+   * `public.fp_normalise_provider_state()` and `src/lib/fp/providerStates.ts`.
+   * A non-conclusive state must never be rendered as "no adverse findings".
+   */
+  state: FpProviderState;
+  /** True only when the check actually completed against a real provider. */
+  conclusive: boolean;
   provider_reference: string | null;
   hits: number;
   error_category: string | null;
@@ -124,10 +181,19 @@ export function mapProviderResult(input: MapInput): MapOutput {
   if (!result.success) {
     const notConfigured = result.errorCategory === 'not_configured';
     const reason = result.errorMessage ?? 'Provider call failed.';
+    const failureState = deriveProviderState({
+      success: false,
+      errorCategory: result.errorCategory,
+      executionMode: result.executionMode,
+      environment,
+      hits: 0,
+    });
     return {
       outcome: {
         ...outcomeBase,
         outcome: notConfigured ? 'not_configured' : 'failed',
+        state: failureState,
+        conclusive: false,
         hits: 0,
         error_category: result.errorCategory,
         error_message: reason,
@@ -176,7 +242,18 @@ export function mapProviderResult(input: MapInput): MapOutput {
 
   if (hits.length === 0) {
     return {
-      outcome: { ...outcomeBase, outcome: 'screened_clean', hits: 0, error_category: null, error_message: null },
+      outcome: {
+        ...outcomeBase,
+        outcome: 'screened_clean',
+        state: deriveProviderState({
+          success: true, executionMode: result.executionMode, environment,
+          providerVerified: result.providerVerified, sandbox, hits: 0,
+        }),
+        conclusive: !sandbox,
+        hits: 0,
+        error_category: null,
+        error_message: null,
+      },
       findings: [
         {
           ...base,
