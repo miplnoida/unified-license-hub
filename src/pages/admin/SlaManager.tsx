@@ -256,9 +256,11 @@ function SlaConfigTab() {
 
   const addRow = async () => {
     const { data: { user } } = await supabase.auth.getUser();
+    const defaultProcess = 'application';
     const draft = {
-      process_type: 'NEW_PROCESS',
-      stage_name: 'New Stage',
+      process_type: defaultProcess,
+      stage_name: (stageOptions[defaultProcess] ?? [])[0] ?? 'New Stage',
+
       sla_duration: 8,
       sla_unit: 'hours',
       warning_threshold_pct: 75,
