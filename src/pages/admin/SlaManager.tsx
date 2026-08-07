@@ -58,11 +58,37 @@ type Assignment = { id: string; profile_id: string; process_type: string };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * Process types the SLA runtime actually opens stages for
+ * (`sla_stage_open(_process_type => …)`). Configuration must use exactly these
+ * keys, otherwise `resolve_stage_sla` never matches and every stage silently
+ * falls back to the workflow step default.
+ */
+const RUNTIME_PROCESS_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'application', label: 'application — Licence applications' },
+  { value: 'pre_application', label: 'pre_application — Pre-application / registration intake' },
+  { value: 'registration', label: 'registration — Entity registration review' },
+  { value: 'return', label: 'return — Regulatory return filings' },
+  { value: 'complaint', label: 'complaint — Complaint cases' },
+];
+
+/** Workflow entity_type(s) whose steps are valid stage names for a process type. */
+const WORKFLOW_ENTITY_TYPES_FOR_PROCESS: Record<string, string[]> = {
+  application: ['pre_application', 'post_application'],
+  pre_application: ['pre_application'],
+  registration: ['registration'],
+  return: ['return'],
+  complaint: ['complaint'],
+};
+
+const CUSTOM_STAGE = '__custom__';
+
 const TIER_DEFAULTS: Array<{ tier: number; label: string; delay_days: number; recipients: string }> = [
   { tier: 1, label: 'Tier 1 — immediate', delay_days: 0, recipients: 'assigned_officer, team_lead' },
   { tier: 2, label: 'Tier 2 — escalation', delay_days: 3, recipients: 'deputy_director' },
   { tier: 3, label: 'Tier 3 — senior escalation', delay_days: 7, recipients: 'director' },
 ];
+
 
 const RetroNotice = () => (
   <Alert className="mb-4">
@@ -93,18 +119,21 @@ export default function SlaManager() {
         />
 
         <Tabs defaultValue="sla">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="sla">SLA Configuration</TabsTrigger>
             <TabsTrigger value="calendar">Business Calendar</TabsTrigger>
             <TabsTrigger value="escalation">Escalation Chains</TabsTrigger>
+            <TabsTrigger value="monitor">Live Stages &amp; Breaches</TabsTrigger>
             <TabsTrigger value="summary">Performance Summary</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sla" className="mt-4"><SlaConfigTab /></TabsContent>
           <TabsContent value="calendar" className="mt-4"><CalendarTab /></TabsContent>
           <TabsContent value="escalation" className="mt-4"><EscalationTab /></TabsContent>
+          <TabsContent value="monitor" className="mt-4"><StageMonitorTab /></TabsContent>
           <TabsContent value="summary" className="mt-4"><SummaryTab /></TabsContent>
         </Tabs>
+
       </div>
     </DashboardLayout>
   );
@@ -115,6 +144,8 @@ export default function SlaManager() {
 function SlaConfigTab() {
   const [rows, setRows] = useState<SlaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Real workflow stage names per process type, so config keys match runtime. */
+  const [stageOptions, setStageOptions] = useState<Record<string, string[]>>({});
   // Freshest row keyed by id so onBlur reads up-to-date values (no stale closure).
   const latestRef = useRef<Record<string, SlaRow>>({});
   // JSON snapshot of last successfully-persisted row state — drives no-op detection.
@@ -126,32 +157,64 @@ function SlaConfigTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('sla_configurations')
-      .select('*')
-      .order('process_type', { ascending: true })
-      .order('stage_name', { ascending: true });
-    if (error) toast({ title: 'Failed to load SLA configs', description: error.message, variant: 'destructive' });
+    const [cfgRes, wfRes] = await Promise.all([
+      supabase
+        .from('sla_configurations')
+        .select('*')
+        .order('process_type', { ascending: true })
+        .order('stage_name', { ascending: true }),
+      supabase.from('approval_workflows').select('id, entity_type').eq('is_active', true),
+    ]);
+    if (cfgRes.error) toast({ title: 'Failed to load SLA configs', description: cfgRes.error.message, variant: 'destructive' });
     else {
-      const list = (data ?? []) as unknown as SlaRow[];
+      const list = (cfgRes.data ?? []) as unknown as SlaRow[];
       setRows(list);
       syncLatest(list);
       // Initialise persisted snapshots so the first onBlur after load is a no-op.
       lastPersisted.current = Object.fromEntries(list.map(r => [r.id, JSON.stringify(r)]));
+    }
+
+    const workflows = (wfRes.data ?? []) as Array<{ id: string; entity_type: string }>;
+    if (workflows.length > 0) {
+      const { data: steps } = await supabase
+        .from('approval_steps')
+        .select('workflow_id, name')
+        .in('workflow_id', workflows.map(w => w.id));
+      const entityByWorkflow = new Map(workflows.map(w => [w.id, w.entity_type]));
+      const namesByEntity = new Map<string, Set<string>>();
+      ((steps ?? []) as Array<{ workflow_id: string; name: string | null }>).forEach(s => {
+        const ent = entityByWorkflow.get(s.workflow_id);
+        if (!ent || !s.name) return;
+        const set = namesByEntity.get(ent) ?? new Set<string>();
+        set.add(s.name);
+        namesByEntity.set(ent, set);
+      });
+      const byProcess: Record<string, string[]> = {};
+      RUNTIME_PROCESS_TYPES.forEach(({ value }) => {
+        const ents = WORKFLOW_ENTITY_TYPES_FOR_PROCESS[value] ?? [value];
+        const merged = new Set<string>();
+        ents.forEach(e => (namesByEntity.get(e) ?? new Set<string>()).forEach(n => merged.add(n)));
+        byProcess[value] = Array.from(merged).sort();
+      });
+      setStageOptions(byProcess);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+
   const validate = (r: Partial<SlaRow>): string | null => {
     if (!r.process_type?.trim()) return 'Process Type is required';
+    if (!RUNTIME_PROCESS_TYPES.some(p => p.value === r.process_type))
+      return 'Process Type must be one of the runtime process types, otherwise the SLA engine ignores this row';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
     if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
   };
+
 
   const saveRow = async (id: string) => {
     const row = latestRef.current[id];
@@ -193,9 +256,11 @@ function SlaConfigTab() {
 
   const addRow = async () => {
     const { data: { user } } = await supabase.auth.getUser();
+    const defaultProcess = 'application';
     const draft = {
-      process_type: 'NEW_PROCESS',
-      stage_name: 'New Stage',
+      process_type: defaultProcess,
+      stage_name: (stageOptions[defaultProcess] ?? [])[0] ?? 'New Stage',
+
       sla_duration: 8,
       sla_unit: 'hours',
       warning_threshold_pct: 75,
@@ -277,8 +342,56 @@ function SlaConfigTab() {
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">No SLA configurations yet. Click "Add SLA" to begin.</TableCell></TableRow>
               ) : rows.map(row => (
                 <TableRow key={row.id}>
-                  <TableCell><Input value={row.process_type} onChange={e => update(row.id, { process_type: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
-                  <TableCell><Input value={row.stage_name} onChange={e => update(row.id, { stage_name: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell className="min-w-[190px]">
+                    <Select
+                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : ''}
+                      onValueChange={v => update(row.id, { process_type: v }, true)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select process type" /></SelectTrigger>
+                      <SelectContent>
+                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {!RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) && (
+                      <p className="mt-1 text-xs text-destructive">
+                        "{row.process_type}" is not a runtime process type — this row is ignored by the SLA engine.
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="min-w-[220px]">
+                    {(() => {
+                      const options = stageOptions[row.process_type] ?? [];
+                      const isKnown = options.includes(row.stage_name);
+                      return (
+                        <>
+                          <Select
+                            value={isKnown ? row.stage_name : CUSTOM_STAGE}
+                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? row.stage_name : v }, v !== CUSTOM_STAGE)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
+                            <SelectContent>
+                              {options.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                              <SelectItem value={CUSTOM_STAGE}>Custom stage name…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {!isKnown && (
+                            <>
+                              <Input
+                                className="mt-1"
+                                value={row.stage_name}
+                                onChange={e => update(row.id, { stage_name: e.target.value })}
+                                onBlur={() => saveRow(row.id)}
+                              />
+                              <p className="mt-1 text-xs text-warning">
+                                No active workflow step named this — SLA will fall back to the step default.
+                              </p>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </TableCell>
+
                   <TableCell><Input type="number" min={1} value={row.sla_duration} onChange={e => update(row.id, { sla_duration: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell>
                     <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => update(row.id, { sla_unit: v }, true)}>
@@ -832,6 +945,202 @@ function SummaryTab() {
               {processTypes.map(p => <Badge key={p} variant="outline">{p}</Badge>)}
             </div>
           )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* -------------------- Live Stages & Breaches -------------------- */
+
+type StageMonitorRow = {
+  id: string;
+  process_type: string;
+  entity_type: string;
+  entity_id: string;
+  stage_name: string | null;
+  sla_hours: number | null;
+  sla_source: string | null;
+  started_at: string;
+  due_at: string | null;
+  paused_at: string | null;
+  pause_seconds: number | null;
+  state: string;
+  breached_at: string | null;
+  workflow_instance_id: string | null;
+};
+
+const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  active: 'default',
+  paused: 'secondary',
+  breached: 'destructive',
+  completed: 'outline',
+};
+
+/**
+ * Read-only evidence view over `sla_stage_instances`: what the SLA engine is
+ * actually tracking right now, where each duration came from (SLA Manager
+ * configuration vs workflow step default), and which escalation tiers have
+ * been dispatched by the sweep.
+ */
+function StageMonitorTab() {
+  const [rows, setRows] = useState<StageMonitorRow[]>([]);
+  /** Dispatched escalation tiers per workflow instance (sla_escalation_dispatches). */
+  const [tiersByInstance, setTiersByInstance] = useState<Record<string, number[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [stateFilter, setStateFilter] = useState<string>('open');
+  const [processFilter, setProcessFilter] = useState<string>('all');
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any)
+        .from('sla_stage_instances')
+        .select('id,process_type,entity_type,entity_id,workflow_instance_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at')
+        .order('due_at', { ascending: true, nullsFirst: false })
+        .limit(500);
+      if (error) {
+        toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+      const list = (data ?? []) as StageMonitorRow[];
+      setRows(list);
+
+      const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
+      if (instanceIds.length > 0) {
+        const { data: dispatches } = await (supabase as any)
+          .from('sla_escalation_dispatches')
+          .select('workflow_instance_id, tier')
+          .in('workflow_instance_id', instanceIds);
+        const map: Record<string, number[]> = {};
+        ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
+          map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
+        });
+        setTiersByInstance(map);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = useMemo(() => rows.filter(r => {
+    const stateOk =
+      stateFilter === 'all' ? true :
+      stateFilter === 'open' ? ['active', 'paused', 'breached'].includes(r.state) :
+      r.state === stateFilter;
+    const processOk = processFilter === 'all' || r.process_type === processFilter;
+    return stateOk && processOk;
+  }), [rows, stateFilter, processFilter]);
+
+  const counts = useMemo(() => {
+    const c = { active: 0, paused: 0, breached: 0, completed: 0, unconfigured: 0 };
+    rows.forEach(r => {
+      if (r.state in c) (c as Record<string, number>)[r.state] += 1;
+      if (r.sla_hours == null && ['active', 'paused'].includes(r.state)) c.unconfigured += 1;
+    });
+    return c;
+  }, [rows]);
+
+  const fmt = (ts?: string | null) => (ts ? new Date(ts).toLocaleString() : '—');
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Stages &amp; Breaches</CardTitle>
+        <CardDescription>
+          What the SLA engine is tracking right now. Read-only — state changes are made by the
+          workflow engine and the escalation sweep.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="default">Active {counts.active}</Badge>
+          <Badge variant="secondary">Paused {counts.paused}</Badge>
+          <Badge variant="destructive">Breached {counts.breached}</Badge>
+          <Badge variant="outline">Completed {counts.completed}</Badge>
+        </div>
+
+        {counts.unconfigured > 0 && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{counts.unconfigured} open stage(s) have no SLA duration</AlertTitle>
+            <AlertDescription>
+              Neither an SLA Manager configuration nor a workflow step SLA resolved for these
+              stages, so no due date or breach can be computed. Add a configuration row for the
+              matching process type and stage name.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">State</Label>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open (active/paused/breached)</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="breached">Breached</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Process</Label>
+            <Select value={processFilter} onValueChange={setProcessFilter}>
+              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All processes</SelectItem>
+                {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Process</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead>State</TableHead>
+                <TableHead>SLA</TableHead>
+                <TableHead>Started</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead>Paused</TableHead>
+                <TableHead>Escalations sent</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
+              ) : filtered.map(r => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{r.process_type}</TableCell>
+                  <TableCell>{r.stage_name || '—'}</TableCell>
+                  <TableCell><Badge variant={STATE_BADGE[r.state] ?? 'outline'}>{r.state}</Badge></TableCell>
+                  <TableCell className="text-xs">
+                    {r.sla_hours != null
+                      ? `${r.sla_hours}h · ${r.sla_source === 'configuration' ? 'SLA Manager' : 'step default'}`
+                      : <span className="text-destructive">not configured</span>}
+                  </TableCell>
+                  <TableCell className="text-xs">{fmt(r.started_at)}</TableCell>
+                  <TableCell className="text-xs">{fmt(r.due_at)}</TableCell>
+                  <TableCell className="text-xs">{Math.round((r.pause_seconds ?? 0) / 60)} min</TableCell>
+                  <TableCell className="text-xs">
+                    {(() => {
+                      const tiers = r.workflow_instance_id ? (tiersByInstance[r.workflow_instance_id] ?? []) : [];
+                      return tiers.length > 0 ? tiers.map(t => `Tier ${t}`).join(', ') : '—';
+                    })()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>

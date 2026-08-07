@@ -99,6 +99,7 @@ const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligen
 const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
 const SecurityEvents = lazy(() => import('@/pages/admin/SecurityEvents'));
+const SlaManager = lazy(() => import('@/pages/admin/SlaManager'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -240,6 +241,7 @@ export const dashboardRoutes = (
     <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
     <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
     <Route path="/admin/security-events" element={<M module="settings"><SecurityEvents /></M>} />
+    <Route path="/admin/sla-manager" element={<M module="settings"><SlaManager /></M>} />
     <Route path="/conduct" element={<M module="market_conduct"><ConductDashboard /></M>} />
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
     <Route path="/conduct/actions" element={<M module="market_conduct"><ConductActions /></M>} />
