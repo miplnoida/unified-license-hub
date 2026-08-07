@@ -269,6 +269,13 @@ Deno.serve(async (req) => {
       let null_reason: string | null = cycleError;
       try {
         if (cycleError) throw new Error(cycleError);
+        // A configured ratio without a usable formula is a configuration gap,
+        // not a data gap — surface it as NOT_CONFIGURED.
+        if (!String(r.formula ?? "").trim()) {
+          null_reason = "not_configured";
+          throw new Error("not_configured");
+        }
+
         // Resolve field tokens first so ratio substitution can safely
         // insert numeric literals without colliding with `formId.fieldKey` grammar.
         const withFields = resolve(r.formula, data);
@@ -312,16 +319,16 @@ Deno.serve(async (req) => {
       if (c) computed.push(c);
     }
     for (const c of computed) {
+      // Provenance (null_reason / formula snapshot / ratio version) must be
+      // supplied at insert time: return_calculated_ratios is append-only, so a
+      // follow-up UPDATE is rejected by tg_rcr_no_update and would be lost.
       await admin.rpc("record_return_ratio", {
         _return_id: return_id, _ratio_key: c.ratio_key, _label: c.label,
         _value: c.value, _display_format: c.display_format, _computed_by: actor.id,
+        _null_reason: c.null_reason, _ratio_version: c.version, _formula_snapshot: c.formula,
       });
-      try {
-        await admin.from("return_calculated_ratios")
-          .update({ ratio_version: c.version, formula_snapshot: c.formula, null_reason: c.null_reason })
-          .eq("return_id", return_id).eq("ratio_key", c.ratio_key);
-      } catch (_) { /* enrichment optional */ }
     }
+
 
     // Detect breaches with Green/Amber/Red classification.
     // Supports comparators: <, >, <=, >=, =, between (warn range = warn_value..upper_value),
