@@ -206,12 +206,15 @@ function SlaConfigTab() {
 
   const validate = (r: Partial<SlaRow>): string | null => {
     if (!r.process_type?.trim()) return 'Process Type is required';
+    if (!RUNTIME_PROCESS_TYPES.some(p => p.value === r.process_type))
+      return 'Process Type must be one of the runtime process types, otherwise the SLA engine ignores this row';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
     if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
   };
+
 
   const saveRow = async (id: string) => {
     const row = latestRef.current[id];
