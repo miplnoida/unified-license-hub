@@ -224,6 +224,26 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
+      - name: Assert required Phase 2 pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase2/01_ratio_engine.sql \
+            supabase/tests/phase2/02_peer_comparison.sql \
+            supabase/tests/phase2/03_ewi_engine.sql \
+            supabase/tests/phase2/04_camels_lifecycle.sql \
+            supabase/tests/phase2/05_group_consolidation.sql \
+            supabase/tests/phase2/06_rls_persona_matrix.sql; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 2 pgTAP file missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+
+
 
 
       - name: Setup Deno
