@@ -10312,7 +10312,9 @@ export type Database = {
           computed_at: string
           computed_by: string | null
           created_at: string
+          data_state: string | null
           eliminations: Json
+          excluded_members: Json
           group_id: string
           id: string
           member_count: number
@@ -10325,7 +10327,9 @@ export type Database = {
           computed_at?: string
           computed_by?: string | null
           created_at?: string
+          data_state?: string | null
           eliminations?: Json
+          excluded_members?: Json
           group_id: string
           id?: string
           member_count?: number
@@ -10338,7 +10342,9 @@ export type Database = {
           computed_at?: string
           computed_by?: string | null
           created_at?: string
+          data_state?: string | null
           eliminations?: Json
+          excluded_members?: Json
           group_id?: string
           id?: string
           member_count?: number
@@ -14903,6 +14909,122 @@ export type Database = {
           },
         ]
       }
+      prudential_assessment_component_ratings: {
+        Row: {
+          assessment_id: string
+          auto_suggested_rating: string | null
+          component_code: string
+          component_id: string | null
+          created_at: string
+          created_by: string | null
+          evidence: Json
+          id: string
+          narrative: string | null
+          override_justification: string | null
+          rating: string | null
+          suggestion_source: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assessment_id: string
+          auto_suggested_rating?: string | null
+          component_code: string
+          component_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          id?: string
+          narrative?: string | null
+          override_justification?: string | null
+          rating?: string | null
+          suggestion_source?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          auto_suggested_rating?: string | null
+          component_code?: string
+          component_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          evidence?: Json
+          id?: string
+          narrative?: string | null
+          override_justification?: string | null
+          rating?: string | null
+          suggestion_source?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_assessment_component_ratings_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_assessment_component_ratings_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_assessment_components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_assessment_components: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          sector_id: string | null
+          sort_order: number
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          sector_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          sector_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_assessment_components_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_assessments: {
         Row: {
           approved_at: string | null
@@ -15148,6 +15270,141 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_module_escalations"
             referencedColumns: ["escalation_id"]
+          },
+        ]
+      }
+      prudential_ewi_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          entity_id: string
+          evidence: Json
+          executed_at: string
+          id: string
+          metric_key: string
+          notes: string | null
+          period_end: string | null
+          rule_code: string
+          rule_id: string
+          rule_version: number
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          entity_id: string
+          evidence?: Json
+          executed_at?: string
+          id?: string
+          metric_key?: string
+          notes?: string | null
+          period_end?: string | null
+          rule_code: string
+          rule_id: string
+          rule_version?: number
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          entity_id?: string
+          evidence?: Json
+          executed_at?: string
+          id?: string
+          metric_key?: string
+          notes?: string | null
+          period_end?: string | null
+          rule_code?: string
+          rule_id?: string
+          rule_version?: number
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_ewi_alerts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_ewi_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_ewi_rules: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          params: Json
+          rule_type: string
+          sector_id: string | null
+          severity: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          params?: Json
+          rule_type: string
+          sector_id?: string | null
+          severity?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          params?: Json
+          rule_type?: string
+          sector_id?: string | null
+          severity?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_ewi_rules_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -16992,6 +17249,7 @@ export type Database = {
           null_reason: string | null
           ratio_key: string
           ratio_version: number | null
+          result_state: string | null
           return_config_id: string | null
           return_id: string
           value: number | null
@@ -17006,6 +17264,7 @@ export type Database = {
           null_reason?: string | null
           ratio_key: string
           ratio_version?: number | null
+          result_state?: string | null
           return_config_id?: string | null
           return_id: string
           value?: number | null
@@ -17020,6 +17279,7 @@ export type Database = {
           null_reason?: string | null
           ratio_key?: string
           ratio_version?: number | null
+          result_state?: string | null
           return_config_id?: string | null
           return_id?: string
           value?: number | null
@@ -22905,6 +23165,10 @@ export type Database = {
       }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      derive_ratio_result_state: {
+        Args: { _null_reason: string; _value: number }
+        Returns: string
+      }
       detect_complaint_duplicates: {
         Args: { _complaint_id?: string; _window_days?: number }
         Returns: Json
@@ -23634,6 +23898,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       group_consolidated_recompute: {
+        Args: { _group_id: string; _period_key: string }
+        Returns: Json
+      }
+      group_data_coverage: {
         Args: { _group_id: string; _period_key: string }
         Returns: Json
       }
@@ -24582,7 +24850,13 @@ export type Database = {
         Returns: Json
       }
       peer_ratio_snapshot: {
-        Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
+        Args: {
+          _entity_id?: string
+          _min_peers?: number
+          _period_end: string
+          _ratio_key: string
+          _sector_id?: string
+        }
         Returns: Json
       }
       pending_duplicate_count: { Args: never; Returns: number }
@@ -24705,6 +24979,37 @@ export type Database = {
           user_id: string
           user_role: string
         }[]
+      }
+      prudential_ewi_acknowledge: {
+        Args: { _alert_id: string; _notes?: string; _status?: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          entity_id: string
+          evidence: Json
+          executed_at: string
+          id: string
+          metric_key: string
+          notes: string | null
+          period_end: string | null
+          rule_code: string
+          rule_id: string
+          rule_version: number
+          severity: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_ewi_alerts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_ewi_evaluate: {
+        Args: { _entity_id: string; _period_end: string }
+        Returns: Json
       }
       prudential_group_consolidated: {
         Args: { _group_id: string; _period_key?: string }

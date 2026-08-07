@@ -357,18 +357,19 @@ export function useUpsertAssessment() {
 export function useTransitionAssessment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'approved'|'closed'; reason?: string }) => {
+    mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'returned_for_revision'|'approved'|'closed'; reason?: string }) => {
       const user = (await sb.auth.getUser()).data.user;
       const now = new Date().toISOString();
       const before = (await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle()).data;
       const patch: any = { status: to };
       if (to === 'submitted') patch.submitted_at = now;
       if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; if (reason) patch.review_notes = reason; }
+      if (to === 'returned_for_revision') { patch.reviewed_at = now; patch.reviewed_by = user?.id; patch.review_notes = reason ?? null; }
       if (to === 'approved') { patch.approved_at = now; patch.approved_by = user?.id; }
       if (to === 'closed') patch.closed_at = now;
       const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
       if (error) throw error;
-      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', approved: 'APPROVE', closed: 'UPDATE' };
+      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', returned_for_revision: 'REJECT', approved: 'APPROVE', closed: 'UPDATE' };
       await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },

@@ -13,6 +13,8 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { CamelsComponentsPanel } from '@/components/prudential/CamelsComponentsPanel';
+import { isAssessmentEditable, isAssessmentFinal } from '@/lib/prudentialPhase2';
 
 const CATEGORIES = ['capital', 'liquidity', 'asset_quality', 'profitability', 'concentration', 'governance', 'operational_resilience'];
 const RATINGS = ['1 - Strong', '2 - Satisfactory', '3 - Fair', '4 - Marginal', '5 - Unsatisfactory'];
@@ -44,7 +46,8 @@ export default function AssessmentDetail() {
   const autoRating = { critical: RATINGS[4], high: RATINGS[3], medium: RATINGS[2], low: RATINGS[1] }[worst as string] || RATINGS[1];
 
   const isOverride = form.overall_rating && form.overall_rating !== autoRating;
-  const canEdit = ['draft','submitted'].includes(form.status);
+  const canEdit = isAssessmentEditable(form.status);
+  const isFinal = isAssessmentFinal(form.status);
 
   const save = async () => {
     if (upsert.isPending) return;
@@ -138,6 +141,20 @@ export default function AssessmentDetail() {
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Mark reviewed'}
                 </Button>
               )}
+              {['submitted','reviewed'].includes(form.status) && (
+                <Button variant="outline" disabled={!reviewNotes.trim() || transition.isPending}
+                  onClick={() => transition.mutate({ id: id!, to: 'returned_for_revision', reason: reviewNotes })}>
+                  {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Returning…</>) : 'Return for revision'}
+                </Button>
+              )}
+              {form.status === 'returned_for_revision' && (
+                <Button variant="secondary" disabled={!form.rationale || upsert.isPending || transition.isPending} onClick={async () => {
+                  if (upsert.isPending || transition.isPending) return;
+                  try { await save(); await transition.mutateAsync({ id: id!, to: 'submitted' }); } catch { /* toast */ }
+                }}>
+                  {(upsert.isPending || transition.isPending) ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resubmitting…</>) : 'Resubmit for review'}
+                </Button>
+              )}
               {form.status === 'reviewed' && (
                 <Button disabled={transition.isPending} onClick={() => transition.mutate({ id: id!, to: 'approved' })}>
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Approving…</>) : 'Approve'}
@@ -148,15 +165,25 @@ export default function AssessmentDetail() {
                   {transition.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Closing…</>) : 'Close'}
                 </Button>
               )}
-              {form.status === 'submitted' && (
+              {['submitted','reviewed'].includes(form.status) && (
                 <div className="w-full">
-                  <Label>Review notes {form.status === 'submitted' && <span className="text-destructive">*</span>}</Label>
+                  <Label>Review notes <span className="text-destructive">*</span></Label>
                   <Textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} rows={2} />
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
+
+        <div className="md:col-span-2 md:order-last">
+          <CamelsComponentsPanel
+            assessmentId={id!}
+            sectorId={(assessment.licensees as any)?.sector_id ?? null}
+            status={form.status}
+            suggestions={{ C: { rating: autoRating, source: { basis: 'worst_breach_severity', severity: worst } } }}
+          />
+        </div>
+
 
         <Card>
           <CardHeader><CardTitle>Signals</CardTitle></CardHeader>
