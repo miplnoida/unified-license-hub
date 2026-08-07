@@ -849,6 +849,9 @@ export default function FpaDeclarations() {
                       {(queue ?? []).map((row: any) => {
                         const indiv = row.fp_individuals as any;
                         const ds = declStatus(row.status);
+                        const pq = (row.pq_state ?? 'draft') as PqState;
+                        const pqMeta = PQ_STATE_META[pq] ?? PQ_STATE_META.draft;
+
                         return (
                           <TableRow key={row.id}>
                             <TableCell className="font-medium text-sm">
