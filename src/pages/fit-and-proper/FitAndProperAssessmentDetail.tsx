@@ -21,6 +21,7 @@ import { migrateSectionsToRows } from '@/lib/formRows';
 import type { FormSection } from '@/types/formBuilder';
 import { logAudit } from '@/hooks/useAuditLog';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
+import { FpAssessmentComparisonPanel } from '@/components/fit-and-proper/FpAssessmentComparisonPanel';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
@@ -112,10 +113,7 @@ export default function FitAndProperAssessmentDetail() {
         <AiAnalysisCard assessmentId={assessment.id} individualId={assessment.individual_id} />
 
         {/* Phase 3D — what changed since the previous assessment for this individual */}
-        <FpAssessmentComparisonPanel
-          assessmentId={assessment.id}
-          individualId={assessment.individual_id}
-        />
+        <FpAssessmentComparisonPanel assessmentId={assessment.id} />
 
         {hasPinnedForm ? (
           <PinnedPqForm
