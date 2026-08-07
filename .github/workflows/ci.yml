@@ -194,7 +194,24 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
-      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-3)
+      - name: Assert required Phase 8 (Market Surveillance) pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase8/01_market_surveillance.sql \
+            supabase/tests/phase8/02_referral.sql \
+            supabase/tests/phase8/03_rule_versions.sql \
+            supabase/tests/phase8/04_rls_personas.sql \
+            docs/verification/phase8/manual-verification.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 8 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-8)
         run: supabase test db
 
 
