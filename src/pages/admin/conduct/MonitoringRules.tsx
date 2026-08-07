@@ -15,15 +15,27 @@ import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
 import { Loader2, Plus, Play } from 'lucide-react';
 
-const RULE_TYPES = ['complaint_volume', 'complaint_upheld_rate', 'sla_breach_rate', 'repeat_offender', 'monitoring_signal', 'custom'];
+const RULE_TYPES = ['complaint_volume', 'complaint_upheld_rate', 'sla_breach_rate', 'repeat_offender', 'monitoring_signal', 'metric_threshold', 'custom'];
 const FREQUENCIES = ['daily', 'weekly', 'monthly', 'on_demand'];
 const SCOPES = ['entity', 'product', 'sector', 'global'];
+const OPERATORS = ['>=', '>', '=', '<', '<='];
+const METRICS = [
+  'open_complaints_rolling',
+  'complaints_by_channel',
+  'post_remediation_complaint_count',
+  'upheld_rate',
+  'sla_breach_rate',
+  'repeat_complaint_count',
+];
 
 export default function MonitoringRules() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<any | null>(null);
   const [running, setRunning] = useState(false);
+  const [versionsFor, setVersionsFor] = useState<any | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -33,11 +45,22 @@ export default function MonitoringRules() {
   };
   useEffect(() => { load(); }, []);
 
+  const openVersions = async (r: any) => {
+    setVersionsFor(r); setVersions([]); setVersionsLoading(true);
+    const { data, error } = await supabase.from('conduct_monitoring_rule_versions' as any)
+      .select('*').eq('rule_id', r.id).order('version', { ascending: false });
+    if (error) toast.error(error.message); else setVersions((data as any[]) || []);
+    setVersionsLoading(false);
+  };
+
   const save = async () => {
     if (!edit.name?.trim()) return toast.error('Name required');
     let defn: any = {};
     try { defn = typeof edit.definition === 'string' ? JSON.parse(edit.definition || '{}') : (edit.definition || {}); }
     catch { return toast.error('Definition must be valid JSON'); }
+    if (edit.threshold_value !== '' && edit.threshold_value != null && isNaN(Number(edit.threshold_value))) {
+      return toast.error('Threshold must be numeric');
+    }
     const payload: any = {
       name: edit.name.trim(),
       description: edit.description || null,
@@ -47,6 +70,11 @@ export default function MonitoringRules() {
       active: !!edit.active,
       risk_delta: Number(edit.risk_delta) || 0,
       definition: defn,
+      metric: edit.metric || null,
+      source_dataset: edit.source_dataset || null,
+      threshold_value: edit.threshold_value === '' || edit.threshold_value == null ? null : Number(edit.threshold_value),
+      comparison_operator: edit.comparison_operator || null,
+      lookback_days: edit.lookback_days === '' || edit.lookback_days == null ? null : Number(edit.lookback_days),
     };
     let error;
     if (edit.id) ({ error } = await supabase.from('conduct_monitoring_rules' as any).update(payload).eq('id', edit.id));
@@ -62,6 +90,7 @@ export default function MonitoringRules() {
     await logAction('monitoring_rule.toggled', 'conduct_monitoring_rule', r.id, { before: { active: r.active }, after: { active: !r.active } });
     load();
   };
+
 
   const runNow = async () => {
     setRunning(true);

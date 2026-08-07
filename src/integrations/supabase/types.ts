@@ -3633,19 +3633,30 @@ export type Database = {
           created_at: string
           dedupe_key: string | null
           detail: Json
+          disposition: string
+          disposition_reason: string | null
           escalation_id: string | null
           explanation: string | null
           generated_by: string
           id: string
+          instrument_ref: string | null
+          investigation_id: string | null
           kind: string
           licensee_id: string | null
+          monitoring_result_id: string | null
+          observation_end: string | null
+          observation_start: string | null
           product_id: string | null
           regulator_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           rule_snapshot: Json | null
+          rule_version: number | null
           severity: string
           source: string | null
           source_record_ids: string[]
           status: string
+          threshold_value: number | null
           title: string
           triage_rule_id: string | null
           updated_at: string
@@ -3665,19 +3676,30 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           detail?: Json
+          disposition?: string
+          disposition_reason?: string | null
           escalation_id?: string | null
           explanation?: string | null
           generated_by?: string
           id?: string
+          instrument_ref?: string | null
+          investigation_id?: string | null
           kind: string
           licensee_id?: string | null
+          monitoring_result_id?: string | null
+          observation_end?: string | null
+          observation_start?: string | null
           product_id?: string | null
           regulator_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rule_snapshot?: Json | null
+          rule_version?: number | null
           severity?: string
           source?: string | null
           source_record_ids?: string[]
           status?: string
+          threshold_value?: number | null
           title: string
           triage_rule_id?: string | null
           updated_at?: string
@@ -3697,19 +3719,30 @@ export type Database = {
           created_at?: string
           dedupe_key?: string | null
           detail?: Json
+          disposition?: string
+          disposition_reason?: string | null
           escalation_id?: string | null
           explanation?: string | null
           generated_by?: string
           id?: string
+          instrument_ref?: string | null
+          investigation_id?: string | null
           kind?: string
           licensee_id?: string | null
+          monitoring_result_id?: string | null
+          observation_end?: string | null
+          observation_start?: string | null
           product_id?: string | null
           regulator_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rule_snapshot?: Json | null
+          rule_version?: number | null
           severity?: string
           source?: string | null
           source_record_ids?: string[]
           status?: string
+          threshold_value?: number | null
           title?: string
           triage_rule_id?: string | null
           updated_at?: string
@@ -3760,6 +3793,13 @@ export type Database = {
             referencedColumns: ["escalation_id"]
           },
           {
+            foreignKeyName: "conduct_alerts_investigation_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_alerts_licensee_id_fkey"
             columns: ["licensee_id"]
             isOneToOne: false
@@ -3772,6 +3812,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_monitoring_result_fkey"
+            columns: ["monitoring_result_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_results"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "conduct_alerts_product_id_fkey"
@@ -4861,47 +4908,106 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_monitoring_rule_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          rule_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          rule_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          rule_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_monitoring_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_monitoring_rules: {
         Row: {
           active: boolean
+          code: string | null
+          comparison_operator: string | null
           created_at: string
           created_by: string | null
+          current_version: number
           definition: Json
           description: string | null
           frequency: string
           id: string
+          lookback_days: number | null
+          metric: string | null
           name: string
           risk_delta: number
           rule_type: string
           scope: string
+          source_dataset: string | null
+          threshold_value: number | null
           updated_at: string
         }
         Insert: {
           active?: boolean
+          code?: string | null
+          comparison_operator?: string | null
           created_at?: string
           created_by?: string | null
+          current_version?: number
           definition?: Json
           description?: string | null
           frequency?: string
           id?: string
+          lookback_days?: number | null
+          metric?: string | null
           name: string
           risk_delta?: number
           rule_type?: string
           scope?: string
+          source_dataset?: string | null
+          threshold_value?: number | null
           updated_at?: string
         }
         Update: {
           active?: boolean
+          code?: string | null
+          comparison_operator?: string | null
           created_at?: string
           created_by?: string | null
+          current_version?: number
           definition?: Json
           description?: string | null
           frequency?: string
           id?: string
+          lookback_days?: number | null
+          metric?: string | null
           name?: string
           risk_delta?: number
           rule_type?: string
           scope?: string
+          source_dataset?: string | null
+          threshold_value?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -5140,6 +5246,88 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      conduct_signal_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_disposition: string | null
+          id: string
+          investigation_id: string | null
+          reason: string | null
+          signal_id: string
+          to_disposition: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_disposition?: string | null
+          id?: string
+          investigation_id?: string | null
+          reason?: string | null
+          signal_id: string
+          to_disposition: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_disposition?: string | null
+          id?: string
+          investigation_id?: string | null
+          reason?: string | null
+          signal_id?: string
+          to_disposition?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signal_events_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_signal_evidence: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          document_id: string | null
+          id: string
+          label: string | null
+          note: string | null
+          signal_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          label?: string | null
+          note?: string | null
+          signal_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          label?: string | null
+          note?: string | null
+          signal_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signal_evidence_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conduct_supervision_annotations: {
         Row: {
@@ -26463,6 +26651,16 @@ export type Database = {
         Returns: Json
       }
       redact_sensitive_jsonb: { Args: { _payload: Json }; Returns: Json }
+      refer_conduct_signal_to_investigation: {
+        Args: {
+          _allegation: string
+          _due_date?: string
+          _priority?: string
+          _reason?: string
+          _signal_id: string
+        }
+        Returns: string
+      }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
         Returns: Json
@@ -26993,6 +27191,10 @@ export type Database = {
           _status: string
         }
         Returns: Json
+      }
+      set_conduct_signal_disposition: {
+        Args: { _disposition: string; _reason?: string; _signal_id: string }
+        Returns: string
       }
       set_correspondence_thread_state: {
         Args: { _justification?: string; _state: string; _thread_id: string }
