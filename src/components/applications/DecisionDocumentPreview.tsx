@@ -445,14 +445,15 @@ export function DecisionDocumentPreview({
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
                     {certUrl ? 'Regenerate draft PDF' : 'Generate draft PDF'}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={printCertificate}>
+                  <Button data-rbac="application_management.view" size="sm" variant="outline" onClick={printCertificate}>
                     <Printer className="h-4 w-4 mr-1.5" />Print certificate
                   </Button>
                   {certUrl && (
-                    <Button size="sm" variant="outline" asChild>
+                    <Button data-rbac="application_management.view" size="sm" variant="outline" asChild>
                       <a href={certUrl} download={certFilename}><Download className="h-4 w-4 mr-1.5" />Download PDF</a>
                     </Button>
                   )}
+
                   <Badge variant="outline">Watermarked · not stored</Badge>
                   {!signatory && <Badge variant="outline">Signatory not configured</Badge>}
                 </div>
