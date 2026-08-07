@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import {
+  FP_PROVIDER_STATE_META,
+  isConclusive,
+  normalizeProviderState,
+} from '@/lib/fp/providerStates';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -958,31 +963,35 @@ export default function FpaAiAnalysis() {
                   <p className="text-xs font-medium text-muted-foreground mb-1">
                     External provider calls in this run
                   </p>
+                  {latestRun.provider_outcomes.some(
+                    (o: any) => !isConclusive(normalizeProviderState(o.state ?? o.outcome)),
+                  ) && (
+                    <p className="mb-1.5 rounded border border-warning/30 bg-warning/10 px-2 py-1 text-xs text-warning-foreground">
+                      One or more checks in this run did not complete against a live provider. This run
+                      is NOT evidence of a clean subject — verify manually before relying on it.
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-1.5">
                     {latestRun.provider_outcomes.map((o: any, i: number) => {
-                      const ok = o.outcome === 'screened_hits' || o.outcome === 'screened_clean';
-                      const cls = o.outcome === 'screened_hits'
-                        ? 'bg-red-100 text-red-800 border-red-200'
-                        : o.outcome === 'screened_clean'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        : o.outcome === 'not_configured'
-                        ? 'bg-slate-100 text-slate-700 border-slate-200'
-                        : 'bg-amber-100 text-amber-900 border-amber-200';
+                      const state = normalizeProviderState(o.state ?? o.outcome);
+                      const meta = FP_PROVIDER_STATE_META[state];
                       return (
                         <Badge
                           key={i}
                           variant="outline"
-                          className={`text-xs font-mono ${cls}`}
+                          className={`text-xs font-mono ${meta.className}`}
                           title={[
+                            meta.help,
                             `provider: ${o.integration_key}`,
                             `mode: ${o.execution_mode ?? '—'}`,
+                            o.environment ? `environment: ${o.environment}` : null,
                             o.provider_reference ? `reference: ${o.provider_reference}` : null,
                             o.error_message ? `error: ${o.error_message}` : null,
                             o.correlation_id ? `correlation: ${o.correlation_id}` : null,
                           ].filter(Boolean).join('\n')}
                         >
-                          {o.check_type} · {String(o.outcome).replace(/_/g, ' ')}
-                          {ok && o.outcome === 'screened_hits' ? ` (${o.hits})` : ''}
+                          {o.check_type} · {meta.label}
+                          {state === 'SUCCESS_HIT' ? ` (${o.hits ?? 0})` : ''}
                         </Badge>
                       );
                     })}

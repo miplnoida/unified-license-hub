@@ -6,7 +6,7 @@
  * mistaken for a clean subject.
  */
 export type FpProviderState =
-  | 'SUCCESS_MATCH'
+  | 'SUCCESS_HIT'
   | 'SUCCESS_NO_MATCH'
   | 'NOT_CONFIGURED'
   | 'SANDBOX'
@@ -19,7 +19,7 @@ export const FP_PROVIDER_STATE_META: Record<
   FpProviderState,
   { label: string; className: string; conclusive: boolean; help: string }
 > = {
-  SUCCESS_MATCH: {
+  SUCCESS_HIT: {
     label: 'Success — result found',
     className: 'bg-destructive/15 text-destructive border-destructive/30',
     conclusive: true,
@@ -70,10 +70,10 @@ export const FP_PROVIDER_STATE_META: Record<
 };
 
 const ALIASES: Record<string, FpProviderState> = {
-  hit: 'SUCCESS_MATCH',
-  hits: 'SUCCESS_MATCH',
-  match: 'SUCCESS_MATCH',
-  success: 'SUCCESS_MATCH',
+  hit: 'SUCCESS_HIT',
+  hits: 'SUCCESS_HIT',
+  match: 'SUCCESS_HIT',
+  success: 'SUCCESS_HIT',
   clean: 'SUCCESS_NO_MATCH',
   no_match: 'SUCCESS_NO_MATCH',
   no_hit: 'SUCCESS_NO_MATCH',
