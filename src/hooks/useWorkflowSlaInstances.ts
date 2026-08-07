@@ -94,7 +94,7 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
       const workflowIds = Array.from(new Set(instances.map(wi => wi.workflow_id).filter((id): id is string => !!id)));
       const instanceIds = Array.from(new Set(instances.map(wi => wi.id).filter(Boolean)));
 
-      const [stepsRes, workflowStepsRes, instanceActionsRes, appActionsRes, appsRes] = await Promise.all([
+      const [stepsRes, workflowStepsRes, instanceActionsRes, appActionsRes, appsRes, stagesRes] = await Promise.all([
         stepIds.length > 0
           ? supabase.from('approval_steps').select(STEP_SELECT).in('id', stepIds)
           : Promise.resolve({ data: [] as any[], error: null } as any),
@@ -110,12 +110,33 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
         entityType === 'application' && entityIdList.length > 0
           ? supabase.from('applications').select('id, submitted_at, created_at').in('id', entityIdList)
           : Promise.resolve({ data: [] as any[], error: null } as any),
+        instanceIds.length > 0
+          ? (supabase as any)
+              .from('sla_stage_instances')
+              .select(STAGE_SELECT)
+              .in('workflow_instance_id', instanceIds)
+              .in('state', ['active', 'paused', 'breached'])
+          : Promise.resolve({ data: [] as any[], error: null } as any),
       ]);
       if (stepsRes.error) throw stepsRes.error;
       if (workflowStepsRes.error) throw workflowStepsRes.error;
       if (instanceActionsRes.error) throw instanceActionsRes.error;
       if (appActionsRes.error) throw appActionsRes.error;
       if (appsRes.error) throw appsRes.error;
+      // Stage records are an enhancement: a read failure (e.g. external
+      // persona without internal read access) must not break the queue.
+      const stageRows: SlaStageInstanceRow[] = stagesRes?.error
+        ? []
+        : ((stagesRes?.data as SlaStageInstanceRow[]) || []);
+      const stageByInstanceId = new Map<string, SlaStageInstanceRow>();
+      stageRows.forEach(stage => {
+        if (!stage.workflow_instance_id) return;
+        const existing = stageByInstanceId.get(stage.workflow_instance_id);
+        if (!existing || new Date(stage.started_at) > new Date(existing.started_at)) {
+          stageByInstanceId.set(stage.workflow_instance_id, stage);
+        }
+      });
+
 
       const stepById = new Map<string, WorkflowSlaStepConfig>();
       ((stepsRes.data as WorkflowSlaStepConfig[]) || []).forEach(step => {
