@@ -173,8 +173,30 @@ jobs:
           done
           [ "$missing" -eq 0 ]
 
-      - name: Run pgTAP suite (complaints + RBAC + notifications)
+      - name: Assert required Phase 3 (Fit & Proper) pgTAP files exist
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            supabase/tests/phase3/01_registry.sql \
+            supabase/tests/phase3/02_pq.sql \
+            supabase/tests/phase3/03_screening.sql \
+            supabase/tests/phase3/04_assessment.sql \
+            supabase/tests/phase3/05_committee.sql \
+            supabase/tests/phase3/06_twin_peaks.sql \
+            supabase/tests/phase3/07_conditions.sql \
+            supabase/tests/phase3/08_rls_matrix.sql \
+            docs/verification/fit-and-proper/phase3-manual-verification.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Required Phase 3 artefact missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Run pgTAP suite (complaints + RBAC + notifications + phases 1-3)
         run: supabase test db
+
 
       - name: Assert required edge-function tests exist
         run: |
