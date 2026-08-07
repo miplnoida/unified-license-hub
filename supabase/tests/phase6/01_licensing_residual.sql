@@ -38,31 +38,31 @@ SELECT ok(NOT has_table_privilege('anon', 'public.application_acknowledgements',
 -- ---------------------------------------------------------------------------
 -- Fixtures
 -- ---------------------------------------------------------------------------
-CREATE TEMP TABLE _p6(application_id uuid, application_number text, ack_id uuid, referral_id uuid);
+CREATE TEMP TABLE _p6(application_id uuid, application_number text, ack_id uuid,
+                      referral_id uuid, officer_id uuid, applicant_id uuid);
 
 DO $$
 DECLARE
-  v_officer uuid := '00000000-0000-0000-0000-0000000e0001';
-  v_applicant uuid := '00000000-0000-0000-0000-0000000e0002';
+  v_officer uuid;
+  v_applicant uuid;
   v_app uuid;
   v_num text;
 BEGIN
-  INSERT INTO auth.users (id, email) VALUES
-    (v_officer, 'phase6.officer@example.test'),
-    (v_applicant, 'phase6.applicant@example.test')
-  ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO public.user_roles (user_id, role) VALUES (v_officer, 'super_admin')
-    ON CONFLICT DO NOTHING;
+  -- Reuse real accounts: user_roles/profiles reference auth.users, which the
+  -- test role cannot write to.
+  SELECT user_id INTO v_officer FROM public.user_roles WHERE role = 'super_admin' LIMIT 1;
+  SELECT id INTO v_applicant FROM public.profiles WHERE id <> v_officer LIMIT 1;
 
   INSERT INTO public.applications (applicant_id, license_type, status, submitted_at)
-  VALUES (v_applicant, 'Phase6 Test Licence', 'under_review', now())
+  VALUES (coalesce(v_applicant, v_officer), 'Phase6 Test Licence', 'under_review', now())
   RETURNING id, application_number INTO v_app, v_num;
 
-  INSERT INTO _p6(application_id, application_number) VALUES (v_app, v_num);
-END$$;
+  INSERT INTO _p6(application_id, application_number, officer_id, applicant_id)
+  VALUES (v_app, v_num, v_officer, coalesce(v_applicant, v_officer));
 
-SET LOCAL "request.jwt.claims" = '{"sub":"00000000-0000-0000-0000-0000000e0001","role":"authenticated"}';
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', v_officer, 'role', 'authenticated')::text, true);
+END$$;
 
 -- ---------------------------------------------------------------------------
 -- 6.1 Acknowledgement: generated once, idempotent, versioned per submission
@@ -213,7 +213,7 @@ SELECT is(
 
 -- Overriding the blocker clears the gate; the sufficient outcome then succeeds.
 INSERT INTO public.sufficiency_overrides (evaluation_result_id, overridden_by, reason)
-SELECT r.id, '00000000-0000-0000-0000-0000000e0001',
+SELECT r.id, (SELECT officer_id FROM _p6),
        'Audited accounts received out of band and verified.'
   FROM public.sufficiency_evaluation_results r
   JOIN public.sufficiency_evaluations e ON e.id = r.evaluation_id
@@ -244,8 +244,8 @@ INSERT INTO public.application_legal_referrals
   (application_id, specialism, referral_reason, referred_by, referred_to, due_at)
 VALUES ((SELECT application_id FROM _p6), 'legal',
         'Confirm enforceability of the proposed shareholder undertaking.',
-        '00000000-0000-0000-0000-0000000e0001',
-        '00000000-0000-0000-0000-0000000e0001', now() + interval '5 days');
+        (SELECT officer_id FROM _p6),
+        (SELECT officer_id FROM _p6), now() + interval '5 days');
 
 UPDATE _p6 SET referral_id = (
   SELECT id FROM public.application_legal_referrals
@@ -275,7 +275,7 @@ SELECT throws_ok(
 
 INSERT INTO public.application_legal_notes
   (application_id, actor_id, note_text, has_legal_concern, recommendation, referral_id, restricted)
-VALUES ((SELECT application_id FROM _p6), '00000000-0000-0000-0000-0000000e0001',
+VALUES ((SELECT application_id FROM _p6), (SELECT officer_id FROM _p6),
         'The undertaking is enforceable subject to registration of the charge.',
         false, 'approve_with_conditions', (SELECT referral_id FROM _p6), true);
 
