@@ -52,13 +52,13 @@ queue screen, no entity-facing published-report list. Effort: 4 days. Priority: 
 `/admin/overrides` reads `rule_overrides` only. Missing a register that unions
 workflow-step overrides, scoring/assessment overrides, sufficiency overrides and
 SLA/due-date extensions with one filter set and one governed export.
-Effort: 3 days. Priority: Medium.
+Effort: 4 days. Priority: Medium.
 
 ### IT-007 — DASH-OPS-002 Team performance — Missing, 20%
 Adjacent only: `src/pages/admin/SlaManager.tsx` (SLA configuration) and
 `src/pages/entity/MySupervisoryActions.tsx` (personal queue). Missing per-officer
 throughput, SLA attainment by officer and team, and workload rebalancing /
-reassignment from a supervisory view. Effort: 5 days. Priority: Medium.
+reassignment from a supervisory view. Effort: 4 days. Priority: Medium.
 
 ### IT-008 — FP-ASS-002 Adverse media / PEP screening — Partial, 80% (environmental)
 Not a build gap. The adapter path, `supabase/functions/screening-sandbox`,
