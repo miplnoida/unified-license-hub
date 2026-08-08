@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileText } from 'lucide-react';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 
 export default function ReturnsTab({ entityId, licenseId }: { entityId: string; licenseId: string | null }) {
   const [returns, setReturns] = useState<any[]>([]);
