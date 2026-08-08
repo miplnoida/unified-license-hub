@@ -52,6 +52,7 @@ export default function LicensesList() {
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get('status');
   const urlFilter = searchParams.get('filter'); // 'expiring' | 'expired'
