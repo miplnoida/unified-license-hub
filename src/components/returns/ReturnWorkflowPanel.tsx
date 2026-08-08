@@ -367,9 +367,35 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       const extra = names.length > 3 ? ` +${names.length - 3} more` : '';
       return `Specific user${ids.length > 1 ? 's' : ''}: ${head}${extra}`;
     }
-    if (step?.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
+    // A step may allow several roles; show them all rather than only the first.
+    const cfgRoleIds = ((step?.approver_config || {}) as { role_ids?: string[] }).role_ids || [];
+    const roleIds = Array.from(new Set([step?.approver_role_id, ...cfgRoleIds].filter(Boolean))) as string[];
+    if (roleIds.length > 0) {
+      const names = roleIds.map((id) => dynamicRolesMap[id]).filter(Boolean) as string[];
+      if (names.length === 0) return 'Configured role missing';
+      const head = names.slice(0, 3).join(', ');
+      const extra = names.length > 3 ? ` +${names.length - 3} more` : '';
+      return `${head}${extra}`;
+    }
     return ROLE_LABELS[step?.approver_role as AppRole] || step?.approver_role;
   };
+
+  // Once a step has recorded activity, show WHO acted instead of the (often
+  // broad) configured approver role.
+  const stepActorLabel = (step: any, status: string): string => {
+    const list = actionsByStep.get(step.id) || [];
+    if (list.length > 0 && (status === 'completed' || status === 'returned')) {
+      const decisiveTypes = new Set(['approve', 'reject', 'send_back', 'escalate', 'request_resubmission', 'return_for_correction', 'request_more_info', 'validate']);
+      const chosen = [...list].reverse().find((a) => decisiveTypes.has(a.action_type)) || list[list.length - 1];
+      const actorName = chosen.actor_id ? (actorsMap[chosen.actor_id]?.name || 'Unknown user') : 'System';
+      const verb = chosen.action_type === 'save_comment' || chosen.action_type === 'remark'
+        ? 'Comment by'
+        : `${actionLabel(chosen.action_type)} by`;
+      return `${verb} ${actorName}`;
+    }
+    return `Assigned to ${stepRoleLabel(step)}`;
+  };
+
 
   const focusStepId = currentStep?.id ?? steps[steps.length - 1]?.id;
   const [openStepId, setOpenStepId] = useState<string | undefined>(focusStepId);
@@ -481,7 +507,8 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm truncate font-medium">Step {idx + 1}: {s.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{stepActorLabel(s, status)}</p>
+
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {s.sla_hours ? (
@@ -887,7 +914,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                       <p className={cn('text-sm truncate', isCurrent ? 'font-semibold' : 'font-medium')}>
                         Step {idx + 1}: {s.name}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                      <p className="text-xs text-muted-foreground truncate">{stepActorLabel(s, status)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {s.sla_hours ? (
