@@ -308,11 +308,8 @@ export function useAllLicenseAppealPanelMembers() {
   });
 }
 
-
-
-
-
 /** The composition photographed for this appeal — never changes when the panel changes. */
+
 
 export function useAppealPanelSnapshot(appealId: string | undefined) {
   return useQuery({
