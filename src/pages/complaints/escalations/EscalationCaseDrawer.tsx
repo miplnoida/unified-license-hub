@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { SeverityBadge, StatusChip } from './severityBadge';
 import { TIER_LABEL, type EscalationCase } from './types';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props {
   open: boolean;
