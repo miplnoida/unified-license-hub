@@ -516,28 +516,22 @@ Deno.serve(async (req) => {
         resubmission_version: resubmittedAt,
       };
 
-      // Applicant confirmation
-      adminClient.functions.invoke("dispatch-notification-event", {
-        body: {
+      // Dispatch is AWAITED (not fire-and-forget): an un-awaited invoke can be
+      // dropped when the isolate is torn down after the response is returned,
+      // which silently lost submission notifications. If a direct dispatch
+      // fails we fall back to the durable notification_event_queue so the
+      // queue worker retries it instead of the event being lost.
+      const dispatchTargets = [
+        {
           event_key: applicantEventKey,
-          entity_type: "application",
-          entity_id: application_id,
-          ...(isResubmission ? { reminder_window: `resubmit:${resubmittedAt}` } : {}),
           payload: {
             ...extendedPayload,
             cta_url: appDetailUrl || portalUrl,
             cta_label: applicantCtaLabel,
           },
         },
-      }).catch((e) => console.error("[notify] applicant dispatch failed", e?.message || e));
-
-      // Reviewer/workflow notification
-      adminClient.functions.invoke("dispatch-notification-event", {
-        body: {
+        {
           event_key: reviewerEventKey,
-          entity_type: "application",
-          entity_id: application_id,
-          ...(isResubmission ? { reminder_window: `resubmit:${resubmittedAt}` } : {}),
           payload: {
             ...extendedPayload,
             reviewer_name: "Reviewer",
@@ -545,7 +539,49 @@ Deno.serve(async (req) => {
             cta_label: reviewerCtaLabel,
           },
         },
-      }).catch((e) => console.error("[notify] reviewer dispatch failed", e?.message || e));
+      ];
+
+      for (const target of dispatchTargets) {
+        let dispatched = false;
+        try {
+          const { error: dispatchErr } = await adminClient.functions.invoke(
+            "dispatch-notification-event",
+            {
+              body: {
+                event_key: target.event_key,
+                entity_type: "application",
+                entity_id: application_id,
+                ...(isResubmission ? { reminder_window: `resubmit:${resubmittedAt}` } : {}),
+                payload: target.payload,
+              },
+            },
+          );
+          if (dispatchErr) throw dispatchErr;
+          dispatched = true;
+        } catch (e) {
+          console.error(
+            "[notify] direct dispatch failed, enqueueing",
+            target.event_key,
+            e instanceof Error ? e.message : e,
+          );
+        }
+
+        if (!dispatched) {
+          const { error: enqueueErr } = await adminClient.rpc("notification_enqueue_event", {
+            _event_key: target.event_key,
+            _entity_type: "application",
+            _entity_id: application_id,
+            _payload: target.payload,
+            _idempotency_suffix: isResubmission ? `resubmit:${resubmittedAt}` : "submit",
+            _correlation_id: null,
+            _reminder_window: isResubmission ? `resubmit:${resubmittedAt}` : null,
+          });
+          if (enqueueErr) {
+            console.error("[notify] enqueue fallback failed", target.event_key, enqueueErr.message);
+          }
+        }
+      }
+
     } catch (notifyErr) {
       // Never fail the submission because of email/notification problems.
       console.error("[notify] submission dispatch error (non-fatal):", notifyErr instanceof Error ? notifyErr.message : notifyErr);
