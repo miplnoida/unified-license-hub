@@ -603,10 +603,37 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         return jsonResponse({ error: "AI gateway failed", status: aiResp.status }, 502);
       }
 
-      const aiJson = await aiResp.json();
-      const content =
-        aiJson?.choices?.[0]?.message?.content ?? aiJson?.choices?.[0]?.text ?? "";
-      const parsed = safeParseJson(typeof content === "string" ? content : JSON.stringify(content));
+      // Streamed response: accumulate the deltas server-side. Streaming keeps
+      // bytes flowing so a long generation is not severed by the platform's
+      // no-bytes ceiling (which previously left the row stuck at `pending`).
+      let content = "";
+      const reader = aiResp.body?.getReader();
+      if (reader) {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const evt = JSON.parse(payload);
+              const delta = evt?.choices?.[0]?.delta?.content;
+              if (typeof delta === "string") content += delta;
+            } catch {
+              // ignore keep-alive / non-JSON frames
+            }
+          }
+        }
+      }
+      const parsed = safeParseJson(content);
+
 
       if (!parsed) {
         await adminClient
