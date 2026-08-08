@@ -95,10 +95,8 @@ function safeParseJson(raw: string): Record<string, unknown> | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
-
-  const __authzGate = await requireUserPermission(req, "application_management", "view");
-  if (!__authzGate.ok) return __authzGate.response;
   }
+
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -107,7 +105,25 @@ Deno.serve(async (req) => {
 
   const adminClient = createClient(supabaseUrl, serviceKey);
 
+  // Declared outside the try block so every exit path (including the outer
+  // catch) can write a terminal status onto the seeded `pending` row. Leaving
+  // it pending makes the analyst UI spin forever.
+  let inboundAssessmentId: string | null = null;
+  const failPending = async (message: string) => {
+    if (!inboundAssessmentId) return;
+    try {
+      await adminClient
+        .from("application_ai_assessments")
+        .update({ status: "failed", error_message: message.slice(0, 500) })
+        .eq("id", inboundAssessmentId)
+        .eq("status", "pending");
+    } catch (_e) {
+      // best effort only
+    }
+  };
+
   try {
+
     const authHeader = req.headers.get("authorization") || "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
 
@@ -126,17 +142,20 @@ Deno.serve(async (req) => {
       }
       callerUserId = userData.user.id;
 
-      // Require internal role for non-service-role callers.
-      const { data: roles } = await adminClient
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", callerUserId);
-      const hasInternal = (roles ?? []).some((r: { role: string }) =>
-        INTERNAL_ROLES.has(r.role),
-      );
-      if (!hasInternal) {
-        return jsonResponse({ error: "Forbidden" }, 403);
+      // Require the application-management view permission for non-service-role
+      // callers (falls back to the internal-role check below).
+      const authzGate = await requireUserPermission(req, "application_management", "view");
+      if (!authzGate.ok) {
+        const { data: roles } = await adminClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId);
+        const hasInternal = (roles ?? []).some((r: { role: string }) =>
+          INTERNAL_ROLES.has(r.role),
+        );
+        if (!hasInternal) return authzGate.response;
       }
+
     } else {
       return jsonResponse({ error: "Missing authorization" }, 401);
     }
@@ -148,8 +167,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
     const application_id = body.application_id;
-    const inboundAssessmentId = body.assessment_id || null;
+    inboundAssessmentId = body.assessment_id || null;
     if (!application_id || typeof application_id !== "string") {
+      await failPending("application_id is required");
       return jsonResponse({ error: "application_id is required" }, 400);
     }
 
@@ -160,8 +180,10 @@ Deno.serve(async (req) => {
       .eq("id", application_id)
       .maybeSingle();
     if (appErr || !app) {
+      await failPending("Application not found");
       return jsonResponse({ error: "Application not found" }, 404);
     }
+
 
     const appData = (app.data as Record<string, unknown> | null) || {};
     const sectorId = (appData.sector_id as string | undefined) || null;
@@ -550,11 +572,13 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         },
         body: JSON.stringify({
           model: MODEL_NAME,
+          stream: true,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
         }),
+
       });
 
       if (!aiResp.ok) {
@@ -581,10 +605,37 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         return jsonResponse({ error: "AI gateway failed", status: aiResp.status }, 502);
       }
 
-      const aiJson = await aiResp.json();
-      const content =
-        aiJson?.choices?.[0]?.message?.content ?? aiJson?.choices?.[0]?.text ?? "";
-      const parsed = safeParseJson(typeof content === "string" ? content : JSON.stringify(content));
+      // Streamed response: accumulate the deltas server-side. Streaming keeps
+      // bytes flowing so a long generation is not severed by the platform's
+      // no-bytes ceiling (which previously left the row stuck at `pending`).
+      let content = "";
+      const reader = aiResp.body?.getReader();
+      if (reader) {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const evt = JSON.parse(payload);
+              const delta = evt?.choices?.[0]?.delta?.content;
+              if (typeof delta === "string") content += delta;
+            } catch {
+              // ignore keep-alive / non-JSON frames
+            }
+          }
+        }
+      }
+      const parsed = safeParseJson(content);
+
 
       if (!parsed) {
         await adminClient
@@ -680,7 +731,9 @@ ${JSON.stringify(applicationContext, null, 2)}`;
       return jsonResponse({ error: "AI generation failed" }, 500);
     }
   } catch (err) {
+    await failPending(err instanceof Error ? err.message : "Internal error");
     return jsonResponse(
+
       { error: err instanceof Error ? err.message : "Internal error" },
       500,
     );

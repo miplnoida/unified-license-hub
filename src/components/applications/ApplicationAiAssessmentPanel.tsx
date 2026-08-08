@@ -14,6 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatEvidenceList } from '@/lib/evidenceLabel';
 import { formatDistanceToNow } from 'date-fns';
+import { formatDateTime } from '@/lib/datetime';
+
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 interface Props {
@@ -126,6 +128,8 @@ function groupBySeverity(items: Finding[]) {
   return grouped;
 }
 
+const STALE_PENDING_MS = 10 * 60 * 1000;
+
 export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: Props) {
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -133,6 +137,15 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
 
   const fetchLatest = useCallback(async () => {
     setLoading(true);
+    // Flip abandoned `pending` rows (generation died mid-flight) to `failed`
+    // so the panel never spins forever without a recovery path.
+    try {
+      await supabase.rpc('reconcile_stale_ai_assessments' as never, {
+        _application_id: applicationId,
+      } as never);
+    } catch {
+      // non-fatal: read-only fallback below still renders the stale state
+    }
     const { data, error } = await supabase
       .from('application_ai_assessments' as never)
       .select('*')
@@ -150,14 +163,20 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
     void fetchLatest();
   }, [fetchLatest]);
 
+  const isStalePending =
+    assessment?.status === 'pending' &&
+    Date.now() - new Date(assessment.created_at).getTime() > STALE_PENDING_MS;
+
   // Poll while pending to surface completion without manual refresh.
+  // Bounded: once the row is considered stale, polling stops.
   useEffect(() => {
-    if (assessment?.status !== 'pending') return;
+    if (assessment?.status !== 'pending' || isStalePending) return;
     const t = setInterval(() => {
       void fetchLatest();
     }, 5000);
     return () => clearInterval(t);
-  }, [assessment?.status, fetchLatest]);
+  }, [assessment?.status, isStalePending, fetchLatest]);
+
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -187,7 +206,7 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">Advisory only</Badge>
-            {assessment && assessment.status !== 'pending' && (
+            {assessment && (
               <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="ml-1">Regenerate</span>
@@ -211,10 +230,26 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
               Generate assessment
             </Button>
           </div>
-        ) : assessment.status === 'pending' ? (
+        ) : assessment.status === 'pending' && !isStalePending ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> AI assessment is being generated…
           </div>
+        ) : assessment.status === 'pending' ? (
+          <div className="space-y-3">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Generation did not complete</AlertTitle>
+              <AlertDescription>
+                This assessment was started on {formatDateTime(assessment.created_at)} and never
+                finished. You can retry the generation.
+              </AlertDescription>
+            </Alert>
+            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
+              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Retry generation
+            </Button>
+          </div>
+
         ) : assessment.status === 'failed' ? (
           <div className="space-y-3">
             <Alert variant="destructive">
