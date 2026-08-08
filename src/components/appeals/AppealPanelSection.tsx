@@ -55,6 +55,11 @@ export function AppealPanelSection({ appeal }: Props) {
   );
 
   const decided = appeal.status === 'decided';
+  const caseFileReady = !!caseFile?.ready;
+  const outstanding = (caseFile?.items || [])
+    .filter((i) => i.required && !i.satisfied)
+    .map((i) => i.label);
+
   const votingCount = (snapshot?.member_roster || []).filter((m) => m.is_voting).length;
   const quorumMet = snapshot ? votingCount >= snapshot.quorum : false;
 
