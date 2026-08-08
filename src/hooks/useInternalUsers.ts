@@ -23,7 +23,18 @@ export interface InternalUser {
   is_active: boolean;
 }
 
-const EXTERNAL_ROLES = new Set(['pre_licensee', 'licensee']);
+/**
+ * External portal identities. Anyone holding one of these roles belongs to a
+ * licensed/applicant entity (primary or secondary user) and is never an
+ * internal staff member, even if they also carry another role.
+ */
+const EXTERNAL_ROLES = new Set([
+  'pre_licensee',
+  'licensee',
+  'licensee_primary',
+  'licensee_secondary',
+  'applicant',
+]);
 
 export function useInternalUsers(
   search?: string,
@@ -41,15 +52,29 @@ export function useInternalUsers(
       if (rolesErr) throw rolesErr;
 
       const roleByUser = new Map<string, string[]>();
+      const externalUsers = new Set<string>();
       for (const r of (roleRows ?? []) as Array<{ user_id: string; role: string }>) {
-        if (EXTERNAL_ROLES.has(r.role)) continue;
+        if (EXTERNAL_ROLES.has(r.role)) {
+          externalUsers.add(r.user_id);
+          continue;
+        }
         const arr = roleByUser.get(r.user_id) || [];
-        arr.push(r.role);
+        if (!arr.includes(r.role)) arr.push(r.role);
         roleByUser.set(r.user_id, arr);
       }
+      // Anyone mapped to a licensed entity is an external portal user.
+      const { data: entityUsers } = await supabase
+        .from('entity_user_access')
+        .select('user_id');
+      for (const e of (entityUsers ?? []) as Array<{ user_id: string | null }>) {
+        if (e.user_id) externalUsers.add(e.user_id);
+      }
+      for (const id of externalUsers) roleByUser.delete(id);
+
       const ids = new Set<string>(roleByUser.keys());
       for (const id of alwaysIncludeIds) ids.add(id);
       if (ids.size === 0) return [];
+
 
       const { data: profiles, error: pErr } = await supabase
         .from('profiles')
