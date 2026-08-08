@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, FileText, ExternalLink, Printer, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props {
   complaint: any;
@@ -41,7 +42,7 @@ export function ComplaintEvidenceRow({ complaint: c, refs, onReprintAck, onRetry
     <div className="bg-muted/30 border-t border-border px-6 py-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Item label="Complaint record" ok hint={c.complaint_number} />
-        <Item label="Acknowledgement available" ok hint={c.acknowledged_at ? new Date(c.acknowledged_at).toLocaleString() : 'Reprintable'} />
+        <Item label="Acknowledgement available" ok hint={c.acknowledged_at ? formatDateTime(c.acknowledged_at) : 'Reprintable'} />
         <Item label="Classification complete" ok={classificationComplete} hint={classificationComplete ? 'All fields set' : 'Missing fields'} />
         <Item label="Priority assigned" ok={!!c.priority} hint={c.priority?.toUpperCase() || '—'} />
         <Item label="Routing assigned" ok={routingAssigned} hint={c.assigned_team || inv?.full_name || inv?.email || 'Unassigned'} />
@@ -53,7 +54,7 @@ export function ComplaintEvidenceRow({ complaint: c, refs, onReprintAck, onRetry
         <div className="text-xs">
           <div className="font-medium mb-1">Triage</div>
           <div className="text-muted-foreground">
-            {c.triage_evaluated_at ? new Date(c.triage_evaluated_at).toLocaleString() : 'Not evaluated'}
+            {c.triage_evaluated_at ? formatDateTime(c.triage_evaluated_at) : 'Not evaluated'}
           </div>
           <div className="text-muted-foreground">Source: {c.triage_source || '—'}</div>
           {c.triage_override_status && <Badge variant="outline" className="mt-1">Override: {c.triage_override_status}</Badge>}

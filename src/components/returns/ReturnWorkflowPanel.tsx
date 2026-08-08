@@ -23,6 +23,7 @@ import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
+import { formatDateTime } from '@/lib/datetime';
 
 function StepSlaBadge({
   startedAt,
@@ -411,7 +412,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       ?? (liveInstance as any).updated_at
       ?? (liveInstance as any).ended_at
       ?? null;
-    const terminalAtLabel = terminalAt ? new Date(terminalAt).toLocaleString() : null;
+    const terminalAtLabel = terminalAt ? formatDateTime(terminalAt) : null;
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -502,7 +503,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                                 <div key={a.id} className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs space-y-1">
                                   <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <span className="font-medium">{actionLabel(a.action_type)}</span>
-                                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                                    <span className="text-muted-foreground">{formatDateTime(a.created_at)}</span>
                                   </div>
                                   <div className="flex items-center gap-1 text-muted-foreground">
                                     <UserIcon className="h-3 w-3" />
@@ -762,7 +763,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
             <div key={a.id} className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs space-y-1">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-medium">{actionLabel(a.action_type)}</span>
-                <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                <span className="text-muted-foreground">{formatDateTime(a.created_at)}</span>
               </div>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <UserIcon className="h-3 w-3" />
@@ -824,7 +825,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                 <p>
                   Last action: <strong>{actionLabel(pauseCauseAction.action_type)}</strong>
                   {' · '}
-                  {new Date(pauseCauseAction.created_at).toLocaleString()}
+                  {formatDateTime(pauseCauseAction.created_at)}
                   {pauseCauseAction.actor_id && actorsMap[pauseCauseAction.actor_id] && (
                     <> · by {actorsMap[pauseCauseAction.actor_id].name}</>
                   )}

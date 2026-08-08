@@ -62,6 +62,7 @@ import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
+import { formatDateTime } from '@/lib/datetime';
 
 
 
@@ -1015,18 +1016,18 @@ export default function ApplicationDetail() {
 
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
-                          <p className="text-sm">{new Date(app.created_at).toLocaleString()}</p>
+                          <p className="text-sm">{formatDateTime(app.created_at)}</p>
                         </div>
                         {app.submitted_at && (
                           <div>
                             <p className="text-sm text-muted-foreground">Submitted</p>
-                            <p className="text-sm">{new Date(app.submitted_at).toLocaleString()}</p>
+                            <p className="text-sm">{formatDateTime(app.submitted_at)}</p>
                           </div>
                         )}
                         {app.approved_at && (
                           <div>
                             <p className="text-sm text-muted-foreground">Approved</p>
-                            <p className="text-sm">{new Date(app.approved_at).toLocaleString()}</p>
+                            <p className="text-sm">{formatDateTime(app.approved_at)}</p>
                           </div>
                         )}
                       </div>
@@ -1596,7 +1597,7 @@ export default function ApplicationDetail() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{a.actor_email}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {new Date(a.created_at).toLocaleString()}
+                          {formatDateTime(a.created_at)}
                         </p>
                         {a.comments && (
                           <p className="text-xs text-muted-foreground mt-1 italic">"{a.comments}"</p>

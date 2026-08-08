@@ -50,6 +50,7 @@ import { ReturnRevisionCompareDialog } from '@/components/returns/ReturnRevision
 import { GitCompareArrows } from 'lucide-react';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { PermissionGate } from '@/components/auth/PermissionGate';
+import { formatDateTime } from '@/lib/datetime';
 
 
 function formatCellValue(value: any): React.ReactNode {
@@ -695,7 +696,7 @@ export default function ReturnDetail() {
           <Alert className="border-yellow-400 bg-yellow-50">
             <AlertTriangle className="h-4 w-4 text-yellow-700" />
             <AlertDescription className="text-yellow-900">
-              This return was edited by the licensee after an edit request. Changed fields are highlighted in yellow below (baseline: revision v{editBaselineRev.revision_number}, {new Date(editBaselineRev.created_at).toLocaleString()}).
+              This return was edited by the licensee after an edit request. Changed fields are highlighted in yellow below (baseline: revision v{editBaselineRev.revision_number}, {formatDateTime(editBaselineRev.created_at)}).
             </AlertDescription>
           </Alert>
         )}
@@ -709,7 +710,7 @@ export default function ReturnDetail() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm">
-                <div className="text-muted-foreground text-xs">Requested at {new Date(pendingEditReq.requested_at).toLocaleString()}</div>
+                <div className="text-muted-foreground text-xs">Requested at {formatDateTime(pendingEditReq.requested_at)}</div>
                 <div className="mt-1 whitespace-pre-wrap"><strong>Reason:</strong> {pendingEditReq.reason}</div>
               </div>
               <div>
@@ -968,7 +969,7 @@ export default function ReturnDetail() {
                           {r.status}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">
-                          {new Date(r.created_at).toLocaleString()}
+                          {formatDateTime(r.created_at)}
                         </span>
                       </div>
                       <p className="text-xs">{r.reasons}</p>
@@ -992,7 +993,7 @@ export default function ReturnDetail() {
                     <div key={`audit-${a.id}`} className="text-xs border-l-2 border-primary/40 pl-2 py-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="font-medium">{labelForReturnActivity(a.action)}</span>
-                        <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                        <span className="text-muted-foreground">{formatDateTime(a.created_at)}</span>
                       </div>
                       {(a.previous_status || a.new_status) && a.previous_status !== a.new_status && (
                         <p className="text-[10px] text-muted-foreground mt-0.5">

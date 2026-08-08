@@ -45,6 +45,7 @@ import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
+import { formatDateTime } from '@/lib/datetime';
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
@@ -428,7 +429,7 @@ export default function ComplaintDetail() {
                             <p className="truncate font-medium">{name}</p>
                             <p className="text-xs text-muted-foreground">
                               {formatSize(f.file_size)}{f.file_size ? ' • ' : ''}
-                              {new Date(a.created_at).toLocaleString()}
+                              {formatDateTime(a.created_at)}
                             </p>
                           </div>
                           <Button size="sm" variant="outline" onClick={() => openAttachment(f.file_path)} disabled={!f.file_path}>

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props { complaintId: string; complaintStatus: string; }
 
@@ -231,7 +232,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
                     <Badge variant={c.direction === 'internal_note' ? 'secondary' : 'outline'} className="text-xs capitalize">
                       {c.direction === 'internal_note' ? <><StickyNote className="h-3 w-3 mr-1" />Internal Note</> : c.direction}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">{c.author_name} · {new Date(c.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">{c.author_name} · {formatDateTime(c.created_at)}</span>
                   </div>
                   {c.subject && <p className="font-medium text-xs">{c.subject}</p>}
                   <p className="text-sm whitespace-pre-wrap mt-1">{c.body}</p>
