@@ -833,7 +833,7 @@ export default function ComplaintsList() {
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
-                          {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                          {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {formatDateOnly(c.sla_due_at)}</div>}
                           <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
                         </div>
                       </TableCell>
