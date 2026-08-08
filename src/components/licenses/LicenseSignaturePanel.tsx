@@ -94,6 +94,36 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [licenseId, user?.id]);
 
+  async function describeFnError(
+    error: { message?: string; context?: unknown } | null,
+    data: unknown,
+    fallback: string,
+  ): Promise<string> {
+    const raw = (data as { error?: string } | null)?.error;
+    let code = raw;
+    // supabase-js surfaces non-2xx as an error with the Response in `context`.
+    const res = (error as { context?: Response } | null)?.context;
+    if (!code && res && typeof (res as Response).json === 'function') {
+      try {
+        const body = await (res as Response).clone().json();
+        code = body?.error;
+      } catch { /* body not JSON */ }
+    }
+    const map: Record<string, string> = {
+      Forbidden: 'You do not have permission to manage licence certificates.',
+      Unauthorized: 'Your session has expired. Please sign in again.',
+      already_dispatched: 'This certificate has already been dispatched.',
+      not_ready_for_dispatch: 'This certificate must be signed before it can be dispatched.',
+      certificate_not_found: 'No certificate exists for this licence yet.',
+      reason_min_10_chars: 'Reason must be at least 10 characters.',
+      server_misconfigured: 'Certificate signing is not configured on the server.',
+      certificate_download_failed: 'The certificate file could not be read from storage.',
+    };
+    if (code && map[code]) return map[code];
+    if (code) return code.replace(/_/g, ' ');
+    return error?.message ? fallback : fallback;
+  }
+
   async function handleSign() {
     if (reason.trim().length < 10) {
       toast.error('Reason must be at least 10 characters.');
@@ -105,7 +135,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     });
     setWorking(false);
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Signing failed');
+      toast.error(await describeFnError(error, data, 'Signing failed'));
       return;
     }
     toast.success('Certificate signed. Ready for dispatch.');
@@ -123,7 +153,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     });
     setWorking(false);
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Dispatch failed');
+      toast.error(await describeFnError(error, data, 'Dispatch failed'));
       return;
     }
     toast.success('Certificate dispatched to licensee.');
@@ -140,13 +170,14 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     });
     setWorking(false);
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Certificate generation failed');
+      toast.error(await describeFnError(error, data, 'Certificate generation failed'));
       return;
     }
     toast.success('Certificate generated.');
     onChanged?.();
     load();
   }
+
 
 
   if (loading) {
