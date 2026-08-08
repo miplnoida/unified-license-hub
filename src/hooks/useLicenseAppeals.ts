@@ -484,13 +484,15 @@ export function useLicenseAppealMutations() {
   });
 
   const completeHearing = useMutation({
-    mutationFn: async (input: { appealId: string; minutes: string }) =>
+    mutationFn: async (input: { appealId: string; minutes: string; amend?: boolean }) =>
       callAppealRpc('complete_appeal_hearing', {
         _appeal_id: input.appealId,
         _minutes: input.minutes,
+        _amend: input.amend ?? false,
       }),
     onSuccess: invalidate,
   });
+
 
   const recordDecision = useMutation({
     mutationFn: async (input: {
