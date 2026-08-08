@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, CheckCircle2, Lock, Loader2, Paperclip, Save, Send, ShieldCheck } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { secureUpload, validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
