@@ -626,30 +626,77 @@ ${JSON.stringify(applicationContext, null, 2)}`;
 
     const aiCallStarted = Date.now();
     try {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${aiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL_NAME,
-          stream: true,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
+      // One streaming gateway call. Streaming keeps bytes flowing so a long
+      // generation is not severed by the platform's no-bytes ceiling (which
+      // previously left the row stuck at `pending`).
+      const callModel = async (
+        extraInstruction: string | null,
+        jsonMode: boolean,
+      ): Promise<
+        | { ok: true; content: string }
+        | { ok: false; status: number; errText: string }
+      > => {
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Lovable-API-Key": aiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: MODEL_NAME,
+            stream: true,
+            ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+              ...(extraInstruction
+                ? [{ role: "user", content: extraInstruction }]
+                : []),
+            ],
+          }),
+        });
 
-      });
+        if (!aiResp.ok) {
+          const errText = await aiResp.text();
+          return { ok: false, status: aiResp.status, errText };
+        }
 
-      if (!aiResp.ok) {
-        const errText = await aiResp.text();
+        let content = "";
+        const reader = aiResp.body?.getReader();
+        if (reader) {
+          const decoder = new TextDecoder();
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data:")) continue;
+              const payload = trimmed.slice(5).trim();
+              if (!payload || payload === "[DONE]") continue;
+              try {
+                const evt = JSON.parse(payload);
+                const delta = evt?.choices?.[0]?.delta?.content;
+                if (typeof delta === "string") content += delta;
+              } catch {
+                // ignore keep-alive / non-JSON frames
+              }
+            }
+          }
+        }
+        return { ok: true, content };
+      };
+
+      const failGateway = async (status: number, errText: string) => {
+        const message = `AI gateway error ${status}: ${errText.slice(0, 500)}`;
         await adminClient
           .from("application_ai_assessments")
           .update({
             status: "failed",
-            error_message: `AI gateway error ${aiResp.status}: ${errText.slice(0, 500)}`,
+            error_message: message,
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
@@ -657,47 +704,46 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           direction: "outbound",
           integrationKey: "ai-gateway.application-assessment",
           status: "failure",
-          httpStatus: aiResp.status,
+          httpStatus: status,
           actorId: callerUserId,
           entityType: "application",
           entityId: application_id,
-          error: `AI gateway error ${aiResp.status}: ${errText.slice(0, 500)}`,
+          error: message,
           durationMs: Date.now() - aiCallStarted,
         });
-        return jsonResponse({ error: "AI gateway failed", status: aiResp.status }, 502);
+      };
+
+      // First attempt: provider-enforced JSON output mode.
+      let attempt = await callModel(null, true);
+      if (!attempt.ok && attempt.status === 400) {
+        // Some models reject json_object mode; fall back to plain text output.
+        attempt = await callModel(null, false);
+      }
+      if (!attempt.ok) {
+        await failGateway(attempt.status, attempt.errText);
+        return jsonResponse({ error: "AI gateway failed", status: attempt.status }, 502);
       }
 
-      // Streamed response: accumulate the deltas server-side. Streaming keeps
-      // bytes flowing so a long generation is not severed by the platform's
-      // no-bytes ceiling (which previously left the row stuck at `pending`).
-      let content = "";
-      const reader = aiResp.body?.getReader();
-      if (reader) {
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const payload = trimmed.slice(5).trim();
-            if (!payload || payload === "[DONE]") continue;
-            try {
-              const evt = JSON.parse(payload);
-              const delta = evt?.choices?.[0]?.delta?.content;
-              if (typeof delta === "string") content += delta;
-            } catch {
-              // ignore keep-alive / non-JSON frames
-            }
+      let content = attempt.content;
+      let parsed = safeParseJson(content);
+
+      if (!parsed) {
+        // The model occasionally emits malformed JSON (unterminated evidence
+        // strings). Retry once with an explicit reminder before giving up.
+        const retry = await callModel(
+          "Your previous response was not valid JSON. Return ONLY the JSON object described in the system message. Every string must be properly opened and closed, and evidence entries must be plain sentences with no quote characters, colons, or escape sequences.",
+          true,
+        );
+        if (retry.ok) {
+          const retryParsed = safeParseJson(retry.content);
+          if (retryParsed) {
+            parsed = retryParsed;
+            content = retry.content;
+          } else {
+            content = retry.content || content;
           }
         }
       }
-      const parsed = safeParseJson(content);
-
 
       if (!parsed) {
         await adminClient
@@ -705,6 +751,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           .update({
             status: "failed",
             error_message: "AI response was not valid JSON",
+            raw_response: content ? content.slice(0, 4000) : null,
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
@@ -720,6 +767,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         });
         return jsonResponse({ error: "AI response unparseable" }, 502);
       }
+
 
       const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
       const risks = Array.isArray(parsed.risks) ? parsed.risks : [];
