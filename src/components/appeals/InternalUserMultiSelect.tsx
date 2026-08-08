@@ -60,7 +60,9 @@ export function InternalUserMultiSelect({
             <ChevronsUpDown className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="z-[60] w-[--radix-popover-trigger-width] p-0" align="start">
+        {/* Rendered in place (no portal) so it stays clickable inside a dialog. */}
+        <PopoverContent disablePortal className="z-[60] w-[--radix-popover-trigger-width] p-0" align="start">
+
           <Command
             filter={(val, search) => (val.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
           >
