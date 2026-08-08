@@ -611,29 +611,38 @@ export default function LicenseDetail() {
     if (!license) return;
     setDownloading(true);
     try {
-      // Always regenerate first so the PDF reflects the license's current
-      // status (Suspended/Revoked/Cancelled/Expired) rather than a cached
-      // "Active" version from when it was first issued.
-      const gen = await supabase.functions.invoke('generate-license-certificate', {
-        body: { mode: 'generate', license_id: license.id },
-      });
-      const genErr = (gen.data as any)?.error;
-      if (gen.error || genErr) {
-        toast.error(genErr || 'Failed to generate certificate');
-        return;
+      // Internal users regenerate first so the PDF reflects the license's
+      // current status (Suspended/Revoked/Cancelled/Expired) rather than a
+      // cached "Active" version. External holders can only download the
+      // certificate the regulator has already issued.
+      if (isInternal) {
+        const gen = await supabase.functions.invoke('generate-license-certificate', {
+          body: { mode: 'generate', license_id: license.id },
+        });
+        const genErr = (gen.data as any)?.error;
+        if (gen.error || genErr) {
+          toast.error(genErr || 'Failed to generate certificate');
+          return;
+        }
       }
       const { data, error } = await supabase.functions.invoke('generate-license-certificate', {
         body: { mode: 'download', license_id: license.id },
       });
       const errMsg = (data as any)?.error;
+      const code = (data as any)?.code;
       if (error || errMsg) {
-        toast.error(errMsg || 'Failed to load certificate');
+        if (code === 'NOT_FOUND') {
+          toast.error('Your certificate is being prepared. Please check back shortly.');
+        } else {
+          toast.error(errMsg || 'Failed to load certificate');
+        }
         return;
       }
       await openSignedUrl((data as any).url);
     } finally {
       setDownloading(false);
     }
+
   };
 
 

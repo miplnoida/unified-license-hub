@@ -18,7 +18,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, degrees, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
-import { requireUserPermission } from "../_shared/authz.ts";
+import { requireUserPermission, requireAuthenticatedUser } from "../_shared/authz.ts";
 
 function json(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -330,9 +330,25 @@ export async function handler(req: Request): Promise<Response> {
   const isSystemCall = serviceRoleKey.length > 0 &&
     authHeader === `Bearer ${serviceRoleKey}`;
 
+  let body: any;
+  try { body = await req.json(); } catch { body = {}; }
+  const mode: "generate" | "download" = body?.mode || "generate";
+  const licenseId: string | undefined = body?.license_id;
+
   if (!isSystemCall) {
     const __authzGate = await requireUserPermission(req, "license_management", "manage_certificates");
-    if (!__authzGate.ok) return __authzGate.response;
+    if (!__authzGate.ok) {
+      // Holder-side access: the licence holder / applicant / mapped entity user
+      // may DOWNLOAD their own certificate, but never generate, sign or dispatch.
+      if (mode !== "download" || !licenseId) return __authzGate.response;
+      const auth = await requireAuthenticatedUser(req);
+      if (!auth.ok) return auth.response;
+      const { data: allowed } = await auth.adminClient.rpc("can_read_license", {
+        _user: auth.userId,
+        _license_id: licenseId,
+      });
+      if (allowed !== true) return __authzGate.response;
+    }
   }
 
   try {
@@ -340,11 +356,9 @@ export async function handler(req: Request): Promise<Response> {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    let body: any;
-    try { body = await req.json(); } catch { body = {}; }
-    const mode: "generate" | "download" = body.mode || "generate";
-    const licenseId: string | undefined = body.license_id;
     if (!licenseId) return json(req, 200, { error: "license_id is required" });
+
+
 
     if (mode === "download") {
       const { data: cert } = await admin
