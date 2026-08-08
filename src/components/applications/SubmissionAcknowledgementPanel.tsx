@@ -1,16 +1,27 @@
 /**
  * Submission acknowledgement panel (FRD 6.1).
  *
- * Shows the acknowledgement issued for the CURRENT submission: reference,
- * timestamp, applicant/entity, declaration text, delivery state and a download
- * of the stored PDF. Delivery state is reported exactly as the notification
- * engine recorded it — "sent to provider" is never shown as "delivered".
+ * One immutable artifact, three presentations:
+ *  - `applicant` : primary applicant/licensee surface — reference, submitted
+ *                  date + time, submission status and a single view/download
+ *                  action. No internal delivery-engine metadata.
+ *  - `internal`  : secondary read-only support view for authorised internal
+ *                  users — keeps delivery state, failure reason, checksum and
+ *                  the regenerate affordance.
+ *  - `artifact`  : compact read-only row for document/artifact history.
+ *
+ * All variants read the same acknowledgement record through the same hook and
+ * download the same stored PDF version. Delivery state is reported exactly as
+ * the notification engine recorded it — "sent to provider" is never shown as
+ * "delivered".
  */
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileCheck2, Download, RefreshCw, AlertTriangle, MailCheck, MailWarning } from 'lucide-react';
+import { Loader2, FileCheck2, Download, RefreshCw, AlertTriangle, MailCheck, MailWarning, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDateTime } from '@/lib/datetime';
 import {
   useSubmissionAcknowledgement,
   useEnsureAcknowledgement,
@@ -22,6 +33,12 @@ interface Props {
   applicationId: string;
   /** Hide entirely while the application has never been submitted. */
   submitted: boolean;
+  /** Presentation. Defaults to the internal support view. */
+  variant?: 'applicant' | 'internal' | 'artifact';
+  /** Applicant reference shown instead of any internal identifier. */
+  applicationNumber?: string | null;
+  /** Emphasise the card right after a successful submission. */
+  highlight?: boolean;
 }
 
 const STATUS_META: Record<AcknowledgementStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; hint: string }> = {
@@ -52,12 +69,86 @@ const STATUS_META: Record<AcknowledgementStatus, { label: string; variant: 'defa
   },
 };
 
-export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Props) {
+export function SubmissionAcknowledgementPanel({
+  applicationId,
+  submitted,
+  variant = 'internal',
+  applicationNumber,
+  highlight = false,
+}: Props) {
   const { data: ack, isLoading, refetch, isFetching } = useSubmissionAcknowledgement(applicationId, submitted);
   const ensure = useEnsureAcknowledgement(applicationId);
   const download = useDownloadAcknowledgement(applicationId);
+  const isApplicant = variant === 'applicant';
+  const isArtifact = variant === 'artifact';
+  const autoEnsured = useRef(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Applicant surfaces trigger the existing idempotent `ensure` once when no
+  // document exists yet. Repeat views never create another artifact.
+  useEffect(() => {
+    if (!submitted || isLoading || autoEnsured.current) return;
+    if (!isApplicant && !isArtifact) return;
+    if (ack?.document_path) return;
+    autoEnsured.current = true;
+    ensure.mutate(undefined, { onError: () => { /* non-blocking */ } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted, isLoading, ack?.document_path, isApplicant, isArtifact]);
+
+  useEffect(() => {
+    if (highlight && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [highlight]);
 
   if (!submitted) return null;
+
+  const handleDownload = () =>
+    download.mutate(undefined, { onError: (e: unknown) => toast.error((e as Error).message) });
+
+  // ---------------------------------------------------------------- artifact
+  if (isArtifact) {
+    if (isLoading) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading submission acknowledgement…
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
+        <FileCheck2 className="h-5 w-5 text-muted-foreground shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">
+            Submission Acknowledgement
+            <Badge variant="outline" className="ml-2 align-middle text-[10px]">System generated</Badge>
+            <Badge variant="outline" className="ml-1 align-middle text-[10px]">Read-only</Badge>
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono">{applicationNumber || ack?.reference || '—'}</span>
+            {ack && (
+              <>
+                <span>·</span>
+                <span>v{ack.submission_version}</span>
+                <span>·</span>
+                <span>{formatDateTime(ack.created_at || ack.submitted_at)}</span>
+              </>
+            )}
+          </div>
+        </div>
+        {ack?.document_path ? (
+          <Button size="sm" variant="outline" disabled={download.isPending} onClick={handleDownload}>
+            {download.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            View / Download
+          </Button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" /> Acknowledgement being generated
+          </span>
+        )}
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -69,6 +160,69 @@ export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Pro
     );
   }
 
+  // --------------------------------------------------------------- applicant
+  if (isApplicant) {
+    return (
+      <Card ref={cardRef} className={highlight ? 'border-primary shadow-md' : undefined}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileCheck2 className="h-4 w-4" /> Submission Acknowledgement
+            {ack?.is_resubmission && <Badge variant="outline">Resubmission</Badge>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md border bg-muted/40 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Application Reference</p>
+              <p className="text-sm font-medium font-mono mt-0.5 break-all">
+                {applicationNumber || ack?.reference || '—'}
+              </p>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submitted Date &amp; Time</p>
+              <p className="text-sm font-medium mt-0.5">{formatDateTime(ack?.submitted_at)}</p>
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submission Status</p>
+              <p className="text-sm font-medium mt-0.5">
+                {ack?.document_path ? 'Acknowledgement issued' : 'Acknowledgement being generated'}
+              </p>
+            </div>
+          </div>
+
+          {ack?.ack_text && (
+            <div className="rounded-md border p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your declaration</p>
+              <p className="text-sm mt-1 whitespace-pre-wrap">{ack.ack_text}</p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {ack?.document_path ? (
+              <Button size="sm" disabled={download.isPending} onClick={handleDownload}>
+                {download.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                View / Download Submission Acknowledgement
+              </Button>
+            ) : (
+              <>
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" /> Acknowledgement being generated — it will appear here shortly.
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching || ensure.isPending}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Check again
+                </Button>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This acknowledgement confirms receipt of your submission only. It is not a decision, approval or licence.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ---------------------------------------------------------------- internal
   if (!ack) {
     return (
       <Card>
@@ -115,6 +269,7 @@ export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Pro
       <CardHeader className="pb-3 flex flex-row items-start justify-between gap-3">
         <CardTitle className="text-base flex items-center gap-2">
           <FileCheck2 className="h-4 w-4" /> Submission acknowledgement
+          <Badge variant="outline">Read-only</Badge>
           {ack.is_resubmission && <Badge variant="outline">Resubmission</Badge>}
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -131,7 +286,7 @@ export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Pro
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {field('Reference', <span className="font-mono">{ack.reference}</span>)}
           {field('Submission version', `v${ack.submission_version}`)}
-          {field('Submitted at', new Date(ack.submitted_at).toLocaleString())}
+          {field('Submitted at', formatDateTime(ack.submitted_at))}
           {field('Applicant / entity', ack.entity_name || ack.applicant_name)}
           {field('Notified address', ack.applicant_email)}
           {field('Licence / service', ack.license_type)}
@@ -149,7 +304,7 @@ export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Pro
           <span>
             {meta.hint}
             {ack.failure_reason && <> Reason: <span className="font-mono">{ack.failure_reason}</span>.</>}
-            {ack.delivered_at && <> Confirmed {new Date(ack.delivered_at).toLocaleString()}.</>}
+            {ack.delivered_at && <> Confirmed {formatDateTime(ack.delivered_at)}.</>}
           </span>
         </p>
 
@@ -158,7 +313,7 @@ export function SubmissionAcknowledgementPanel({ applicationId, submitted }: Pro
             size="sm"
             variant="outline"
             disabled={download.isPending || !ack.document_path}
-            onClick={() => download.mutate(undefined, { onError: (e: unknown) => toast.error((e as Error).message) })}
+            onClick={handleDownload}
           >
             {download.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
             Download acknowledgement (PDF)

@@ -98,6 +98,7 @@ export default function ApplicationDetail() {
   const [searchParams] = useSearchParams();
   const forceReadOnlyView = searchParams.get('view') === 'submitted';
   const initialTabParam = searchParams.get('tab');
+  const justSubmitted = searchParams.get('submitted') === '1';
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
@@ -909,10 +910,13 @@ export default function ApplicationDetail() {
 
 
               <TabsContent value="details" className="space-y-4 mt-4">
-                {activeTab === 'details' && (
+                {activeTab === 'details' && !isInternal && (
                   <SubmissionAcknowledgementPanel
                     applicationId={app.id}
                     submitted={!!(app as any).submitted_at}
+                    variant="applicant"
+                    applicationNumber={app.application_number}
+                    highlight={justSubmitted}
                   />
                 )}
                 {activeTab === 'details' && (
@@ -1138,6 +1142,17 @@ export default function ApplicationDetail() {
                             />
                           )}
                         </>
+                      )}
+                      {!!(app as any).submitted_at && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold">System-generated artifacts</p>
+                          <SubmissionAcknowledgementPanel
+                            applicationId={app.id}
+                            submitted={!!(app as any).submitted_at}
+                            variant={isInternal ? 'internal' : 'artifact'}
+                            applicationNumber={app.application_number}
+                          />
+                        </div>
                       )}
                       <div key={docRefresh} className="space-y-4">
                         <AttachmentList

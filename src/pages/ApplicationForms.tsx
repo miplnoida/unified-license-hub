@@ -311,7 +311,7 @@ export default function ApplicationForms() {
         return;
       }
       toast.success(data?.message || 'Application submitted successfully!');
-      navigate(`/applications/${applicationId}`);
+      navigate(`/applications/${applicationId}?submitted=1`);
     } catch (err: any) {
       toast.error('Submission failed: ' + (err.message || 'Unknown error'));
     } finally {
