@@ -115,7 +115,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
   };
 
   return (
-    <Dialog open={!!appeal} onOpenChange={onOpenChange}>
+    <Dialog open={!!selectedAppeal} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
