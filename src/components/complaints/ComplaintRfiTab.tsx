@@ -125,11 +125,11 @@ export function ComplaintRfiTab({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <CardTitle className="text-base">Request raised {format(new Date(rfi.raised_at), 'PP')}</CardTitle>
+                  <CardTitle className="text-base">Request raised {formatDateTime(rfi.raised_at)}</CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">
                     {rfi.items.length} question(s) · {answered} answered
-                    {rfi.due_at ? ` · due ${format(new Date(rfi.due_at), 'PP')}` : ''}
-                    {rfi.submitted_at ? ` · submitted ${format(new Date(rfi.submitted_at), 'PPp')}` : ''}
+                    {rfi.due_at ? ` · due ${formatDateOnly(rfi.due_at)}` : ''}
+                    {rfi.submitted_at ? ` · submitted ${formatDateTime(rfi.submitted_at)}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
