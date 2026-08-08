@@ -36,6 +36,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
 import { computeWorkflowSLA, type SlaStatus } from '@/hooks/useWorkflowSLA';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { formatDateTime } from '@/lib/datetime';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -992,7 +993,7 @@ export default function ApplicationsList() {
             <TotalSlaBadge entry={totalSlaByApp.get(app.id)} />
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-            {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
+            {formatDateTime(app.submitted_at || app.created_at)}
           </TableCell>
           <TableCell>
             {(app.action_count ?? 0) > 0 ? (

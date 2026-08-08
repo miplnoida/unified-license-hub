@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileText } from 'lucide-react';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 
 export default function ReturnsTab({ entityId, licenseId }: { entityId: string; licenseId: string | null }) {
   const [returns, setReturns] = useState<any[]>([]);
@@ -41,9 +42,9 @@ export default function ReturnsTab({ entityId, licenseId }: { entityId: string; 
             <TableBody>
               {returns.map(r => (
                 <TableRow key={r.id}>
-                  <TableCell>{new Date(r.period_start).toLocaleDateString()} – {new Date(r.period_end).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(r.due_date).toLocaleDateString()}</TableCell>
-                  <TableCell>{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDateOnly(r.period_start)} – {formatDateOnly(r.period_end)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDateOnly(r.due_date)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDateTime(r.submitted_at)}</TableCell>
                   <TableCell><Badge variant="outline" className={`capitalize ${statusColor(r.status)}`}>{r.status}</Badge></TableCell>
                 </TableRow>
               ))}

@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, ShieldCheck, Eye } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import { toast } from 'sonner';
 import {
   useComplaintRfiQueue,
@@ -106,11 +106,11 @@ export default function RfiApprovalQueue() {
                     {r.approval_state.replace('_', ' ')}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.submitted_for_approval_at ? format(new Date(r.submitted_for_approval_at), 'PPp') : '—'}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDateTime(r.submitted_for_approval_at)}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.due_at ? format(new Date(r.due_at), 'PP') : '—'}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDateOnly(r.due_at)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="outline" size="sm" onClick={() => openReview(r)}>

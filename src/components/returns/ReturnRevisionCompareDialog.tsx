@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GitCompareArrows } from 'lucide-react';
 import type { ReturnRevision } from '@/hooks/useReturnRevisions';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props {
   open: boolean;
@@ -44,7 +45,7 @@ export function ReturnRevisionCompareDialog({ open, onOpenChange, revisions, cur
   const options = useMemo(() => {
     const opts: { id: string; label: string; data: Record<string, Record<string, any>> }[] = revisions.map(r => ({
       id: r.id,
-      label: `v${r.revision_number} — ${REASON_LABEL[r.snapshot_reason] || r.snapshot_reason} (${new Date(r.created_at).toLocaleString()})`,
+      label: `v${r.revision_number} — ${REASON_LABEL[r.snapshot_reason] || r.snapshot_reason} (${formatDateTime(r.created_at)})`,
       data: r.snapshot || {},
     }));
     if (currentValues) {

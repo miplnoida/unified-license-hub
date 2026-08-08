@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MessageSquarePlus, RotateCcw, CheckCircle2, XCircle, Lock, ShieldCheck, Pencil } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { toast } from 'sonner';
 import {
   useComplaintRfis,
@@ -19,6 +19,7 @@ import { useCan } from '@/hooks/useCan';
 import { RaiseComplaintRfiDialog } from './RaiseComplaintRfiDialog';
 import { ReviewRfiDialog } from './ReviewRfiDialog';
 import { RfiAttachmentList } from './RfiAttachmentList';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 
 const statusVariant: Record<string, any> = {
   open: 'secondary',
@@ -125,11 +126,11 @@ export function ComplaintRfiTab({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <CardTitle className="text-base">Request raised {format(new Date(rfi.raised_at), 'PP')}</CardTitle>
+                  <CardTitle className="text-base">Request raised {formatDateTime(rfi.raised_at)}</CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">
                     {rfi.items.length} question(s) · {answered} answered
-                    {rfi.due_at ? ` · due ${format(new Date(rfi.due_at), 'PP')}` : ''}
-                    {rfi.submitted_at ? ` · submitted ${format(new Date(rfi.submitted_at), 'PPp')}` : ''}
+                    {rfi.due_at ? ` · due ${formatDateOnly(rfi.due_at)}` : ''}
+                    {rfi.submitted_at ? ` · submitted ${formatDateTime(rfi.submitted_at)}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -196,7 +197,7 @@ export function ComplaintRfiTab({
                           {r.response_text && <p className="text-sm whitespace-pre-wrap">{r.response_text}</p>}
                           <RfiAttachmentList fileIds={r.file_upload_ids ?? []} />
                           <p className="text-[11px] text-muted-foreground">
-                            Submitted {format(new Date(r.submitted_at), 'PPp')}
+                            Submitted {formatDateTime(r.submitted_at)}
                           </p>
                         </div>
                       ))

@@ -7,14 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, LogOut, RefreshCw, FileEdit, MailCheck } from 'lucide-react';
+import { formatDateTime } from '@/lib/datetime';
 
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso);
 }
 
 export default function RegistrationStatusPage() {

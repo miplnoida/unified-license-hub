@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateTime } from '@/lib/datetime';
 import { Loader2, Eye, Search } from 'lucide-react';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
@@ -247,10 +248,10 @@ export default function RegistrationReview() {
                         <TableCell>
                           <TotalSlaBadge entry={totalSlaByReg.get(r.id)} />
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {deadline ? deadline.toLocaleString() : '—'}
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(deadline)}
                         </TableCell>
-                        <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">{formatDateTime(r.created_at)}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="default" onClick={() => navigate(`/admin/registration-review/${r.id}`)}>
                             <Eye className="h-4 w-4 mr-1" /> Open Review

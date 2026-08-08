@@ -19,6 +19,7 @@ import { isDisplayOnlyField } from '@/lib/registrationDisplayTypes';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import type { RegField, RegFormSchema } from '@/types/registrationForm';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
+import { formatDateTime } from '@/lib/datetime';
 
 const formatStatusLabel = (s: string) =>
   s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -261,7 +262,7 @@ export default function RegistrationReviewDetail() {
               <Row label="Last Name">{renderScalar(reg.last_name)}</Row>
               <Row label="Email">{renderScalar(reg.email)}</Row>
               <Row label="Telephone">{renderScalar(reg.telephone)}</Row>
-              <Row label="Submitted">{new Date(reg.created_at).toLocaleString()}</Row>
+              <Row label="Submitted">{formatDateTime(reg.created_at)}</Row>
             </CardContent>
           </Card>
 

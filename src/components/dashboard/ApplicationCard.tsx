@@ -2,7 +2,7 @@ import { Application } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, ArrowRight, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDateTime } from '@/lib/datetime';
 
 interface ApplicationCardProps {
   application: Application;
@@ -62,8 +62,8 @@ export function ApplicationCard({
         <Calendar className="h-4 w-4" />
         <span>
           {application.submittedAt
-            ? `Submitted ${format(new Date(application.submittedAt), 'MMM d, yyyy')}`
-            : `Created ${format(new Date(application.createdAt), 'MMM d, yyyy')}`}
+            ? `Submitted ${formatDateTime(application.submittedAt)}`
+            : `Created ${formatDateTime(application.createdAt)}`}
         </span>
       </div>
 

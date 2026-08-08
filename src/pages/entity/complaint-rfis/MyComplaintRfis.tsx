@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, CheckCircle2, Lock, Loader2, Paperclip, Save, Send, ShieldCheck } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { secureUpload, validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
 import { RfiAttachmentList } from '@/components/complaints/RfiAttachmentList';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import {
   useMyComplaintRfis,
   useSaveComplaintRfiDraft,
@@ -118,8 +119,8 @@ function RfiCard({
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               {rfi.complaint_subject ? `${rfi.complaint_subject} · ` : ''}
-              Issued {format(new Date(rfi.raised_at), 'PP')}
-              {rfi.due_at ? ` · response due ${format(new Date(rfi.due_at), 'PP')}` : ''}
+              Issued {formatDateTime(rfi.raised_at)}
+              {rfi.due_at ? ` · response due ${formatDateOnly(rfi.due_at)}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -257,7 +258,7 @@ function RfiItemRow({
           {r.response_text && <p className="text-sm whitespace-pre-wrap">{r.response_text}</p>}
           <RfiAttachmentList fileIds={r.file_upload_ids ?? []} />
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Lock className="h-3 w-3" />Submitted {format(new Date(r.submitted_at), 'PPp')} — read only
+            <Lock className="h-3 w-3" />Submitted {formatDateTime(r.submitted_at)} — read only
           </p>
         </div>
       ))}

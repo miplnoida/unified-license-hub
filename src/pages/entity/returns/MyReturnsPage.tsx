@@ -12,6 +12,7 @@ import { StatusBadge } from './EntityReturnsDashboard';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDateTime } from '@/lib/datetime';
 import Swal from 'sweetalert2';
 
 export default function MyReturnsPage() {
@@ -86,7 +87,7 @@ export default function MyReturnsPage() {
                             <TableCell>{r.return_year}</TableCell>
                             <TableCell><StatusBadge status={r.workflow_status} /></TableCell>
                             <TableCell>{r.due_date || '—'}</TableCell>
-                            <TableCell>{r.submit_date ? format(new Date(r.submit_date), 'MMM dd, yyyy') : '—'}</TableCell>
+                            <TableCell className="whitespace-nowrap">{formatDateTime(r.submit_date)}</TableCell>
                             <TableCell>{r.ontime_status ? (
                               <Badge variant="outline" className={r.ontime_status === 'ON_TIME'
                                 ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'

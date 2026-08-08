@@ -11,6 +11,7 @@ import {
   FileText, CheckCircle2, Clock, Layers, LogOut, Save,
 } from 'lucide-react';
 import { buildUpdateRegistrationUrl, getPreferredSubmission } from '@/lib/registrationUpdateFlow';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Registration {
   id: string;
@@ -321,7 +322,7 @@ export default function RegistrationPortal() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
                       {submission
-                        ? `Last saved: ${new Date(submission.updated_at).toLocaleDateString()}`
+                        ? `Last saved: ${formatDateTime(submission.updated_at)}`
                         : 'Click to start filling this form'}
                     </p>
                     <Button

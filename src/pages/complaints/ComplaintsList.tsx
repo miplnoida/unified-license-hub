@@ -36,6 +36,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
@@ -832,11 +833,11 @@ export default function ComplaintsList() {
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
-                          {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                          {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {formatDateOnly(c.sla_due_at)}</div>}
                           <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDateTime(c.created_at)}</TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
                           <Eye className="h-4 w-4 mr-1" />View
@@ -938,7 +939,7 @@ export default function ComplaintsList() {
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               <Badge variant={slaStatusVariant(sla)} className="text-[10px] w-fit">{slaStatusLabel(sla)}</Badge>
-                              {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {new Date(c.sla_due_at).toLocaleDateString()}</div>}
+                              {c.sla_due_at && <div className="text-[10px] text-muted-foreground">Due {formatDateOnly(c.sla_due_at)}</div>}
                               <TotalSlaBadge entry={totalSlaByComplaint.get(c.id)} />
                             </div>
                           </TableCell>
@@ -1039,7 +1040,7 @@ export default function ComplaintsList() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Filed</p>
-                  <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
+                  <p className="text-sm">{formatDateTime(detailDialog.created_at)}</p>
                 </div>
               </div>
               <div>
