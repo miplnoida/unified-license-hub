@@ -26761,6 +26761,10 @@ export type Database = {
       reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
+      reconcile_stale_ai_assessments: {
+        Args: { _application_id?: string }
+        Returns: number
+      }
       record_correspondence_delivery: {
         Args: { _message_id: string; _reason?: string; _status: string }
         Returns: undefined
