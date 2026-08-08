@@ -124,17 +124,20 @@ Deno.serve(async (req) => {
       }
       callerUserId = userData.user.id;
 
-      // Require internal role for non-service-role callers.
-      const { data: roles } = await adminClient
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", callerUserId);
-      const hasInternal = (roles ?? []).some((r: { role: string }) =>
-        INTERNAL_ROLES.has(r.role),
-      );
-      if (!hasInternal) {
-        return jsonResponse({ error: "Forbidden" }, 403);
+      // Require the application-management view permission for non-service-role
+      // callers (falls back to the internal-role check below).
+      const authzGate = await requireUserPermission(req, "application_management", "view");
+      if (!authzGate.ok) {
+        const { data: roles } = await adminClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", callerUserId);
+        const hasInternal = (roles ?? []).some((r: { role: string }) =>
+          INTERNAL_ROLES.has(r.role),
+        );
+        if (!hasInternal) return authzGate.response;
       }
+
     } else {
       return jsonResponse({ error: "Missing authorization" }, 401);
     }
