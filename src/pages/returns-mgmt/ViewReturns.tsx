@@ -288,9 +288,9 @@ export default function ViewReturns() {
                       r.unique_id || '',
                       getLicenseeName(r),
                       getConfigName(r.return_configuration_id),
-                      r.period_start ? new Date(r.period_start).toLocaleDateString() : '',
-                      r.period_end ? new Date(r.period_end).toLocaleDateString() : '',
-                      r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '',
+                      r.period_start ? formatDateOnly(r.period_start, '') : '',
+                      r.period_end ? formatDateOnly(r.period_end, '') : '',
+                      r.submitted_at ? formatDateTime(r.submitted_at, '') : '',
                       RETURN_STATUS_LABELS[r.status as ReturnStatus] || r.status,
                     ].map(escape).join(','));
                     const csv = [headers.map(escape).join(','), ...rows].join('\n');
