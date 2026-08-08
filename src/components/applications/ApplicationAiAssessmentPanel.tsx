@@ -204,7 +204,7 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">Advisory only</Badge>
-            {assessment && assessment.status !== 'pending' && (
+            {assessment && (
               <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 <span className="ml-1">Regenerate</span>
@@ -228,10 +228,26 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
               Generate assessment
             </Button>
           </div>
-        ) : assessment.status === 'pending' ? (
+        ) : assessment.status === 'pending' && !isStalePending ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> AI assessment is being generated…
           </div>
+        ) : assessment.status === 'pending' ? (
+          <div className="space-y-3">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Generation did not complete</AlertTitle>
+              <AlertDescription>
+                This assessment was started on {formatDateTime(assessment.created_at)} and never
+                finished. You can retry the generation.
+              </AlertDescription>
+            </Alert>
+            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
+              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Retry generation
+            </Button>
+          </div>
+
         ) : assessment.status === 'failed' ? (
           <div className="space-y-3">
             <Alert variant="destructive">
