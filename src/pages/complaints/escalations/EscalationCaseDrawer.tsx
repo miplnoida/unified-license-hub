@@ -62,7 +62,7 @@ export function EscalationCaseDrawer({ open, onOpenChange, caseData }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 <div><span className="text-slate-500">Severity:</span> {complaint?.severity ?? '—'}</div>
                 <div><span className="text-slate-500">Status:</span> {complaint?.status ?? '—'}</div>
-                <div><span className="text-slate-500">Created:</span> {complaint?.created_at ? new Date(complaint.created_at).toLocaleDateString() : '—'}</div>
+                <div><span className="text-slate-500">Created:</span> {formatDateTime(complaint?.created_at)}</div>
                 <div><span className="text-slate-500">SLA:</span> {complaint?.sla_status ?? '—'}</div>
                 <div><span className="text-slate-500">Recurrence:</span> {complaint?.repeat_complaint_count ?? 0}</div>
               </div>
