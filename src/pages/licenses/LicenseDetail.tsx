@@ -25,6 +25,8 @@ import LicenseSignaturePanel from '@/components/licenses/LicenseSignaturePanel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { downloadLicenseCertificate, openSignedCertificateUrl } from '@/lib/licenseCertificate';
+
 
 interface License {
   id: string;
