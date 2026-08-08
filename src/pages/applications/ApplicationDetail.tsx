@@ -98,6 +98,7 @@ export default function ApplicationDetail() {
   const [searchParams] = useSearchParams();
   const forceReadOnlyView = searchParams.get('view') === 'submitted';
   const initialTabParam = searchParams.get('tab');
+  const justSubmitted = searchParams.get('submitted') === '1';
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
