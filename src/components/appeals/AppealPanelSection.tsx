@@ -48,6 +48,10 @@ export function AppealPanelSection({ appeal }: Props) {
   const [link, setLink] = useState(appeal.hearing_link || '');
   const [reason, setReason] = useState('');
   const [minutes, setMinutes] = useState(appeal.hearing_notes || '');
+  const [amending, setAmending] = useState(false);
+
+  const hearingCompleted = !!appeal.hearing_completed_at;
+
 
   const eligible = useMemo(
     () => (panels || []).filter(
@@ -116,13 +120,23 @@ export function AppealPanelSection({ appeal }: Props) {
 
   const complete = async () => {
     if (minutes.trim().length < 10) { toast.error('Record the hearing minutes first (at least 10 characters)'); return; }
+    if (hearingCompleted && minutes.trim() === (appeal.hearing_notes || '').trim()) {
+      toast.error('The minutes are unchanged — nothing to amend');
+      return;
+    }
     try {
-      await completeHearing.mutateAsync({ appealId: appeal.id, minutes: minutes.trim() });
-      toast.success('Hearing marked complete');
+      await completeHearing.mutateAsync({
+        appealId: appeal.id,
+        minutes: minutes.trim(),
+        amend: hearingCompleted,
+      });
+      toast.success(hearingCompleted ? 'Hearing minutes amended' : 'Hearing marked complete');
+      setAmending(false);
     } catch (e: unknown) {
       toast.error((e as Error)?.message || 'Failed to complete the hearing');
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -328,14 +342,57 @@ export function AppealPanelSection({ appeal }: Props) {
                 {appeal.hearing_date ? 'Reschedule hearing' : 'Schedule hearing'}
               </Button>
 
-              <div>
-                <Label className="text-xs">Hearing notes / minutes</Label>
-                <Textarea rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="Attendance, submissions made, adjournments, next steps…" />
-              </div>
-              <Button size="sm" variant="outline" onClick={complete} disabled={completeHearing.isPending || !appeal.hearing_date}>
-                {completeHearing.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save minutes &amp; mark hearing complete
-              </Button>
+              {hearingCompleted && !amending ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Hearing minutes · recorded {formatDateTime(appeal.hearing_completed_at)}
+                  </p>
+                  <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm">
+                    {appeal.hearing_notes || 'No minutes recorded'}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setMinutes(appeal.hearing_notes || ''); setAmending(true); }}
+                  >
+                    Amend minutes
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs">Hearing notes / minutes</Label>
+                    <Textarea rows={3} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="Attendance, submissions made, adjournments, next steps…" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={complete}
+                      disabled={
+                        completeHearing.isPending
+                        || !appeal.hearing_date
+                        || minutes.trim().length < 10
+                        || (hearingCompleted && minutes.trim() === (appeal.hearing_notes || '').trim())
+                      }
+                    >
+                      {completeHearing.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {hearingCompleted ? 'Save amended minutes' : 'Save minutes & mark hearing complete'}
+                    </Button>
+                    {hearingCompleted && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={completeHearing.isPending}
+                        onClick={() => { setAmending(false); setMinutes(appeal.hearing_notes || ''); }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+
             </>
           )}
 

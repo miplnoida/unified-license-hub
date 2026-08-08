@@ -24294,10 +24294,12 @@ export type Database = {
       }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
-      complete_appeal_hearing: {
-        Args: { _appeal_id: string; _minutes: string }
-        Returns: Json
-      }
+      complete_appeal_hearing:
+        | { Args: { _appeal_id: string; _minutes: string }; Returns: Json }
+        | {
+            Args: { _amend?: boolean; _appeal_id: string; _minutes: string }
+            Returns: Json
+          }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
