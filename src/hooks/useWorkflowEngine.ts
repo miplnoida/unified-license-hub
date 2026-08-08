@@ -545,12 +545,38 @@ export function useDeleteStep() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Capture the owning workflow before the row disappears so we can
+      // compact the remaining step orders and never leave a numbering gap
+      // (a gap makes the builder look like it has an empty step).
+      const { data: row } = await supabase
+        .from('approval_steps')
+        .select('workflow_id')
+        .eq('id', id)
+        .maybeSingle();
+      const workflowId = (row as any)?.workflow_id as string | undefined;
+
       const { error } = await supabase.from('approval_steps').delete().eq('id', id);
       if (error) throw error;
+
+      if (!workflowId) return;
+      const { data: remaining } = await supabase
+        .from('approval_steps')
+        .select('id, step_order')
+        .eq('workflow_id', workflowId)
+        .order('step_order', { ascending: true });
+      const list = ((remaining as any[]) || []);
+      if (list.length === 0) return;
+      const needsCompaction = list.some((s, i) => s.step_order !== i + 1);
+      if (!needsCompaction) return;
+      await supabase.rpc('reorder_approval_steps' as any, {
+        _workflow_id: workflowId,
+        _orders: list.map((s, i) => ({ id: s.id, step_order: i + 1 })) as any,
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_steps'] }),
   });
 }
+
 
 export function useReorderSteps() {
   const qc = useQueryClient();
