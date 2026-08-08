@@ -69,6 +69,60 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+// Extract the outermost {...} block using a brace-depth scan that respects
+// string literals and escapes, so trailing prose or code fences never break it.
+function extractJsonBlock(raw: string): string | null {
+  const start = raw.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  // Unterminated: return the remainder so the repair pass can try to close it.
+  return raw.slice(start);
+}
+
+// Repair the failure mode observed from the model: an array element string that
+// is opened but never closed before the newline (e.g. `"a.b\": 0` followed by a
+// line break). Close any string literal left open at end of line.
+function repairUnterminatedStrings(raw: string): string {
+  const lines = raw.split("\n");
+  const fixed = lines.map((line) => {
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+    }
+    if (!inString) return line;
+    // Close the dangling literal, keeping any structural trailing comma.
+    const trailingComma = /,\s*$/.test(line);
+    const body = line.replace(/,\s*$/, "");
+    return `${body}"${trailingComma ? "," : ""}`;
+  });
+  return fixed.join("\n");
+}
+
 function safeParseJson(raw: string): Record<string, unknown> | null {
   if (!raw) return null;
   const stripped = raw
@@ -78,19 +132,23 @@ function safeParseJson(raw: string): Record<string, unknown> | null {
   try {
     return JSON.parse(stripped);
   } catch {
-    // Try to recover the first {...} block.
-    const start = stripped.indexOf("{");
-    const end = stripped.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(stripped.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
+    // ignore, try the recovery passes below
+  }
+  const block = extractJsonBlock(stripped);
+  if (!block) return null;
+  try {
+    return JSON.parse(block);
+  } catch {
+    // ignore, try the repair pass
+  }
+  try {
+    const repaired = repairUnterminatedStrings(block);
+    return JSON.parse(repaired);
+  } catch {
     return null;
   }
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -495,7 +553,11 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are an assistant to a licensing analyst.
 Use ONLY the supplied application data. Do not invent facts.
-Every finding, risk, and section observation must include evidence (short quotes, IDs, or field names from the input).
+Every finding, risk, and section observation must include evidence.
+Each evidence entry is ONE plain sentence naming the field and its value in plain language,
+for example: paid amount is 2 but the form states 46. Never embed quote characters,
+colons, escape sequences, or JSON fragments inside an evidence string.
+
 If evidence is missing, list it under missing_information rather than inventing it.
 Do NOT make a final approval or rejection decision and do NOT say the application should be automatically approved.
 You produce BOTH a section-wise review AND a consolidated decision-ready report. The recommended_action is advisory only; the human analyst takes the final action.
@@ -564,30 +626,77 @@ ${JSON.stringify(applicationContext, null, 2)}`;
 
     const aiCallStarted = Date.now();
     try {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${aiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL_NAME,
-          stream: true,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
+      // One streaming gateway call. Streaming keeps bytes flowing so a long
+      // generation is not severed by the platform's no-bytes ceiling (which
+      // previously left the row stuck at `pending`).
+      const callModel = async (
+        extraInstruction: string | null,
+        jsonMode: boolean,
+      ): Promise<
+        | { ok: true; content: string }
+        | { ok: false; status: number; errText: string }
+      > => {
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Lovable-API-Key": aiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: MODEL_NAME,
+            stream: true,
+            ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+              ...(extraInstruction
+                ? [{ role: "user", content: extraInstruction }]
+                : []),
+            ],
+          }),
+        });
 
-      });
+        if (!aiResp.ok) {
+          const errText = await aiResp.text();
+          return { ok: false, status: aiResp.status, errText };
+        }
 
-      if (!aiResp.ok) {
-        const errText = await aiResp.text();
+        let content = "";
+        const reader = aiResp.body?.getReader();
+        if (reader) {
+          const decoder = new TextDecoder();
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data:")) continue;
+              const payload = trimmed.slice(5).trim();
+              if (!payload || payload === "[DONE]") continue;
+              try {
+                const evt = JSON.parse(payload);
+                const delta = evt?.choices?.[0]?.delta?.content;
+                if (typeof delta === "string") content += delta;
+              } catch {
+                // ignore keep-alive / non-JSON frames
+              }
+            }
+          }
+        }
+        return { ok: true, content };
+      };
+
+      const failGateway = async (status: number, errText: string) => {
+        const message = `AI gateway error ${status}: ${errText.slice(0, 500)}`;
         await adminClient
           .from("application_ai_assessments")
           .update({
             status: "failed",
-            error_message: `AI gateway error ${aiResp.status}: ${errText.slice(0, 500)}`,
+            error_message: message,
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
@@ -595,47 +704,46 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           direction: "outbound",
           integrationKey: "ai-gateway.application-assessment",
           status: "failure",
-          httpStatus: aiResp.status,
+          httpStatus: status,
           actorId: callerUserId,
           entityType: "application",
           entityId: application_id,
-          error: `AI gateway error ${aiResp.status}: ${errText.slice(0, 500)}`,
+          error: message,
           durationMs: Date.now() - aiCallStarted,
         });
-        return jsonResponse({ error: "AI gateway failed", status: aiResp.status }, 502);
+      };
+
+      // First attempt: provider-enforced JSON output mode.
+      let attempt = await callModel(null, true);
+      if (!attempt.ok && attempt.status === 400) {
+        // Some models reject json_object mode; fall back to plain text output.
+        attempt = await callModel(null, false);
+      }
+      if (!attempt.ok) {
+        await failGateway(attempt.status, attempt.errText);
+        return jsonResponse({ error: "AI gateway failed", status: attempt.status }, 502);
       }
 
-      // Streamed response: accumulate the deltas server-side. Streaming keeps
-      // bytes flowing so a long generation is not severed by the platform's
-      // no-bytes ceiling (which previously left the row stuck at `pending`).
-      let content = "";
-      const reader = aiResp.body?.getReader();
-      if (reader) {
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const payload = trimmed.slice(5).trim();
-            if (!payload || payload === "[DONE]") continue;
-            try {
-              const evt = JSON.parse(payload);
-              const delta = evt?.choices?.[0]?.delta?.content;
-              if (typeof delta === "string") content += delta;
-            } catch {
-              // ignore keep-alive / non-JSON frames
-            }
+      let content = attempt.content;
+      let parsed = safeParseJson(content);
+
+      if (!parsed) {
+        // The model occasionally emits malformed JSON (unterminated evidence
+        // strings). Retry once with an explicit reminder before giving up.
+        const retry = await callModel(
+          "Your previous response was not valid JSON. Return ONLY the JSON object described in the system message. Every string must be properly opened and closed, and evidence entries must be plain sentences with no quote characters, colons, or escape sequences.",
+          true,
+        );
+        if (retry.ok) {
+          const retryParsed = safeParseJson(retry.content);
+          if (retryParsed) {
+            parsed = retryParsed;
+            content = retry.content;
+          } else {
+            content = retry.content || content;
           }
         }
       }
-      const parsed = safeParseJson(content);
-
 
       if (!parsed) {
         await adminClient
@@ -643,6 +751,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           .update({
             status: "failed",
             error_message: "AI response was not valid JSON",
+            raw_response: content ? content.slice(0, 4000) : null,
             source_payload_hash: sourcePayloadHash,
           })
           .eq("id", assessmentId);
@@ -658,6 +767,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         });
         return jsonResponse({ error: "AI response unparseable" }, 502);
       }
+
 
       const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
       const risks = Array.isArray(parsed.risks) ? parsed.risks : [];
@@ -687,7 +797,9 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           confidence_score: confidence,
           sections,
           decision_report: decisionReport,
+          raw_response: null,
           source_payload_hash: sourcePayloadHash,
+
           generated_at: new Date().toISOString(),
           error_message: null,
         })

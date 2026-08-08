@@ -342,6 +342,7 @@ export type Database = {
           prompt_version: string
           proposed_routing_rationale: string | null
           proposed_routing_step_id: string | null
+          raw_response: string | null
           risks: Json
           routing_decision: string | null
           routing_decision_at: string | null
@@ -375,6 +376,7 @@ export type Database = {
           prompt_version?: string
           proposed_routing_rationale?: string | null
           proposed_routing_step_id?: string | null
+          raw_response?: string | null
           risks?: Json
           routing_decision?: string | null
           routing_decision_at?: string | null
@@ -408,6 +410,7 @@ export type Database = {
           prompt_version?: string
           proposed_routing_rationale?: string | null
           proposed_routing_step_id?: string | null
+          raw_response?: string | null
           risks?: Json
           routing_decision?: string | null
           routing_decision_at?: string | null
