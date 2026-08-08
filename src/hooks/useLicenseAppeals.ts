@@ -309,8 +309,26 @@ export function useAllLicenseAppealPanelMembers() {
 }
 
 
+/** Live single appeal record — keeps dialogs in step with the database after mutations. */
+export function useLicenseAppeal(appealId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'one', appealId],
+    queryFn: async (): Promise<LicenseAppeal | null> => {
+      const { data, error } = await supabase
+        .from('license_appeals')
+        .select('*')
+        .eq('id', appealId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as LicenseAppeal) ?? null;
+    },
+    enabled: !!appealId,
+    staleTime: 5_000,
+  });
+}
 
 /** The composition photographed for this appeal — never changes when the panel changes. */
+
 export function useAppealPanelSnapshot(appealId: string | undefined) {
   return useQuery({
     queryKey: [APPEALS_KEY, 'panel-snapshot', appealId],
