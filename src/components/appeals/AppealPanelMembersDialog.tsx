@@ -111,7 +111,31 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
     }
   };
 
+  /** One-click chair appointment: the outgoing chair steps back to member first. */
+  const makeChair = async (m: LicenseAppealPanelMember) => {
+    const outgoing = active.find((a) => a.is_chair && a.id !== m.id);
+    const payload = (row: LicenseAppealPanelMember, memberRole: MemberRole) => ({
+      id: row.id,
+      panel_id: row.panel_id,
+      user_id: row.user_id,
+      member_role: memberRole,
+      is_voting: memberRole === 'observer' ? false : row.is_voting,
+      vote_weight: row.vote_weight ?? 1,
+      effective_from: row.effective_from || null,
+      effective_to: row.effective_to || null,
+      is_active: true,
+    });
+    try {
+      if (outgoing) await savePanelMember.mutateAsync(payload(outgoing, 'member'));
+      await savePanelMember.mutateAsync(payload(m, 'chair'));
+      toast.success('Chair appointed');
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Failed to appoint the chair');
+    }
+  };
+
   const standDown = async (m: LicenseAppealPanelMember) => {
+
     const confirm = await Swal.fire({
       title: 'Stand this member down?',
       text: 'They stop sitting on future appeals. Appeals already referred to this panel keep the composition recorded at the time.',
@@ -178,7 +202,19 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
                 </div>
                 <div className="flex items-center gap-1">
                   {m.is_chair && <Badge variant="outline">Chair</Badge>}
+                  {!m.is_chair && m.member_role !== 'observer' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => makeChair(m)}
+                      disabled={savePanelMember.isPending}
+                    >
+                      Make chair
+                    </Button>
+                  )}
                   <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200">Active</Badge>
+
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(m)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
