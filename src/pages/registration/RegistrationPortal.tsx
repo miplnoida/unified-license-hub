@@ -11,6 +11,7 @@ import {
   FileText, CheckCircle2, Clock, Layers, LogOut, Save,
 } from 'lucide-react';
 import { buildUpdateRegistrationUrl, getPreferredSubmission } from '@/lib/registrationUpdateFlow';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Registration {
   id: string;
