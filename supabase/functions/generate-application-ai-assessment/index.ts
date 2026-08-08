@@ -105,7 +105,25 @@ Deno.serve(async (req) => {
 
   const adminClient = createClient(supabaseUrl, serviceKey);
 
+  // Declared outside the try block so every exit path (including the outer
+  // catch) can write a terminal status onto the seeded `pending` row. Leaving
+  // it pending makes the analyst UI spin forever.
+  let inboundAssessmentId: string | null = null;
+  const failPending = async (message: string) => {
+    if (!inboundAssessmentId) return;
+    try {
+      await adminClient
+        .from("application_ai_assessments")
+        .update({ status: "failed", error_message: message.slice(0, 500) })
+        .eq("id", inboundAssessmentId)
+        .eq("status", "pending");
+    } catch (_e) {
+      // best effort only
+    }
+  };
+
   try {
+
     const authHeader = req.headers.get("authorization") || "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
 
