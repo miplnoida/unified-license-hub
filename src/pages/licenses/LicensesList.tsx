@@ -250,7 +250,7 @@ export default function LicensesList() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{dashboardChip ? `No licenses matching “${dashboardChip}”.` : 'No licenses found'}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{dashboardChip ? `No licenses matching “${dashboardChip}”.` : (isGlobalInternalView ? 'No licenses found' : 'No licences issued yet')}</TableCell></TableRow>
                   ) : filtered.map(lic => (
                     <TableRow key={lic.id}>
                       <TableCell className="font-mono font-medium text-sm">{lic.license_number}</TableCell>
@@ -273,10 +273,38 @@ export default function LicensesList() {
                       <TableCell className="text-sm text-muted-foreground">{new Date(lic.issued_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{lic.valid_until ? new Date(lic.valid_until).toLocaleDateString() : 'No expiry'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/licenses/${lic.id}`)}>
-                          <Eye className="h-4 w-4 mr-1" />View
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/licenses/${lic.id}`)}>
+                            <Eye className="h-4 w-4 mr-1" />View
+                          </Button>
+                          <Button
+                            data-rbac="license_management.view"
+                            variant="ghost"
+                            size="sm"
+                            disabled={downloadingId === lic.id}
+                            onClick={async () => {
+                              setDownloadingId(lic.id);
+                              try {
+                                await downloadLicenseCertificate({
+                                  licenseId: lic.id,
+                                  licenseNumber: lic.license_number,
+                                  regenerate: isGlobalInternalView,
+                                });
+                              } finally {
+                                setDownloadingId(null);
+                              }
+                            }}
+                          >
+                            {downloadingId === lic.id
+                              ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              : <FileDown className="h-4 w-4 mr-1" />}
+                            Certificate
+                          </Button>
+                        </div>
                       </TableCell>
+                    </TableRow>
+                  ))}
+
                     </TableRow>
                   ))}
                 </TableBody>
