@@ -45,6 +45,8 @@ export default function LicenseAppealPanels() {
   const [description, setDescription] = useState('');
   const [scope, setScope] = useState('licensing');
   const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [chairId, setChairId] = useState<string>('');
+
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [format, setFormat] = useState<AppealHearingFormat>('written');
@@ -66,13 +68,15 @@ export default function LicenseAppealPanels() {
 
   const startCreate = () => {
     setEditing(null); setName(''); setDescription(''); setScope('licensing');
-    setMemberIds([]); setFrom(''); setTo(''); setFormat('written');
+    setMemberIds([]); setChairId(''); setFrom(''); setTo(''); setFormat('written');
     setQuorum('3'); setRule('majority'); setNotes(''); setIsActive(true); setOpen(true);
   };
   const startEdit = (p: PanelRow) => {
     setEditing(p); setName(p.name); setDescription(p.description || '');
     setScope(p.appeal_scope || 'licensing');
-    setMemberIds(activeMembersOf(p.id).map((m) => m.user_id));
+    const current = activeMembersOf(p.id);
+    setMemberIds(current.map((m) => m.user_id));
+    setChairId(current.find((m) => m.is_chair)?.user_id || '');
     setFrom(p.effective_from || ''); setTo(p.effective_to || '');
     setFormat((p.default_hearing_format || 'written') as AppealHearingFormat);
     setQuorum(String(p.quorum ?? 3));
@@ -85,6 +89,15 @@ export default function LicenseAppealPanels() {
     const q = Number(quorum);
     if (!Number.isFinite(q) || q < 1) { toast.error('Quorum must be at least 1'); return; }
     if (from && to && to < from) { toast.error('The end date cannot be before the start date'); return; }
+    // A panel cannot hear an appeal without a chair, so refuse to leave one unset.
+    if (memberIds.length > 0 && !chairId) {
+      toast.error('Appoint a chair — appeals cannot be referred to a panel without one');
+      return;
+    }
+    if (chairId && !memberIds.includes(chairId)) {
+      toast.error('The chair must also be a member of this panel');
+      return;
+    }
     try {
       setSaving(true);
       const panelId = await savePanel.mutateAsync({
@@ -101,21 +114,46 @@ export default function LicenseAppealPanels() {
         notes,
       });
 
-      // Apply the membership selection: add newcomers, stand down anyone removed.
+      // Apply the membership selection without rewriting anything the admin did not
+      // touch: existing members keep their role, vote weight and dates.
       const current = editing ? activeMembersOf(editing.id) : [];
       const currentIds = current.map((m) => m.user_id);
+      const keepChair = (m: (typeof current)[number]) => ({
+        id: m.id,
+        panel_id: panelId,
+        user_id: m.user_id,
+        is_voting: m.is_voting,
+        vote_weight: m.vote_weight ?? 1,
+        effective_from: m.effective_from || null,
+        effective_to: m.effective_to || null,
+        is_active: true,
+      });
+
+      // Demote the outgoing chair first so the one-active-chair rule is never broken.
+      const outgoingChair = current.find((m) => m.is_chair && m.user_id !== chairId);
+      if (outgoingChair) {
+        await savePanelMember.mutateAsync({ ...keepChair(outgoingChair), member_role: 'member' });
+      }
+
+      for (const m of current.filter((c) => !memberIds.includes(c.user_id))) {
+        await standDownPanelMember.mutateAsync(m.id);
+      }
+
       for (const userId of memberIds.filter((id) => !currentIds.includes(id))) {
         await savePanelMember.mutateAsync({
           panel_id: panelId,
           user_id: userId,
-          member_role: 'member',
+          member_role: userId === chairId ? 'chair' : 'member',
           is_voting: true,
           vote_weight: 1,
           is_active: true,
         });
       }
-      for (const m of current.filter((c) => !memberIds.includes(c.user_id))) {
-        await standDownPanelMember.mutateAsync(m.id);
+
+      // Promote an existing member to chair when the selection changed.
+      const incomingChair = current.find((m) => m.user_id === chairId && !m.is_chair);
+      if (incomingChair) {
+        await savePanelMember.mutateAsync({ ...keepChair(incomingChair), member_role: 'chair' });
       }
 
       toast.success(editing ? 'Panel updated' : 'Panel created');
@@ -126,6 +164,7 @@ export default function LicenseAppealPanels() {
       setSaving(false);
     }
   };
+
 
   const scopeLabel = (key: string) =>
     (scopes || []).find((s) => s.scope_key === key)?.label ?? key;
@@ -231,14 +270,39 @@ export default function LicenseAppealPanels() {
                   testId="panel-members-select"
                   options={staffOptions}
                   value={memberIds}
-                  onChange={setMemberIds}
+                  onChange={(ids) => {
+                    setMemberIds(ids);
+                    if (chairId && !ids.includes(chairId)) setChairId('');
+                  }}
                   placeholder="Select internal users…"
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Active internal staff only. Everyone added here sits as a voting member — use
-                  Composition to set the chair, legal adviser, observers, vote weights and dates.
+                  Composition to set the legal adviser, observers, vote weights and dates.
                 </p>
               </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Chair *</Label>
+                <Select
+                  value={chairId || 'none'}
+                  onValueChange={(v) => setChairId(v === 'none' ? '' : v)}
+                  disabled={memberIds.length === 0}
+                >
+                  <SelectTrigger data-testid="panel-chair-select">
+                    <SelectValue placeholder={memberIds.length ? 'Select the chair' : 'Add members first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not appointed</SelectItem>
+                    {memberIds.map((id) => (
+                      <SelectItem key={id} value={id}>{staffName(id)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Appeals cannot be referred to a panel until a chair is appointed.
+                </p>
+              </div>
+
               <div>
                 <Label className="text-xs">Effective to</Label>
                 <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />

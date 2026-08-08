@@ -11,9 +11,10 @@ import {
 import { CalendarClock, CheckCircle2, Circle, Gavel, Loader2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  AppealHearingFormat, LicenseAppeal, useAppealCaseFile, useAppealPanelSnapshot,
-  useLicenseAppealMutations, useLicenseAppealPanels,
+  AppealHearingFormat, LicenseAppeal, useAllLicenseAppealPanelMembers, useAppealCaseFile,
+  useAppealPanelSnapshot, useLicenseAppealMutations, useLicenseAppealPanels,
 } from '@/hooks/useLicenseAppeals';
+
 import {
   HEARING_FORMAT_OPTIONS, decisionRuleLabel, hearingFormatLabel, isPanelInForce,
   panelMemberRoleLabel,
@@ -34,6 +35,8 @@ interface Props {
 export function AppealPanelSection({ appeal }: Props) {
   const canAssign = useCan('license_appeals', 'assign_panel') || useCan('license_appeals', 'decide');
   const { data: panels } = useLicenseAppealPanels(true);
+  const { data: allMembers } = useAllLicenseAppealPanelMembers();
+
   const { data: snapshot } = useAppealPanelSnapshot(appeal.id);
   const { data: caseFile, isLoading: caseFileLoading } = useAppealCaseFile(appeal.id);
   const { assignPanel, scheduleHearing, completeHearing } = useLicenseAppealMutations();
@@ -53,6 +56,20 @@ export function AppealPanelSection({ appeal }: Props) {
     ),
     [panels, appeal.regulator_id],
   );
+
+  /** A panel can only be constituted when it has a sitting chair and can meet quorum. */
+  const readinessOf = (panel: { id: string; quorum: number }) => {
+    const roster = (allMembers || []).filter((m) => m.panel_id === panel.id && m.is_active);
+    const chair = roster.find((m) => m.is_chair);
+    const voting = roster.filter((m) => m.is_voting).length;
+    const problems: string[] = [];
+    if (!chair) problems.push('no chair appointed');
+    if (voting < panel.quorum) problems.push(`only ${voting} voting member(s) for a quorum of ${panel.quorum}`);
+    return { ready: problems.length === 0, problems, voting, hasChair: !!chair };
+  };
+  const selectedPanel = eligible.find((p) => p.id === panelId);
+  const selectedReadiness = selectedPanel ? readinessOf(selectedPanel) : null;
+
 
   const decided = appeal.status === 'decided';
   const caseFileReady = !!caseFile?.ready;
@@ -178,16 +195,26 @@ export function AppealPanelSection({ appeal }: Props) {
               <Select value={panelId} onValueChange={setPanelId}>
                 <SelectTrigger><SelectValue placeholder="Select a panel in force" /></SelectTrigger>
                 <SelectContent>
-                  {eligible.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} — quorum {p.quorum}
-                    </SelectItem>
-                  ))}
+                  {eligible.map((p) => {
+                    const r = readinessOf(p);
+                    return (
+                      <SelectItem key={p.id} value={p.id} disabled={!r.ready}>
+                        {p.name} — quorum {p.quorum}
+                        {r.ready ? '' : ` · ${r.problems.join('; ')}`}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               {eligible.length === 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   No licensing appeal panel is in force for this regulator.
+                </p>
+              )}
+              {eligible.length > 0 && !eligible.some((p) => readinessOf(p).ready) && (
+                <p className="mt-1 text-xs text-amber-700">
+                  No panel can be constituted yet — appoint a chair and enough voting members in
+                  Admin → Appeal Panels → Composition.
                 </p>
               )}
             </div>
@@ -210,20 +237,29 @@ export function AppealPanelSection({ appeal }: Props) {
           <Button
             size="sm"
             onClick={refer}
-            disabled={assignPanel.isPending || caseFileLoading || !caseFileReady}
+            disabled={
+              assignPanel.isPending || caseFileLoading || !caseFileReady
+              || (!!selectedReadiness && !selectedReadiness.ready)
+            }
           >
             {(assignPanel.isPending || caseFileLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Refer &amp; constitute panel
           </Button>
           {caseFileLoading ? (
             <p className="text-xs text-muted-foreground">Checking the appeal case file…</p>
-          ) : !caseFileReady && (
+          ) : !caseFileReady ? (
             <p className="text-xs text-muted-foreground">
               {outstanding.length > 0
                 ? `Outstanding before referral: ${outstanding.join(', ')}.`
                 : 'The case file must be complete before the appeal can go to a panel.'}
             </p>
-          )}
+          ) : selectedReadiness && !selectedReadiness.ready ? (
+            <p className="text-xs text-amber-700">
+              That panel cannot sit: {selectedReadiness.problems.join('; ')}. Fix it in
+              Admin → Appeal Panels → Composition.
+            </p>
+          ) : null}
+
 
         </div>
       )}
