@@ -63,8 +63,8 @@ export function ApplicationCard({
         <Calendar className="h-4 w-4" />
         <span>
           {application.submittedAt
-            ? `Submitted ${format(new Date(application.submittedAt), 'MMM d, yyyy')}`
-            : `Created ${format(new Date(application.createdAt), 'MMM d, yyyy')}`}
+            ? `Submitted ${formatDateTime(application.submittedAt)}`
+            : `Created ${formatDateTime(application.createdAt)}`}
         </span>
       </div>
 
