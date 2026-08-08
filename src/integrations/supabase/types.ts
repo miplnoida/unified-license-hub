@@ -26139,6 +26139,16 @@ export type Database = {
         Returns: Json
       }
       list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
+      list_internal_users: {
+        Args: { _include_ids?: string[]; _search?: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          primary_role: string
+          status: string
+        }[]
+      }
       list_permission_dependent_actions: { Args: never; Returns: string[] }
       lives_ok: { Args: { "": string }; Returns: string }
       log_compliance_audit: {
