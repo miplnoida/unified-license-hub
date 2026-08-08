@@ -167,8 +167,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
     const application_id = body.application_id;
-    const inboundAssessmentId = body.assessment_id || null;
+    inboundAssessmentId = body.assessment_id || null;
     if (!application_id || typeof application_id !== "string") {
+      await failPending("application_id is required");
       return jsonResponse({ error: "application_id is required" }, 400);
     }
 
@@ -179,8 +180,10 @@ Deno.serve(async (req) => {
       .eq("id", application_id)
       .maybeSingle();
     if (appErr || !app) {
+      await failPending("Application not found");
       return jsonResponse({ error: "Application not found" }, 404);
     }
+
 
     const appData = (app.data as Record<string, unknown> | null) || {};
     const sectorId = (appData.sector_id as string | undefined) || null;
