@@ -9,12 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, LogOut, RefreshCw, FileEdit, MailCheck } from 'lucide-react';
 
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso);
 }
 
 export default function RegistrationStatusPage() {
