@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MessageSquarePlus, RotateCcw, CheckCircle2, XCircle, Lock, ShieldCheck, Pencil } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { toast } from 'sonner';
 import {
   useComplaintRfis,
