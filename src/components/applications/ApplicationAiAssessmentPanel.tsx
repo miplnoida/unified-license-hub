@@ -126,6 +126,8 @@ function groupBySeverity(items: Finding[]) {
   return grouped;
 }
 
+const STALE_PENDING_MS = 10 * 60 * 1000;
+
 export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: Props) {
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -133,6 +135,15 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
 
   const fetchLatest = useCallback(async () => {
     setLoading(true);
+    // Flip abandoned `pending` rows (generation died mid-flight) to `failed`
+    // so the panel never spins forever without a recovery path.
+    try {
+      await supabase.rpc('reconcile_stale_ai_assessments' as never, {
+        _application_id: applicationId,
+      } as never);
+    } catch {
+      // non-fatal: read-only fallback below still renders the stale state
+    }
     const { data, error } = await supabase
       .from('application_ai_assessments' as never)
       .select('*')
@@ -150,14 +161,20 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
     void fetchLatest();
   }, [fetchLatest]);
 
+  const isStalePending =
+    assessment?.status === 'pending' &&
+    Date.now() - new Date(assessment.created_at).getTime() > STALE_PENDING_MS;
+
   // Poll while pending to surface completion without manual refresh.
+  // Bounded: once the row is considered stale, polling stops.
   useEffect(() => {
-    if (assessment?.status !== 'pending') return;
+    if (assessment?.status !== 'pending' || isStalePending) return;
     const t = setInterval(() => {
       void fetchLatest();
     }, 5000);
     return () => clearInterval(t);
-  }, [assessment?.status, fetchLatest]);
+  }, [assessment?.status, isStalePending, fetchLatest]);
+
 
   const handleGenerate = async () => {
     setGenerating(true);
