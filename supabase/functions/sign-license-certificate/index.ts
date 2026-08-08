@@ -16,10 +16,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
-const SIGNING_ROLES = new Set([
-  "super_admin", "admin", "supervisor",
-  "licensing_officer", "analyst", "legal_compliance",
-]);
+// Authorization is centralised in requireUserPermission
+// (license_management / manage_certificates). Do not add a second role check.
+
 
 function json(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
