@@ -100,3 +100,45 @@ export function daysRemaining(deadline: Date | string | null | undefined): numbe
 export function isAppealOpen(status: string | null | undefined): boolean {
   return OPEN_APPEAL_STATUSES.includes((status ?? '') as LicenseAppealStatus);
 }
+
+/** Hearing formats supported by an appeal panel. */
+export const HEARING_FORMAT_OPTIONS: Array<{ value: 'written' | 'oral' | 'virtual' | 'in_person'; label: string }> = [
+  { value: 'written', label: 'Written representations' },
+  { value: 'oral', label: 'Oral hearing' },
+  { value: 'virtual', label: 'Virtual hearing' },
+  { value: 'in_person', label: 'In-person hearing' },
+];
+
+export const DECISION_RULE_OPTIONS: Array<{ value: 'majority' | 'unanimous' | 'chair_casting'; label: string }> = [
+  { value: 'majority', label: 'Simple majority' },
+  { value: 'unanimous', label: 'Unanimous' },
+  { value: 'chair_casting', label: 'Majority with chair casting vote' },
+];
+
+export const PANEL_MEMBER_ROLE_OPTIONS: Array<{ value: 'chair' | 'member' | 'legal_adviser' | 'observer'; label: string }> = [
+  { value: 'chair', label: 'Chair' },
+  { value: 'member', label: 'Member' },
+  { value: 'legal_adviser', label: 'Legal adviser' },
+  { value: 'observer', label: 'Observer (non-voting)' },
+];
+
+export function hearingFormatLabel(value: string | null | undefined): string {
+  return HEARING_FORMAT_OPTIONS.find((o) => o.value === value)?.label ?? (value || '—');
+}
+
+export function decisionRuleLabel(value: string | null | undefined): string {
+  return DECISION_RULE_OPTIONS.find((o) => o.value === value)?.label ?? (value || '—');
+}
+
+export function panelMemberRoleLabel(value: string | null | undefined): string {
+  return PANEL_MEMBER_ROLE_OPTIONS.find((o) => o.value === value)?.label ?? (value || '—');
+}
+
+/** True when the panel is constituted and in force today. */
+export function isPanelInForce(p: { is_active: boolean; effective_from?: string | null; effective_to?: string | null }): boolean {
+  if (!p.is_active) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  if (p.effective_from && p.effective_from > today) return false;
+  if (p.effective_to && p.effective_to < today) return false;
+  return true;
+}
