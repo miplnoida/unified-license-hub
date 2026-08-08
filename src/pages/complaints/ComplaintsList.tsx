@@ -36,6 +36,7 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { DuplicateAlertBanner } from '@/components/complaints/duplicates/DuplicateAlertBanner';
 import { EscalationBanner } from '@/components/complaints/escalations/EscalationBanner';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 
 // Status metadata is centralized in src/lib/complaintStatus.ts. Aliased here to
 // keep existing JSX references intact while the module is the single source of
