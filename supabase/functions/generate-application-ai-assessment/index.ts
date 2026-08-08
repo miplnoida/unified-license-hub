@@ -797,7 +797,9 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           confidence_score: confidence,
           sections,
           decision_report: decisionReport,
+          raw_response: null,
           source_payload_hash: sourcePayloadHash,
+
           generated_at: new Date().toISOString(),
           error_message: null,
         })
