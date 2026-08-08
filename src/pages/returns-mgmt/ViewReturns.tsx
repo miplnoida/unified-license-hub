@@ -342,11 +342,11 @@ export default function ViewReturns() {
                       <TableCell className="font-medium">{ret.unique_id || '—'}</TableCell>
                       <TableCell>{getLicenseeName(ret)}</TableCell>
                       <TableCell>{getConfigName(ret.return_configuration_id)}</TableCell>
-                      <TableCell className="text-sm">
-                        {ret.period_start ? new Date(ret.period_start).toLocaleDateString() : '—'} – {ret.period_end ? new Date(ret.period_end).toLocaleDateString() : '—'}
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {formatDateOnly(ret.period_start)} – {formatDateOnly(ret.period_end)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDateTime(ret.submitted_at)}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
