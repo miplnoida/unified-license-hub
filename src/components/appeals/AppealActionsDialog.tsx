@@ -12,11 +12,12 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import {
   LicenseAppeal, useAppealApplicationStatus, useAppealPanelSnapshot,
-  useLicenseAppealMutations,
+  useLicenseAppeal, useLicenseAppealMutations,
 } from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
 } from '@/lib/licenseAppeals';
+import { formatDateTime } from '@/lib/datetime';
 import { AppealTimeline } from '@/components/appeals/AppealTimeline';
 import { AppealPanelSection } from '@/components/appeals/AppealPanelSection';
 import { useCan } from '@/hooks/useCan';
@@ -27,10 +28,14 @@ interface Props {
 }
 
 /** Regulator-side appeal record: a single decision — consider the appeal, or decline it. */
-export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
+export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Props) {
   const { recordDecision, reinstateApplication, acknowledgeAppeal } = useLicenseAppealMutations();
   const canDecide = useCan('license_appeals', 'decide');
   const canAssign = useCan('license_appeals', 'assign_panel');
+  // Always render from the live record so mutations (acknowledge, refer, decide)
+  // update this dialog immediately instead of showing the row snapshot.
+  const { data: liveAppeal } = useLicenseAppeal(selectedAppeal?.id);
+  const appeal = liveAppeal ?? selectedAppeal;
   const { data: application } = useAppealApplicationStatus(appeal?.application_id);
   const { data: snapshot } = useAppealPanelSnapshot(appeal?.id);
 
@@ -39,6 +44,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
   const [conditions, setConditions] = useState('');
 
   if (!appeal) return null;
+
   const statusMeta = appealStatusMeta(appeal.status);
   const decisionMeta = appealDecisionMeta(appeal.decision);
   const open = isAppealOpen(appeal.status);
