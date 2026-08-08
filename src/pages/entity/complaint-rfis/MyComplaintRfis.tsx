@@ -118,8 +118,8 @@ function RfiCard({
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               {rfi.complaint_subject ? `${rfi.complaint_subject} · ` : ''}
-              Issued {format(new Date(rfi.raised_at), 'PP')}
-              {rfi.due_at ? ` · response due ${format(new Date(rfi.due_at), 'PP')}` : ''}
+              Issued {formatDateTime(rfi.raised_at)}
+              {rfi.due_at ? ` · response due ${formatDateOnly(rfi.due_at)}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
