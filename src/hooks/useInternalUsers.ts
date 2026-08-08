@@ -4,7 +4,7 @@
  *
  * Returns profiles that:
  *  - have at least one row in `user_roles` (system staff), and
- *  - are NOT external portal users (pre_licensee/licensee), and
+ *  - are NOT primary/secondary or other external portal users, and
  *  - have profiles.status = 'active' (when activeOnly=true).
  *
  * `alwaysIncludeIds` forces inclusion of specific user ids even when inactive
@@ -36,6 +36,18 @@ const EXTERNAL_ROLES = new Set([
   'applicant',
 ]);
 
+const EXTERNAL_USER_TYPES = new Set([
+  'primary',
+  'secondary',
+  'pre_licensee',
+  'applicant',
+  'licensee',
+  'licensee_primary',
+  'licensee_secondary',
+]);
+
+const INTERNAL_USERS_QUERY_VERSION = 2;
+
 export function useInternalUsers(
   search?: string,
   opts?: { activeOnly?: boolean; alwaysIncludeIds?: string[] },
@@ -44,7 +56,7 @@ export function useInternalUsers(
   const alwaysIncludeIds = (opts?.alwaysIncludeIds ?? []).filter(Boolean);
   const alwaysKey = alwaysIncludeIds.slice().sort().join(',');
   return useQuery({
-    queryKey: ['internal_users', search ?? '', activeOnly, alwaysKey],
+    queryKey: ['internal_users', INTERNAL_USERS_QUERY_VERSION, search ?? '', activeOnly, alwaysKey],
     queryFn: async (): Promise<InternalUser[]> => {
       const { data: roleRows, error: rolesErr } = await supabase
         .from('user_roles')
@@ -78,13 +90,16 @@ export function useInternalUsers(
 
       const { data: profiles, error: pErr } = await supabase
         .from('profiles')
-        .select('id, full_name, email, status')
+        .select('id, full_name, email, status, user_type')
         .in('id', Array.from(ids));
       if (pErr) throw pErr;
 
       const q = (search || '').trim().toLowerCase();
       const includeSet = new Set(alwaysIncludeIds);
-      return ((profiles ?? []) as any[])
+      const distinctProfiles = Array.from(
+        new Map(((profiles ?? []) as any[]).map((profile) => [profile.id as string, profile])).values(),
+      );
+      return distinctProfiles
         .map((p) => {
           const status = (p.status as string | null) ?? null;
           const isActive = (status || '').toLowerCase() === 'active';
@@ -95,9 +110,12 @@ export function useInternalUsers(
             status,
             is_active: isActive,
             primary_role: roleByUser.get(p.id)?.[0] ?? null,
+            user_type: ((p.user_type as string | null) ?? '').toLowerCase(),
           };
         })
         .filter((u) => {
+          // A portal identity remains external even if it also holds an internal role.
+          if (EXTERNAL_USER_TYPES.has(u.user_type)) return false;
           // Exclude external-only users (no non-external role AND not force-included)
           if (!roleByUser.has(u.id) && !includeSet.has(u.id)) return false;
           if (activeOnly && !u.is_active && !includeSet.has(u.id)) return false;
