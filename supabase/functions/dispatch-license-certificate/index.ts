@@ -12,10 +12,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
-const DISPATCH_ROLES = new Set([
-  "super_admin", "admin", "supervisor", "licensing_officer",
-]);
-
 function json(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -27,38 +23,15 @@ Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
-  const __authzGate = await requireUserPermission(req, "license_management", "dispatch");
+  // Authorization is centralised in requireUserPermission
+  // (license_management / manage_certificates). Do not add a second role check.
+  const __authzGate = await requireUserPermission(req, "license_management", "manage_certificates");
   if (!__authzGate.ok) return __authzGate.response;
   if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !serviceKey || !anonKey) {
-    return json(req, 500, { error: "server_misconfigured" });
-  }
+  const admin = __authzGate.adminClient;
+  const user = { id: __authzGate.userId };
 
-  const authHeader = req.headers.get("Authorization") || "";
-  if (!authHeader.startsWith("Bearer ")) return json(req, 401, { error: "missing_bearer_token" });
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) return json(req, 401, { error: "invalid_token" });
-  const user = userData.user;
-
-  const admin = createClient(supabaseUrl, serviceKey);
-  const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
-  const roleSet = new Set((roles || []).map(r => (r as { role: string }).role));
-  if (![...roleSet].some(r => DISPATCH_ROLES.has(r))) {
-    await admin.from("security_event_logs").insert({
-      user_id: user.id,
-      event_type: "denied_access",
-      target_resource: "dispatch-license-certificate",
-      detail: { reason: "role_not_permitted", roles: [...roleSet] },
-    });
-    return json(req, 403, { error: "not_authorized_to_dispatch" });
-  }
 
   let body: { certificate_id?: string; note?: string };
   try { body = await req.json(); } catch { return json(req, 400, { error: "invalid_json" }); }
