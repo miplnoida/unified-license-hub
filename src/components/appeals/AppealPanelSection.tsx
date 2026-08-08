@@ -48,6 +48,10 @@ export function AppealPanelSection({ appeal }: Props) {
   const [link, setLink] = useState(appeal.hearing_link || '');
   const [reason, setReason] = useState('');
   const [minutes, setMinutes] = useState(appeal.hearing_notes || '');
+  const [amending, setAmending] = useState(false);
+
+  const hearingCompleted = !!appeal.hearing_completed_at;
+
 
   const eligible = useMemo(
     () => (panels || []).filter(
