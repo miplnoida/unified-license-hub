@@ -222,6 +222,33 @@ export type Database = {
         }
         Relationships: []
       }
+      appeal_panel_scopes: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          scope_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          scope_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          scope_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       application_acknowledgements: {
         Row: {
           ack_text: string | null
@@ -12943,30 +12970,48 @@ export type Database = {
       license_appeal_panel_members: {
         Row: {
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
+          is_chair: boolean
+          is_voting: boolean
           member_role: string
           panel_id: string
+          regulator_id: string | null
           updated_at: string
           user_id: string
+          vote_weight: number
         }
         Insert: {
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_chair?: boolean
+          is_voting?: boolean
           member_role?: string
           panel_id: string
+          regulator_id?: string | null
           updated_at?: string
           user_id: string
+          vote_weight?: number
         }
         Update: {
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
+          is_chair?: boolean
+          is_voting?: boolean
           member_role?: string
           panel_id?: string
+          regulator_id?: string | null
           updated_at?: string
           user_id?: string
+          vote_weight?: number
         }
         Relationships: [
           {
@@ -12978,31 +13023,112 @@ export type Database = {
           },
         ]
       }
+      license_appeal_panel_snapshots: {
+        Row: {
+          appeal_id: string
+          appeal_scope: string
+          created_at: string
+          decision_rule: string
+          hearing_format: string | null
+          id: string
+          member_roster: Json
+          panel_id: string
+          panel_name: string
+          quorum: number
+          snapshot_at: string
+          snapshot_by: string | null
+        }
+        Insert: {
+          appeal_id: string
+          appeal_scope: string
+          created_at?: string
+          decision_rule: string
+          hearing_format?: string | null
+          id?: string
+          member_roster?: Json
+          panel_id: string
+          panel_name: string
+          quorum: number
+          snapshot_at?: string
+          snapshot_by?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          appeal_scope?: string
+          created_at?: string
+          decision_rule?: string
+          hearing_format?: string | null
+          id?: string
+          member_roster?: Json
+          panel_id?: string
+          panel_name?: string
+          quorum?: number
+          snapshot_at?: string
+          snapshot_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_appeal_panel_snapshots_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_appeal_panel_snapshots_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeal_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_appeal_panels: {
         Row: {
+          appeal_scope: string
           created_at: string
+          decision_rule: string
+          default_hearing_format: string
           description: string | null
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
           name: string
+          notes: string | null
+          quorum: number
           regulator_id: string | null
           updated_at: string
         }
         Insert: {
+          appeal_scope?: string
           created_at?: string
+          decision_rule?: string
+          default_hearing_format?: string
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           name: string
+          notes?: string | null
+          quorum?: number
           regulator_id?: string | null
           updated_at?: string
         }
         Update: {
+          appeal_scope?: string
           created_at?: string
+          decision_rule?: string
+          default_hearing_format?: string
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           name?: string
+          notes?: string | null
+          quorum?: number
           regulator_id?: string | null
           updated_at?: string
         }
@@ -13016,19 +13142,28 @@ export type Database = {
           appeal_reference: string
           application_id: string
           assigned_to: string | null
+          case_file_ready_at: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
           decision: string | null
+          decision_conditions: string | null
           decision_rationale: string | null
+          dissent_note: string | null
           filed_at: string
           filed_by: string
           grounds: string
+          hearing_completed_at: string | null
           hearing_date: string | null
+          hearing_format: string | null
+          hearing_link: string | null
+          hearing_notes: string | null
+          hearing_venue: string | null
           id: string
           license_id: string | null
           licensee_id: string | null
           panel_id: string | null
+          quorum_met: boolean | null
           regulator_id: string | null
           relief_sought: string | null
           status: string
@@ -13042,19 +13177,28 @@ export type Database = {
           appeal_reference: string
           application_id: string
           assigned_to?: string | null
+          case_file_ready_at?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
           decision?: string | null
+          decision_conditions?: string | null
           decision_rationale?: string | null
+          dissent_note?: string | null
           filed_at?: string
           filed_by: string
           grounds: string
+          hearing_completed_at?: string | null
           hearing_date?: string | null
+          hearing_format?: string | null
+          hearing_link?: string | null
+          hearing_notes?: string | null
+          hearing_venue?: string | null
           id?: string
           license_id?: string | null
           licensee_id?: string | null
           panel_id?: string | null
+          quorum_met?: boolean | null
           regulator_id?: string | null
           relief_sought?: string | null
           status?: string
@@ -13068,19 +13212,28 @@ export type Database = {
           appeal_reference?: string
           application_id?: string
           assigned_to?: string | null
+          case_file_ready_at?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
           decision?: string | null
+          decision_conditions?: string | null
           decision_rationale?: string | null
+          dissent_note?: string | null
           filed_at?: string
           filed_by?: string
           grounds?: string
+          hearing_completed_at?: string | null
           hearing_date?: string | null
+          hearing_format?: string | null
+          hearing_link?: string | null
+          hearing_notes?: string | null
+          hearing_venue?: string | null
           id?: string
           license_id?: string | null
           licensee_id?: string | null
           panel_id?: string | null
+          quorum_met?: boolean | null
           regulator_id?: string | null
           relief_sought?: string | null
           status?: string
@@ -23399,6 +23552,7 @@ export type Database = {
         }
         Returns: Json
       }
+      appeal_case_file_status: { Args: { _appeal_id: string }; Returns: Json }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -23427,6 +23581,15 @@ export type Database = {
       assert_role_management_action: {
         Args: { _action: string }
         Returns: undefined
+      }
+      assign_appeal_panel: {
+        Args: {
+          _appeal_id: string
+          _hearing_date?: string
+          _hearing_format?: string
+          _panel_id: string
+        }
+        Returns: Json
       }
       assign_complaint:
         | {
@@ -24131,6 +24294,10 @@ export type Database = {
       }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
+      complete_appeal_hearing: {
+        Args: { _appeal_id: string; _minutes: string }
+        Returns: Json
+      }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
@@ -25838,6 +26005,10 @@ export type Database = {
         Args: { _group_id: string; _period_key: string }
         Returns: Json
       }
+      is_appeal_panel_member: {
+        Args: { _appeal_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_assignment_only_regulator: {
         Args: { _user_id: string }
         Returns: boolean
@@ -26768,6 +26939,16 @@ export type Database = {
         Args: { _application_id?: string }
         Returns: number
       }
+      record_appeal_decision: {
+        Args: {
+          _appeal_id: string
+          _conditions?: string
+          _decision: string
+          _dissent?: string
+          _rationale: string
+        }
+        Returns: Json
+      }
       record_correspondence_delivery: {
         Args: { _message_id: string; _reason?: string; _status: string }
         Returns: undefined
@@ -27304,6 +27485,17 @@ export type Database = {
           _mapping_id: string
           _ppoc_user_id: string
           _sector_ids: string[]
+        }
+        Returns: Json
+      }
+      schedule_appeal_hearing: {
+        Args: {
+          _appeal_id: string
+          _hearing_date: string
+          _hearing_format: string
+          _link?: string
+          _reason?: string
+          _venue?: string
         }
         Returns: Json
       }
