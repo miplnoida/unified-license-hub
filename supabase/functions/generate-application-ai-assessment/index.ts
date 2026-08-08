@@ -572,11 +572,13 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         },
         body: JSON.stringify({
           model: MODEL_NAME,
+          stream: true,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
         }),
+
       });
 
       if (!aiResp.ok) {
