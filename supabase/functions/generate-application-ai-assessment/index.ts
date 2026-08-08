@@ -69,6 +69,60 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+// Extract the outermost {...} block using a brace-depth scan that respects
+// string literals and escapes, so trailing prose or code fences never break it.
+function extractJsonBlock(raw: string): string | null {
+  const start = raw.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  // Unterminated: return the remainder so the repair pass can try to close it.
+  return raw.slice(start);
+}
+
+// Repair the failure mode observed from the model: an array element string that
+// is opened but never closed before the newline (e.g. `"a.b\": 0` followed by a
+// line break). Close any string literal left open at end of line.
+function repairUnterminatedStrings(raw: string): string {
+  const lines = raw.split("\n");
+  const fixed = lines.map((line) => {
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+    }
+    if (!inString) return line;
+    // Close the dangling literal, keeping any structural trailing comma.
+    const trailingComma = /,\s*$/.test(line);
+    const body = line.replace(/,\s*$/, "");
+    return `${body}"${trailingComma ? "," : ""}`;
+  });
+  return fixed.join("\n");
+}
+
 function safeParseJson(raw: string): Record<string, unknown> | null {
   if (!raw) return null;
   const stripped = raw
@@ -78,19 +132,23 @@ function safeParseJson(raw: string): Record<string, unknown> | null {
   try {
     return JSON.parse(stripped);
   } catch {
-    // Try to recover the first {...} block.
-    const start = stripped.indexOf("{");
-    const end = stripped.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(stripped.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
+    // ignore, try the recovery passes below
+  }
+  const block = extractJsonBlock(stripped);
+  if (!block) return null;
+  try {
+    return JSON.parse(block);
+  } catch {
+    // ignore, try the repair pass
+  }
+  try {
+    const repaired = repairUnterminatedStrings(block);
+    return JSON.parse(repaired);
+  } catch {
     return null;
   }
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
