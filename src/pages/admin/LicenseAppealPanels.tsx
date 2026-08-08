@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
@@ -18,31 +18,33 @@ import { Loader2, Pencil, PlusCircle, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AppealDecisionRule, AppealHearingFormat, LicenseAppealPanel as PanelRow,
-  useAppealScopes, useLicenseAppealMutations, useLicenseAppealPanels,
+  useAllLicenseAppealPanelMembers, useAppealScopes, useLicenseAppealMutations,
+  useLicenseAppealPanels,
 } from '@/hooks/useLicenseAppeals';
-import { useAllRegulators } from '@/hooks/useRegulators';
+import { useInternalUsers } from '@/hooks/useInternalUsers';
 import {
   DECISION_RULE_OPTIONS, HEARING_FORMAT_OPTIONS, decisionRuleLabel,
   hearingFormatLabel, isPanelInForce,
 } from '@/lib/licenseAppeals';
 import { AppealPanelMembersDialog } from '@/components/appeals/AppealPanelMembersDialog';
-
-const NO_REGULATOR = 'none';
+import { InternalUserMultiSelect } from '@/components/appeals/InternalUserMultiSelect';
 
 export default function LicenseAppealPanels() {
   const { data: panels, isLoading } = useLicenseAppealPanels();
   const { data: scopes } = useAppealScopes();
-  const { data: regulators } = useAllRegulators();
-  const { savePanel } = useLicenseAppealMutations();
+  const { data: allMembers } = useAllLicenseAppealPanelMembers();
+  const { data: staff } = useInternalUsers(undefined, { activeOnly: true });
+  const { savePanel, savePanelMember, standDownPanelMember } = useLicenseAppealMutations();
 
   const [editing, setEditing] = useState<PanelRow | null>(null);
   const [open, setOpen] = useState(false);
   const [composing, setComposing] = useState<PanelRow | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [scope, setScope] = useState('licensing');
-  const [regulatorId, setRegulatorId] = useState<string>(NO_REGULATOR);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [format, setFormat] = useState<AppealHearingFormat>('written');
@@ -51,15 +53,26 @@ export default function LicenseAppealPanels() {
   const [notes, setNotes] = useState('');
   const [isActive, setIsActive] = useState(true);
 
+  const staffOptions = useMemo(
+    () => (staff || []).map((s) => ({
+      id: s.id,
+      name: (s.full_name || '').trim() || (s.email || '').trim() || 'Staff member',
+      email: s.email || null,
+    })),
+    [staff],
+  );
+  const staffName = (id: string) => staffOptions.find((o) => o.id === id)?.name ?? 'Staff member';
+  const activeMembersOf = (panelId: string) => (allMembers || []).filter((m) => m.panel_id === panelId);
+
   const startCreate = () => {
     setEditing(null); setName(''); setDescription(''); setScope('licensing');
-    setRegulatorId(NO_REGULATOR); setFrom(''); setTo(''); setFormat('written');
+    setMemberIds([]); setFrom(''); setTo(''); setFormat('written');
     setQuorum('3'); setRule('majority'); setNotes(''); setIsActive(true); setOpen(true);
   };
   const startEdit = (p: PanelRow) => {
     setEditing(p); setName(p.name); setDescription(p.description || '');
     setScope(p.appeal_scope || 'licensing');
-    setRegulatorId(p.regulator_id || NO_REGULATOR);
+    setMemberIds(activeMembersOf(p.id).map((m) => m.user_id));
     setFrom(p.effective_from || ''); setTo(p.effective_to || '');
     setFormat((p.default_hearing_format || 'written') as AppealHearingFormat);
     setQuorum(String(p.quorum ?? 3));
@@ -73,13 +86,13 @@ export default function LicenseAppealPanels() {
     if (!Number.isFinite(q) || q < 1) { toast.error('Quorum must be at least 1'); return; }
     if (from && to && to < from) { toast.error('The end date cannot be before the start date'); return; }
     try {
-      await savePanel.mutateAsync({
+      setSaving(true);
+      const panelId = await savePanel.mutateAsync({
         id: editing?.id,
         name: name.trim(),
         description,
         is_active: isActive,
         appeal_scope: scope,
-        regulator_id: regulatorId === NO_REGULATOR ? null : regulatorId,
         effective_from: from || null,
         effective_to: to || null,
         default_hearing_format: format,
@@ -87,22 +100,53 @@ export default function LicenseAppealPanels() {
         decision_rule: rule,
         notes,
       });
+
+      // Apply the membership selection: add newcomers, stand down anyone removed.
+      const current = editing ? activeMembersOf(editing.id) : [];
+      const currentIds = current.map((m) => m.user_id);
+      for (const userId of memberIds.filter((id) => !currentIds.includes(id))) {
+        await savePanelMember.mutateAsync({
+          panel_id: panelId,
+          user_id: userId,
+          member_role: 'member',
+          is_voting: true,
+          vote_weight: 1,
+          is_active: true,
+        });
+      }
+      for (const m of current.filter((c) => !memberIds.includes(c.user_id))) {
+        await standDownPanelMember.mutateAsync(m.id);
+      }
+
       toast.success(editing ? 'Panel updated' : 'Panel created');
       setOpen(false);
     } catch (e: unknown) {
       toast.error((e as Error)?.message || 'Failed to save panel');
+    } finally {
+      setSaving(false);
     }
   };
 
   const scopeLabel = (key: string) =>
     (scopes || []).find((s) => s.scope_key === key)?.label ?? key;
-  const regulatorLabel = (id: string | null) =>
-    id ? ((regulators || []).find((r) => r.id === id)?.name ?? '—') : 'All regulators';
 
   const columns: Column<PanelRow>[] = [
     { key: 'name', label: 'Panel', render: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'appeal_scope', label: 'Scope', render: (r) => scopeLabel(r.appeal_scope) },
-    { key: 'regulator_id', label: 'Panel jurisdiction / Regulator', render: (r) => regulatorLabel(r.regulator_id) },
+    {
+      key: 'members', label: 'Members',
+      render: (r) => {
+        const ms = activeMembersOf(r.id);
+        const chair = ms.find((m) => m.is_chair);
+        if (ms.length === 0) return <span className="text-muted-foreground">None</span>;
+        return (
+          <div className="text-xs">
+            <div>{ms.length} member{ms.length === 1 ? '' : 's'}</div>
+            {chair && <div className="text-muted-foreground">Chair: {staffName(chair.user_id)}</div>}
+          </div>
+        );
+      },
+    },
     {
       key: 'effective', label: 'In force',
       render: (r) => `${r.effective_from || 'open'} → ${r.effective_to || 'open'}`,
@@ -157,7 +201,7 @@ export default function LicenseAppealPanels() {
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit panel' : 'New appeal panel'}</DialogTitle>
             <DialogDescription>
-              These settings govern how the panel sits. Membership is managed separately.
+              These settings govern how the panel sits and who sits on it.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -178,23 +222,22 @@ export default function LicenseAppealPanels() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Panel jurisdiction / Regulator</Label>
-                <Select value={regulatorId} onValueChange={setRegulatorId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_REGULATOR}>All regulators</SelectItem>
-                    {(regulators || []).map((r) => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Scopes which regulator owns this panel — not who sits on it.
-                </p>
-              </div>
-              <div>
                 <Label className="text-xs">Effective from</Label>
                 <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Panel members</Label>
+                <InternalUserMultiSelect
+                  testId="panel-members-select"
+                  options={staffOptions}
+                  value={memberIds}
+                  onChange={setMemberIds}
+                  placeholder="Select internal users…"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Active internal staff only. Everyone added here sits as a voting member — use
+                  Composition to set the chair, legal adviser, observers, vote weights and dates.
+                </p>
               </div>
               <div>
                 <Label className="text-xs">Effective to</Label>
@@ -215,7 +258,7 @@ export default function LicenseAppealPanels() {
                 <Label className="text-xs">Quorum</Label>
                 <Input type="number" min="1" value={quorum} onChange={(e) => setQuorum(e.target.value)} />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <Label className="text-xs">Decision rule</Label>
                 <Select value={rule} onValueChange={(v) => setRule(v as AppealDecisionRule)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -242,8 +285,8 @@ export default function LicenseAppealPanels() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={savePanel.isPending}>
-              {savePanel.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button onClick={save} disabled={saving || savePanel.isPending}>
+              {(saving || savePanel.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save
             </Button>
           </DialogFooter>

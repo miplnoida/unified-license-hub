@@ -292,6 +292,24 @@ export function useLicenseAppealPanelMembers(panelId: string | undefined) {
   });
 }
 
+/** Live composition of every panel — used to summarise membership in the panel list. */
+export function useAllLicenseAppealPanelMembers() {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'panel-members', 'all'],
+    queryFn: async (): Promise<LicenseAppealPanelMember[]> => {
+      const { data, error } = await supabase
+        .from('license_appeal_panel_members')
+        .select('*')
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as unknown as LicenseAppealPanelMember[];
+    },
+    staleTime: 30_000,
+  });
+}
+
+
+
 /** The composition photographed for this appeal — never changes when the panel changes. */
 export function useAppealPanelSnapshot(appealId: string | undefined) {
   return useQuery({
