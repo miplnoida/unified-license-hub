@@ -909,10 +909,13 @@ export default function ApplicationDetail() {
 
 
               <TabsContent value="details" className="space-y-4 mt-4">
-                {activeTab === 'details' && (
+                {activeTab === 'details' && !isInternal && (
                   <SubmissionAcknowledgementPanel
                     applicationId={app.id}
                     submitted={!!(app as any).submitted_at}
+                    variant="applicant"
+                    applicationNumber={app.application_number}
+                    highlight={justSubmitted}
                   />
                 )}
                 {activeTab === 'details' && (
