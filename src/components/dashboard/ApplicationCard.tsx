@@ -2,7 +2,6 @@ import { Application } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, ArrowRight, FileText } from 'lucide-react';
-import { format } from 'date-fns';
 import { formatDateTime } from '@/lib/datetime';
 
 interface ApplicationCardProps {
