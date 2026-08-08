@@ -42,7 +42,7 @@ export function EscalationCaseDrawer({ open, onOpenChange, caseData }: Props) {
               <div className="flex flex-wrap gap-2 items-center">
                 <SeverityBadge severity={caseData.severity} />
                 <StatusChip status={caseData.status} />
-                <span className="text-xs text-slate-600">Triggered {new Date(caseData.triggeredAt).toLocaleString()}</span>
+                <span className="text-xs text-slate-600">Triggered {formatDateTime(caseData.triggeredAt)}</span>
               </div>
               <div><span className="text-slate-500">Subject:</span> {complaint?.subject ?? '—'}</div>
               <div><span className="text-slate-500">Complainant email:</span> {complaint?.email ?? '—'}</div>
