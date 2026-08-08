@@ -14,9 +14,10 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Search, Eye, Loader2, X } from 'lucide-react';
+import { Search, Eye, Loader2, X, FileDown } from 'lucide-react';
 import { resolveLicenseStatus } from '@/lib/licenseStatusBadge';
 import { describeLicensesFilter } from '@/lib/licenseeDashboardDrilldowns';
+import { downloadLicenseCertificate } from '@/lib/licenseCertificate';
 
 interface License {
   id: string;
