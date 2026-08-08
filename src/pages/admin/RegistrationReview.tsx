@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateTime } from '@/lib/datetime';
 import { Loader2, Eye, Search } from 'lucide-react';
 import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
