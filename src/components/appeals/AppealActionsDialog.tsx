@@ -28,8 +28,9 @@ interface Props {
 
 /** Regulator-side appeal record: a single decision — consider the appeal, or decline it. */
 export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
-  const { recordDecision, reinstateApplication } = useLicenseAppealMutations();
+  const { recordDecision, reinstateApplication, acknowledgeAppeal } = useLicenseAppealMutations();
   const canDecide = useCan('license_appeals', 'decide');
+  const canAssign = useCan('license_appeals', 'assign_panel');
   const { data: application } = useAppealApplicationStatus(appeal?.application_id);
   const { data: snapshot } = useAppealPanelSnapshot(appeal?.id);
 
@@ -153,6 +154,33 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
               </div>
             )}
           </div>
+
+          {!appeal.acknowledged_at && (canDecide || canAssign) && (
+            <>
+              <Separator />
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
+                <p className="text-sm">
+                  This appeal has not been acknowledged yet. Acknowledge it to accept it for review.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await acknowledgeAppeal.mutateAsync(appeal);
+                      toast.success('Appeal acknowledged');
+                    } catch (e: unknown) {
+                      toast.error((e as Error)?.message || 'Failed to acknowledge the appeal');
+                    }
+                  }}
+                  disabled={acknowledgeAppeal.isPending}
+                >
+                  {acknowledgeAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Acknowledge appeal
+                </Button>
+              </div>
+            </>
+          )}
 
           <Separator />
           <AppealPanelSection appeal={appeal} />
