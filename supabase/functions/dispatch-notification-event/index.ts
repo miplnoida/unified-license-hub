@@ -23,6 +23,12 @@ import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/em
 import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 import { SMS_UNAVAILABLE_REASON } from "../_shared/smsProvider.ts";
+import {
+  dynamicApproverRoleIds,
+  hasExplicitSpecificApprovers,
+  specificApproverUserIds,
+  type WorkflowRecipientStep,
+} from "./workflow-recipient-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -526,23 +532,44 @@ async function workflowStepApprovers(admin: SupabaseClient, stepId: string | nul
   if (!stepId) return [];
   const { data: step } = await admin
     .from("approval_steps")
-    .select("approver_role, approver_role_id")
+    .select("approver_type, approver_config, approver_role, approver_role_id")
     .eq("id", stepId)
     .maybeSingle();
   if (!step) return [];
   const out = new Set<string>();
-  if (step.approver_role) {
-    const r = await recipientsForRole(admin, String(step.approver_role));
-    r.forEach((u) => out.add(u));
-  }
-  if (step.approver_role_id) {
+
+  const configuredUsers = specificApproverUserIds(step as WorkflowRecipientStep);
+  if (configuredUsers.length > 0) return configuredUsers;
+
+  if (step.approver_type === "specific_users") return [];
+
+  const dynamicRoleIds = dynamicApproverRoleIds(step as WorkflowRecipientStep);
+  for (const roleId of dynamicRoleIds) {
     const { data: udr } = await admin
       .from("user_dynamic_roles")
       .select("user_id")
-      .eq("role_id", step.approver_role_id);
+      .eq("role_id", roleId);
     (udr || []).forEach((u: any) => u.user_id && out.add(u.user_id));
   }
+
+  if (dynamicRoleIds.length === 0 && step.approver_role) {
+    const r = await recipientsForRole(admin, String(step.approver_role));
+    r.forEach((u) => out.add(u));
+  }
   return Array.from(out);
+}
+
+async function workflowStepUsesSpecificApprovers(
+  admin: SupabaseClient,
+  stepId: string | null | undefined,
+): Promise<boolean> {
+  if (!stepId) return false;
+  const { data: step } = await admin
+    .from("approval_steps")
+    .select("approver_type, approver_config")
+    .eq("id", stepId)
+    .maybeSingle();
+  return hasExplicitSpecificApprovers((step as WorkflowRecipientStep | null) ?? null);
 }
 
 async function previousWorkflowActors(admin: SupabaseClient, applicationId: string | null | undefined): Promise<string[]> {
@@ -653,6 +680,8 @@ async function resolveRecipients(
           break;
         }
         case "sector_regulators": {
+          const currentStepId = ctx.payload?.step_id || ctx.app?.current_step_id;
+          if (await workflowStepUsesSpecificApprovers(admin, currentStepId)) break;
           (await sectorRegulators(admin, {
             sectorId: ctx.payload?.sector_id || ctx.app?.data?.sector_id,
             categoryId: ctx.payload?.category_id || ctx.app?.data?.category_id,
