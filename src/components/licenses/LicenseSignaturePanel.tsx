@@ -133,6 +133,22 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     load();
   }
 
+  async function handleGenerate() {
+    setWorking(true);
+    const { data, error } = await supabase.functions.invoke('generate-license-certificate', {
+      body: { mode: 'generate', license_id: licenseId },
+    });
+    setWorking(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || 'Certificate generation failed');
+      return;
+    }
+    toast.success('Certificate generated.');
+    onChanged?.();
+    load();
+  }
+
+
   if (loading) {
     return (
       <Card>
@@ -148,12 +164,21 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     return (
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Certificate Signing</CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          No certificate has been generated yet. Use “Download Certificate” to create one.
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            This licence has no certificate document yet. Generate version 1 to enable signing and dispatch.
+          </p>
+          {canSign && (
+            <Button size="sm" onClick={handleGenerate} disabled={working}>
+              {working ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSignature className="h-4 w-4 mr-1" />}
+              Generate Certificate
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
   }
+
 
   const statusColor: Record<string, string> = {
     draft: 'bg-muted text-muted-foreground',

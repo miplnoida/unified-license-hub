@@ -322,9 +322,19 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
+  // Internal system calls (licence issuance / renewal / backfill) present the
+  // service-role key. Those are trusted and must not be blocked by the
+  // user-permission gate, which can only evaluate real user JWTs.
+  const authHeader = req.headers.get("Authorization") || "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const isSystemCall = serviceRoleKey.length > 0 &&
+    authHeader === `Bearer ${serviceRoleKey}`;
 
-  const __authzGate = await requireUserPermission(req, "license_management", "issue");
-  if (!__authzGate.ok) return __authzGate.response;
+  if (!isSystemCall) {
+    const __authzGate = await requireUserPermission(req, "license_management", "issue");
+    if (!__authzGate.ok) return __authzGate.response;
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
