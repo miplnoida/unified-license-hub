@@ -1,0 +1,1 @@
+alter table public.application_ai_assessments add column if not exists raw_response text;
