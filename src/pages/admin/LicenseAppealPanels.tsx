@@ -102,7 +102,7 @@ export default function LicenseAppealPanels() {
   const columns: Column<PanelRow>[] = [
     { key: 'name', label: 'Panel', render: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'appeal_scope', label: 'Scope', render: (r) => scopeLabel(r.appeal_scope) },
-    { key: 'regulator_id', label: 'Regulator', render: (r) => regulatorLabel(r.regulator_id) },
+    { key: 'regulator_id', label: 'Panel jurisdiction / Regulator', render: (r) => regulatorLabel(r.regulator_id) },
     {
       key: 'effective', label: 'In force',
       render: (r) => `${r.effective_from || 'open'} → ${r.effective_to || 'open'}`,
@@ -178,7 +178,7 @@ export default function LicenseAppealPanels() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Regulator</Label>
+                <Label className="text-xs">Panel jurisdiction / Regulator</Label>
                 <Select value={regulatorId} onValueChange={setRegulatorId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -188,6 +188,9 @@ export default function LicenseAppealPanels() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Scopes which regulator owns this panel — not who sits on it.
+                </p>
               </div>
               <div>
                 <Label className="text-xs">Effective from</Label>
