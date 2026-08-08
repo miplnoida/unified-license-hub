@@ -20,6 +20,15 @@ export interface LicenseAppeal {
   acknowledged_at: string | null;
   acknowledged_by: string | null;
   hearing_date: string | null;
+  hearing_format: string | null;
+  hearing_venue: string | null;
+  hearing_link: string | null;
+  hearing_notes: string | null;
+  hearing_completed_at: string | null;
+  case_file_ready_at: string | null;
+  quorum_met: boolean | null;
+  dissent_note: string | null;
+  decision_conditions: string | null;
   decision: string | null;
   decision_rationale: string | null;
   decided_at: string | null;
@@ -39,17 +48,106 @@ export interface LicenseAppealEvent {
   created_at: string;
 }
 
+export type AppealHearingFormat = 'written' | 'oral' | 'virtual' | 'in_person';
+export type AppealDecisionRule = 'majority' | 'unanimous' | 'chair_casting';
+
 export interface LicenseAppealPanel {
   id: string;
   name: string;
   description: string | null;
   regulator_id: string | null;
   is_active: boolean;
+  appeal_scope: string;
+  effective_from: string | null;
+  effective_to: string | null;
+  default_hearing_format: AppealHearingFormat;
+  quorum: number;
+  decision_rule: AppealDecisionRule;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
 
+export interface LicenseAppealPanelMember {
+  id: string;
+  panel_id: string;
+  user_id: string;
+  member_role: 'chair' | 'member' | 'legal_adviser' | 'observer';
+  is_chair: boolean;
+  is_voting: boolean;
+  vote_weight: number;
+  regulator_id: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppealPanelSnapshotMember {
+  member_id: string;
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  member_role: string;
+  is_chair: boolean;
+  is_voting: boolean;
+  vote_weight: number;
+}
+
+export interface LicenseAppealPanelSnapshot {
+  id: string;
+  appeal_id: string;
+  panel_id: string;
+  panel_name: string;
+  appeal_scope: string;
+  quorum: number;
+  decision_rule: AppealDecisionRule;
+  hearing_format: string | null;
+  member_roster: AppealPanelSnapshotMember[];
+  snapshot_by: string | null;
+  snapshot_at: string;
+}
+
+export interface AppealCaseFileItem {
+  key: string;
+  label: string;
+  required: boolean;
+  satisfied: boolean;
+}
+
+export interface AppealCaseFileStatus {
+  appeal_id?: string;
+  items: AppealCaseFileItem[];
+  blocking_count: number;
+  ready: boolean;
+  error?: string;
+}
+
+export interface AppealScope {
+  id: string;
+  scope_key: string;
+  label: string;
+  is_active: boolean;
+}
+
 const APPEALS_KEY = 'license-appeals';
+
+interface RpcResult {
+  success?: boolean;
+  error?: string;
+  code?: string;
+  [k: string]: unknown;
+}
+
+/** Calls a SECURITY DEFINER appeal routine; envelope errors become thrown errors. */
+async function callAppealRpc(fn: string, args: Record<string, unknown>): Promise<RpcResult> {
+  const { data, error } = await supabase.rpc(fn as never, args as never);
+  if (error) throw error;
+  const result = (data as unknown as RpcResult | null) ?? {};
+  if (result.error) throw new Error(String(result.error));
+  return result;
+}
 
 /** Appeals lodged against a single application (RLS scopes visibility). */
 export function useApplicationAppeals(applicationId: string | undefined) {
@@ -146,6 +244,22 @@ export function useLicenseAppealEvents(appealId: string | undefined) {
   });
 }
 
+export function useAppealScopes() {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'scopes'],
+    queryFn: async (): Promise<AppealScope[]> => {
+      const { data, error } = await supabase
+        .from('appeal_panel_scopes')
+        .select('*')
+        .eq('is_active', true)
+        .order('label');
+      if (error) throw error;
+      return (data || []) as unknown as AppealScope[];
+    },
+    staleTime: 300_000,
+  });
+}
+
 export function useLicenseAppealPanels(activeOnly = false) {
   return useQuery({
     queryKey: [APPEALS_KEY, 'panels', activeOnly],
@@ -157,6 +271,60 @@ export function useLicenseAppealPanels(activeOnly = false) {
       return (data || []) as unknown as LicenseAppealPanel[];
     },
     staleTime: 120_000,
+  });
+}
+
+/** Current (live) composition of a panel. */
+export function useLicenseAppealPanelMembers(panelId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'panel-members', panelId],
+    queryFn: async (): Promise<LicenseAppealPanelMember[]> => {
+      const { data, error } = await supabase
+        .from('license_appeal_panel_members')
+        .select('*')
+        .eq('panel_id', panelId!)
+        .order('is_chair', { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as LicenseAppealPanelMember[];
+    },
+    enabled: !!panelId,
+    staleTime: 30_000,
+  });
+}
+
+/** The composition photographed for this appeal — never changes when the panel changes. */
+export function useAppealPanelSnapshot(appealId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'panel-snapshot', appealId],
+    queryFn: async (): Promise<LicenseAppealPanelSnapshot | null> => {
+      const { data, error } = await supabase
+        .from('license_appeal_panel_snapshots')
+        .select('*')
+        .eq('appeal_id', appealId!)
+        .order('snapshot_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as LicenseAppealPanelSnapshot) ?? null;
+    },
+    enabled: !!appealId,
+    staleTime: 30_000,
+  });
+}
+
+export function useAppealCaseFile(appealId: string | undefined) {
+  return useQuery({
+    queryKey: [APPEALS_KEY, 'case-file', appealId],
+    queryFn: async (): Promise<AppealCaseFileStatus | null> => {
+      const { data, error } = await supabase.rpc(
+        'appeal_case_file_status' as never,
+        { _appeal_id: appealId } as never,
+      );
+      if (error) throw error;
+      return (data as unknown as AppealCaseFileStatus) ?? null;
+    },
+    enabled: !!appealId,
+    staleTime: 15_000,
   });
 }
 
@@ -195,6 +363,11 @@ export function useLicenseAppealMutations() {
   const { user } = useAuth();
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: [APPEALS_KEY] });
+  const invalidateApplication = () => {
+    queryClient.invalidateQueries({ queryKey: ['applications'] });
+    queryClient.invalidateQueries({ queryKey: ['application'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+  };
 
   const lodgeAppeal = useMutation({
     mutationFn: async (input: {
@@ -255,67 +428,72 @@ export function useLicenseAppealMutations() {
     onSuccess: invalidate,
   });
 
+  /** Constitutes the panel for this appeal and photographs its composition. */
   const assignPanel = useMutation({
     mutationFn: async (input: {
-      appeal: LicenseAppeal;
+      appealId: string;
       panelId: string;
-      panelName: string;
       hearingDate?: string | null;
-    }) => {
-      const { error } = await supabase
-        .from('license_appeals')
-        .update({
-          panel_id: input.panelId,
-          hearing_date: input.hearingDate || null,
-          status: 'panel_review',
-        } as never)
-        .eq('id', input.appeal.id);
-      if (error) throw error;
-      await logEvent(
-        input.appeal.id,
-        'panel_assigned',
-        `Appeal referred to ${input.panelName}${input.hearingDate ? ` — hearing set for ${input.hearingDate}` : ''}`,
-        user?.id,
-      );
-    },
+      hearingFormat?: string | null;
+    }) =>
+      callAppealRpc('assign_appeal_panel', {
+        _appeal_id: input.appealId,
+        _panel_id: input.panelId,
+        _hearing_date: input.hearingDate || null,
+        _hearing_format: input.hearingFormat || null,
+      }),
+    onSuccess: invalidate,
+  });
+
+  const scheduleHearing = useMutation({
+    mutationFn: async (input: {
+      appealId: string;
+      hearingDate: string;
+      hearingFormat: AppealHearingFormat;
+      venue?: string | null;
+      link?: string | null;
+      reason?: string | null;
+    }) =>
+      callAppealRpc('schedule_appeal_hearing', {
+        _appeal_id: input.appealId,
+        _hearing_date: input.hearingDate,
+        _hearing_format: input.hearingFormat,
+        _venue: input.venue || null,
+        _link: input.link || null,
+        _reason: input.reason || null,
+      }),
+    onSuccess: invalidate,
+  });
+
+  const completeHearing = useMutation({
+    mutationFn: async (input: { appealId: string; minutes: string }) =>
+      callAppealRpc('complete_appeal_hearing', {
+        _appeal_id: input.appealId,
+        _minutes: input.minutes,
+      }),
     onSuccess: invalidate,
   });
 
   const recordDecision = useMutation({
-    mutationFn: async (input: { appeal: LicenseAppeal; decision: string; rationale: string }) => {
-      const { error } = await supabase
-        .from('license_appeals')
-        .update({
-          decision: input.decision,
-          decision_rationale: input.rationale,
-          decided_at: new Date().toISOString(),
-          decided_by: user!.id,
-          status: 'decided',
-        } as never)
-        .eq('id', input.appeal.id);
-      if (error) throw error;
-      await logEvent(
-        input.appeal.id,
-        'decided',
-        input.decision === 'upheld'
-          ? 'Appeal accepted for consideration'
-          : 'Appeal declined',
-        user?.id,
-      );
-
-      // Accepting an appeal puts the refused application back under review.
-      let reinstated: ReinstateResult | null = null;
-      if (input.decision === 'upheld') {
-        reinstated = await runReinstate(input.appeal.id, input.rationale);
-      }
-
-      return reinstated;
+    mutationFn: async (input: {
+      appeal: LicenseAppeal;
+      decision: string;
+      rationale: string;
+      dissent?: string | null;
+      conditions?: string | null;
+    }): Promise<ReinstateResult | null> => {
+      const result = await callAppealRpc('record_appeal_decision', {
+        _appeal_id: input.appeal.id,
+        _decision: input.decision,
+        _rationale: input.rationale,
+        _dissent: input.dissent || null,
+        _conditions: input.conditions || null,
+      });
+      return (result.reinstatement as ReinstateResult | null) ?? null;
     },
     onSuccess: () => {
       invalidate();
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['application'] });
-      queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+      invalidateApplication();
     },
   });
 
@@ -325,33 +503,111 @@ export function useLicenseAppealMutations() {
       runReinstate(input.appeal.id, input.appeal.decision_rationale || ''),
     onSuccess: () => {
       invalidate();
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['application'] });
-      queryClient.invalidateQueries({ queryKey: ['workflow-instance'] });
+      invalidateApplication();
     },
   });
 
-
   const savePanel = useMutation({
-    mutationFn: async (input: { id?: string; name: string; description?: string; is_active: boolean }) => {
+    mutationFn: async (input: {
+      id?: string;
+      name: string;
+      description?: string;
+      is_active: boolean;
+      appeal_scope: string;
+      regulator_id?: string | null;
+      effective_from?: string | null;
+      effective_to?: string | null;
+      default_hearing_format: AppealHearingFormat;
+      quorum: number;
+      decision_rule: AppealDecisionRule;
+      notes?: string | null;
+    }) => {
+      const row = {
+        name: input.name,
+        description: input.description || null,
+        is_active: input.is_active,
+        appeal_scope: input.appeal_scope,
+        regulator_id: input.regulator_id || null,
+        effective_from: input.effective_from || null,
+        effective_to: input.effective_to || null,
+        default_hearing_format: input.default_hearing_format,
+        quorum: input.quorum,
+        decision_rule: input.decision_rule,
+        notes: input.notes || null,
+      };
       if (input.id) {
         const { error } = await supabase
           .from('license_appeal_panels')
-          .update({ name: input.name, description: input.description || null, is_active: input.is_active } as never)
+          .update(row as never)
+          .eq('id', input.id);
+        if (error) throw error;
+        return input.id;
+      }
+      const { data, error } = await supabase
+        .from('license_appeal_panels')
+        .insert(row as never)
+        .select('id')
+        .single();
+      if (error) throw error;
+      return (data as { id: string }).id;
+    },
+    onSuccess: invalidate,
+  });
+
+  const savePanelMember = useMutation({
+    mutationFn: async (input: {
+      id?: string;
+      panel_id: string;
+      user_id: string;
+      member_role: LicenseAppealPanelMember['member_role'];
+      is_voting: boolean;
+      vote_weight: number;
+      effective_from?: string | null;
+      effective_to?: string | null;
+      is_active: boolean;
+    }) => {
+      const row = {
+        panel_id: input.panel_id,
+        user_id: input.user_id,
+        member_role: input.member_role,
+        is_chair: input.member_role === 'chair',
+        is_voting: input.member_role === 'observer' ? false : input.is_voting,
+        vote_weight: input.vote_weight,
+        effective_from: input.effective_from || null,
+        effective_to: input.effective_to || null,
+        is_active: input.is_active,
+      };
+      if (input.id) {
+        const { error } = await supabase
+          .from('license_appeal_panel_members')
+          .update(row as never)
           .eq('id', input.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('license_appeal_panels')
-          .insert({ name: input.name, description: input.description || null, is_active: input.is_active } as never);
+          .from('license_appeal_panel_members')
+          .insert(row as never);
         if (error) throw error;
       }
     },
     onSuccess: invalidate,
   });
 
+  /** Members are stood down rather than deleted so historical snapshots stay explainable. */
+  const standDownPanelMember = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await supabase
+        .from('license_appeal_panel_members')
+        .update({ is_active: false, is_chair: false, effective_to: new Date().toISOString().slice(0, 10) } as never)
+        .eq('id', memberId);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     lodgeAppeal, withdrawAppeal, acknowledgeAppeal, assignPanel,
-    recordDecision, reinstateApplication, savePanel,
+    scheduleHearing, completeHearing, recordDecision, reinstateApplication,
+    savePanel, savePanelMember, standDownPanelMember,
   };
 }
