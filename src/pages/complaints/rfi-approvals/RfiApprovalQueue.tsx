@@ -106,11 +106,11 @@ export default function RfiApprovalQueue() {
                     {r.approval_state.replace('_', ' ')}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.submitted_for_approval_at ? format(new Date(r.submitted_for_approval_at), 'PPp') : '—'}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDateTime(r.submitted_for_approval_at)}
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {r.due_at ? format(new Date(r.due_at), 'PP') : '—'}
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDateOnly(r.due_at)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="outline" size="sm" onClick={() => openReview(r)}>
