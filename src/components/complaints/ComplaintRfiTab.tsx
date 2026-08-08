@@ -197,7 +197,7 @@ export function ComplaintRfiTab({
                           {r.response_text && <p className="text-sm whitespace-pre-wrap">{r.response_text}</p>}
                           <RfiAttachmentList fileIds={r.file_upload_ids ?? []} />
                           <p className="text-[11px] text-muted-foreground">
-                            Submitted {format(new Date(r.submitted_at), 'PPp')}
+                            Submitted {formatDateTime(r.submitted_at)}
                           </p>
                         </div>
                       ))
