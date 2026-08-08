@@ -116,13 +116,23 @@ export function AppealPanelSection({ appeal }: Props) {
 
   const complete = async () => {
     if (minutes.trim().length < 10) { toast.error('Record the hearing minutes first (at least 10 characters)'); return; }
+    if (hearingCompleted && minutes.trim() === (appeal.hearing_notes || '').trim()) {
+      toast.error('The minutes are unchanged — nothing to amend');
+      return;
+    }
     try {
-      await completeHearing.mutateAsync({ appealId: appeal.id, minutes: minutes.trim() });
-      toast.success('Hearing marked complete');
+      await completeHearing.mutateAsync({
+        appealId: appeal.id,
+        minutes: minutes.trim(),
+        amend: hearingCompleted,
+      });
+      toast.success(hearingCompleted ? 'Hearing minutes amended' : 'Hearing marked complete');
+      setAmending(false);
     } catch (e: unknown) {
       toast.error((e as Error)?.message || 'Failed to complete the hearing');
     }
   };
+
 
   return (
     <div className="space-y-4">
