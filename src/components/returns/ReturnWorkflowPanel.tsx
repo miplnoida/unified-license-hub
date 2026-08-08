@@ -914,7 +914,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                       <p className={cn('text-sm truncate', isCurrent ? 'font-semibold' : 'font-medium')}>
                         Step {idx + 1}: {s.name}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                      <p className="text-xs text-muted-foreground truncate">{stepActorLabel(s, status)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {s.sla_hours ? (
