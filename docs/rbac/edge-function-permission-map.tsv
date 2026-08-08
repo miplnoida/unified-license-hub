@@ -7,7 +7,7 @@ complaint-escalation-sweep	worker	-	-	-	pg_cron; requireWorkerInvocation.
 complaint-storage-cleanup	worker	-	-	-	pg_cron; orphaned staged evidence sweep.
 create-web-user	user	user_management	create	licenseeId	Licensee web-user provisioning.
 developer-api	api_key	-	-	-	Existing bearer-API-key auth path.
-dispatch-license-certificate	user	license_management	dispatch	recordId	Send generated certificate.
+dispatch-license-certificate	user	license_management	manage_certificates	recordId	Send generated certificate.
 dispatch-notification-event	worker	-	-	-	Internal orchestrator; invoked by other functions/cron.
 document-extract	user	document_management	upload	-	AI document extraction pass.
 evaluate-application-sufficiency	user	application_management	edit	recordId	AI + rules sufficiency check.
@@ -51,7 +51,7 @@ run-scheduled-reports	user	report_management	execute	-	Trigger scheduled report 
 send-correspondence	user	correspondence_management	dispatch	-	Outbound correspondence send.
 send-notification	worker	-	-	-	Notification delivery worker.
 send-registration-otp	public	-	-	-	Public OTP dispatch.
-sign-license-certificate	user	license_management	issue	recordId	Officer signature on certificate.
+sign-license-certificate	user	license_management	manage_certificates	recordId	Officer signature on certificate.
 sla-escalation-sweep	worker	-	-	-	SLA escalation sweep.
 test-smtp-email	user	notification_management	configure	-	Admin SMTP diagnostic.
 toggle-user-status	user	user_management	edit	licenseeId	Enable/disable licensee web user.
