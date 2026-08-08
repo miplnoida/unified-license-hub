@@ -1143,6 +1143,17 @@ export default function ApplicationDetail() {
                           )}
                         </>
                       )}
+                      {!!(app as any).submitted_at && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold">System-generated artifacts</p>
+                          <SubmissionAcknowledgementPanel
+                            applicationId={app.id}
+                            submitted={!!(app as any).submitted_at}
+                            variant={isInternal ? 'internal' : 'artifact'}
+                            applicationNumber={app.application_number}
+                          />
+                        </div>
+                      )}
                       <div key={docRefresh} className="space-y-4">
                         <AttachmentList
                           entityType="application"
