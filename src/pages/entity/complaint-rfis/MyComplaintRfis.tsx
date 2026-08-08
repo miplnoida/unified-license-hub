@@ -258,7 +258,7 @@ function RfiItemRow({
           {r.response_text && <p className="text-sm whitespace-pre-wrap">{r.response_text}</p>}
           <RfiAttachmentList fileIds={r.file_upload_ids ?? []} />
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Lock className="h-3 w-3" />Submitted {format(new Date(r.submitted_at), 'PPp')} — read only
+            <Lock className="h-3 w-3" />Submitted {formatDateTime(r.submitted_at)} — read only
           </p>
         </div>
       ))}
