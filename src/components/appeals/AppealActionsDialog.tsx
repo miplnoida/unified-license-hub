@@ -12,11 +12,12 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import {
   LicenseAppeal, useAppealApplicationStatus, useAppealPanelSnapshot,
-  useLicenseAppealMutations,
+  useLicenseAppeal, useLicenseAppealMutations,
 } from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
 } from '@/lib/licenseAppeals';
+import { formatDateTime } from '@/lib/datetime';
 import { AppealTimeline } from '@/components/appeals/AppealTimeline';
 import { AppealPanelSection } from '@/components/appeals/AppealPanelSection';
 import { useCan } from '@/hooks/useCan';
@@ -27,10 +28,14 @@ interface Props {
 }
 
 /** Regulator-side appeal record: a single decision — consider the appeal, or decline it. */
-export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
+export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Props) {
   const { recordDecision, reinstateApplication, acknowledgeAppeal } = useLicenseAppealMutations();
   const canDecide = useCan('license_appeals', 'decide');
   const canAssign = useCan('license_appeals', 'assign_panel');
+  // Always render from the live record so mutations (acknowledge, refer, decide)
+  // update this dialog immediately instead of showing the row snapshot.
+  const { data: liveAppeal } = useLicenseAppeal(selectedAppeal?.id);
+  const appeal = liveAppeal ?? selectedAppeal;
   const { data: application } = useAppealApplicationStatus(appeal?.application_id);
   const { data: snapshot } = useAppealPanelSnapshot(appeal?.id);
 
@@ -39,6 +44,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
   const [conditions, setConditions] = useState('');
 
   if (!appeal) return null;
+
   const statusMeta = appealStatusMeta(appeal.status);
   const decisionMeta = appealDecisionMeta(appeal.decision);
   const open = isAppealOpen(appeal.status);
@@ -109,7 +115,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={!!appeal} onOpenChange={onOpenChange}>
+    <Dialog open={!!selectedAppeal} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
@@ -155,7 +161,15 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
             )}
           </div>
 
-          {!appeal.acknowledged_at && (canDecide || canAssign) && (
+          {appeal.acknowledged_at ? (
+            <>
+              <Separator />
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Acknowledged on {formatDateTime(appeal.acknowledged_at)}
+              </p>
+            </>
+          ) : (canDecide || canAssign) && (
             <>
               <Separator />
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
@@ -166,6 +180,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
                   size="sm"
                   variant="outline"
                   onClick={async () => {
+                    if (appeal.acknowledged_at || acknowledgeAppeal.isPending) return;
                     try {
                       await acknowledgeAppeal.mutateAsync(appeal);
                       toast.success('Appeal acknowledged');
@@ -181,6 +196,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
               </div>
             </>
           )}
+
 
           <Separator />
           <AppealPanelSection appeal={appeal} />

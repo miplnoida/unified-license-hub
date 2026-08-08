@@ -35,7 +35,7 @@ export function AppealPanelSection({ appeal }: Props) {
   const canAssign = useCan('license_appeals', 'assign_panel') || useCan('license_appeals', 'decide');
   const { data: panels } = useLicenseAppealPanels(true);
   const { data: snapshot } = useAppealPanelSnapshot(appeal.id);
-  const { data: caseFile } = useAppealCaseFile(appeal.id);
+  const { data: caseFile, isLoading: caseFileLoading } = useAppealCaseFile(appeal.id);
   const { assignPanel, scheduleHearing, completeHearing } = useLicenseAppealMutations();
 
   const [panelId, setPanelId] = useState('');
@@ -55,6 +55,11 @@ export function AppealPanelSection({ appeal }: Props) {
   );
 
   const decided = appeal.status === 'decided';
+  const caseFileReady = !!caseFile?.ready;
+  const outstanding = (caseFile?.items || [])
+    .filter((i) => i.required && !i.satisfied)
+    .map((i) => i.label);
+
   const votingCount = (snapshot?.member_roster || []).filter((m) => m.is_voting).length;
   const quorumMet = snapshot ? votingCount >= snapshot.quorum : false;
 
@@ -202,15 +207,24 @@ export function AppealPanelSection({ appeal }: Props) {
               </Select>
             </div>
           </div>
-          <Button size="sm" onClick={refer} disabled={assignPanel.isPending || !caseFile?.ready}>
-            {assignPanel.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button
+            size="sm"
+            onClick={refer}
+            disabled={assignPanel.isPending || caseFileLoading || !caseFileReady}
+          >
+            {(assignPanel.isPending || caseFileLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Refer &amp; constitute panel
           </Button>
-          {!caseFile?.ready && (
+          {caseFileLoading ? (
+            <p className="text-xs text-muted-foreground">Checking the appeal case file…</p>
+          ) : !caseFileReady && (
             <p className="text-xs text-muted-foreground">
-              The case file must be complete before the appeal can go to a panel.
+              {outstanding.length > 0
+                ? `Outstanding before referral: ${outstanding.join(', ')}.`
+                : 'The case file must be complete before the appeal can go to a panel.'}
             </p>
           )}
+
         </div>
       )}
 
