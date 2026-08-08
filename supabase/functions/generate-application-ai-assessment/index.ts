@@ -731,7 +731,9 @@ ${JSON.stringify(applicationContext, null, 2)}`;
       return jsonResponse({ error: "AI generation failed" }, 500);
     }
   } catch (err) {
+    await failPending(err instanceof Error ? err.message : "Internal error");
     return jsonResponse(
+
       { error: err instanceof Error ? err.message : "Internal error" },
       500,
     );
