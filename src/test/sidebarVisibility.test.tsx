@@ -277,4 +277,25 @@ describe('Sidebar persona audit', () => {
       expect(has(l), `Licensee MUST NOT see "${l}"`).toBe(false);
     }
   });
+
+  it('External applicant — sees My Licenses, no internal panels', () => {
+    state.user = { id: 'ap', role: 'applicant' };
+    state.portal = { loading: false, isLicensee: false, isPreLicensee: false, isInternal: false };
+    state.permsByModule = { application_management: ['view'] };
+    renderSidebar();
+
+    expect(has('My Licenses')).toBe(true);
+    expect(has('Admin Control Panel')).toBe(false);
+    expect(has('Returns Queue')).toBe(false);
+  });
+
+  it('External pre_licensee — sees My Licenses', () => {
+    state.user = { id: 'pl', role: 'pre_licensee' };
+    state.portal = { loading: false, isLicensee: false, isPreLicensee: true, isInternal: false };
+    state.permsByModule = { application_management: ['view'] };
+    renderSidebar();
+
+    expect(has('My Licenses')).toBe(true);
+    expect(has('Admin Control Panel')).toBe(false);
+  });
 });
