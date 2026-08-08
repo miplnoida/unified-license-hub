@@ -161,7 +161,15 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
             )}
           </div>
 
-          {!appeal.acknowledged_at && (canDecide || canAssign) && (
+          {appeal.acknowledged_at ? (
+            <>
+              <Separator />
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Acknowledged on {formatDateTime(appeal.acknowledged_at)}
+              </p>
+            </>
+          ) : (canDecide || canAssign) && (
             <>
               <Separator />
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
@@ -172,6 +180,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                   size="sm"
                   variant="outline"
                   onClick={async () => {
+                    if (appeal.acknowledged_at || acknowledgeAppeal.isPending) return;
                     try {
                       await acknowledgeAppeal.mutateAsync(appeal);
                       toast.success('Appeal acknowledged');
@@ -187,6 +196,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
               </div>
             </>
           )}
+
 
           <Separator />
           <AppealPanelSection appeal={appeal} />
