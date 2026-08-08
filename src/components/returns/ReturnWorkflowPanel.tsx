@@ -289,9 +289,15 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       );
       if (isTerminal) {
         if (decisive) return decisive.action_type === 'send_back' ? 'returned' : 'completed';
+        // A step at or before the outcome step was passed through, even when no
+        // decisive action was recorded on it (e.g. only a saved comment).
+        if (currentStepIdx >= 0 && idx <= currentStepIdx) {
+          return terminalKind === 'cancelled' && idx === currentStepIdx ? 'returned' : 'completed';
+        }
         if (currentStep && s.id === currentStep.id) return terminalKind === 'cancelled' ? 'returned' : 'completed';
         return 'upcoming';
       }
+
       if (currentStep && s.id === currentStep.id) {
         if (isPaused) return 'paused';
         return 'current';
