@@ -145,10 +145,11 @@ export function AppealPanelSection({ appeal }: Props) {
             Composition recorded {formatDateTime(snapshot.snapshot_at)} · quorum {snapshot.quorum} ·{' '}
             {decisionRuleLabel(snapshot.decision_rule)} · {hearingFormatLabel(snapshot.hearing_format)}
           </p>
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-2 text-sm">
             {(snapshot.member_roster || []).map((m) => (
               <li key={m.member_id} className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{m.full_name}</span>
+                {m.email && <span className="text-xs text-muted-foreground">{m.email}</span>}
                 <span className="text-xs text-muted-foreground">{panelMemberRoleLabel(m.member_role)}</span>
                 {m.is_chair && <Badge variant="outline">Chair</Badge>}
                 {!m.is_voting && <span className="text-xs text-muted-foreground">non-voting</span>}

@@ -44,10 +44,28 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
   const [formOpen, setFormOpen] = useState(false);
 
   const options = useMemo(
-    () => (staff || []).map((s) => ({ id: s.id, label: s.full_name || s.email || 'Staff member', sublabel: s.email })),
+    () => (staff || []).map((s) => {
+      const name = (s.full_name || '').trim();
+      const email = (s.email || '').trim();
+      return {
+        id: s.id,
+        label: name && email ? `${name} — ${email}` : (name || email || 'Staff member'),
+        // Email is already part of the label; keep it in the searchable value only.
+        sublabel: null,
+      };
+    }),
     [staff],
   );
-  const nameOf = (id: string) => options.find((o) => o.id === id)?.label ?? 'Staff member';
+  const staffById = useMemo(() => {
+    const map = new Map<string, { name: string; email: string | null }>();
+    for (const s of staff || []) {
+      map.set(s.id, { name: (s.full_name || '').trim() || (s.email || '').trim() || 'Staff member', email: s.email || null });
+    }
+    return map;
+  }, [staff]);
+  const nameOf = (id: string) => staffById.get(id)?.name ?? 'Staff member';
+  const emailOf = (id: string) => staffById.get(id)?.email ?? null;
+
 
   const active = (members || []).filter((m) => m.is_active);
   const standingDown = (members || []).filter((m) => !m.is_active);
@@ -149,15 +167,18 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
               <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div>
                   <p className="text-sm font-medium">{nameOf(m.user_id)}</p>
+                  {emailOf(m.user_id) && (
+                    <p className="text-xs text-muted-foreground">{emailOf(m.user_id)}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {panelMemberRoleLabel(m.member_role)}
                     {m.is_voting ? ` · voting (weight ${m.vote_weight})` : ' · non-voting'}
-                    {m.effective_from ? ` · from ${m.effective_from}` : ''}
-                    {m.effective_to ? ` · to ${m.effective_to}` : ''}
+                    {` · from ${m.effective_from || 'open'} to ${m.effective_to || 'open'}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
                   {m.is_chair && <Badge variant="outline">Chair</Badge>}
+                  <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200">Active</Badge>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(m)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -174,9 +195,18 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
               <p className="text-sm font-medium mb-2">Past members</p>
               <div className="rounded-md border divide-y">
                 {standingDown.map((m) => (
-                  <div key={m.id} className="p-3 text-sm text-muted-foreground">
-                    {nameOf(m.user_id)} — {panelMemberRoleLabel(m.member_role)}
-                    {m.effective_to ? ` (stood down ${m.effective_to})` : ''}
+                  <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                    <div className="text-sm">
+                      <p className="font-medium text-muted-foreground">{nameOf(m.user_id)}</p>
+                      {emailOf(m.user_id) && (
+                        <p className="text-xs text-muted-foreground">{emailOf(m.user_id)}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {panelMemberRoleLabel(m.member_role)}
+                        {m.effective_to ? ` · stood down ${m.effective_to}` : ''}
+                      </p>
+                    </div>
+                    <Badge variant="outline">Stood down</Badge>
                   </div>
                 ))}
               </div>
