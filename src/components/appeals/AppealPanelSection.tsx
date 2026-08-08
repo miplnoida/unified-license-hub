@@ -35,7 +35,7 @@ export function AppealPanelSection({ appeal }: Props) {
   const canAssign = useCan('license_appeals', 'assign_panel') || useCan('license_appeals', 'decide');
   const { data: panels } = useLicenseAppealPanels(true);
   const { data: snapshot } = useAppealPanelSnapshot(appeal.id);
-  const { data: caseFile } = useAppealCaseFile(appeal.id);
+  const { data: caseFile, isLoading: caseFileLoading } = useAppealCaseFile(appeal.id);
   const { assignPanel, scheduleHearing, completeHearing } = useLicenseAppealMutations();
 
   const [panelId, setPanelId] = useState('');
