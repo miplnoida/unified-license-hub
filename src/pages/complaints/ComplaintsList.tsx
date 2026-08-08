@@ -1040,7 +1040,7 @@ export default function ComplaintsList() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Filed</p>
-                  <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
+                  <p className="text-sm">{formatDateTime(detailDialog.created_at)}</p>
                 </div>
               </div>
               <div>
