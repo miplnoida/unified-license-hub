@@ -304,9 +304,6 @@ export default function LicensesList() {
                       </TableCell>
                     </TableRow>
                   ))}
-
-                    </TableRow>
-                  ))}
                 </TableBody>
               </Table>
             )}
