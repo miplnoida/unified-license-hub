@@ -95,10 +95,8 @@ function safeParseJson(raw: string): Record<string, unknown> | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
-
-  const __authzGate = await requireUserPermission(req, "application_management", "view");
-  if (!__authzGate.ok) return __authzGate.response;
   }
+
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
