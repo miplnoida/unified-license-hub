@@ -202,15 +202,24 @@ export function AppealPanelSection({ appeal }: Props) {
               </Select>
             </div>
           </div>
-          <Button size="sm" onClick={refer} disabled={assignPanel.isPending || !caseFile?.ready}>
-            {assignPanel.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button
+            size="sm"
+            onClick={refer}
+            disabled={assignPanel.isPending || caseFileLoading || !caseFileReady}
+          >
+            {(assignPanel.isPending || caseFileLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Refer &amp; constitute panel
           </Button>
-          {!caseFile?.ready && (
+          {caseFileLoading ? (
+            <p className="text-xs text-muted-foreground">Checking the appeal case file…</p>
+          ) : !caseFileReady && (
             <p className="text-xs text-muted-foreground">
-              The case file must be complete before the appeal can go to a panel.
+              {outstanding.length > 0
+                ? `Outstanding before referral: ${outstanding.join(', ')}.`
+                : 'The case file must be complete before the appeal can go to a panel.'}
             </p>
           )}
+
         </div>
       )}
 
