@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { secureUpload, validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
 import { RfiAttachmentList } from '@/components/complaints/RfiAttachmentList';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import {
   useMyComplaintRfis,
   useSaveComplaintRfiDraft,
