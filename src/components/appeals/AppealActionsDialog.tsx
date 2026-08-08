@@ -11,12 +11,14 @@ import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, XCircle } from 'lucide
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import {
-  LicenseAppeal, useAppealApplicationStatus, useLicenseAppealMutations,
+  LicenseAppeal, useAppealApplicationStatus, useAppealPanelSnapshot,
+  useLicenseAppealMutations,
 } from '@/hooks/useLicenseAppeals';
 import {
   appealDecisionMeta, appealStatusMeta, formatAppealDate, isAppealOpen,
 } from '@/lib/licenseAppeals';
 import { AppealTimeline } from '@/components/appeals/AppealTimeline';
+import { AppealPanelSection } from '@/components/appeals/AppealPanelSection';
 import { useCan } from '@/hooks/useCan';
 
 interface Props {
@@ -29,19 +31,29 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
   const { recordDecision, reinstateApplication } = useLicenseAppealMutations();
   const canDecide = useCan('license_appeals', 'decide');
   const { data: application } = useAppealApplicationStatus(appeal?.application_id);
+  const { data: snapshot } = useAppealPanelSnapshot(appeal?.id);
 
   const [remarks, setRemarks] = useState('');
+  const [dissent, setDissent] = useState('');
+  const [conditions, setConditions] = useState('');
 
   if (!appeal) return null;
   const statusMeta = appealStatusMeta(appeal.status);
   const decisionMeta = appealDecisionMeta(appeal.decision);
   const open = isAppealOpen(appeal.status);
   const remarksReady = remarks.trim().length >= 10;
+  const votingMembers = (snapshot?.member_roster || []).filter((m) => m.is_voting).length;
+  const quorumMet = !!snapshot && votingMembers >= snapshot.quorum;
   const needsReopen =
     appeal.decision === 'upheld' && application?.status === 'rejected' && canDecide;
 
   const decide = async (decision: 'upheld' | 'dismissed') => {
     if (!remarksReady) { toast.error('Add a short reason (at least 10 characters) before deciding'); return; }
+    if (!snapshot) { toast.error('Refer the appeal to a panel before recording a decision'); return; }
+    if (!quorumMet) {
+      toast.error(`Quorum is not met: ${votingMembers} voting member(s) against a quorum of ${snapshot.quorum}`);
+      return;
+    }
     const considering = decision === 'upheld';
     const confirm = await Swal.fire({
       title: considering ? 'Consider this appeal?' : 'Decline this appeal?',
@@ -55,7 +67,11 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
     });
     if (!confirm.isConfirmed) return;
     try {
-      const result = await recordDecision.mutateAsync({ appeal, decision, rationale: remarks.trim() });
+      const result = await recordDecision.mutateAsync({
+        appeal, decision, rationale: remarks.trim(),
+        dissent: dissent.trim() || null,
+        conditions: conditions.trim() || null,
+      });
       if (!considering) {
         toast.success('Appeal declined');
       } else if (result?.success && !result.skipped) {
@@ -69,7 +85,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
             : 'Appeal considered, but the application was not reopened. Use “Reopen application” to retry.',
         );
       }
-      setRemarks('');
+      setRemarks(''); setDissent(''); setConditions('');
     } catch (e: unknown) {
 
       toast.error((e as Error)?.message || 'Failed to record the decision');
@@ -118,6 +134,18 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
                 <p className="whitespace-pre-wrap">{appeal.relief_sought}</p>
               </div>
             )}
+            {appeal.dissent_note && (
+              <div className="sm:col-span-2">
+                <p className="text-xs text-muted-foreground">Dissenting view</p>
+                <p className="whitespace-pre-wrap">{appeal.dissent_note}</p>
+              </div>
+            )}
+            {appeal.decision_conditions && (
+              <div className="sm:col-span-2">
+                <p className="text-xs text-muted-foreground">Conditions / directions</p>
+                <p className="whitespace-pre-wrap">{appeal.decision_conditions}</p>
+              </div>
+            )}
             {appeal.decision_rationale && (
               <div className="sm:col-span-2">
                 <p className="text-xs text-muted-foreground">Reason recorded</p>
@@ -125,6 +153,9 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
               </div>
             )}
           </div>
+
+          <Separator />
+          <AppealPanelSection appeal={appeal} />
 
           {open && canDecide && (
             <>
@@ -140,11 +171,36 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
                     placeholder="Explain briefly why the appeal is being considered or declined…"
                   />
                 </div>
+                <div>
+                  <Label className="text-xs">Dissenting view (optional)</Label>
+                  <Textarea
+                    rows={2}
+                    value={dissent}
+                    onChange={(e) => setDissent(e.target.value)}
+                    placeholder="Record any minority or dissenting view of the panel…"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Conditions / directions (optional)</Label>
+                  <Textarea
+                    rows={2}
+                    value={conditions}
+                    onChange={(e) => setConditions(e.target.value)}
+                    placeholder="Any conditions or directions attached to the outcome…"
+                  />
+                </div>
+                {!quorumMet && (
+                  <p className="text-xs text-muted-foreground">
+                    {snapshot
+                      ? `Quorum is not met (${votingMembers} of ${snapshot.quorum} voting members) — a decision cannot be recorded.`
+                      : 'Refer the appeal to a panel before a decision can be recorded.'}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     onClick={() => decide('upheld')}
-                    disabled={!remarksReady || recordDecision.isPending}
+                    disabled={!remarksReady || !quorumMet || recordDecision.isPending}
                   >
                     {recordDecision.isPending
                       ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -155,7 +211,7 @@ export function AppealActionsDialog({ appeal, onOpenChange }: Props) {
                     size="sm"
                     variant="destructive"
                     onClick={() => decide('dismissed')}
-                    disabled={!remarksReady || recordDecision.isPending}
+                    disabled={!remarksReady || !quorumMet || recordDecision.isPending}
                   >
                     {recordDecision.isPending
                       ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
