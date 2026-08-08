@@ -21,7 +21,7 @@ fp-monitoring-sweep	user	fit_and_proper	execute	-	Manual sweep trigger.
 fp-screening-run	user	fit_and_proper	execute	-	Manual screening run.
 generate-application-ai-assessment	user	application_management	view	recordId	AI assessment generator.
 generate-dashboard-insights	user	report_management	view	-	AI dashboard insights.
-generate-license-certificate	user	license_management	issue	recordId	Server-side PDF generation.
+generate-license-certificate	user	license_management	manage_certificates	recordId	Server-side PDF generation.
 generate-report	user	report_management	view	-	Existing gate. Export also requires report_management.export.
 generate-return-analysis	user	returns_management	view	returnId	AI narrative for a return.
 get-licensee-registration	user	registration_management	view	licenseeId	Fetch licensee registration record.

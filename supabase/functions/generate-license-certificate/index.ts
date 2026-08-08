@@ -331,7 +331,7 @@ export async function handler(req: Request): Promise<Response> {
     authHeader === `Bearer ${serviceRoleKey}`;
 
   if (!isSystemCall) {
-    const __authzGate = await requireUserPermission(req, "license_management", "issue");
+    const __authzGate = await requireUserPermission(req, "license_management", "manage_certificates");
     if (!__authzGate.ok) return __authzGate.response;
   }
 
