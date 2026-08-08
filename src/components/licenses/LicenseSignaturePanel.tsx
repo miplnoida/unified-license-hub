@@ -133,6 +133,22 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     load();
   }
 
+  async function handleGenerate() {
+    setWorking(true);
+    const { data, error } = await supabase.functions.invoke('generate-license-certificate', {
+      body: { mode: 'generate', license_id: licenseId },
+    });
+    setWorking(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || 'Certificate generation failed');
+      return;
+    }
+    toast.success('Certificate generated.');
+    onChanged?.();
+    load();
+  }
+
+
   if (loading) {
     return (
       <Card>
