@@ -752,31 +752,33 @@ function CalendarTab() {
 
 function EscalationTab() {
   const [tiers, setTiers] = useState<EscalationTier[]>([]);
-  const [processType, setProcessType] = useState('');
-  const [processOptions, setProcessOptions] = useState<string[]>([]);
+  const [processType, setProcessType] = useState(RUNTIME_PROCESS_TYPES[0].value);
+  const [loaded, setLoaded] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const latestRef = useRef<Record<string, EscalationTier>>({});
   const lastPersisted = useRef<Record<string, string>>({});
+  const processOptions = RUNTIME_PROCESS_TYPES.map(p => p.value);
 
   const load = useCallback(async () => {
-    const { data: cfgs } = await supabase.from('sla_configurations').select('process_type');
-    const distinct = Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort();
-    setProcessOptions(distinct);
-    setProcessType(prev => prev || distinct[0] || '');
     const { data } = await supabase.from('sla_escalation_tiers').select('*').order('process_type').order('tier');
     const list = (data ?? []) as unknown as EscalationTier[];
     setTiers(list);
     latestRef.current = Object.fromEntries(list.map(t => [t.id, t]));
     lastPersisted.current = Object.fromEntries(list.map(t => [t.id, JSON.stringify(t)]));
+    setLoaded(true);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // Fallback auto-seed in case the migration seed didn't run (e.g. brand new process_type).
+  // Seed defaults for a process type that has no tiers yet. Only runs after the
+  // initial load has resolved, and uses a conflict-ignoring upsert so a race can
+  // never produce a duplicate-key error.
   useEffect(() => {
-    if (!processType) return;
+    if (!loaded || seeding || !processType) return;
     const existing = tiers.filter(t => t.process_type === processType).map(t => t.tier);
     const missing = TIER_DEFAULTS.filter(d => !existing.includes(d.tier));
     if (missing.length === 0) return;
+    setSeeding(true);
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const inserts = missing.map(d => ({
@@ -788,17 +790,19 @@ function EscalationTab() {
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
       }));
-      const { data, error } = await supabase.from('sla_escalation_tiers').insert(inserts).select();
-      if (error) { toast({ title: 'Failed to seed tiers', description: error.message, variant: 'destructive' }); return; }
-      const added = (data ?? []) as unknown as EscalationTier[];
-      setTiers(prev => {
-        const next = [...prev, ...added];
-        latestRef.current = Object.fromEntries(next.map(t => [t.id, t]));
-        added.forEach(t => { lastPersisted.current[t.id] = JSON.stringify(t); });
-        return next;
-      });
+      const { error } = await supabase
+        .from('sla_escalation_tiers')
+        .upsert(inserts, { onConflict: 'process_type,tier', ignoreDuplicates: true });
+      if (error) {
+        toast({ title: 'Failed to prepare escalation tiers', description: error.message, variant: 'destructive' });
+        setSeeding(false);
+        return;
+      }
+      await load();
+      setSeeding(false);
     })();
-  }, [processType, tiers]);
+  }, [processType, tiers, loaded, seeding, load]);
+
 
   const tiersForProcess = tiers.filter(t => t.process_type === processType).sort((a, b) => a.tier - b.tier);
 
