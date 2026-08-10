@@ -94,11 +94,6 @@ export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: s
           <Textarea rows={2} disabled={readOnly} value={form.agreed_timelines}
             onChange={e => setForm(f => ({ ...f, agreed_timelines: e.target.value }))} />
         </div>
-        {!readOnly && (
-          <Button data-rbac="prudential_supervision.edit" size="sm" disabled={save.isPending} onClick={persist}>
-            <Save className="h-4 w-4 mr-1" />Save exit meeting
-          </Button>
-        )}
         {!readOnly && <StageActions beforeAdvance={persist} />}
       </CardContent>
     </Card>
