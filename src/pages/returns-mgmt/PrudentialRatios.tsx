@@ -123,8 +123,6 @@ export default function PrudentialRatios() {
         ) : (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restore(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
         )}
-
-        )}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete ratio?', text: r.label, icon: 'warning', showCancelButton: true });
           if (ok.isConfirmed) del.mutate(r.id, { onSuccess: refresh });
