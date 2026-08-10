@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExitMeeting, useSaveExitMeeting } from '@/hooks/useExaminations';
 import { StageActions } from './ExaminationStageActions';
@@ -94,11 +93,6 @@ export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: s
           <Textarea rows={2} disabled={readOnly} value={form.agreed_timelines}
             onChange={e => setForm(f => ({ ...f, agreed_timelines: e.target.value }))} />
         </div>
-        {!readOnly && (
-          <Button data-rbac="prudential_supervision.edit" size="sm" disabled={save.isPending} onClick={persist}>
-            <Save className="h-4 w-4 mr-1" />Save exit meeting
-          </Button>
-        )}
         {!readOnly && <StageActions beforeAdvance={persist} />}
       </CardContent>
     </Card>

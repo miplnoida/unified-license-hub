@@ -106,19 +106,15 @@ export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: s
             onChange={e => setForm(f => ({ ...f, methodology: e.target.value }))} />
         </div>
         {!readOnly && (
-          <div className="flex flex-wrap gap-2">
-            <Button data-rbac="prudential_supervision.edit" size="sm" disabled={save.isPending} onClick={() => persist()}>
-              <Save className="h-4 w-4 mr-1" />Save memo
-            </Button>
+          <StageActions beforeAdvance={() => persist()}>
             {!data?.approved_at && (
               <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline"
                 disabled={save.isPending} onClick={approve}>
                 <CheckCircle2 className="h-4 w-4 mr-1" />Approve memo
               </Button>
             )}
-          </div>
+          </StageActions>
         )}
-        {!readOnly && <StageActions beforeAdvance={() => persist()} />}
       </CardContent>
     </Card>
   );
