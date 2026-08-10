@@ -703,10 +703,11 @@ export default function PrudentialEntityProfile() {
                         {stressEvents.map((s: any) => (
                           <div key={s.id} className="rounded-md border p-2 text-xs flex items-center justify-between">
                             <span>{s.prudential_stress_indicators?.label || s.metric_key}</span>
-                            <Badge variant="outline" className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>
-                              {s.prudential_stress_indicators?.severity || 'triggered'}
+                            <Badge variant="outline" className={severityTone(s.prudential_stress_indicators?.severity)}>
+                              {s.prudential_stress_indicators?.severity ? severityLabel(s.prudential_stress_indicators.severity) : 'Triggered'}
                             </Badge>
                           </div>
+
                         ))}
                       </div>
                     </div>
