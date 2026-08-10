@@ -605,7 +605,7 @@ export default function PrudentialEntityProfile() {
                     <TableCell>{a.title}</TableCell>
                     <TableCell>{actionTypeLabel(a.action_type)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={severityTone(a.severity)}>{severityLabel(a.severity)}</Badge>
+                      <Badge variant="outline" className={severityTone(a.severity)}>{stressSeverityLabel(a.severity)}</Badge>
                     </TableCell>
                     <TableCell><Badge variant="outline">{actionStatusLabel(a.status)}</Badge></TableCell>
                     <TableCell>{formatDateOnly(a.due_date)}</TableCell>
