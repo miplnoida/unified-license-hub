@@ -66,6 +66,17 @@ export default function PrudentialRatios() {
   const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
   const currentVersion = (historyRatio as any)?.current_version ?? (versions[0]?.version ?? null);
 
+  // Human-readable formulas: resolve `formId.fieldName` tokens to "Form › Field label".
+  const allFormulas = useMemo(
+    () => [...rows.map((r) => r.formula), ...versions.map((v: any) => v.formula), editing?.formula ?? ''],
+    [rows, versions, editing?.formula],
+  );
+  const { data: tokenLabels } = useFormulaLabels(allFormulas);
+  const ratioLabels = useMemo(
+    () => new Map(rows.map((r) => [r.ratio_key, r.label])),
+    [rows],
+  );
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['prudential_ratios'] });
     qc.invalidateQueries({ queryKey: ['prudential_ratio_versions'] });
