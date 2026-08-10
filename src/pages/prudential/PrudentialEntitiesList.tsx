@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 import { severityLabel, severityTone, SEVERITY_FILTER_OPTIONS } from '@/lib/prudentialSeverity';
 
 const NEUTRAL = 'bg-muted text-muted-foreground border-border';
@@ -49,7 +51,7 @@ const RETURN_STATUS_TONE: Record<string, string> = {
 };
 
 const COLUMN_HELP: Record<string, string> = {
-  Entity: 'Supervised institution name. Click "Open" to view its full prudential profile.',
+  Entity: 'Supervised institution name. Use the view button on the row to open its full prudential profile.',
   License: 'Current license status (Active / Suspended / Revoked / Expired).',
   Systemic: 'Systemic-importance classification (e.g. D-SIB / Non-SIB) driving supervisory priority.',
   'Latest rating': 'Most recent supervisory risk rating from the latest prudential assessment.',
@@ -228,7 +230,19 @@ export default function PrudentialEntitiesList() {
                           </div>
                         ) : '—'}
                       </TableCell>
-                      <TableCell className="text-right"><Link className="text-primary underline" to={`/prudential/entities/${e.id}`}>Open</Link></TableCell>
+                      <TableCell className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button asChild variant="ghost" size="icon" aria-label={`View prudential profile for ${e.name}`}>
+                              <Link to={`/prudential/entities/${e.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View prudential profile</TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+
                     </TableRow>
                   ))}
                   {!rows.length && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-6">No entities match filters.</TableCell></TableRow>}
