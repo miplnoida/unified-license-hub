@@ -275,7 +275,26 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
   });
 }
 
+/**
+ * Recomputations are appended, not replaced, so a return can hold several rows
+ * for the same ratio/breach. Keep only the newest record per logical key so the
+ * profile page never renders the same ratio or breach twice.
+ */
+function dedupeLatest<T extends Record<string, any>>(rows: T[], keyOf: (row: T) => string, tsField: string): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows ?? []) {
+    const key = keyOf(row);
+    const current = best.get(key);
+    if (!current) { best.set(key, row); continue; }
+    const a = new Date(row?.[tsField] ?? 0).getTime();
+    const b = new Date(current?.[tsField] ?? 0).getTime();
+    if (a > b) best.set(key, row);
+  }
+  return Array.from(best.values());
+}
+
 export function useEntityHistoricalProfile(entityId?: string | null) {
+
   return useQuery({
     queryKey: ['entity_prudential_profile', entityId],
     enabled: !!entityId,
