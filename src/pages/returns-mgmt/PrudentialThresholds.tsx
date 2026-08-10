@@ -201,7 +201,15 @@ export default function PrudentialThresholds() {
         <SheetContent className="w-[560px] sm:max-w-[560px] overflow-y-auto">
           <SheetHeader><SheetTitle>Version history — {historyThreshold?.label}</SheetTitle></SheetHeader>
           <div className="mt-4 space-y-3">
-            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versionsLoading && (
+              <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading version history…</div>
+            )}
+            {!!versionsError && (
+              <div className="text-sm text-destructive">Could not load version history: {(versionsError as any).message}</div>
+            )}
+            {!versionsLoading && !versionsError && versions.length === 0 && (
+              <div className="text-sm text-muted-foreground">No versions published yet.</div>
+            )}
             {versions.map((v: any) => {
               const isCurrent = !v.effective_to;
               return (
@@ -209,7 +217,7 @@ export default function PrudentialThresholds() {
                   <div className="flex items-center justify-between">
                     <div className="font-medium">v{v.version}{isCurrent && <Badge className="ml-2">current</Badge>}</div>
                     <div className="flex items-center gap-2">
-                      <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">{formatDateTime(v.published_at)}</div>
                       {!isCurrent && historyThreshold && (
                         <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => rollback(historyThreshold.id, v.version)}>
                           <Undo2 className="h-3 w-3 mr-1" /> Rollback
@@ -224,12 +232,13 @@ export default function PrudentialThresholds() {
                     {v.unit && <> · {v.unit}</>}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Effective {v.effective_from}{v.effective_to ? ` → ${v.effective_to}` : ' → current'}
+                    Effective {formatDateOnly(v.effective_from)}{v.effective_to ? ` → ${formatDateOnly(v.effective_to)}` : ' → current'} · by {actorLabel(v.published_by, names)}
                   </div>
                 </div>
               );
             })}
           </div>
+
         </SheetContent>
       </Sheet>
     </DashboardLayout>
