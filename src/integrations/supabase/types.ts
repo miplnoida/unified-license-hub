@@ -27376,6 +27376,18 @@ export type Database = {
           sla_source: string
         }[]
       }
+      restore_prudential_ratio: {
+        Args: { _ratio_id: string }
+        Returns: undefined
+      }
+      restore_prudential_threshold: {
+        Args: { _threshold_id: string }
+        Returns: undefined
+      }
+      restore_validation_rule: {
+        Args: { _rule_id: string }
+        Returns: undefined
+      }
       resubmit_return: {
         Args: { _actor_id: string; _comments: string; _return_id: string }
         Returns: Json
