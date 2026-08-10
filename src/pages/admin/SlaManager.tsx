@@ -899,12 +899,21 @@ function EscalationTab() {
                         onBlur={() => saveTier(t.id)}
                       />
                     </div>
+                    {tierErrors[t.id] && (
+                      <p className="md:col-span-4 text-xs text-destructive">{tierErrors[t.id]}</p>
+                    )}
                   </CardContent>
                 </Card>
               );
             })}
           </div>
         )}
+        {processType && tiersForProcess.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {seeding ? 'Preparing default escalation tiers…' : 'No escalation tiers configured for this process type yet.'}
+          </p>
+        )}
+
       </CardContent>
     </Card>
   );
