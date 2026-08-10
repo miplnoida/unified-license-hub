@@ -99,6 +99,7 @@ export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: s
             <Save className="h-4 w-4 mr-1" />Save exit meeting
           </Button>
         )}
+        {!readOnly && <StageActions beforeAdvance={persist} />}
       </CardContent>
     </Card>
   );
