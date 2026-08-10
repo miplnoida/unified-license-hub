@@ -26,6 +26,7 @@ import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import {
   humanizeToken,
+  stressSeverityLabel,
 
   returnStatusLabel,
   isSubmittedReturnStatus,
@@ -656,7 +657,7 @@ export default function PrudentialEntityProfile() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={severityTone(ind?.severity)}>
-                          {ind?.severity ? severityLabel(ind.severity) : '—'}
+                          {ind?.severity ? stressSeverityLabel(ind.severity) : '—'}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDateTime(s.triggered_at)}</TableCell>
@@ -776,7 +777,7 @@ export default function PrudentialEntityProfile() {
                           <div key={s.id} className="rounded-md border p-2 text-xs flex items-center justify-between">
                             <span>{s.prudential_stress_indicators?.label || s.metric_key}</span>
                             <Badge variant="outline" className={severityTone(s.prudential_stress_indicators?.severity)}>
-                              {s.prudential_stress_indicators?.severity ? severityLabel(s.prudential_stress_indicators.severity) : 'Triggered'}
+                              {s.prudential_stress_indicators?.severity ? stressSeverityLabel(s.prudential_stress_indicators.severity) : 'Triggered'}
                             </Badge>
                           </div>
 
