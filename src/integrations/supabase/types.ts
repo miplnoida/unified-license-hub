@@ -23753,6 +23753,7 @@ export type Database = {
         Args: { _user: string }
         Returns: boolean
       }
+      can_manage_returns_config: { Args: { _user: string }; Returns: boolean }
       can_manage_rule_engine: { Args: { _user_id?: string }; Returns: boolean }
       can_manage_thematic_review: {
         Args: { _review_id?: string }

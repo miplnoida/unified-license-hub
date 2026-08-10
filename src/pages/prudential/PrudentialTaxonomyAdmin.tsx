@@ -14,7 +14,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 const emptyForm = { is_active: true, sort_order: 100 } as any;
 
 export default function PrudentialTaxonomyAdmin() {
-  const { data = [] } = useRiskTaxonomy();
+  const { data = [], isLoading } = useRiskTaxonomy();
   const upsert = useUpsertTaxonomy();
   const del = useDeleteTaxonomy();
   const [open, setOpen] = useState(false);
@@ -78,14 +78,15 @@ export default function PrudentialTaxonomyAdmin() {
         <Card><CardContent className="pt-4">
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Description</TableHead><TableHead>Active</TableHead><TableHead className="text-right">Actions</TableHead>
+              <TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Description</TableHead><TableHead className="w-24">Sort order</TableHead><TableHead>Active</TableHead><TableHead className="text-right">Actions</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {data.map((t: any) => (
                 <TableRow key={t.id}>
                   <TableCell><code>{t.code}</code></TableCell>
                   <TableCell>{t.label}</TableCell>
-                  <TableCell className="max-w-md truncate">{t.description}</TableCell>
+                  <TableCell className="max-w-md truncate">{t.description || '—'}</TableCell>
+                  <TableCell>{t.sort_order ?? '—'}</TableCell>
                   <TableCell>{t.is_active ? 'Yes' : 'No'}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => openEdit(t)}>
@@ -99,6 +100,16 @@ export default function PrudentialTaxonomyAdmin() {
                   </TableCell>
                 </TableRow>
               ))}
+              {isLoading && (
+                <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin inline" />Loading taxonomy…
+                </TableCell></TableRow>
+              )}
+              {!isLoading && data.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                  No risk categories configured yet.
+                </TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent></Card>
