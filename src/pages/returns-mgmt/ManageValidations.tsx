@@ -141,7 +141,7 @@ export default function ManageValidations() {
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'scope', label: 'Scope', render: (r) => <Badge variant="outline">{r.scope}</Badge> },
     { key: 'rule_type', label: 'Type', render: (r) => <Badge variant="outline">{r.rule_type}</Badge> },
-    { key: 'expression', label: 'Expression', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.expression}</code> },
+    { key: 'expression', label: 'Expression', render: (r) => <FormulaText inline formula={r.expression} labels={tokenLabels} /> },
     { key: 'severity', label: 'Severity', render: (r) => (
       <Badge className={r.severity === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>{r.severity}</Badge>
     )},
