@@ -35,29 +35,45 @@ const emptyRule: Partial<ValidationRule> = {
   name: '', expression: '', error_message: '', field_refs: [],
 };
 
+function useRuleVersions(ruleId?: string | null) {
+  return useQuery({
+    queryKey: ['return_validation_rule_versions', ruleId],
+    enabled: !!ruleId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_validation_rule_versions')
+        .select('version,published_at,published_by,is_current,definition')
+        .eq('rule_id', ruleId)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+}
+
 export default function ManageValidations() {
+  const qc = useQueryClient();
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<ValidationRule> | null>(null);
   const [historyRule, setHistoryRule] = useState<ValidationRule | null>(null);
-  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useReturnConfigurationOptions();
   const { data: rules = [], isLoading } = useValidationRules(selectedConfig);
   const upsert = useUpsertValidationRule();
   const del = useDeleteValidationRule();
 
-  const openHistory = async (r: ValidationRule) => {
-    setHistoryRule(r);
-    const { data } = await (supabase as any)
-      .from('return_validation_rule_versions')
-      .select('version,published_at,published_by,is_current,definition')
-      .eq('rule_id', r.id)
-      .order('version', { ascending: false });
-    setVersions(data ?? []);
+  const versionsQuery = useRuleVersions(historyRule?.id);
+  const versions = versionsQuery.data ?? [];
+  const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['return_validation_rules'] });
+    qc.invalidateQueries({ queryKey: ['return_validation_rule_versions'] });
   };
 
   const publish = async (r: ValidationRule) => {
     const { error } = await (supabase as any).rpc('publish_validation_rule', { _rule_id: r.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'New rule version published', timer: 1400, showConfirmButton: false });
   };
 
@@ -72,6 +88,7 @@ export default function ManageValidations() {
     if (!name) return;
     const { error } = await (supabase as any).rpc('clone_validation_rule', { _rule_id: r.id, _new_name: name });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rule cloned', timer: 1200, showConfirmButton: false });
   };
 
@@ -80,6 +97,7 @@ export default function ManageValidations() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('archive_validation_rule', { _rule_id: r.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rule archived', timer: 1200, showConfirmButton: false });
   };
 
@@ -88,9 +106,11 @@ export default function ManageValidations() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('rollback_validation_rule', { _rule_id: rule_id, _to_version: to_version });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
     setHistoryRule(null);
   };
+
 
   const columns = useMemo<Column<ValidationRule>[]>(() => [
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
