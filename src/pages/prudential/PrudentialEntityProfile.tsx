@@ -856,9 +856,12 @@ function GroupMembershipCard({ licenseeId }: { licenseeId: string }) {
         <CardDescription className="font-mono text-xs">{data.group_code}</CardDescription></CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">{String(data.member_role || '').replace(/_/g, ' ')}</Badge>
-          {data.ownership_percentage != null && <Badge variant="outline">{Number(data.ownership_percentage).toFixed(2)}% owned</Badge>}
-          <Badge variant="outline">{String(data.consolidation_treatment || '')} consolidation</Badge>
+          <Badge variant="outline">Relationship: {groupMemberRoleLabel(data.member_role)}</Badge>
+          {data.ownership_percentage != null && (
+            <Badge variant="outline">Ownership: {Number(data.ownership_percentage).toFixed(2)}%</Badge>
+          )}
+          <Badge variant="outline">Treatment: {consolidationTreatmentLabel(data.consolidation_treatment)}</Badge>
+
         </div>
         <Link className="text-primary underline" to={`/prudential/groups/${data.group_id}`}>
           Open consolidated group risk profile
