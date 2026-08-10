@@ -290,15 +290,25 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
         sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('entity_id', entityId).order('triggered_at', { ascending: false }),
       ]);
       const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
-      const breaches = (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id));
+      const breaches = dedupeLatest(
+        (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id)),
+        (b) => `${b.return_id}|${b.metric_key ?? b.ratio_key ?? ''}`,
+        'detected_at',
+      );
       const ratiosRes = returnIds.length
         ? await sb.from('return_calculated_ratios').select('*').in('return_id', returnIds).order('computed_at', { ascending: false })
         : { data: [] };
+      const ratios = dedupeLatest(
+        ratiosRes.data ?? [],
+        (r) => `${r.return_id}|${r.ratio_key}`,
+        'computed_at',
+      );
       return {
         entity: entityRes.data,
         returns: returnsRes.data ?? [],
         breaches,
-        ratios: ratiosRes.data ?? [],
+        ratios,
+
         assessments: assessRes.data ?? [],
         actions: actionsRes.data ?? [],
         escalations: escRes.data ?? [],
