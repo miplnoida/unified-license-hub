@@ -203,6 +203,12 @@ export default function PrudentialRatios() {
               <div>
                 <Label>Formula *</Label>
                 <Textarea rows={2} placeholder="e.g. formA.total_assets / formA.total_liabilities" value={editing.formula ?? ''} onChange={(e) => setEditing({ ...editing, formula: e.target.value })} />
+                {!!editing.formula && (
+                  <div className="mt-2 border rounded p-2 bg-muted/40">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Reads as</div>
+                    <FormulaText formula={editing.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">Reference values as <code>formId.fieldKey</code>. Only + - * / and parentheses are supported.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
