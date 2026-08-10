@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { severityLabel, severityTone, SEVERITY_FILTER_OPTIONS } from '@/lib/prudentialSeverity';
 
 const NEUTRAL = 'bg-muted text-muted-foreground border-border';
 const EMERALD = 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
@@ -16,13 +17,6 @@ const AMBER = 'bg-amber-500/10 text-amber-700 border-amber-200';
 const AMBER_STRONG = 'bg-amber-500/20 text-amber-800 border-amber-300';
 const RED = 'bg-destructive/10 text-destructive border-destructive/30';
 const BLUE = 'bg-blue-500/10 text-blue-700 border-blue-200';
-
-const RISK_TONE: Record<string, string> = {
-  critical: RED,
-  high: AMBER_STRONG,
-  medium: AMBER,
-  low: EMERALD,
-};
 
 const LICENSE_TONE: Record<string, string> = {
   active: EMERALD,
@@ -59,7 +53,7 @@ const COLUMN_HELP: Record<string, string> = {
   License: 'Current license status (Active / Suspended / Revoked / Expired).',
   Systemic: 'Systemic-importance classification (e.g. D-SIB / Non-SIB) driving supervisory priority.',
   'Latest rating': 'Most recent supervisory risk rating from the latest prudential assessment.',
-  'Worst breach': 'Highest severity among currently open threshold breaches on prudential ratios.',
+  'Worst breach': 'Most severe outcome among currently open threshold breaches on prudential ratios (Breach / Warning / Within limits).',
   Breaches: 'Count of open (unresolved) threshold breaches across all monitored ratios.',
   'Open actions': 'Supervisory actions currently open (directives, requirements, follow-ups).',
   Overdue: 'Open actions whose due date has passed. Highlighted red when greater than zero.',
@@ -133,10 +127,9 @@ export default function PrudentialEntitiesList() {
               <SelectTrigger className="w-40"><SelectValue placeholder="Risk" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All risk levels</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
+                {SEVERITY_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={status} onValueChange={(v) => { setStatus(v); updateParam('status', v); }}>
@@ -215,7 +208,7 @@ export default function PrudentialEntitiesList() {
                       </TableCell>
                       <TableCell>
                         {e.worst_breach
-                          ? <Badge variant="outline" className={`capitalize ${RISK_TONE[e.worst_breach] || NEUTRAL}`}>{e.worst_breach}</Badge>
+                          ? <Badge variant="outline" className={severityTone(e.worst_breach)}>{severityLabel(e.worst_breach)}</Badge>
                           : '—'}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{e.breach_count}</TableCell>

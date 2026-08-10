@@ -21,6 +21,7 @@ import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
 import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
+import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
 
 const RISK_TONE: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -145,16 +146,9 @@ export default function PrudentialEntityProfile() {
   const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
   const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
   const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
-  const worstBreachSev = (() => {
-    const order = ['red','breach','critical','amber','warn','high','medium','low'];
-    let worst: string | null = null;
-    (data.breaches || []).forEach((b: any) => {
-      const s = b.risk_level || b.severity || b.level;
-      if (!s) return;
-      if (!worst || order.indexOf(s) < order.indexOf(worst)) worst = s;
-    });
-    return worst;
-  })();
+  const worstBreachSev = worstSeverity(
+    (data.breaches || []).map((b: any) => b.risk_level || b.severity || b.level),
+  );
 
   const exportProfile = async () => {
     await authorizedExport('prudential_supervision', 'export', { entity: e.name });
@@ -212,7 +206,7 @@ export default function PrudentialEntityProfile() {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="flex-wrap">
+        <TabsList className="flex h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
           <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
@@ -235,7 +229,7 @@ export default function PrudentialEntityProfile() {
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest rating</CardTitle></CardHeader>
               <CardContent className="text-sm">{latestAssess?.overall_rating || '—'}<br /><span className="text-xs text-muted-foreground">{latestAssess?.status || 'no assessment'}</span></CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Worst breach</CardTitle></CardHeader>
-              <CardContent className="text-sm">{worstBreachSev ? <Badge className={RISK_TONE[worstBreachSev]}>{worstBreachSev}</Badge> : '—'}</CardContent></Card>
+              <CardContent className="text-sm">{worstBreachSev ? <Badge variant="outline" className={severityTone(worstBreachSev)}>{severityLabel(worstBreachSev)}</Badge> : '—'}</CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open actions</CardTitle></CardHeader>
               <CardContent className="text-sm">{openActions.length} <span className="text-destructive">({overdueActions.length} overdue)</span></CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open escalations</CardTitle></CardHeader>
@@ -488,7 +482,7 @@ export default function PrudentialEntityProfile() {
                   return (
                     <TableRow key={b.id}>
                       <TableCell>{ratioLabels[metric]?.label || metric}</TableCell>
-                      <TableCell><Badge className={RISK_TONE[sev] || ''}>{sev || '—'}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={severityTone(sev)}>{severityLabel(sev)}</Badge></TableCell>
                       <TableCell className="tabular-nums">{val != null ? formatRatio(val, fmt) : '—'}</TableCell>
                       <TableCell className="tabular-nums">{b.threshold_value != null ? formatRatio(b.threshold_value, fmt) : '—'}</TableCell>
                       <TableCell>{b.detected_at ? new Date(b.detected_at).toLocaleDateString() : '—'}</TableCell>
@@ -498,10 +492,10 @@ export default function PrudentialEntityProfile() {
                           title: `Follow-up on breach: ${metric}`, severity: sev,
                           description: `Breach detected on ${metric} (value ${val}, threshold ${b.threshold_value}).`,
                         })}>Create action</Button>
-                        {['critical','high','red','breach'].includes(sev) && (
+                        {isEscalatable(sev) && (
                           <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => setCreateEscalation({
                             entity_id: e.id, related_type: 'return', related_id: b.return_id,
-                            escalation_type: 'immediate_risk', reason: `${sev} breach on ${metric}`,
+                            escalation_type: 'immediate_risk', reason: `${severityLabel(sev)} on ${metric}`,
                           })}>Escalate</Button>
                         )}
                       </TableCell>
@@ -677,8 +671,8 @@ export default function PrudentialEntityProfile() {
                         {relatedBreaches.map((b: any) => (
                           <div key={b.id} className="rounded-md border p-2 space-y-1">
                             <div className="flex items-center justify-between">
-                              <Badge className={RISK_TONE[b.risk_level || b.level] || ''} variant="outline">
-                                {b.risk_level || b.level || 'breach'}
+                              <Badge className={severityTone(b.risk_level || b.level)} variant="outline">
+                                {severityLabel(b.risk_level || b.level)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}

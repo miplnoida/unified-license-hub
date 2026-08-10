@@ -9,8 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { normalizeSeverity, severityLabel } from '@/lib/prudentialSeverity';
 import {
   AlertDialog,
+
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
@@ -62,9 +64,9 @@ export default function PrudentialDashboard() {
   const { data: schedule } = useSweepSchedule();
 
   // Derived widgets
-  const highRisk = entities.filter((e: any) => ['critical','high'].includes(e.worst_breach)).length;
-  const critical = entities.filter((e: any) => e.worst_breach === 'critical').length;
-  const amber = entities.filter((e: any) => e.worst_breach === 'high' || e.worst_breach === 'medium').length;
+  const critical = entities.filter((e: any) => normalizeSeverity(e.worst_breach) === 'breach').length;
+  const amber = entities.filter((e: any) => normalizeSeverity(e.worst_breach) === 'warn').length;
+  const highRisk = critical + amber;
   const topRisk = [...entities]
     .sort((a: any, b: any) => (b.breach_count || 0) - (a.breach_count || 0))
     .slice(0, 10);
@@ -153,7 +155,7 @@ export default function PrudentialDashboard() {
             {topRisk.map((e: any) => (
               <Link key={e.id} to={`/prudential/entities/${e.id}`} className="flex justify-between py-1 border-b hover:bg-muted/50">
                 <span className="truncate">{e.name}</span>
-                <span className="text-muted-foreground">{e.breach_count} · <span className="capitalize">{e.worst_breach || '—'}</span></span>
+                <span className="text-muted-foreground">{e.breach_count} · <span>{severityLabel(e.worst_breach)}</span></span>
               </Link>
             ))}
             {!topRisk.length && <div className="text-muted-foreground">No entities with breaches.</div>}
