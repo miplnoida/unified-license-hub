@@ -118,6 +118,7 @@ export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: s
             )}
           </div>
         )}
+        {!readOnly && <StageActions beforeAdvance={() => persist()} />}
       </CardContent>
     </Card>
   );
