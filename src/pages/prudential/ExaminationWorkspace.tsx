@@ -108,6 +108,7 @@ export default function ExaminationWorkspace() {
           </CardContent>
         </Card>
 
+        <ExaminationStageActionsProvider value={stageActionsValue}>
         <Tabs defaultValue="scoping">
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="scoping">Scoping</TabsTrigger>
@@ -128,6 +129,7 @@ export default function ExaminationWorkspace() {
           <TabsContent value="findings" className="mt-4"><FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
         </Tabs>
+        </ExaminationStageActionsProvider>
       </div>
     </DashboardLayout>
   );
