@@ -313,7 +313,8 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
         (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id)),
         (b) => `${b.return_id}|${b.metric_key ?? b.ratio_key ?? ''}`,
         'detected_at',
-      );
+      ).sort((a: any, b: any) => new Date(b.detected_at ?? 0).getTime() - new Date(a.detected_at ?? 0).getTime());
+
       const ratiosRes = returnIds.length
         ? await sb.from('return_calculated_ratios').select('*').in('return_id', returnIds).order('computed_at', { ascending: false })
         : { data: [] };
