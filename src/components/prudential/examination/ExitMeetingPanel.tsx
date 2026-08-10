@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExitMeeting, useSaveExitMeeting } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
   const { data, isLoading } = useExitMeeting(examinationId);
