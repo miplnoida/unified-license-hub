@@ -21,6 +21,7 @@ import { ExitMeetingPanel } from '@/components/prudential/examination/ExitMeetin
 import { ReportsPanel } from '@/components/prudential/examination/ReportsPanel';
 import { FindingsPanel } from '@/components/prudential/examination/FindingsPanel';
 import { ExaminationTimeline } from '@/components/prudential/examination/ExaminationTimeline';
+import { ExaminationStageActionsProvider } from '@/components/prudential/examination/ExaminationStageActions';
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
 
