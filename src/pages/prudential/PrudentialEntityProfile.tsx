@@ -533,12 +533,13 @@ export default function PrudentialEntityProfile() {
               <TableBody>
                 {data.assessments.map((a: any) => (
                   <TableRow key={a.id}>
-                    <TableCell>{a.period_start} → {a.period_end}</TableCell>
-                    <TableCell><Badge>{a.overall_rating || '—'}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(a.period_start)} → {formatDateOnly(a.period_end)}</TableCell>
+                    <TableCell><Badge variant="outline">{a.overall_rating || 'Not rated'}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{assessmentStatusLabel(a.status)}</Badge></TableCell>
                     <TableCell className="text-right"><Link className="text-primary underline" to={`/prudential/assessments/${a.id}`}>Open</Link></TableCell>
                   </TableRow>
                 ))}
+
                 {!data.assessments.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No assessments.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
