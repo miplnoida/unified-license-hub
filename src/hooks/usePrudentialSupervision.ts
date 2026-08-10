@@ -321,7 +321,8 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
         ratiosRes.data ?? [],
         (r) => `${r.return_id}|${r.ratio_key}`,
         'computed_at',
-      );
+      ).sort((a: any, b: any) => new Date(b.computed_at ?? 0).getTime() - new Date(a.computed_at ?? 0).getTime());
+
       return {
         entity: entityRes.data,
         returns: returnsRes.data ?? [],
