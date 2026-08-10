@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { ArrowRight, Ban, Loader2 } from 'lucide-react';
+import { ArrowRight, Ban, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface StageActionsContextValue {
