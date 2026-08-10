@@ -269,7 +269,9 @@ export default function PrudentialRatios() {
                       )}
                     </div>
                   </div>
-                  <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.formula}</code>
+                  <div className="bg-muted p-2 rounded">
+                    <FormulaText formula={v.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     Format: {v.display_format ?? '—'} · effective {formatDateOnly(v.effective_from)} · by {actorLabel(v.published_by, names)}
                   </div>
