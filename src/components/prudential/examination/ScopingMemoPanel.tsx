@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExaminationScoping, useSaveScoping } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
   const { data, isLoading } = useExaminationScoping(examinationId);
@@ -117,6 +118,7 @@ export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: s
             )}
           </div>
         )}
+        {!readOnly && <StageActions beforeAdvance={() => persist()} />}
       </CardContent>
     </Card>
   );

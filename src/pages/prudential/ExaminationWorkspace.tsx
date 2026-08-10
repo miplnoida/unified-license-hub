@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Ban, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import {
   EXAMINATION_STAGES,
   stageLabel,
@@ -21,6 +21,7 @@ import { ExitMeetingPanel } from '@/components/prudential/examination/ExitMeetin
 import { ReportsPanel } from '@/components/prudential/examination/ReportsPanel';
 import { FindingsPanel } from '@/components/prudential/examination/FindingsPanel';
 import { ExaminationTimeline } from '@/components/prudential/examination/ExaminationTimeline';
+import { ExaminationStageActionsProvider } from '@/components/prudential/examination/ExaminationStageActions';
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
 
@@ -37,6 +38,18 @@ export default function ExaminationWorkspace() {
 
   const terminal = exam?.stage === 'closed' || exam?.stage === 'cancelled';
   const readOnly = !!terminal;
+
+  const stageActionsValue = useMemo(() => {
+    if (terminal) return null;
+    return {
+      nextStageLabel: nextStage ? stageLabel(nextStage) : null,
+      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
+      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
+      pending: transition.isPending,
+    };
+  }, [terminal, nextStage, transition]);
+
+
 
   if (isLoading) {
     return (
@@ -70,19 +83,6 @@ export default function ExaminationWorkspace() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{stageLabel(exam.stage)}</Badge>
-            {!terminal && nextStage && (
-              <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={transition.isPending}
-                onClick={() => transition.mutate({ to_stage: nextStage })}>
-                {transition.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
-                Move to {stageLabel(nextStage)}
-              </Button>
-            )}
-            {!terminal && (
-              <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" disabled={transition.isPending}
-                onClick={() => transition.mutate({ to_stage: 'cancelled' })}>
-                <Ban className="h-4 w-4 mr-1" />Cancel
-              </Button>
-            )}
           </div>
         </div>
 
@@ -108,6 +108,7 @@ export default function ExaminationWorkspace() {
           </CardContent>
         </Card>
 
+        <ExaminationStageActionsProvider value={stageActionsValue}>
         <Tabs defaultValue="scoping">
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="scoping">Scoping</TabsTrigger>
@@ -128,6 +129,7 @@ export default function ExaminationWorkspace() {
           <TabsContent value="findings" className="mt-4"><FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
           <TabsContent value="audit" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
         </Tabs>
+        </ExaminationStageActionsProvider>
       </div>
     </DashboardLayout>
   );

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Stamp, Trash2, UserCheck } from 'lucide-react';
 import { useSignoffWorkpaper, useWorkpaperMutations, useWorkpapers } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 export function WorkpapersPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
   const { data: rows = [], isLoading } = useWorkpapers(examinationId);
@@ -110,6 +111,7 @@ export function WorkpapersPanel({ examinationId, readOnly }: { examinationId: st
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );

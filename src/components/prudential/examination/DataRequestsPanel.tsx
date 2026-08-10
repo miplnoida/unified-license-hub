@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Plus, Send, CheckCircle2, Trash2 } from 'lucide-react';
 import { useDataRequestMutations, useDataRequests } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 const statusTone = (s: string, due?: string | null) => {
   if (s === 'received') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
@@ -145,6 +146,7 @@ export function DataRequestsPanel({ examinationId, readOnly }: { examinationId: 
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
