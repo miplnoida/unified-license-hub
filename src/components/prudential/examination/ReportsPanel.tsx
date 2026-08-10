@@ -155,6 +155,7 @@ export function ReportsPanel({ examinationId, readOnly }: { examinationId: strin
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
