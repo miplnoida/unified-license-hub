@@ -87,6 +87,10 @@ export default function PrudentialEntityProfile() {
   const { data, isLoading, refetch } = useEntityHistoricalProfile(id);
   const evalStress = useEvaluateStressForReturn();
   const audit = useEntityAuditHistory(id);
+  const auditActorNames = useUserDisplayNames(
+    ((audit.data as any[]) || []).map((a: any) => a.user_id),
+  );
+
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
