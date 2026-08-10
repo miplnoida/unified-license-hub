@@ -717,11 +717,12 @@ export default function PrudentialEntityProfile() {
                     <div>
                       <div className="text-xs font-medium text-muted-foreground mb-1">Source return</div>
                       <div className="rounded-md border p-2 text-xs space-y-1">
-                        <div className="flex justify-between"><span>ID</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
-                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{rf.workflow_status}</Badge></div>
+                        <div className="flex justify-between"><span>Reference</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
+                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{returnStatusLabel(rf.workflow_status || rf.status)}</Badge></div>
                         <Button asChild size="sm" variant="outline" className="w-full mt-2">
-                          <Link to={`/admin/returns/queue/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
+                          <Link to={`/returns-management/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
                         </Button>
+
                       </div>
                     </div>
                   )}
