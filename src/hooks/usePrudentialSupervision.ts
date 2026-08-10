@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import { worstSeverity, normalizeSeverity } from '@/lib/prudentialSeverity';
 
 
 const sb = supabase as any;
@@ -222,13 +223,12 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
       });
 
       const breachCounts: Record<string, { total: number; worst: string | null }> = {};
-      const sevOrder = ['critical','high','medium','low'];
       (breachesRes.data ?? []).forEach((b: any) => {
         const ent = returnToEntity[b.return_id]; if (!ent) return;
         const severity = b.risk_level || b.level;
         const cur = breachCounts[ent] || { total: 0, worst: null };
         cur.total += 1;
-        if (severity && (!cur.worst || sevOrder.indexOf(severity) < sevOrder.indexOf(cur.worst))) cur.worst = severity;
+        cur.worst = worstSeverity([cur.worst, severity]);
         breachCounts[ent] = cur;
       });
 
@@ -259,7 +259,10 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
         last_return_status: lastReturnByEntity[e.id]?.workflow_status ?? null,
         latest_rating: latestAssess[e.id]?.overall_rating ?? null,
       }));
-      if (filters?.risk) return rows.filter(r => r.worst_breach === filters.risk);
+      if (filters?.risk) {
+        const wanted = normalizeSeverity(filters.risk);
+        return rows.filter(r => normalizeSeverity(r.worst_breach) === wanted);
+      }
       return rows;
     },
   });
