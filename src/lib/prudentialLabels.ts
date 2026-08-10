@@ -217,3 +217,59 @@ export function stressSeverityLabel(value?: string | null): string {
   if (!value) return '—';
   return STRESS_SEVERITY_LABEL[String(value).toLowerCase()] ?? humanizeToken(value);
 }
+
+/**
+ * Badge classes for supervisory severity tokens (critical / high / medium / low).
+ *
+ * Uses semantic tokens so the palette stays themable; a critical action must
+ * never look the same as a low one.
+ */
+export function riskSeverityBadgeClass(value?: string | null): string {
+  switch (String(value ?? '').toLowerCase()) {
+    case 'critical':
+    case 'severe':
+      return 'bg-destructive/15 text-destructive border-destructive/30';
+    case 'high':
+    case 'elevated':
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
+    case 'medium':
+    case 'moderate':
+      return 'bg-primary/10 text-primary border-primary/30';
+    case 'low':
+      return 'bg-muted text-muted-foreground border-border';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
+  }
+}
+
+/** Badge classes for supervisory action / escalation lifecycle states. */
+export function lifecycleBadgeClass(value?: string | null): string {
+  switch (String(value ?? '').toLowerCase()) {
+    case 'breached':
+    case 'overdue':
+      return 'bg-destructive/15 text-destructive border-destructive/30';
+    case 'awaiting_evidence':
+    case 'awaiting_review':
+    case 'under_review':
+      return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
+    case 'completed':
+    case 'resolved':
+    case 'closed':
+      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
+  }
+}
+
+/** Review-state wording for the evidence column on supervisory actions. */
+export const REVIEW_STATUS_LABEL: Record<string, string> = {
+  not_required: 'Not required',
+  awaiting_review: 'Awaiting review',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+};
+
+export function reviewStatusLabel(value?: string | null): string {
+  if (!value) return '—';
+  return REVIEW_STATUS_LABEL[String(value).toLowerCase()] ?? humanizeToken(value);
+}

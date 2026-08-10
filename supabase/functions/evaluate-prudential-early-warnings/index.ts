@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { requireWorkerOrPrudentialUser } from "../_shared/prudentialSweepAuth.ts";
 
 // Recomputes prudential early warnings by re-reading the v_prudential_early_warnings
 // view and dispatching notifications for critical level rows. Safe to invoke
@@ -8,8 +8,8 @@ import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
+  const __workerGate = await requireWorkerOrPrudentialUser(req, 'evaluate-prudential-early-warnings');
+  if (!__workerGate.ok) return __workerGate.response!;
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,

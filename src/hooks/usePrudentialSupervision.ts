@@ -161,7 +161,14 @@ export function useUpsertTaxonomy() {
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
-    onError: (e: any) => toast.error(e.message || 'Failed'),
+    onError: (e: any) => {
+      const msg = String(e?.message || '');
+      if (/duplicate key|unique constraint/i.test(msg)) {
+        toast.error('A risk category with this code already exists.');
+        return;
+      }
+      toast.error(msg || 'Failed');
+    },
   });
 }
 export function useDeleteTaxonomy() {
