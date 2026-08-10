@@ -209,11 +209,18 @@ export default function PrudentialEntityProfile() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            License: <Badge variant="outline">{e.status || '—'}</Badge>{' '}
-            {e.systemic_importance && <>· Systemic: <Badge>{e.systemic_importance}</Badge></>}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>License status:</span>
+            <Badge variant="outline">{e.status ? humanizeToken(e.status) : '—'}</Badge>
+            {e.systemic_importance && (
+              <>
+                <span>· Systemic importance:</span>
+                <Badge>{humanizeToken(e.systemic_importance)}</Badge>
+              </>
+            )}
+          </div>
         </div>
+
         <div className="flex gap-2">
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
