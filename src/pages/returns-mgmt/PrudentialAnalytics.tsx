@@ -7,8 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
+import {
+  usePeerMinPeers,
+  useSavePeerMinPeers,
+  useCanManagePrudentialConfig,
+  PEER_MIN_PEERS_DEFAULT,
+  PEER_MIN_PEERS_FLOOR,
+  PEER_MIN_PEERS_CEILING,
+} from '@/hooks/usePeerSettings';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { formatDateOnly } from '@/lib/datetime';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
+
 
 function useRatioKeys() {
   return useQuery({
