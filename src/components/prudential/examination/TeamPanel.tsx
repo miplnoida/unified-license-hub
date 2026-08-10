@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 export function TeamPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
