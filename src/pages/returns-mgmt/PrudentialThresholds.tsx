@@ -97,6 +97,16 @@ export default function PrudentialThresholds() {
     Swal.fire({ icon: 'success', text: 'Threshold archived', timer: 1200, showConfirmButton: false });
   };
 
+  const restore = async (t: PrudentialThreshold) => {
+    const ok = await Swal.fire({ title: 'Restore threshold?', text: t.label, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_prudential_threshold', { _threshold_id: t.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh(t.id);
+    Swal.fire({ icon: 'success', text: 'Threshold restored', timer: 1200, showConfirmButton: false });
+  };
+
+
 
   const columns = useMemo<Column<PrudentialThreshold>[]>(() => [
     { key: 'label', label: 'Metric' },
