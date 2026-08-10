@@ -51,7 +51,7 @@ const RETURN_STATUS_TONE: Record<string, string> = {
 };
 
 const COLUMN_HELP: Record<string, string> = {
-  Entity: 'Supervised institution name. Click "Open" to view its full prudential profile.',
+  Entity: 'Supervised institution name. Use the view button on the row to open its full prudential profile.',
   License: 'Current license status (Active / Suspended / Revoked / Expired).',
   Systemic: 'Systemic-importance classification (e.g. D-SIB / Non-SIB) driving supervisory priority.',
   'Latest rating': 'Most recent supervisory risk rating from the latest prudential assessment.',
