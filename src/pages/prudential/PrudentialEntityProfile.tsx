@@ -682,7 +682,7 @@ export default function PrudentialEntityProfile() {
                                 {severityLabel(b.risk_level || b.level)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}
+                                {formatDateTime(b.detected_at, '')}
                               </span>
                             </div>
                             <div className="text-xs">
