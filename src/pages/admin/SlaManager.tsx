@@ -82,6 +82,8 @@ const WORKFLOW_ENTITY_TYPES_FOR_PROCESS: Record<string, string[]> = {
 };
 
 const CUSTOM_STAGE = '__custom__';
+const UNSET_PROCESS = '__unset__';
+
 
 const TIER_DEFAULTS: Array<{ tier: number; label: string; delay_days: number; recipients: string }> = [
   { tier: 1, label: 'Tier 1 — immediate', delay_days: 0, recipients: 'assigned_officer, team_lead' },
