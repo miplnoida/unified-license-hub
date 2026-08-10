@@ -436,17 +436,18 @@ function CalendarTab() {
   );
 
   const load = useCallback(async () => {
-    const [{ data: profs }, { data: cfgs }, { data: asn }] = await Promise.all([
+    const [{ data: profs }, { data: asn }] = await Promise.all([
       supabase.from('business_calendar_profiles').select('*').order('name'),
-      supabase.from('sla_configurations').select('process_type'),
       supabase.from('business_calendar_process_assignments').select('*'),
     ]);
     const list = (profs ?? []) as unknown as CalendarProfile[];
     setProfiles(list);
     setAssignments((asn ?? []) as unknown as Assignment[]);
-    setProcessOptions(Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
+    // Runtime process types — a calendar can be assigned before any SLA row exists.
+    setProcessOptions(RUNTIME_PROCESS_TYPES.map(p => p.value));
     setActiveId(prev => prev ?? list[0]?.id ?? null);
   }, []);
+
 
   const loadHolidays = useCallback(async (pid: string) => {
     const { data } = await supabase.from('business_calendar_holidays').select('*').eq('profile_id', pid).order('holiday_date');
