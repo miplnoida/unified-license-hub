@@ -62,7 +62,11 @@ export function useConfigFormFields(configId?: string | null) {
       }
 
       const versionIds = Array.from(best.values()).map((v) => v.id);
-      if (versionIds.length === 0) return [];
+      // No published version yet: still offer the forms, just with no line items.
+      if (versionIds.length === 0) {
+        return templateIds.map((id) => ({ id, name: nameById.get(id) ?? 'Form', fields: [] }));
+      }
+
 
       const { data: fields, error: fErr } = await (supabase as any)
         .from('form_fields')
