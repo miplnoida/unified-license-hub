@@ -84,18 +84,19 @@ export default function NotifLogPage() {
                     <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Error</TableHead>
+                    <TableHead className="w-[60px] text-right">Detail</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No notifications logged
                       </TableCell>
                     </TableRow>
                   ) : (
                     logs.map((l: any) => (
-                      <TableRow key={l.id}>
+                      <TableRow key={l.id} className="cursor-pointer" onClick={() => setSelectedId(l.id)}>
                         <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                           {format(new Date(l.sent_at || l.created_at), 'MMM dd, yyyy HH:mm')}
                         </TableCell>
@@ -117,6 +118,16 @@ export default function NotifLogPage() {
                         <TableCell className="max-w-[220px] truncate text-xs text-destructive">
                           {l.error || '—'}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="View detail"
+                            onClick={(e) => { e.stopPropagation(); setSelectedId(l.id); }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -125,7 +136,13 @@ export default function NotifLogPage() {
             )}
           </CardContent>
         </Card>
+        <NotificationDispatchDetailDrawer
+          open={!!selectedId}
+          onOpenChange={(v) => !v && setSelectedId(null)}
+          row={logs.find((l: any) => l.id === selectedId) ?? null}
+        />
       </div>
+
     </DashboardLayout>
   );
 }
