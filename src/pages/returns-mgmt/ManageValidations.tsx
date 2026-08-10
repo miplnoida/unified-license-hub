@@ -11,11 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
 import type { ValidationRule } from '@/lib/returnsValidation';
 import Swal from 'sweetalert2';
+import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import { formatDateTime } from '@/lib/datetime';
+import { Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 function useReturnConfigurationOptions() {
@@ -130,12 +133,12 @@ export default function ManageValidations() {
       <div className="flex gap-1">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRule(r)} title="Version history"><History className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cloneRule(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
-          if (ok.isConfirmed) del.mutate(r.id);
+          if (ok.isConfirmed) del.mutate(r.id, { onSuccess: refresh });
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
@@ -148,6 +151,7 @@ export default function ManageValidations() {
       Swal.fire({ icon: 'error', text: 'Name, expression, and error message are required' }); return;
     }
     await upsert.mutateAsync(editing as any);
+    refresh();
     setEditing(null);
   };
 
@@ -179,7 +183,11 @@ export default function ManageValidations() {
 
         <div className="animate-slide-up delay-100">
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading rules…</div>
+            <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading rules…</div>
+          ) : rules.length === 0 ? (
+            <div className="text-sm text-muted-foreground border rounded-md p-6 text-center">
+              No validation rules configured{selectedConfig ? ' for this configuration' : ''}. Use “Add Rule” to create one.
+            </div>
           ) : (
             <DataTableShell columns={columns} data={rules} searchPlaceholder="Search rules..." />
           )}
@@ -276,13 +284,21 @@ export default function ManageValidations() {
         <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
           <SheetHeader><SheetTitle>Version history — {historyRule?.name}</SheetTitle></SheetHeader>
           <div className="mt-4 space-y-3">
-            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versionsQuery.isLoading && (
+              <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading version history…</div>
+            )}
+            {!!versionsQuery.error && (
+              <div className="text-sm text-destructive">Could not load version history: {(versionsQuery.error as any).message}</div>
+            )}
+            {!versionsQuery.isLoading && !versionsQuery.error && versions.length === 0 && (
+              <div className="text-sm text-muted-foreground">No versions recorded yet.</div>
+            )}
             {versions.map((v: any) => (
               <div key={v.version} className="border rounded p-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{formatDateTime(v.published_at)}</div>
                     {!v.is_current && historyRule && (
                       <Button data-rbac="returns_management.edit" size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
                         <Undo2 className="h-3 w-3 mr-1" /> Rollback
@@ -291,7 +307,7 @@ export default function ManageValidations() {
                   </div>
                 </div>
                 <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
-                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>
+                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names)}</div>
               </div>
             ))}
           </div>
