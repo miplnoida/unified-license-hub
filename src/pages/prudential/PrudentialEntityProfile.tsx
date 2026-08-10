@@ -584,16 +584,32 @@ export default function PrudentialEntityProfile() {
           <Card><CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Indicator</TableHead><TableHead>Metric</TableHead><TableHead>Observed</TableHead><TableHead>Severity</TableHead><TableHead>Triggered</TableHead><TableHead>Resolved</TableHead></TableRow></TableHeader>
               <TableBody>
-                {(data.stress_events || []).map((s: any) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.prudential_stress_indicators?.label || s.indicator_id}</TableCell>
-                    <TableCell>{s.prudential_stress_indicators?.metric_key || '—'}</TableCell>
-                    <TableCell className="tabular-nums">{s.observed_value ?? '—'}</TableCell>
-                    <TableCell><Badge className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>{s.prudential_stress_indicators?.severity || '—'}</Badge></TableCell>
-                    <TableCell>{new Date(s.triggered_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{s.resolved_at ? new Date(s.resolved_at).toLocaleDateString() : '—'}</TableCell>
-                  </TableRow>
-                ))}
+                {(data.stress_events || []).map((s: any) => {
+                  const ind = s.prudential_stress_indicators;
+                  const metricKey = ind?.metric_key || s.metric_key;
+                  const metricMeta = metricKey ? ratioLabels[metricKey] : undefined;
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell>{ind?.label || 'Stress indicator'}</TableCell>
+                      <TableCell>{metricMeta?.label || (metricKey ? metricKey.replace(/_/g, ' ') : '—')}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {s.observed_value == null
+                          ? '—'
+                          : metricMeta?.fmt
+                            ? formatRatio(s.observed_value, metricMeta.fmt)
+                            : formatObservedValue(s.observed_value)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={severityTone(ind?.severity)}>
+                          {ind?.severity ? severityLabel(ind.severity) : '—'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDateTime(s.triggered_at)}</TableCell>
+                      <TableCell>{formatDateTime(s.resolved_at)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+
                 {!(data.stress_events || []).length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No stress events.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
