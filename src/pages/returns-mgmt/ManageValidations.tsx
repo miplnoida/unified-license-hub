@@ -332,7 +332,9 @@ export default function ManageValidations() {
                     )}
                   </div>
                 </div>
-                <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
+                <div className="bg-muted p-2 rounded">
+                  <FormulaText formula={v.definition?.expression} labels={tokenLabels} />
+                </div>
                 <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names)}</div>
               </div>
             ))}
