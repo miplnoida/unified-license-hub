@@ -39,6 +39,18 @@ export default function ExaminationWorkspace() {
   const terminal = exam?.stage === 'closed' || exam?.stage === 'cancelled';
   const readOnly = !!terminal;
 
+  const stageActionsValue = useMemo(() => {
+    if (terminal) return null;
+    return {
+      nextStageLabel: nextStage ? stageLabel(nextStage) : null,
+      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
+      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
+      pending: transition.isPending,
+    };
+  }, [terminal, nextStage, transition]);
+
+
+
   if (isLoading) {
     return (
       <DashboardLayout>
