@@ -861,15 +861,16 @@ function EscalationTab() {
         <RetroNotice />
         <div className="flex items-center gap-3">
           <Label>Process Type</Label>
-          <Select value={processType || 'none'} onValueChange={v => setProcessType(v === 'none' ? '' : v)}>
+          <Select value={processType} onValueChange={setProcessType}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Select process type" /></SelectTrigger>
             <SelectContent>
-              {processOptions.length === 0
-                ? <SelectItem value="none" disabled>No SLA configs yet</SelectItem>
-                : processOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              {RUNTIME_PROCESS_TYPES.map(p => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+
 
         {processType && tiersForProcess.length > 0 && (
           <div className="space-y-3">
