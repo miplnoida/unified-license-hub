@@ -257,6 +257,52 @@ export default function PrudentialAnalytics() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Peer comparison settings</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="w-56">
+              <Label htmlFor="min-peers">Minimum peers required to publish a distribution</Label>
+              <Input
+                id="min-peers"
+                type="number"
+                min={PEER_MIN_PEERS_FLOOR}
+                max={PEER_MIN_PEERS_CEILING}
+                value={minPeersDraft}
+                disabled={!canManageConfig || minPeersQuery.isLoading}
+                onChange={(e) => setMinPeersDraft(e.target.value)}
+              />
+            </div>
+            <Button
+              disabled={
+                !canManageConfig ||
+                savePeerMin.isPending ||
+                Number(minPeersDraft) === (minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT)
+              }
+              onClick={() => {
+                const value = Number(minPeersDraft);
+                if (!Number.isInteger(value) || value < PEER_MIN_PEERS_FLOOR || value > PEER_MIN_PEERS_CEILING) {
+                  toast.error(`Enter a whole number between ${PEER_MIN_PEERS_FLOOR} and ${PEER_MIN_PEERS_CEILING}.`);
+                  return;
+                }
+                savePeerMin.mutate(value, {
+                  onSuccess: () => toast.success(`Minimum peer count set to ${value}.`),
+                  onError: (e: any) => toast.error(e?.message || 'Could not save the minimum peer count.'),
+                });
+              }}
+            >
+              {savePeerMin.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Peer distributions are withheld until at least this many entities have filed the ratio for the selected
+              period. The floor of {PEER_MIN_PEERS_FLOOR} protects peer confidentiality and cannot be lowered.
+              {!canManageConfig && ' You do not have permission to change this setting.'}
+            </p>
+          </CardContent>
+        </Card>
+
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Peer Comparison ({(peer.data as any)?.count ?? 0} peers)</CardTitle>
           </CardHeader>
           <CardContent style={{ height: 320 }}>
