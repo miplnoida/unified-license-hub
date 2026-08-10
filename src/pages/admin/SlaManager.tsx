@@ -1128,20 +1128,32 @@ function StageMonitorTab() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Live Stages &amp; Breaches</CardTitle>
-        <CardDescription>
-          What the SLA engine is tracking right now. Read-only — state changes are made by the
-          workflow engine and the escalation sweep.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>Live Stages &amp; Breaches</CardTitle>
+          <CardDescription>
+            What the SLA engine is tracking right now. Read-only — state changes are made by the
+            workflow engine and the escalation sweep.
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant="default">Active {counts.active}</Badge>
           <Badge variant="secondary">Paused {counts.paused}</Badge>
           <Badge variant="destructive">Breached {counts.breached}</Badge>
           <Badge variant="outline">Completed {counts.completed}</Badge>
+          {total != null && (
+            <span className="text-xs text-muted-foreground">
+              Showing {filtered.length} of {total} tracked stage{total === 1 ? '' : 's'}
+              {total > ROW_LIMIT ? ` (latest ${ROW_LIMIT} loaded)` : ''}
+            </span>
+          )}
         </div>
+
 
         {counts.unconfigured > 0 && (
           <Alert>
