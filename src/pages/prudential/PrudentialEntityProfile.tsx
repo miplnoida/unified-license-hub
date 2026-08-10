@@ -671,8 +671,8 @@ export default function PrudentialEntityProfile() {
                         {relatedBreaches.map((b: any) => (
                           <div key={b.id} className="rounded-md border p-2 space-y-1">
                             <div className="flex items-center justify-between">
-                              <Badge className={RISK_TONE[b.risk_level || b.level] || ''} variant="outline">
-                                {b.risk_level || b.level || 'breach'}
+                              <Badge className={severityTone(b.risk_level || b.level)} variant="outline">
+                                {severityLabel(b.risk_level || b.level)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}

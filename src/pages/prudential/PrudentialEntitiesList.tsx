@@ -18,13 +18,6 @@ const AMBER_STRONG = 'bg-amber-500/20 text-amber-800 border-amber-300';
 const RED = 'bg-destructive/10 text-destructive border-destructive/30';
 const BLUE = 'bg-blue-500/10 text-blue-700 border-blue-200';
 
-const RISK_TONE: Record<string, string> = {
-  critical: RED,
-  high: AMBER_STRONG,
-  medium: AMBER,
-  low: EMERALD,
-};
-
 const LICENSE_TONE: Record<string, string> = {
   active: EMERALD,
   suspended: AMBER,
