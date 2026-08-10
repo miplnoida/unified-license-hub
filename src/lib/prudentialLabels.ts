@@ -195,3 +195,25 @@ export function formatObservedValue(value: unknown): string {
   if (n !== 0 && Math.abs(n) < 0.01) return n.toExponential(2);
   return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
+
+/**
+ * Stress-indicator severities are priority bands on an event that already
+ * fired, so the "Within limits" wording used for threshold breaches would be
+ * misleading here.
+ */
+export const STRESS_SEVERITY_LABEL: Record<string, string> = {
+  red: 'Severe',
+  breach: 'Severe',
+  critical: 'Severe',
+  high: 'Elevated',
+  amber: 'Elevated',
+  warn: 'Elevated',
+  medium: 'Moderate',
+  low: 'Low',
+  green: 'Low',
+};
+
+export function stressSeverityLabel(value?: string | null): string {
+  if (!value) return '—';
+  return STRESS_SEVERITY_LABEL[String(value).toLowerCase()] ?? humanizeToken(value);
+}
