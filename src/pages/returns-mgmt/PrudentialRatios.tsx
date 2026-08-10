@@ -121,7 +121,7 @@ export default function PrudentialRatios() {
   const columns = useMemo<Column<PrudentialRatio>[]>(() => [
     { key: 'label', label: 'Ratio' },
     { key: 'ratio_key', label: 'Key', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.ratio_key}</code> },
-    { key: 'formula', label: 'Formula', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.formula}</code> },
+    { key: 'formula', label: 'Formula', render: (r) => <FormulaText inline formula={r.formula} labels={tokenLabels} ratioLabels={ratioLabels} /> },
     { key: 'metric_key', label: 'Metric', render: (r) => r.metric_key ? <Badge variant="outline">{r.metric_key}</Badge> : '—' },
     { key: 'display_format', label: 'Format', render: (r) => <Badge variant="outline">{r.display_format}</Badge> },
     { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
