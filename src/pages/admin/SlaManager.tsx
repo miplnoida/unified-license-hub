@@ -759,7 +759,6 @@ function EscalationTab() {
 
   const latestRef = useRef<Record<string, EscalationTier>>({});
   const lastPersisted = useRef<Record<string, string>>({});
-  const processOptions = RUNTIME_PROCESS_TYPES.map(p => p.value);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('sla_escalation_tiers').select('*').order('process_type').order('tier');
