@@ -66,9 +66,10 @@ export function useConfigFormFields(configId?: string | null) {
 
       const { data: fields, error: fErr } = await (supabase as any)
         .from('form_fields')
-        .select('version_id,field_name,label,display_order')
+        .select('version_id,field_name,label,section_order,sort_order')
         .in('version_id', versionIds)
-        .order('display_order');
+        .order('section_order')
+        .order('sort_order');
       if (fErr) throw fErr;
 
       const byVersion = new Map<string, string>();
