@@ -16,6 +16,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRatios, useUpsertRatio, useDeleteRatio } from '@/hooks/usePrudentialConfig';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import { useFormulaLabels } from '@/hooks/useFormulaLabels';
+import { FormulaText } from '@/components/prudential/FormulaText';
 import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import type { PrudentialRatio } from '@/lib/returnsRatios';
 import Swal from 'sweetalert2';
