@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Plus, Edit, Trash2, UploadCloud, History, Archive, Undo2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Plus, Edit, Trash2, UploadCloud, History, Archive, Undo2, Loader2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useThresholds, useUpsertThreshold, useDeleteThreshold } from '@/hooks/usePrudentialConfig';
+import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import type { PrudentialThreshold } from '@/lib/returnsRatios';
 import Swal from 'sweetalert2';
 
@@ -28,31 +30,52 @@ function useConfigs() {
   });
 }
 
+function useThresholdVersions(thresholdId?: string | null) {
+  return useQuery({
+    queryKey: ['prudential_threshold_versions', thresholdId],
+    enabled: !!thresholdId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('prudential_threshold_versions')
+        .select('version,warn_value,breach_value,upper_value,comparator,unit,effective_from,effective_to,published_at,published_by')
+        .eq('threshold_id', thresholdId)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+}
+
 const empty: Partial<PrudentialThreshold> = { comparator: '>=', is_active: true };
 
 export default function PrudentialThresholds() {
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<PrudentialThreshold> | null>(null);
   const [historyThreshold, setHistoryThreshold] = useState<PrudentialThreshold | null>(null);
-  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useConfigs();
   const { data: rows = [], isLoading } = useThresholds(selected);
   const upsert = useUpsertThreshold();
   const del = useDeleteThreshold();
 
-  const openHistory = async (t: PrudentialThreshold) => {
-    setHistoryThreshold(t);
-    const { data } = await (supabase as any)
-      .from('prudential_threshold_versions')
-      .select('version,warn_value,breach_value,upper_value,comparator,unit,effective_from,effective_to,published_at')
-      .eq('threshold_id', t.id)
-      .order('version', { ascending: false });
-    setVersions(data ?? []);
+  const {
+    data: versions = [],
+    isLoading: versionsLoading,
+    error: versionsError,
+  } = useThresholdVersions(historyThreshold?.id);
+  const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+
+  const refresh = (thresholdId?: string) => {
+    qc.invalidateQueries({ queryKey: ['prudential_thresholds'] });
+    qc.invalidateQueries({ queryKey: ['prudential_threshold_versions', thresholdId ?? historyThreshold?.id] });
   };
+
+  const openHistory = (t: PrudentialThreshold) => setHistoryThreshold(t);
 
   const publish = async (t: PrudentialThreshold) => {
     const { error } = await (supabase as any).rpc('publish_prudential_threshold', { _threshold_id: t.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh(t.id);
     Swal.fire({ icon: 'success', text: 'New threshold version published', timer: 1400, showConfirmButton: false });
   };
 
@@ -61,8 +84,8 @@ export default function PrudentialThresholds() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('rollback_prudential_threshold', { _threshold_id: threshold_id, _to_version: to_version });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh(threshold_id);
     Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
-    setHistoryThreshold(null);
   };
 
   const archive = async (t: PrudentialThreshold) => {
@@ -70,8 +93,10 @@ export default function PrudentialThresholds() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('archive_prudential_threshold', { _threshold_id: t.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh(t.id);
     Swal.fire({ icon: 'success', text: 'Threshold archived', timer: 1200, showConfirmButton: false });
   };
+
 
   const columns = useMemo<Column<PrudentialThreshold>[]>(() => [
     { key: 'label', label: 'Metric' },
