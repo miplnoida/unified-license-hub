@@ -211,7 +211,8 @@ function SlaConfigTab() {
     if (!RUNTIME_PROCESS_TYPES.some(p => p.value === r.process_type))
       return 'Process Type must be one of the runtime process types, otherwise the SLA engine ignores this row';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
-    if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
+    if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1)
+      return `SLA duration must be a whole number of ${r.sla_unit === 'days' ? 'business days' : 'business hours'} (minimum 1)`;
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
@@ -370,7 +371,7 @@ function SlaConfigTab() {
                         <>
                           <Select
                             value={isKnown ? row.stage_name : CUSTOM_STAGE}
-                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? row.stage_name : v }, v !== CUSTOM_STAGE)}
+                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? '' : v }, v !== CUSTOM_STAGE)}
                           >
                             <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
                             <SelectContent>
@@ -387,7 +388,9 @@ function SlaConfigTab() {
                                 onBlur={() => saveRow(row.id)}
                               />
                               <p className="mt-1 text-xs text-warning">
-                                No active workflow step named this — SLA will fall back to the step default.
+                                {row.stage_name.trim()
+                                  ? 'No active workflow step named this — SLA will fall back to the step default.'
+                                  : 'Type the custom stage name to save this row.'}
                               </p>
                             </>
                           )}
