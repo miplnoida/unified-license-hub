@@ -48,3 +48,41 @@ export function humanizeChannel(channel?: string | null): string {
   if (channel === 'sms') return 'SMS';
   return humanizeEventKey(channel);
 }
+
+const STATUS_DESCRIPTIONS: Record<string, string> = {
+  pending: 'Waiting in the queue to be sent.',
+  queued: 'Accepted and waiting to be sent.',
+  sent: 'Handed over to the delivery provider.',
+  delivered: 'Confirmed as delivered to the recipient.',
+  failed: 'Could not be delivered.',
+  suppressed: 'Deliberately not sent (recipient preferences or duplicate).',
+};
+
+/** One-line, plain-English explanation of what a status means. */
+export function describeStatus(status?: string | null): string | null {
+  if (!status) return null;
+  return STATUS_DESCRIPTIONS[status] ?? null;
+}
+
+/** Turns a raw delivery error into a plain-English reason where possible. */
+export function humanizeFailureReason(row?: {
+  error?: string | null;
+  failure_category?: string | null;
+  communication_state?: string | null;
+} | null): string | null {
+  if (!row) return null;
+  const raw = `${row.error ?? ''} ${row.failure_category ?? ''}`.toLowerCase();
+  if (row.communication_state === 'PROVIDER_NOT_CONFIGURED')
+    return 'The email/SMS provider is not set up yet, so this message could not leave the system.';
+  if (raw.includes('invalid') && raw.includes('email')) return 'The recipient email address is not valid.';
+  if (raw.includes('no recipient') || raw.includes('missing recipient'))
+    return 'No contact details were available for the recipient.';
+  if (raw.includes('bounce')) return 'The recipient mail server rejected the message.';
+  if (raw.includes('timeout') || raw.includes('timed out'))
+    return 'The delivery provider did not respond in time. It will be retried.';
+  if (raw.includes('rate limit')) return 'The delivery provider temporarily limited sending. It will be retried.';
+  if (raw.includes('template')) return 'The message template could not be prepared.';
+  if (raw.includes('unauthor') || raw.includes('forbidden') || raw.includes('401') || raw.includes('403'))
+    return 'The delivery provider rejected our credentials.';
+  return row.error ? 'Delivery failed. Technical details are available below.' : null;
+}
