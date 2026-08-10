@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, FileText, Loader2, Plus, Send, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExaminationReports, useReportMutations } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 export function ReportsPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
   const { data: rows = [], isLoading } = useExaminationReports(examinationId);
