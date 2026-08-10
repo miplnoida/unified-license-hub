@@ -133,7 +133,7 @@ export default function ManageValidations() {
       <Badge className={r.severity === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>{r.severity}</Badge>
     )},
     { key: 'is_active', label: 'Status', render: (r) => (
-      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge>
+      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'archived'}</Badge>
     )},
     { key: 'current_version', label: 'v', render: (r: any) => (
       <Badge variant="outline">v{r.current_version ?? 1}</Badge>
@@ -144,7 +144,11 @@ export default function ManageValidations() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRule(r)} title="Version history"><History className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cloneRule(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        {r.is_active ? (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restoreRule(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
+        )}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
           if (ok.isConfirmed) del.mutate(r.id, { onSuccess: refresh });
