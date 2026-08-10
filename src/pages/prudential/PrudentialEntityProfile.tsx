@@ -231,10 +231,35 @@ export default function PrudentialEntityProfile() {
 
         <TabsContent value="overview">
           <div className="grid md:grid-cols-4 gap-3">
-            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest return</CardTitle></CardHeader>
-              <CardContent className="text-sm">{data.returns[0]?.period_end_date || '—'}<br /><Badge variant="outline">{data.returns[0]?.workflow_status || data.returns[0]?.status || '—'}</Badge></CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>
+              <CardContent className="text-sm">
+                {latestSubmittedReturn ? (
+                  <>
+                    {formatDateOnly(latestSubmittedReturn.period_end_date)}<br />
+                    <Badge variant="outline">{returnStatusLabel(latestSubmittedReturn.workflow_status || latestSubmittedReturn.status)}</Badge>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">No submitted return</span>
+                )}
+                {latestDraftReturn && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Draft in progress: {formatDateOnly(latestDraftReturn.period_end_date)}
+                  </div>
+                )}
+              </CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest rating</CardTitle></CardHeader>
-              <CardContent className="text-sm">{latestAssess?.overall_rating || '—'}<br /><span className="text-xs text-muted-foreground">{latestAssess?.status || 'no assessment'}</span></CardContent></Card>
+              <CardContent className="text-sm">
+                {latestRatedAssess ? (
+                  <>
+                    {latestRatedAssess.overall_rating || 'Not rated'}<br />
+                    <span className="text-xs text-muted-foreground">{assessmentStatusLabel(latestRatedAssess.status)}</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {latestAssess ? `Draft assessment in progress` : 'No assessment'}
+                  </span>
+                )}
+              </CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Worst breach</CardTitle></CardHeader>
               <CardContent className="text-sm">{worstBreachSev ? <Badge variant="outline" className={severityTone(worstBreachSev)}>{severityLabel(worstBreachSev)}</Badge> : '—'}</CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open actions</CardTitle></CardHeader>
@@ -245,6 +270,7 @@ export default function PrudentialEntityProfile() {
               <CardContent className="text-sm">{(data.stress_events || []).filter((s: any) => !s.resolved_at).length}</CardContent></Card>
           </div>
         </TabsContent>
+
 
         <TabsContent value="returns">
           <Card><CardContent className="pt-4">
