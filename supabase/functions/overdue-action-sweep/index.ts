@@ -1,12 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { requireWorkerOrPrudentialUser } from "../_shared/prudentialSweepAuth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
+  const __workerGate = await requireWorkerOrPrudentialUser(req, 'overdue-action-sweep');
+  if (!__workerGate.ok) return __workerGate.response!;
   const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   let body: any = {};
@@ -14,14 +14,14 @@ Deno.serve(async (req) => {
   const trigger: 'scheduled' | 'manual' = body?.trigger === 'scheduled' ? 'scheduled' : 'manual';
 
   // Resolve actor for audit
-  let actorId: string | null = null;
+  let actorId: string | null = __workerGate.actorId;
   const auth = req.headers.get('authorization');
   if (auth) {
     try {
       const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
       const userClient = createClient(Deno.env.get('SUPABASE_URL')!, anon, { global: { headers: { Authorization: auth } } });
       const { data } = await userClient.auth.getUser();
-      actorId = data?.user?.id ?? null;
+      actorId = data?.user?.id ?? actorId;
     } catch { /* ignore */ }
   }
 
