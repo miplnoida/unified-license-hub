@@ -551,12 +551,15 @@ export default function PrudentialEntityProfile() {
                 {data.actions.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell>{a.title}</TableCell>
-                    <TableCell>{a.action_type}</TableCell>
-                    <TableCell><Badge className={RISK_TONE[a.severity] || ''}>{a.severity}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
-                    <TableCell>{a.due_date || '—'}</TableCell>
+                    <TableCell>{actionTypeLabel(a.action_type)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={severityTone(a.severity)}>{severityLabel(a.severity)}</Badge>
+                    </TableCell>
+                    <TableCell><Badge variant="outline">{actionStatusLabel(a.status)}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(a.due_date)}</TableCell>
                   </TableRow>
                 ))}
+
                 {!data.actions.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No actions.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
