@@ -9,6 +9,7 @@ import { Loader2, RefreshCw, AlertTriangle, Shield, TrendingUp } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { RiskScoreDetailDrawer, type RiskScoreRow } from '@/components/prudential/RiskScoreDetailDrawer';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 
@@ -31,6 +32,7 @@ export default function RiskHeatmap() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [bandFilter, setBandFilter] = useState<Band | 'all'>('all');
+  const [selected, setSelected] = useState<RiskScoreRow | null>(null);
 
   useEffect(() => {
     const riskParam = searchParams.get('risk');
