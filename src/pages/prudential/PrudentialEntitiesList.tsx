@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 import { severityLabel, severityTone, SEVERITY_FILTER_OPTIONS } from '@/lib/prudentialSeverity';
 
 const NEUTRAL = 'bg-muted text-muted-foreground border-border';
