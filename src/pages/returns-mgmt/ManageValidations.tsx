@@ -168,7 +168,7 @@ export default function ManageValidations() {
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
-  ], [del]);
+  ], [del, tokenLabels]);
 
   const save = async () => {
     if (!editing) return;
