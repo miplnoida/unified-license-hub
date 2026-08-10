@@ -26,7 +26,13 @@ export function ExaminationStageActionsProvider({
  * inside a panel footer. When `beforeAdvance` is provided, the panel's own save
  * runs first and the transition is skipped if the save fails.
  */
-export function StageActions({ beforeAdvance }: { beforeAdvance?: () => Promise<unknown> }) {
+export function StageActions({
+  beforeAdvance,
+  children,
+}: {
+  beforeAdvance?: () => Promise<unknown>;
+  children?: ReactNode;
+}) {
   const ctx = useContext(StageActionsContext);
   const [busy, setBusy] = useState(false);
   if (!ctx) return null;
@@ -45,6 +51,18 @@ export function StageActions({ beforeAdvance }: { beforeAdvance?: () => Promise<
     }
   };
 
+  const onSaveOnly = async () => {
+    if (!beforeAdvance) return;
+    setBusy(true);
+    try {
+      await beforeAdvance();
+    } catch {
+      /* handled upstream */
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onCancel = async () => {
     setBusy(true);
     try {
@@ -58,12 +76,18 @@ export function StageActions({ beforeAdvance }: { beforeAdvance?: () => Promise<
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-      {ctx.nextStageLabel && (
+      {ctx.nextStageLabel ? (
         <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={disabled} onClick={onAdvance}>
           {disabled ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
           {beforeAdvance ? `Save & move to ${ctx.nextStageLabel}` : `Move to ${ctx.nextStageLabel}`}
         </Button>
-      )}
+      ) : beforeAdvance ? (
+        <Button data-rbac="prudential_supervision.edit" size="sm" disabled={disabled} onClick={onSaveOnly}>
+          {disabled ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save
+        </Button>
+      ) : null}
+      {children}
       <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" disabled={disabled} onClick={onCancel}>
         <Ban className="h-4 w-4 mr-1" />Cancel examination
       </Button>
