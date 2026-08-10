@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import { formatDateOnly } from '@/lib/datetime';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 
 function useRatioKeys() {
   return useQuery({
@@ -98,13 +99,21 @@ function useRatioTrend(ratioKey: string | undefined, licenseeId: string | undefi
       if (rfErr) throw rfErr;
       const byId = new Map<string, { period_end_date: string | null }>();
       (rf ?? []).forEach((r: any) => byId.set(r.id, { period_end_date: r.period_end_date }));
-      return (rcr ?? [])
+      // Keep only the most recent computation per reporting period so repeated
+      // recomputations do not plot duplicate points for the same period.
+      const latest = new Map<string, { period: string; value: number; computed_at: string }>();
+      (rcr ?? [])
         .filter((r: any) => byId.has(r.return_id))
-        .map((r: any) => ({
-          period: byId.get(r.return_id)?.period_end_date || r.computed_at,
-          value: Number(r.value ?? 0),
-        }))
-        .sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
+        .forEach((r: any) => {
+          const period = String(byId.get(r.return_id)?.period_end_date || r.computed_at);
+          const prev = latest.get(period);
+          if (!prev || String(r.computed_at ?? '') >= prev.computed_at) {
+            latest.set(period, { period, value: Number(r.value ?? 0), computed_at: String(r.computed_at ?? '') });
+          }
+        });
+      return Array.from(latest.values())
+        .map((r) => ({ period: r.period, label: formatDateOnly(r.period), value: r.value }))
+        .sort((a, b) => a.period.localeCompare(b.period));
     },
   });
 }
@@ -154,6 +163,14 @@ export default function PrudentialAnalytics() {
       setPeriodEnd(periods[0]);
     }
   }, [ratioKey, periods, periodEnd, periodsQuery.isFetched]);
+
+  const MIN_PEERS = 5;
+  const peerCount = Number((peer.data as any)?.count ?? 0);
+  const entityValue = useMemo(() => {
+    if (!periodEnd || !trend.data) return null;
+    const point = (trend.data as any[]).find((d) => d.period === periodEnd);
+    return point ? Number(point.value) : null;
+  }, [trend.data, periodEnd]);
 
   const peerData = useMemo(() => {
     if (!peer.data || (peer.data as any).count === 0) return [];
@@ -208,7 +225,7 @@ export default function PrudentialAnalytics() {
               <ResponsiveContainer>
                 <LineChart data={trend.data}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
+                  <XAxis dataKey="label" />
                   <YAxis />
                   <Tooltip />
                   <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" />
@@ -225,6 +242,10 @@ export default function PrudentialAnalytics() {
           <CardContent style={{ height: 320 }}>
             {peer.isLoading ? (
               <p className="text-sm text-muted-foreground italic">Loading peer distribution…</p>
+            ) : peerCount > 0 && peerCount < MIN_PEERS ? (
+              <p className="text-sm text-muted-foreground italic">
+                Insufficient peer data — {peerCount} peer{peerCount === 1 ? '' : 's'} filed this ratio for the selected period; at least {MIN_PEERS} are required to publish a peer distribution.
+              </p>
             ) : peerData.length > 0 ? (
               <ResponsiveContainer>
                 <BarChart data={peerData}>
@@ -234,6 +255,14 @@ export default function PrudentialAnalytics() {
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  {entityValue !== null && (
+                    <ReferenceLine
+                      y={entityValue}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="4 4"
+                      label={{ value: `Selected licensee: ${entityValue}`, position: 'insideTopRight', fontSize: 11 }}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="text-sm text-muted-foreground italic">No peer data for the selected ratio and period.</p>}
