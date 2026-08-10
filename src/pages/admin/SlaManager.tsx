@@ -16,7 +16,10 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
-import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
+import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info, RefreshCw, Eye } from 'lucide-react';
+import { formatDateTime } from '@/lib/datetime';
+import { Link } from 'react-router-dom';
+
 
 /* -------------------- Types -------------------- */
 
