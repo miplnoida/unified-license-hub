@@ -1011,45 +1011,96 @@ const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'out
  * configuration vs workflow step default), and which escalation tiers have
  * been dispatched by the sweep.
  */
+const ENTITY_ROUTE: Record<string, (id: string) => string> = {
+  application: id => `/applications/${id}`,
+  pre_application: id => `/applications/${id}`,
+  complaint: id => `/complaints/${id}`,
+  return: id => `/returns-management/${id}`,
+};
+
 function StageMonitorTab() {
   const [rows, setRows] = useState<StageMonitorRow[]>([]);
   /** Dispatched escalation tiers per workflow instance (sla_escalation_dispatches). */
   const [tiersByInstance, setTiersByInstance] = useState<Record<string, number[]>>({});
+  /** entity_id → human case reference (application/complaint/registration number). */
+  const [refById, setRefById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState<number | null>(null);
   const [stateFilter, setStateFilter] = useState<string>('open');
   const [processFilter, setProcessFilter] = useState<string>('all');
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data, error } = await (supabase as any)
+  const ROW_LIMIT = 500;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data, error }, { count }] = await Promise.all([
+      (supabase as any)
         .from('sla_stage_instances')
         .select('id,process_type,entity_type,entity_id,workflow_instance_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at')
         .order('due_at', { ascending: true, nullsFirst: false })
-        .limit(500);
-      if (error) {
-        toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
-      const list = (data ?? []) as StageMonitorRow[];
-      setRows(list);
-
-      const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
-      if (instanceIds.length > 0) {
-        const { data: dispatches } = await (supabase as any)
-          .from('sla_escalation_dispatches')
-          .select('workflow_instance_id, tier')
-          .in('workflow_instance_id', instanceIds);
-        const map: Record<string, number[]> = {};
-        ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
-          map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
-        });
-        setTiersByInstance(map);
-      }
+        .limit(ROW_LIMIT),
+      (supabase as any).from('sla_stage_instances').select('id', { count: 'exact', head: true }),
+    ]);
+    if (error) {
+      toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
       setLoading(false);
-    })();
+      return;
+    }
+    const list = (data ?? []) as StageMonitorRow[];
+    setRows(list);
+    setTotal(typeof count === 'number' ? count : null);
+
+    const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
+    if (instanceIds.length > 0) {
+      const { data: dispatches } = await (supabase as any)
+        .from('sla_escalation_dispatches')
+        .select('workflow_instance_id, tier')
+        .in('workflow_instance_id', instanceIds);
+      const map: Record<string, number[]> = {};
+      ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
+        map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
+      });
+      setTiersByInstance(map);
+    }
+
+    // Resolve human case references so the monitor is usable as evidence.
+    const idsFor = (types: string[]) =>
+      Array.from(new Set(list.filter(r => types.includes(r.entity_type)).map(r => r.entity_id)));
+    const refs: Record<string, string> = {};
+    const appIds = idsFor(['application', 'pre_application']);
+    const complaintIds = idsFor(['complaint']);
+    const registrationIds = idsFor(['registration']);
+    const lookups: Promise<void>[] = [];
+    if (appIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('applications').select('id, application_number').in('id', appIds);
+        ((d ?? []) as Array<{ id: string; application_number: string | null }>).forEach(a => {
+          if (a.application_number) refs[a.id] = a.application_number;
+        });
+      })());
+    }
+    if (complaintIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('complaints').select('id, complaint_number').in('id', complaintIds);
+        ((d ?? []) as Array<{ id: string; complaint_number: string | null }>).forEach(c => {
+          if (c.complaint_number) refs[c.id] = c.complaint_number;
+        });
+      })());
+    }
+    if (registrationIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('registrations').select('id, registration_number').in('id', registrationIds);
+        ((d ?? []) as Array<{ id: string; registration_number: string | null }>).forEach(x => {
+          if (x.registration_number) refs[x.id] = x.registration_number;
+        });
+      })());
+    }
+    await Promise.all(lookups);
+    setRefById(refs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => rows.filter(r => {
     const stateOk =
@@ -1069,7 +1120,8 @@ function StageMonitorTab() {
     return c;
   }, [rows]);
 
-  const fmt = (ts?: string | null) => (ts ? new Date(ts).toLocaleString() : '—');
+  const fmt = (ts?: string | null) => formatDateTime(ts);
+
 
   return (
     <Card>
