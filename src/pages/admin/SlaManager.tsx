@@ -344,14 +344,16 @@ function SlaConfigTab() {
                 <TableRow key={row.id}>
                   <TableCell className="min-w-[190px]">
                     <Select
-                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : ''}
+                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : UNSET_PROCESS}
                       onValueChange={v => update(row.id, { process_type: v }, true)}
                     >
                       <SelectTrigger><SelectValue placeholder="Select process type" /></SelectTrigger>
                       <SelectContent>
-                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+                        <SelectItem value={UNSET_PROCESS} disabled>Select process type</SelectItem>
+                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
+
                     {!RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) && (
                       <p className="mt-1 text-xs text-destructive">
                         "{row.process_type}" is not a runtime process type — this row is ignored by the SLA engine.
