@@ -164,7 +164,7 @@ export default function PrudentialAnalytics() {
     }
   }, [ratioKey, periods, periodEnd, periodsQuery.isFetched]);
 
-  const MIN_PEERS = 5;
+  const MIN_PEERS = minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT;
   const peerCount = Number((peer.data as any)?.count ?? 0);
   const entityValue = useMemo(() => {
     if (!periodEnd || !trend.data) return null;
