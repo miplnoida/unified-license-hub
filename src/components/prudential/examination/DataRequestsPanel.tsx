@@ -146,6 +146,7 @@ export function DataRequestsPanel({ examinationId, readOnly }: { examinationId: 
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
