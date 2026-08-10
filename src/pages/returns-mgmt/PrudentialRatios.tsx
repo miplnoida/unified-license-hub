@@ -18,6 +18,8 @@ import { useRatios, useUpsertRatio, useDeleteRatio } from '@/hooks/usePrudential
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import { useFormulaLabels } from '@/hooks/useFormulaLabels';
 import { FormulaText } from '@/components/prudential/FormulaText';
+import { RatioEditDialog } from '@/components/prudential/RatioEditDialog';
+
 import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import type { PrudentialRatio } from '@/lib/returnsRatios';
 import Swal from 'sweetalert2';
