@@ -120,13 +120,18 @@ export default function PrudentialThresholds() {
     { key: 'breach_value', label: 'Breach' },
     { key: 'unit', label: 'Unit' },
     { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
-    { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge> },
+    { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'archived'}</Badge> },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-1">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archive(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        {r.is_active ? (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archive(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restore(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
+        )}
+
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete threshold?', text: r.label, icon: 'warning', showCancelButton: true });
           if (ok.isConfirmed) del.mutate(r.id);
