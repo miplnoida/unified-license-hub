@@ -1198,6 +1198,7 @@ function StageMonitorTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Case</TableHead>
                 <TableHead>Process</TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>State</TableHead>
@@ -1210,11 +1211,22 @@ function StageMonitorTab() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
               ) : filtered.map(r => (
                 <TableRow key={r.id}>
+                  <TableCell className="text-xs">
+                    {(() => {
+                      const label = refById[r.entity_id] ?? `${r.entity_type.replace(/_/g, ' ')} · ${r.entity_id.slice(0, 8)}`;
+                      const to = ENTITY_ROUTE[r.entity_type]?.(r.entity_id);
+                      return to ? (
+                        <Link to={to} className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <Eye className="h-3.5 w-3.5" /> {label}
+                        </Link>
+                      ) : <span className="text-muted-foreground">{label}</span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{r.process_type}</TableCell>
                   <TableCell>{r.stage_name || '—'}</TableCell>
                   <TableCell><Badge variant={STATE_BADGE[r.state] ?? 'outline'}>{r.state}</Badge></TableCell>
@@ -1225,7 +1237,9 @@ function StageMonitorTab() {
                   </TableCell>
                   <TableCell className="text-xs">{fmt(r.started_at)}</TableCell>
                   <TableCell className="text-xs">{fmt(r.due_at)}</TableCell>
-                  <TableCell className="text-xs">{Math.round((r.pause_seconds ?? 0) / 60)} min</TableCell>
+                  <TableCell className="text-xs">
+                    {r.pause_seconds && r.pause_seconds > 0 ? `${Math.round(r.pause_seconds / 60)} min` : '—'}
+                  </TableCell>
                   <TableCell className="text-xs">
                     {(() => {
                       const tiers = r.workflow_instance_id ? (tiersByInstance[r.workflow_instance_id] ?? []) : [];
@@ -1234,6 +1248,7 @@ function StageMonitorTab() {
                   </TableCell>
                 </TableRow>
               ))}
+
             </TableBody>
           </Table>
         </div>
