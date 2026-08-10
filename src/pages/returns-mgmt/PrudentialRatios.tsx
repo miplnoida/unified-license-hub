@@ -142,7 +142,7 @@ export default function PrudentialRatios() {
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
-  ], [del]);
+  ], [del, tokenLabels, ratioLabels]);
 
   const save = async () => {
     if (!editing?.return_config_id || !editing.ratio_key || !editing.label || !editing.formula) {
