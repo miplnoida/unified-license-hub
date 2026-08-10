@@ -4,12 +4,9 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Plus, Edit, Trash2, UploadCloud, History, Archive, Undo2, Loader2, RotateCcw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,6 +15,8 @@ import { useRatios, useUpsertRatio, useDeleteRatio } from '@/hooks/usePrudential
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import { useFormulaLabels } from '@/hooks/useFormulaLabels';
 import { FormulaText } from '@/components/prudential/FormulaText';
+import { RatioEditDialog } from '@/components/prudential/RatioEditDialog';
+
 import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import type { PrudentialRatio } from '@/lib/returnsRatios';
 import Swal from 'sweetalert2';
@@ -145,9 +144,16 @@ export default function PrudentialRatios() {
   ], [del, tokenLabels, ratioLabels]);
 
   const save = async () => {
-    if (!editing?.return_config_id || !editing.ratio_key || !editing.label || !editing.formula) {
-      Swal.fire({ icon: 'error', text: 'Configuration, key, label and formula are required' }); return;
+    const missing: string[] = [];
+    if (!editing?.return_config_id) missing.push('a return configuration');
+    if (!editing?.label) missing.push('a ratio name');
+    if (!editing?.ratio_key) missing.push('an internal code');
+    if (!editing?.formula) missing.push('how the ratio is calculated (pick a form and line item)');
+    if (missing.length) {
+      Swal.fire({ icon: 'error', title: 'Something is missing', text: `Please provide ${missing.join(', ')}.` });
+      return;
     }
+
     try {
       await upsert.mutateAsync(editing as any);
       refresh();
@@ -184,62 +190,17 @@ export default function PrudentialRatios() {
         )}
       </div>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing?.id ? 'Edit' : 'Add'} Ratio</DialogTitle></DialogHeader>
-          {editing && (
-            <div className="space-y-3">
-              <div>
-                <Label>Return Configuration *</Label>
-                <Select value={editing.return_config_id ?? ''} onValueChange={(v) => setEditing({ ...editing, return_config_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>{configs.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Ratio key *</Label><Input value={editing.ratio_key ?? ''} onChange={(e) => setEditing({ ...editing, ratio_key: e.target.value })} /></div>
-                <div><Label>Label *</Label><Input value={editing.label ?? ''} onChange={(e) => setEditing({ ...editing, label: e.target.value })} /></div>
-              </div>
-              <div>
-                <Label>Formula *</Label>
-                <Textarea rows={2} placeholder="e.g. formA.total_assets / formA.total_liabilities" value={editing.formula ?? ''} onChange={(e) => setEditing({ ...editing, formula: e.target.value })} />
-                {!!editing.formula && (
-                  <div className="mt-2 border rounded p-2 bg-muted/40">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Reads as</div>
-                    <FormulaText formula={editing.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">Reference values as <code>formId.fieldKey</code>. Only + - * / and parentheses are supported.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Metric key (links to threshold)</Label>
-                  <Input value={editing.metric_key ?? ''} onChange={(e) => setEditing({ ...editing, metric_key: e.target.value || null })} />
-                </div>
-                <div>
-                  <Label>Display format</Label>
-                  <Select value={editing.display_format} onValueChange={(v: any) => setEditing({ ...editing, display_format: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="decimal">Decimal</SelectItem>
-                      <SelectItem value="percent">Percent</SelectItem>
-                      <SelectItem value="currency">Currency</SelectItem>
-                      <SelectItem value="ratio">Ratio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex items-center gap-2"><Switch checked={!!editing.is_active} onCheckedChange={(v) => setEditing({ ...editing, is_active: v })} /><Label>Active</Label></div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button data-rbac="prudential_supervision.edit" onClick={save} disabled={upsert.isPending}>
-              {upsert.isPending ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>) : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RatioEditDialog
+        editing={editing}
+        setEditing={setEditing}
+        configs={configs}
+        ratios={rows}
+        tokenLabels={tokenLabels}
+        ratioLabels={ratioLabels}
+        onSave={save}
+        saving={upsert.isPending}
+      />
+
 
       <Sheet open={!!historyRatio} onOpenChange={(o) => !o && setHistoryRatio(null)}>
         <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
