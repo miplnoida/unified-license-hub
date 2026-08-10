@@ -147,9 +147,16 @@ export default function PrudentialRatios() {
   ], [del, tokenLabels, ratioLabels]);
 
   const save = async () => {
-    if (!editing?.return_config_id || !editing.ratio_key || !editing.label || !editing.formula) {
-      Swal.fire({ icon: 'error', text: 'Configuration, key, label and formula are required' }); return;
+    const missing: string[] = [];
+    if (!editing?.return_config_id) missing.push('a return configuration');
+    if (!editing?.label) missing.push('a ratio name');
+    if (!editing?.ratio_key) missing.push('an internal code');
+    if (!editing?.formula) missing.push('how the ratio is calculated (pick a form and line item)');
+    if (missing.length) {
+      Swal.fire({ icon: 'error', title: 'Something is missing', text: `Please provide ${missing.join(', ')}.` });
+      return;
     }
+
     try {
       await upsert.mutateAsync(editing as any);
       refresh();
