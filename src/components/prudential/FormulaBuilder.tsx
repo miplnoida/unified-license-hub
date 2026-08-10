@@ -218,8 +218,15 @@ function TermRow({
   ctx: BuilderContext;
 }) {
   const formOptions = ctx.forms.map((f) => ({ value: f.id, label: f.name }));
-  const fields =
-    term.kind === 'field' ? (ctx.forms.find((f) => f.id === term.formId)?.fields ?? []) : [];
+  let fields = term.kind === 'field' ? (ctx.forms.find((f) => f.id === term.formId)?.fields ?? []) : [];
+  // Never silently drop an existing pick that is no longer in the latest published version.
+  if (term.kind === 'field' && term.field && !fields.some((f) => f.name === term.field)) {
+    fields = [...fields, { name: term.field, label: term.field }];
+  }
+  if (term.kind === 'field' && term.formId && !formOptions.some((o) => o.value === term.formId)) {
+    formOptions.push({ value: term.formId, label: 'Form no longer attached' });
+  }
+
 
   return (
     <div className="rounded-md border bg-background p-2 space-y-2">
