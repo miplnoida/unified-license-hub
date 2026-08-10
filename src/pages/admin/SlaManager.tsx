@@ -817,9 +817,14 @@ function EscalationTab() {
   const saveTier = async (id: string) => {
     const t = latestRef.current[id];
     if (!t) return;
-    if (t.tier < 1 || t.tier > 3) { toast({ title: 'Invalid tier', description: 'Tier must be 1, 2 or 3', variant: 'destructive' }); return; }
-    if (!Number.isInteger(t.delay_days) || t.delay_days < 0) { toast({ title: 'Invalid delay', description: 'Delay must be a non-negative integer', variant: 'destructive' }); return; }
-    if (!t.recipients.trim()) { toast({ title: 'Recipients required', variant: 'destructive' }); return; }
+    const problem =
+      t.tier < 1 || t.tier > 3 ? 'Tier must be 1, 2 or 3'
+      : !Number.isInteger(t.delay_days) || t.delay_days < 0 ? 'Delay must be a whole number of days (0 or more)'
+      : !t.recipients.trim() ? 'At least one recipient is required'
+      : null;
+    setTierErrors(prev => ({ ...prev, [id]: problem }));
+    if (problem) return;
+
 
     const snapshot = JSON.stringify(t);
     if (lastPersisted.current[id] === snapshot) return;
