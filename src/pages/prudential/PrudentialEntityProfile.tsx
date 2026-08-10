@@ -150,6 +150,16 @@ export default function PrudentialEntityProfile() {
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
   const latestAssess = data.assessments?.[0];
+  // Overview must distinguish supervisory facts from work-in-progress:
+  // only submitted/validated returns and rated assessments count.
+  const latestSubmittedReturn = (data.returns || []).find((r: any) =>
+    isSubmittedReturnStatus(r.workflow_status || r.status),
+  );
+  const latestDraftReturn = (data.returns || []).find((r: any) =>
+    !isSubmittedReturnStatus(r.workflow_status || r.status),
+  );
+  const latestRatedAssess = (data.assessments || []).find((a: any) => isRatedAssessmentStatus(a.status));
+
   const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
   const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
   const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
