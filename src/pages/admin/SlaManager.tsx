@@ -755,6 +755,8 @@ function EscalationTab() {
   const [processType, setProcessType] = useState(RUNTIME_PROCESS_TYPES[0].value);
   const [loaded, setLoaded] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [tierErrors, setTierErrors] = useState<Record<string, string | null>>({});
+
   const latestRef = useRef<Record<string, EscalationTier>>({});
   const lastPersisted = useRef<Record<string, string>>({});
   const processOptions = RUNTIME_PROCESS_TYPES.map(p => p.value);
