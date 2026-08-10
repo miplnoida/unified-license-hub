@@ -9,6 +9,7 @@ import { Loader2, RefreshCw, AlertTriangle, Shield, TrendingUp } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { RiskScoreDetailDrawer, type RiskScoreRow } from '@/components/prudential/RiskScoreDetailDrawer';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 
@@ -31,6 +32,7 @@ export default function RiskHeatmap() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [bandFilter, setBandFilter] = useState<Band | 'all'>('all');
+  const [selected, setSelected] = useState<RiskScoreRow | null>(null);
 
   useEffect(() => {
     const riskParam = searchParams.get('risk');
@@ -142,7 +144,13 @@ export default function RiskHeatmap() {
                   const lic = licMap.get(s.entity_id);
                   const c = s.components || {};
                   return (
-                    <div key={s.id} className={`p-3 rounded-lg border ${BAND_TILE[s.band as Band]}`}>
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelected(s as RiskScoreRow)}
+                      aria-label={`View risk detail for ${lic?.name ?? 'entity'}`}
+                      className={`text-left p-3 rounded-lg border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${BAND_TILE[s.band as Band]}`}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-semibold truncate">{lic?.name ?? s.entity_id.slice(0, 8)}</p>
@@ -162,7 +170,8 @@ export default function RiskHeatmap() {
                         <span title="Inspection findings">IF {c.inspection_findings ?? 0}</span>
                         <span title="Fit & proper alerts">FP {c.fp_alerts ?? 0}</span>
                       </div>
-                    </div>
+                      <p className="mt-2 text-[11px] text-muted-foreground">Click for details</p>
+                    </button>
                   );
                 })}
               </div>
@@ -170,6 +179,13 @@ export default function RiskHeatmap() {
           </CardContent>
         </Card>
       </div>
+
+      <RiskScoreDetailDrawer
+        row={selected}
+        entityName={selected ? licMap.get(selected.entity_id)?.name : undefined}
+        open={!!selected}
+        onOpenChange={(o) => { if (!o) setSelected(null); }}
+      />
     </DashboardLayout>
   );
 }
