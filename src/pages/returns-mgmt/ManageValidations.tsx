@@ -70,6 +70,17 @@ export default function ManageValidations() {
   const versions = versionsQuery.data ?? [];
   const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
 
+  // Human-readable expressions: resolve `formId.fieldName` tokens to "Form › Field label".
+  const allExpressions = useMemo(
+    () => [
+      ...rules.map((r: any) => r.expression),
+      ...versions.map((v: any) => v.definition?.expression),
+      editing?.expression ?? '',
+    ],
+    [rules, versions, editing?.expression],
+  );
+  const { data: tokenLabels } = useFormulaLabels(allExpressions);
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['return_validation_rules'] });
     qc.invalidateQueries({ queryKey: ['return_validation_rule_versions'] });
