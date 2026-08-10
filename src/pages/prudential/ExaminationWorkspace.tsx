@@ -70,19 +70,6 @@ export default function ExaminationWorkspace() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{stageLabel(exam.stage)}</Badge>
-            {!terminal && nextStage && (
-              <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={transition.isPending}
-                onClick={() => transition.mutate({ to_stage: nextStage })}>
-                {transition.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
-                Move to {stageLabel(nextStage)}
-              </Button>
-            )}
-            {!terminal && (
-              <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" disabled={transition.isPending}
-                onClick={() => transition.mutate({ to_stage: 'cancelled' })}>
-                <Ban className="h-4 w-4 mr-1" />Cancel
-              </Button>
-            )}
           </div>
         </div>
 
