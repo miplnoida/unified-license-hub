@@ -225,7 +225,6 @@ export const mainNavSections: NavSection[] = [
       { label: 'Payment Systems', href: '/prudential/payment-systems', icon: <Database className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Escalations', href: '/prudential/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Stress Indicators', href: '/prudential/stress-indicators', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
-      { label: 'Notification Log', href: '/prudential/notifications', icon: <FileBarChart className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Risk Taxonomy', href: '/admin/prudential-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'prudential_supervision', adminOnly: true },
     ],
   },
