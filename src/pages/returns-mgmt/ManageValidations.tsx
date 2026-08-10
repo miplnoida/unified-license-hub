@@ -15,6 +15,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
 import type { ValidationRule } from '@/lib/returnsValidation';
+import { useFormulaLabels } from '@/hooks/useFormulaLabels';
+import { FormulaText } from '@/components/prudential/FormulaText';
 import Swal from 'sweetalert2';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import { formatDateTime } from '@/lib/datetime';
@@ -67,6 +69,17 @@ export default function ManageValidations() {
   const versionsQuery = useRuleVersions(historyRule?.id);
   const versions = versionsQuery.data ?? [];
   const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+
+  // Human-readable expressions: resolve `formId.fieldName` tokens to "Form › Field label".
+  const allExpressions = useMemo(
+    () => [
+      ...rules.map((r: any) => r.expression),
+      ...versions.map((v: any) => v.definition?.expression),
+      editing?.expression ?? '',
+    ],
+    [rules, versions, editing?.expression],
+  );
+  const { data: tokenLabels } = useFormulaLabels(allExpressions);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['return_validation_rules'] });
@@ -128,7 +141,7 @@ export default function ManageValidations() {
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'scope', label: 'Scope', render: (r) => <Badge variant="outline">{r.scope}</Badge> },
     { key: 'rule_type', label: 'Type', render: (r) => <Badge variant="outline">{r.rule_type}</Badge> },
-    { key: 'expression', label: 'Expression', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.expression}</code> },
+    { key: 'expression', label: 'Expression', render: (r) => <FormulaText inline formula={r.expression} labels={tokenLabels} /> },
     { key: 'severity', label: 'Severity', render: (r) => (
       <Badge className={r.severity === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>{r.severity}</Badge>
     )},
@@ -155,7 +168,7 @@ export default function ManageValidations() {
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
-  ], [del]);
+  ], [del, tokenLabels]);
 
   const save = async () => {
     if (!editing) return;
@@ -319,7 +332,9 @@ export default function ManageValidations() {
                     )}
                   </div>
                 </div>
-                <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
+                <div className="bg-muted p-2 rounded">
+                  <FormulaText formula={v.definition?.expression} labels={tokenLabels} />
+                </div>
                 <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names)}</div>
               </div>
             ))}

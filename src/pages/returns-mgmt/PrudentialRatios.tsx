@@ -16,6 +16,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRatios, useUpsertRatio, useDeleteRatio } from '@/hooks/usePrudentialConfig';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import { useFormulaLabels } from '@/hooks/useFormulaLabels';
+import { FormulaText } from '@/components/prudential/FormulaText';
 import { formatDateTime, formatDateOnly } from '@/lib/datetime';
 import type { PrudentialRatio } from '@/lib/returnsRatios';
 import Swal from 'sweetalert2';
@@ -64,6 +66,17 @@ export default function PrudentialRatios() {
   const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
   const currentVersion = (historyRatio as any)?.current_version ?? (versions[0]?.version ?? null);
 
+  // Human-readable formulas: resolve `formId.fieldName` tokens to "Form › Field label".
+  const allFormulas = useMemo(
+    () => [...rows.map((r) => r.formula), ...versions.map((v: any) => v.formula), editing?.formula ?? ''],
+    [rows, versions, editing?.formula],
+  );
+  const { data: tokenLabels } = useFormulaLabels(allFormulas);
+  const ratioLabels = useMemo(
+    () => new Map(rows.map((r) => [r.ratio_key, r.label])),
+    [rows],
+  );
+
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['prudential_ratios'] });
     qc.invalidateQueries({ queryKey: ['prudential_ratio_versions'] });
@@ -108,7 +121,7 @@ export default function PrudentialRatios() {
   const columns = useMemo<Column<PrudentialRatio>[]>(() => [
     { key: 'label', label: 'Ratio' },
     { key: 'ratio_key', label: 'Key', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.ratio_key}</code> },
-    { key: 'formula', label: 'Formula', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.formula}</code> },
+    { key: 'formula', label: 'Formula', render: (r) => <FormulaText inline formula={r.formula} labels={tokenLabels} ratioLabels={ratioLabels} /> },
     { key: 'metric_key', label: 'Metric', render: (r) => r.metric_key ? <Badge variant="outline">{r.metric_key}</Badge> : '—' },
     { key: 'display_format', label: 'Format', render: (r) => <Badge variant="outline">{r.display_format}</Badge> },
     { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
@@ -129,7 +142,7 @@ export default function PrudentialRatios() {
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
-  ], [del]);
+  ], [del, tokenLabels, ratioLabels]);
 
   const save = async () => {
     if (!editing?.return_config_id || !editing.ratio_key || !editing.label || !editing.formula) {
@@ -190,6 +203,12 @@ export default function PrudentialRatios() {
               <div>
                 <Label>Formula *</Label>
                 <Textarea rows={2} placeholder="e.g. formA.total_assets / formA.total_liabilities" value={editing.formula ?? ''} onChange={(e) => setEditing({ ...editing, formula: e.target.value })} />
+                {!!editing.formula && (
+                  <div className="mt-2 border rounded p-2 bg-muted/40">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Reads as</div>
+                    <FormulaText formula={editing.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">Reference values as <code>formId.fieldKey</code>. Only + - * / and parentheses are supported.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -250,7 +269,9 @@ export default function PrudentialRatios() {
                       )}
                     </div>
                   </div>
-                  <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.formula}</code>
+                  <div className="bg-muted p-2 rounded">
+                    <FormulaText formula={v.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     Format: {v.display_format ?? '—'} · effective {formatDateOnly(v.effective_from)} · by {actorLabel(v.published_by, names)}
                   </div>
