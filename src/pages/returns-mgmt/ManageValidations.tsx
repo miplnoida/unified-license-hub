@@ -104,6 +104,15 @@ export default function ManageValidations() {
     Swal.fire({ icon: 'success', text: 'Rule archived', timer: 1200, showConfirmButton: false });
   };
 
+  const restoreRule = async (r: ValidationRule) => {
+    const ok = await Swal.fire({ title: 'Restore rule?', text: r.name, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
+    Swal.fire({ icon: 'success', text: 'Rule restored', timer: 1200, showConfirmButton: false });
+  };
+
   const rollback = async (rule_id: string, to_version: number) => {
     const ok = await Swal.fire({ title: `Rollback to v${to_version}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Rollback' });
     if (!ok.isConfirmed) return;
