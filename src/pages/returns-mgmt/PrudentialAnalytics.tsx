@@ -7,8 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
+import {
+  usePeerMinPeers,
+  useSavePeerMinPeers,
+  useCanManagePrudentialConfig,
+  PEER_MIN_PEERS_DEFAULT,
+  PEER_MIN_PEERS_FLOOR,
+  PEER_MIN_PEERS_CEILING,
+} from '@/hooks/usePeerSettings';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { formatDateOnly } from '@/lib/datetime';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
+
 
 function useRatioKeys() {
   return useQuery({
@@ -130,6 +142,14 @@ export default function PrudentialAnalytics() {
   const periods = periodsQuery.data ?? [];
   const trend = useRatioTrend(ratioKey, licenseeId);
   const peer = usePeerSnapshot(ratioKey, periodEnd || null);
+  const minPeersQuery = usePeerMinPeers();
+  const canManageConfig = useCanManagePrudentialConfig().data ?? false;
+  const savePeerMin = useSavePeerMinPeers();
+  const [minPeersDraft, setMinPeersDraft] = useState<string>('');
+  useEffect(() => {
+    if (minPeersQuery.data != null) setMinPeersDraft(String(minPeersQuery.data));
+  }, [minPeersQuery.data]);
+
 
   // Auto-select defaults
   useEffect(() => {
@@ -164,7 +184,7 @@ export default function PrudentialAnalytics() {
     }
   }, [ratioKey, periods, periodEnd, periodsQuery.isFetched]);
 
-  const MIN_PEERS = 5;
+  const MIN_PEERS = minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT;
   const peerCount = Number((peer.data as any)?.count ?? 0);
   const entityValue = useMemo(() => {
     if (!periodEnd || !trend.data) return null;
@@ -234,6 +254,52 @@ export default function PrudentialAnalytics() {
             ) : <p className="text-sm text-muted-foreground italic">No trend data for the selected ratio and licensee.</p>}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Peer comparison settings</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="w-56">
+              <Label htmlFor="min-peers">Minimum peers required to publish a distribution</Label>
+              <Input
+                id="min-peers"
+                type="number"
+                min={PEER_MIN_PEERS_FLOOR}
+                max={PEER_MIN_PEERS_CEILING}
+                value={minPeersDraft}
+                disabled={!canManageConfig || minPeersQuery.isLoading}
+                onChange={(e) => setMinPeersDraft(e.target.value)}
+              />
+            </div>
+            <Button
+              disabled={
+                !canManageConfig ||
+                savePeerMin.isPending ||
+                Number(minPeersDraft) === (minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT)
+              }
+              onClick={() => {
+                const value = Number(minPeersDraft);
+                if (!Number.isInteger(value) || value < PEER_MIN_PEERS_FLOOR || value > PEER_MIN_PEERS_CEILING) {
+                  toast.error(`Enter a whole number between ${PEER_MIN_PEERS_FLOOR} and ${PEER_MIN_PEERS_CEILING}.`);
+                  return;
+                }
+                savePeerMin.mutate(value, {
+                  onSuccess: () => toast.success(`Minimum peer count set to ${value}.`),
+                  onError: (e: any) => toast.error(e?.message || 'Could not save the minimum peer count.'),
+                });
+              }}
+            >
+              {savePeerMin.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Peer distributions are withheld until at least this many entities have filed the ratio for the selected
+              period. The floor of {PEER_MIN_PEERS_FLOOR} protects peer confidentiality and cannot be lowered.
+              {!canManageConfig && ' You do not have permission to change this setting.'}
+            </p>
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader>

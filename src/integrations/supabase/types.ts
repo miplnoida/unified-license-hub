@@ -26890,6 +26890,7 @@ export type Database = {
         Args: { _group_id: string; _period_key?: string }
         Returns: Json
       }
+      prudential_min_peers: { Args: never; Returns: number }
       prudential_sector_risk: {
         Args: { _lookback_days?: number }
         Returns: {
@@ -27625,6 +27626,7 @@ export type Database = {
         Args: { _justification?: string; _state: string; _thread_id: string }
         Returns: undefined
       }
+      set_prudential_min_peers: { Args: { _value: number }; Returns: number }
       set_review_comment_blocking: {
         Args: { _blocking: boolean; _comment_id: string }
         Returns: {

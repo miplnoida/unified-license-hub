@@ -167,8 +167,10 @@ export function useReturnBreaches(returnId?: string | null) {
 /**
  * Peer snapshot for a ratio at a specific period end.
  *
- * The RPC enforces a minimum peer sample (default 5) and returns
- * `state: 'INSUFFICIENT_PEER_DATA'` rather than misleading statistics.
+ * The RPC enforces a minimum peer sample and returns
+ * `state: 'INSUFFICIENT_PEER_DATA'` rather than misleading statistics. When
+ * `minPeers` is omitted the database resolves the regulator-configured value
+ * (see `usePeerMinPeers`), never below the confidentiality floor of 3.
  * Passing `entityId` narrows the peer group to the entity's sector + category
  * and returns the entity's own value and percentile.
  */
@@ -177,10 +179,10 @@ export function usePeerSnapshot(
   periodEnd?: string | null,
   sectorId?: string | null,
   entityId?: string | null,
-  minPeers = 5,
+  minPeers?: number | null,
 ) {
   return useQuery({
-    queryKey: ['peer_ratio_snapshot', ratioKey, periodEnd, sectorId ?? null, entityId ?? null, minPeers],
+    queryKey: ['peer_ratio_snapshot', ratioKey, periodEnd, sectorId ?? null, entityId ?? null, minPeers ?? null],
     enabled: !!ratioKey && !!periodEnd,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('peer_ratio_snapshot', {
@@ -188,8 +190,9 @@ export function usePeerSnapshot(
         _ratio_key: ratioKey,
         _sector_id: sectorId ?? null,
         _entity_id: entityId ?? null,
-        _min_peers: minPeers,
+        _min_peers: minPeers ?? null,
       });
+
       if (error) throw error;
       return data as PeerSnapshot;
     },
