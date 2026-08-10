@@ -111,6 +111,7 @@ export function WorkpapersPanel({ examinationId, readOnly }: { examinationId: st
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
