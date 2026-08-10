@@ -95,10 +95,15 @@ export default function PrudentialRatios() {
     Swal.fire({ icon: 'success', text: 'Ratio archived', timer: 1200, showConfirmButton: false });
   };
 
-  const reactivate = async (r: PrudentialRatio) => {
-    await upsert.mutateAsync({ id: r.id, return_config_id: r.return_config_id, is_active: true } as any);
+  const restore = async (r: PrudentialRatio) => {
+    const ok = await Swal.fire({ title: 'Restore ratio?', text: r.label, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_prudential_ratio', { _ratio_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
     refresh();
+    Swal.fire({ icon: 'success', text: 'Ratio restored', timer: 1200, showConfirmButton: false });
   };
+
 
   const columns = useMemo<Column<PrudentialRatio>[]>(() => [
     { key: 'label', label: 'Ratio' },
@@ -107,7 +112,7 @@ export default function PrudentialRatios() {
     { key: 'metric_key', label: 'Metric', render: (r) => r.metric_key ? <Badge variant="outline">{r.metric_key}</Badge> : '—' },
     { key: 'display_format', label: 'Format', render: (r) => <Badge variant="outline">{r.display_format}</Badge> },
     { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
-    { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge> },
+    { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'archived'}</Badge> },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-1">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
@@ -116,7 +121,7 @@ export default function PrudentialRatios() {
         {r.is_active ? (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archive(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
         ) : (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => reactivate(r)} title="Reactivate"><RotateCcw className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restore(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
         )}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete ratio?', text: r.label, icon: 'warning', showCancelButton: true });

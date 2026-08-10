@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2 } from 'lucide-react';
+import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2, RotateCcw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
@@ -104,6 +104,15 @@ export default function ManageValidations() {
     Swal.fire({ icon: 'success', text: 'Rule archived', timer: 1200, showConfirmButton: false });
   };
 
+  const restoreRule = async (r: ValidationRule) => {
+    const ok = await Swal.fire({ title: 'Restore rule?', text: r.name, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
+    Swal.fire({ icon: 'success', text: 'Rule restored', timer: 1200, showConfirmButton: false });
+  };
+
   const rollback = async (rule_id: string, to_version: number) => {
     const ok = await Swal.fire({ title: `Rollback to v${to_version}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Rollback' });
     if (!ok.isConfirmed) return;
@@ -124,7 +133,7 @@ export default function ManageValidations() {
       <Badge className={r.severity === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>{r.severity}</Badge>
     )},
     { key: 'is_active', label: 'Status', render: (r) => (
-      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge>
+      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'archived'}</Badge>
     )},
     { key: 'current_version', label: 'v', render: (r: any) => (
       <Badge variant="outline">v{r.current_version ?? 1}</Badge>
@@ -135,7 +144,11 @@ export default function ManageValidations() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRule(r)} title="Version history"><History className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cloneRule(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        {r.is_active ? (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restoreRule(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
+        )}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
           if (ok.isConfirmed) del.mutate(r.id, { onSuccess: refresh });
