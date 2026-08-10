@@ -132,6 +132,7 @@ export function TeamPanel({ examinationId, readOnly }: { examinationId: string; 
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
