@@ -21,18 +21,25 @@ import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
 import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
-import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
+import { severityLabel, severityTone, worstSeverity, isEscalatable, normalizeSeverity } from '@/lib/prudentialSeverity';
+import { formatDateOnly, formatDateTime } from '@/lib/datetime';
+import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import {
+  returnStatusLabel,
+  isSubmittedReturnStatus,
+  isRatedAssessmentStatus,
+  assessmentStatusLabel,
+  actionTypeLabel,
+  actionStatusLabel,
+  escalationTypeLabel,
+  escalationStatusLabel,
+  auditObjectLabel,
+  auditActionLabel,
+  groupMemberRoleLabel,
+  consolidationTreatmentLabel,
+  formatObservedValue,
+} from '@/lib/prudentialLabels';
 
-const RISK_TONE: Record<string, string> = {
-  critical: 'bg-destructive/10 text-destructive border-destructive/30',
-  red: 'bg-destructive/10 text-destructive border-destructive/30',
-  high: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  warn: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  breach: 'bg-destructive/10 text-destructive border-destructive/30',
-  low: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-};
 
 function formatRatio(value: any, fmt?: string) {
   const n = Number(value);
