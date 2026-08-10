@@ -139,6 +139,7 @@ const PaymentSystemsOversight = lazy(() => import('@/pages/prudential/PaymentSys
 const PaymentOperatorProfile = lazy(() => import('@/pages/prudential/PaymentOperatorProfile'));
 const PfmiAssessmentWizard = lazy(() => import('@/pages/prudential/PfmiAssessmentWizard'));
 const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
+const PrudentialNotificationLog = lazy(() => import('@/pages/prudential/PrudentialNotificationLog'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -284,6 +285,7 @@ export const dashboardRoutes = (
     <Route path="/prudential/payment-systems/:operatorId" element={<M module="prudential_supervision"><PaymentOperatorProfile /></M>} />
     <Route path="/prudential/pfmi-assessments/:assessmentId" element={<M module="prudential_supervision"><PfmiAssessmentWizard /></M>} />
     <Route path="/prudential/stress-indicators" element={<M module="prudential_supervision"><StressIndicatorsAdmin /></M>} />
+    <Route path="/prudential/notifications" element={<M module="prudential_supervision"><PrudentialNotificationLog /></M>} />
     <Route path="/admin/prudential-taxonomy" element={<M module="prudential_supervision"><PrudentialTaxonomyAdmin /></M>} />
     <Route path="/fpa" element={<M module="fit_and_proper"><FpaDashboard /></M>} />
     <Route path="/fpa/initiation" element={<M module="fit_and_proper"><FpaInitiation /></M>} />
