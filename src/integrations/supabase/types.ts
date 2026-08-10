@@ -28030,6 +28030,7 @@ export type Database = {
           verified: boolean
         }[]
       }
+      worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json
