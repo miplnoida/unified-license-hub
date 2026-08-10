@@ -253,9 +253,10 @@ export default function PrudentialEntityProfile() {
                 {data.returns.map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell><Link className="text-primary underline" to={`/returns-management/${r.id}`}>{r.unique_id || r.id.slice(0,8)}</Link></TableCell>
-                    <TableCell>{r.period_end_date}</TableCell>
-                    <TableCell>{r.submit_date ? new Date(r.submit_date).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{r.workflow_status || r.status}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(r.period_end_date)}</TableCell>
+                    <TableCell>{formatDateTime(r.submit_date)}</TableCell>
+                    <TableCell><Badge variant="outline">{returnStatusLabel(r.workflow_status || r.status)}</Badge></TableCell>
+
                     <TableCell className="text-right">
                       <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={async () => { await evalStress.mutateAsync(r.id); refetch(); }}>Evaluate stress</Button>
                     </TableCell>
