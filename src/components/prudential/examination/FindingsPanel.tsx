@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateRemediationAction, useExaminationFindings, useFindingMutations } from '@/hooks/useExaminations';
+import { StageActions } from './ExaminationStageActions';
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
