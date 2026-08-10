@@ -173,6 +173,7 @@ export function FindingsPanel({ examinationId, readOnly }: { examinationId: stri
             </Button>
           </div>
         )}
+        {!readOnly && <StageActions />}
       </CardContent>
     </Card>
   );
