@@ -15,6 +15,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
 import type { ValidationRule } from '@/lib/returnsValidation';
+import { useFormulaLabels } from '@/hooks/useFormulaLabels';
+import { FormulaText } from '@/components/prudential/FormulaText';
 import Swal from 'sweetalert2';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import { formatDateTime } from '@/lib/datetime';
