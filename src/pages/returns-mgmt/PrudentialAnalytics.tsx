@@ -142,6 +142,14 @@ export default function PrudentialAnalytics() {
   const periods = periodsQuery.data ?? [];
   const trend = useRatioTrend(ratioKey, licenseeId);
   const peer = usePeerSnapshot(ratioKey, periodEnd || null);
+  const minPeersQuery = usePeerMinPeers();
+  const canManageConfig = useCanManagePrudentialConfig().data ?? false;
+  const savePeerMin = useSavePeerMinPeers();
+  const [minPeersDraft, setMinPeersDraft] = useState<string>('');
+  useEffect(() => {
+    if (minPeersQuery.data != null) setMinPeersDraft(String(minPeersQuery.data));
+  }, [minPeersQuery.data]);
+
 
   // Auto-select defaults
   useEffect(() => {
