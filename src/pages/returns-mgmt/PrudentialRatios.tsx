@@ -95,10 +95,15 @@ export default function PrudentialRatios() {
     Swal.fire({ icon: 'success', text: 'Ratio archived', timer: 1200, showConfirmButton: false });
   };
 
-  const reactivate = async (r: PrudentialRatio) => {
-    await upsert.mutateAsync({ id: r.id, return_config_id: r.return_config_id, is_active: true } as any);
+  const restore = async (r: PrudentialRatio) => {
+    const ok = await Swal.fire({ title: 'Restore ratio?', text: r.label, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_prudential_ratio', { _ratio_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
     refresh();
+    Swal.fire({ icon: 'success', text: 'Ratio restored', timer: 1200, showConfirmButton: false });
   };
+
 
   const columns = useMemo<Column<PrudentialRatio>[]>(() => [
     { key: 'label', label: 'Ratio' },
