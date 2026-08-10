@@ -228,7 +228,19 @@ export default function PrudentialEntitiesList() {
                           </div>
                         ) : '—'}
                       </TableCell>
-                      <TableCell className="text-right"><Link className="text-primary underline" to={`/prudential/entities/${e.id}`}>Open</Link></TableCell>
+                      <TableCell className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button asChild variant="ghost" size="icon" aria-label={`View prudential profile for ${e.name}`}>
+                              <Link to={`/prudential/entities/${e.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View prudential profile</TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+
                     </TableRow>
                   ))}
                   {!rows.length && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-6">No entities match filters.</TableCell></TableRow>}
