@@ -624,7 +624,7 @@ function CalendarTab() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Calendar Profiles</CardTitle>
-            <CardDescription>e.g. BOJ Calendar, FSC Calendar</CardDescription>
+            <CardDescription>e.g. St. Lucia Calendar, FSC Calendar</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {profiles.map(p => {
