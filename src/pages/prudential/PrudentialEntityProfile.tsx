@@ -568,13 +568,14 @@ export default function PrudentialEntityProfile() {
               <TableBody>
                 {data.escalations.map((es: any) => (
                   <TableRow key={es.id}>
-                    <TableCell>{es.escalation_type}</TableCell>
+                    <TableCell>{escalationTypeLabel(es.escalation_type)}</TableCell>
                     <TableCell className="max-w-md truncate">{es.reason}</TableCell>
-                    <TableCell><Badge variant="outline">{es.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{escalationStatusLabel(es.status)}</Badge></TableCell>
                     <TableCell className="max-w-xs truncate">{es.decision || '—'}</TableCell>
-                    <TableCell>{es.decided_at ? new Date(es.decided_at).toLocaleDateString() : '—'}</TableCell>
+                    <TableCell>{formatDateTime(es.decided_at)}</TableCell>
                   </TableRow>
                 ))}
+
                 {!data.escalations.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No escalations.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
