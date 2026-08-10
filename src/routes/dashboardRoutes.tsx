@@ -139,6 +139,7 @@ const PaymentSystemsOversight = lazy(() => import('@/pages/prudential/PaymentSys
 const PaymentOperatorProfile = lazy(() => import('@/pages/prudential/PaymentOperatorProfile'));
 const PfmiAssessmentWizard = lazy(() => import('@/pages/prudential/PfmiAssessmentWizard'));
 const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
+const PrudentialNotificationLog = lazy(() => import('@/pages/prudential/PrudentialNotificationLog'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
