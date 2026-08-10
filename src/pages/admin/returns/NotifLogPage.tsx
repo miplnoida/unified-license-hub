@@ -3,16 +3,20 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useReturnDispatchLog, useReturnEventConfigs } from '@/hooks/useReturnsManagement';
-import { Loader2 } from 'lucide-react';
+import { NotificationDispatchDetailDrawer } from '@/components/returns/NotificationDispatchDetailDrawer';
+import { Loader2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function NotifLogPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [eventFilter, setEventFilter] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
 
   const { data: configs = [] } = useReturnEventConfigs();
   const { data: logs = [], isLoading } = useReturnDispatchLog({
