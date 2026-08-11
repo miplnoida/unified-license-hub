@@ -28037,6 +28037,7 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
+      user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
       validate_scope_config: {
         Args: { _scope_config: Json }
         Returns: {
