@@ -188,11 +188,15 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Severity</Label>
-            <Select value={form.severity || 'none'} onValueChange={v => setForm({ ...form, severity: v === 'none' ? '' : v })}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">(unset)</SelectItem>{SEVERITIES.map(x => <SelectItem key={x} value={x} className="capitalize">{x}</SelectItem>)}</SelectContent>
-            </Select>
+            <Label className="text-xs">Severity (automatic)</Label>
+            <div className="mt-1 flex flex-col gap-1">
+              <Badge variant="outline" className="w-fit capitalize">{complaint.severity || 'Pending triage'}</Badge>
+              <span className="text-[11px] text-muted-foreground">
+                {complaint.triage_result_snapshot?.matched_rule?.name
+                  ? `From triage rule: ${complaint.triage_result_snapshot.matched_rule.name}`
+                  : 'Configured default — no triage rule matched'}
+              </span>
+            </div>
           </div>
           <div>
             <Label className="text-xs">SLA (days)</Label>
