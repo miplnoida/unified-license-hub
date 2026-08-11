@@ -132,11 +132,17 @@ export function PostClosureMonitoringPanel({
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label>Focus areas <span className="text-destructive">*</span></Label>
+            <Label>Focus areas <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">(min 10 characters)</span></Label>
             <Textarea rows={3} value={focusAreas}
               onChange={e => { setFocusAreas(e.target.value); setDirty(true); }}
               placeholder="What conduct behaviours, products or channels remain under supervision" />
+            {focusAreas.trim().length < 10 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Focus areas need at least 10 characters before the directive can be saved (currently {focusAreas.trim().length}).
+              </p>
+            )}
           </div>
+
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <Label>Indicators / thresholds to watch</Label>
