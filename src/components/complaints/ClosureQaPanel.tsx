@@ -21,7 +21,7 @@ import { Loader2 } from 'lucide-react';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
 
-export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
+export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId: string; readOnly?: boolean }) {
   const qc = useQueryClient();
   const [resolution, setResolution] = useState('');
   const [rationale, setRationale] = useState('');
@@ -30,6 +30,7 @@ export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
   const [evidenceComplete, setEvidenceComplete] = useState(false);
   const [qaRequired, setQaRequired] = useState(false);
   const [qaNote, setQaNote] = useState('');
+
 
   const { data: reviews, isLoading } = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
