@@ -12,11 +12,12 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { toast } from 'sonner';
 import { Sparkles, Save, Loader2 } from 'lucide-react';
+import { COMPLAINT_PRIORITIES, complaintPriorityLabel } from '@/lib/complaintStatus';
 
 interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
-const PRIORITIES = ['p1', 'p2', 'p3', 'p4'] as const;
+
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
@@ -32,7 +33,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_notes: complaint.vulnerability_notes || '',
     priority: complaint.priority || '',
     sla_days: complaint.sla_days ?? '',
-    assigned_team: complaint.assigned_team || '',
   });
   const [saving, setSaving] = useState(false);
   const [autoRunning, setAutoRunning] = useState(false);
@@ -67,7 +67,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_notes: form.vulnerability_notes || null,
     priority: form.priority || null,
     sla_days: form.sla_days === '' ? null : Number(form.sla_days),
-    assigned_team: form.assigned_team || null,
   });
 
   const detectOverridden = (payload: any): Record<string, { from: any; to: any }> => {
@@ -85,7 +84,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     };
     cmp('priority', payload.priority);
     cmp('sla_days', payload.sla_days);
-    cmp('assigned_team', payload.assigned_team);
     if (orig?.conduct_risk_category_id !== undefined) {
       if (orig.conduct_risk_category_id !== payload.conduct_risk_category_id) {
         out.conduct_risk_category_id = { from: orig.conduct_risk_category_id, to: payload.conduct_risk_category_id };
@@ -180,7 +178,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
             <Label className="text-xs">Priority</Label>
             <Select value={form.priority || 'none'} onValueChange={v => setForm({ ...form, priority: v === 'none' ? '' : v })}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">(unset)</SelectItem>{PRIORITIES.map(x => <SelectItem key={x} value={x} className="uppercase">{x}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="none">(unset)</SelectItem>{COMPLAINT_PRIORITIES.map(x => <SelectItem key={x} value={x}>{complaintPriorityLabel(x)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
@@ -197,10 +195,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
           <div>
             <Label className="text-xs">SLA (days)</Label>
             <input type="number" min={0} className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.sla_days} onChange={e => setForm({ ...form, sla_days: e.target.value === '' ? '' : Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label className="text-xs">Assigned Team</Label>
-            <input className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.assigned_team} onChange={e => setForm({ ...form, assigned_team: e.target.value })} placeholder="e.g. Conduct-Retail" />
           </div>
         </div>
 

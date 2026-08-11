@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
-import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
+import { complaintStatusLabel, complaintStatusVariant, complaintPriorityLabel } from '@/lib/complaintStatus';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant } from '@/lib/complaintsSla';
 import { formatDateTime } from '@/lib/datetime';
 import { useComplaintCurrentStepData } from '@/components/complaints/ComplaintCurrentStepPanel';
@@ -86,7 +86,7 @@ export function ComplaintOverviewSummary({
             value={guarded(trackingQ, 'Workflow', () => tracking?.current_step_label || 'Not started')}
           />
           <Row label="Severity" value={<span className="capitalize">{complaint.severity || '—'}</span>} />
-          <Row label="Priority" value={<span className="capitalize">{complaint.priority || '—'}</span>} />
+          <Row label="Priority" value={<span>{complaintPriorityLabel(complaint.priority)}</span>} />
           <Row label="SLA" value={<Badge variant={slaStatusVariant(sla)} className="capitalize">{slaStatusLabel(sla)}</Badge>} />
           <Row
             label="Assigned to"

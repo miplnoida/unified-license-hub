@@ -48,7 +48,10 @@ import {
   complaintStatusVariant,
   isOpenComplaint,
   COMPLAINT_STATUS_LABELS,
+  COMPLAINT_PRIORITIES,
+  complaintPriorityLabel,
 } from '@/lib/complaintStatus';
+
 
 const statusVariant = new Proxy({} as Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>, {
   get: (_t, k: string) => complaintStatusVariant(k),
@@ -637,7 +640,7 @@ export default function ComplaintsList() {
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Priority</SelectItem>
-                      {['p1','p2','p3','p4'].map(s => <SelectItem key={s} value={s} className="uppercase">{s}</SelectItem>)}
+                      {COMPLAINT_PRIORITIES.map(s => <SelectItem key={s} value={s}>{complaintPriorityLabel(s)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={slaFilter} onValueChange={(v) => updateUrl({ sla: v }, { resetPage: true })}>
@@ -880,7 +883,7 @@ export default function ComplaintsList() {
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               {c.severity && <Badge variant={severityVariant[c.severity] || 'outline'} className="text-[10px] capitalize w-fit">{c.severity}</Badge>}
-                              {c.priority && <Badge variant={priorityVariant[c.priority] || 'outline'} className="text-[10px] uppercase w-fit">{c.priority}</Badge>}
+                              {c.priority && <Badge variant={priorityVariant[c.priority] || 'outline'} className="text-[10px] w-fit">{complaintPriorityLabel(c.priority)}</Badge>}
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">

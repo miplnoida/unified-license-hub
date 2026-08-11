@@ -5,3 +5,9 @@
  * Flip this to `true` to re-expose it everywhere it is mounted.
  */
 export const COLLAB_REVIEW_ENABLED = false;
+
+/**
+ * Triage History card on the complaint detail Overview tab.
+ * Hidden per business request; the component is kept for future re-enablement.
+ */
+export const COMPLAINT_TRIAGE_HISTORY_ENABLED = false;
