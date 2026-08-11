@@ -177,16 +177,17 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
                 </div>
 
                 {r.action ? (
-                  <div className="rounded-md bg-muted/40 p-2 text-xs">
-                    <span className="font-medium">Corrective action: </span>{r.action.title}
-                    <span className="text-muted-foreground">
-                      {' '}· status {String(r.action.status).replace('_', ' ')}
-                      {r.action.due_date ? ` · due ${new Date(r.action.due_date).toLocaleDateString()}` : ''}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                    <span><span className="font-medium">Corrective action: </span>{r.action.title}</span>
+                    <Badge variant="outline" className={actionTone(r.action.status)}>{actionStatusLabel(r.action.status)}</Badge>
+                    {r.action.due_date && !isActionClosed(r.action.status) && (
+                      <span className="text-muted-foreground">Due {new Date(r.action.due_date).toLocaleDateString()}</span>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-warning">Corrective action not yet created.</p>
                 )}
+
 
                 {!readOnly && (
                   <div className="flex flex-wrap gap-2">
