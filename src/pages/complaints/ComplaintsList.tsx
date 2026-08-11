@@ -423,7 +423,7 @@ export default function ComplaintsList() {
 
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
-    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
+    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
       setAckDialog({
