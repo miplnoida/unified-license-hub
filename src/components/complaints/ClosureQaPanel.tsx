@@ -19,8 +19,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { closureDecisionLabel } from '@/lib/complaintWorkflow';
+import { formatDateTime } from '@/lib/datetime';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
+
+/** Turn the backend's validation reasons into plain sentences for staff. */
+function friendlyRecordError(e: unknown): string {
+  const raw =
+    (e as any)?.message ??
+    (typeof e === 'string' ? e : '') ??
+    '';
+  const msg = String(raw).toLowerCase();
+  if (msg.includes('resolution summary')) return 'Add a resolution before recording a closure decision.';
+  if (msg.includes('rationale')) return 'The rationale must be at least 10 characters.';
+  if (msg.includes('outcome category')) return 'Choose an outcome before recording a closure decision.';
+  if (msg.includes('evidence completeness')) return 'Tick “Evidence is complete” before recording a closure decision.';
+  if (msg.includes('return reason')) return 'Give a return reason of at least 10 characters.';
+  if (msg.includes('not authorised') || msg.includes('42501')) {
+    return 'You do not have permission to record a closure decision.';
+  }
+  return raw ? `Could not record decision: ${raw}` : 'Could not record decision. Please try again.';
+}
+
 
 export function ClosureQaPanel({
   complaintId,
