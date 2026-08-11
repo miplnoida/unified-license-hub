@@ -126,6 +126,8 @@ export default function TriageRules() {
   const [saving, setSaving] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; code: string | null }>>([]);
+  const [defaultSeverity, setDefaultSeverity] = useState<string>('medium');
+  const [savingDefault, setSavingDefault] = useState(false);
 
   function emptyRule(): Rule {
     return { id: '', name: '', description: '', active: true, priority_order: 100, match_mode: 'all', conditions: [], outputs: {} };
@@ -143,7 +145,34 @@ export default function TriageRules() {
     const { data } = await supabase.from('conduct_risk_categories').select('id, name, code').order('name');
     setCategories((data || []) as any);
   };
-  useEffect(() => { load(); loadCategories(); }, []);
+  const loadDefaultSeverity = async () => {
+    const { data } = await (supabase as any)
+      .from('complaint_intake_rules')
+      .select('default_severity')
+      .is('regulator_id', null)
+      .not('default_severity', 'is', null)
+      .limit(1)
+      .maybeSingle();
+    if (data?.default_severity) setDefaultSeverity(data.default_severity);
+  };
+  const saveDefaultSeverity = async (next: string) => {
+    setSavingDefault(true);
+    setDefaultSeverity(next);
+    const { error } = await (supabase as any)
+      .from('complaint_intake_rules')
+      .update({ default_severity: next })
+      .is('regulator_id', null);
+    setSavingDefault(false);
+    if (error) { toast.error(error.message); return; }
+    await logAudit({
+      action: 'complaint_default_severity_updated',
+      entityType: 'complaint_intake_rules',
+      entityId: 'default',
+      metadata: { default_severity: next },
+    });
+    toast.success('Default severity saved');
+  };
+  useEffect(() => { load(); loadCategories(); loadDefaultSeverity(); }, []);
 
   const openNew = () => { setEditing(null); setForm(emptyRule()); setOpen(true); };
   const openEdit = (r: Rule) => {
@@ -207,6 +236,27 @@ export default function TriageRules() {
             </div>
           }
         />
+
+        <Card>
+          <CardContent className="p-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <Label className="text-sm">Default severity</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Applied to every complaint when no triage rule below matches. Complainants and staff cannot set severity themselves.
+              </p>
+            </div>
+            <div className="w-full md:w-56">
+              <Select value={defaultSeverity} onValueChange={saveDefaultSeverity} disabled={savingDefault}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(['low', 'medium', 'high', 'critical'] as const).map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent className="p-0">

@@ -17,7 +17,6 @@ interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
 const PRIORITIES = ['p1', 'p2', 'p3', 'p4'] as const;
-const SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
@@ -32,7 +31,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_indicator: !!complaint.vulnerability_indicator,
     vulnerability_notes: complaint.vulnerability_notes || '',
     priority: complaint.priority || '',
-    severity: complaint.severity || '',
     sla_days: complaint.sla_days ?? '',
     assigned_team: complaint.assigned_team || '',
   });
@@ -68,7 +66,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_indicator: form.vulnerability_indicator,
     vulnerability_notes: form.vulnerability_notes || null,
     priority: form.priority || null,
-    severity: form.severity || null,
     sla_days: form.sla_days === '' ? null : Number(form.sla_days),
     assigned_team: form.assigned_team || null,
   });
@@ -86,7 +83,6 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         out[key] = { from: base[key], to: currVal };
       }
     };
-    cmp('severity', payload.severity);
     cmp('priority', payload.priority);
     cmp('sla_days', payload.sla_days);
     cmp('assigned_team', payload.assigned_team);
@@ -188,11 +184,15 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Severity</Label>
-            <Select value={form.severity || 'none'} onValueChange={v => setForm({ ...form, severity: v === 'none' ? '' : v })}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">(unset)</SelectItem>{SEVERITIES.map(x => <SelectItem key={x} value={x} className="capitalize">{x}</SelectItem>)}</SelectContent>
-            </Select>
+            <Label className="text-xs">Severity (automatic)</Label>
+            <div className="mt-1 flex flex-col gap-1">
+              <Badge variant="outline" className="w-fit capitalize">{complaint.severity || 'Pending triage'}</Badge>
+              <span className="text-[11px] text-muted-foreground">
+                {complaint.triage_result_snapshot?.matched_rule?.name
+                  ? `From triage rule: ${complaint.triage_result_snapshot.matched_rule.name}`
+                  : 'Configured default — no triage rule matched'}
+              </span>
+            </div>
           </div>
           <div>
             <Label className="text-xs">SLA (days)</Label>

@@ -15,7 +15,7 @@ import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
-import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
+import { internalComplaintSchema, INTAKE_SOURCES } from '@/lib/complaintSchemas';
 import { LicenseePicker } from '@/components/complaints/LicenseePicker';
 import { toast } from 'sonner';
 
@@ -46,7 +46,7 @@ export default function NewInternalComplaint() {
   const [form, setForm] = useState<any>({
     subject: '', description: '',
     licensee_id: '', complaint_type_id: '', conduct_risk_category_id: '',
-    product_id: '', channel_id: '', severity: 'medium', priority: 'p3',
+    product_id: '', channel_id: '', priority: 'p3',
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
@@ -216,10 +216,9 @@ export default function NewInternalComplaint() {
               </div>
               <div>
                 <Label>Severity</Label>
-                <Select value={form.severity} onValueChange={v => updateForm({ severity: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                  Assigned automatically by triage configuration after submission.
+                </div>
               </div>
               <div>
                 <Label>Customer type</Label>

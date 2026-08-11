@@ -2683,6 +2683,7 @@ export type Database = {
         Row: {
           allow_anonymous: boolean
           created_at: string
+          default_severity: string | null
           id: string
           max_attachments: number
           notes: string | null
@@ -2694,6 +2695,7 @@ export type Database = {
         Insert: {
           allow_anonymous?: boolean
           created_at?: string
+          default_severity?: string | null
           id?: string
           max_attachments?: number
           notes?: string | null
@@ -2705,6 +2707,7 @@ export type Database = {
         Update: {
           allow_anonymous?: boolean
           created_at?: string
+          default_severity?: string | null
           id?: string
           max_attachments?: number
           notes?: string | null
