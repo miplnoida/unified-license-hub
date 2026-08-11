@@ -194,6 +194,41 @@ export function summariseRfis(rfis: RfiLike[] | undefined | null): RfiSummary {
 
 /* ---------------------------------------------------------------- closure */
 
+/**
+ * Plain-language label + meaning for a recorded closure/QA decision, so no
+ * screen has to print raw codes like `qa_approved` to a business user.
+ */
+export function closureDecisionLabel(decision: string | null | undefined): {
+  label: string;
+  meaning: string;
+} {
+  switch (decision) {
+    case 'closure_proposed':
+      return {
+        label: 'Proposed for closure',
+        meaning: 'the officer recommended closing this complaint',
+      };
+    case 'closed':
+      return {
+        label: 'Closure assessment recorded',
+        meaning: 'the closure assessment has been completed and recorded',
+      };
+    case 'qa_approved':
+      return {
+        label: 'QA approved',
+        meaning: 'the closure assessment passed quality review',
+      };
+    case 'qa_returned':
+      return {
+        label: 'Returned to officer',
+        meaning: 'quality review sent the assessment back for more work',
+      };
+    default:
+      return { label: 'Decision recorded', meaning: '' };
+  }
+}
+
+
 export interface ClosureSummary {
   latestDecision: string | null;
   decidedAt: string | null;
