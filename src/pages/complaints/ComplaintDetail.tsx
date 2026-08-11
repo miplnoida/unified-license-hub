@@ -40,6 +40,8 @@ import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
 import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
 import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
 import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
+import { ComplaintEntityCard } from '@/components/complaints/ComplaintEntityCard';
+
 import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
 
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
