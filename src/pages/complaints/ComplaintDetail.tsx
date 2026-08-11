@@ -537,86 +537,12 @@ export default function ComplaintDetail() {
               </CardContent>
             </Card>
 
-            {!complaint.enforcement_action_id && !complaint.licensee_id && (
-              <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Link Licensee</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Map to Licensee (required before escalation action becomes available in Tracking)</Label>
-                    <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
-                          <span className="truncate">
-                            {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
-                          </span>
-                          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command shouldFilter={false}>
-                          <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
-                          <CommandList>
-                            {licenseeSearchQ.isLoading ? (
-                              <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
-                            ) : (licenseeSearchQ.data ?? []).length === 0 ? (
-                              <CommandEmpty>No licensees found.</CommandEmpty>
-                            ) : (
-                              <CommandGroup>
-                                {(licenseeSearchQ.data ?? []).map((l: any) => (
-                                  <CommandItem
-                                    key={l.id}
-                                    value={l.id}
-                                    onSelect={() => {
-                                      setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
-                                      setLicPickerOpen(false);
-                                    }}
-                                  >
-                                    <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="truncate">{l.name}</div>
-                                      {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <div className="flex justify-end">
-                      <Button data-rbac="complaint_management.edit"
-                        size="sm"
-                        variant="secondary"
-                        disabled={!stagedLicensee || linkLicensee.isPending}
-                        onClick={() => linkLicensee.mutate()}
-                      >
-                        {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
-                        Link Licensee
-                      </Button>
-                    </div>
-                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <ComplaintEntityCard
+              complaintId={id!}
+              regulatorId={complaint.regulator_id ?? null}
+              enforcementActionId={complaint.enforcement_action_id ?? null}
+            />
 
-            {complaint.licensee_id && linkedLicenseeQ.data && (
-              <Card>
-                <CardContent className="pt-6 text-xs flex items-start gap-2">
-                  <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{linkedLicenseeQ.data.name}</div>
-                    {linkedLicenseeQ.data.license_number && (
-                      <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
