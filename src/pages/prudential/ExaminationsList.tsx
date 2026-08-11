@@ -31,7 +31,9 @@ const stageTone = (stage: string) => {
 export default function ExaminationsList() {
   const [params] = useSearchParams();
   const [stage, setStage] = useState('all');
+  const [phase, setPhase] = useState('all');
   const [type, setType] = useState('all');
+
   const [entity, setEntity] = useState(params.get('entity') || 'all');
   const [search, setSearch] = useState('');
 
