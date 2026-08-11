@@ -146,16 +146,24 @@ export default function ExaminationsList() {
             <CardTitle className="text-base">Register</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 md:grid-cols-4 mb-4">
+            <div className="grid gap-2 md:grid-cols-5 mb-4">
               <Input placeholder="Search reference, title or entity" value={search} onChange={e => setSearch(e.target.value)} />
-              <Select value={stage} onValueChange={setStage}>
-                <SelectTrigger><SelectValue placeholder="Stage" /></SelectTrigger>
+              <Select value={phase} onValueChange={setPhase}>
+                <SelectTrigger><SelectValue placeholder="Phase" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All stages</SelectItem>
+                  <SelectItem value="all">All phases</SelectItem>
+                  {EXAMINATION_PHASES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger><SelectValue placeholder="Detailed step" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All steps</SelectItem>
                   {EXAMINATION_STAGES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
