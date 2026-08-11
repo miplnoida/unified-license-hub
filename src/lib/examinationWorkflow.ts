@@ -224,13 +224,13 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
   if (nextStage === 'final_report') {
     if (workpapersPending > 0) {
       add(
-        `${workpapersPending} workpaper${workpapersPending === 1 ? '' : 's'} require reviewer sign-off before the report can be finalised.`,
+        `${workpapersPending} workpaper${workpapersPending === 1 ? ' requires' : 's require'} reviewer sign-off before the report can be finalised.`,
         'workpapers',
       );
     }
     if (findingsWithoutAction > 0) {
       add(
-        `${findingsWithoutAction} finding${findingsWithoutAction === 1 ? '' : 's'} still require a corrective action before the report can be finalised.`,
+        `${findingsWithoutAction} finding${findingsWithoutAction === 1 ? ' still requires' : 's still require'} a corrective action before the report can be finalised.`,
         'findings',
       );
     }
