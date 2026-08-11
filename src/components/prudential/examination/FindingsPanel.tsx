@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateRemediationAction, useExaminationFindings, useFindingMutations } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
@@ -28,7 +28,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-export function FindingsPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationFindings(examinationId);
   const { save, remove } = useFindingMutations(examinationId);
   const createAction = useCreateRemediationAction(examinationId);
@@ -242,7 +242,7 @@ export function FindingsPanel({ examinationId, readOnly }: { examinationId: stri
           </div>
         )}
 
-        {!readOnly && <StageActions />}
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );

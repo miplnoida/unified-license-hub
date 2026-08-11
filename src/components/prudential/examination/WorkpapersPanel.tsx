@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Stamp, Trash2, UserCheck } from 'lucide-react';
 import { useSignoffWorkpaper, useWorkpaperMutations, useWorkpapers } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { workpaperStatusLabel } from '@/lib/examinationWorkflow';
 
-export function WorkpapersPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function WorkpapersPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useWorkpapers(examinationId);
   const { save, remove } = useWorkpaperMutations(examinationId);
   const signoff = useSignoffWorkpaper(examinationId);
@@ -154,7 +154,7 @@ export function WorkpapersPanel({ examinationId, readOnly }: { examinationId: st
           </div>
         )}
 
-        {!readOnly && <StageActions />}
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );

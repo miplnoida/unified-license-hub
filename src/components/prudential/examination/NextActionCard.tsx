@@ -62,13 +62,13 @@ export function NextActionCard({
           </ul>
         )}
 
-        {guidance.blockers.length > 0 && (
+        {[...guidance.blockers, ...guidance.transitionBlockers].length > 0 && (
           <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-2">
             <p className="flex items-center gap-1.5 text-sm font-medium text-warning">
               <AlertTriangle className="h-4 w-4" />Blocking items
             </p>
             <ul className="space-y-1.5">
-              {guidance.blockers.map(b => (
+              {[...guidance.blockers, ...guidance.transitionBlockers].map(b => (
                 <li key={b.text} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span>{b.text}</span>
                   {b.section && onOpenSection && (
@@ -82,6 +82,7 @@ export function NextActionCard({
             </ul>
           </div>
         )}
+
 
 
         {!readOnly && (
