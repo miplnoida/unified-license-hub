@@ -23,6 +23,7 @@ import {
 import {
   businessActionLabel,
   currentStepKey,
+  capturedSummary,
   deriveGuidance,
   isTerminalStage,
   phaseLabel,
@@ -75,19 +76,10 @@ export default function ExaminationWorkspace() {
   const terminal = isTerminalStage(exam?.stage);
   const readOnly = !!terminal;
 
-  const stageActionsValue = useMemo(() => {
-    if (terminal) return null;
-    return {
-      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
-      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
-      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
-      pending: transition.isPending,
-    };
-  }, [terminal, nextStage, transition]);
-
   const guidance = useMemo(
     () => deriveGuidance({
       stage: exam?.stage,
+      nextStage,
       scoping,
       team,
       dataRequests,
@@ -96,8 +88,20 @@ export default function ExaminationWorkspace() {
       reports,
       exitMeeting,
     }),
-    [exam?.stage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
+    [exam?.stage, nextStage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
   );
+
+  const stageActionsValue = useMemo(() => {
+    if (terminal) return null;
+    return {
+      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
+      blockers: guidance.blockers,
+      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
+      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
+      pending: transition.isPending,
+    };
+  }, [terminal, nextStage, transition, guidance]);
+
 
   const stepKey = currentStepKey(exam?.stage);
   const section = params.get('section') || 'overview';
@@ -112,6 +116,20 @@ export default function ExaminationWorkspace() {
   const toggleAll = () => {
     const p = new URLSearchParams(params);
     if (showAll) p.delete('all'); else p.set('all', '1');
+    setParams(p, { replace: true });
+  };
+
+  const captured = useMemo(
+    () => capturedSummary({ scoping, team, dataRequests, workpapers, findings, reports, exitMeeting }),
+    [scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
+  );
+
+  const openSection = (key: string) => {
+    const tab = key === 'reports' ? 'documents' : key;
+    const advanced = ['scoping', 'team', 'data-requests', 'workpapers', 'exit-meeting'];
+    const p = new URLSearchParams(params);
+    p.set('section', tab);
+    if (advanced.includes(tab)) p.set('all', '1');
     setParams(p, { replace: true });
   };
 
@@ -201,6 +219,8 @@ export default function ExaminationWorkspace() {
                 guidance={guidance}
                 currentStepTitle={STEP_TITLES[stepKey]}
                 onOpenCurrentStep={() => setSection('current')}
+                onOpenSection={openSection}
+                captured={captured}
                 leadExaminer={leadExaminer}
                 counts={counts}
                 readOnly={readOnly}

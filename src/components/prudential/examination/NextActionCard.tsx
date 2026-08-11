@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { stageLabel } from '@/hooks/useExaminations';
-import { phaseLabel, stageGuidance, stagePhase, type Guidance } from '@/lib/examinationWorkflow';
+import {
+  phaseLabel,
+  stageGuidance,
+  stagePhase,
+  type BlockerSection,
+  type Guidance,
+} from '@/lib/examinationWorkflow';
 
 /**
  * "Your next task" — answers: where am I, what do I do now, what is done,
@@ -14,14 +20,17 @@ export function NextActionCard({
   guidance,
   currentStepTitle,
   onOpenCurrentStep,
+  onOpenSection,
   readOnly,
 }: {
   stage?: string | null;
   guidance: Guidance;
   currentStepTitle: string;
   onOpenCurrentStep: () => void;
+  onOpenSection?: (section: BlockerSection) => void;
   readOnly?: boolean;
 }) {
+
   return (
     <Card className="border-primary/30">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
@@ -54,17 +63,26 @@ export function NextActionCard({
         )}
 
         {guidance.blockers.length > 0 && (
-          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-1">
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-2">
             <p className="flex items-center gap-1.5 text-sm font-medium text-warning">
               <AlertTriangle className="h-4 w-4" />Blocking items
             </p>
-            <ul className="list-disc pl-5 space-y-0.5">
+            <ul className="space-y-1.5">
               {guidance.blockers.map(b => (
-                <li key={b} className="text-xs">{b}</li>
+                <li key={b.text} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span>{b.text}</span>
+                  {b.section && onOpenSection && (
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs"
+                      onClick={() => onOpenSection(b.section as BlockerSection)}>
+                      Resolve
+                    </Button>
+                  )}
+                </li>
               ))}
             </ul>
           </div>
         )}
+
 
         {!readOnly && (
           <Button size="sm" onClick={onOpenCurrentStep}>

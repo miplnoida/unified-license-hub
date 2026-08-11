@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, ClipboardList, FileWarning, Inbox, UserCheck } from 'lucide-react';
-import type { Guidance } from '@/lib/examinationWorkflow';
+import type { BlockerSection, CapturedArea, Guidance } from '@/lib/examinationWorkflow';
 import { NextActionCard } from './NextActionCard';
 import { ExaminationPhaseProgress } from './ExaminationPhaseProgress';
+
 
 const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
@@ -37,6 +39,8 @@ export function ExaminationOverview({
   guidance,
   currentStepTitle,
   onOpenCurrentStep,
+  onOpenSection,
+  captured = [],
   leadExaminer,
   counts,
   readOnly,
@@ -45,6 +49,8 @@ export function ExaminationOverview({
   guidance: Guidance;
   currentStepTitle: string;
   onOpenCurrentStep: () => void;
+  onOpenSection?: (section: BlockerSection) => void;
+  captured?: CapturedArea[];
   leadExaminer?: string | null;
   counts: {
     openFindings: number;
@@ -67,8 +73,10 @@ export function ExaminationOverview({
         guidance={guidance}
         currentStepTitle={currentStepTitle}
         onOpenCurrentStep={onOpenCurrentStep}
+        onOpenSection={onOpenSection}
         readOnly={readOnly}
       />
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric icon={FileWarning} label="Open findings" value={counts.openFindings}
@@ -80,6 +88,57 @@ export function ExaminationOverview({
         <Metric icon={ClipboardList} label="Open corrective actions" value={counts.openRemediation}
           tone={counts.openRemediation ? 'warn' : 'ok'} />
       </div>
+
+      {captured.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">What has been captured so far</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              A read-only summary of the information already recorded on this examination.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {captured.map(area => (
+              <div key={area.key} className="rounded-md border p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{area.title}</p>
+                  {area.status && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        area.tone === 'warn'
+                          ? 'bg-warning/10 text-warning border-warning/20'
+                          : area.tone === 'ok'
+                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                            : ''
+                      }
+                    >
+                      {area.status}
+                    </Badge>
+                  )}
+                </div>
+                {area.lines.length > 0 ? (
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {area.lines.map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nothing recorded yet.</p>
+                )}
+                {onOpenSection && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                    onClick={() => onOpenSection(area.key)}>
+                    {readOnly ? 'View' : 'View / edit'}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Examination details</CardTitle></CardHeader>
