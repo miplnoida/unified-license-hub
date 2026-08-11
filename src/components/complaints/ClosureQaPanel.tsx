@@ -161,16 +161,26 @@ export function ClosureQaPanel({
               <Label htmlFor="cq-qa" className="font-normal">QA review required before closure</Label>
             </div>
           </div>
+          {missing.length > 0 && (
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+              <p className="font-medium">What's still needed before you can record a closure decision</p>
+              <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                {missing.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button data-rbac="complaint_management.edit" disabled={record.isPending}
+            <Button data-rbac="complaint_management.edit" disabled={record.isPending || missing.length > 0}
               onClick={() => record.mutate({ decision: 'closure_proposed' })}>
               {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Propose closure (recommendation)
             </Button>
-            <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
+            <Button variant="outline" data-rbac="complaint_management.edit"
+              disabled={record.isPending || missing.length > 0}
               onClick={() => record.mutate({ decision: 'closed' })}>
               Record closure assessment
             </Button>
           </div>
+
         </CardContent>
       </Card>
       )}
