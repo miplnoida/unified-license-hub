@@ -36,6 +36,9 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
   const { data: rows = [], isLoading } = useExaminationFindings(examinationId);
   const { save, remove } = useFindingMutations(examinationId);
   const createAction = useCreateRemediationAction(examinationId);
+  const closeAction = useCloseActionGated();
+  const qc = useQueryClient();
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: '', category: '', severity: 'medium', criteria_breached: '',
