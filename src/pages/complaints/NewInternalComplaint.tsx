@@ -216,10 +216,9 @@ export default function NewInternalComplaint() {
               </div>
               <div>
                 <Label>Severity</Label>
-                <Select value={form.severity} onValueChange={v => updateForm({ severity: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                  Assigned automatically by triage configuration after submission.
+                </div>
               </div>
               <div>
                 <Label>Customer type</Label>
