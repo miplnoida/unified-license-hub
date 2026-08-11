@@ -199,7 +199,9 @@ export default function ExaminationsList() {
                       <TableHead>Entity</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Stage</TableHead>
+                      <TableHead>Phase</TableHead>
+                      <TableHead>Current step</TableHead>
+
                       <TableHead>Fieldwork</TableHead>
                       <TableHead className="text-right">Findings</TableHead>
                       <TableHead className="text-right">Open CAP</TableHead>
