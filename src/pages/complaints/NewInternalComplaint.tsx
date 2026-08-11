@@ -46,7 +46,7 @@ export default function NewInternalComplaint() {
   const [form, setForm] = useState<any>({
     subject: '', description: '',
     licensee_id: '', complaint_type_id: '', conduct_risk_category_id: '',
-    product_id: '', channel_id: '', severity: 'medium', priority: 'p3',
+    product_id: '', channel_id: '', priority: 'p3',
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
