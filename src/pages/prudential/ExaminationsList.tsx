@@ -216,7 +216,13 @@ export default function ExaminationsList() {
                         <TableCell>{r.licensee?.name || '—'}</TableCell>
                         <TableCell className="max-w-[240px] truncate">{r.title}</TableCell>
                         <TableCell className="capitalize">{r.examination_type.replace('_', ' ')}</TableCell>
-                        <TableCell><Badge variant="outline" className={stageTone(r.stage)}>{stageLabel(r.stage)}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={stageTone(r.stage)}>
+                            {r.stage === 'cancelled' ? 'Cancelled' : phaseLabel(stagePhase(r.stage))}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{stageLabel(r.stage)}</TableCell>
+
                         <TableCell className="text-xs">
                           {r.fieldwork_start ? new Date(r.fieldwork_start).toLocaleDateString() : '—'}
                           {r.fieldwork_end ? ` → ${new Date(r.fieldwork_end).toLocaleDateString()}` : ''}
