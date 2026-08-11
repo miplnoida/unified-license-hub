@@ -89,6 +89,57 @@ export function ExaminationOverview({
           tone={counts.openRemediation ? 'warn' : 'ok'} />
       </div>
 
+      {captured.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">What has been captured so far</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              A read-only summary of the information already recorded on this examination.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {captured.map(area => (
+              <div key={area.key} className="rounded-md border p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{area.title}</p>
+                  {area.status && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        area.tone === 'warn'
+                          ? 'bg-warning/10 text-warning border-warning/20'
+                          : area.tone === 'ok'
+                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                            : ''
+                      }
+                    >
+                      {area.status}
+                    </Badge>
+                  )}
+                </div>
+                {area.lines.length > 0 ? (
+                  <ul className="space-y-0.5 text-xs text-muted-foreground">
+                    {area.lines.map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nothing recorded yet.</p>
+                )}
+                {onOpenSection && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                    onClick={() => onOpenSection(area.key)}>
+                    {readOnly ? 'View' : 'View / edit'}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Examination details</CardTitle></CardHeader>
         <CardContent className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
