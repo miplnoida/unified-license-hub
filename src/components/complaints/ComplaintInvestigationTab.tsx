@@ -21,11 +21,12 @@ import { formatDateTime } from '@/lib/datetime';
 interface Props { complaintId: string; complaintStatus: string; }
 
 const TASK_STATUS_META: Record<string, { label: string; icon: any; className: string }> = {
-  pending: { label: 'Pending', icon: Circle, className: 'text-muted-foreground' },
-  in_progress: { label: 'In Progress', icon: Clock, className: 'text-blue-600' },
-  completed: { label: 'Completed', icon: CheckCircle2, className: 'text-green-600' },
-  cancelled: { label: 'Cancelled', icon: Circle, className: 'text-red-600' },
+  pending: { label: 'Not started', icon: Circle, className: 'text-muted-foreground' },
+  in_progress: { label: 'Being worked on', icon: Clock, className: 'text-blue-600' },
+  completed: { label: 'Done', icon: CheckCircle2, className: 'text-green-600' },
+  cancelled: { label: 'No longer required', icon: Circle, className: 'text-red-600' },
 };
+
 
 export default function ComplaintInvestigationTab({ complaintId, complaintStatus }: Props) {
   const { user } = useAuth();
