@@ -88,9 +88,6 @@ export default function ComplaintDetail() {
 
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
-  const [ackOpen, setAckOpen] = useState(false);
-  const [licPickerOpen, setLicPickerOpen] = useState(false);
-  const [licSearch, setLicSearch] = useState('');
   const [stagedLicensee, setStagedLicensee] = useState<{ id: string; name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
