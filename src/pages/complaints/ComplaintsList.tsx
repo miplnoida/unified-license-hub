@@ -406,7 +406,6 @@ export default function ComplaintsList() {
           { duration: 10000 },
         );
       } else if (r.uploaded) {
-      } else if (r.uploaded) {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
     }
