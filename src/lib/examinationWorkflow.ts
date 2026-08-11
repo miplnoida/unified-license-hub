@@ -168,10 +168,15 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
   ).length;
 
   const blockers: Blocker[] = [];
+  const transitionBlockers: Blocker[] = [];
   const checklist: ChecklistItem[] = [];
   const add = (text: string, section?: BlockerSection) => {
     if (!blockers.some(b => b.text === text)) blockers.push({ text, section });
   };
+  const addT = (text: string, section?: BlockerSection) => {
+    if (!transitionBlockers.some(b => b.text === text)) transitionBlockers.push({ text, section });
+  };
+
 
   switch (stage) {
     case 'planned':
