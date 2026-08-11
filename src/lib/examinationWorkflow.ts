@@ -235,34 +235,130 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
       break;
   }
 
-  // Guard rules the database enforces on the next transition.
+  // Mandatory guard rules the database enforces on the next transition.
   if (nextStage === 'fieldwork') {
-    if (!scopeApproved) add('The scoping memo must be approved before fieldwork can begin.', 'scoping');
-    if (!hasLead) add('A lead examiner must be assigned before fieldwork can begin.', 'team');
+    if (!scopeApproved) addT('The scoping memo must be approved before fieldwork can begin.', 'scoping');
+    if (!hasLead) addT('A lead examiner must be assigned before fieldwork can begin.', 'team');
   }
   if (nextStage === 'final_report') {
     if (workpapersPending > 0) {
-      add(
+      addT(
         `${workpapersPending} workpaper${workpapersPending === 1 ? ' requires' : 's require'} reviewer sign-off before the report can be finalised.`,
         'workpapers',
       );
     }
     if (findingsWithoutAction > 0) {
-      add(
+      addT(
         `${findingsWithoutAction} finding${findingsWithoutAction === 1 ? ' still requires' : 's still require'} a corrective action before the report can be finalised.`,
         'findings',
       );
     }
   }
   if (nextStage === 'closed' && openActions > 0) {
-    add(
+    addT(
       `${openActions} corrective action${openActions === 1 ? ' is' : 's are'} still open. The examination cannot close until they are resolved.`,
       'findings',
     );
   }
 
-  return { blockers, checklist };
+  return { blockers, transitionBlockers, checklist };
 }
+
+/**
+ * Supporting areas the current step depends on. Rendered on Current step as
+ * compact orchestration rows so the user can open the specialised screen
+ * without leaving the guided workflow.
+ */
+export function dependencies(input: GuidanceInput): DependencyRow[] {
+  const { stage, workpapers = [], findings = [], reports = [], dataRequests = [] } = input;
+  const reviewed = workpapers.filter((w: any) => w.reviewed_at).length;
+  const openFindings = findings.filter((f: any) => f.status !== 'closed');
+  const withoutAction = openFindings.filter((f: any) => !f.remediation_action_id).length;
+  const outstanding = dataRequests.filter((r: any) => r.status !== 'received').length;
+  const openActions = findings.filter(
+    (f: any) => f.remediation_action_id && f.action && f.action.status !== 'completed' && f.action.status !== 'closed',
+  ).length;
+
+  const wp: DependencyRow = {
+    key: 'workpapers',
+    title: 'Workpapers',
+    detail: workpapers.length
+      ? reviewed === workpapers.length
+        ? 'All reviewed'
+        : `${reviewed} of ${workpapers.length} reviewed`
+      : 'No workpapers recorded yet',
+    ok: workpapers.length > 0 && reviewed === workpapers.length,
+  };
+
+  const fnd: DependencyRow = {
+    key: 'findings',
+    title: 'Findings',
+    detail: openFindings.length
+      ? withoutAction
+        ? `${withoutAction} finding${withoutAction === 1 ? '' : 's'} without a corrective action`
+        : `${openFindings.length} open finding${openFindings.length === 1 ? '' : 's'}, all with corrective actions`
+      : 'No open findings',
+    ok: withoutAction === 0,
+  };
+
+  const requests: DependencyRow = {
+    key: 'data-requests',
+    title: 'Information requests',
+    detail: dataRequests.length
+      ? outstanding
+        ? `${outstanding} awaiting a response`
+        : 'All responses received'
+      : 'No requests issued',
+    ok: dataRequests.length > 0 && outstanding === 0,
+  };
+
+  const draftIssued = reports.some((r: any) => r.report_type === 'draft' && r.status === 'issued');
+  const finalPrepared = reports.some((r: any) => r.report_type === 'final');
+  const responseRecorded = reports.some((r: any) => !!r.management_response);
+
+  switch (stage) {
+    case 'fieldwork':
+      return [requests, wp, fnd];
+    case 'exit_meeting':
+      return [wp, fnd];
+    case 'draft_report':
+      return [
+        wp,
+        fnd,
+        { key: 'reports', title: 'Draft report', detail: draftIssued ? 'Issued to entity' : 'Not yet issued to the entity', ok: draftIssued },
+      ];
+    case 'management_response':
+      return [
+        wp,
+        fnd,
+        {
+          key: 'reports',
+          title: 'Management response',
+          detail: responseRecorded ? 'Recorded' : 'Not yet recorded',
+          ok: responseRecorded,
+        },
+      ];
+    case 'final_report':
+      return [
+        wp,
+        fnd,
+        { key: 'reports', title: 'Final report', detail: finalPrepared ? 'Prepared' : 'Not yet prepared', ok: finalPrepared },
+      ];
+    case 'remediation':
+      return [
+        fnd,
+        {
+          key: 'findings',
+          title: 'Corrective actions',
+          detail: openActions ? `${openActions} still open` : 'All completed',
+          ok: openActions === 0,
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
 
 export interface CapturedArea {
   key: BlockerSection;
