@@ -69,31 +69,40 @@ function badgeClass(action: string): string {
   return 'bg-muted text-muted-foreground border-border';
 }
 
-/** Compact key/value diff or single-value summary. */
+/**
+ * Change list written as sentences for non-technical readers. Internal
+ * identifiers are hidden; the raw payload stays behind a "Technical details"
+ * toggle.
+ */
 function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
   const [showRaw, setShowRaw] = useState(false);
-  const changes: Change[] = useMemo(() => computeChanges(before, after), [before, after]);
+  const changes = useMemo(() => historyChanges(before, after), [before, after]);
   const singleAfter = changes.length === 0 ? summarizeSingle(after) : null;
   const singleBefore = changes.length === 0 && !singleAfter ? summarizeSingle(before) : null;
-  const hasRaw = before !== null && before !== undefined || after !== null && after !== undefined;
+  const hasRaw = (before !== null && before !== undefined) || (after !== null && after !== undefined);
 
-  if (changes.length === 0 && !singleAfter && !singleBefore) {
+  if (changes.length === 0 && !singleAfter && !singleBefore && !hasRaw) {
     return null;
   }
 
   return (
     <div className="mt-2 space-y-1.5">
       {changes.length > 0 && (
-        <div className="rounded bg-muted/40 p-2 text-sm space-y-1">
+        <ul className="space-y-1 rounded bg-muted/40 p-2 text-xs">
           {changes.map((c) => (
-            <div key={c.key} className="flex items-baseline gap-2 text-xs">
-              <span className="font-medium text-foreground/80 min-w-[110px]">{c.label}:</span>
-              <span className="text-muted-foreground line-through">{c.before}</span>
-              <span className="text-muted-foreground">→</span>
-              <span className="text-foreground font-medium">{c.after}</span>
-            </div>
+            <li key={c.key}>
+              <span className="font-medium text-foreground/80">{c.label}:</span>{' '}
+              {c.before ? (
+                <span className="text-muted-foreground">
+                  changed from <span className="text-foreground">{c.before}</span> to{' '}
+                  <span className="font-medium text-foreground">{c.after ?? 'not set'}</span>
+                </span>
+              ) : (
+                <span className="font-medium text-foreground">{c.after ?? 'not set'}</span>
+              )}
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {singleAfter && (
         <div className="rounded bg-muted/40 p-2 text-sm text-foreground whitespace-pre-wrap">
@@ -104,6 +113,9 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
         <div className="rounded bg-muted/40 p-2 text-sm text-muted-foreground whitespace-pre-wrap">
           {singleBefore}
         </div>
+      )}
+      {changes.length === 0 && !singleAfter && !singleBefore && (
+        <p className="text-xs text-muted-foreground">No business fields changed in this entry.</p>
       )}
       {hasRaw && (
         <button
@@ -123,6 +135,7 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
     </div>
   );
 }
+
 
 /**
  * Right-side drawer showing the change timeline for a single domain entity,
