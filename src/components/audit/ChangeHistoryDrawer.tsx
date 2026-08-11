@@ -263,74 +263,66 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
             <p className="text-sm text-muted-foreground">No history recorded for this record yet.</p>
           )}
 
-          {timeline.map((e) => {
-            if (e.kind === 'override') {
-              const o = e.row;
-              return (
-                <div key={`o-${o.id}`} className="rounded-md border border-warning/40 bg-warning/5 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <ShieldAlert className="h-4 w-4 text-warning" />
-                      <Badge variant="outline" className={badgeClass('RULE_OVERRIDE')}>Rule override</Badge>
-                      <span className="text-xs font-mono">{o.rule_key}</span>
-                      <Badge variant="outline" className="text-[10px]">{o.module}</Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(o.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    By {actorLabel(o.user_id, o.user_role)}
-                  </div>
-                  <div className="mt-2 rounded bg-background/70 p-2 text-sm">
-                    <div className="text-[10px] uppercase text-muted-foreground">Reason</div>
-                    <div className="whitespace-pre-wrap">{o.reason}</div>
-                  </div>
-                  <ChangeSummary before={o.original_value} after={o.overridden_value} />
-                </div>
-              );
-            }
-            if (e.kind === 'compliance') {
-              const c = e.row;
-              return (
-                <div key={`c-${c.entry_id}`} className="rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={badgeClass(c.action_type)}>
-                        {humanizeAction(c.action_type)}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(c.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    By {actorLabel(c.user_id, c.user_role)}
-                  </div>
-                  <ChangeSummary before={c.before_value} after={c.after_value} />
-                </div>
-              );
-            }
-            const a = e.row;
+          {timeline.map((e, idx) => {
+            const day = dayHeading(ts(e));
+            const showDay = idx === 0 || dayHeading(ts(timeline[idx - 1])) !== day;
+            const key =
+              e.kind === 'override' ? `o-${e.row.id}` : e.kind === 'compliance' ? `c-${e.row.entry_id}` : `a-${e.row.id}`;
             return (
-              <div key={`a-${a.id}`} className="rounded-md border border-border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={badgeClass(a.action)}>
-                      {humanizeAction(a.action)}
-                    </Badge>
+              <div key={key} className="space-y-2">
+                {showDay && (
+                  <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{day}</p>
+                )}
+                {e.kind === 'override' ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 text-warning" />
+                        <Badge variant="outline" className={badgeClass('RULE_OVERRIDE')}>Rule override</Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.created_at)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)} · rule{' '}
+                      {String(e.row.rule_key || '').replace(/[._]/g, ' ')} ({String(e.row.module || '').replace(/_/g, ' ')})
+                    </div>
+                    <div className="mt-2 rounded bg-background/70 p-2 text-sm">
+                      <div className="text-[10px] uppercase text-muted-foreground">Reason given</div>
+                      <div className="whitespace-pre-wrap">{e.row.reason}</div>
+                    </div>
+                    <ChangeSummary before={e.row.original_value} after={e.row.overridden_value} />
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  By {actorLabel(a.user_id, a.user_role)}
-                </div>
-                <ChangeSummary before={a.old_value} after={a.new_value} />
+                ) : e.kind === 'compliance' ? (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="outline" className={badgeClass(e.row.action_type)}>
+                        {humanizeAction(e.row.action_type)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.timestamp)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)}
+                    </div>
+                    <ChangeSummary before={e.row.before_value} after={e.row.after_value} />
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="outline" className={badgeClass(e.row.action)}>
+                        {humanizeAction(e.row.action)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.created_at)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)}
+                    </div>
+                    <ChangeSummary before={e.row.old_value} after={e.row.new_value} />
+                  </div>
+                )}
               </div>
             );
           })}
+
         </div>
       </SheetContent>
     </Sheet>
