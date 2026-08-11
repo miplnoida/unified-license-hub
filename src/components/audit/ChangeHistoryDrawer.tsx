@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,10 @@ function badgeClass(action: string): string {
  * identifiers are hidden; the raw payload stays behind a "Technical details"
  * toggle.
  */
-function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
+const ChangeSummary = forwardRef<HTMLDivElement, { before: unknown; after: unknown }>(function ChangeSummary(
+  { before, after },
+  ref,
+) {
   const [showRaw, setShowRaw] = useState(false);
   const changes = useMemo(() => historyChanges(before, after), [before, after]);
   const singleAfter = changes.length === 0 ? summarizeSingle(after) : null;
@@ -88,7 +91,7 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
   }
 
   return (
-    <div className="mt-2 space-y-1.5">
+    <div ref={ref} className="mt-2 space-y-1.5">
       {changes.length > 0 && (
         <ul className="space-y-1 rounded bg-muted/40 p-2 text-xs">
           {changes.map((c) => (
@@ -136,7 +139,7 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
       )}
     </div>
   );
-}
+});
 
 
 /**
@@ -168,6 +171,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
           .limit(200),
         (supabase.from('compliance_audit_logs') as any)
           .select('entry_id, timestamp, action_type, user_id, user_role, before_value, after_value, metadata')
+          .eq('object_type', entityType)
           .eq('object_id', entityId)
           .order('timestamp', { ascending: false })
           .limit(200),
@@ -217,9 +221,16 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
       const mid = (a.metadata as any)?.override_id;
       return !(a.action === 'RULE_OVERRIDE' && typeof mid === 'string' && overrideIds.has(mid));
     });
+    /** Same event written to both audit tables — keep one copy. */
+    const auditSignatures = new Set(
+      filteredAudits.map((a) => `${String(a.action).toLowerCase()}|${a.created_at.slice(0, 16)}`),
+    );
+    const filteredCompliance = compliance.filter(
+      (c) => !auditSignatures.has(`${String(c.action_type).toLowerCase()}|${String(c.timestamp).slice(0, 16)}`),
+    );
     const merged: TimelineEntry[] = [
       ...filteredAudits.map((row) => ({ kind: 'audit' as const, row })),
-      ...compliance.map((row) => ({ kind: 'compliance' as const, row })),
+      ...filteredCompliance.map((row) => ({ kind: 'compliance' as const, row })),
       ...overrides.map((row) => ({ kind: 'override' as const, row })),
     ];
     merged.sort((a, b) => ts(b).localeCompare(ts(a)));
@@ -239,7 +250,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
             <History className="h-5 w-5" />
             {title ?? 'Change history'}
           </SheetTitle>
-          <SheetDescription>Timeline of all changes and reviewer actions.</SheetDescription>
+          <SheetDescription>Full technical audit trail, including field-level changes and overrides.</SheetDescription>
         </SheetHeader>
 
         <div className="mt-3 flex items-center justify-between">

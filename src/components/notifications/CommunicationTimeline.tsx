@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, RefreshCw, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import {
   plainChannelLabel,
   plainDirectionLabel,
@@ -91,18 +92,23 @@ export function CommunicationTimeline({ objectType, objectId, title = 'Communica
     setLoading(true);
     setError(null);
     setDenied(false);
-    const { data, error: rpcError } = await supabase.rpc('communication_timeline' as never, {
-      _object_type: objectType,
-      _object_id: objectId,
-    } as never);
-    if (rpcError) {
-      if (rpcError.code === '42501' || /not authorized/i.test(rpcError.message)) setDenied(true);
-      else setError(rpcError.message);
-      setRows([]);
-    } else {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('communication_timeline' as never, {
+        _object_type: objectType,
+        _object_id: objectId,
+      } as never);
+      if (rpcError) throw rpcError;
       setRows((data || []) as unknown as CommunicationTimelineRow[]);
+    } catch (e: any) {
+      // Any thrown exception must still terminate the loader — otherwise the
+      // spinner would stay on screen forever.
+      const message = e?.message ?? 'Unexpected error';
+      if (e?.code === '42501' || /not authorized|permission denied/i.test(message)) setDenied(true);
+      else setError(message);
+      setRows([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [objectType, objectId]);
 
   useEffect(() => {
@@ -130,8 +136,14 @@ export function CommunicationTimeline({ objectType, objectId, title = 'Communica
         </Button>
       </CardHeader>
       <CardContent>
-        {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
-        {loading ? (
+        {error ? (
+          <QueryErrorState
+            title="We couldn’t load communications"
+            message="Communications could not be loaded. This is a temporary problem — please try again."
+            onRetry={() => void load()}
+            compact
+          />
+        ) : loading ? (
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading communications…
           </div>

@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
 
@@ -32,8 +33,9 @@ export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId:
   const [qaNote, setQaNote] = useState('');
 
 
-  const { data: reviews, isLoading } = useQuery({
+  const closureQ = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('complaint_closure_reviews')
@@ -44,6 +46,8 @@ export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId:
       return data ?? [];
     },
   });
+  const reviews = closureQ.data;
+  const isLoading = closureQ.isLoading;
 
   const record = useMutation({
     mutationFn: async (args: { decision: string; note?: string }) => {
@@ -166,8 +170,19 @@ export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId:
       <Card>
         <CardHeader><CardTitle className="text-base">Closure history</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : !reviews?.length ? (
-            <p className="text-sm text-muted-foreground">No closure decisions recorded yet.</p>
+          {closureQ.isError ? (
+            <QueryErrorState
+              title="We couldn’t load the closure history"
+              message="Closure history could not be loaded. Please try again."
+              onRetry={() => closureQ.refetch()}
+              compact
+            />
+          ) : isLoading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading closure history…
+            </p>
+          ) : !reviews?.length ? (
+            <p className="text-sm text-muted-foreground">No closure decisions have been recorded yet.</p>
           ) : reviews.map((r: any) => (
             <div key={r.id} className="rounded-md border p-3 text-sm">
               <div className="flex items-center justify-between">
