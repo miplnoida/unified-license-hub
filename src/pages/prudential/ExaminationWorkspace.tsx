@@ -157,6 +157,11 @@ export default function ExaminationWorkspace() {
     ).length,
   }), [findings, dataRequests, workpapers]);
 
+  const toggleAll = () => {
+    const p = new URLSearchParams(params);
+    if (showAll) p.delete('all'); else p.set('all', '1');
+    setParams(p, { replace: true });
+  };
 
   const leadExaminer = (team.find((t: any) => t.team_role === 'lead_examiner') as any)?.member_name ?? null;
 
@@ -177,16 +182,44 @@ export default function ExaminationWorkspace() {
   }
 
   const currentStepPanel = () => {
+    const p = { examinationId: exam.id, readOnly, mode: 'current-step' as const };
     switch (stepKey) {
-      case 'team': return <TeamPanel examinationId={exam.id} readOnly={readOnly} />;
-      case 'scoping': return <ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} />;
-      case 'data-requests': return <DataRequestsPanel examinationId={exam.id} readOnly={readOnly} />;
-      case 'workpapers': return <WorkpapersPanel examinationId={exam.id} readOnly={readOnly} />;
-      case 'exit-meeting': return <ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} />;
-      case 'reports': return <ReportsPanel examinationId={exam.id} readOnly={readOnly} />;
-      default: return <FindingsPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'team': return <TeamPanel {...p} />;
+      case 'scoping': return <ScopingMemoPanel {...p} />;
+      case 'data-requests': return <DataRequestsPanel {...p} />;
+      case 'workpapers': return <WorkpapersPanel {...p} />;
+      case 'exit-meeting': return <ExitMeetingPanel {...p} />;
+      case 'reports': return <ReportsPanel {...p} />;
+      default: return <FindingsPanel {...p} />;
     }
   };
+
+  /** Sections mapped from tab value back to the workflow section key. */
+  const SECTION_OF_TAB: Record<string, string> = {
+    findings: 'findings',
+    documents: 'reports',
+    scoping: 'scoping',
+    team: 'team',
+    'data-requests': 'data-requests',
+    workpapers: 'workpapers',
+    'exit-meeting': 'exit-meeting',
+  };
+
+  const detourBanner = () => {
+    if (!fromCurrent) return null;
+    const key = SECTION_OF_TAB[section];
+    if (!key) return null;
+    const outstanding = guidance.transitionBlockers.filter(b => b.section === key);
+    return (
+      <ExaminationResolveBanner
+        currentStepTitle={STEP_TITLES[stepKey]}
+        cleared={outstanding.length === 0}
+        clearedMessage="This prerequisite has been resolved."
+        onReturn={goToCurrent}
+      />
+    );
+  };
+
 
   return (
     <DashboardLayout>
