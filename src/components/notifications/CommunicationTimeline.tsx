@@ -11,9 +11,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Mail, RefreshCw, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  plainChannelLabel,
+  plainDirectionLabel,
+  plainFailureReason,
+  plainStateHint,
+  plainStateLabel,
+  plainSubject,
+} from '@/lib/communicationPlainLanguage';
+
 
 export type CommunicationObjectType =
   | 'application'
