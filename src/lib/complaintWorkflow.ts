@@ -300,10 +300,11 @@ export function buildReadiness(input: {
     key: 'tasks',
     label:
       input.tasks.total === 0
-        ? 'No investigation tasks created'
-        : `Investigation tasks: ${input.tasks.label}`,
+        ? 'No investigation work items created'
+        : `Investigation checklist: ${input.tasks.label}`,
     done: input.tasks.total > 0 && input.tasks.open === 0,
     kind: 'recommended',
+
     section: 'investigation',
   });
 
