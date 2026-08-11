@@ -97,17 +97,29 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Task-level status only. This NEVER touches the complaint lifecycle — the
+  // complaint moves exclusively through the configured workflow action on the
+  // "Current step" tab.
+  const AUDIT_LABEL: Record<string, string> = {
+    in_progress: 'complaint.investigation_task_marked_in_progress',
+    completed: 'complaint.investigation_task_completed',
+    cancelled: 'complaint.investigation_task_cancelled',
+    pending: 'complaint.investigation_task_reopened',
+  };
+
   const setTaskStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const patch: any = { status };
       if (status === 'completed') { patch.completed_at = new Date().toISOString(); patch.completed_by = user?.id; }
+      if (status === 'pending' || status === 'in_progress') { patch.completed_at = null; patch.completed_by = null; }
       const { error } = await supabase.from('complaint_investigation_tasks').update(patch).eq('id', id);
       if (error) throw error;
-      await logAction(`complaint.task_${status}`, 'complaint', complaintId, { meta: { task_id: id } });
+      await logAction(AUDIT_LABEL[status] ?? 'complaint.investigation_task_updated', 'complaint', complaintId, { meta: { task_id: id, task_status: status } });
     },
-    onSuccess: () => { toast.success('Task updated'); invalidate(); },
+    onSuccess: () => { toast.success('Task updated — the complaint itself is unchanged'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const addCorrespondence = useMutation({
     mutationFn: async () => {
