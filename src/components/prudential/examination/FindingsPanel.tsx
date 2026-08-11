@@ -7,11 +7,33 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateRemediationAction, useExaminationFindings, useFindingMutations } from '@/hooks/useExaminations';
+import { useCloseActionGated } from '@/hooks/usePrudentialActionLifecycle';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
+
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
+
+const CLOSED_ACTION_STATUSES = ['completed', 'waived', 'cancelled'];
+const isActionClosed = (s: any) => CLOSED_ACTION_STATUSES.includes(String(s));
+const actionStatusLabel = (s: any) => {
+  const v = String(s);
+  return v === 'completed' ? 'Completed'
+    : v === 'waived' ? 'Waived'
+      : v === 'cancelled' ? 'Cancelled'
+        : v === 'in_progress' ? 'In progress'
+          : v === 'overdue' ? 'Overdue'
+            : v === 'breached' ? 'Breached'
+              : 'Open';
+};
+const actionTone = (s: any) =>
+  isActionClosed(s) ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+    : ['overdue', 'breached'].includes(String(s)) ? 'bg-destructive/10 text-destructive border-destructive/20'
+      : 'bg-warning/10 text-warning border-warning/20';
+
 
 const sevTone = (s: string) =>
   s === 'critical' ? 'bg-destructive/10 text-destructive border-destructive/20'
@@ -32,6 +54,9 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
   const { data: rows = [], isLoading } = useExaminationFindings(examinationId);
   const { save, remove } = useFindingMutations(examinationId);
   const createAction = useCreateRemediationAction(examinationId);
+  const closeAction = useCloseActionGated();
+  const qc = useQueryClient();
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: '', category: '', severity: 'medium', criteria_breached: '',
@@ -57,9 +82,36 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
   };
 
   const closeFinding = async (r: any) => {
+    const hasOpenAction = r.action && !['completed', 'waived', 'cancelled'].includes(String(r.action.status));
+    const res = await Swal.fire({
+      title: 'Close this finding?',
+      text: hasOpenAction
+        ? 'The linked corrective action will be completed at the same time. Add a short closure note.'
+        : 'Add a short closure note for the record.',
+      input: 'textarea',
+      inputPlaceholder: 'Why is this finding being closed?',
+      inputValidator: (v) => (!v || v.trim().length < 5 ? 'Please enter at least 5 characters' : undefined),
+      showCancelButton: true,
+      confirmButtonText: 'Close finding',
+    });
+    if (!res.isConfirmed) return;
+    const note = String(res.value ?? '').trim();
+
+    if (hasOpenAction) {
+      try {
+        await closeAction.mutateAsync({ action_id: r.remediation_action_id, kind: 'completed', reason: note });
+      } catch {
+        return; // closure gate refused — finding stays open, error already surfaced
+      }
+    }
+
     const { data: auth } = await supabase.auth.getUser();
-    save.mutate({ id: r.id, status: 'closed', closed_at: new Date().toISOString(), closed_by: auth?.user?.id ?? null });
+    await save.mutateAsync({
+      id: r.id, status: 'closed', closed_at: new Date().toISOString(), closed_by: auth?.user?.id ?? null,
+    });
+    qc.invalidateQueries({ queryKey: ['examination-findings', examinationId] });
   };
+
 
   const openCount = rows.filter((r: any) => r.status !== 'closed').length;
   const unlinked = rows.filter((r: any) => r.status !== 'closed' && !r.remediation_action_id);
@@ -143,16 +195,17 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
                 </div>
 
                 {r.action ? (
-                  <div className="rounded-md bg-muted/40 p-2 text-xs">
-                    <span className="font-medium">Corrective action: </span>{r.action.title}
-                    <span className="text-muted-foreground">
-                      {' '}· status {String(r.action.status).replace('_', ' ')}
-                      {r.action.due_date ? ` · due ${new Date(r.action.due_date).toLocaleDateString()}` : ''}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                    <span><span className="font-medium">Corrective action: </span>{r.action.title}</span>
+                    <Badge variant="outline" className={actionTone(r.action.status)}>{actionStatusLabel(r.action.status)}</Badge>
+                    {r.action.due_date && !isActionClosed(r.action.status) && (
+                      <span className="text-muted-foreground">Due {new Date(r.action.due_date).toLocaleDateString()}</span>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-warning">Corrective action not yet created.</p>
                 )}
+
 
                 {!readOnly && (
                   <div className="flex flex-wrap gap-2">
