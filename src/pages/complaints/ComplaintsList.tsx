@@ -379,8 +379,11 @@ export default function ComplaintsList() {
     // and trigger-based notifications. No duplicate client-side dispatch here.
     // Severity is never sent: complaint_intake_decide assigns it from triage
     // configuration (matched rule or configured default).
+    // `variant` is explicit so the server records ownership correctly:
+    // internal = staff-filed (no complainant), licensee = filed by this user.
     const payload: Record<string, unknown> = isInternal
       ? {
+          variant: 'internal',
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email || null,
@@ -388,6 +391,7 @@ export default function ComplaintsList() {
           intake_source: 'internal',
         }
       : {
+          variant: 'licensee',
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
