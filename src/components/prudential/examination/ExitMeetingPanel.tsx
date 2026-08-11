@@ -6,10 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExitMeeting, useSaveExitMeeting } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { ChipsInput } from './ChipsInput';
 
-export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function ExitMeetingPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data, isLoading } = useExitMeeting(examinationId);
   const save = useSaveExitMeeting(examinationId);
   const [form, setForm] = useState({
@@ -101,7 +101,7 @@ export function ExitMeetingPanel({ examinationId, readOnly }: { examinationId: s
           <Textarea id="timelines" rows={2} disabled={readOnly} value={form.agreed_timelines}
             onChange={e => setForm(f => ({ ...f, agreed_timelines: e.target.value }))} />
         </div>
-        {!readOnly && <StageActions beforeAdvance={persist} />}
+        {!readOnly && <StageActions mode={mode} beforeAdvance={persist} />}
       </CardContent>
     </Card>
   );

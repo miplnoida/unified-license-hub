@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2, Plus, Send, Trash2 } from 'lucide-react';
 import { useDataRequestMutations, useDataRequests } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { dataRequestStatusLabel } from '@/lib/examinationWorkflow';
 
 type FilterKey = 'attention' | 'overdue' | 'draft' | 'issued' | 'received' | 'all';
@@ -21,7 +21,7 @@ const tone = (r: any) => {
   return 'bg-muted text-muted-foreground';
 };
 
-export function DataRequestsPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function DataRequestsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useDataRequests(examinationId);
   const { save, remove } = useDataRequestMutations(examinationId);
   const [form, setForm] = useState({ title: '', description: '', data_format: '', due_date: '' });
@@ -237,7 +237,7 @@ export function DataRequestsPanel({ examinationId, readOnly }: { examinationId: 
           </div>
         )}
 
-        {!readOnly && <StageActions />}
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );

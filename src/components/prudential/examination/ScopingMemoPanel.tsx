@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExaminationScoping, useSaveScoping } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { ChipsInput } from './ChipsInput';
 
 function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -23,7 +23,7 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
   );
 }
 
-export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function ScopingMemoPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data, isLoading } = useExaminationScoping(examinationId);
   const save = useSaveScoping(examinationId);
   const [form, setForm] = useState({
@@ -131,7 +131,7 @@ export function ScopingMemoPanel({ examinationId, readOnly }: { examinationId: s
         </Group>
 
         {!readOnly && (
-          <StageActions beforeAdvance={() => persist()}>
+          <StageActions mode={mode} beforeAdvance={() => persist()}>
             {!data?.approved_at && (
               <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline"
                 disabled={save.isPending} onClick={approve}>

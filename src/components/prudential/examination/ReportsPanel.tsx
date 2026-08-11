@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Check, CheckCircle2, FileText, Loader2, Plus, Send, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExaminationReports, useReportMutations } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { REPORT_STEPS, reportStatusLabel, reportStepIndex } from '@/lib/examinationWorkflow';
 
 function ReportStepper({ current }: { current: number }) {
@@ -33,7 +33,7 @@ function ReportStepper({ current }: { current: number }) {
   );
 }
 
-export function ReportsPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function ReportsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationReports(examinationId);
   const { save } = useReportMutations(examinationId);
   const [showForm, setShowForm] = useState(false);
@@ -219,7 +219,7 @@ export function ReportsPanel({ examinationId, readOnly }: { examinationId: strin
           </div>
         )}
 
-        {!readOnly && <StageActions />}
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );

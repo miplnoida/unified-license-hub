@@ -10,11 +10,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertTriangle, ChevronDown, Loader2, Plus, Trash2, UserRound } from 'lucide-react';
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
-import { StageActions } from './ExaminationStageActions';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
 const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r.replace('_', ' ');
 
-export function TeamPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
   const { save, remove } = useTeamMutations(examinationId);
   const [showForm, setShowForm] = useState(false);
@@ -214,7 +214,7 @@ export function TeamPanel({ examinationId, readOnly }: { examinationId: string; 
           </div>
         )}
 
-        {!readOnly && <StageActions />}
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );
