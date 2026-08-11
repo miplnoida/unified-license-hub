@@ -128,7 +128,12 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
     });
   };
 
-  const submittedFmt = new Date(complaint.submitted_at).toLocaleString();
+  const submittedDate = complaint.submitted_at ? new Date(complaint.submitted_at) : null;
+  const submittedFmt =
+    submittedDate && !Number.isNaN(submittedDate.getTime())
+      ? submittedDate.toLocaleString()
+      : '—';
+
   const attachments = complaint.attachments ?? [];
 
   // ---------- APPLICANT VARIANT ----------
