@@ -1,6 +1,6 @@
 import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -36,7 +36,11 @@ import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrac
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
-import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
+import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
+import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
+import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
+import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
+
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
@@ -61,10 +65,24 @@ export default function ComplaintDetail() {
   const { user } = useAuth();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+
+  // Guided navigation: `section` picks the top-level area, `sub` the Case work
+  // sub-section, so Current step can deep-link into supporting work.
+  const section = (params.get('section') as CaseSection) || 'overview';
+  const sub = (params.get('sub') as CaseWorkSection) || 'investigation';
+  const goSection = (next: CaseSection, nextSub?: CaseWorkSection) => {
+    const p = new URLSearchParams(params);
+    p.set('section', next);
+    if (nextSub) p.set('sub', nextSub);
+    setParams(p, { replace: true });
+  };
+  const openCaseWork = (nextSub: CaseWorkSection) => goSection('casework', nextSub);
 
   // Only presentation + data-helper state remains. All lifecycle mutations
   // (assign / resolve / close / escalate / notice / decision / appeal / payment)
-  // execute through <WorkflowActionPanel> in the Tracking tab.
+  // execute through <WorkflowActionPanel>, surfaced on the Current step tab.
+
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
@@ -355,19 +373,24 @@ export default function ComplaintDetail() {
           onCompleted={() => complaintQ.refetch()}
         />
 
-        <Tabs defaultValue="overview">
-          <TabsList>
+        <Tabs value={section} onValueChange={(v) => goSection(v as CaseSection)}>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="investigation">Investigation</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
-            <TabsTrigger value="communications">Communications</TabsTrigger>
-            <TabsTrigger value="rfis">Information Requests</TabsTrigger>
-            <TabsTrigger value="tracking">Tracking</TabsTrigger>
-            <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
-
+            <TabsTrigger value="current">Current step</TabsTrigger>
+            <TabsTrigger value="casework">Case work</TabsTrigger>
+            <TabsTrigger value="comms">Evidence &amp; communications</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            <ComplaintOverviewSummary
+              complaint={complaint}
+              complaintTypeName={complaintType?.name ?? null}
+              complainantName={complainant?.full_name ?? null}
+              licenseeName={linkedLicenseeQ.data?.name ?? null}
+              onOpenCurrentStep={() => goSection('current')}
+            />
+
             <Card>
               <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -446,14 +469,37 @@ export default function ComplaintDetail() {
             <TriageHistoryCard complaint={complaint} />
           </TabsContent>
 
-          <TabsContent value="investigation">
-            <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+          <TabsContent value="current" className="space-y-4">
+            <ComplaintCurrentStepPanel
+              complaintId={complaint.id}
+              status={complaint.status}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              onOpenSection={openCaseWork}
+            />
           </TabsContent>
 
-          <TabsContent value="actions" className="space-y-4">
-            {/* Triage — severity + licensee mapping remain as data helpers.
-                All lifecycle actions (assign, resolve, close, escalate, notice, decision,
-                appeal, payment) live in the Tracking tab, driven by the workflow config. */}
+          <TabsContent value="casework" className="space-y-4">
+            <div className="rounded-md border bg-muted/40 p-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                Supporting case work. Lifecycle progression stays on the <strong>Current step</strong> tab.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => goSection('current')}>Return to current step</Button>
+            </div>
+
+            <Tabs value={sub} onValueChange={(v) => goSection('casework', v as CaseWorkSection)}>
+              <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="investigation">Investigation</TabsTrigger>
+                <TabsTrigger value="rfis">Information requests</TabsTrigger>
+                <TabsTrigger value="classification">Classification &amp; case setup</TabsTrigger>
+                <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="investigation" className="space-y-4">
+                <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+              </TabsContent>
+
+              <TabsContent value="classification" className="space-y-4">
+
             <Card>
               <CardHeader><CardTitle className="text-base">Override severity</CardTitle></CardHeader>
               <CardContent className="space-y-3">
@@ -559,16 +605,29 @@ export default function ComplaintDetail() {
 
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
-                Lifecycle actions (assign, resolve, close, escalate, issue notice, record response, decision,
-                appeal, payment, withdraw) are available in the <strong>Tracking</strong> tab. What's shown
-                there is decided by the Complaint Management Workflow configuration — administrators can add,
-                rename, or reorder actions without a code change.
+                These are classification and case-setup details, not lifecycle steps. The complaint only progresses
+                through the workflow action shown on the <strong>Current step</strong> tab, exactly as configured in
+                the Complaint Management Workflow.
               </CardContent>
             </Card>
+              </TabsContent>
+
+              <TabsContent value="rfis" className="space-y-4">
+                <ComplaintRfiTab
+                  complaintId={complaint.id}
+                  complaintNumber={complaint.complaint_number}
+                  licenseeId={(complaint as any).licensee_id ?? null}
+                  licenseeName={linkedLicenseeQ.data?.name ?? null}
+                />
+              </TabsContent>
+
+              <TabsContent value="closure" className="space-y-4">
+                <ComplaintClosureSection complaintId={complaint.id} status={complaint.status} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-
-          <TabsContent value="communications" className="space-y-4">
+          <TabsContent value="comms" className="space-y-4">
             <CaseThreadsPanel
               sourceType="complaint"
               sourceId={complaint.id}
@@ -579,29 +638,13 @@ export default function ComplaintDetail() {
             <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
           </TabsContent>
 
-          <TabsContent value="rfis" className="space-y-4">
-            <ComplaintRfiTab
-              complaintId={complaint.id}
-              complaintNumber={complaint.complaint_number}
-              licenseeId={(complaint as any).licensee_id ?? null}
-              licenseeName={linkedLicenseeQ.data?.name ?? null}
-            />
-          </TabsContent>
-
-
-
-          <TabsContent value="tracking" className="space-y-4">
-            <WorkflowActionPanel complaintId={complaint.id} />
-
+          <TabsContent value="history" className="space-y-4">
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
             />
           </TabsContent>
 
-          <TabsContent value="closure" className="space-y-4">
-            <ClosureQaPanel complaintId={complaint.id} />
-          </TabsContent>
         </Tabs>
 
         {severityOverride && complaint && (

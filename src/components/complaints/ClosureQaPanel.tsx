@@ -21,7 +21,7 @@ import { Loader2 } from 'lucide-react';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
 
-export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
+export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId: string; readOnly?: boolean }) {
   const qc = useQueryClient();
   const [resolution, setResolution] = useState('');
   const [rationale, setRationale] = useState('');
@@ -30,6 +30,7 @@ export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
   const [evidenceComplete, setEvidenceComplete] = useState(false);
   const [qaRequired, setQaRequired] = useState(false);
   const [qaNote, setQaNote] = useState('');
+
 
   const { data: reviews, isLoading } = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
@@ -71,8 +72,21 @@ export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+        This section records the <strong>closure assessment and QA decision</strong> only. It does not close the
+        complaint. The complaint moves to <strong>Closed</strong> when the configured workflow action is performed on the{' '}
+        <strong>Current step</strong> tab.
+      </div>
+
+      {readOnly && (
+        <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+          Closure &amp; QA becomes available later in the workflow. The history below stays visible.
+        </div>
+      )}
+
+      {!readOnly && (
       <Card>
-        <CardHeader><CardTitle className="text-base">Closure decision</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Closure assessment</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
@@ -109,16 +123,18 @@ export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
           <div className="flex flex-wrap gap-2">
             <Button data-rbac="complaint_management.edit" disabled={record.isPending}
               onClick={() => record.mutate({ decision: 'closure_proposed' })}>
-              {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Propose closure
+              {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Propose closure (recommendation)
             </Button>
             <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
               onClick={() => record.mutate({ decision: 'closed' })}>
-              Record closure
+              Record closure assessment
             </Button>
           </div>
         </CardContent>
       </Card>
+      )}
 
+      {!readOnly && (
       <Card>
         <CardHeader><CardTitle className="text-base">QA review</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -144,6 +160,8 @@ export function ClosureQaPanel({ complaintId }: { complaintId: string }) {
           )}
         </CardContent>
       </Card>
+      )}
+
 
       <Card>
         <CardHeader><CardTitle className="text-base">Closure history</CardTitle></CardHeader>
