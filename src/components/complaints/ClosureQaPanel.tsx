@@ -19,8 +19,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { closureDecisionLabel } from '@/lib/complaintWorkflow';
+import { formatDateTime } from '@/lib/datetime';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
+
+/** Turn the backend's validation reasons into plain sentences for staff. */
+function friendlyRecordError(e: unknown): string {
+  const raw =
+    (e as any)?.message ??
+    (typeof e === 'string' ? e : '') ??
+    '';
+  const msg = String(raw).toLowerCase();
+  if (msg.includes('resolution summary')) return 'Add a resolution before recording a closure decision.';
+  if (msg.includes('rationale')) return 'The rationale must be at least 10 characters.';
+  if (msg.includes('outcome category')) return 'Choose an outcome before recording a closure decision.';
+  if (msg.includes('evidence completeness')) return 'Tick “Evidence is complete” before recording a closure decision.';
+  if (msg.includes('return reason')) return 'Give a return reason of at least 10 characters.';
+  if (msg.includes('not authorised') || msg.includes('42501')) {
+    return 'You do not have permission to record a closure decision.';
+  }
+  return raw ? `Could not record decision: ${raw}` : 'Could not record decision. Please try again.';
+}
+
 
 export function ClosureQaPanel({
   complaintId,
@@ -83,10 +104,23 @@ export function ClosureQaPanel({
       qc.invalidateQueries({ queryKey: ['complaint_closure_reviews', complaintId] });
       toast.success('Decision recorded');
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not record decision'),
+    onError: (e) => toast.error(friendlyRecordError(e)),
   });
 
   const latest = reviews?.[0] as any | undefined;
+  const latestLabel = closureDecisionLabel(latest?.decision);
+  /** Once QA has approved (or a closure assessment is recorded), QA is done. */
+  const qaLocked = (reviews ?? []).some(
+    (r: any) => r.decision === 'qa_approved' || r.decision === 'closed',
+  );
+
+  /** Client-side mirror of the server's closure requirements. */
+  const missing: string[] = [];
+  if (!resolution.trim()) missing.push('Add a resolution describing how the complaint was handled.');
+  if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
+  if (!outcome) missing.push('Choose an outcome.');
+  if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
+
 
   return (
     <div className="space-y-4">
@@ -161,16 +195,26 @@ export function ClosureQaPanel({
               <Label htmlFor="cq-qa" className="font-normal">QA review required before closure</Label>
             </div>
           </div>
+          {missing.length > 0 && (
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+              <p className="font-medium">What's still needed before you can record a closure decision</p>
+              <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                {missing.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button data-rbac="complaint_management.edit" disabled={record.isPending}
+            <Button data-rbac="complaint_management.edit" disabled={record.isPending || missing.length > 0}
               onClick={() => record.mutate({ decision: 'closure_proposed' })}>
               {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Propose closure (recommendation)
             </Button>
-            <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
+            <Button variant="outline" data-rbac="complaint_management.edit"
+              disabled={record.isPending || missing.length > 0}
               onClick={() => record.mutate({ decision: 'closed' })}>
               Record closure assessment
             </Button>
           </div>
+
         </CardContent>
       </Card>
       )}
@@ -179,29 +223,49 @@ export function ClosureQaPanel({
       <Card>
         <CardHeader><CardTitle className="text-base">QA review</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <Label htmlFor="cq-qanote">QA note / return reason (min 10 characters when returning)</Label>
-            <Textarea id="cq-qanote" rows={2} value={qaNote} onChange={(e) => setQaNote(e.target.value)} />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" data-rbac="complaint_management.edit"
-              onClick={() => record.mutate({ decision: 'qa_approved', note: qaNote || 'QA approved' })}>
-              QA approve
-            </Button>
-            <Button variant="outline" data-rbac="complaint_management.edit"
-              onClick={() => record.mutate({ decision: 'qa_returned', note: qaNote })}>
-              Return to officer
-            </Button>
-          </div>
+          {qaLocked ? (
+            <div className="rounded-md border border-success/30 bg-success/10 p-3 text-sm">
+              <p className="font-medium">Quality review completed</p>
+              <p className="text-muted-foreground">
+                {latestLabel.label}
+                {latest?.decided_at ? ` on ${formatDateTime(latest.decided_at)}` : ''} — no further quality review
+                action is needed. The complaint is closed from the <strong>Current step</strong> tab.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor="cq-qanote">QA note / return reason (at least 10 characters when returning)</Label>
+                <Textarea id="cq-qanote" rows={2} value={qaNote} onChange={(e) => setQaNote(e.target.value)} />
+                {qaNote.trim().length > 0 && qaNote.trim().length < 10 && (
+                  <p className="mt-1 text-xs text-destructive">
+                    Add at least 10 characters to return this case to the officer.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
+                  onClick={() => record.mutate({ decision: 'qa_approved', note: qaNote || 'QA approved' })}>
+                  {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}QA approve
+                </Button>
+                <Button variant="outline" data-rbac="complaint_management.edit"
+                  disabled={record.isPending || qaNote.trim().length < 10}
+                  onClick={() => record.mutate({ decision: 'qa_returned', note: qaNote })}>
+                  Return to officer
+                </Button>
+              </div>
+            </>
+          )}
           {latest && (
             <p className="text-xs text-muted-foreground">
-              Latest decision: <Badge variant="outline">{latest.decision}</Badge>{' '}
-              {new Date(latest.decided_at).toLocaleString()}
+              Latest decision: <strong>{latestLabel.label}</strong>
+              {latestLabel.meaning ? ` — ${latestLabel.meaning}` : ''} · {formatDateTime(latest.decided_at)}
             </p>
           )}
         </CardContent>
       </Card>
       )}
+
 
 
       <Card>
@@ -222,9 +286,17 @@ export function ClosureQaPanel({
             <p className="text-sm text-muted-foreground">No closure decisions have been recorded yet.</p>
           ) : reviews.map((r: any) => (
             <div key={r.id} className="rounded-md border p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline">{r.decision}</Badge>
-                <span className="text-xs text-muted-foreground">{new Date(r.decided_at).toLocaleString()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Badge variant="outline">{closureDecisionLabel(r.decision).label}</Badge>
+                  {closureDecisionLabel(r.decision).meaning && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      — {closureDecisionLabel(r.decision).meaning}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">{formatDateTime(r.decided_at)}</span>
+
               </div>
               {r.outcome_category && <div className="mt-1">Outcome: {r.outcome_category}</div>}
               {r.resolution_summary && <div className="mt-1">{r.resolution_summary}</div>}
