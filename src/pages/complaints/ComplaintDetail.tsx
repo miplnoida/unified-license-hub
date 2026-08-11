@@ -434,37 +434,20 @@ export default function ComplaintDetail() {
                 )}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Paperclip className="h-4 w-4" />Attachments {attachments.length > 0 && <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>}</CardTitle></CardHeader>
-              <CardContent className="text-sm">
-                {attachmentsQ.isError ? (
-                  <QueryErrorState message="Failed to load attachments" onRetry={() => attachmentsQ.refetch()} />
-                ) : attachments.length === 0 ? (
-                  <p className="text-muted-foreground">No attachments uploaded with this complaint.</p>
-                ) : (
-                  <ul className="divide-y">
-                    {attachments.map((a: any) => {
-                      const f = a.file_uploads || {};
-                      const name = f.file_name || a.label || 'Attachment';
-                      return (
-                        <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatSize(f.file_size)}{f.file_size ? ' • ' : ''}
-                              {formatDateTime(a.created_at)}
-                            </p>
-                          </div>
-                          <Button size="sm" variant="outline" onClick={() => openAttachment(f.file_path)} disabled={!f.file_path}>
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" />View
-                          </Button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            {attachments.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />Evidence supplied
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {attachments.length} file{attachments.length === 1 ? '' : 's'} attached — open the{' '}
+                  <span className="text-foreground font-medium">Evidence &amp; communications</span> tab to view them.
+                </CardContent>
+              </Card>
+            )}
+
             <ConductClassificationCard complaint={complaint} />
             <TriageHistoryCard complaint={complaint} />
           </TabsContent>
