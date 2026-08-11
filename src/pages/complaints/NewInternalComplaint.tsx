@@ -15,7 +15,7 @@ import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
-import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
+import { internalComplaintSchema, INTAKE_SOURCES } from '@/lib/complaintSchemas';
 import { LicenseePicker } from '@/components/complaints/LicenseePicker';
 import { toast } from 'sonner';
 
