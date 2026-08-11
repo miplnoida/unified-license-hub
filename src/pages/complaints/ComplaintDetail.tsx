@@ -104,19 +104,43 @@ export default function ComplaintDetail() {
   const complaint = complaintQ.data;
   const isLoading = complaintQ.isLoading;
 
+  /**
+   * Complainants can be internal staff (`profiles`) OR portal/applicant users
+   * (`pre_license_users`). Looking only in `profiles` left Name / User Type
+   * blank for every complaint filed from the applicant portal, so we resolve
+   * from both sources and derive a plain-language user type.
+   */
   const complainantQ = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
     enabled: !!complaint?.complainant_id,
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles')
-        .select('full_name, email, user_type')
-        .eq('id', complaint!.complainant_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const cid = complaint!.complainant_id as string;
+      const [staff, portal] = await Promise.all([
+        supabase.from('profiles').select('full_name, email, user_type').eq('id', cid).maybeSingle(),
+        supabase.from('pre_license_users').select('full_name, email, entity_name').eq('id', cid).maybeSingle(),
+      ]);
+      if (staff.error && portal.error) throw staff.error;
+      if (staff.data) {
+        return {
+          full_name: (staff.data as any).full_name,
+          email: (staff.data as any).email,
+          user_type_label: (staff.data as any).user_type
+            ? String((staff.data as any).user_type).replace(/_/g, ' ')
+            : 'Regulator staff',
+        };
+      }
+      if (portal.data) {
+        return {
+          full_name: (portal.data as any).full_name || (portal.data as any).entity_name,
+          email: (portal.data as any).email,
+          user_type_label: 'Applicant / Licensee user',
+        };
+      }
+      return null;
     },
   });
   const complainant = complainantQ.data;
+
 
   const complaintTypeQ = useQuery({
     queryKey: ['complaint_type', complaint?.complaint_type_id],
