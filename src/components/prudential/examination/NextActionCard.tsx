@@ -54,17 +54,26 @@ export function NextActionCard({
         )}
 
         {guidance.blockers.length > 0 && (
-          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-1">
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-2">
             <p className="flex items-center gap-1.5 text-sm font-medium text-warning">
               <AlertTriangle className="h-4 w-4" />Blocking items
             </p>
-            <ul className="list-disc pl-5 space-y-0.5">
+            <ul className="space-y-1.5">
               {guidance.blockers.map(b => (
-                <li key={b} className="text-xs">{b}</li>
+                <li key={b.text} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span>{b.text}</span>
+                  {b.section && onOpenSection && (
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs"
+                      onClick={() => onOpenSection(b.section as BlockerSection)}>
+                      Resolve
+                    </Button>
+                  )}
+                </li>
               ))}
             </ul>
           </div>
         )}
+
 
         {!readOnly && (
           <Button size="sm" onClick={onOpenCurrentStep}>
