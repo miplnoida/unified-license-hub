@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { stageLabel } from '@/hooks/useExaminations';
-import { phaseLabel, stageGuidance, stagePhase, type Guidance } from '@/lib/examinationWorkflow';
+import {
+  phaseLabel,
+  stageGuidance,
+  stagePhase,
+  type BlockerSection,
+  type Guidance,
+} from '@/lib/examinationWorkflow';
 
 /**
  * "Your next task" — answers: where am I, what do I do now, what is done,
@@ -14,14 +20,17 @@ export function NextActionCard({
   guidance,
   currentStepTitle,
   onOpenCurrentStep,
+  onOpenSection,
   readOnly,
 }: {
   stage?: string | null;
   guidance: Guidance;
   currentStepTitle: string;
   onOpenCurrentStep: () => void;
+  onOpenSection?: (section: BlockerSection) => void;
   readOnly?: boolean;
 }) {
+
   return (
     <Card className="border-primary/30">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
