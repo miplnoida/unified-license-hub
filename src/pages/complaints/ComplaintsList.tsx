@@ -513,7 +513,7 @@ export default function ComplaintsList() {
       complainant_name: prof?.full_name ?? null,
       complainant_email: c.email ?? prof?.email ?? null,
       channel: c.intake_source || null,
-      sla_days: c.sla_days ?? 20,
+      sla_days: c.sla_days ?? null,
       description: c.description ?? null,
       attachments: atts,
     });
