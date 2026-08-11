@@ -1,3 +1,4 @@
+import { complaintPriorityLabel } from '@/lib/complaintStatus';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, FileText, ExternalLink, Printer, RefreshCw } from 'lucide-react';
@@ -44,7 +45,7 @@ export function ComplaintEvidenceRow({ complaint: c, refs, onReprintAck, onRetry
         <Item label="Complaint record" ok hint={c.complaint_number} />
         <Item label="Acknowledgement available" ok hint={c.acknowledged_at ? formatDateTime(c.acknowledged_at) : 'Reprintable'} />
         <Item label="Classification complete" ok={classificationComplete} hint={classificationComplete ? 'All fields set' : 'Missing fields'} />
-        <Item label="Priority assigned" ok={!!c.priority} hint={c.priority?.toUpperCase() || '—'} />
+        <Item label="Priority assigned" ok={!!c.priority} hint={complaintPriorityLabel(c.priority)} />
         <Item label="Routing assigned" ok={routingAssigned} hint={c.assigned_team || inv?.full_name || inv?.email || 'Unassigned'} />
         <div className="text-xs">
           <div className="font-medium mb-1">SLA</div>
