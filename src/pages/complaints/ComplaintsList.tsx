@@ -28,6 +28,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { loadComplaintAttachments } from '@/lib/complaintAttachmentsView';
+
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant, SLA_FILTER_OPTIONS } from '@/lib/complaintsSla';
@@ -320,33 +322,12 @@ export default function ComplaintsList() {
     if (!detailDialog?.id) { setDetailAttachments([]); return; }
     let cancelled = false;
     (async () => {
-      const { data: ev, error } = await supabase
-        .from('complaint_evidence' as any)
-        .select('label, file_upload_id')
-        .eq('complaint_id', detailDialog.id);
-      if (error) { if (!cancelled) toast.error(`Attachments failed to load: ${error.message}`); return; }
-      const rows = (ev as any[]) ?? [];
-      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
-      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
-      const { data: files, error: fErr } = await supabase
-        .from('file_uploads' as any)
-        .select('id, file_name, file_path, file_size')
-        .in('id', ids);
-      if (fErr) { if (!cancelled) toast.error(`File details failed: ${fErr.message}`); return; }
-      const fmap = new Map(((files as any[]) ?? []).map(f => [f.id, f]));
-      const atts = rows.map(r => {
-        const f = fmap.get(r.file_upload_id);
-        return {
-          id: r.file_upload_id,
-          name: r.label || f?.file_name || 'Attachment',
-          size: f?.file_size,
-          filePath: f?.file_path,
-        };
-      });
+      const atts = await loadComplaintAttachments(detailDialog.id);
       if (!cancelled) setDetailAttachments(atts);
     })();
     return () => { cancelled = true; };
   }, [detailDialog?.id]);
+
 
   const openDetailAttachment = async (filePath?: string) => {
     if (!filePath) return;
@@ -419,7 +400,11 @@ export default function ComplaintsList() {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
       uploadedAttachments = r.attachments;
       if (r.failed.length) {
-        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed: ${r.failed[0].error}`);
+        toast.error(
+          `Complaint filed, but ${r.failed.length} attachment(s) could not be attached: ` +
+            r.failed.map(f => `${f.name} (${f.error})`).join('; '),
+          { duration: 10000 },
+        );
       } else if (r.uploaded) {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
@@ -484,30 +469,11 @@ export default function ComplaintsList() {
   const reprintAck = async (c: any) => {
     const prof = c.complainant_id ? profileMap.get(c.complainant_id) : null;
 
-    // Fetch linked evidence + file paths for preview
-    let atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] = [];
-    const { data: evidence } = await supabase
-      .from('complaint_evidence' as any)
-      .select('label, file_upload_id')
-      .eq('complaint_id', c.id);
-    const rows = (evidence as any[]) || [];
-    if (rows.length) {
-      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
-      const { data: files } = await supabase
-        .from('file_uploads' as any)
-        .select('id, file_name, file_path, file_size')
-        .in('id', ids);
-      const fmap = new Map((files as any[] || []).map(f => [f.id, f]));
-      atts = rows.map(r => {
-        const f = fmap.get(r.file_upload_id);
-        return {
-          name: r.label || f?.file_name || 'Attachment',
-          size: f?.file_size,
-          filePath: f?.file_path,
-          fileUploadId: r.file_upload_id,
-        };
-      });
-    }
+    // Fetch linked evidence + any unlinked complaint uploads for preview
+    const loaded = await loadComplaintAttachments(c.id);
+    const atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] =
+      loaded.map(a => ({ name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.id }));
+
 
     setAckDialog({
       id: c.id,
