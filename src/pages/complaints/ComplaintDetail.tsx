@@ -1,6 +1,6 @@
 import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -37,6 +37,10 @@ import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
 import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
+import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
+import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
+import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
+
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
