@@ -91,47 +91,62 @@ export default function ExaminationWorkspace() {
     [exam?.stage, nextStage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
   );
 
-  const stageActionsValue = useMemo(() => {
-    if (terminal) return null;
-    return {
-      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
-      blockers: guidance.blockers,
-      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
-      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
-      pending: transition.isPending,
-    };
-  }, [terminal, nextStage, transition, guidance]);
-
-
   const stepKey = currentStepKey(exam?.stage);
   const section = params.get('section') || 'overview';
   const showAll = params.get('all') === '1';
+  const fromCurrent = params.get('from') === 'current';
 
   const setSection = (next: string) => {
     const p = new URLSearchParams(params);
     p.set('section', next);
+    p.delete('from');
     setParams(p, { replace: true });
   };
 
-  const toggleAll = () => {
+  /** Normalises navigation back onto the guided workflow after a transition. */
+  const goToCurrent = () => {
     const p = new URLSearchParams(params);
-    if (showAll) p.delete('all'); else p.set('all', '1');
+    p.set('section', 'current');
+    p.delete('from');
     setParams(p, { replace: true });
   };
+
+  const openSection = (key: string, detour = false) => {
+    const tab = key === 'reports' ? 'documents' : key;
+    const advanced = ['scoping', 'team', 'data-requests', 'workpapers', 'exit-meeting'];
+    const p = new URLSearchParams(params);
+    p.set('section', tab);
+    if (advanced.includes(tab)) p.set('all', '1');
+    if (detour) p.set('from', 'current'); else p.delete('from');
+    setParams(p, { replace: true });
+  };
+
+  const stageActionsValue = useMemo(() => {
+    if (terminal) return null;
+    return {
+      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
+      transitionBlockers: guidance.transitionBlockers,
+      advance: async () => {
+        if (!nextStage) return;
+        await transition.mutateAsync({ to_stage: nextStage });
+        goToCurrent();
+      },
+      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
+      pending: transition.isPending,
+      onOpenSection: (s: string) => openSection(s, true),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terminal, nextStage, transition, guidance, params]);
 
   const captured = useMemo(
     () => capturedSummary({ scoping, team, dataRequests, workpapers, findings, reports, exitMeeting }),
     [scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
   );
 
-  const openSection = (key: string) => {
-    const tab = key === 'reports' ? 'documents' : key;
-    const advanced = ['scoping', 'team', 'data-requests', 'workpapers', 'exit-meeting'];
-    const p = new URLSearchParams(params);
-    p.set('section', tab);
-    if (advanced.includes(tab)) p.set('all', '1');
-    setParams(p, { replace: true });
-  };
+  const deps = useMemo(
+    () => dependencies({ stage: exam?.stage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting }),
+    [exam?.stage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
+  );
 
   const counts = useMemo(() => ({
     openFindings: findings.filter((f: any) => f.status !== 'closed').length,
@@ -141,6 +156,7 @@ export default function ExaminationWorkspace() {
       (f: any) => f.action && f.action.status !== 'completed' && f.action.status !== 'closed',
     ).length,
   }), [findings, dataRequests, workpapers]);
+
 
   const leadExaminer = (team.find((t: any) => t.team_role === 'lead_examiner') as any)?.member_name ?? null;
 
