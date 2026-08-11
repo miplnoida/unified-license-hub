@@ -28,6 +28,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { loadComplaintAttachments } from '@/lib/complaintAttachmentsView';
+
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant, SLA_FILTER_OPTIONS } from '@/lib/complaintsSla';
