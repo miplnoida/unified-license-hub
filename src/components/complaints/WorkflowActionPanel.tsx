@@ -50,11 +50,12 @@ interface ActionRow {
   mutation_kind: string;
 }
 
-export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onCompleted }: Props) {
+export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onCompleted, currentStepLabel, steps }: Props) {
   const qc = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, any>>({});
   const [comments, setComments] = useState("");
+
 
   // Concurrency source of truth is workflow_instances.updated_at, exposed by
   // get_complaint_tracking. Never use complaints.updated_at for workflow guards.
