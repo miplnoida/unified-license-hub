@@ -362,11 +362,15 @@ export function deriveWaitingState(input: {
   }
   if ((input.actions ?? []).length === 0) {
     const who = input.tracking?.assigned_user_name || input.tracking?.assigned_role;
+    const step = input.tracking?.current_step_label;
     return {
       label: who ? `Waiting for ${who} to act on this step` : 'No action is available to you at this step',
-      detail: input.tracking?.current_step_label ? `Current step: ${input.tracking.current_step_label}` : null,
+      detail: step
+        ? `Current step: ${step}. This step is restricted to the roles configured for it in the approval workflow.`
+        : null,
     };
   }
+
   return null;
 }
 
