@@ -39,6 +39,8 @@ export function ExaminationOverview({
   guidance,
   currentStepTitle,
   onOpenCurrentStep,
+  onOpenSection,
+  captured = [],
   leadExaminer,
   counts,
   readOnly,
@@ -47,6 +49,8 @@ export function ExaminationOverview({
   guidance: Guidance;
   currentStepTitle: string;
   onOpenCurrentStep: () => void;
+  onOpenSection?: (section: BlockerSection) => void;
+  captured?: CapturedArea[];
   leadExaminer?: string | null;
   counts: {
     openFindings: number;
@@ -69,8 +73,10 @@ export function ExaminationOverview({
         guidance={guidance}
         currentStepTitle={currentStepTitle}
         onOpenCurrentStep={onOpenCurrentStep}
+        onOpenSection={onOpenSection}
         readOnly={readOnly}
       />
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric icon={FileWarning} label="Open findings" value={counts.openFindings}
