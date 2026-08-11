@@ -130,60 +130,15 @@ export function CommunicationTimeline({ objectType, objectId, title = 'Communica
         ) : rows.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">No communications recorded for this record.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Direction</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Event / subject</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Delivery state</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Retry / failure</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {r.occurred_at ? format(new Date(r.occurred_at), 'dd MMM yyyy HH:mm') : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs capitalize">{r.direction}</TableCell>
-                    <TableCell className="text-xs">{r.channel}</TableCell>
-                    <TableCell className="max-w-[280px] text-xs">
-                      <div className="font-medium">{r.subject || r.event_key || '—'}</div>
-                      {r.event_key && r.subject && (
-                        <div className="font-mono text-[11px] text-muted-foreground">{r.event_key}</div>
-                      )}
-                      {r.template_version != null && (
-                        <div className="text-[11px] text-muted-foreground">template v{r.template_version}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">{r.recipient || '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={stateTone(r.communication_state)} className="text-[11px] uppercase">
-                        {stateLabel(r.communication_state)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {r.provider || '—'}
-                      {r.provider_message_id && (
-                        <div className="font-mono text-[11px] text-muted-foreground">{r.provider_message_id}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {(r.retry_count ?? 0) > 0 && <div>attempts: {r.retry_count}</div>}
-                      {r.failure_category && <div className="text-destructive">{r.failure_category}</div>}
-                      {r.error && <div className="text-muted-foreground">{r.error}</div>}
-                      {!r.failure_category && !r.error && (r.retry_count ?? 0) === 0 && '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <ol className="relative space-y-3 border-l pl-4">
+            {rows.map((r) => (
+              <li key={r.id} className="relative">
+                <span className="absolute -left-[21px] top-2 h-3 w-3 rounded-full bg-primary" />
+                <MessageCard row={r} />
+              </li>
+            ))}
+          </ol>
+
         )}
       </CardContent>
     </Card>
