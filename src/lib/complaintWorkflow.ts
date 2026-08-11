@@ -99,7 +99,7 @@ export function summariseTasks(tasks: TaskLike[] | undefined | null): TaskSummar
     completed,
     open,
     overdue,
-    label: rows.length === 0 ? 'No investigation tasks created' : `${completed} of ${rows.length} complete`,
+    label: rows.length === 0 ? 'No investigation work items created' : `${completed} of ${rows.length} done`,
   };
 }
 
