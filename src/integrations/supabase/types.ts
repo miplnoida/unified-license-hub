@@ -27281,6 +27281,10 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      resolve_complaint_entity_context: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
       resolve_effective_threshold: {
         Args: {
           _as_of?: string
