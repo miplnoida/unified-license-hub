@@ -92,6 +92,26 @@ export function ClosurePanel({
   }
   const hardBlockers = blockers.filter(b => !b.includes('no evidence items'));
 
+  // Plain-language list of the field requirements that still block submission.
+  const submitMissing: string[] = [];
+  if (findings.trim().length < 20) {
+    submitMissing.push(
+      `Summary of findings needs at least 20 characters (currently ${findings.trim().length}).`,
+    );
+  }
+  if (rationale.trim().length < 20) {
+    submitMissing.push(
+      `Determination rationale needs at least 20 characters (currently ${rationale.trim().length}).`,
+    );
+  }
+  if (determination === 'discontinuation' && ground === 'none') {
+    submitMissing.push('Select a discontinuation ground.');
+  }
+  if (determination === 'discontinuation' && ground === 'other' && !groundDetail.trim()) {
+    submitMissing.push('Add the ground detail for "other".');
+  }
+
+
   const persist = async (): Promise<string | null> => {
     try {
       const id = await saveDraft.mutateAsync({
