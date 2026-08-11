@@ -265,86 +265,9 @@ export default function ComplaintDetail() {
   // now execute through <WorkflowActionPanel> → `execute_complaint_workflow_action`,
   // which handles state transition, audit log, and notification-outbox rows.
 
-  const licenseeSearchQ = useQuery({
-    // Regulator-scoped, server-side search across name AND license_number.
-    // Previously limited to first 20 rows and filtered locally, which hid
-    // matches beyond page 1. We now use two targeted server queries and
-    // merge — no client-side truncation of the result set.
-    queryKey: ['licensee_search_for_complaint', licSearch, complaint?.regulator_id],
-    enabled: licPickerOpen,
-    queryFn: async () => {
-      const term = licSearch.trim();
-      const pageSize = 50;
+  // Entity mapping (licensed vs applicant entity), its search fallback and the
+  // link mutation all live in <ComplaintEntityCard>.
 
-      const nameQ = (supabase as any)
-        .from('licensees')
-        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
-        .order('name')
-        .limit(pageSize);
-      if (term) nameQ.ilike('name', `%${term}%`);
-      if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
-
-      const numberQ = term
-        ? (supabase as any)
-            .from('licensees')
-            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
-            .ilike('licenses.license_number', `%${term}%`)
-            .limit(pageSize)
-        : null;
-      if (numberQ && complaint?.regulator_id) numberQ.eq('regulator_id', complaint.regulator_id);
-
-      const [nameRes, numberRes] = await Promise.all([nameQ, numberQ ?? Promise.resolve({ data: [], error: null } as any)]);
-      if (nameRes.error) throw nameRes.error;
-      if (numberRes.error) throw numberRes.error;
-      const seen = new Set<string>();
-      const merged = [...(nameRes.data ?? []), ...((numberRes.data as any[]) ?? [])]
-        .filter((l: any) => (seen.has(l.id) ? false : (seen.add(l.id), true)))
-        .map((l: any) => ({
-          id: l.id,
-          name: l.name,
-          license_number: l.licenses?.license_number ?? null,
-        }));
-      return merged;
-    },
-  });
-
-
-
-  const linkedLicenseeQ = useQuery({
-    queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
-    enabled: !!complaint?.licensee_id,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('licensees')
-        .select('id, name, license_id, licenses:license_id(license_number)')
-        .eq('id', complaint!.licensee_id)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      return {
-        id: (data as any).id,
-        name: (data as any).name,
-        license_number: (data as any).licenses?.license_number ?? null,
-      };
-    },
-  });
-
-
-  const linkLicensee = useMutation({
-    mutationFn: async () => {
-      if (!stagedLicensee) throw new Error('Select a licensee first');
-      const { error } = await (supabase as any).rpc('link_complaint_licensee', {
-        _complaint_id: id!,
-        _licensee_id: stagedLicensee.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Licensee linked');
-      setStagedLicensee(null);
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed to link licensee'),
-  });
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
