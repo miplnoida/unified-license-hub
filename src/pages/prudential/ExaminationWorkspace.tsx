@@ -76,17 +76,6 @@ export default function ExaminationWorkspace() {
   const terminal = isTerminalStage(exam?.stage);
   const readOnly = !!terminal;
 
-  const stageActionsValue = useMemo(() => {
-    if (terminal) return null;
-    return {
-      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
-      blockers: guidance.blockers,
-      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
-      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
-      pending: transition.isPending,
-    };
-  }, [terminal, nextStage, transition, guidance]);
-
   const guidance = useMemo(
     () => deriveGuidance({
       stage: exam?.stage,
@@ -101,6 +90,18 @@ export default function ExaminationWorkspace() {
     }),
     [exam?.stage, nextStage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
   );
+
+  const stageActionsValue = useMemo(() => {
+    if (terminal) return null;
+    return {
+      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
+      blockers: guidance.blockers,
+      advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
+      cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
+      pending: transition.isPending,
+    };
+  }, [terminal, nextStage, transition, guidance]);
+
 
   const stepKey = currentStepKey(exam?.stage);
   const section = params.get('section') || 'overview';
