@@ -259,7 +259,7 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
 
             {complaint.complainant_name && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Complainant</dt><dd style={{ margin: 0 }}>{complaint.complainant_name}</dd></>)}
             {complaint.complainant_email && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Contact email</dt><dd style={{ margin: 0 }}>{complaint.complainant_email}</dd></>)}
-            {complaint.channel && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Channel</dt><dd style={{ margin: 0 }}>{complaint.channel}</dd></>)}
+            {complaint.channel && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Received via</dt><dd style={{ margin: 0 }}>{channelLabel(complaint.channel)}</dd></>)}
             {complaint.sla_days && (
               <>
                 <dt style={{ fontWeight: 600, color: '#475569' }}>Target response</dt>
