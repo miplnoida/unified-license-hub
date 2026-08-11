@@ -4,6 +4,7 @@
 // status strings.
 
 import { describe, expect, it } from 'vitest';
+import { deriveInvestigationMode } from '@/lib/complaintWorkflow';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
