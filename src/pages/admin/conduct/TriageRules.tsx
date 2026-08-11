@@ -126,6 +126,8 @@ export default function TriageRules() {
   const [saving, setSaving] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; code: string | null }>>([]);
+  const [defaultSeverity, setDefaultSeverity] = useState<string>('medium');
+  const [savingDefault, setSavingDefault] = useState(false);
 
   function emptyRule(): Rule {
     return { id: '', name: '', description: '', active: true, priority_order: 100, match_mode: 'all', conditions: [], outputs: {} };
@@ -143,7 +145,34 @@ export default function TriageRules() {
     const { data } = await supabase.from('conduct_risk_categories').select('id, name, code').order('name');
     setCategories((data || []) as any);
   };
-  useEffect(() => { load(); loadCategories(); }, []);
+  const loadDefaultSeverity = async () => {
+    const { data } = await (supabase as any)
+      .from('complaint_intake_rules')
+      .select('default_severity')
+      .is('regulator_id', null)
+      .not('default_severity', 'is', null)
+      .limit(1)
+      .maybeSingle();
+    if (data?.default_severity) setDefaultSeverity(data.default_severity);
+  };
+  const saveDefaultSeverity = async (next: string) => {
+    setSavingDefault(true);
+    setDefaultSeverity(next);
+    const { error } = await (supabase as any)
+      .from('complaint_intake_rules')
+      .update({ default_severity: next })
+      .is('regulator_id', null);
+    setSavingDefault(false);
+    if (error) { toast.error(error.message); return; }
+    await logAudit({
+      action: 'complaint_default_severity_updated',
+      entityType: 'complaint_intake_rules',
+      entityId: 'default',
+      metadata: { default_severity: next },
+    });
+    toast.success('Default severity saved');
+  };
+  useEffect(() => { load(); loadCategories(); loadDefaultSeverity(); }, []);
 
   const openNew = () => { setEditing(null); setForm(emptyRule()); setOpen(true); };
   const openEdit = (r: Rule) => {
