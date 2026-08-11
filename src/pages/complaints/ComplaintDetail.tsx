@@ -505,7 +505,12 @@ export default function ComplaintDetail() {
               </TabsContent>
 
               <TabsContent value="closure" className="space-y-4">
-                <ComplaintClosureSection complaintId={complaint.id} status={complaint.status} />
+                <ComplaintClosureSection
+                  complaintId={complaint.id}
+                  status={complaint.status}
+                  onGoToCurrentStep={() => goSection('current')}
+                />
+
               </TabsContent>
             </Tabs>
           </TabsContent>

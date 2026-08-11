@@ -22,7 +22,21 @@ import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
 
-export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId: string; readOnly?: boolean }) {
+export function ClosureQaPanel({
+  complaintId,
+  readOnly = false,
+  currentStepLabel = null,
+  availableActionLabels = [],
+  onGoToCurrentStep,
+}: {
+  complaintId: string;
+  readOnly?: boolean;
+  /** Configured label of the step the complaint sits on right now. */
+  currentStepLabel?: string | null;
+  /** Configured labels of the workflow actions this user may perform now. */
+  availableActionLabels?: string[];
+  onGoToCurrentStep?: () => void;
+}) {
   const qc = useQueryClient();
   const [resolution, setResolution] = useState('');
   const [rationale, setRationale] = useState('');
@@ -83,8 +97,31 @@ export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId:
       </div>
 
       {readOnly && (
-        <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
-          Closure &amp; QA becomes available later in the workflow. The history below stays visible.
+        <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm space-y-2">
+          {currentStepLabel && (
+            <p>
+              This complaint is at step <strong>{currentStepLabel}</strong>.
+            </p>
+          )}
+          <p className="text-muted-foreground">
+            The closure assessment opens once the case reaches the investigation / closure stage of the
+            configured workflow. Recorded decisions below stay visible.
+          </p>
+          <p>
+            {availableActionLabels.length > 0 ? (
+              <>
+                Next action available to you:{' '}
+                <strong>{availableActionLabels.join(', ')}</strong> — on the <strong>Current step</strong> tab.
+              </>
+            ) : (
+              <span className="text-muted-foreground">No workflow action is available to you at this step.</span>
+            )}
+          </p>
+          {onGoToCurrentStep && (
+            <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
+              Go to Current step
+            </Button>
+          )}
         </div>
       )}
 

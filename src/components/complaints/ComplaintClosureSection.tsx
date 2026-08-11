@@ -11,14 +11,25 @@ import { isClosurePhaseRelevant, summariseClosure } from '@/lib/complaintWorkflo
 export function ComplaintClosureSection({
   complaintId,
   status,
+  onGoToCurrentStep,
 }: {
   complaintId: string;
   status: string | null | undefined;
+  onGoToCurrentStep?: () => void;
 }) {
-  const { actionsQ, closureQ } = useComplaintCurrentStepData(complaintId);
+  const { actionsQ, closureQ, trackingQ } = useComplaintCurrentStepData(complaintId);
   const closure = summariseClosure(closureQ.data as any);
-  const relevant = isClosurePhaseRelevant(actionsQ.data ?? [], status, closure);
-  return <ClosureQaPanel complaintId={complaintId} readOnly={!relevant} />;
+  const actions = actionsQ.data ?? [];
+  const relevant = isClosurePhaseRelevant(actions, status, closure);
+  return (
+    <ClosureQaPanel
+      complaintId={complaintId}
+      readOnly={!relevant}
+      currentStepLabel={(trackingQ.data as any)?.current_step_label ?? null}
+      availableActionLabels={actions.map((a) => a.label).filter(Boolean)}
+      onGoToCurrentStep={onGoToCurrentStep}
+    />
+  );
 }
 
 export default ComplaintClosureSection;
