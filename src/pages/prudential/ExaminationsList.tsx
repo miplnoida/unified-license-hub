@@ -57,11 +57,13 @@ export default function ExaminationsList() {
   });
 
   const filtered = rows.filter(r =>
-    !search ||
-    r.reference.toLowerCase().includes(search.toLowerCase()) ||
-    r.title.toLowerCase().includes(search.toLowerCase()) ||
-    (r.licensee?.name || '').toLowerCase().includes(search.toLowerCase()),
+    (phase === 'all' || stagePhase(r.stage) === phase) &&
+    (!search ||
+      r.reference.toLowerCase().includes(search.toLowerCase()) ||
+      r.title.toLowerCase().includes(search.toLowerCase()) ||
+      (r.licensee?.name || '').toLowerCase().includes(search.toLowerCase())),
   );
+
 
   const submit = async () => {
     const payload: Record<string, unknown> = {
