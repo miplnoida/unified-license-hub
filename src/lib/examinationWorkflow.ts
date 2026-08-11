@@ -105,11 +105,25 @@ export interface Blocker {
 }
 
 export interface Guidance {
-  /** Items the user must clear before the examination can progress. */
+  /** Items relating to the current step that the user should clear. */
   blockers: Blocker[];
+  /**
+   * Mandatory prerequisites the database enforces for the next stage transition.
+   * While any of these are present the progression action is disabled.
+   */
+  transitionBlockers: Blocker[];
   /** Progress checklist for the current step. */
   checklist: ChecklistItem[];
 }
+
+/** A supporting area the current step depends on, shown as an orchestration row. */
+export interface DependencyRow {
+  key: BlockerSection;
+  title: string;
+  detail: string;
+  ok: boolean;
+}
+
 
 export interface GuidanceInput {
   stage?: string | null;
