@@ -96,15 +96,25 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+/** Section of the workspace where a blocking item can be resolved. */
+export type BlockerSection = CurrentStepKey;
+
+export interface Blocker {
+  text: string;
+  section?: BlockerSection;
+}
+
 export interface Guidance {
   /** Items the user must clear before the examination can progress. */
-  blockers: string[];
+  blockers: Blocker[];
   /** Progress checklist for the current step. */
   checklist: ChecklistItem[];
 }
 
 export interface GuidanceInput {
   stage?: string | null;
+  /** The stage the primary action would move to — used to warn before the RPC rejects it. */
+  nextStage?: string | null;
   scoping?: { objectives?: string | null; approved_at?: string | null } | null;
   team?: any[];
   dataRequests?: any[];
@@ -116,12 +126,14 @@ export interface GuidanceInput {
 
 /**
  * Derives checklist + blocking items from data already loaded in the workspace.
- * These mirror the database guardrails surfaced by `examinationErrorMessage`,
- * so the UI warns about exactly what the RPC enforces — it never bypasses it.
+ * Blockers cover both the current step and the guard rules the database enforces
+ * for the next transition, so the user is warned before the RPC rejects the move.
+ * These mirror `examinationErrorMessage` — the UI never bypasses the guardrails.
  */
 export function deriveGuidance(input: GuidanceInput): Guidance {
   const {
     stage,
+    nextStage,
     scoping,
     team = [],
     dataRequests = [],
@@ -141,21 +153,21 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
     (f: any) => f.remediation_action_id && f.action && f.action.status !== 'completed' && f.action.status !== 'closed',
   ).length;
 
-  const blockers: string[] = [];
+  const blockers: Blocker[] = [];
   const checklist: ChecklistItem[] = [];
+  const add = (text: string, section?: BlockerSection) => {
+    if (!blockers.some(b => b.text === text)) blockers.push({ text, section });
+  };
 
   switch (stage) {
     case 'planned':
       checklist.push({ label: 'Examination team assigned', done: team.length > 0 });
       checklist.push({ label: 'Lead examiner assigned', done: hasLead });
-      if (!hasLead) blockers.push('A lead examiner is required before fieldwork can begin.');
       break;
     case 'scoping':
       checklist.push({ label: 'Lead examiner assigned', done: hasLead });
       checklist.push({ label: 'Objectives entered', done: !!scoping?.objectives });
       checklist.push({ label: 'Scoping memo approved', done: scopeApproved });
-      if (!scopeApproved) blockers.push('The scoping memo must be approved before fieldwork can begin.');
-      if (!hasLead) blockers.push('A lead examiner is required before fieldwork can begin.');
       break;
     case 'pre_exam_request':
       checklist.push({ label: 'Information requests created', done: dataRequests.length > 0 });
@@ -164,15 +176,15 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
         done: dataRequests.length > 0 && dataRequests.every((r: any) => r.status !== 'draft'),
       });
       if (outstandingRequests > 0) {
-        blockers.push(`${outstandingRequests} information request${outstandingRequests === 1 ? '' : 's'} still awaiting a response.`);
+        add(
+          `${outstandingRequests} information request${outstandingRequests === 1 ? ' is' : 's are'} still awaiting a response.`,
+          'data-requests',
+        );
       }
       break;
     case 'fieldwork':
       checklist.push({ label: 'Workpapers recorded', done: workpapers.length > 0 });
       checklist.push({ label: 'All workpapers independently reviewed', done: workpapers.length > 0 && workpapersPending === 0 });
-      if (workpapersPending > 0) {
-        blockers.push(`${workpapersPending} workpaper${workpapersPending === 1 ? '' : 's'} still require reviewer sign-off.`);
-      }
       break;
     case 'exit_meeting':
       checklist.push({ label: 'Exit meeting date recorded', done: !!exitMeeting?.meeting_date });
@@ -195,29 +207,158 @@ export function deriveGuidance(input: GuidanceInput): Guidance {
       checklist.push({ label: 'Final report prepared', done: reports.some((r: any) => r.report_type === 'final') });
       checklist.push({ label: 'All workpapers reviewed', done: workpapersPending === 0 });
       checklist.push({ label: 'Every open finding has a corrective action', done: findingsWithoutAction === 0 });
-      if (workpapersPending > 0) {
-        blockers.push(`${workpapersPending} workpaper${workpapersPending === 1 ? '' : 's'} require reviewer sign-off before the report can be finalised.`);
-      }
-      if (findingsWithoutAction > 0) {
-        blockers.push(`${findingsWithoutAction} finding${findingsWithoutAction === 1 ? '' : 's'} still require corrective actions.`);
-      }
       break;
     case 'remediation':
       checklist.push({ label: 'Every finding has a corrective action', done: findingsWithoutAction === 0 });
       checklist.push({ label: 'All corrective actions completed', done: openActions === 0 });
-      if (openActions > 0) {
-        blockers.push(`${openActions} corrective action${openActions === 1 ? ' is' : 's are'} still open. The examination cannot close until they are resolved.`);
-      }
-      if (findingsWithoutAction > 0) {
-        blockers.push(`${findingsWithoutAction} finding${findingsWithoutAction === 1 ? '' : 's'} still require corrective actions.`);
-      }
       break;
     default:
       break;
   }
 
+  // Guard rules the database enforces on the next transition.
+  if (nextStage === 'fieldwork') {
+    if (!scopeApproved) add('The scoping memo must be approved before fieldwork can begin.', 'scoping');
+    if (!hasLead) add('A lead examiner must be assigned before fieldwork can begin.', 'team');
+  }
+  if (nextStage === 'final_report') {
+    if (workpapersPending > 0) {
+      add(
+        `${workpapersPending} workpaper${workpapersPending === 1 ? '' : 's'} require reviewer sign-off before the report can be finalised.`,
+        'workpapers',
+      );
+    }
+    if (findingsWithoutAction > 0) {
+      add(
+        `${findingsWithoutAction} finding${findingsWithoutAction === 1 ? '' : 's'} still require a corrective action before the report can be finalised.`,
+        'findings',
+      );
+    }
+  }
+  if (nextStage === 'closed' && openActions > 0) {
+    add(
+      `${openActions} corrective action${openActions === 1 ? ' is' : 's are'} still open. The examination cannot close until they are resolved.`,
+      'findings',
+    );
+  }
+
   return { blockers, checklist };
 }
+
+export interface CapturedArea {
+  key: BlockerSection;
+  title: string;
+  /** Plain-language lines describing what has been captured. Empty = nothing recorded. */
+  lines: string[];
+  status?: string;
+  tone?: 'warn' | 'ok';
+}
+
+const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
+
+/** Read-only summary of everything already captured, for the Overview tab. */
+export function capturedSummary(input: GuidanceInput): CapturedArea[] {
+  const {
+    scoping, team = [], dataRequests = [], workpapers = [], findings = [], reports = [], exitMeeting,
+  } = input;
+
+  const lead = (team.find((t: any) => t.team_role === 'lead_examiner') as any)?.member_name;
+  const received = dataRequests.filter((r: any) => r.status === 'received').length;
+  const issued = dataRequests.filter((r: any) => r.status === 'issued').length;
+  const draftReq = dataRequests.filter((r: any) => r.status === 'draft').length;
+  const overdue = dataRequests.filter(
+    (r: any) => r.status === 'issued' && r.due_date && new Date(r.due_date) < new Date(),
+  ).length;
+  const reviewed = workpapers.filter((w: any) => w.reviewed_at).length;
+  const openFindings = findings.filter((f: any) => f.status !== 'closed');
+  const withoutAction = openFindings.filter((f: any) => !f.remediation_action_id).length;
+  const focus = Array.isArray((scoping as any)?.risk_focus_areas)
+    ? ((scoping as any).risk_focus_areas as any[]).filter(Boolean)
+    : String((scoping as any)?.risk_focus_areas ?? '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const areas: CapturedArea[] = [];
+
+  areas.push({
+    key: 'scoping',
+    title: 'Scoping memo',
+    status: scoping?.approved_at ? 'Approved' : scoping?.objectives ? 'Drafted — not approved' : undefined,
+    tone: scoping?.approved_at ? 'ok' : scoping?.objectives ? 'warn' : undefined,
+    lines: [
+      scoping?.objectives ? `Objectives: ${scoping.objectives}` : '',
+      focus.length ? `Risk focus: ${focus.join(', ')}` : '',
+      scoping?.approved_at ? `Approved ${fmtDate(scoping.approved_at)}` : '',
+    ].filter(Boolean),
+  });
+
+  areas.push({
+    key: 'team',
+    title: 'Examination team',
+    status: team.length ? `${team.length} member${team.length === 1 ? '' : 's'}` : undefined,
+    tone: lead ? 'ok' : team.length ? 'warn' : undefined,
+    lines: [
+      lead ? `Lead examiner: ${lead}` : team.length ? 'No lead examiner assigned' : '',
+      ...team
+        .filter((t: any) => t.team_role !== 'lead_examiner')
+        .map((t: any) => `${t.member_name ?? 'Team member'}${t.team_role ? ` — ${String(t.team_role).replace(/_/g, ' ')}` : ''}`),
+    ].filter(Boolean),
+  });
+
+  areas.push({
+    key: 'data-requests',
+    title: 'Information requests',
+    status: dataRequests.length ? `${received} of ${dataRequests.length} received` : undefined,
+    tone: dataRequests.length ? (received === dataRequests.length ? 'ok' : 'warn') : undefined,
+    lines: dataRequests.length
+      ? [
+          `${issued} awaiting a response, ${draftReq} not yet sent`,
+          overdue ? `${overdue} overdue` : '',
+        ].filter(Boolean)
+      : [],
+  });
+
+  areas.push({
+    key: 'workpapers',
+    title: 'Workpapers',
+    status: workpapers.length ? `${reviewed} of ${workpapers.length} reviewed` : undefined,
+    tone: workpapers.length ? (reviewed === workpapers.length ? 'ok' : 'warn') : undefined,
+    lines: workpapers.map((w: any) => `${w.area ?? 'Workpaper'} — ${workpaperStatusLabel(w)}`),
+  });
+
+  areas.push({
+    key: 'exit-meeting',
+    title: 'Exit meeting',
+    status: exitMeeting?.meeting_date ? `Held ${fmtDate(exitMeeting.meeting_date)}` : undefined,
+    tone: exitMeeting?.meeting_date ? 'ok' : undefined,
+    lines: [exitMeeting?.matters_discussed ? `Matters discussed: ${exitMeeting.matters_discussed}` : ''].filter(Boolean),
+  });
+
+  areas.push({
+    key: 'reports',
+    title: 'Reports',
+    status: reports.length ? `${reports.length} report${reports.length === 1 ? '' : 's'}` : undefined,
+    lines: reports.map(
+      (r: any) => `${String(r.report_type ?? 'report').replace(/_/g, ' ')} — ${reportStatusLabel(r)}`,
+    ),
+  });
+
+  areas.push({
+    key: 'findings',
+    title: 'Findings and remediation',
+    status: findings.length ? `${openFindings.length} open of ${findings.length}` : undefined,
+    tone: withoutAction ? 'warn' : findings.length ? 'ok' : undefined,
+    lines: findings.length
+      ? [
+          `${findings.length} finding${findings.length === 1 ? '' : 's'} recorded`,
+          withoutAction
+            ? `${withoutAction} without a corrective action`
+            : 'Every open finding has a corrective action',
+        ]
+      : [],
+  });
+
+  return areas;
+}
+
 
 /** Plain-language workpaper status derived from existing timestamps. */
 export function workpaperStatusLabel(w: { prepared_at?: string | null; reviewed_at?: string | null }) {
