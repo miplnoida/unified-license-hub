@@ -65,10 +65,24 @@ export default function ComplaintDetail() {
   const { user } = useAuth();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+
+  // Guided navigation: `section` picks the top-level area, `sub` the Case work
+  // sub-section, so Current step can deep-link into supporting work.
+  const section = (params.get('section') as CaseSection) || 'overview';
+  const sub = (params.get('sub') as CaseWorkSection) || 'investigation';
+  const goSection = (next: CaseSection, nextSub?: CaseWorkSection) => {
+    const p = new URLSearchParams(params);
+    p.set('section', next);
+    if (nextSub) p.set('sub', nextSub);
+    setParams(p, { replace: true });
+  };
+  const openCaseWork = (nextSub: CaseWorkSection) => goSection('casework', nextSub);
 
   // Only presentation + data-helper state remains. All lifecycle mutations
   // (assign / resolve / close / escalate / notice / decision / appeal / payment)
-  // execute through <WorkflowActionPanel> in the Tracking tab.
+  // execute through <WorkflowActionPanel>, surfaced on the Current step tab.
+
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
