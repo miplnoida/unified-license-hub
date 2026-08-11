@@ -57,9 +57,36 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
   };
 
   const closeFinding = async (r: any) => {
+    const hasOpenAction = r.action && !['completed', 'waived', 'cancelled'].includes(String(r.action.status));
+    const res = await Swal.fire({
+      title: 'Close this finding?',
+      text: hasOpenAction
+        ? 'The linked corrective action will be completed at the same time. Add a short closure note.'
+        : 'Add a short closure note for the record.',
+      input: 'textarea',
+      inputPlaceholder: 'Why is this finding being closed?',
+      inputValidator: (v) => (!v || v.trim().length < 5 ? 'Please enter at least 5 characters' : undefined),
+      showCancelButton: true,
+      confirmButtonText: 'Close finding',
+    });
+    if (!res.isConfirmed) return;
+    const note = String(res.value ?? '').trim();
+
+    if (hasOpenAction) {
+      try {
+        await closeAction.mutateAsync({ action_id: r.remediation_action_id, kind: 'completed', reason: note });
+      } catch {
+        return; // closure gate refused — finding stays open, error already surfaced
+      }
+    }
+
     const { data: auth } = await supabase.auth.getUser();
-    save.mutate({ id: r.id, status: 'closed', closed_at: new Date().toISOString(), closed_by: auth?.user?.id ?? null });
+    await save.mutateAsync({
+      id: r.id, status: 'closed', closed_at: new Date().toISOString(), closed_by: auth?.user?.id ?? null,
+    });
+    qc.invalidateQueries({ queryKey: ['examination-findings', examinationId] });
   };
+
 
   const openCount = rows.filter((r: any) => r.status !== 'closed').length;
   const unlinked = rows.filter((r: any) => r.status !== 'closed' && !r.remediation_action_id);
