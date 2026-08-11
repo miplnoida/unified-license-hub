@@ -7,9 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCreateRemediationAction, useExaminationFindings, useFindingMutations } from '@/hooks/useExaminations';
+import { useCloseActionGated } from '@/hooks/usePrudentialActionLifecycle';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
+
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
