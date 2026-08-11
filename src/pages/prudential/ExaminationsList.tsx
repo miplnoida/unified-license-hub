@@ -18,6 +18,8 @@ import {
   useCreateExamination,
   useExaminations,
 } from '@/hooks/useExaminations';
+import { EXAMINATION_PHASES, phaseLabel, stagePhase } from '@/lib/examinationWorkflow';
+
 
 const stageTone = (stage: string) => {
   if (stage === 'closed') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
