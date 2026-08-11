@@ -373,19 +373,24 @@ export default function ComplaintDetail() {
           onCompleted={() => complaintQ.refetch()}
         />
 
-        <Tabs defaultValue="overview">
-          <TabsList>
+        <Tabs value={section} onValueChange={(v) => goSection(v as CaseSection)}>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="investigation">Investigation</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
-            <TabsTrigger value="communications">Communications</TabsTrigger>
-            <TabsTrigger value="rfis">Information Requests</TabsTrigger>
-            <TabsTrigger value="tracking">Tracking</TabsTrigger>
-            <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
-
+            <TabsTrigger value="current">Current step</TabsTrigger>
+            <TabsTrigger value="casework">Case work</TabsTrigger>
+            <TabsTrigger value="comms">Evidence &amp; communications</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            <ComplaintOverviewSummary
+              complaint={complaint}
+              complaintTypeName={complaintType?.name ?? null}
+              complainantName={complainant?.full_name ?? null}
+              licenseeName={linkedLicenseeQ.data?.name ?? null}
+              onOpenCurrentStep={() => goSection('current')}
+            />
+
             <Card>
               <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
