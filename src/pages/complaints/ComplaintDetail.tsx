@@ -611,15 +611,59 @@ export default function ComplaintDetail() {
           </TabsContent>
 
           <TabsContent value="comms" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />Evidence &amp; attachments
+                  {attachments.length > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>
+                  )}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Files supplied with the complaint or added during the case.</p>
+              </CardHeader>
+              <CardContent className="text-sm">
+                {attachmentsQ.isError ? (
+                  <QueryErrorState message="Failed to load attachments" onRetry={() => attachmentsQ.refetch()} />
+                ) : attachments.length === 0 ? (
+                  <p className="text-muted-foreground">No files have been attached to this complaint.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {attachments.map((a: any) => {
+                      const f = a.file_uploads || {};
+                      const name = f.file_name || a.label || 'Attachment';
+                      return (
+                        <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Added {formatDateTime(a.created_at)}
+                              {f.file_size ? ` • ${formatSize(f.file_size)}` : ''}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => openAttachment(f.file_path)} disabled={!f.file_path}>
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />View
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
             <CaseThreadsPanel
               sourceType="complaint"
               sourceId={complaint.id}
               sourceReference={complaint.reference_number ?? null}
               licenseeId={(complaint as any).licensee_id ?? null}
-              title="Complaint communications"
+              title="Messages with the complainant and licensee"
             />
-            <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
+            <CommunicationTimeline
+              objectType="complaint"
+              objectId={complaint.id}
+              title="Emails and text messages sent"
+            />
           </TabsContent>
+
 
           <TabsContent value="history" className="space-y-4">
             <ComplaintTrackingTimeline
