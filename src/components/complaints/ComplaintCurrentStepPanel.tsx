@@ -217,8 +217,9 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
           <CardTitle className="text-base">Outstanding work on this case</CardTitle>
           <p className="text-xs text-muted-foreground">
             Items marked <em>recommended</em> are good practice; the workflow itself decides what is mandatory before
-            the next step.
+            the next step. Investigation work items track your own progress — they never move the complaint forward.
           </p>
+
         </CardHeader>
         <CardContent className="space-y-2">
           {readiness.map(item => (

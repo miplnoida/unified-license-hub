@@ -10,7 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import Swal from 'sweetalert2';
+import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText, MoreHorizontal } from 'lucide-react';
+
 import { logAction } from '@/hooks/useAuditLog';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { formatDateTime } from '@/lib/datetime';
@@ -18,11 +21,12 @@ import { formatDateTime } from '@/lib/datetime';
 interface Props { complaintId: string; complaintStatus: string; }
 
 const TASK_STATUS_META: Record<string, { label: string; icon: any; className: string }> = {
-  pending: { label: 'Pending', icon: Circle, className: 'text-muted-foreground' },
-  in_progress: { label: 'In Progress', icon: Clock, className: 'text-blue-600' },
-  completed: { label: 'Completed', icon: CheckCircle2, className: 'text-green-600' },
-  cancelled: { label: 'Cancelled', icon: Circle, className: 'text-red-600' },
+  pending: { label: 'Not started', icon: Circle, className: 'text-muted-foreground' },
+  in_progress: { label: 'Being worked on', icon: Clock, className: 'text-blue-600' },
+  completed: { label: 'Done', icon: CheckCircle2, className: 'text-green-600' },
+  cancelled: { label: 'No longer required', icon: Circle, className: 'text-red-600' },
 };
+
 
 export default function ComplaintInvestigationTab({ complaintId, complaintStatus }: Props) {
   const { user } = useAuth();
@@ -97,17 +101,29 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
     onError: (e: any) => toast.error(e.message),
   });
 
+  // Task-level status only. This NEVER touches the complaint lifecycle — the
+  // complaint moves exclusively through the configured workflow action on the
+  // "Current step" tab.
+  const AUDIT_LABEL: Record<string, string> = {
+    in_progress: 'complaint.investigation_task_marked_in_progress',
+    completed: 'complaint.investigation_task_completed',
+    cancelled: 'complaint.investigation_task_cancelled',
+    pending: 'complaint.investigation_task_reopened',
+  };
+
   const setTaskStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const patch: any = { status };
       if (status === 'completed') { patch.completed_at = new Date().toISOString(); patch.completed_by = user?.id; }
+      if (status === 'pending' || status === 'in_progress') { patch.completed_at = null; patch.completed_by = null; }
       const { error } = await supabase.from('complaint_investigation_tasks').update(patch).eq('id', id);
       if (error) throw error;
-      await logAction(`complaint.task_${status}`, 'complaint', complaintId, { meta: { task_id: id } });
+      await logAction(AUDIT_LABEL[status] ?? 'complaint.investigation_task_updated', 'complaint', complaintId, { meta: { task_id: id, task_status: status } });
     },
-    onSuccess: () => { toast.success('Task updated'); invalidate(); },
+    onSuccess: () => { toast.success('Task updated — the complaint itself is unchanged'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const addCorrespondence = useMutation({
     mutationFn: async () => {
@@ -137,17 +153,27 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       {/* Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Investigation Tasks</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Investigation checklist</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Internal work items that help you complete the investigation. Ticking these off records progress only —
+            the complaint itself moves forward through the action on the <strong>Current step</strong> tab.
+          </p>
+          {!tasksQ.isLoading && !tasksQ.isError && (tasks?.length ?? 0) > 0 && (
+            <p className="text-xs font-medium mt-1">
+              {(tasks ?? []).filter((t: any) => t.status === 'completed').length} of{' '}
+              {(tasks ?? []).filter((t: any) => t.status !== 'cancelled').length} work items done
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {!readOnly && (
             <div className="space-y-2 border-b pb-4">
-              <Input placeholder="Task title" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
-              <Textarea placeholder="Description (optional)" rows={2} value={taskDesc} onChange={e => setTaskDesc(e.target.value)} />
+              <Input placeholder="What needs to be done?" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
+              <Textarea placeholder="Details (optional)" rows={2} value={taskDesc} onChange={e => setTaskDesc(e.target.value)} />
               <div className="flex gap-2">
                 <Input type="date" value={taskDue} onChange={e => setTaskDue(e.target.value)} className="flex-1" />
                 <Button onClick={() => addTask.mutate()} disabled={addTask.isPending}>
-                  {addTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add Task'}
+                  {addTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add work item'}
                 </Button>
               </div>
             </div>
@@ -157,7 +183,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           ) : tasksQ.isError ? (
             <QueryErrorState message="Failed to load tasks" onRetry={() => tasksQ.refetch()} />
           ) : !tasks?.length ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No tasks yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No work items yet.</p>
           ) : (
             <ul className="space-y-3">
               {tasks.map((t: any) => {
@@ -176,12 +202,41 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
                       {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
                       {t.due_date && <p className="text-xs text-muted-foreground mt-1">Due {new Date(t.due_date).toLocaleDateString()}</p>}
                       {!readOnly && t.status !== 'completed' && t.status !== 'cancelled' && (
-                        <div className="flex gap-1 mt-2">
+                        <div className="flex items-center gap-1 mt-2">
                           {t.status !== 'in_progress' && (
-                            <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'in_progress' })}>Start</Button>
+                            <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'in_progress' })}>Mark as being worked on</Button>
                           )}
-                          <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'completed' })}>Complete</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'cancelled' })}>Cancel</Button>
+                          <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'completed' })}>Mark work item done</Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="More options">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={async () => {
+                                  const res = await Swal.fire({
+                                    title: 'Remove this work item?',
+                                    text: 'It will be marked as no longer required. The complaint is not affected.',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Yes, no longer required',
+                                    cancelButtonText: 'Keep it',
+                                  });
+                                  if (res.isConfirmed) setTaskStatus.mutate({ id: t.id, status: 'cancelled' });
+                                }}
+                              >
+                                No longer required
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                      {!readOnly && (t.status === 'completed' || t.status === 'cancelled') && (
+                        <div className="mt-2">
+                          <Button data-rbac="complaint_management.edit" size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'pending' })}>Reopen work item</Button>
                         </div>
                       )}
                     </div>
@@ -192,6 +247,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           )}
         </CardContent>
       </Card>
+
 
       {/* Correspondence */}
       <Card>

@@ -40,6 +40,8 @@ import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
 import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
 import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
 import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
+import { ComplaintEntityCard } from '@/components/complaints/ComplaintEntityCard';
+
 import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
 
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
@@ -87,9 +89,6 @@ export default function ComplaintDetail() {
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
-  const [licPickerOpen, setLicPickerOpen] = useState(false);
-  const [licSearch, setLicSearch] = useState('');
-  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
     queryKey: ['complaint', id],
@@ -265,54 +264,13 @@ export default function ComplaintDetail() {
   // now execute through <WorkflowActionPanel> → `execute_complaint_workflow_action`,
   // which handles state transition, audit log, and notification-outbox rows.
 
-  const licenseeSearchQ = useQuery({
-    // Regulator-scoped, server-side search across name AND license_number.
-    // Previously limited to first 20 rows and filtered locally, which hid
-    // matches beyond page 1. We now use two targeted server queries and
-    // merge — no client-side truncation of the result set.
-    queryKey: ['licensee_search_for_complaint', licSearch, complaint?.regulator_id],
-    enabled: licPickerOpen,
-    queryFn: async () => {
-      const term = licSearch.trim();
-      const pageSize = 50;
-
-      const nameQ = (supabase as any)
-        .from('licensees')
-        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
-        .order('name')
-        .limit(pageSize);
-      if (term) nameQ.ilike('name', `%${term}%`);
-      if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
-
-      const numberQ = term
-        ? (supabase as any)
-            .from('licensees')
-            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
-            .ilike('licenses.license_number', `%${term}%`)
-            .limit(pageSize)
-        : null;
-      if (numberQ && complaint?.regulator_id) numberQ.eq('regulator_id', complaint.regulator_id);
-
-      const [nameRes, numberRes] = await Promise.all([nameQ, numberQ ?? Promise.resolve({ data: [], error: null } as any)]);
-      if (nameRes.error) throw nameRes.error;
-      if (numberRes.error) throw numberRes.error;
-      const seen = new Set<string>();
-      const merged = [...(nameRes.data ?? []), ...((numberRes.data as any[]) ?? [])]
-        .filter((l: any) => (seen.has(l.id) ? false : (seen.add(l.id), true)))
-        .map((l: any) => ({
-          id: l.id,
-          name: l.name,
-          license_number: l.licenses?.license_number ?? null,
-        }));
-      return merged;
-    },
-  });
-
-
-
+  // Entity mapping (licensed vs applicant entity), its search fallback and the
+  // link mutation all live in <ComplaintEntityCard>. This query only supplies
+  // the linked entity's display name to other panels.
   const linkedLicenseeQ = useQuery({
     queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
     enabled: !!complaint?.licensee_id,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.from('licensees')
         .select('id, name, license_id, licenses:license_id(license_number)')
@@ -329,22 +287,6 @@ export default function ComplaintDetail() {
   });
 
 
-  const linkLicensee = useMutation({
-    mutationFn: async () => {
-      if (!stagedLicensee) throw new Error('Select a licensee first');
-      const { error } = await (supabase as any).rpc('link_complaint_licensee', {
-        _complaint_id: id!,
-        _licensee_id: stagedLicensee.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Licensee linked');
-      setStagedLicensee(null);
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed to link licensee'),
-  });
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
@@ -537,86 +479,12 @@ export default function ComplaintDetail() {
               </CardContent>
             </Card>
 
-            {!complaint.enforcement_action_id && !complaint.licensee_id && (
-              <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Link Licensee</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Map to Licensee (required before escalation action becomes available in Tracking)</Label>
-                    <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
-                          <span className="truncate">
-                            {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
-                          </span>
-                          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command shouldFilter={false}>
-                          <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
-                          <CommandList>
-                            {licenseeSearchQ.isLoading ? (
-                              <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
-                            ) : (licenseeSearchQ.data ?? []).length === 0 ? (
-                              <CommandEmpty>No licensees found.</CommandEmpty>
-                            ) : (
-                              <CommandGroup>
-                                {(licenseeSearchQ.data ?? []).map((l: any) => (
-                                  <CommandItem
-                                    key={l.id}
-                                    value={l.id}
-                                    onSelect={() => {
-                                      setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
-                                      setLicPickerOpen(false);
-                                    }}
-                                  >
-                                    <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="truncate">{l.name}</div>
-                                      {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <div className="flex justify-end">
-                      <Button data-rbac="complaint_management.edit"
-                        size="sm"
-                        variant="secondary"
-                        disabled={!stagedLicensee || linkLicensee.isPending}
-                        onClick={() => linkLicensee.mutate()}
-                      >
-                        {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
-                        Link Licensee
-                      </Button>
-                    </div>
-                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <ComplaintEntityCard
+              complaintId={id!}
+              regulatorId={complaint.regulator_id ?? null}
+              enforcementActionId={complaint.enforcement_action_id ?? null}
+            />
 
-            {complaint.licensee_id && linkedLicenseeQ.data && (
-              <Card>
-                <CardContent className="pt-6 text-xs flex items-start gap-2">
-                  <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{linkedLicenseeQ.data.name}</div>
-                    {linkedLicenseeQ.data.license_number && (
-                      <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
