@@ -222,9 +222,17 @@ export function ClosureQaPanel({
             <p className="text-sm text-muted-foreground">No closure decisions have been recorded yet.</p>
           ) : reviews.map((r: any) => (
             <div key={r.id} className="rounded-md border p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline">{r.decision}</Badge>
-                <span className="text-xs text-muted-foreground">{new Date(r.decided_at).toLocaleString()}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Badge variant="outline">{closureDecisionLabel(r.decision).label}</Badge>
+                  {closureDecisionLabel(r.decision).meaning && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      — {closureDecisionLabel(r.decision).meaning}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">{formatDateTime(r.decided_at)}</span>
+
               </div>
               {r.outcome_category && <div className="mt-1">Outcome: {r.outcome_category}</div>}
               {r.resolution_summary && <div className="mt-1">{r.resolution_summary}</div>}
