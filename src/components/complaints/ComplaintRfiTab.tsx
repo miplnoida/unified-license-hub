@@ -20,6 +20,7 @@ import { RaiseComplaintRfiDialog } from './RaiseComplaintRfiDialog';
 import { ReviewRfiDialog } from './ReviewRfiDialog';
 import { RfiAttachmentList } from './RfiAttachmentList';
 import { formatDateTime, formatDateOnly } from '@/lib/datetime';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const statusVariant: Record<string, any> = {
   open: 'secondary',
@@ -59,7 +60,8 @@ export function ComplaintRfiTab({
   licenseeId: string | null;
   licenseeName?: string | null;
 }) {
-  const { data: rfis = [], isLoading, refetch } = useComplaintRfis(complaintId);
+  const rfiQuery = useComplaintRfis(complaintId);
+  const { data: rfis = [], isLoading, isError, refetch } = rfiQuery;
   const [raiseOpen, setRaiseOpen] = useState(false);
   const [reviewRfi, setReviewRfi] = useState<ComplaintRfi | null>(null);
   const canApprove = useCan('complaint_management', 'approve_rfi');
@@ -93,10 +95,20 @@ export function ComplaintRfiTab({
     }
   };
 
+  if (isError) {
+    return (
+      <QueryErrorState
+        title="We couldn’t load information requests"
+        message="Information requests could not be loaded. Please try again."
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 text-center text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading requests…
+        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading information requests…
       </div>
     );
   }
@@ -115,7 +127,7 @@ export function ComplaintRfiTab({
 
       {rfis.length === 0 && (
         <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No information requests raised on this complaint yet.
+          No information requests have been raised on this complaint yet.
         </CardContent></Card>
       )}
 

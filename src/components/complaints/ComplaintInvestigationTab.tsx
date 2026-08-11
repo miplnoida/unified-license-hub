@@ -34,7 +34,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
   const [taskDue, setTaskDue] = useState('');
 
   // Correspondence
-  const [corrDirection, setCorrDirection] = useState<'outbound' | 'inbound' | 'internal_note'>('outbound');
+  const [corrDirection] = useState<'outbound' | 'inbound' | 'internal_note'>('internal_note');
   const [corrSubject, setCorrSubject] = useState('');
   const [corrBody, setCorrBody] = useState('');
 
@@ -207,14 +207,9 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           {!readOnly && (
             <div className="space-y-2 border-b pb-4">
               <div className="flex gap-2">
-                <Select value={corrDirection} onValueChange={(v: any) => setCorrDirection(v)}>
-                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="outbound">Outbound (to complainant)</SelectItem>
-                    <SelectItem value="inbound">Inbound (from complainant)</SelectItem>
-                    <SelectItem value="internal_note">Internal note</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Badge variant="secondary" className="h-10 px-3 flex items-center gap-1 shrink-0">
+                  <StickyNote className="h-3 w-3" />Internal note
+                </Badge>
                 <Input placeholder="Subject (optional)" value={corrSubject} onChange={e => setCorrSubject(e.target.value)} className="flex-1" />
               </div>
               <Textarea rows={3} placeholder="Message body…" value={corrBody} onChange={e => setCorrBody(e.target.value)} />
@@ -228,7 +223,7 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
           ) : correspondenceQ.isError ? (
             <QueryErrorState message="Failed to load correspondence" onRetry={() => correspondenceQ.refetch()} />
           ) : !correspondence?.length ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No correspondence recorded.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">No investigation notes recorded yet.</p>
           ) : (
             <ul className="space-y-3 max-h-[500px] overflow-y-auto">
               {correspondence.map((c: any) => (

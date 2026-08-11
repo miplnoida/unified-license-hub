@@ -18,6 +18,8 @@ import { useComplaintRfis } from '@/hooks/useComplaintRfis';
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { formatDateOnly } from '@/lib/datetime';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import { UnavailableStatus } from '@/components/complaints/DataState';
 import {
   buildReadiness,
   deriveWaitingState,
@@ -40,9 +42,12 @@ interface Props {
 }
 
 export function useComplaintCurrentStepData(complaintId: string) {
+  // Shared query keys + staleTime so Overview, Current step, Closure section and
+  // the history tab reuse one cached result instead of refiring the RPCs.
   const trackingQ = useQuery({
     queryKey: ['complaint_tracking', complaintId],
     enabled: !!complaintId,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('get_complaint_tracking', { _complaint_id: complaintId });
       if (error) throw error;
@@ -53,6 +58,7 @@ export function useComplaintCurrentStepData(complaintId: string) {
   const actionsQ = useQuery({
     queryKey: ['complaint_actions', complaintId],
     enabled: !!complaintId,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('get_complaint_available_actions', { _complaint_id: complaintId });
       if (error) throw error;
@@ -63,11 +69,13 @@ export function useComplaintCurrentStepData(complaintId: string) {
   const tasksQ = useQuery({
     queryKey: ['complaint_tasks', complaintId],
     enabled: !!complaintId,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('complaint_investigation_tasks')
-        .select('id, title, status, due_date')
-        .eq('complaint_id', complaintId);
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -76,6 +84,7 @@ export function useComplaintCurrentStepData(complaintId: string) {
   const closureQ = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
     enabled: !!complaintId,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('complaint_closure_reviews')
@@ -97,10 +106,14 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
 
   const tracking = trackingQ.data ?? null;
   const actions = actionsQ.data ?? [];
+  // Supporting data is only allowed to drive conclusions once it loaded.
+  const tasksOk = !tasksQ.isError && !tasksQ.isLoading;
+  const rfiOk = !rfisQ.isError && !rfisQ.isLoading;
+  const closureOk = !closureQ.isError && !closureQ.isLoading;
   const tasks = summariseTasks(tasksQ.data as any);
   const rfi = summariseRfis(rfisQ.data as any);
   const closure = summariseClosure(closureQ.data as any);
-  const closurePhase = isClosurePhaseRelevant(actions, status, closure);
+  const closurePhase = closureOk && isClosurePhaseRelevant(actions, status, closure);
   const readiness = buildReadiness({
     tracking,
     tasks,
@@ -108,18 +121,43 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
     closure,
     closurePhase,
     hasLicensee: !!licenseeId,
+  }).filter((item) => {
+    if (item.key === 'tasks') return tasksOk;
+    if (item.key === 'rfi') return rfiOk;
+    if (item.key === 'closure') return closureOk;
+    return true;
   });
-  const waiting = deriveWaitingState({ actions, rfi, closure, closurePhase, tracking });
+  const unavailable: Array<{ key: string; label: string; retry: () => void }> = [];
+  if (tasksQ.isError) unavailable.push({ key: 'tasks', label: 'Investigation task status unavailable', retry: () => tasksQ.refetch() });
+  if (rfisQ.isError) unavailable.push({ key: 'rfi', label: 'Information request status unavailable', retry: () => rfisQ.refetch() });
+  if (closureQ.isError) unavailable.push({ key: 'closure', label: 'Closure status unavailable', retry: () => closureQ.refetch() });
+  const waiting = rfiOk && closureOk
+    ? deriveWaitingState({ actions, rfi, closure, closurePhase, tracking })
+    : null;
   const progress = stepProgress(tracking?.steps);
   const task = yourTaskLine(actions);
 
-  if (trackingQ.isLoading) {
+  // Core data for this panel: workflow tracking + available actions.
+  if (trackingQ.isLoading || (actionsQ.isLoading && !actionsQ.data)) {
     return (
       <Card>
         <CardContent className="p-6 flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Working out where this case stands…
         </CardContent>
       </Card>
+    );
+  }
+
+  if (trackingQ.isError || actionsQ.isError) {
+    return (
+      <QueryErrorState
+        title="We couldn’t load the current step"
+        message="The workflow position for this complaint could not be loaded. Please try again."
+        onRetry={() => {
+          if (trackingQ.isError) trackingQ.refetch();
+          if (actionsQ.isError) actionsQ.refetch();
+        }}
+      />
     );
   }
 
@@ -206,7 +244,12 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
               )}
             </div>
           ))}
-          {rfi.state !== 'none' && rfi.dueAt && (
+          {unavailable.map((u) => (
+            <div key={u.key} className="rounded-md border border-dashed p-2.5">
+              <UnavailableStatus label={u.label} onRetry={u.retry} />
+            </div>
+          ))}
+          {rfiOk && rfi.state !== 'none' && rfi.dueAt && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <AlertTriangle className="h-3.5 w-3.5" />
               Information request due {formatDateOnly(rfi.dueAt)}

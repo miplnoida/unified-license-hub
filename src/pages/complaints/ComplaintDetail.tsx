@@ -344,7 +344,14 @@ export default function ComplaintDetail() {
           description={complaint.subject}
           actions={
             <div className="flex items-center gap-2">
-              <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
+              <HistoryButton
+                entityType="complaint"
+                entityId={complaint.id}
+                label="Audit details"
+                variant="ghost"
+                title={`Audit details — ${complaint.complaint_number}`}
+              />
+
               <Button data-rbac="complaint_management.edit" variant="outline" size="sm" onClick={() => setAckOpen(true)}>
                 <Printer className="h-4 w-4 mr-2" />Reprint acknowledgement
               </Button>

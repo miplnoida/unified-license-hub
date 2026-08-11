@@ -23,6 +23,7 @@ import {
   type CaseHistoryEntry,
 } from "@/lib/complaintHistoryLabels";
 import { formatDateTime } from "@/lib/datetime";
+import { QueryErrorState } from "@/components/complaints/QueryErrorState";
 
 interface Props {
   complaintId: string;
@@ -67,6 +68,7 @@ export function ComplaintTrackingTimeline({ complaintId }: Props) {
   const q = useQuery({
     queryKey: ["complaint_tracking", complaintId],
     enabled: !!complaintId,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("get_complaint_tracking", { _complaint_id: complaintId });
       if (error) throw error;
@@ -109,7 +111,18 @@ export function ComplaintTrackingTimeline({ complaintId }: Props) {
         raw: { before: r.old_value, after: r.new_value, metadata: r.metadata },
       });
     });
-    return out;
+    /** Same event recorded in both the workflow and the audit trail — keep one. */
+    const seen = new Set<string>();
+    const deduped: CaseHistoryEntry[] = [];
+    out
+      .sort((a, b) => String(b.when).localeCompare(String(a.when)))
+      .forEach((e) => {
+        const sig = `${e.title.toLowerCase()}|${String(e.when).slice(0, 16)}`;
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        deduped.push(e);
+      });
+    return deduped;
   }, [t?.events, auditQ.data]);
 
   const grouped = useMemo(() => groupByDay(entries), [entries]);
@@ -124,12 +137,22 @@ export function ComplaintTrackingTimeline({ complaintId }: Props) {
     );
   }
 
+  if (q.isError) {
+    return (
+      <QueryErrorState
+        title="We couldn’t load the case history"
+        message="The case history could not be loaded. Please try again."
+        onRetry={() => q.refetch()}
+      />
+    );
+  }
+
   if (!t || t.error) {
     return (
       <Card>
         <CardContent className="p-6 text-sm text-muted-foreground">
           {t?.error === "FORBIDDEN"
-            ? "You don't have access to this complaint's history."
+            ? "You don't have permission to view this complaint's history."
             : "History information is unavailable right now."}
         </CardContent>
       </Card>
@@ -214,10 +237,18 @@ export function ComplaintTrackingTimeline({ complaintId }: Props) {
           </CardTitle>
           <p className="text-xs text-muted-foreground">
             Every recorded action, newest first — including intake, triage, assignment and decisions.
+            {auditQ.isError ? " Some activity could not be loaded." : ""}
           </p>
         </CardHeader>
         <CardContent className="text-sm">
-          {auditQ.isLoading && entries.length === 0 ? (
+          {auditQ.isError && entries.length === 0 ? (
+            <QueryErrorState
+              title="We couldn’t load the case activity"
+              message="Recorded activity could not be loaded. Please try again."
+              onRetry={() => auditQ.refetch()}
+              compact
+            />
+          ) : auditQ.isLoading && entries.length === 0 ? (
             <div className="flex items-center gap-2 py-4 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading activity…
             </div>
