@@ -21,6 +21,8 @@ import {
 interface StageActionsContextValue {
   /** Business-language label for the forward action, e.g. "Start fieldwork". */
   nextActionLabel: string | null;
+  /** Plain-language reasons the next transition would be rejected by the database guards. */
+  blockers?: { text: string }[];
   advance: () => Promise<void>;
   cancel: () => Promise<void>;
   pending: boolean;
@@ -94,8 +96,11 @@ export function StageActions({
     }
   };
 
+  const blockers = ctx.blockers ?? [];
+
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+    <div className="border-t pt-3 space-y-2">
+    <div className="flex flex-wrap items-center gap-2">
       {ctx.nextActionLabel ? (
         <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={disabled} onClick={onAdvance}>
           {disabled ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
@@ -148,7 +153,15 @@ export function StageActions({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+
+      {ctx.nextActionLabel && blockers.length > 0 && (
+        <div className="rounded-md border border-warning/30 bg-warning/10 p-2">
+          <p className="text-xs font-medium text-warning">Why this may be blocked</p>
+          <ul className="list-disc pl-4 text-xs text-warning/90">
+            {blockers.map(b => <li key={b.text}>{b.text}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
-
-export default StageActions;
