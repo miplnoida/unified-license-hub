@@ -47,7 +47,11 @@ import {
   complaintStatusLabel,
   complaintStatusVariant,
   isOpenComplaint,
-  COMPLAINT_STATUS_LABELS,, COMPLAINT_PRIORITIES, complaintPriorityLabel } from '@/lib/complaintStatus';
+  COMPLAINT_STATUS_LABELS,
+  COMPLAINT_PRIORITIES,
+  complaintPriorityLabel,
+} from '@/lib/complaintStatus';
+
 
 const statusVariant = new Proxy({} as Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>, {
   get: (_t, k: string) => complaintStatusVariant(k),
