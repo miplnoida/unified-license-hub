@@ -361,7 +361,7 @@ export default function ComplaintsList() {
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
-  const [newSeverity, setNewSeverity] = useState('medium');
+  
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -377,12 +377,13 @@ export default function ComplaintsList() {
     setCreating(true);
     // Canonical intake: server-side create_complaint handles number gen, audit,
     // and trigger-based notifications. No duplicate client-side dispatch here.
+    // Severity is never sent: complaint_intake_decide assigns it from triage
+    // configuration (matched rule or configured default).
     const payload: Record<string, unknown> = isInternal
       ? {
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email || null,
-          severity: 'medium',
           priority: 'p3',
           intake_source: 'internal',
         }
@@ -390,9 +391,9 @@ export default function ComplaintsList() {
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
-          severity: newSeverity || 'medium',
           intake_source: 'consumer_portal',
         };
+
     if (newTypeId) payload.complaint_type_id = newTypeId;
 
     const { data: insertedRaw, error } = await (supabase as any).rpc('create_complaint', { _payload: payload });
@@ -422,7 +423,7 @@ export default function ComplaintsList() {
 
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
-    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
+    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
       setAckDialog({
@@ -618,15 +619,11 @@ export default function ComplaintsList() {
                       <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
                       <div>
                         <Label>Severity</Label>
-                        <Select value={newSeverity} onValueChange={setNewSeverity}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {['low','medium','high','critical'].map(s => (
-                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                          Severity is assigned automatically after triage.
+                        </div>
                       </div>
+
                       <ComplaintAttachmentsField files={newAttachments} onChange={setNewAttachments} disabled={creating} />
                       <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
                     </div>
