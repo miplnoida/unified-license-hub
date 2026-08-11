@@ -38,7 +38,25 @@ interface Props {
   variant?: 'applicant' | 'internal';
 }
 
+/** Turns intake/channel codes such as `consumer_portal` into readable text. */
+function channelLabel(code: string) {
+  const map: Record<string, string> = {
+    consumer_portal: 'Consumer portal',
+    licensee_portal: 'Licensee portal',
+    internal: 'Regulator staff intake',
+    staff_intake: 'Regulator staff intake',
+    referral: 'Referral',
+    email: 'Email',
+    phone: 'Telephone',
+    walk_in: 'Walk-in',
+    letter: 'Letter',
+    bulk_import: 'Bulk import',
+  };
+  return map[code] ?? code.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+}
+
 function formatSize(size?: number) {
+
   if (!size) return '';
   return size < 1024 * 1024
     ? `${(size / 1024).toFixed(1)} KB`
