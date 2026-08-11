@@ -1,18 +1,33 @@
 import { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Loader2 } from 'lucide-react';
 import {
   EXAMINATION_STAGES,
   stageLabel,
+  useDataRequests,
   useExamination,
+  useExaminationFindings,
+  useExaminationReports,
+  useExaminationScoping,
+  useExaminationTeam,
+  useExitMeeting,
   useTransitionExamination,
+  useWorkpapers,
   type ExaminationStage,
 } from '@/hooks/useExaminations';
+import {
+  businessActionLabel,
+  currentStepKey,
+  deriveGuidance,
+  isTerminalStage,
+  phaseLabel,
+  stagePhase,
+} from '@/lib/examinationWorkflow';
 import { ScopingMemoPanel } from '@/components/prudential/examination/ScopingMemoPanel';
 import { TeamPanel } from '@/components/prudential/examination/TeamPanel';
 import { DataRequestsPanel } from '@/components/prudential/examination/DataRequestsPanel';
@@ -22,13 +37,34 @@ import { ReportsPanel } from '@/components/prudential/examination/ReportsPanel';
 import { FindingsPanel } from '@/components/prudential/examination/FindingsPanel';
 import { ExaminationTimeline } from '@/components/prudential/examination/ExaminationTimeline';
 import { ExaminationStageActionsProvider } from '@/components/prudential/examination/ExaminationStageActions';
+import { ExaminationOverview } from '@/components/prudential/examination/ExaminationOverview';
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
 
+const STEP_TITLES: Record<string, string> = {
+  team: 'Examination team',
+  scoping: 'Scoping',
+  'data-requests': 'Data requests',
+  workpapers: 'Workpapers',
+  'exit-meeting': 'Exit meeting',
+  reports: 'Reports',
+  findings: 'Findings and remediation',
+};
+
 export default function ExaminationWorkspace() {
   const { id } = useParams<{ id: string }>();
+  const [params, setParams] = useSearchParams();
   const { data: exam, isLoading } = useExamination(id);
   const transition = useTransitionExamination(id);
+
+  // Data used for the overview counters and guidance — all existing hooks.
+  const { data: scoping } = useExaminationScoping(id);
+  const { data: team = [] } = useExaminationTeam(id);
+  const { data: dataRequests = [] } = useDataRequests(id);
+  const { data: workpapers = [] } = useWorkpapers(id);
+  const { data: findings = [] } = useExaminationFindings(id);
+  const { data: reports = [] } = useExaminationReports(id);
+  const { data: exitMeeting } = useExitMeeting(id);
 
   const nextStage = useMemo(() => {
     if (!exam?.stage) return null;
@@ -36,20 +72,59 @@ export default function ExaminationWorkspace() {
     return idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
   }, [exam?.stage]);
 
-  const terminal = exam?.stage === 'closed' || exam?.stage === 'cancelled';
+  const terminal = isTerminalStage(exam?.stage);
   const readOnly = !!terminal;
 
   const stageActionsValue = useMemo(() => {
     if (terminal) return null;
     return {
-      nextStageLabel: nextStage ? stageLabel(nextStage) : null,
+      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
       advance: async () => { if (nextStage) await transition.mutateAsync({ to_stage: nextStage }); },
       cancel: async () => { await transition.mutateAsync({ to_stage: 'cancelled' as ExaminationStage }); },
       pending: transition.isPending,
     };
   }, [terminal, nextStage, transition]);
 
+  const guidance = useMemo(
+    () => deriveGuidance({
+      stage: exam?.stage,
+      scoping,
+      team,
+      dataRequests,
+      workpapers,
+      findings,
+      reports,
+      exitMeeting,
+    }),
+    [exam?.stage, scoping, team, dataRequests, workpapers, findings, reports, exitMeeting],
+  );
 
+  const stepKey = currentStepKey(exam?.stage);
+  const section = params.get('section') || 'overview';
+  const showAll = params.get('all') === '1';
+
+  const setSection = (next: string) => {
+    const p = new URLSearchParams(params);
+    p.set('section', next);
+    setParams(p, { replace: true });
+  };
+
+  const toggleAll = () => {
+    const p = new URLSearchParams(params);
+    if (showAll) p.delete('all'); else p.set('all', '1');
+    setParams(p, { replace: true });
+  };
+
+  const counts = useMemo(() => ({
+    openFindings: findings.filter((f: any) => f.status !== 'closed').length,
+    outstandingRequests: dataRequests.filter((r: any) => r.status !== 'received').length,
+    workpapersPendingReview: workpapers.filter((w: any) => !w.reviewed_at).length,
+    openRemediation: findings.filter(
+      (f: any) => f.action && f.action.status !== 'completed' && f.action.status !== 'closed',
+    ).length,
+  }), [findings, dataRequests, workpapers]);
+
+  const leadExaminer = (team.find((t: any) => t.team_role === 'lead_examiner') as any)?.member_name ?? null;
 
   if (isLoading) {
     return (
@@ -67,6 +142,18 @@ export default function ExaminationWorkspace() {
     );
   }
 
+  const currentStepPanel = () => {
+    switch (stepKey) {
+      case 'team': return <TeamPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'scoping': return <ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'data-requests': return <DataRequestsPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'workpapers': return <WorkpapersPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'exit-meeting': return <ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} />;
+      case 'reports': return <ReportsPanel examinationId={exam.id} readOnly={readOnly} />;
+      default: return <FindingsPanel examinationId={exam.id} readOnly={readOnly} />;
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -82,53 +169,65 @@ export default function ExaminationWorkspace() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+              {exam.stage === 'cancelled' ? 'Cancelled' : phaseLabel(stagePhase(exam.stage))}
+            </Badge>
             <Badge variant="outline">{stageLabel(exam.stage)}</Badge>
+            <Button size="sm" variant="outline" onClick={toggleAll}>
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              {showAll ? 'Hide advanced sections' : 'View full examination workspace'}
+            </Button>
           </div>
         </div>
 
-        <Card>
-          <CardContent className="py-4 overflow-x-auto">
-            <ol className="flex items-center gap-2 min-w-max">
-              {EXAMINATION_STAGES.map((s, i) => {
-                const currentIdx = ORDER.indexOf(exam.stage as ExaminationStage);
-                const done = currentIdx > i;
-                const active = currentIdx === i;
-                return (
-                  <li key={s.value} className="flex items-center gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs border ${
-                      active ? 'bg-primary text-primary-foreground border-primary'
-                        : done ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
-                          : 'bg-muted text-muted-foreground'
-                    }`}>{s.label}</span>
-                    {i < EXAMINATION_STAGES.length - 1 && <span className="h-px w-4 bg-border" />}
-                  </li>
-                );
-              })}
-            </ol>
-          </CardContent>
-        </Card>
-
         <ExaminationStageActionsProvider value={stageActionsValue}>
-        <Tabs defaultValue="scoping">
-          <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="scoping">Scoping</TabsTrigger>
-            <TabsTrigger value="team">Team</TabsTrigger>
-            <TabsTrigger value="data-requests">Data requests</TabsTrigger>
-            <TabsTrigger value="workpapers">Workpapers</TabsTrigger>
-            <TabsTrigger value="exit-meeting">Exit meeting</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="findings">Findings &amp; CAP</TabsTrigger>
-            <TabsTrigger value="audit">Audit trail</TabsTrigger>
-          </TabsList>
-          <TabsContent value="scoping" className="mt-4"><ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="team" className="mt-4"><TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="data-requests" className="mt-4"><DataRequestsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="workpapers" className="mt-4"><WorkpapersPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="exit-meeting" className="mt-4"><ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="reports" className="mt-4"><ReportsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="findings" className="mt-4"><FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="audit" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
-        </Tabs>
+          <Tabs value={section} onValueChange={setSection}>
+            <TabsList className="flex flex-wrap h-auto">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="current">Current step</TabsTrigger>
+              <TabsTrigger value="findings">Findings</TabsTrigger>
+              <TabsTrigger value="documents">Documents &amp; reports</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+              {showAll && <TabsTrigger value="scoping">Scoping</TabsTrigger>}
+              {showAll && <TabsTrigger value="team">Team</TabsTrigger>}
+              {showAll && <TabsTrigger value="data-requests">Data requests</TabsTrigger>}
+              {showAll && <TabsTrigger value="workpapers">Workpapers</TabsTrigger>}
+              {showAll && <TabsTrigger value="exit-meeting">Exit meeting</TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-4">
+              <ExaminationOverview
+                exam={exam}
+                guidance={guidance}
+                currentStepTitle={STEP_TITLES[stepKey]}
+                onOpenCurrentStep={() => setSection('current')}
+                leadExaminer={leadExaminer}
+                counts={counts}
+                readOnly={readOnly}
+              />
+            </TabsContent>
+
+            <TabsContent value="current" className="mt-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Current step: <span className="font-medium text-foreground">{STEP_TITLES[stepKey]}</span>
+              </p>
+              {currentStepPanel()}
+            </TabsContent>
+
+            <TabsContent value="findings" className="mt-4"><FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+            <TabsContent value="documents" className="mt-4"><ReportsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+            <TabsContent value="history" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
+
+            {showAll && (
+              <>
+                <TabsContent value="scoping" className="mt-4"><ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+                <TabsContent value="team" className="mt-4"><TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+                <TabsContent value="data-requests" className="mt-4"><DataRequestsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+                <TabsContent value="workpapers" className="mt-4"><WorkpapersPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+                <TabsContent value="exit-meeting" className="mt-4"><ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              </>
+            )}
+          </Tabs>
         </ExaminationStageActionsProvider>
       </div>
     </DashboardLayout>
