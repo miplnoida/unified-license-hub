@@ -17,6 +17,24 @@ import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
+const CLOSED_ACTION_STATUSES = ['completed', 'waived', 'cancelled'];
+const isActionClosed = (s: any) => CLOSED_ACTION_STATUSES.includes(String(s));
+const actionStatusLabel = (s: any) => {
+  const v = String(s);
+  return v === 'completed' ? 'Completed'
+    : v === 'waived' ? 'Waived'
+      : v === 'cancelled' ? 'Cancelled'
+        : v === 'in_progress' ? 'In progress'
+          : v === 'overdue' ? 'Overdue'
+            : v === 'breached' ? 'Breached'
+              : 'Open';
+};
+const actionTone = (s: any) =>
+  isActionClosed(s) ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+    : ['overdue', 'breached'].includes(String(s)) ? 'bg-destructive/10 text-destructive border-destructive/20'
+      : 'bg-warning/10 text-warning border-warning/20';
+
+
 const sevTone = (s: string) =>
   s === 'critical' ? 'bg-destructive/10 text-destructive border-destructive/20'
     : s === 'high' ? 'bg-warning/10 text-warning border-warning/20'
