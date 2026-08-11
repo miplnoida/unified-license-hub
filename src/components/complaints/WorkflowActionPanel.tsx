@@ -24,7 +24,12 @@ interface Props {
   complaintId: string;
   instanceUpdatedAt?: string | null;
   onCompleted?: (result: any) => void;
+  /** Configured label of the current workflow step (presentation only). */
+  currentStepLabel?: string | null;
+  /** Configured step list, used to name the target step of an action. */
+  steps?: Array<{ step_key: string; label: string }>;
 }
+
 
 interface RequiredField {
   key: string;
