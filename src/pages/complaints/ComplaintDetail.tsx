@@ -455,8 +455,12 @@ export default function ComplaintDetail() {
                 All lifecycle actions (assign, resolve, close, escalate, notice, decision,
                 appeal, payment) live in the Tracking tab, driven by the workflow config. */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Triage</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Override severity</CardTitle></CardHeader>
               <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Severity is assigned automatically from triage configuration. Changing it here is
+                  recorded as a supervisory override and requires a reason.
+                </p>
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <Label>Severity</Label>
@@ -467,7 +471,7 @@ export default function ComplaintDetail() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button data-rbac="complaint_management.edit" onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
+                  <Button data-rbac="complaint_management.edit" onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Override</Button>
                 </div>
               </CardContent>
             </Card>
