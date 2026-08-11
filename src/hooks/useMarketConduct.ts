@@ -230,8 +230,9 @@ export function useCreateInternalComplaint() {
     mutationFn: async (payload: Record<string, any>) => {
       // Canonical intake — server RPC handles complaint number, audit, notifications
       const validPriorities = ['p1', 'p2', 'p3', 'p4'];
-      const validSeverities = ['low', 'medium', 'high', 'critical'];
       const validCustomerTypes = ['retail', 'sme', 'corporate', 'vulnerable', 'other'];
+      // NOTE: severity is deliberately NOT sent. It is assigned by the backend
+      // from complaint intake/triage configuration.
       const rpcPayload: Record<string, unknown> = {
         subject: payload.subject,
         description: payload.description,
@@ -240,7 +241,6 @@ export function useCreateInternalComplaint() {
         conduct_risk_category_id: payload.conduct_risk_category_id ?? null,
         product_id: payload.product_id ?? null,
         channel_id: payload.channel_id ?? null,
-        severity: validSeverities.includes(payload.severity) ? payload.severity : 'medium',
         priority: validPriorities.includes(payload.priority) ? payload.priority : 'p3',
         email: emptyToNull(payload.email),
         customer_type: validCustomerTypes.includes(payload.customer_type) ? payload.customer_type : null,
