@@ -179,29 +179,49 @@ export function ClosureQaPanel({
       <Card>
         <CardHeader><CardTitle className="text-base">QA review</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <Label htmlFor="cq-qanote">QA note / return reason (min 10 characters when returning)</Label>
-            <Textarea id="cq-qanote" rows={2} value={qaNote} onChange={(e) => setQaNote(e.target.value)} />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" data-rbac="complaint_management.edit"
-              onClick={() => record.mutate({ decision: 'qa_approved', note: qaNote || 'QA approved' })}>
-              QA approve
-            </Button>
-            <Button variant="outline" data-rbac="complaint_management.edit"
-              onClick={() => record.mutate({ decision: 'qa_returned', note: qaNote })}>
-              Return to officer
-            </Button>
-          </div>
+          {qaLocked ? (
+            <div className="rounded-md border border-success/30 bg-success/10 p-3 text-sm">
+              <p className="font-medium">Quality review completed</p>
+              <p className="text-muted-foreground">
+                {latestLabel.label}
+                {latest?.decided_at ? ` on ${formatDateTime(latest.decided_at)}` : ''} — no further quality review
+                action is needed. The complaint is closed from the <strong>Current step</strong> tab.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor="cq-qanote">QA note / return reason (at least 10 characters when returning)</Label>
+                <Textarea id="cq-qanote" rows={2} value={qaNote} onChange={(e) => setQaNote(e.target.value)} />
+                {qaNote.trim().length > 0 && qaNote.trim().length < 10 && (
+                  <p className="mt-1 text-xs text-destructive">
+                    Add at least 10 characters to return this case to the officer.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
+                  onClick={() => record.mutate({ decision: 'qa_approved', note: qaNote || 'QA approved' })}>
+                  {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}QA approve
+                </Button>
+                <Button variant="outline" data-rbac="complaint_management.edit"
+                  disabled={record.isPending || qaNote.trim().length < 10}
+                  onClick={() => record.mutate({ decision: 'qa_returned', note: qaNote })}>
+                  Return to officer
+                </Button>
+              </div>
+            </>
+          )}
           {latest && (
             <p className="text-xs text-muted-foreground">
-              Latest decision: <Badge variant="outline">{latest.decision}</Badge>{' '}
-              {new Date(latest.decided_at).toLocaleString()}
+              Latest decision: <strong>{latestLabel.label}</strong>
+              {latestLabel.meaning ? ` — ${latestLabel.meaning}` : ''} · {formatDateTime(latest.decided_at)}
             </p>
           )}
         </CardContent>
       </Card>
       )}
+
 
 
       <Card>
