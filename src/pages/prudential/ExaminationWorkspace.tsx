@@ -24,6 +24,7 @@ import {
   businessActionLabel,
   currentStepKey,
   capturedSummary,
+  dependencies,
   deriveGuidance,
   isTerminalStage,
   phaseLabel,
@@ -38,7 +39,9 @@ import { ReportsPanel } from '@/components/prudential/examination/ReportsPanel';
 import { FindingsPanel } from '@/components/prudential/examination/FindingsPanel';
 import { ExaminationTimeline } from '@/components/prudential/examination/ExaminationTimeline';
 import { ExaminationStageActionsProvider } from '@/components/prudential/examination/ExaminationStageActions';
+import { ExaminationResolveBanner } from '@/components/prudential/examination/ExaminationResolveBanner';
 import { ExaminationOverview } from '@/components/prudential/examination/ExaminationOverview';
+
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
 
