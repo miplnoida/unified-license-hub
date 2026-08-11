@@ -582,16 +582,29 @@ export default function ComplaintDetail() {
 
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
-                Lifecycle actions (assign, resolve, close, escalate, issue notice, record response, decision,
-                appeal, payment, withdraw) are available in the <strong>Tracking</strong> tab. What's shown
-                there is decided by the Complaint Management Workflow configuration — administrators can add,
-                rename, or reorder actions without a code change.
+                These are classification and case-setup details, not lifecycle steps. The complaint only progresses
+                through the workflow action shown on the <strong>Current step</strong> tab, exactly as configured in
+                the Complaint Management Workflow.
               </CardContent>
             </Card>
+              </TabsContent>
+
+              <TabsContent value="rfis" className="space-y-4">
+                <ComplaintRfiTab
+                  complaintId={complaint.id}
+                  complaintNumber={complaint.complaint_number}
+                  licenseeId={(complaint as any).licensee_id ?? null}
+                  licenseeName={linkedLicenseeQ.data?.name ?? null}
+                />
+              </TabsContent>
+
+              <TabsContent value="closure" className="space-y-4">
+                <ComplaintClosureSection complaintId={complaint.id} status={complaint.status} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-
-          <TabsContent value="communications" className="space-y-4">
+          <TabsContent value="comms" className="space-y-4">
             <CaseThreadsPanel
               sourceType="complaint"
               sourceId={complaint.id}
@@ -602,29 +615,13 @@ export default function ComplaintDetail() {
             <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
           </TabsContent>
 
-          <TabsContent value="rfis" className="space-y-4">
-            <ComplaintRfiTab
-              complaintId={complaint.id}
-              complaintNumber={complaint.complaint_number}
-              licenseeId={(complaint as any).licensee_id ?? null}
-              licenseeName={linkedLicenseeQ.data?.name ?? null}
-            />
-          </TabsContent>
-
-
-
-          <TabsContent value="tracking" className="space-y-4">
-            <WorkflowActionPanel complaintId={complaint.id} />
-
+          <TabsContent value="history" className="space-y-4">
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
             />
           </TabsContent>
 
-          <TabsContent value="closure" className="space-y-4">
-            <ClosureQaPanel complaintId={complaint.id} />
-          </TabsContent>
         </Tabs>
 
         {severityOverride && complaint && (
