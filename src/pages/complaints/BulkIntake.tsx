@@ -84,7 +84,7 @@ export default function ComplaintBulkIntake() {
                   onChange={(e) => onFile(e.target.files?.[0])} />
               </div>
               <div className="text-xs text-muted-foreground self-end">
-                Expected columns: <code>subject, description, email, licensee_id, severity, complaint_type_id</code>
+                Expected columns: <code>subject, description, email, licensee_id, complaint_type_id</code>. Severity is assigned automatically from triage configuration and is ignored if present in the file.
               </div>
             </div>
             <div>
