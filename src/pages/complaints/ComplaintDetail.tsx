@@ -469,14 +469,37 @@ export default function ComplaintDetail() {
             <TriageHistoryCard complaint={complaint} />
           </TabsContent>
 
-          <TabsContent value="investigation">
-            <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+          <TabsContent value="current" className="space-y-4">
+            <ComplaintCurrentStepPanel
+              complaintId={complaint.id}
+              status={complaint.status}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              onOpenSection={openCaseWork}
+            />
           </TabsContent>
 
-          <TabsContent value="actions" className="space-y-4">
-            {/* Triage — severity + licensee mapping remain as data helpers.
-                All lifecycle actions (assign, resolve, close, escalate, notice, decision,
-                appeal, payment) live in the Tracking tab, driven by the workflow config. */}
+          <TabsContent value="casework" className="space-y-4">
+            <div className="rounded-md border bg-muted/40 p-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                Supporting case work. Lifecycle progression stays on the <strong>Current step</strong> tab.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => goSection('current')}>Return to current step</Button>
+            </div>
+
+            <Tabs value={sub} onValueChange={(v) => goSection('casework', v as CaseWorkSection)}>
+              <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="investigation">Investigation</TabsTrigger>
+                <TabsTrigger value="rfis">Information requests</TabsTrigger>
+                <TabsTrigger value="classification">Classification &amp; case setup</TabsTrigger>
+                <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="investigation" className="space-y-4">
+                <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+              </TabsContent>
+
+              <TabsContent value="classification" className="space-y-4">
+
             <Card>
               <CardHeader><CardTitle className="text-base">Override severity</CardTitle></CardHeader>
               <CardContent className="space-y-3">
