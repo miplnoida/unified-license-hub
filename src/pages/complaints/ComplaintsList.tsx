@@ -426,22 +426,26 @@ export default function ComplaintsList() {
     setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
+      // create_complaint returns { id, complaint_number, workflow_instance_id, complaint: <row> }.
+      // Read the record fields from `complaint`, falling back to the top level.
+      const row = ((inserted as any).complaint ?? inserted) as any;
       setAckDialog({
         id: inserted.id,
-        complaint_number: (inserted as any).complaint_number,
-        subject: (inserted as any).subject,
-        submitted_at: (inserted as any).created_at,
+        complaint_number: (inserted as any).complaint_number ?? row.complaint_number,
+        subject: row.subject ?? newSubject.trim(),
+        submitted_at: row.created_at ?? new Date().toISOString(),
         complainant_name: user.fullName ?? user.email ?? null,
-        complainant_email: (inserted as any).email ?? user.email ?? null,
-        channel: isInternal ? 'staff_intake' : 'consumer_portal',
-        sla_days: (inserted as any).sla_days ?? 20,
-        description: (inserted as any).description ?? null,
+        complainant_email: row.email ?? user.email ?? null,
+        channel: row.intake_source ?? (isInternal ? 'internal' : 'consumer_portal'),
+        sla_days: row.sla_days ?? null,
+        description: row.description ?? null,
         attachments: uploadedAttachments.map(a => ({
           name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
         })),
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
+
     refetchAll();
   };
 
