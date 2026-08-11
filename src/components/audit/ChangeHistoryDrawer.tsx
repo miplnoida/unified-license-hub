@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchOverridesForEntity, type RuleOverrideRow } from '@/lib/ruleOverrides';
-import { humanizeAction, computeChanges, summarizeSingle, type Change } from './humanizeAudit';
+import { humanizeAction, summarizeSingle } from './humanizeAudit';
+import { historyChanges, dayHeading, timeOfDay } from '@/lib/complaintHistoryLabels';
+
 import { History, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Props {
