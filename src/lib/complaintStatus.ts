@@ -80,3 +80,21 @@ export function canTransitionComplaint(
   const allowed = COMPLAINT_TRANSITIONS[from as ComplaintStatus];
   return !!allowed && allowed.includes(to);
 }
+
+/**
+ * Priority is stored as p1–p4. Non-technical users should never see the codes,
+ * so every display surface renders these words instead.
+ */
+export const COMPLAINT_PRIORITY_LABELS: Record<string, string> = {
+  p1: 'Critical',
+  p2: 'High',
+  p3: 'Medium',
+  p4: 'Low',
+};
+
+export const COMPLAINT_PRIORITIES = ['p1', 'p2', 'p3', 'p4'] as const;
+
+export function complaintPriorityLabel(p: string | null | undefined): string {
+  if (!p) return '—';
+  return COMPLAINT_PRIORITY_LABELS[String(p).toLowerCase()] ?? String(p);
+}
