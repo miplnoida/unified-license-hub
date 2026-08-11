@@ -350,7 +350,7 @@ export function ClosurePanel({
               <Textarea rows={3} value={evidence} disabled={!editable} onChange={e => setEvidence(e.target.value)} />
             </div>
             <div>
-              <Label>Determination rationale <span className="text-destructive">*</span></Label>
+              <Label>Determination rationale <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">(min 20 characters)</span></Label>
               <Textarea rows={3} value={rationale} disabled={!editable} onChange={e => setRationale(e.target.value)} />
             </div>
           </div>
