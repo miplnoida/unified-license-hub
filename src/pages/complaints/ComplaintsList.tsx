@@ -320,33 +320,12 @@ export default function ComplaintsList() {
     if (!detailDialog?.id) { setDetailAttachments([]); return; }
     let cancelled = false;
     (async () => {
-      const { data: ev, error } = await supabase
-        .from('complaint_evidence' as any)
-        .select('label, file_upload_id')
-        .eq('complaint_id', detailDialog.id);
-      if (error) { if (!cancelled) toast.error(`Attachments failed to load: ${error.message}`); return; }
-      const rows = (ev as any[]) ?? [];
-      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
-      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
-      const { data: files, error: fErr } = await supabase
-        .from('file_uploads' as any)
-        .select('id, file_name, file_path, file_size')
-        .in('id', ids);
-      if (fErr) { if (!cancelled) toast.error(`File details failed: ${fErr.message}`); return; }
-      const fmap = new Map(((files as any[]) ?? []).map(f => [f.id, f]));
-      const atts = rows.map(r => {
-        const f = fmap.get(r.file_upload_id);
-        return {
-          id: r.file_upload_id,
-          name: r.label || f?.file_name || 'Attachment',
-          size: f?.file_size,
-          filePath: f?.file_path,
-        };
-      });
+      const atts = await loadComplaintAttachments(detailDialog.id);
       if (!cancelled) setDetailAttachments(atts);
     })();
     return () => { cancelled = true; };
   }, [detailDialog?.id]);
+
 
   const openDetailAttachment = async (filePath?: string) => {
     if (!filePath) return;
