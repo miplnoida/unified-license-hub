@@ -196,8 +196,13 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
       {/* Correspondence */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Correspondence & Notes</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Investigation notes / legacy correspondence</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Internal investigation notes and historical correspondence records. External communication with the
+            complainant or entity is handled under <strong>Evidence &amp; communications</strong>.
+          </p>
         </CardHeader>
+
         <CardContent className="space-y-4">
           {!readOnly && (
             <div className="space-y-2 border-b pb-4">
