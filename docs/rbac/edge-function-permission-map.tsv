@@ -8,7 +8,7 @@ complaint-storage-cleanup	worker	-	-	-	pg_cron; orphaned staged evidence sweep.
 create-web-user	user	user_management	create	licenseeId	Licensee web-user provisioning.
 developer-api	api_key	-	-	-	Existing bearer-API-key auth path.
 dispatch-license-certificate	user	license_management	manage_certificates	recordId	Send generated certificate.
-dispatch-notification-event	worker	-	-	-	Internal orchestrator; invoked by other functions/cron.
+dispatch-notification-event	worker	-	-	-	Internal orchestrator; invoked by other functions/cron, or by an authenticated user session for client-fired business events.
 document-extract	user	document_management	upload	-	AI document extraction pass.
 evaluate-application-sufficiency	user	application_management	edit	recordId	AI + rules sufficiency check.
 evaluate-complaint-triage	user	complaint_management	workflow_action	recordId	Triage engine.
