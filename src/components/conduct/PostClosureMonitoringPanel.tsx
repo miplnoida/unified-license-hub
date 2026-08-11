@@ -192,7 +192,11 @@ export function PostClosureMonitoringPanel({
                 : 'No directive recorded yet.'}
             </div>
             <Button data-rbac="market_conduct.edit" size="sm" onClick={onSave}
+              title={focusAreas.trim().length < 10
+                ? 'Focus areas need at least 10 characters'
+                : 'Save the monitoring directive'}
               disabled={save.isPending || focusAreas.trim().length < 10}>
+
               <Save className="h-4 w-4 mr-1" />Save directive
             </Button>
           </div>
