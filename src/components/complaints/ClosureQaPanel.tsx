@@ -22,7 +22,21 @@ import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
 
-export function ClosureQaPanel({ complaintId, readOnly = false }: { complaintId: string; readOnly?: boolean }) {
+export function ClosureQaPanel({
+  complaintId,
+  readOnly = false,
+  currentStepLabel = null,
+  availableActionLabels = [],
+  onGoToCurrentStep,
+}: {
+  complaintId: string;
+  readOnly?: boolean;
+  /** Configured label of the step the complaint sits on right now. */
+  currentStepLabel?: string | null;
+  /** Configured labels of the workflow actions this user may perform now. */
+  availableActionLabels?: string[];
+  onGoToCurrentStep?: () => void;
+}) {
   const qc = useQueryClient();
   const [resolution, setResolution] = useState('');
   const [rationale, setRationale] = useState('');
