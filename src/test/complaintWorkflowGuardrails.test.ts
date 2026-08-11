@@ -4,6 +4,7 @@
 // status strings.
 
 import { describe, expect, it } from 'vitest';
+import { deriveInvestigationMode } from '@/lib/complaintWorkflow';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -70,5 +71,45 @@ describe('complaint workflow guardrails', () => {
     expect(src).not.toMatch(/status\s*===\s*'notice_issued'/);
     expect(src).not.toMatch(/status\s*===\s*'decided'/);
     expect(src).not.toMatch(/status\s*===\s*'response_received'/);
+  });
+});
+
+describe('deriveInvestigationMode', () => {
+  const step = (over: Partial<any> = {}) => ({
+    step_key: 's1', label: 'Step 1', order: 1, is_current: true, is_terminal: false, is_start: true, ...over,
+  });
+
+  it('is not relevant when no workflow step and no records', () => {
+    expect(deriveInvestigationMode({ tracking: {}, actions: [], status: 'new', hasRecords: false })).toBe('not_relevant');
+  });
+
+  it('is read-only when no step but records exist', () => {
+    expect(deriveInvestigationMode({ tracking: {}, actions: [], status: 'new', hasRecords: true })).toBe('read_only');
+  });
+
+  it('is active on a non-terminal current step with an available configured action', () => {
+    expect(deriveInvestigationMode({
+      tracking: { current_step_key: 's1', steps: [step()] },
+      actions: [{ action_key: 'a', label: 'Forward' }],
+      status: 'under_review',
+      hasRecords: false,
+    })).toBe('active');
+  });
+
+  it('is read-only when the viewer has no configured action, on a terminal step, or when closed', () => {
+    expect(deriveInvestigationMode({
+      tracking: { current_step_key: 's1', steps: [step()] }, actions: [], status: 'under_review', hasRecords: true,
+    })).toBe('read_only');
+    expect(deriveInvestigationMode({
+      tracking: { current_step_key: 's1', steps: [step({ is_terminal: true })] },
+      actions: [{ action_key: 'a', label: 'Close' }], status: 'under_review', hasRecords: true,
+    })).toBe('read_only');
+    expect(deriveInvestigationMode({ tracking: {}, actions: [], status: 'closed', hasRecords: true })).toBe('read_only');
+  });
+
+  it('falls back to active when workflow context is unknown', () => {
+    expect(deriveInvestigationMode({
+      tracking: null, actions: null, status: 'under_review', hasRecords: false, contextUnknown: true,
+    })).toBe('active');
   });
 });

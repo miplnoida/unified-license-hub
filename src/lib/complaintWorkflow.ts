@@ -394,3 +394,46 @@ export function targetStepLabel(
   const step = (steps ?? []).find(s => s.step_key === action.target_step_key);
   return step?.label ?? action.target_step_key;
 }
+
+/* ------------------------------------------------ investigation relevance */
+
+export type InvestigationMode = 'not_relevant' | 'active' | 'read_only';
+
+/**
+ * Presentation-only decision on whether investigation work items / internal
+ * notes should be editable at the complaint's *current* configured workflow
+ * step.
+ *
+ * Deliberately configuration-driven: it never matches on step names or
+ * statuses like "investigation". The only signals used are ones the configured
+ * Complaint Management Workflow already returns —
+ *   - is there a current step at all (`get_complaint_tracking`),
+ *   - is that step terminal,
+ *   - does this viewer have any available configured action on it
+ *     (`get_complaint_available_actions`).
+ * The server/RLS remains authoritative for what can actually be written.
+ */
+export function deriveInvestigationMode(input: {
+  tracking: ComplaintTracking | null | undefined;
+  actions: WorkflowAction[] | undefined | null;
+  status: string | null | undefined;
+  hasRecords: boolean;
+  /** true while tracking/actions are still loading or failed to load. */
+  contextUnknown?: boolean;
+}): InvestigationMode {
+  const status = String(input.status ?? '').toLowerCase();
+  if (status === 'closed' || status === 'resolved' || status === 'rejected') return 'read_only';
+
+  // Without trustworthy workflow context, fall back to previous behaviour
+  // (editable unless closed) rather than blocking legitimate case work.
+  if (input.contextUnknown) return 'active';
+
+  const steps = input.tracking?.steps ?? [];
+  const current = steps.find(s => s.is_current);
+  const hasCurrentStep = !!(input.tracking?.current_step_key || current);
+
+  if (!hasCurrentStep) return input.hasRecords ? 'read_only' : 'not_relevant';
+  if (current?.is_terminal) return 'read_only';
+  if ((input.actions ?? []).length === 0) return 'read_only';
+  return 'active';
+}
