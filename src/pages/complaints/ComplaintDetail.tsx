@@ -266,7 +266,27 @@ export default function ComplaintDetail() {
   // which handles state transition, audit log, and notification-outbox rows.
 
   // Entity mapping (licensed vs applicant entity), its search fallback and the
-  // link mutation all live in <ComplaintEntityCard>.
+  // link mutation all live in <ComplaintEntityCard>. This query only supplies
+  // the linked entity's display name to other panels.
+  const linkedLicenseeQ = useQuery({
+    queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
+    enabled: !!complaint?.licensee_id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('licensees')
+        .select('id, name, license_id, licenses:license_id(license_number)')
+        .eq('id', complaint!.licensee_id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: (data as any).id,
+        name: (data as any).name,
+        license_number: (data as any).licenses?.license_number ?? null,
+      };
+    },
+  });
+
 
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
