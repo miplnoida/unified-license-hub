@@ -36,7 +36,7 @@ import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrac
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
-import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
+import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
 import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
 import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
 import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
