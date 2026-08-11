@@ -76,20 +76,20 @@ export function ComplaintEntityCard({ complaintId, regulatorId, enforcementActio
 
       const nameQ = (supabase as any)
         .from('licensees')
-        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
+        .select('id, name, license_id, lead_regulator_id, licenses:license_id(license_number)')
         .order('name')
         .limit(pageSize);
       if (term) nameQ.ilike('name', `%${term}%`);
-      if (regulatorId) nameQ.eq('regulator_id', regulatorId);
+      if (regulatorId) nameQ.eq('lead_regulator_id', regulatorId);
 
       const numberQ = term
         ? (supabase as any)
             .from('licensees')
-            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
+            .select('id, name, license_id, lead_regulator_id, licenses:license_id!inner(license_number)')
             .ilike('licenses.license_number', `%${term}%`)
             .limit(pageSize)
         : null;
-      if (numberQ && regulatorId) numberQ.eq('regulator_id', regulatorId);
+      if (numberQ && regulatorId) numberQ.eq('lead_regulator_id', regulatorId);
 
       const [nameRes, numberRes] = await Promise.all([
         nameQ,
