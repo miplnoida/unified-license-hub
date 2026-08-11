@@ -238,6 +238,27 @@ export default function TriageRules() {
         />
 
         <Card>
+          <CardContent className="p-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <Label className="text-sm">Default severity</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Applied to every complaint when no triage rule below matches. Complainants and staff cannot set severity themselves.
+              </p>
+            </div>
+            <div className="w-full md:w-56">
+              <Select value={defaultSeverity} onValueChange={saveDefaultSeverity} disabled={savingDefault}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(['low', 'medium', 'high', 'critical'] as const).map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardContent className="p-0">
             {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
               <Table>
