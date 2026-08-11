@@ -617,12 +617,6 @@ export default function ComplaintsList() {
                       )}
                       <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                       <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
-                      <div>
-                        <Label>Severity</Label>
-                        <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-                          Severity is assigned automatically after triage.
-                        </div>
-                      </div>
 
                       <ComplaintAttachmentsField files={newAttachments} onChange={setNewAttachments} disabled={creating} />
                       <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
