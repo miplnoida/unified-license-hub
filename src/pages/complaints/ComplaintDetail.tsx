@@ -27,6 +27,7 @@ import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
+import { COMPLAINT_TRIAGE_HISTORY_ENABLED } from '@/lib/featureFlags';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
@@ -458,9 +459,9 @@ export default function ComplaintDetail() {
                   </div>
                 ) : (
                   <>
-                    <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || '—'}</p></div>
+                    <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || (complaint.email ? 'Not provided' : '—')}</p></div>
                     <div><p className="text-muted-foreground">Email</p><p>{complaint.email || complainant?.email || '—'}</p></div>
-                    <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
+                    <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type_label || (complaint.email ? 'Public complainant' : '—')}</p></div>
                   </>
                 )}
               </CardContent>
@@ -480,7 +481,7 @@ export default function ComplaintDetail() {
             )}
 
             <ConductClassificationCard complaint={complaint} />
-            <TriageHistoryCard complaint={complaint} />
+            {COMPLAINT_TRIAGE_HISTORY_ENABLED && <TriageHistoryCard complaint={complaint} />}
           </TabsContent>
 
           <TabsContent value="current" className="space-y-4">
