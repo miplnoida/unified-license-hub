@@ -250,57 +250,85 @@ export default function ExaminationWorkspace() {
           </div>
         </div>
 
-        <ExaminationStageActionsProvider value={stageActionsValue}>
-          <Tabs value={section} onValueChange={setSection}>
-            <TabsList className="flex flex-wrap h-auto">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="current">Current step</TabsTrigger>
-              <TabsTrigger value="findings">Findings</TabsTrigger>
-              <TabsTrigger value="documents">Documents &amp; reports</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              {showAll && <TabsTrigger value="scoping">Scoping</TabsTrigger>}
-              {showAll && <TabsTrigger value="team">Team</TabsTrigger>}
-              {showAll && <TabsTrigger value="data-requests">Data requests</TabsTrigger>}
-              {showAll && <TabsTrigger value="workpapers">Workpapers</TabsTrigger>}
-              {showAll && <TabsTrigger value="exit-meeting">Exit meeting</TabsTrigger>}
-            </TabsList>
+        <Tabs value={section} onValueChange={setSection}>
+          <TabsList className="flex flex-wrap h-auto">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="current">Current step</TabsTrigger>
+            <TabsTrigger value="findings">Findings</TabsTrigger>
+            <TabsTrigger value="documents">Documents &amp; reports</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            {showAll && <TabsTrigger value="scoping">Scoping</TabsTrigger>}
+            {showAll && <TabsTrigger value="team">Team</TabsTrigger>}
+            {showAll && <TabsTrigger value="data-requests">Data requests</TabsTrigger>}
+            {showAll && <TabsTrigger value="workpapers">Workpapers</TabsTrigger>}
+            {showAll && <TabsTrigger value="exit-meeting">Exit meeting</TabsTrigger>}
+          </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
-              <ExaminationOverview
-                exam={exam}
-                guidance={guidance}
-                currentStepTitle={STEP_TITLES[stepKey]}
-                onOpenCurrentStep={() => setSection('current')}
-                onOpenSection={openSection}
-                captured={captured}
-                leadExaminer={leadExaminer}
-                counts={counts}
-                readOnly={readOnly}
-              />
-            </TabsContent>
+          <TabsContent value="overview" className="mt-4">
+            <ExaminationOverview
+              exam={exam}
+              guidance={guidance}
+              currentStepTitle={STEP_TITLES[stepKey]}
+              onOpenCurrentStep={() => setSection('current')}
+              onOpenSection={openSection}
+              captured={captured}
+              leadExaminer={leadExaminer}
+              counts={counts}
+              readOnly={readOnly}
+            />
+          </TabsContent>
 
-            <TabsContent value="current" className="mt-4 space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Current step: <span className="font-medium text-foreground">{STEP_TITLES[stepKey]}</span>
-              </p>
-              {currentStepPanel()}
-            </TabsContent>
+          {/* The stage lifecycle can only be advanced from the current step. */}
+          <TabsContent value="current" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Current step: <span className="font-medium text-foreground">{STEP_TITLES[stepKey]}</span>
+            </p>
 
-            <TabsContent value="findings" className="mt-4"><FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-            <TabsContent value="documents" className="mt-4"><ReportsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-            <TabsContent value="history" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
-
-            {showAll && (
-              <>
-                <TabsContent value="scoping" className="mt-4"><ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-                <TabsContent value="team" className="mt-4"><TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-                <TabsContent value="data-requests" className="mt-4"><DataRequestsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-                <TabsContent value="workpapers" className="mt-4"><WorkpapersPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-                <TabsContent value="exit-meeting" className="mt-4"><ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-              </>
+            {deps.length > 0 && (
+              <Card>
+                <CardContent className="py-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">This step depends on</p>
+                  {deps.map((d, i) => (
+                    <div key={`${d.key}-${i}`} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        {d.ok ? (
+                          <Check className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-warning" />
+                        )}
+                        <span className="font-medium">{d.title}</span>
+                        <span className="text-muted-foreground text-xs">{d.detail}</span>
+                      </span>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                        onClick={() => openSection(d.key, true)}>
+                        Open {d.title.toLowerCase()}
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             )}
-          </Tabs>
-        </ExaminationStageActionsProvider>
+
+            <ExaminationStageActionsProvider value={stageActionsValue}>
+              {currentStepPanel()}
+            </ExaminationStageActionsProvider>
+          </TabsContent>
+
+          <TabsContent value="findings" className="mt-4">{detourBanner()}<FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+          <TabsContent value="documents" className="mt-4">{detourBanner()}<ReportsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+          <TabsContent value="history" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
+
+          {showAll && (
+            <>
+              <TabsContent value="scoping" className="mt-4">{detourBanner()}<ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="team" className="mt-4">{detourBanner()}<TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="data-requests" className="mt-4">{detourBanner()}<DataRequestsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="workpapers" className="mt-4">{detourBanner()}<WorkpapersPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="exit-meeting" className="mt-4">{detourBanner()}<ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+            </>
+          )}
+        </Tabs>
+
       </div>
     </DashboardLayout>
   );
