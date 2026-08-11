@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, ClipboardList, FileWarning, Inbox, UserCheck } from 'lucide-react';
-import type { Guidance } from '@/lib/examinationWorkflow';
+import type { BlockerSection, CapturedArea, Guidance } from '@/lib/examinationWorkflow';
 import { NextActionCard } from './NextActionCard';
 import { ExaminationPhaseProgress } from './ExaminationPhaseProgress';
+
 
 const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
