@@ -83,10 +83,23 @@ export function ClosureQaPanel({
       qc.invalidateQueries({ queryKey: ['complaint_closure_reviews', complaintId] });
       toast.success('Decision recorded');
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not record decision'),
+    onError: (e) => toast.error(friendlyRecordError(e)),
   });
 
   const latest = reviews?.[0] as any | undefined;
+  const latestLabel = closureDecisionLabel(latest?.decision);
+  /** Once QA has approved (or a closure assessment is recorded), QA is done. */
+  const qaLocked = (reviews ?? []).some(
+    (r: any) => r.decision === 'qa_approved' || r.decision === 'closed',
+  );
+
+  /** Client-side mirror of the server's closure requirements. */
+  const missing: string[] = [];
+  if (!resolution.trim()) missing.push('Add a resolution describing how the complaint was handled.');
+  if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
+  if (!outcome) missing.push('Choose an outcome.');
+  if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
+
 
   return (
     <div className="space-y-4">
