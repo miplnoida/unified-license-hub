@@ -354,6 +354,15 @@ export function ClosurePanel({
 
           <Separator />
 
+          {editable && !!submitMissing.length && (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
+              <div className="font-medium text-xs">What's still needed before you can submit</div>
+              <ul className="list-disc pl-5 text-xs text-muted-foreground">
+                {submitMissing.map(m => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-end gap-2">
             {editable && (
               <>
@@ -362,12 +371,13 @@ export function ClosurePanel({
                   <Save className="h-4 w-4 mr-1" />Save draft
                 </Button>
                 <Button data-rbac="market_conduct.edit" size="sm" onClick={onSubmit}
-                  disabled={submit.isPending || saveDraft.isPending
-                    || findings.trim().length < 20 || rationale.trim().length < 20}>
+                  title={submitMissing[0] ?? 'Submit the determination for approval'}
+                  disabled={submit.isPending || saveDraft.isPending || submitMissing.length > 0}>
                   <Send className="h-4 w-4 mr-1" />Submit for approval
                 </Button>
               </>
             )}
+
             {pending && (
               <>
                 <Button data-rbac="market_conduct.approve" size="sm" variant="outline"
