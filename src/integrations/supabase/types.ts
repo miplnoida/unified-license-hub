@@ -28135,6 +28135,10 @@ export type Database = {
         | "scheduler_failure"
         | "notification_delivery_failure"
         | "system_health_alert"
+        | "prudential_breach"
+        | "complaint_escalation"
+        | "conduct_alert"
+        | "coordination_escalation"
       notification_category: "action_required" | "alert" | "system" | "info"
       notification_digest_frequency: "immediate" | "hourly" | "daily"
       notification_severity: "critical" | "high" | "medium" | "low"
@@ -28375,6 +28379,10 @@ export const Constants = {
         "scheduler_failure",
         "notification_delivery_failure",
         "system_health_alert",
+        "prudential_breach",
+        "complaint_escalation",
+        "conduct_alert",
+        "coordination_escalation",
       ],
       notification_category: ["action_required", "alert", "system", "info"],
       notification_digest_frequency: ["immediate", "hourly", "daily"],
