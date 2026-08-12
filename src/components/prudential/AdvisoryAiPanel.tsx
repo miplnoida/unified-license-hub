@@ -72,8 +72,10 @@ export function AdvisoryAiPanel({
   title = 'AI-assisted analysis',
   description,
   ready = true,
+  disabledReason,
   className,
 }: Props) {
+
   const { insight, isStale, isLoading, generate, feedback } = usePrudentialAiAnalysis({
     analysisType,
     scope,
