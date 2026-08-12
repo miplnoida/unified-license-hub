@@ -1044,15 +1044,22 @@ function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: a
 }
 
 
-function PeerRow({ row, entity, period, onSnapshot }: {
+function PeerRow({ row, entity, period, basis = 'sector_category', onSnapshot }: {
   row: any;
   entity: any;
   period?: string;
+  basis?: 'sector_category' | 'sector';
   onSnapshot?: (ratioKey: string, fact: any) => void;
 }) {
-  // Peer group is narrowed to the entity's sector + category server-side; the
-  // RPC refuses to publish statistics below the minimum peer sample.
-  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null, entity.id);
+  // Passing the entity narrows the peer group to its sector + category server-side.
+  // Omitting it keeps the wider sector-only group. Either way the RPC refuses to
+  // publish statistics below the configured minimum peer sample.
+  const peer = usePeerSnapshot(
+    row.ratio_key,
+    period || null,
+    entity.sector_id || null,
+    basis === 'sector_category' ? entity.id : null,
+  );
   const p = peer.data as any;
   const peerState = readPeerState(p);
   const resultState = deriveRatioResultState(row.value, row.null_reason);
@@ -1066,6 +1073,7 @@ function PeerRow({ row, entity, period, onSnapshot }: {
       ratio: row.label || row.ratio_key,
       period: period ?? null,
       peer_comparison_available: peerState === 'OK',
+      peers_reported: p?.peer_count ?? p?.count ?? 0,
       entity_value: resultState === 'CALCULATED' ? Number(row.value) : null,
       peer_median: peerState === 'OK' ? p?.median ?? null : null,
       peer_p90: peerState === 'OK' ? p?.p90 ?? null : null,
@@ -1073,6 +1081,7 @@ function PeerRow({ row, entity, period, onSnapshot }: {
       peer_max: peerState === 'OK' ? p?.max ?? null : null,
       peer_sample_size: peerState === 'OK' ? p?.peer_count ?? p?.count ?? null : null,
       entity_percentile: peerState === 'OK' ? p?.percentile ?? null : null,
+
       difference_vs_median: delta,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
