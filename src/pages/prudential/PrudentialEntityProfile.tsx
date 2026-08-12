@@ -312,7 +312,12 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="risk">
+          <RiskScoreTab entityId={e.id} entityName={e.name} />
+        </TabsContent>
+
         <TabsContent value="overview">
+
           <div className="grid md:grid-cols-4 gap-3">
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>
               <CardContent className="text-sm">
