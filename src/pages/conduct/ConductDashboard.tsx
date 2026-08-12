@@ -121,6 +121,35 @@ export default function ConductDashboard() {
     return arr.sort((a, b) => b.value - a.value).slice(0, 10);
   }, [complaints, licensees]);
 
+  // Deterministic marker of what is on screen (staleness only) and the display
+  // context handed to the advisory layer. No complainant identity is included.
+  const aiStaleness = useMemo(
+    () => ({ filters: f, counts: kpis, complaint_ids: complaints.length, alert_ids: alerts.length }),
+    [f, kpis, complaints.length, alerts.length],
+  );
+  const aiContext = useMemo(
+    () => ({
+      filters: f,
+      days: Number(f.days),
+      labels: {
+        products: Object.fromEntries(products.map((p) => [p.id, p.name])),
+        channels: Object.fromEntries(channels.map((c) => [c.id, c.name])),
+        categories: Object.fromEntries(categories.map((c) => [c.id, c.name])),
+        licensees: Object.fromEntries(licensees.map((l) => [l.id, l.name])),
+      },
+      on_screen_aggregates: {
+        kpis,
+        by_product: byProduct,
+        by_channel: byChannel,
+        by_risk_category: byCategory,
+        by_severity: bySeverity,
+        top_licensees: topLicensees,
+      },
+    }),
+    [f, products, channels, categories, licensees, kpis, byProduct, byChannel, byCategory, bySeverity, topLicensees],
+  );
+
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
