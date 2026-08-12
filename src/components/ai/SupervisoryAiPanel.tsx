@@ -103,6 +103,7 @@ export function SupervisoryAiPanel({
   className,
 }: Props) {
   const [question, setQuestion] = useState('');
+  const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
 
   const { insight, isStale, isLoading, generate, feedback } = useAdvisoryAiAnalysis({
     module,
@@ -122,6 +123,15 @@ export function SupervisoryAiPanel({
   const hasContent = hasSupervisoryContent(payload);
   const busy = generate.isPending;
   const generateLabel = actionLabel ?? 'Generate analysis';
+
+  const canAsk = !busy && ready && !!question.trim();
+
+  const runAsk = () => {
+    if (!canAsk) return;
+    const q = question.trim();
+    setAskedQuestion(q);
+    generate.mutate({ force: true, question: q, context });
+  };
 
   const copyDraft = async () => {
     const text = (payload?.draft_sections ?? [])
