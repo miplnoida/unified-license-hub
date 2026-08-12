@@ -298,7 +298,7 @@ export default function PrudentialEntityProfile() {
       <Tabs defaultValue="overview">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="risk">Risk Score</TabsTrigger>
+          <TabsTrigger value="risk">Risk Heatmap</TabsTrigger>
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
 
           <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
