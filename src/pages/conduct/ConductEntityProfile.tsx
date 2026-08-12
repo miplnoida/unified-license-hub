@@ -15,7 +15,7 @@ import { Loader2, ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
-import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+
 
 const sb = supabase as any;
 
