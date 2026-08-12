@@ -35,8 +35,11 @@ interface Props {
   description?: string;
   /** Set false when the deterministic data behind the panel is still loading. */
   ready?: boolean;
+  /** Plain-language reason shown when generation is unavailable. */
+  disabledReason?: string;
   className?: string;
 }
+
 
 function ObservationList({ items }: { items: AdvisoryObservation[] }) {
   return (
