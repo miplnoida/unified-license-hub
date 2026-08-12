@@ -24,6 +24,7 @@ import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 import { RiskScoreTab } from '@/components/prudential/RiskScoreTab';
 
 import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
@@ -319,6 +320,33 @@ export default function PrudentialEntityProfile() {
         </TabsContent>
 
         <TabsContent value="overview">
+          {/* Cross-module advisory brief. Reads existing prudential, examination,
+              complaint and enforcement records; changes none of them. */}
+          <div className="mb-4 space-y-4">
+            <SupervisoryAiPanel
+              module="cross_module"
+              analysisType="entity_supervisory_brief"
+              scope="entity"
+              scopeId={e.id}
+              label={e.name}
+              title="AI entity supervisory brief"
+              actionLabel="Generate brief"
+              description="A single view across risk, examinations, complaints and enforcement for this entity. It changes no rating, finding, case or decision."
+              stalenessFacts={{ entity: e.id, updated_at: (e as any).updated_at ?? null }}
+            />
+            <SupervisoryAiPanel
+              module="cross_module"
+              analysisType="supervisory_query"
+              scope="entity"
+              scopeId={e.id}
+              label={e.name}
+              title="Ask about this entity"
+              actionLabel="Ask"
+              askable
+              description="Answers come only from records you are already permitted to see. Asking a question changes nothing."
+              stalenessFacts={{ entity: e.id, ask: true }}
+            />
+          </div>
 
           <div className="grid md:grid-cols-4 gap-3">
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>

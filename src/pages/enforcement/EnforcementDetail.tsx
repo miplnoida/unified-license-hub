@@ -23,6 +23,7 @@ import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrac
 import { EnforcementLifecyclePanel } from '@/components/enforcement/EnforcementLifecyclePanel';
 import { EnforcementObligationsPanel } from '@/components/enforcement/EnforcementObligationsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
 export default function EnforcementDetail() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +79,13 @@ export default function EnforcementDetail() {
   }
 
   const meta = ENFORCEMENT_STATUS_META[caseRow.status] || ENFORCEMENT_STATUS_META.opened;
+  // Marker of the case as displayed — used only for advisory-analysis staleness.
+  const aiStaleness = {
+    status: caseRow.status,
+    updated_at: caseRow.updated_at ?? null,
+    decision_at: caseRow.decision_at ?? null,
+    notice_issued_at: caseRow.notice_issued_at ?? null,
+  };
   const currency = caseRow.penalty_currency || 'USD';
 
   return (
@@ -114,6 +122,61 @@ export default function EnforcementDetail() {
         {caseRow.description && (
           <Card><CardContent className="p-4 text-sm"><div className="text-xs text-muted-foreground mb-1">Description</div>{caseRow.description}</CardContent></Card>
         )}
+
+        {/* Advisory AI — interpretation, drafting help and factor observations.
+            No decision, sanction, notice or workflow step is created here. */}
+        <div className="space-y-4">
+          <SupervisoryAiPanel
+            module="enforcement"
+            analysisType="case_chronology"
+            scopeId={caseRow.id}
+            label={`Case ${caseRow.case_number}`}
+            title="AI case chronology and summary"
+            actionLabel="Summarise case"
+            description="Chronology and summary built from the recorded case events. It does not change the case status, outcome or penalty."
+            stalenessFacts={aiStaleness}
+          />
+          <SupervisoryAiPanel
+            module="enforcement"
+            analysisType="evidence_assessment"
+            scopeId={caseRow.id}
+            label={`Case ${caseRow.case_number}`}
+            title="AI evidence completeness observations"
+            actionLabel="Review evidence"
+            description="Observations on what the recorded evidence supports and where it looks incomplete. It never concludes that a breach is established."
+            stalenessFacts={aiStaleness}
+          />
+          <SupervisoryAiPanel
+            module="enforcement"
+            analysisType="sanction_factors"
+            scopeId={caseRow.id}
+            label={`Case ${caseRow.case_number}`}
+            title="AI aggravating and mitigating factors observed"
+            actionLabel="List factors"
+            description="Factors visible in the record for the decision maker to weigh. No sanction, amount or outcome is proposed."
+            stalenessFacts={aiStaleness}
+          />
+          <SupervisoryAiPanel
+            module="enforcement"
+            analysisType="precedent_comparison"
+            scopeId={caseRow.id}
+            label={`Case ${caseRow.case_number}`}
+            title="AI comparison with recorded past actions"
+            actionLabel="Compare with past cases"
+            description="Comparison against past actions already recorded in the register. Consistency remains a human judgement."
+            stalenessFacts={aiStaleness}
+          />
+          <SupervisoryAiPanel
+            module="enforcement"
+            analysisType="enforcement_draft"
+            scopeId={caseRow.id}
+            label={`Case ${caseRow.case_number}`}
+            title="AI draft notice text"
+            actionLabel="Draft notice text"
+            description="Suggested wording only, not saved to the case. Issuance, approval and legal review stay in the existing process."
+            stalenessFacts={aiStaleness}
+          />
+        </div>
 
         <EnforcementLifecyclePanel caseRow={caseRow} />
         <EnforcementObligationsPanel caseId={caseRow.id} />

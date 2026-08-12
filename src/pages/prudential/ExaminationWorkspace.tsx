@@ -41,6 +41,7 @@ import { ExaminationTimeline } from '@/components/prudential/examination/Examina
 import { ExaminationStageActionsProvider } from '@/components/prudential/examination/ExaminationStageActions';
 import { ExaminationResolveBanner } from '@/components/prudential/examination/ExaminationResolveBanner';
 import { ExaminationOverview } from '@/components/prudential/examination/ExaminationOverview';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
@@ -160,6 +161,20 @@ export default function ExaminationWorkspace() {
     ).length,
   }), [findings, dataRequests, workpapers]);
 
+  /**
+   * Marker of the examination record as currently displayed. Used only to flag
+   * a stored advisory analysis as possibly outdated — never sent as facts.
+   */
+  const aiStaleness = useMemo(() => ({
+    stage: exam?.stage ?? null,
+    updated_at: (exam as any)?.updated_at ?? null,
+    findings: findings.length,
+    workpapers: workpapers.length,
+    requests: dataRequests.length,
+    reports: reports.length,
+    counts,
+  }), [exam, findings, workpapers, dataRequests, reports, counts]);
+
   const toggleAll = () => {
     const p = new URLSearchParams(params);
     if (showAll) p.delete('all'); else p.set('all', '1');
@@ -276,6 +291,17 @@ export default function ExaminationWorkspace() {
               counts={counts}
               readOnly={readOnly}
             />
+            <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="examination_brief"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI examination preparation brief"
+              actionLabel="Generate brief"
+              description="Background summary drawn from the recorded supervisory history. It does not set the scope, risk rating or any finding."
+              stalenessFacts={aiStaleness}
+            />
           </TabsContent>
 
           {/* The stage lifecycle can only be advanced from the current step. */}
@@ -314,16 +340,108 @@ export default function ExaminationWorkspace() {
             </ExaminationStageActionsProvider>
           </TabsContent>
 
-          <TabsContent value="findings" className="mt-4">{detourBanner()}<FindingsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-          <TabsContent value="documents" className="mt-4">{detourBanner()}<ReportsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+          <TabsContent value="findings" className="mt-4 space-y-4">
+            {detourBanner()}
+            <FindingsPanel examinationId={exam.id} readOnly={readOnly} />
+            <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="finding_draft"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI draft finding text"
+              actionLabel="Draft finding text"
+              description="Suggested wording based on recorded evidence. Copy it into a finding and edit it — the examiner remains the author."
+              stalenessFacts={aiStaleness}
+            />
+            <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="finding_consistency"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI consistency review of findings"
+              actionLabel="Review findings"
+              description="Observations on clarity, duplication and evidence linkage. Severity, status and ratings are unchanged."
+              stalenessFacts={aiStaleness}
+            />
+          </TabsContent>
+          <TabsContent value="documents" className="mt-4 space-y-4">
+            {detourBanner()}
+            <ReportsPanel examinationId={exam.id} readOnly={readOnly} />
+            <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="report_draft"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI draft report sections"
+              actionLabel="Draft report sections"
+              description="Suggested narrative built only from recorded findings and workpapers. The report stays human-authored and human-approved."
+              stalenessFacts={aiStaleness}
+            />
+            <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="management_response_review"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI review of management responses"
+              actionLabel="Review responses"
+              description="Observations on whether responses address the findings. Accepting or rejecting a response remains a human decision."
+              stalenessFacts={aiStaleness}
+            />
+          </TabsContent>
           <TabsContent value="history" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
 
           {showAll && (
             <>
-              <TabsContent value="scoping" className="mt-4">{detourBanner()}<ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="scoping" className="mt-4 space-y-4">
+                {detourBanner()}
+                <ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} />
+                <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="scope_suggestions"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI suggested focus areas"
+              actionLabel="Suggest focus areas"
+              description="Suggestions for consideration. The approved scope is entirely what the examiner records."
+              stalenessFacts={aiStaleness}
+            />
+              </TabsContent>
               <TabsContent value="team" className="mt-4">{detourBanner()}<TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-              <TabsContent value="data-requests" className="mt-4">{detourBanner()}<DataRequestsPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
-              <TabsContent value="workpapers" className="mt-4">{detourBanner()}<WorkpapersPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
+              <TabsContent value="data-requests" className="mt-4 space-y-4">
+                {detourBanner()}
+                <DataRequestsPanel examinationId={exam.id} readOnly={readOnly} />
+                <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="data_request_suggestions"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI suggested information requests"
+              actionLabel="Suggest requests"
+              description="Suggested items only. Nothing is requested or issued until you create and send it yourself."
+              stalenessFacts={aiStaleness}
+            />
+              </TabsContent>
+              <TabsContent value="workpapers" className="mt-4 space-y-4">
+                {detourBanner()}
+                <WorkpapersPanel examinationId={exam.id} readOnly={readOnly} />
+                <SupervisoryAiPanel
+              className="mt-4"
+              module="examination"
+              analysisType="workpaper_summary"
+              scopeId={exam.id}
+              label={exam.reference || exam.title || 'Examination'}
+              title="AI workpaper summary"
+              actionLabel="Summarise workpapers"
+              description="Summary of what the workpapers record. Review sign-off requirements are unchanged."
+              stalenessFacts={aiStaleness}
+            />
+              </TabsContent>
               <TabsContent value="exit-meeting" className="mt-4">{detourBanner()}<ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
             </>
           )}

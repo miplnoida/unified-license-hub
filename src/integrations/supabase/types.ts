@@ -23927,6 +23927,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_advisory_ai: { Args: { _module: string }; Returns: boolean }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
