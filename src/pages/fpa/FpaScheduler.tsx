@@ -155,7 +155,7 @@ function StatCard({ icon, label, value, loading, colorClass = '' }: StatCardProp
 // Page
 // ---------------------------------------------------------------------------
 
-export default function FpScheduler() {
+export default function FpaScheduler() {
   const [schedulerLoading, setSchedulerLoading] = useState(false);
 
   const today = todayIso();
@@ -264,7 +264,7 @@ export default function FpScheduler() {
         <PageHeader
           title="FP Cycle Scheduler"
           description="Monitor upcoming reassessment cycles, overdue roles, and run the cycle scheduler to open new assessments automatically."
-          backHref="/fit-and-proper"
+          backHref="/fpa/individuals"
           backLabel="Register"
           actions={
             <Button data-rbac="fit_and_proper.configure" size="sm" onClick={runScheduler} disabled={schedulerLoading}>
@@ -427,7 +427,7 @@ export default function FpScheduler() {
                         <TableRow key={assessment.id}>
                           <TableCell className="font-medium">
                             <Link
-                              to={`/fit-and-proper/assessments/${assessment.id}`}
+                              to={`/fpa/assessments/${assessment.id}`}
                               className="text-primary underline-offset-4 hover:underline"
                             >
                               {assessment.fp_individuals?.full_name ?? (

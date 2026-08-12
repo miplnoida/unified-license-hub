@@ -45,6 +45,7 @@ import { FpRegulatorPositionsPanel } from '@/components/fit-and-proper/FpRegulat
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
+import { PinnedPqForm } from '@/components/fit-and-proper/PinnedPqForm';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import type { FormSection } from '@/types/formBuilder';
@@ -647,6 +648,8 @@ function AssessmentDetailDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const { data: detail, isLoading } = useQuery({
     queryKey: ['fp_assessment_detail', assessment?.id],
     enabled: open && !!assessment?.id,
@@ -661,6 +664,14 @@ function AssessmentDetailDialog({
     },
   });
 
+  // Assessments pinned to a specific form_version_id/form_template_id (all
+  // historically-imported declarations, and any assessment created against a
+  // since-superseded form) must render against THAT exact schema — the field
+  // keys it was captured with (e.g. pq01_...) won't match the current live
+  // form's field names. Only fall back to "whatever the current live form
+  // looks like" when nothing was pinned.
+  const hasPinnedForm = !!detail?.form_version_id && !!detail?.form_template_id;
+
   // The submitted declaration lives as flat answers in declaration_data —
   // the public portal (DeclarationQuestionnaire.tsx) doesn't pin a specific
   // form_version_id per assessment, it always renders whatever the current
@@ -671,7 +682,7 @@ function AssessmentDetailDialog({
   const hasDeclaration = !!detail?.declaration_data && Object.keys(detail.declaration_data).length > 0;
   const { data: formVersion, isLoading: loadingForm } = useQuery({
     queryKey: ['fp_declaration_form_public'],
-    enabled: open && hasDeclaration,
+    enabled: open && hasDeclaration && !hasPinnedForm,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_fp_declaration_form_public' as any);
       if (error) throw error;
@@ -727,7 +738,19 @@ function AssessmentDetailDialog({
 
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Declaration</p>
-              {!hasDeclaration ? (
+              {hasPinnedForm ? (
+                <PinnedPqForm
+                  assessmentId={detail.id}
+                  templateId={detail.form_template_id}
+                  versionId={detail.form_version_id}
+                  individualId={detail.individual_id}
+                  existingResponseId={detail.form_response_id}
+                  initialData={detail.declaration_data || {}}
+                  currentStatus={detail.status}
+                  userId={user?.id ?? null}
+                  onSubmitted={() => qc.invalidateQueries({ queryKey: ['fp_assessment_detail', assessment?.id] })}
+                />
+              ) : !hasDeclaration ? (
                 <p className="text-sm text-muted-foreground italic">No declaration submitted yet for this assessment.</p>
               ) : loadingForm ? (
                 <div className="py-4 text-center text-muted-foreground">
@@ -1122,10 +1145,8 @@ export default function FpaIndividualProfile() {
   });
 
   // Committee assignment/finalize, screening runs, conditions, appeals, and
-  // monitoring events for this individual were only reachable via the
-  // legacy /fit-and-proper/individuals/:id screen (not in the nav) — ported
-  // in as tabs below so this, the current individual profile, is the single
-  // place staff need to work a case end-to-end.
+  // monitoring events are surfaced as tabs below so this individual profile
+  // is the single place staff need to work a case end-to-end.
   const { data: latestAssessment } = useQuery({
     queryKey: ['fp_latest_assessment', id],
     enabled: !!id,

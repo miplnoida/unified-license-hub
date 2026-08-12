@@ -207,7 +207,7 @@ export default function AlertCenter() {
           detail: m.notes || undefined,
           severity: toSeverity(m.severity),
           created_at: m.created_at,
-          href: `/fit-and-proper/${m.individual_id}`,
+          href: `/fpa/individuals/${m.individual_id}`,
         }),
       );
 

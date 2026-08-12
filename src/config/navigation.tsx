@@ -164,12 +164,14 @@ export const mainNavSections: NavSection[] = [
         children: [
           { label: 'Initiation Paths', href: '/fpa/initiation', icon: <FormInput className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Individual Register', href: '/fpa/individuals', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Initiation Log', href: '/fpa/initiation-log', icon: <ListOrdered className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },
       {
         label: 'Declarations', icon: <ScrollText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
         children: [
           { label: 'Declarations', href: '/fpa/declarations', icon: <Mail className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Invitation Tracker', href: '/fpa/invitations', icon: <ClipboardEdit className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Screening Hub', href: '/fpa/screening', icon: <Shield className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Manual Review Queue', href: '/fpa/manual-tasks', icon: <ClipboardList className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
@@ -196,6 +198,7 @@ export const mainNavSections: NavSection[] = [
         children: [
           { label: 'Appeals', href: '/fpa/appeals', icon: <ScrollText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Monitoring & Audit', href: '/fpa/monitoring', icon: <Bell className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Reassessment Scheduler', href: '/fpa/scheduler', icon: <CalendarCheck className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Notification Log', href: '/fpa/notifications', icon: <History className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },

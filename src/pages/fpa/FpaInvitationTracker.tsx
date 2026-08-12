@@ -55,7 +55,7 @@ function isExpired(val: string | null): boolean {
   return new Date(val) < new Date();
 }
 
-export default function InvitationTracker() {
+export default function FpaInvitationTracker() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -237,6 +237,8 @@ export default function InvitationTracker() {
         <PageHeader
           title="Declaration Invitations"
           description="Track and manage personal questionnaire declaration invitations sent to individuals."
+          backHref="/fpa/individuals"
+          backLabel="Register"
           actions={
             <Dialog
               open={dialogOpen}

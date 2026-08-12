@@ -125,7 +125,6 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/fp-screening-configs', 'fit_and_proper_screening'],
   ['/admin/fp-sector-rules', 'fit_and_proper_screening'],
   ['/admin/fp-committees', 'fit_and_proper_committee'],
-  ['/fit-and-proper', 'fit_and_proper'],
   ['/fpa', 'fit_and_proper'],
 
   // ─── Coordination ──────────────────────────────────────────────────────
@@ -197,7 +196,6 @@ export const PROTECTED_INTERNAL_PATH_PREFIXES = [
   '/inspections',
   '/enforcement',
   '/billing',
-  '/fit-and-proper',
   '/fpa',
   '/conduct',
   '/coordination',

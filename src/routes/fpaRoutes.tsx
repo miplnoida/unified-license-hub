@@ -7,7 +7,7 @@ import type { PermissionModule } from '@/lib/permissionModules';
 // Every /fpa/* screen requires the fit_and_proper module permission — previously
 // these routes only checked session auth (P), so any authenticated user could
 // open any F&P screen directly by URL; only silent RLS (no logged denial)
-// stopped them. M mirrors the same helper used for /fit-and-proper/* routes.
+// stopped them.
 function M({ children }: { children: React.ReactNode }) {
   const module: PermissionModule = 'fit_and_proper';
   return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
@@ -32,6 +32,10 @@ const FpaConditions = lazy(() => import('@/pages/fpa/FpaConditions'));
 const FpaAppeals = lazy(() => import('@/pages/fpa/FpaAppeals'));
 const FpaMonitoring = lazy(() => import('@/pages/fpa/FpaMonitoring'));
 const FpaNotificationLog = lazy(() => import('@/pages/fpa/FpaNotificationLog'));
+const FpaScheduler = lazy(() => import('@/pages/fpa/FpaScheduler'));
+const FpaInitiationLog = lazy(() => import('@/pages/fpa/FpaInitiationLog'));
+const FpaInvitationTracker = lazy(() => import('@/pages/fpa/FpaInvitationTracker'));
+const FpaAssessmentRedirect = lazy(() => import('@/pages/fpa/FpaAssessmentRedirect'));
 
 export const fpaRoutes = (
   <>
@@ -54,5 +58,9 @@ export const fpaRoutes = (
     <Route path="/fpa/appeals" element={<M><FpaAppeals /></M>} />
     <Route path="/fpa/monitoring" element={<M><FpaMonitoring /></M>} />
     <Route path="/fpa/notifications" element={<M><FpaNotificationLog /></M>} />
+    <Route path="/fpa/scheduler" element={<M><FpaScheduler /></M>} />
+    <Route path="/fpa/initiation-log" element={<M><FpaInitiationLog /></M>} />
+    <Route path="/fpa/invitations" element={<M><FpaInvitationTracker /></M>} />
+    <Route path="/fpa/assessments/:id" element={<M><FpaAssessmentRedirect /></M>} />
   </>
 );

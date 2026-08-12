@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       const prompt = `You are a chief regulatory analyst. Given these cross-module metrics, produce 3-5 concise insights (each <=180 chars) and 3 recommended actions with a target route.
 Return strict JSON: {"insights":[{"text":string,"severity":"info"|"warning"|"critical","module":string?}],"actions":[{"text":string,"href":string,"module":string?}]}
 Metrics: ${JSON.stringify(metrics)}
-Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /complaints, /supervision/risk, /inspections, /fit-and-proper, /supervision/plans, /conduct, /returns-management, /prudential/actions, /prudential/escalations, /conduct/alerts.`;
+Allowed href values: /admin/applications, /supervision/breaches, /enforcement, /complaints, /supervision/risk, /inspections, /fpa, /supervision/plans, /conduct, /returns-management, /prudential/actions, /prudential/escalations, /conduct/alerts.`;
 
       const aiStarted = Date.now();
       try {

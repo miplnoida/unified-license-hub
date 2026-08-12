@@ -134,7 +134,7 @@ const STATUSES: AssessmentStatus[] = [
 // Page
 // ---------------------------------------------------------------------------
 
-export default function FpInitiationLog() {
+export default function FpaInitiationLog() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -185,7 +185,7 @@ export default function FpInitiationLog() {
         <PageHeader
           title="FP Initiation Log"
           description="Read-only log of all fit-and-proper assessments initiated across the register."
-          backHref="/fit-and-proper"
+          backHref="/fpa/individuals"
           backLabel="Register"
           actions={
             <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={async () => { try { await authorizedExport('fit_and_proper', 'export', { count: filtered.length }); exportCsv(filtered); } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); } }}>

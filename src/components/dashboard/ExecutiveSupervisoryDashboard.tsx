@@ -303,7 +303,7 @@ export function ExecutiveSupervisoryDashboard() {
           label="F&P Active"
           value={stats.fpActive}
           icon={<UserCheck className="h-4 w-4" />}
-          href="/fit-and-proper"
+          href="/fpa/individuals"
         />
         <KpiCard
           label="Prudential Actions"
