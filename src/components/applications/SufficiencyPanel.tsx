@@ -381,13 +381,14 @@ export function SufficiencyPanel({ applicationId }: Props) {
 
               <Separator />
 
-              {resultsLoading ? (
+              {resultsLoading || switchingEvaluation ? (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading sufficiency checks…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {switchingEvaluation ? 'Updating sufficiency findings…' : 'Loading sufficiency findings…'}
                 </p>
               ) : resultsError ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-destructive">Sufficiency checks could not be loaded.</p>
+                  <p className="text-sm text-destructive">Sufficiency findings could not be loaded.</p>
                   <Button size="sm" variant="outline" onClick={() => refetchResults()}>Try again</Button>
                 </div>
               ) : (results || []).length === 0 ? (
@@ -395,91 +396,117 @@ export function SufficiencyPanel({ applicationId }: Props) {
                   No individual findings were recorded for this check.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {(results || []).map((r) => {
-                    const ov = overrides.find((o: any) => o.evaluation_result_id === r.id);
-                    const tone = findingTone(r.status, r.severity);
-                    const canAct = r.status === 'fail' || r.status === 'warning';
-                    return (
-                      <li key={r.id} className="rounded-md border bg-background p-3 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <ToneIcon tone={tone} />
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-medium">
-                                {r.rule_snapshot?.name || 'Automated check'}
+                <div className="space-y-2">
+                  {exceptionsError ? (
+                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                      <p className="font-medium">Exception status unavailable</p>
+                      <p className="text-muted-foreground">
+                        Accepted exceptions could not be loaded. Some findings may already have a recorded
+                        exception.
+                      </p>
+                      <Button size="sm" variant="outline" onClick={() => refetchExceptions()}>Try again</Button>
+                    </div>
+                  ) : exceptionsLoading ? (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking whether an exception has already been recorded…
+                    </p>
+                  ) : null}
+
+                  <ul className="space-y-2">
+                    {(results || []).map((r) => {
+                      // Exception state is only trusted once the query has loaded.
+                      const ov = exceptionStatusKnown
+                        ? (overrides || []).find((o: any) => o.evaluation_result_id === r.id)
+                        : undefined;
+                      const tone = findingTone(r.status, r.severity);
+                      const canAct = r.status === 'fail' || r.status === 'warning';
+                      return (
+                        <li key={r.id} className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <ToneIcon tone={tone} />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium">
+                                  {r.rule_snapshot?.name || 'Automated check'}
+                                </p>
+                                <Badge
+                                  variant={
+                                    tone === 'positive' ? 'default'
+                                      : tone === 'negative' ? 'destructive'
+                                        : tone === 'attention' ? 'secondary' : 'outline'
+                                  }
+                                >
+                                  {findingLabel(r.status, r.severity)}
+                                  {ov ? ' — exception accepted' : ''}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {findingDescription(r.detail, r.rule_snapshot?.name)}
                               </p>
-                              <Badge
-                                variant={
-                                  tone === 'positive' ? 'default'
-                                    : tone === 'negative' ? 'destructive'
-                                      : tone === 'attention' ? 'secondary' : 'outline'
-                                }
-                              >
-                                {findingLabel(r.status, r.severity)}
-                                {ov ? ' — exception accepted' : ''}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {findingDescription(r.detail, r.rule_snapshot?.name)}
-                            </p>
 
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                              {canAct && (
-                                <Button
-                                  data-rbac="application_management.edit"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openFindingRfi(r)}
-                                >
-                                  Request information
-                                </Button>
-                              )}
-                              {canAct && !ov && (
-                                <Button
-                                  data-rbac="application_management.approve"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setException({ result: r, reason: '' })}
-                                >
-                                  Accept exception
-                                </Button>
-                              )}
-                              {ov && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setViewReason({
-                                    rule: r.rule_snapshot?.name || 'Automated check',
-                                    reason: ov.reason,
-                                  })}
-                                >
-                                  View reason
-                                </Button>
-                              )}
-                            </div>
+                              <div className="flex flex-wrap items-center gap-2 pt-1">
+                                {canAct && (
+                                  <Button
+                                    data-rbac="application_management.edit"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openFindingRfi(r)}
+                                  >
+                                    Request information
+                                  </Button>
+                                )}
+                                {canAct && !exceptionStatusKnown && (
+                                  <Button size="sm" variant="outline" disabled>
+                                    Accept exception
+                                  </Button>
+                                )}
+                                {canAct && exceptionStatusKnown && !ov && (
+                                  <Button
+                                    data-rbac="application_management.approve"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setException({ result: r, reason: '' })}
+                                  >
+                                    Accept exception
+                                  </Button>
+                                )}
+                                {ov && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setViewReason({
+                                      rule: r.rule_snapshot?.name || 'Automated check',
+                                      reason: ov.reason,
+                                    })}
+                                  >
+                                    View reason
+                                  </Button>
+                                )}
+                              </div>
 
-                            <Collapsible>
-                              <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                                <ChevronDown className="h-3 w-3" /> Technical details
-                              </CollapsibleTrigger>
-                              <CollapsibleContent className="mt-1 space-y-1 rounded bg-muted/40 p-2 text-[11px] text-muted-foreground">
-                                <p>Rule code: {r.rule_snapshot?.code || '—'}</p>
-                                <p>Rule type: {humanizeValue(r.rule_snapshot?.rule_type)}</p>
-                                <p>Severity: {sufficiencySeverityLabel(r.severity)} ({r.severity})</p>
-                                <p>Stored status: {r.status}</p>
-                                <p>Triggered by: {humanizeValue(latest.triggered_by)}</p>
-                                <pre className="whitespace-pre-wrap break-all">
-                                  {r.detail ? JSON.stringify(r.detail, null, 2) : '—'}
-                                </pre>
-                              </CollapsibleContent>
-                            </Collapsible>
+                              <Collapsible>
+                                <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                                  <ChevronDown className="h-3 w-3" /> Technical details
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-1 space-y-1 rounded bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                                  <p>Rule code: {r.rule_snapshot?.code || '—'}</p>
+                                  <p>Rule type: {humanizeValue(r.rule_snapshot?.rule_type)}</p>
+                                  <p>Severity: {sufficiencySeverityLabel(r.severity)} ({r.severity})</p>
+                                  <p>Stored status: {r.status}</p>
+                                  <p>Triggered by: {humanizeValue(latest.triggered_by)}</p>
+                                  <pre className="whitespace-pre-wrap break-all">
+                                    {r.detail ? JSON.stringify(r.detail, null, 2) : '—'}
+                                  </pre>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
             </>
           )}
