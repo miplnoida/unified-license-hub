@@ -10730,8 +10730,10 @@ export type Database = {
           effective_to: string | null
           id: string
           individual_id: string
+          is_committee_override: boolean
           is_current: boolean
           outcome: string
+          override_reason: string | null
           rationale: string
           regulator_id: string | null
           signature_hash: string | null
@@ -10746,8 +10748,10 @@ export type Database = {
           effective_to?: string | null
           id?: string
           individual_id: string
+          is_committee_override?: boolean
           is_current?: boolean
           outcome: string
+          override_reason?: string | null
           rationale: string
           regulator_id?: string | null
           signature_hash?: string | null
@@ -10762,8 +10766,10 @@ export type Database = {
           effective_to?: string | null
           id?: string
           individual_id?: string
+          is_committee_override?: boolean
           is_current?: boolean
           outcome?: string
+          override_reason?: string | null
           rationale?: string
           regulator_id?: string | null
           signature_hash?: string | null
@@ -11467,6 +11473,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fp_training_attestations: {
+        Row: {
+          attested_at: string
+          id: string
+          notes: string | null
+          policy_version: string
+          user_id: string
+        }
+        Insert: {
+          attested_at?: string
+          id?: string
+          notes?: string | null
+          policy_version: string
+          user_id: string
+        }
+        Update: {
+          attested_at?: string
+          id?: string
+          notes?: string | null
+          policy_version?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       group_consolidated_snapshots: {
         Row: {
@@ -26145,6 +26175,16 @@ export type Database = {
         Returns: Json
       }
       list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
+      list_fp_assessments: {
+        Args: {
+          _filters?: Json
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _sort?: string
+        }
+        Returns: Json
+      }
       list_internal_users: {
         Args: { _include_ids?: string[]; _search?: string }
         Returns: {
