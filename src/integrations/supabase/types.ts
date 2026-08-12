@@ -28018,6 +28018,99 @@ export type Database = {
           title: string
         }[]
       }
+      supervisory_ai_report_facets: {
+        Args: {
+          _from?: string
+          _include_failed?: boolean
+          _modules?: string[]
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          kind: string
+          label: string
+          n: number
+          value: string
+        }[]
+      }
+      supervisory_ai_report_sources: {
+        Args: never
+        Returns: {
+          available: boolean
+          source: string
+        }[]
+      }
+      supervisory_ai_report_versions: {
+        Args: { _version_key: string }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          entity_name: string
+          feedback: string
+          flagged: boolean
+          freshness: string
+          generated_at: string
+          generated_by: string
+          id: string
+          limited_evidence: boolean
+          module: string
+          period_key: string
+          record_id: string
+          record_reference: string
+          report_state: string
+          review_status: string
+          source: string
+          subject_name: string
+          summary: string
+          title: string
+          version_key: string
+        }[]
+      }
+      supervisory_ai_reports_index: {
+        Args: {
+          _analysis_types?: string[]
+          _confidence?: string
+          _entity_id?: string
+          _freshness?: string
+          _from?: string
+          _include_failed?: boolean
+          _limit?: number
+          _modules?: string[]
+          _offset?: number
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          entity_name: string
+          feedback: string
+          flagged: boolean
+          freshness: string
+          generated_at: string
+          generated_by: string
+          id: string
+          limited_count: number
+          limited_evidence: boolean
+          module: string
+          module_counts: Json
+          outdated_count: number
+          period_key: string
+          recent_7d: number
+          record_id: string
+          record_reference: string
+          report_state: string
+          review_status: string
+          source: string
+          subject_name: string
+          summary: string
+          title: string
+          total_count: number
+          version_key: string
+        }[]
+      }
       supervisory_ai_reports_list: {
         Args: {
           _analysis_types?: string[]
@@ -28054,6 +28147,10 @@ export type Database = {
           title: string
           total_count: number
         }[]
+      }
+      supervisory_ai_source_updated_at: {
+        Args: { _entity_id: string; _module: string; _record_id: string }
+        Returns: string
       }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
