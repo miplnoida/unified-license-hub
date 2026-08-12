@@ -63,7 +63,7 @@ export default function PrudentialThresholds() {
     isLoading: versionsLoading,
     error: versionsError,
   } = useThresholdVersions(historyThreshold?.id);
-  const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(versions.map((v: any) => v.published_by));
 
   const refresh = (thresholdId?: string) => {
     qc.invalidateQueries({ queryKey: ['prudential_thresholds'] });
@@ -247,7 +247,7 @@ export default function PrudentialThresholds() {
                     {v.unit && <> · {v.unit}</>}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Effective {formatDateOnly(v.effective_from)}{v.effective_to ? ` → ${formatDateOnly(v.effective_to)}` : ' → current'} · by {actorLabel(v.published_by, names)}
+                    Effective {formatDateOnly(v.effective_from)}{v.effective_to ? ` → ${formatDateOnly(v.effective_to)}` : ' → current'} · by {actorLabel(v.published_by, names, { isLoading: namesLoading, isError: namesError })}
                   </div>
                 </div>
               );

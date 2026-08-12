@@ -700,7 +700,7 @@ export default function PrudentialEntityProfile() {
                         <TableCell>{auditActionLabel(a.action_type)}</TableCell>
                         <TableCell>{auditObjectLabel(a.object_type)}</TableCell>
                         <TableCell className="max-w-md truncate">{a.justification || '—'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{actorLabel(a.user_id, auditActorNames.data)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{actorLabel(a.user_id, auditActorNames.data, { isLoading: auditActorNames.isLoading, isError: auditActorNames.isError })}</TableCell>
 
                       </TableRow>
                     ))}

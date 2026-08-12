@@ -84,7 +84,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const recordDetermination = useRecordSufficiencyDetermination(applicationId);
   const latestDetermination = determinations[0] ?? null;
   const previousDeterminations = determinations.slice(1);
-  const { data: names } = useUserDisplayNames(determinations.map((d) => d.determined_by));
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(determinations.map((d) => d.determined_by));
 
   const {
     data: latest, isLoading: latestLoading, isError: latestError, refetch: refetchLatest,

@@ -68,7 +68,7 @@ export default function ManageValidations() {
 
   const versionsQuery = useRuleVersions(historyRule?.id);
   const versions = versionsQuery.data ?? [];
-  const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(versions.map((v: any) => v.published_by));
 
   // Human-readable expressions: resolve `formId.fieldName` tokens to "Form › Field label".
   const allExpressions = useMemo(
@@ -335,7 +335,7 @@ export default function ManageValidations() {
                 <div className="bg-muted p-2 rounded">
                   <FormulaText formula={v.definition?.expression} labels={tokenLabels} />
                 </div>
-                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names)}</div>
+                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names, { isLoading: namesLoading, isError: namesError })}</div>
               </div>
             ))}
           </div>
