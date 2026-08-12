@@ -265,52 +265,76 @@ async function assembleFacts(
   if (extra.context && typeof extra.context === 'object') facts.screen_context = extra.context;
 
   if (module === 'examination' && scopeId) {
-    const [exam, scoping, findings, workpapers, requests, actions] = await Promise.all([
+    const [exam, scoping, findings, workpapers, requests] = await Promise.all([
       supa.from('examinations').select('*').eq('id', scopeId).maybeSingle(),
       supa.from('examination_scoping').select('*').eq('examination_id', scopeId),
       supa.from('examination_findings').select('*').eq('examination_id', scopeId),
       supa.from('examination_workpapers').select('*').eq('examination_id', scopeId),
       supa.from('examination_data_requests').select('*').eq('examination_id', scopeId),
-      supa.from('prudential_actions').select('*').eq('examination_id', scopeId),
     ]);
-    facts.examination = exam.data
-      ? pick([exam.data as Record<string, unknown>], [
-          'reference', 'examination_type', 'status', 'stage', 'objective', 'start_date', 'end_date', 'licensee_id',
+    const exRow = exam.data as Record<string, unknown> | null;
+    facts.examination = exRow
+      ? pick([exRow], [
+          'reference', 'title', 'examination_type', 'stage', 'risk_rating', 'overall_conclusion',
+          'period_under_review_start', 'period_under_review_end', 'fieldwork_start', 'fieldwork_end',
         ])[0]
       : null;
-    facts.scope_areas = pick(scoping.data as any[], ['area', 'risk_focus', 'rationale', 'status', 'priority']);
+    facts.scoping = pick(scoping.data as any[], [
+      'objectives', 'risk_focus_areas', 'legal_basis', 'scope_exclusions', 'methodology', 'approved_at',
+    ], 5);
     facts.findings = pick(findings.data as any[], [
-      'title', 'severity', 'status', 'category', 'condition', 'criteria', 'effect', 'recommendation', 'due_date',
+      'reference', 'title', 'category', 'severity', 'status', 'criteria_breached', 'observation',
+      'root_cause', 'recommendation', 'entity_response', 'target_date',
     ]);
     facts.workpapers = pick(workpapers.data as any[], [
-      'title', 'procedure', 'conclusion', 'status', 'review_status', 'reviewed_at',
+      'reference', 'area', 'procedure_performed', 'evidence_reference', 'conclusion', 'status',
+      'reviewed_at', 'review_notes',
     ]);
-    facts.information_requests = pick(requests.data as any[], ['title', 'description', 'status', 'due_date']);
-    facts.corrective_actions = pick(actions.data as any[], ['title', 'status', 'due_date', 'action_type']);
+    facts.information_requests = pick(requests.data as any[], [
+      'item_no', 'title', 'description', 'status', 'due_date', 'received_at', 'entity_response',
+    ]);
+    const entityId = (exRow as any)?.entity_id ?? null;
+    if (entityId) {
+      const [priorExams, actions] = await Promise.all([
+        supa.from('examinations').select('reference, title, examination_type, stage, risk_rating, fieldwork_end')
+          .eq('entity_id', entityId).neq('id', scopeId).order('created_at', { ascending: false }).limit(10),
+        supa.from('prudential_actions').select('action_reference, title, action_type, severity, status, due_date')
+          .eq('entity_id', entityId).order('created_at', { ascending: false }).limit(25),
+      ]);
+      facts.prior_examinations = priorExams.data ?? [];
+      facts.open_supervisory_actions = actions.data ?? [];
+    }
   }
 
   if (module === 'enforcement' && scopeId) {
-    const [action, events, evidence, obligations, others] = await Promise.all([
+    const [action, events, evidence, obligations] = await Promise.all([
       supa.from('enforcement_actions').select('*').eq('id', scopeId).maybeSingle(),
-      supa.from('enforcement_case_events').select('*').eq('enforcement_action_id', scopeId).order('created_at'),
-      supa.from('enforcement_compliance_evidence').select('*').eq('enforcement_action_id', scopeId),
-      supa.from('enforcement_obligations').select('*').eq('enforcement_action_id', scopeId),
-      supa.from('enforcement_actions').select('case_number, action_type, status, breach_summary, outcome, decision_date').neq('id', scopeId).order('created_at', { ascending: false }).limit(15),
+      supa.from('enforcement_case_events').select('*').eq('case_id', scopeId).order('created_at'),
+      supa.from('enforcement_compliance_evidence').select('*').eq('case_id', scopeId),
+      supa.from('enforcement_obligations').select('*').eq('case_id', scopeId),
     ]);
     const row = action.data as Record<string, unknown> | null;
     facts.case = row
       ? pick([row], [
-          'case_number', 'action_type', 'status', 'stage', 'breach_summary', 'legal_basis', 'severity',
-          'opened_at', 'decision_date', 'outcome', 'licensee_id',
+          'case_number', 'enforcement_type', 'status', 'description', 'findings', 'date_opened',
+          'notice_issued_at', 'response_received_at', 'response_summary', 'decision_at',
+          'decision_outcome', 'decision_rationale', 'penalty_amount', 'penalty_currency',
+          'monitoring_state', 'non_compliance_flag', 'non_compliance_note',
         ])[0]
       : null;
-    facts.case_events = pick(events.data as any[], ['event_type', 'description', 'created_at'], 60);
-    facts.evidence = pick(evidence.data as any[], ['title', 'description', 'evidence_type', 'status', 'submitted_at']);
-    facts.obligations = pick(obligations.data as any[], ['description', 'status', 'due_date']);
+    facts.case_events = pick(events.data as any[], ['event_type', 'note', 'created_at'], 60);
+    facts.evidence = pick(evidence.data as any[], [
+      'description', 'evidence_type', 'accepted', 'submitted_at', 'review_note',
+    ]);
+    facts.obligations = pick(obligations.data as any[], ['obligation', 'detail', 'status', 'deadline', 'breach_note']);
     if (analysisType === 'precedent_comparison') {
-      facts.past_actions_on_record = pick(others.data as any[], [
-        'case_number', 'action_type', 'status', 'breach_summary', 'outcome', 'decision_date',
-      ], 15);
+      const { data: others } = await supa
+        .from('enforcement_actions')
+        .select('case_number, enforcement_type, status, description, decision_outcome, decision_at, penalty_amount')
+        .neq('id', scopeId)
+        .order('created_at', { ascending: false })
+        .limit(15);
+      facts.past_actions_on_record = others ?? [];
     }
   }
 
@@ -325,41 +349,43 @@ async function assembleFacts(
     const row = complaint.data as Record<string, unknown> | null;
     facts.complaint = row
       ? pick([row], [
-          'complaint_number', 'subject', 'description', 'status', 'severity', 'priority', 'category',
-          'product_type', 'received_at', 'created_at', 'due_date', 'resolution', 'licensee_id', 'complaint_type_id',
+          'complaint_number', 'subject', 'description', 'status', 'severity', 'priority', 'customer_type',
+          'created_at', 'sla_due_at', 'acknowledged_at', 'resolved_at', 'closed_at', 'closure_reason',
+          'closure_category', 'investigation_notes', 'resolution', 'resolution_notes', 'findings',
+          'repeat_complaint_count', 'vulnerability_indicator', 'vulnerability_notes',
         ])[0]
       : null;
-    facts.evidence = pick(evidence.data as any[], ['file_name', 'description', 'evidence_type', 'created_at']);
-    facts.case_work = pick(tasks.data as any[], ['title', 'description', 'status', 'due_date']);
-    facts.information_requests = pick(rfis.data as any[], ['subject', 'status', 'due_date', 'response_summary']);
-    facts.correspondence = pick(corr.data as any[], ['direction', 'summary', 'created_at'], 30);
+    facts.evidence = pick(evidence.data as any[], ['label', 'description', 'created_at']);
+    facts.case_work = pick(tasks.data as any[], ['title', 'description', 'status', 'due_date', 'completed_at']);
+    facts.information_requests = pick(rfis.data as any[], [
+      'summary', 'status', 'due_at', 'submitted_at', 'closure_notes', 'approval_state',
+    ]);
+    facts.correspondence = pick(corr.data as any[], ['direction', 'subject', 'created_at'], 30);
 
     const licenseeId = (row as any)?.licensee_id ?? null;
     if (licenseeId && ['similar_complaints', 'conduct_recurrence'].includes(analysisType)) {
       const { data: related } = await supa
         .from('complaints')
-        .select('complaint_number, subject, status, severity, category, product_type, created_at')
+        .select('complaint_number, subject, status, severity, priority, created_at, closure_category')
         .eq('licensee_id', licenseeId)
         .neq('id', scopeId)
         .order('created_at', { ascending: false })
         .limit(40);
-      facts.other_complaints_same_licensee = pick(related as any[], [
-        'complaint_number', 'subject', 'status', 'severity', 'category', 'product_type', 'created_at',
-      ], 40);
+      facts.other_complaints_same_licensee = related ?? [];
     }
   }
 
   if (module === 'cross_module' && scopeId) {
     const [licensee, risk, complaints, exams, enf, actions] = await Promise.all([
-      supa.from('licensees').select('id, name, status, sector_id, category_id').eq('id', scopeId).maybeSingle(),
-      supa.from('entity_risk_scores').select('*').eq('licensee_id', scopeId).order('computed_at', { ascending: false }).limit(4),
-      supa.from('complaints').select('complaint_number, subject, status, severity, category, created_at').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(25),
-      supa.from('examinations').select('reference, examination_type, status, start_date, end_date').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(10),
-      supa.from('enforcement_actions').select('case_number, action_type, status, outcome, decision_date').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(10),
-      supa.from('prudential_actions').select('title, status, due_date, action_type').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(25),
+      supa.from('licensees').select('id, name, status, sector_id, category_id, systemic_importance').eq('id', scopeId).maybeSingle(),
+      supa.from('entity_risk_scores').select('score, band, period_key, computed_at, components').eq('entity_id', scopeId).order('computed_at', { ascending: false }).limit(4),
+      supa.from('complaints').select('complaint_number, subject, status, severity, priority, created_at').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(25),
+      supa.from('examinations').select('reference, title, examination_type, stage, risk_rating, fieldwork_end').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(10),
+      supa.from('enforcement_actions').select('case_number, enforcement_type, status, decision_outcome, decision_at').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(10),
+      supa.from('prudential_actions').select('action_reference, title, action_type, severity, status, due_date').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(25),
     ]);
     facts.entity = licensee.data ?? null;
-    facts.risk_scores = pick(risk.data as any[], ['score', 'band', 'computed_at', 'components'], 4);
+    facts.risk_scores = risk.data ?? [];
     facts.complaints = complaints.data ?? [];
     facts.examinations = exams.data ?? [];
     facts.enforcement_actions = enf.data ?? [];
@@ -384,14 +410,14 @@ async function assembleFacts(
     facts.portfolio_counts = counts;
     const { data: bands } = await supa
       .from('entity_risk_scores')
-      .select('band, licensee_id, computed_at')
+      .select('band, entity_id, computed_at')
       .order('computed_at', { ascending: false })
       .limit(400);
     const bandCounts: Record<string, number> = {};
     const seen = new Set<string>();
     for (const r of (bands ?? []) as any[]) {
-      if (seen.has(r.licensee_id)) continue;
-      seen.add(r.licensee_id);
+      if (seen.has(r.entity_id)) continue;
+      seen.add(r.entity_id);
       const b = r.band ?? 'unrated';
       bandCounts[b] = (bandCounts[b] ?? 0) + 1;
     }
