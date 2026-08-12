@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { RiskScoreDetailDrawer, type RiskScoreRow } from '@/components/prudential/RiskScoreDetailDrawer';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 
@@ -122,6 +123,27 @@ export default function RiskHeatmap() {
             </button>
           ))}
         </div>
+
+        <AdvisoryAiPanel
+          analysisType="portfolio_summary"
+          scope="portfolio"
+          facts={{
+            band_counts: stats,
+            entities_scored: scores.length,
+            highest_risk_entities: scores.slice(0, 10).map((s) => ({
+              entity: licMap.get(s.entity_id)?.name ?? 'Unnamed entity',
+              score: s.score,
+              band: s.band,
+              period: s.period_key,
+              drivers: s.components ?? {},
+            })),
+          }}
+          ready={!isLoading && scores.length > 0}
+          title="AI-assisted portfolio summary"
+          description="Narrative on where risk is concentrated across the portfolio. Every score, band and count shown on this page is calculated by the system."
+        />
+
+
 
         <Card>
           <CardHeader className="pb-3">

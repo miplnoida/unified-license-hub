@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { formatDateOnly } from '@/lib/datetime';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
 
 
@@ -254,6 +255,26 @@ export default function PrudentialAnalytics() {
             ) : <p className="text-sm text-muted-foreground italic">No trend data for the selected ratio and licensee.</p>}
           </CardContent>
         </Card>
+
+        <AdvisoryAiPanel
+          analysisType="peer_divergence"
+          scopeId={licenseeId || null}
+          periodKey={periodEnd || null}
+          facts={{
+            ratio: keys.find((k) => k.ratio_key === ratioKey)?.label ?? ratioKey ?? null,
+            selected_period: periodEnd || null,
+            entity_value_for_period: entityValue,
+            trend: (trend.data as any[] | undefined)?.slice(-12).map((d) => ({ period: d.period, value: d.value })) ?? [],
+            peer_statistics: peerCount >= MIN_PEERS
+              ? { sample_size: peerCount, min: (peer.data as any)?.min ?? null, median: (peer.data as any)?.median ?? null, p90: (peer.data as any)?.p90 ?? null, max: (peer.data as any)?.max ?? null }
+              : { publishable: false, minimum_sample_required: MIN_PEERS, sample_size: peerCount },
+          }}
+          ready={!!ratioKey && !!licenseeId && !trend.isLoading}
+          title="AI-assisted trend and peer commentary"
+          description="Interprets the trend and peer statistics shown on this page. Peer institutions are never identified and no value is recalculated."
+        />
+
+
 
         <Card>
           <CardHeader>

@@ -11,3 +11,10 @@ export const COLLAB_REVIEW_ENABLED = false;
  * Hidden per business request; the component is kept for future re-enablement.
  */
 export const COMPLAINT_TRIAGE_HISTORY_ENABLED = false;
+
+/**
+ * Advisory AI interpretation on prudential risk scoring, ratio/peer analytics
+ * and risk dashboards. Advisory only — deterministic scores, thresholds,
+ * indicators, peer metrics and workflows are unaffected when this is off.
+ */
+export const PRUDENTIAL_ADVISORY_AI_ENABLED = true;
