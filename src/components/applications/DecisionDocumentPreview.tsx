@@ -79,9 +79,15 @@ export function DecisionDocumentPreview({
   licenseType,
   submittedAt,
   defaultRationale,
+  applicationStatus,
+  sectorId,
+  subSectorId,
+  categoryId,
 }: Props) {
   const { general, branding } = useSiteSettings();
   const { activeRegulator } = useRegulator();
+  const { data: expiryConfig } = useLicenseExpiryConfig();
+
 
   const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
