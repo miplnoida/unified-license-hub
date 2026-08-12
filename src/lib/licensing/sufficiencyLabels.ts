@@ -128,6 +128,23 @@ export function determinationBlockReasons(details: Record<string, unknown> | und
   return reasons;
 }
 
+/**
+ * True only when `later` is a valid timestamp strictly after a valid `earlier`.
+ *
+ * Used for the informational "Review recommended" notice: unparseable, null or
+ * historically imported timestamps must never produce a false warning.
+ */
+export function isStrictlyAfter(
+  later: string | null | undefined,
+  earlier: string | null | undefined,
+): boolean {
+  if (!later || !earlier) return false;
+  const a = new Date(later).getTime();
+  const b = new Date(earlier).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  return a > b;
+}
+
 export const SUFFICIENCY_DECISION_OPTIONS: Array<{
   value: 'sufficient' | 'insufficient' | 'deferred';
   label: string;
