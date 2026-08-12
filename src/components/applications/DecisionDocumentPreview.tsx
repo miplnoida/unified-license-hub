@@ -24,6 +24,8 @@ import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
 import { renderLicenseCertificateHtml } from '@/lib/licensing/decisionDocuments';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
+import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
+
 import { toast } from 'sonner';
 import { Copy, Download, FileText, Info, Loader2, Printer, Stamp } from 'lucide-react';
 
