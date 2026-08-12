@@ -103,6 +103,7 @@ export function SupervisoryAiPanel({
   className,
 }: Props) {
   const [question, setQuestion] = useState('');
+  const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
 
   const { insight, isStale, isLoading, generate, feedback } = useAdvisoryAiAnalysis({
     module,
@@ -122,6 +123,15 @@ export function SupervisoryAiPanel({
   const hasContent = hasSupervisoryContent(payload);
   const busy = generate.isPending;
   const generateLabel = actionLabel ?? 'Generate analysis';
+
+  const canAsk = !busy && ready && !!question.trim();
+
+  const runAsk = () => {
+    if (!canAsk) return;
+    const q = question.trim();
+    setAskedQuestion(q);
+    generate.mutate({ force: true, question: q, context });
+  };
 
   const copyDraft = async () => {
     const text = (payload?.draft_sections ?? [])
@@ -149,28 +159,24 @@ export function SupervisoryAiPanel({
             <p className="mt-1 text-xs text-muted-foreground">{description ?? ADVISORY_DISCLAIMER}</p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <Button
-              size="sm"
-              variant={hasContent ? 'outline' : 'default'}
-              onClick={() =>
-                generate.mutate({
-                  force: hasContent,
-                  question: askable ? question.trim() || null : null,
-                  context,
-                })
-              }
-              disabled={busy || !ready || (askable && !question.trim() && !hasContent)}
-              title={!ready && disabledReason ? disabledReason : undefined}
-            >
-              {busy ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : hasContent ? (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              {busy ? 'Analysing…' : hasContent ? 'Refresh analysis' : generateLabel}
-            </Button>
+            {!askable && (
+              <Button
+                size="sm"
+                variant={hasContent ? 'outline' : 'default'}
+                onClick={() => generate.mutate({ force: hasContent, question: null, context })}
+                disabled={busy || !ready}
+                title={!ready && disabledReason ? disabledReason : undefined}
+              >
+                {busy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : hasContent ? (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {busy ? 'Analysing…' : hasContent ? 'Refresh analysis' : generateLabel}
+              </Button>
+            )}
             {!ready && disabledReason && (
               <p className="max-w-xs text-right text-xs text-muted-foreground">{disabledReason}</p>
             )}
@@ -180,16 +186,53 @@ export function SupervisoryAiPanel({
 
       <CardContent className="space-y-4">
         {askable && (
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  runAsk();
+                }
+              }}
               placeholder="Ask about this entity's supervisory record, e.g. what has changed since the last examination?"
               rows={2}
             />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] text-muted-foreground">
+                {question.trim()
+                  ? 'Press Ctrl/Cmd + Enter to ask.'
+                  : 'Type a question above to enable the Ask button.'}
+              </p>
+              <Button
+                size="sm"
+                onClick={runAsk}
+                disabled={!canAsk}
+                title={
+                  !ready
+                    ? disabledReason ?? 'Waiting for the entity record to finish loading'
+                    : !question.trim()
+                      ? 'Type a question first'
+                      : undefined
+                }
+              >
+                {busy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {busy ? 'Asking…' : hasContent ? 'Ask again' : actionLabel ?? 'Ask'}
+              </Button>
+            </div>
             <p className="text-[11px] text-muted-foreground">
               Answers use only records you are already permitted to see. Nothing you ask changes any record.
             </p>
+            {askedQuestion && hasContent && !busy && (
+              <div className="rounded-md border bg-background p-2 text-xs">
+                <span className="font-medium">You asked:</span> {askedQuestion}
+              </div>
+            )}
           </div>
         )}
 
