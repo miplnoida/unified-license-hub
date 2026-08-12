@@ -228,33 +228,27 @@ export function sourceRouteFor({ module, scope, recordId }: RouteInput): {
 }
 
 /**
- * Freshness is derived only from record state — never from AI content.
- * A source record updated after the analysis was generated means the analysis
- * may no longer describe the current record.
+ * Freshness and report state are derived on the server from authoritative
+ * record state (including child records) — never from AI content. These helpers
+ * only turn the normalised values into wording.
  */
-export function deriveFreshness(generatedAt?: string | null, sourceUpdatedAt?: string | null): Freshness {
-  if (!generatedAt) return 'unknown';
-  if (!sourceUpdatedAt) return 'unknown';
-  return new Date(sourceUpdatedAt).getTime() > new Date(generatedAt).getTime() ? 'outdated' : 'current';
-}
+export const REPORT_STATE_LABEL: Record<HubReportState, string | null> = {
+  available: null,
+  limited: 'Limited evidence',
+  processing: 'Still being prepared',
+  failed: 'Analysis did not complete',
+};
 
-/** Only successful/usable analyses are treated as reports by default. */
-export function isUsableProviderState(state?: string | null): boolean {
-  if (!state) return true;
-  return ['live', 'success', 'INSUFFICIENT_DATA', 'completed'].includes(state);
-}
-
-export function providerStateBadge(state?: string | null): string | null {
-  if (!state || ['live', 'success', 'completed'].includes(state)) return null;
-  if (state === 'INSUFFICIENT_DATA') return 'Limited evidence';
-  return 'AI unavailable';
+export function reportStateBadge(state?: HubReportState | null): string | null {
+  if (!state) return null;
+  return REPORT_STATE_LABEL[state] ?? null;
 }
 
 /** The visible subject of a report — never a raw UUID when a name is known. */
 export function subjectLabel(report: SupervisoryAiReport): string {
-  if (report.entityName && report.recordReference) return `${report.entityName} · ${report.recordReference}`;
-  if (report.entityName) return report.entityName;
-  if (report.recordReference) return report.recordReference;
+  const parts = [report.entityName, report.recordReference].filter(Boolean) as string[];
+  if (parts.length) return parts.join(' · ');
+  if (report.subjectName) return report.subjectName;
   if (report.module === 'executive' || report.module === 'prudential') return 'Supervised portfolio';
   return 'Subject not available';
 }
@@ -269,20 +263,62 @@ export const TIME_RANGES = [
 
 export type TimeRange = (typeof TIME_RANGES)[number]['value'];
 
-export function rangeStart(range: TimeRange, customFrom?: string): string | null {
+/** Local start of the given calendar day. */
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function parseDateInput(value?: string | null): Date | null {
+  if (!value) return null;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Inclusive-start / exclusive-end bounds for a range, using the viewer's local
+ * calendar days. The end is the *start of the next day*, so a report generated
+ * at 23:59 on the selected "To" date is still included.
+ */
+export function rangeBounds(
+  range: TimeRange,
+  customFrom?: string,
+  customTo?: string,
+): { from: string | null; to: string | null } {
   const now = new Date();
+  const today = startOfLocalDay(now);
+  const nextDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
   switch (range) {
-    case 'today': {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      return d.toISOString();
-    }
+    case 'today':
+      return { from: today.toISOString(), to: nextDay(today).toISOString() };
     case '7':
-      return new Date(now.getTime() - 7 * 864e5).toISOString();
+      return {
+        from: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6).toISOString(),
+        to: nextDay(today).toISOString(),
+      };
     case '30':
-      return new Date(now.getTime() - 30 * 864e5).toISOString();
-    case 'custom':
-      return customFrom ? new Date(customFrom).toISOString() : null;
+      return {
+        from: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29).toISOString(),
+        to: nextDay(today).toISOString(),
+      };
+    case 'custom': {
+      const from = parseDateInput(customFrom);
+      const to = parseDateInput(customTo);
+      return {
+        from: from ? from.toISOString() : null,
+        to: to ? nextDay(to).toISOString() : null,
+      };
+    }
     default:
-      return null;
+      return { from: null, to: null };
   }
 }
+
+export const REVIEW_STATUS_LABEL: Record<string, string> = {
+  pending: 'Awaiting human review',
+  accepted: 'Accepted in AI review',
+  rejected: 'Rejected in AI review',
+  escalated: 'Escalated in AI review',
+};
+
