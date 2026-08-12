@@ -303,6 +303,14 @@ export default function ComplaintDetail() {
   // Canonical SLA — server-computed when available (list_complaints/get_complaint
   // return sla_status); JS helper is fallback for optimistic UI.
   const slaStatus = slaBucketFromRow(complaint);
+  // Marker of the case as displayed — used only for advisory-analysis staleness.
+  const aiStaleness = {
+    status: complaint.status,
+    severity: complaint.severity,
+    updated_at: (complaint as any).updated_at ?? null,
+    resolved_at: complaint.resolved_at ?? null,
+    closed_at: (complaint as any).closed_at ?? null,
+  };
 
   return (
     <DashboardLayout>
