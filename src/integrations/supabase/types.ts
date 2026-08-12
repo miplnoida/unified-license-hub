@@ -27991,6 +27991,70 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_ai_report_detail: {
+        Args: { _id: string }
+        Returns: {
+          analysis_type: string
+          citations: Json
+          entity_id: string
+          explanation: string
+          feedback: string
+          generated_at: string
+          generated_by: string
+          id: string
+          input_fingerprint: string
+          model: string
+          module: string
+          object_id: string
+          object_type: string
+          payload: Json
+          period_key: string
+          provider_state: string
+          recommendation: string
+          scope: string
+          scope_id: string
+          source_modules: string[]
+          source_records: Json
+          title: string
+        }[]
+      }
+      supervisory_ai_reports_list: {
+        Args: {
+          _analysis_types?: string[]
+          _entity_id?: string
+          _from?: string
+          _include_failed?: boolean
+          _limit?: number
+          _modules?: string[]
+          _offset?: number
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          feedback: string
+          generated_at: string
+          generated_by: string
+          id: string
+          input_fingerprint: string
+          insufficient_evidence: boolean
+          limitation_count: number
+          model: string
+          module: string
+          object_id: string
+          object_type: string
+          period_key: string
+          provider_state: string
+          scope: string
+          scope_id: string
+          source_modules: string[]
+          summary: string
+          title: string
+          total_count: number
+        }[]
+      }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined
