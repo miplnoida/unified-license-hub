@@ -18,6 +18,7 @@ import {
 } from '@/lib/licensing/aiAssessmentLabels';
 import { formatDistanceToNow } from 'date-fns';
 import { formatDateTime } from '@/lib/datetime';
+import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
@@ -554,6 +555,11 @@ function AnalystDecisionBar({
   onSaved: () => void | Promise<void>;
 }) {
   const [mode, setMode] = useState<'accepted' | 'overridden' | 'escalated' | null>(null);
+  const {
+    data: decisionNames,
+    isLoading: decisionNamesLoading,
+    isError: decisionNamesError,
+  } = useUserDisplayNames([assessment.analyst_decision_by]);
   const [justification, setJustification] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -650,9 +656,12 @@ function AnalystDecisionBar({
           </Badge>
           {assessment.analyst_decision_at && (
             <span className="text-xs font-normal text-muted-foreground">
-              {formatDistanceToNow(new Date(assessment.analyst_decision_at), {
-                addSuffix: true,
-              })}
+              Recorded by{' '}
+              {actorLabel(assessment.analyst_decision_by, decisionNames, {
+                isLoading: decisionNamesLoading,
+                isError: decisionNamesError,
+              })}{' '}
+              on {formatDateTime(assessment.analyst_decision_at)}
             </span>
           )}
         </AlertTitle>
