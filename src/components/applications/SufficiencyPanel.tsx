@@ -33,6 +33,7 @@ import {
   findingLabel,
   findingTone,
   humanizeValue,
+  isStrictlyAfter,
   sufficiencyDecisionLabel,
   sufficiencySeverityLabel,
   SUFFICIENCY_DECISION_OPTIONS,
