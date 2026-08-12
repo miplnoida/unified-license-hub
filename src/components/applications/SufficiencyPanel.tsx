@@ -180,21 +180,36 @@ export function SufficiencyPanel({ applicationId }: Props) {
   };
 
   const submitException = async () => {
-    if (!exception.result || !user) return;
+    if (!exception.result || !user || exceptionSubmitting) return;
     if (exception.reason.trim().length < 10) return toast.error('Please provide a reason of at least 10 characters');
-    const { error } = await supabase.from('sufficiency_overrides' as any).insert({
-      evaluation_result_id: exception.result.id,
-      overridden_by: user.id,
-      reason: exception.reason.trim(),
-    });
-    if (error) return toast.error(error.message);
-    await logAction('sufficiency.override.recorded', 'sufficiency_evaluation_result', exception.result.id, {
-      after: { reason: exception.reason.trim(), rule: exception.result.rule_snapshot?.code },
-      meta: { application_id: applicationId },
-    });
-    toast.success('Exception accepted');
-    setException({ result: null, reason: '' });
-    qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
+    // Never record a second exception for the same finding, and never act while
+    // the existing exception state is unknown.
+    if (!exceptionStatusKnown) {
+      return toast.error('Existing exceptions are still being checked. Please try again in a moment.');
+    }
+    if ((overrides || []).some((o: any) => o.evaluation_result_id === exception.result!.id)) {
+      toast.error('An exception has already been accepted for this check');
+      setException({ result: null, reason: '' });
+      return;
+    }
+    setExceptionSubmitting(true);
+    try {
+      const { error } = await supabase.from('sufficiency_overrides' as any).insert({
+        evaluation_result_id: exception.result.id,
+        overridden_by: user.id,
+        reason: exception.reason.trim(),
+      });
+      if (error) return toast.error(error.message);
+      await logAction('sufficiency.override.recorded', 'sufficiency_evaluation_result', exception.result.id, {
+        after: { reason: exception.reason.trim(), rule: exception.result.rule_snapshot?.code },
+        meta: { application_id: applicationId },
+      });
+      toast.success('Exception accepted');
+      setException({ result: null, reason: '' });
+      qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
+    } finally {
+      setExceptionSubmitting(false);
+    }
   };
 
   const submitDetermination = async () => {
