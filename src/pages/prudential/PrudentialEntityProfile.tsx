@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
+import { usePeerMinPeers } from '@/hooks/usePeerSettings';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -890,37 +892,109 @@ export default function PrudentialEntityProfile() {
 
 // --- Peer Comparison tab (uses usePeerSnapshot per ratio_key) ---
 function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: any[]; returns: any[] }) {
-  // Latest computed ratio per ratio_key, plus its period_end from returns.
   const returnsById = useMemo(() => {
     const m: Record<string, any> = {};
     (returns || []).forEach((r) => { m[r.id] = r; });
     return m;
   }, [returns]);
-  const latestByKey = useMemo(() => {
-    const byKey: Record<string, any> = {};
-    (ratios || []).forEach((r: any) => {
-      const cur = byKey[r.ratio_key];
-      const ts = r.computed_at || returnsById[r.return_id]?.period_end_date;
-      const curTs = cur ? (cur.computed_at || returnsById[cur.return_id]?.period_end_date) : null;
-      if (!cur || (ts && (!curTs || ts > curTs))) byKey[r.ratio_key] = r;
-    });
-    return byKey;
-  }, [ratios, returnsById]);
-  const rows = Object.values(latestByKey) as any[];
 
-  // Aggregate-only peer facts collected from the rows already rendered below.
-  // No peer institution is ever named or identifiable.
+  const { data: minPeers } = usePeerMinPeers();
+
+  /** Reporting periods that actually carry computed ratios, newest first. */
+  const periods = useMemo(() => {
+    const set = new Set<string>();
+    (ratios || []).forEach((r: any) => {
+      const p = returnsById[r.return_id]?.period_end_date;
+      if (p) set.add(p);
+    });
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [ratios, returnsById]);
+
+  const [period, setPeriod] = useState<string | null>(null);
+  const [manualPeriod, setManualPeriod] = useState(false);
+  const [basis, setBasis] = useState<'sector_category' | 'sector'>('sector_category');
   const [peerFacts, setPeerFacts] = useState<Record<string, any>>({});
+
+  const selectedPeriod = period ?? periods[0] ?? null;
+
   const onSnapshot = useCallback((ratioKey: string, fact: any) => {
     setPeerFacts((prev) => (JSON.stringify(prev[ratioKey]) === JSON.stringify(fact) ? prev : { ...prev, [ratioKey]: fact }));
   }, []);
 
-  if (!rows.length) return (
+  // Snapshots are period + basis specific — never mix them across selections.
+  useEffect(() => { setPeerFacts({}); }, [selectedPeriod, basis]);
+
+  /** Latest computed ratio per ratio_key inside the selected period only. */
+  const rows = useMemo(() => {
+    const byKey: Record<string, any> = {};
+    (ratios || []).forEach((r: any) => {
+      if (returnsById[r.return_id]?.period_end_date !== selectedPeriod) return;
+      const cur = byKey[r.ratio_key];
+      if (!cur || (r.computed_at && (!cur.computed_at || r.computed_at > cur.computed_at))) byKey[r.ratio_key] = r;
+    });
+    return Object.values(byKey) as any[];
+  }, [ratios, returnsById, selectedPeriod]);
+
+  const allLoaded = rows.length > 0 && rows.every((r) => peerFacts[r.ratio_key] !== undefined);
+  const comparable = Object.values(peerFacts).filter((f: any) => f?.peer_comparison_available);
+  const maxSampleSeen = Object.values(peerFacts).reduce(
+    (acc: number, f: any) => Math.max(acc, Number(f?.peer_sample_size ?? f?.peers_reported ?? 0) || 0),
+    0,
+  );
+
+  // When the newest period has no publishable peer sample, fall back to the
+  // most recent period that does instead of leaving the tab empty.
+  useEffect(() => {
+    if (manualPeriod || !allLoaded || comparable.length > 0 || !selectedPeriod) return;
+    const idx = periods.indexOf(selectedPeriod);
+    const next = periods[idx + 1];
+    if (next) setPeriod(next);
+  }, [manualPeriod, allLoaded, comparable.length, selectedPeriod, periods]);
+
+  if (!periods.length || !selectedPeriod) return (
     <Card><CardContent className="pt-4 text-sm text-muted-foreground">No ratios available for peer comparison.</CardContent></Card>
   );
-  const comparable = Object.values(peerFacts).filter((f: any) => f?.peer_comparison_available);
+
+  const disabledReason = !comparable.length
+    ? allLoaded
+      ? `No ratio has a publishable peer sample for ${selectedPeriod} on this basis (${maxSampleSeen} peer${maxSampleSeen === 1 ? '' : 's'} reported, minimum ${minPeers ?? 3}). Choose an earlier period or compare at sector level.`
+      : 'Checking peer samples for this period…'
+    : undefined;
+
   return (
     <div className="space-y-4">
+      <Card><CardContent className="pt-4 flex flex-wrap items-end gap-4">
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Reporting period</div>
+          <Select
+            value={selectedPeriod}
+            onValueChange={(v) => { setManualPeriod(true); setPeriod(v); }}
+          >
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Peer group</div>
+          <Select value={basis} onValueChange={(v) => setBasis(v as any)}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sector_category">Same sector and category</SelectItem>
+              <SelectItem value="sector">Same sector (wider sample)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <p className="text-xs text-muted-foreground max-w-xl">
+          Peer statistics are published only when at least {minPeers ?? 3} peers reported the same ratio for the
+          selected period. Peer institutions are never identified.
+        </p>
+      </CardContent></Card>
+
+      {!rows.length ? (
+        <Card><CardContent className="pt-4 text-sm text-muted-foreground">No computed ratios for {selectedPeriod}.</CardContent></Card>
+      ) : (
       <Card><CardContent className="pt-4">
         <Table>
           <TableHeader><TableRow>
@@ -935,41 +1009,59 @@ function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: a
           <TableBody>
             {rows.map((r) => (
               <PeerRow
-                key={r.ratio_key}
+                key={`${basis}|${selectedPeriod}|${r.ratio_key}`}
                 row={r}
                 entity={entity}
-                period={returnsById[r.return_id]?.period_end_date}
+                period={selectedPeriod}
+                basis={basis}
                 onSnapshot={onSnapshot}
               />
             ))}
           </TableBody>
         </Table>
       </CardContent></Card>
+      )}
 
       <AdvisoryAiPanel
         analysisType="peer_divergence"
         scopeId={entity.id}
+        periodKey={selectedPeriod}
         label={entity.name}
-        facts={{ peer_basis: 'Sector and category peer group, aggregate statistics only', ratios: comparable }}
+        facts={{
+          period: selectedPeriod,
+          peer_basis: basis === 'sector'
+            ? 'Sector peer group, aggregate statistics only'
+            : 'Sector and category peer group, aggregate statistics only',
+          ratios: comparable,
+        }}
         ready={comparable.length > 0}
+        disabledReason={disabledReason}
         title="AI-assisted peer comparison commentary"
         description={comparable.length
           ? 'Interprets where this entity sits against published peer aggregates. Peer institutions are never identified and no peer statistic is recalculated.'
-          : 'Available once at least one ratio has a publishable peer sample for the period.'}
+          : 'Available once at least one ratio has a publishable peer sample for the selected period.'}
       />
     </div>
   );
 }
 
-function PeerRow({ row, entity, period, onSnapshot }: {
+
+function PeerRow({ row, entity, period, basis = 'sector_category', onSnapshot }: {
   row: any;
   entity: any;
   period?: string;
+  basis?: 'sector_category' | 'sector';
   onSnapshot?: (ratioKey: string, fact: any) => void;
 }) {
-  // Peer group is narrowed to the entity's sector + category server-side; the
-  // RPC refuses to publish statistics below the minimum peer sample.
-  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null, entity.id);
+  // Passing the entity narrows the peer group to its sector + category server-side.
+  // Omitting it keeps the wider sector-only group. Either way the RPC refuses to
+  // publish statistics below the configured minimum peer sample.
+  const peer = usePeerSnapshot(
+    row.ratio_key,
+    period || null,
+    entity.sector_id || null,
+    basis === 'sector_category' ? entity.id : null,
+  );
   const p = peer.data as any;
   const peerState = readPeerState(p);
   const resultState = deriveRatioResultState(row.value, row.null_reason);
@@ -983,6 +1075,7 @@ function PeerRow({ row, entity, period, onSnapshot }: {
       ratio: row.label || row.ratio_key,
       period: period ?? null,
       peer_comparison_available: peerState === 'OK',
+      peers_reported: p?.peer_count ?? p?.count ?? 0,
       entity_value: resultState === 'CALCULATED' ? Number(row.value) : null,
       peer_median: peerState === 'OK' ? p?.median ?? null : null,
       peer_p90: peerState === 'OK' ? p?.p90 ?? null : null,
@@ -990,6 +1083,7 @@ function PeerRow({ row, entity, period, onSnapshot }: {
       peer_max: peerState === 'OK' ? p?.max ?? null : null,
       peer_sample_size: peerState === 'OK' ? p?.peer_count ?? p?.count ?? null : null,
       entity_percentile: peerState === 'OK' ? p?.percentile ?? null : null,
+
       difference_vs_median: delta,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

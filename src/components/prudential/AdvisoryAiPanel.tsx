@@ -35,8 +35,11 @@ interface Props {
   description?: string;
   /** Set false when the deterministic data behind the panel is still loading. */
   ready?: boolean;
+  /** Plain-language reason shown when generation is unavailable. */
+  disabledReason?: string;
   className?: string;
 }
+
 
 function ObservationList({ items }: { items: AdvisoryObservation[] }) {
   return (
@@ -69,8 +72,10 @@ export function AdvisoryAiPanel({
   title = 'AI-assisted analysis',
   description,
   ready = true,
+  disabledReason,
   className,
 }: Props) {
+
   const { insight, isStale, isLoading, generate, feedback } = usePrudentialAiAnalysis({
     analysisType,
     scope,
@@ -103,15 +108,22 @@ export function AdvisoryAiPanel({
                 'Interpretation of figures the system has already calculated. It does not change any score, indicator, threshold or decision.'}
             </p>
           </div>
-          <Button
-            size="sm"
-            variant={hasContent ? 'outline' : 'default'}
-            onClick={() => generate.mutate({ force: hasContent })}
-            disabled={busy || !ready}
-          >
-            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : hasContent ? <RefreshCw className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {busy ? 'Analysing…' : hasContent ? 'Refresh analysis' : 'Generate analysis'}
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              size="sm"
+              variant={hasContent ? 'outline' : 'default'}
+              onClick={() => generate.mutate({ force: hasContent })}
+              disabled={busy || !ready}
+              title={!ready && disabledReason ? disabledReason : undefined}
+            >
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : hasContent ? <RefreshCw className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {busy ? 'Analysing…' : hasContent ? 'Refresh analysis' : 'Generate analysis'}
+            </Button>
+            {!ready && disabledReason && (
+              <p className="max-w-xs text-right text-xs text-muted-foreground">{disabledReason}</p>
+            )}
+          </div>
+
         </div>
       </CardHeader>
 
