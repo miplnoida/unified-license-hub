@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertTriangle, ChevronDown, Loader2, Play } from 'lucide-react';
 import { useAcknowledgeEwi, useEvaluateEwi, useEwiAlerts, type EwiAlert } from '@/hooks/usePrudentialPhase2';
 import { useCan } from '@/hooks/useCan';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 
 const SEVERITY_STYLES: Record<string, string> = {
   critical: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -165,6 +166,28 @@ export function EwiPanel({
             </TableBody>
           </Table>
         )}
+
+        <AdvisoryAiPanel
+          analysisType="ewi_priority"
+          scopeId={entityId}
+          periodKey={period || null}
+          facts={{
+            open_indicator_count: openCount,
+            indicators: alerts.slice(0, 40).map((a) => ({
+              rule: a.prudential_ewi_rules?.name || a.rule_code,
+              rule_type: RULE_TYPE_LABEL[a.prudential_ewi_rules?.rule_type || ''] || a.prudential_ewi_rules?.rule_type || null,
+              metric: a.metric_key,
+              configured_severity: a.severity,
+              status: a.status,
+              period_end: a.period_end,
+              evaluated_at: a.executed_at,
+              evidence: a.evidence ?? {},
+            })),
+          }}
+          ready={alerts.length > 0}
+          title="AI-assisted attention priority"
+          description="Suggests an order of supervisory attention across the indicators above. Configured severities, statuses and rule outcomes are unchanged."
+        />
       </CardContent>
 
       <Dialog open={!!target} onOpenChange={(o) => !o && setTarget(null)}>

@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDateTime } from '@/lib/datetime';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 
 type Band = 'low' | 'medium' | 'high' | 'critical';
 
@@ -169,6 +170,31 @@ export function RiskScoreDetailDrawer({ row, entityName, open, onOpenChange }: P
               </div>
             )}
           </section>
+
+          <AdvisoryAiPanel
+            analysisType="heatmap_movement"
+            scopeId={row.entity_id}
+            periodKey={row.period_key}
+            label={entityName}
+            facts={{
+              score: row.score,
+              band: row.band,
+              period: row.period_key,
+              last_calculated: row.computed_at ?? null,
+              drivers: rows.map((c) => ({
+                driver: c.label,
+                count: c.count,
+                weight: c.weight,
+                points_added: Number(c.contribution.toFixed(1)),
+              })),
+              previous_periods: priorPeriods.map((h) => ({ period: h.period_key, score: h.score, band: h.band })),
+            }}
+            ready={!isLoading}
+            title="AI-assisted explanation of this score"
+            description="Explains the movement and the drivers shown above. The score, band and driver counts are calculated by the system and are not changed here."
+          />
+
+
 
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">Where to go next</h3>

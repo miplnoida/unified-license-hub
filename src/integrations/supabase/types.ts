@@ -57,19 +57,26 @@ export type Database = {
       }
       ai_insights: {
         Row: {
+          analysis_type: string | null
           citations: Json
           confidence: number | null
           created_at: string
           entity_id: string | null
           explanation: string | null
+          feedback: string | null
+          feedback_at: string | null
+          feedback_by: string | null
           generated_at: string
           generated_by: string | null
           id: string
+          input_fingerprint: string | null
           insight_kind: string
           model: string | null
           module: string
           object_id: string | null
           object_type: string | null
+          payload: Json
+          period_key: string | null
           provider: string | null
           provider_state: string
           recommendation: string | null
@@ -77,24 +84,33 @@ export type Database = {
           review_status: string
           reviewed_at: string | null
           reviewer_id: string | null
+          scope: string | null
+          scope_id: string | null
           source_records: Json
           title: string
           updated_at: string
         }
         Insert: {
+          analysis_type?: string | null
           citations?: Json
           confidence?: number | null
           created_at?: string
           entity_id?: string | null
           explanation?: string | null
+          feedback?: string | null
+          feedback_at?: string | null
+          feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
           id?: string
+          input_fingerprint?: string | null
           insight_kind?: string
           model?: string | null
           module: string
           object_id?: string | null
           object_type?: string | null
+          payload?: Json
+          period_key?: string | null
           provider?: string | null
           provider_state?: string
           recommendation?: string | null
@@ -102,24 +118,33 @@ export type Database = {
           review_status?: string
           reviewed_at?: string | null
           reviewer_id?: string | null
+          scope?: string | null
+          scope_id?: string | null
           source_records?: Json
           title: string
           updated_at?: string
         }
         Update: {
+          analysis_type?: string | null
           citations?: Json
           confidence?: number | null
           created_at?: string
           entity_id?: string | null
           explanation?: string | null
+          feedback?: string | null
+          feedback_at?: string | null
+          feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
           id?: string
+          input_fingerprint?: string | null
           insight_kind?: string
           model?: string | null
           module?: string
           object_id?: string | null
           object_type?: string | null
+          payload?: Json
+          period_key?: string | null
           provider?: string | null
           provider_state?: string
           recommendation?: string | null
@@ -127,6 +152,8 @@ export type Database = {
           review_status?: string
           reviewed_at?: string | null
           reviewer_id?: string | null
+          scope?: string | null
+          scope_id?: string | null
           source_records?: Json
           title?: string
           updated_at?: string

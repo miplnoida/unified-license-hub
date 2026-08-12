@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { History, Download, ChevronLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
 import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
@@ -21,6 +21,7 @@ import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
 import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
@@ -174,6 +175,60 @@ export default function PrudentialEntityProfile() {
     (data.breaches || []).map((b: any) => b.risk_level || b.severity || b.level),
   );
 
+  // ---- Advisory AI inputs -------------------------------------------------
+  // Only facts the deterministic engines have already produced are shared with
+  // the advisory layer. Nothing here changes what is displayed above.
+  const latestRatioFacts = (() => {
+    const byKey: Record<string, any> = {};
+    (data.ratios || []).forEach((r: any) => {
+      const cur = byKey[r.ratio_key];
+      if (!cur || String(r.computed_at || '') > String(cur.computed_at || '')) byKey[r.ratio_key] = r;
+    });
+    return Object.values(byKey).map((r: any) => ({
+      ratio: r.label || r.ratio_key,
+      value: formatRatio(r.value, r.display_format),
+      calculated_at: r.computed_at ?? null,
+    }));
+  })();
+
+  const overviewFacts = {
+    entity_sector_id: e.sector_id ?? null,
+    latest_submitted_return_period: latestSubmittedReturn?.period_end_date ?? null,
+    latest_rating: latestRatedAssess?.overall_rating ?? null,
+    worst_breach_severity: worstBreachSev ? severityLabel(worstBreachSev) : null,
+    breach_count: (data.breaches || []).length,
+    breaches_by_severity: (data.breaches || []).reduce((acc: Record<string, number>, b: any) => {
+      const key = severityLabel(b.risk_level || b.severity || b.level) || 'Unclassified';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {}),
+    open_actions: openActions.length,
+    overdue_actions: overdueActions.length,
+    open_escalations: openEsc.length,
+    unresolved_stress_events: (data.stress_events || []).filter((s: any) => !s.resolved_at).length,
+    latest_ratios: latestRatioFacts,
+  };
+
+  const trendFacts = {
+    periods: ratioTrend.slice(-8).map((p: any) => {
+      const { period, ...values } = p;
+      const labelled: Record<string, number> = {};
+      Object.entries(values).forEach(([k, v]) => {
+        labelled[ratioLabels[k]?.label ?? k] = v as number;
+      });
+      return { period, ratios: labelled };
+    }),
+    breaches: (data.breaches || []).slice(0, 40).map((b: any) => ({
+      metric: b.metric_key || b.ratio_key || null,
+      severity: severityLabel(b.risk_level || b.severity || b.level) || null,
+      observed_value: b.value ?? b.observed_value ?? null,
+      threshold_value: b.threshold_value ?? null,
+      acknowledged: !!b.acknowledged_at,
+    })),
+  };
+
+
+
   const exportProfile = async () => {
     await authorizedExport('prudential_supervision', 'export', { entity: e.name });
     const returnsById: Record<string, any> = Object.fromEntries((data.returns || []).map((r: any) => [r.id, r]));
@@ -293,6 +348,17 @@ export default function PrudentialEntityProfile() {
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Recent stress events</CardTitle></CardHeader>
               <CardContent className="text-sm">{(data.stress_events || []).filter((s: any) => !s.resolved_at).length}</CardContent></Card>
           </div>
+
+          <AdvisoryAiPanel
+            className="mt-4"
+            analysisType="risk_interpretation"
+            scopeId={e.id}
+            periodKey={latestSubmittedReturn?.period_end_date ?? null}
+            label={e.name}
+            facts={overviewFacts}
+            title="AI-assisted risk interpretation"
+            description="Explains the supervisory picture above in plain language. Scores, ratings, breaches and counts remain calculated by the system."
+          />
         </TabsContent>
 
 
@@ -485,6 +551,18 @@ export default function PrudentialEntityProfile() {
               </>
             );
           })()}
+
+          <AdvisoryAiPanel
+            className="mt-4"
+            analysisType="trend_commentary"
+            scopeId={e.id}
+            periodKey={ratioTrend.length ? String((ratioTrend[ratioTrend.length - 1] as any).period) : null}
+            label={e.name}
+            facts={trendFacts}
+            ready={ratioTrend.length > 0}
+            title="AI-assisted trend commentary"
+            description="Narrative on the movement in the ratios charted above. Every ratio value and threshold state is calculated by the system."
+          />
         </TabsContent>
 
 
@@ -829,32 +907,66 @@ function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: a
     return byKey;
   }, [ratios, returnsById]);
   const rows = Object.values(latestByKey) as any[];
+
+  // Aggregate-only peer facts collected from the rows already rendered below.
+  // No peer institution is ever named or identifiable.
+  const [peerFacts, setPeerFacts] = useState<Record<string, any>>({});
+  const onSnapshot = useCallback((ratioKey: string, fact: any) => {
+    setPeerFacts((prev) => (JSON.stringify(prev[ratioKey]) === JSON.stringify(fact) ? prev : { ...prev, [ratioKey]: fact }));
+  }, []);
+
   if (!rows.length) return (
     <Card><CardContent className="pt-4 text-sm text-muted-foreground">No ratios available for peer comparison.</CardContent></Card>
   );
+  const comparable = Object.values(peerFacts).filter((f: any) => f?.peer_comparison_available);
   return (
-    <Card><CardContent className="pt-4">
-      <Table>
-        <TableHeader><TableRow>
-          <TableHead>Ratio</TableHead><TableHead>Period</TableHead>
-          <TableHead className="text-right">Entity</TableHead>
-          <TableHead className="text-right">Peer Median</TableHead>
-          <TableHead className="text-right">Peer P90</TableHead>
-          <TableHead className="text-right">Peer Range</TableHead>
-          <TableHead className="text-right">Sample</TableHead>
-          <TableHead className="text-right">Δ vs Median</TableHead>
-        </TableRow></TableHeader>
-        <TableBody>
-          {rows.map((r) => (
-            <PeerRow key={r.ratio_key} row={r} entity={entity} period={returnsById[r.return_id]?.period_end_date} />
-          ))}
-        </TableBody>
-      </Table>
-    </CardContent></Card>
+    <div className="space-y-4">
+      <Card><CardContent className="pt-4">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Ratio</TableHead><TableHead>Period</TableHead>
+            <TableHead className="text-right">Entity</TableHead>
+            <TableHead className="text-right">Peer Median</TableHead>
+            <TableHead className="text-right">Peer P90</TableHead>
+            <TableHead className="text-right">Peer Range</TableHead>
+            <TableHead className="text-right">Sample</TableHead>
+            <TableHead className="text-right">Δ vs Median</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {rows.map((r) => (
+              <PeerRow
+                key={r.ratio_key}
+                row={r}
+                entity={entity}
+                period={returnsById[r.return_id]?.period_end_date}
+                onSnapshot={onSnapshot}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
+
+      <AdvisoryAiPanel
+        analysisType="peer_divergence"
+        scopeId={entity.id}
+        label={entity.name}
+        facts={{ peer_basis: 'Sector and category peer group, aggregate statistics only', ratios: comparable }}
+        ready={comparable.length > 0}
+        title="AI-assisted peer comparison commentary"
+        description={comparable.length
+          ? 'Interprets where this entity sits against published peer aggregates. Peer institutions are never identified and no peer statistic is recalculated.'
+          : 'Available once at least one ratio has a publishable peer sample for the period.'}
+      />
+    </div>
   );
 }
 
-function PeerRow({ row, entity, period }: { row: any; entity: any; period?: string }) {
+function PeerRow({ row, entity, period, onSnapshot }: {
+  row: any;
+  entity: any;
+  period?: string;
+  onSnapshot?: (ratioKey: string, fact: any) => void;
+}) {
   // Peer group is narrowed to the entity's sector + category server-side; the
   // RPC refuses to publish statistics below the minimum peer sample.
   const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null, entity.id);
@@ -864,6 +976,25 @@ function PeerRow({ row, entity, period }: { row: any; entity: any; period?: stri
   const entityVal = Number(row.value);
   const delta = peerState === 'OK' && p?.median != null && Number.isFinite(entityVal)
     ? entityVal - Number(p.median) : null;
+
+  useEffect(() => {
+    if (!onSnapshot || peer.isLoading) return;
+    onSnapshot(row.ratio_key, {
+      ratio: row.label || row.ratio_key,
+      period: period ?? null,
+      peer_comparison_available: peerState === 'OK',
+      entity_value: resultState === 'CALCULATED' ? Number(row.value) : null,
+      peer_median: peerState === 'OK' ? p?.median ?? null : null,
+      peer_p90: peerState === 'OK' ? p?.p90 ?? null : null,
+      peer_min: peerState === 'OK' ? p?.min ?? null : null,
+      peer_max: peerState === 'OK' ? p?.max ?? null : null,
+      peer_sample_size: peerState === 'OK' ? p?.peer_count ?? p?.count ?? null : null,
+      entity_percentile: peerState === 'OK' ? p?.percentile ?? null : null,
+      difference_vs_median: delta,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peer.isLoading, peerState, resultState, p?.median, p?.p90, p?.min, p?.max, p?.peer_count, p?.percentile, delta]);
+
 
   if (peerState !== 'OK') {
     return (
