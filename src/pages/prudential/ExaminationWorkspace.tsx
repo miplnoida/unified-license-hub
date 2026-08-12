@@ -161,6 +161,20 @@ export default function ExaminationWorkspace() {
     ).length,
   }), [findings, dataRequests, workpapers]);
 
+  /**
+   * Marker of the examination record as currently displayed. Used only to flag
+   * a stored advisory analysis as possibly outdated — never sent as facts.
+   */
+  const aiStaleness = useMemo(() => ({
+    stage: exam?.stage ?? null,
+    updated_at: (exam as any)?.updated_at ?? null,
+    findings: findings.length,
+    workpapers: workpapers.length,
+    requests: dataRequests.length,
+    reports: reports.length,
+    counts,
+  }), [exam, findings, workpapers, dataRequests, reports, counts]);
+
   const toggleAll = () => {
     const p = new URLSearchParams(params);
     if (showAll) p.delete('all'); else p.set('all', '1');
