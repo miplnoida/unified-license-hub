@@ -418,6 +418,7 @@ async function assembleFacts(
   userId: string,
   module: Module,
   analysisType: string,
+  scope: string,
   scopeId: string | null,
   extra: { question?: string | null; context?: unknown },
   sources: SourceModule[],
@@ -546,7 +547,7 @@ async function assembleFacts(
     }
   }
 
-  if ((module === 'complaints' || module === 'conduct') && scopeId) {
+  if ((module === 'complaints' || module === 'conduct') && scopeId && scope === 'record') {
     const need: SourceModule = module === 'conduct' ? 'conduct' : 'complaints';
     if (!can(need)) return { facts, used: [], evidence };
     used.add(need);
@@ -593,6 +594,40 @@ async function assembleFacts(
   }
 
   // ---------- Market conduct: portfolio-level pattern analysis ----------
+  // Entity-level conduct: recorded conduct history for one licensee.
+  if (module === 'conduct' && scopeId && scope === 'entity') {
+    if (!can('conduct') && !can('complaints')) return { facts, used: [], evidence };
+    used.add(can('conduct') ? 'conduct' : 'complaints');
+    const [comps, alerts, invs, acts] = await Promise.all([
+      supa.from('complaints').select(
+        'id, complaint_number, subject, status, severity, priority, customer_type, vulnerability_indicator, closure_category, repeat_complaint_count, created_at, resolved_at, sla_due_at',
+      ).eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(200),
+      supa.from('conduct_alerts').select('title, kind, severity, status, created_at')
+        .eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(100),
+      supa.from('conduct_investigations').select('allegation, status, priority, severity, created_at')
+        .eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(50),
+      supa.from('conduct_actions').select('title, action_type, status, due_date, created_at')
+        .eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(50),
+    ]);
+    const list = (comps.data ?? []) as any[];
+    facts.complaints = list.map(({ id: _i, ...rest }) => rest);
+    facts.conduct_alerts = alerts.data ?? [];
+    facts.investigations = invs.data ?? [];
+    facts.conduct_actions = acts.data ?? [];
+    facts.totals = {
+      complaints: list.length,
+      open: list.filter((r) => !['closed', 'resolved'].includes(String(r.status))).length,
+      repeat: list.filter((r) => (r.repeat_complaint_count ?? 0) >= 3).length,
+      vulnerable_customers: list.filter((r) => r.vulnerability_indicator).length,
+    };
+    for (const r of list.slice(0, 20)) {
+      if (r?.id && r?.complaint_number) {
+        evidence.push({ label: `Complaint ${r.complaint_number}`, kind: 'complaint', id: r.id });
+      }
+    }
+    facts.available_sources = [...used];
+  }
+
   if (module === 'conduct' && !scopeId) {
     if (!can('conduct') && !can('complaints')) return { facts, used: [], evidence };
     used.add(can('conduct') ? 'conduct' : 'complaints');
@@ -891,6 +926,7 @@ Deno.serve(async (req) => {
         userId,
         module,
         analysisType,
+        scope,
         scopeId,
         { question: body.question ?? null, context: body.context ?? null },
         permittedSources,
