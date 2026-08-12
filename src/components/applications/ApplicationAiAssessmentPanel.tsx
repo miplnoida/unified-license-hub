@@ -12,7 +12,10 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatEvidenceList } from '@/lib/evidenceLabel';
+import {
+  categoryLabel, confidenceLabel, riskLevelLabel, sectionStatusLabel,
+  severityLabel, severityTone, toEvidenceFacts, type EvidenceFact,
+} from '@/lib/licensing/aiAssessmentLabels';
 import { formatDistanceToNow } from 'date-fns';
 import { formatDateTime } from '@/lib/datetime';
 
@@ -94,12 +97,6 @@ const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destruct
   missing_info: 'default',
   high_risk: 'destructive',
 };
-const SECTION_STATUS_LABEL: Record<string, string> = {
-  pass: 'Pass',
-  concern: 'Concern',
-  missing_info: 'Missing Info',
-  high_risk: 'High Risk',
-};
 
 const ROUTE_LABELS: Record<string, string> = {
   standard_review: 'Continue current workflow',
@@ -107,13 +104,6 @@ const ROUTE_LABELS: Record<string, string> = {
   enhanced_due_diligence: 'Enhanced due diligence recommended',
   request_more_info: 'Consider requesting more information',
   reject_review: 'Review for possible rejection',
-};
-
-const SEVERITY_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  low: 'secondary',
-  medium: 'outline',
-  high: 'default',
-  critical: 'destructive',
 };
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
@@ -126,6 +116,41 @@ function groupBySeverity(items: Finding[]) {
     else grouped.other.push(f);
   });
   return grouped;
+}
+
+/**
+ * Evidence shown as labelled business facts; the raw data paths stay available
+ * behind a "Technical details" toggle for anyone who needs them.
+ */
+function EvidenceFacts({ evidence }: { evidence: unknown }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const facts: EvidenceFact[] = toEvidenceFacts(evidence);
+  if (!facts.length) return null;
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium">What this is based on</div>
+      <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+        {facts.map((fact, i) => (
+          <li key={i}>
+            {fact.label}
+            {fact.value ? <>: <span className="font-medium text-foreground">{fact.value}</span></> : null}
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className="text-xs underline text-muted-foreground"
+        onClick={() => setShowRaw((v) => !v)}
+      >
+        {showRaw ? 'Hide technical details' : 'Technical details'}
+      </button>
+      {showRaw && (
+        <ul className="list-disc pl-5 text-xs font-mono text-muted-foreground break-all space-y-0.5">
+          {facts.map((fact, i) => <li key={`raw-${i}`}>{fact.raw}</li>)}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 const STALE_PENDING_MS = 10 * 60 * 1000;
@@ -331,11 +356,11 @@ function CompletedView({
                   <div key={`sec-${i}`} className="rounded-md border p-3 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
-                        {SECTION_STATUS_LABEL[status] || s.status || 'unknown'}
+                        {sectionStatusLabel(s.status)}
                       </Badge>
-                      <span className="text-sm font-medium">{s.label || s.key || 'Section'}</span>
+                      <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
                       {s.risk_level && (
-                        <Badge variant="outline" className="text-xs">Risk: {s.risk_level}</Badge>
+                        <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
                       )}
                     </div>
                     {Array.isArray(s.observations) && s.observations.length > 0 && (
@@ -343,11 +368,7 @@ function CompletedView({
                         {s.observations.map((o, idx) => <li key={idx}>{o}</li>)}
                       </ul>
                     )}
-                    {Array.isArray(s.evidence) && s.evidence.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Evidence: </span>{formatEvidenceList(s.evidence).join('; ')}
-                      </div>
-                    )}
+                    <EvidenceFacts evidence={s.evidence} />
                     {s.suggested_action && (
                       <div className="text-xs">
                         <span className="font-medium">Suggested action: </span>{s.suggested_action}
@@ -372,10 +393,10 @@ function CompletedView({
             <div className="flex items-center gap-2 flex-wrap">
               <Badge>{ROUTE_LABELS[routing.recommended_route] || routing.recommended_route}</Badge>
               {routing.recommended_action && (
-                <Badge variant="outline">Action: {routing.recommended_action}</Badge>
+                <Badge variant="outline">Suggested next step: {categoryLabel(routing.recommended_action)}</Badge>
               )}
               {typeof routing.confidence === 'number' && (
-                <Badge variant="secondary">Confidence: {(routing.confidence * 100).toFixed(0)}%</Badge>
+                <Badge variant="secondary">{confidenceLabel(routing.confidence)}</Badge>
               )}
             </div>
             {routing.reason && <p className="text-sm text-muted-foreground">{routing.reason}</p>}
@@ -399,24 +420,19 @@ function CompletedView({
             {SEVERITY_ORDER.map((sev) =>
               groupedFindings[sev]?.length ? (
                 <div key={sev}>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{sev}</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{severityLabel(sev)}</div>
                   <div className="space-y-2">
                     {groupedFindings[sev].map((f, idx) => (
                       <div key={idx} className="rounded-md border p-3 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={SEVERITY_VARIANT[sev] || 'outline'}>{sev}</Badge>
-                          {f.category && <Badge variant="outline">{f.category}</Badge>}
+                          <Badge variant={severityTone(sev)}>{severityLabel(sev)}</Badge>
+                          {f.category && <Badge variant="outline">{categoryLabel(f.category)}</Badge>}
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
                           <p className="text-sm text-muted-foreground">{f.description}</p>
                         )}
-                        {Array.isArray(f.evidence) && f.evidence.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            <span className="font-medium">Evidence: </span>
-                            {formatEvidenceList(f.evidence).join('; ')}
-                          </div>
-                        )}
+                        <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
                           <div className="text-xs">
                             <span className="font-medium">Suggested action: </span>
@@ -431,7 +447,7 @@ function CompletedView({
             )}
             {groupedFindings.other?.length > 0 && (
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">other</div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Other observations</div>
                 <div className="space-y-2">
                   {groupedFindings.other.map((f, idx) => (
                     <div key={idx} className="rounded-md border p-3 text-sm">
@@ -454,18 +470,13 @@ function CompletedView({
             {risks.map((r, idx) => (
               <div key={idx} className="rounded-md border p-3 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant={SEVERITY_VARIANT[(r.level || '').toLowerCase()] || 'outline'}>
-                    {r.level || 'unknown'}
+                  <Badge variant={severityTone(r.level)}>
+                    {riskLevelLabel(r.level) || 'Not rated'}
                   </Badge>
-                  {r.risk_type && <Badge variant="outline">{r.risk_type}</Badge>}
+                  {r.risk_type && <Badge variant="outline">{categoryLabel(r.risk_type)}</Badge>}
                 </div>
                 {r.reason && <p className="text-sm text-muted-foreground">{r.reason}</p>}
-                {Array.isArray(r.evidence) && r.evidence.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Evidence: </span>
-                    {formatEvidenceList(r.evidence).join('; ')}
-                  </div>
-                )}
+                <EvidenceFacts evidence={r.evidence} />
               </div>
             ))}
           </div>
@@ -485,17 +496,32 @@ function CompletedView({
 
       <Separator />
 
-      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-        {assessment.generated_at && (
-          <span>Generated: {new Date(assessment.generated_at).toLocaleString()}</span>
-        )}
-        {assessment.model_provider && <span>Provider: {assessment.model_provider}</span>}
-        {assessment.model_name && <span>Model: {assessment.model_name}</span>}
-        {assessment.prompt_version && <span>Prompt: {assessment.prompt_version}</span>}
+      <AssessmentFooter assessment={assessment} />
+    </div>
+  );
+}
+
+/** Business summary line; provider/model/prompt build info stays collapsed. */
+function AssessmentFooter({ assessment }: { assessment: Assessment }) {
+  const [showTech, setShowTech] = useState(false);
+  return (
+    <div className="text-xs text-muted-foreground space-y-1">
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {assessment.generated_at && <span>Prepared {formatDateTime(assessment.generated_at)}</span>}
         {typeof assessment.confidence_score === 'number' && (
-          <span>Overall confidence: {(assessment.confidence_score * 100).toFixed(0)}%</span>
+          <span>{confidenceLabel(assessment.confidence_score)} overall</span>
         )}
+        <button type="button" className="underline" onClick={() => setShowTech((v) => !v)}>
+          {showTech ? 'Hide technical details' : 'Technical details'}
+        </button>
       </div>
+      {showTech && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono">
+          {assessment.model_provider && <span>Provider: {assessment.model_provider}</span>}
+          {assessment.model_name && <span>Model: {assessment.model_name}</span>}
+          {assessment.prompt_version && <span>Prompt: {assessment.prompt_version}</span>}
+        </div>
+      )}
     </div>
   );
 }
