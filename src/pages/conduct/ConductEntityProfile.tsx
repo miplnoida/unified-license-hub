@@ -13,6 +13,7 @@ import { EvidenceRepositoryPanel } from '@/components/conduct/EvidenceRepository
 import { IssueActionDialog } from '@/components/conduct/IssueActionDialog';
 import { Loader2, ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
 const sb = supabase as any;
 
