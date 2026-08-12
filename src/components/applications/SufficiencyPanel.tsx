@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,7 @@ import {
   findingLabel,
   findingTone,
   humanizeValue,
+  isStrictlyAfter,
   sufficiencyDecisionLabel,
   sufficiencySeverityLabel,
   SUFFICIENCY_DECISION_OPTIONS,
@@ -62,6 +63,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const [running, setRunning] = useState(false);
   const [runFailed, setRunFailed] = useState(false);
   const [exception, setException] = useState<{ result: ResultRow | null; reason: string }>({ result: null, reason: '' });
+  const [exceptionSubmitting, setExceptionSubmitting] = useState(false);
   const [viewReason, setViewReason] = useState<{ rule: string; reason: string } | null>(null);
   const [rfiOpen, setRfiOpen] = useState(false);
   const [rfiItems, setRfiItems] = useState<RfiInitialItem[]>([]);
@@ -73,7 +75,12 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [gateError, setGateError] = useState<string[] | null>(null);
 
-  const { data: determinations = [] } = useSufficiencyDeterminations(applicationId);
+  const {
+    data: determinations = [],
+    isLoading: determinationsLoading,
+    isError: determinationsError,
+    refetch: refetchDeterminations,
+  } = useSufficiencyDeterminations(applicationId);
   const recordDetermination = useRecordSufficiencyDetermination(applicationId);
   const latestDetermination = determinations[0] ?? null;
   const previousDeterminations = determinations.slice(1);
@@ -105,17 +112,40 @@ export function SufficiencyPanel({ applicationId }: Props) {
     },
   });
 
-  const { data: overrides = [] } = useQuery({
-    queryKey: ['sufficiency_overrides', latest?.id],
-    enabled: !!latest?.id && !!results && results.length > 0,
+  /**
+   * The evaluation id whose findings are currently rendered. Used to tell a
+   * first load apart from switching to a newer evaluation, so we never show a
+   * new summary beside the previous evaluation's findings.
+   */
+  const loadedEvalIdRef = useRef<string | null>(null);
+  if (results && latest?.id) loadedEvalIdRef.current = latest.id;
+  const switchingEvaluation =
+    !!latest?.id && !!loadedEvalIdRef.current && loadedEvalIdRef.current !== latest.id;
+
+  /**
+   * Accepted exceptions are keyed on the evaluation *and* the exact finding ids
+   * they were fetched for, so exception state can never belong to a different
+   * evaluation than the findings on screen.
+   */
+  const resultIds = useMemo(() => (results || []).map((r) => r.id).sort(), [results]);
+  const {
+    data: overrides,
+    isLoading: exceptionsLoading,
+    isError: exceptionsError,
+    refetch: refetchExceptions,
+  } = useQuery({
+    queryKey: ['sufficiency_overrides', latest?.id, resultIds.join(',')],
+    enabled: !!latest?.id && !!results,
     queryFn: async () => {
-      const ids = (results || []).map((r) => r.id);
+      if (resultIds.length === 0) return [] as any[];
       const { data, error } = await supabase.from('sufficiency_overrides' as any)
-        .select('*').in('evaluation_result_id', ids);
+        .select('*').in('evaluation_result_id', resultIds);
       if (error) throw error;
       return (data || []) as any[];
     },
   });
+  /** Only when this is true do we know whether a finding already has an exception. */
+  const exceptionStatusKnown = !!overrides && !exceptionsError && !exceptionsLoading;
 
   const counts = {
     passed: latest?.pass_count ?? 0,
@@ -124,7 +154,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   };
 
   const staleDetermination = !!latest && !!latestDetermination &&
-    new Date(latest.evaluated_at).getTime() > new Date(latestDetermination.determined_at).getTime();
+    isStrictlyAfter(latest.evaluated_at, latestDetermination.determined_at);
 
   const run = async () => {
     setRunning(true);
@@ -150,21 +180,36 @@ export function SufficiencyPanel({ applicationId }: Props) {
   };
 
   const submitException = async () => {
-    if (!exception.result || !user) return;
+    if (!exception.result || !user || exceptionSubmitting) return;
     if (exception.reason.trim().length < 10) return toast.error('Please provide a reason of at least 10 characters');
-    const { error } = await supabase.from('sufficiency_overrides' as any).insert({
-      evaluation_result_id: exception.result.id,
-      overridden_by: user.id,
-      reason: exception.reason.trim(),
-    });
-    if (error) return toast.error(error.message);
-    await logAction('sufficiency.override.recorded', 'sufficiency_evaluation_result', exception.result.id, {
-      after: { reason: exception.reason.trim(), rule: exception.result.rule_snapshot?.code },
-      meta: { application_id: applicationId },
-    });
-    toast.success('Exception accepted');
-    setException({ result: null, reason: '' });
-    qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
+    // Never record a second exception for the same finding, and never act while
+    // the existing exception state is unknown.
+    if (!exceptionStatusKnown) {
+      return toast.error('Existing exceptions are still being checked. Please try again in a moment.');
+    }
+    if ((overrides || []).some((o: any) => o.evaluation_result_id === exception.result!.id)) {
+      toast.error('An exception has already been accepted for this check');
+      setException({ result: null, reason: '' });
+      return;
+    }
+    setExceptionSubmitting(true);
+    try {
+      const { error } = await supabase.from('sufficiency_overrides' as any).insert({
+        evaluation_result_id: exception.result.id,
+        overridden_by: user.id,
+        reason: exception.reason.trim(),
+      });
+      if (error) return toast.error(error.message);
+      await logAction('sufficiency.override.recorded', 'sufficiency_evaluation_result', exception.result.id, {
+        after: { reason: exception.reason.trim(), rule: exception.result.rule_snapshot?.code },
+        meta: { application_id: applicationId },
+      });
+      toast.success('Exception accepted');
+      setException({ result: null, reason: '' });
+      qc.invalidateQueries({ queryKey: ['sufficiency_overrides', latest?.id] });
+    } finally {
+      setExceptionSubmitting(false);
+    }
   };
 
   const submitDetermination = async () => {
@@ -200,9 +245,16 @@ export function SufficiencyPanel({ applicationId }: Props) {
     }
   };
 
+  /**
+   * Bulk request candidates: only unsatisfied findings of the *current*
+   * evaluation that are flagged for auto-RFI and are not already linked to an
+   * existing request item (prevents duplicate requests for the same finding).
+   */
   const autoRfiCandidates = useMemo(
     () => (results || []).filter(
-      (r) => (r.status === 'fail' || r.status === 'warning') && r.rule_snapshot?.auto_rfi === true,
+      (r) => (r.status === 'fail' || r.status === 'warning')
+        && r.rule_snapshot?.auto_rfi === true
+        && !r.auto_rfi_item_id,
     ),
     [results],
   );
@@ -226,7 +278,8 @@ export function SufficiencyPanel({ applicationId }: Props) {
     setRfiOpen(true);
   };
 
-  const determinedByLabel = (id: string) => names?.[id] || 'a reviewer';
+  /** Falls back safely when the display-name lookup fails or is incomplete. */
+  const determinedByLabel = (id: string) => names?.[id] || 'Reviewer';
 
   return (
     <Card>
@@ -328,13 +381,14 @@ export function SufficiencyPanel({ applicationId }: Props) {
 
               <Separator />
 
-              {resultsLoading ? (
+              {resultsLoading || switchingEvaluation ? (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading sufficiency checks…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {switchingEvaluation ? 'Updating sufficiency findings…' : 'Loading sufficiency findings…'}
                 </p>
               ) : resultsError ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-destructive">Sufficiency checks could not be loaded.</p>
+                  <p className="text-sm text-destructive">Sufficiency findings could not be loaded.</p>
                   <Button size="sm" variant="outline" onClick={() => refetchResults()}>Try again</Button>
                 </div>
               ) : (results || []).length === 0 ? (
@@ -342,91 +396,117 @@ export function SufficiencyPanel({ applicationId }: Props) {
                   No individual findings were recorded for this check.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {(results || []).map((r) => {
-                    const ov = overrides.find((o: any) => o.evaluation_result_id === r.id);
-                    const tone = findingTone(r.status, r.severity);
-                    const canAct = r.status === 'fail' || r.status === 'warning';
-                    return (
-                      <li key={r.id} className="rounded-md border bg-background p-3 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <ToneIcon tone={tone} />
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-medium">
-                                {r.rule_snapshot?.name || 'Automated check'}
+                <div className="space-y-2">
+                  {exceptionsError ? (
+                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                      <p className="font-medium">Exception status unavailable</p>
+                      <p className="text-muted-foreground">
+                        Accepted exceptions could not be loaded. Some findings may already have a recorded
+                        exception.
+                      </p>
+                      <Button size="sm" variant="outline" onClick={() => refetchExceptions()}>Try again</Button>
+                    </div>
+                  ) : exceptionsLoading ? (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking whether an exception has already been recorded…
+                    </p>
+                  ) : null}
+
+                  <ul className="space-y-2">
+                    {(results || []).map((r) => {
+                      // Exception state is only trusted once the query has loaded.
+                      const ov = exceptionStatusKnown
+                        ? (overrides || []).find((o: any) => o.evaluation_result_id === r.id)
+                        : undefined;
+                      const tone = findingTone(r.status, r.severity);
+                      const canAct = r.status === 'fail' || r.status === 'warning';
+                      return (
+                        <li key={r.id} className="rounded-md border bg-background p-3 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <ToneIcon tone={tone} />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium">
+                                  {r.rule_snapshot?.name || 'Automated check'}
+                                </p>
+                                <Badge
+                                  variant={
+                                    tone === 'positive' ? 'default'
+                                      : tone === 'negative' ? 'destructive'
+                                        : tone === 'attention' ? 'secondary' : 'outline'
+                                  }
+                                >
+                                  {findingLabel(r.status, r.severity)}
+                                  {ov ? ' — exception accepted' : ''}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {findingDescription(r.detail, r.rule_snapshot?.name)}
                               </p>
-                              <Badge
-                                variant={
-                                  tone === 'positive' ? 'default'
-                                    : tone === 'negative' ? 'destructive'
-                                      : tone === 'attention' ? 'secondary' : 'outline'
-                                }
-                              >
-                                {findingLabel(r.status, r.severity)}
-                                {ov ? ' — exception accepted' : ''}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {findingDescription(r.detail, r.rule_snapshot?.name)}
-                            </p>
 
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                              {canAct && (
-                                <Button
-                                  data-rbac="application_management.edit"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openFindingRfi(r)}
-                                >
-                                  Request information
-                                </Button>
-                              )}
-                              {canAct && !ov && (
-                                <Button
-                                  data-rbac="application_management.approve"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setException({ result: r, reason: '' })}
-                                >
-                                  Accept exception
-                                </Button>
-                              )}
-                              {ov && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setViewReason({
-                                    rule: r.rule_snapshot?.name || 'Automated check',
-                                    reason: ov.reason,
-                                  })}
-                                >
-                                  View reason
-                                </Button>
-                              )}
-                            </div>
+                              <div className="flex flex-wrap items-center gap-2 pt-1">
+                                {canAct && (
+                                  <Button
+                                    data-rbac="application_management.edit"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openFindingRfi(r)}
+                                  >
+                                    Request information
+                                  </Button>
+                                )}
+                                {canAct && !exceptionStatusKnown && (
+                                  <Button size="sm" variant="outline" disabled>
+                                    Accept exception
+                                  </Button>
+                                )}
+                                {canAct && exceptionStatusKnown && !ov && (
+                                  <Button
+                                    data-rbac="application_management.approve"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setException({ result: r, reason: '' })}
+                                  >
+                                    Accept exception
+                                  </Button>
+                                )}
+                                {ov && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setViewReason({
+                                      rule: r.rule_snapshot?.name || 'Automated check',
+                                      reason: ov.reason,
+                                    })}
+                                  >
+                                    View reason
+                                  </Button>
+                                )}
+                              </div>
 
-                            <Collapsible>
-                              <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                                <ChevronDown className="h-3 w-3" /> Technical details
-                              </CollapsibleTrigger>
-                              <CollapsibleContent className="mt-1 space-y-1 rounded bg-muted/40 p-2 text-[11px] text-muted-foreground">
-                                <p>Rule code: {r.rule_snapshot?.code || '—'}</p>
-                                <p>Rule type: {humanizeValue(r.rule_snapshot?.rule_type)}</p>
-                                <p>Severity: {sufficiencySeverityLabel(r.severity)} ({r.severity})</p>
-                                <p>Stored status: {r.status}</p>
-                                <p>Triggered by: {humanizeValue(latest.triggered_by)}</p>
-                                <pre className="whitespace-pre-wrap break-all">
-                                  {r.detail ? JSON.stringify(r.detail, null, 2) : '—'}
-                                </pre>
-                              </CollapsibleContent>
-                            </Collapsible>
+                              <Collapsible>
+                                <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                                  <ChevronDown className="h-3 w-3" /> Technical details
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-1 space-y-1 rounded bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                                  <p>Rule code: {r.rule_snapshot?.code || '—'}</p>
+                                  <p>Rule type: {humanizeValue(r.rule_snapshot?.rule_type)}</p>
+                                  <p>Severity: {sufficiencySeverityLabel(r.severity)} ({r.severity})</p>
+                                  <p>Stored status: {r.status}</p>
+                                  <p>Triggered by: {humanizeValue(latest.triggered_by)}</p>
+                                  <pre className="whitespace-pre-wrap break-all">
+                                    {r.detail ? JSON.stringify(r.detail, null, 2) : '—'}
+                                  </pre>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
             </>
           )}
@@ -458,7 +538,16 @@ export function SufficiencyPanel({ applicationId }: Props) {
             </div>
           )}
 
-          {!latestDetermination ? (
+          {determinationsError ? (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">Sufficiency decisions could not be loaded.</p>
+              <Button size="sm" variant="outline" onClick={() => refetchDeterminations()}>Try again</Button>
+            </div>
+          ) : determinationsLoading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading sufficiency decisions…
+            </p>
+          ) : !latestDetermination ? (
             <p className="text-sm text-muted-foreground">No sufficiency determination has been recorded.</p>
           ) : (
             <div className="space-y-1">
@@ -541,7 +630,14 @@ export function SufficiencyPanel({ applicationId }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setException({ result: null, reason: '' })}>Cancel</Button>
-            <Button data-rbac="application_management.approve" onClick={submitException}>Accept exception</Button>
+            <Button
+              data-rbac="application_management.approve"
+              onClick={submitException}
+              disabled={exceptionSubmitting || !exceptionStatusKnown}
+            >
+              {exceptionSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Accept exception
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
