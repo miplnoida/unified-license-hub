@@ -24,6 +24,8 @@ import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
+import { RiskScoreTab } from '@/components/prudential/RiskScoreTab';
+
 import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
