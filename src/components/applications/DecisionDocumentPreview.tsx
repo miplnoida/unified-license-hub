@@ -53,7 +53,13 @@ interface Props {
   licenseType: string;
   submittedAt: string | null;
   defaultRationale?: string | null;
+  /** Application status — certificate surfaces are gated on this. */
+  applicationStatus?: string | null;
+  sectorId?: string | null;
+  subSectorId?: string | null;
+  categoryId?: string | null;
 }
+
 
 const OUTCOMES: Array<{ value: string; label: string; templateCode: string; certificate: boolean }> = [
   { value: 'approve', label: 'Approval', templateCode: 'DEC_LETTER_APPROVAL', certificate: true },
