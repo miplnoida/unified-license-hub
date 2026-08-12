@@ -17,6 +17,7 @@ import { ConductDrillthroughPanel } from '@/components/conduct/analytics/Conduct
 import { ConductPeerComparisonPanel } from '@/components/conduct/analytics/ConductPeerComparisonPanel';
 import { SavedViewsBar } from '@/components/conduct/analytics/SavedViewsBar';
 import { useConductSavedViews } from '@/hooks/useConductSavedViews';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--info))', 'hsl(var(--success))', '#8b5cf6', '#ec4899'];
 
