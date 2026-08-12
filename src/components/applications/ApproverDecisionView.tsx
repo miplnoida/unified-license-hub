@@ -158,6 +158,11 @@ export function ApproverDecisionView({
         licenseType={application.license_type ?? ''}
         submittedAt={application.submitted_at ?? null}
         defaultRationale={application.decision_rationale ?? ''}
+        applicationStatus={(application as any).status ?? null}
+        sectorId={(application as any).sector_id ?? null}
+        subSectorId={(application as any).sub_sector_id ?? null}
+        categoryId={(application as any).category_id ?? null}
+
       />
 
       {/* 6 — Decision actions */}

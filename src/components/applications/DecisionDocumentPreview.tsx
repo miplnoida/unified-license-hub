@@ -24,6 +24,8 @@ import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
 import { renderLicenseCertificateHtml } from '@/lib/licensing/decisionDocuments';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
+import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
+
 import { toast } from 'sonner';
 import { Copy, Download, FileText, Info, Loader2, Printer, Stamp } from 'lucide-react';
 
@@ -53,7 +55,13 @@ interface Props {
   licenseType: string;
   submittedAt: string | null;
   defaultRationale?: string | null;
+  /** Application status — certificate surfaces are gated on this. */
+  applicationStatus?: string | null;
+  sectorId?: string | null;
+  subSectorId?: string | null;
+  categoryId?: string | null;
 }
+
 
 const OUTCOMES: Array<{ value: string; label: string; templateCode: string; certificate: boolean }> = [
   { value: 'approve', label: 'Approval', templateCode: 'DEC_LETTER_APPROVAL', certificate: true },
@@ -73,9 +81,15 @@ export function DecisionDocumentPreview({
   licenseType,
   submittedAt,
   defaultRationale,
+  applicationStatus,
+  sectorId,
+  subSectorId,
+  categoryId,
 }: Props) {
   const { general, branding } = useSiteSettings();
   const { activeRegulator } = useRegulator();
+  const { data: expiryConfig } = useLicenseExpiryConfig();
+
 
   const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -85,7 +99,36 @@ export function DecisionDocumentPreview({
   const [conditions, setConditions] = useState<string>('');
   const [signatory, setSignatory] = useState<{ name: string; title: string } | null>(null);
   const [effectiveDate, setEffectiveDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [expiryDate, setExpiryDate] = useState<string>('');
+  /** Expiry stored on the issued licence (authoritative), when one exists. */
+  const [licenseValidUntil, setLicenseValidUntil] = useState<string | null>(null);
+
+  const normalizedStatus = (applicationStatus ?? '').toLowerCase();
+  const isApproved = normalizedStatus === 'approved';
+  const isRejected = ['rejected', 'withdrawn', 'cancelled', 'declined'].includes(normalizedStatus);
+
+  /**
+   * Expiry is never entered by staff — the backend derives valid_until from the
+   * licence validity configuration when the licence is created. We mirror the
+   * same rule here so the preview matches what will be issued.
+   */
+  const validityDays = expiryConfig
+    ? expiryConfig.resolveFor({
+        sector_id: sectorId ?? null,
+        sub_sector_id: subSectorId ?? null,
+        category_id: categoryId ?? null,
+      }).period_days
+    : null;
+
+  const computedExpiry = (() => {
+    if (licenseValidUntil) return licenseValidUntil.slice(0, 10);
+    if (!effectiveDate || !validityDays) return '';
+    const d = new Date(`${effectiveDate}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) return '';
+    d.setUTCDate(d.getUTCDate() + validityDays);
+    return d.toISOString().slice(0, 10);
+  })();
+  const expiryDate = computedExpiry;
+
 
   const [certBusy, setCertBusy] = useState(false);
   const [certUrl, setCertUrl] = useState<string | null>(null);
@@ -278,6 +321,23 @@ export function DecisionDocumentPreview({
 
   useEffect(() => { void loadArtifacts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [applicationId]);
 
+  // Mirror the licence's own expiry once it exists — staff never set it by hand.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('licenses' as any)
+        .select('valid_until')
+        .eq('application_id', applicationId)
+        .order('issued_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setLicenseValidUntil((data as any)?.valid_until ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [applicationId]);
+
+
   async function issue(artifactType: 'decision_letter' | 'license_certificate') {
     setIssuing(artifactType);
     setMissing([]);
@@ -420,7 +480,22 @@ export function DecisionDocumentPreview({
           </TabsContent>
 
           <TabsContent value="certificate" className="mt-3 space-y-3">
-            {!outcomeMeta.certificate ? (
+            {isRejected ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  No licence certificate is issued for a rejected application.
+                </AlertDescription>
+              </Alert>
+            ) : !isApproved ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  The licence certificate becomes available once this application is approved and the licence is
+                  issued.
+                </AlertDescription>
+              </Alert>
+            ) : !outcomeMeta.certificate ? (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -436,10 +511,18 @@ export function DecisionDocumentPreview({
                     <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Expiry date <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                    <Label className="text-xs">Expiry date</Label>
+                    <Input type="date" value={expiryDate} disabled readOnly />
+                    <p className="text-xs text-muted-foreground">
+                      {licenseValidUntil
+                        ? 'Taken from the issued licence.'
+                        : validityDays
+                          ? `Set automatically on approval from the licence validity configuration (${validityDays} days).`
+                          : 'Set automatically on approval from the licence validity configuration.'}
+                    </p>
                   </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={buildCertificate} disabled={certBusy}>
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
@@ -496,7 +579,7 @@ export function DecisionDocumentPreview({
                 {issuing === 'decision_letter' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileText className="h-4 w-4 mr-1.5" />}
                 Record decision letter
               </Button>
-              {outcomeMeta.certificate && (
+              {isApproved && outcomeMeta.certificate && (
                 <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                   onClick={() => issue('license_certificate')}>
 
