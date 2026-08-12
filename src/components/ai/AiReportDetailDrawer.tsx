@@ -35,6 +35,24 @@ interface Props {
   onSelectHistory?: (report: SupervisoryAiReport) => void;
 }
 
+/**
+ * Legacy licensing/F&P AI rows store loosely-shaped objects. Render readable
+ * wording instead of a raw object, without inventing content.
+ */
+function legacyText(item: any): string {
+  if (item == null) return '';
+  if (typeof item === 'string') return item;
+  const label = item.title ?? item.issue ?? item.risk_type ?? item.category ?? item.field ?? null;
+  const body = item.text ?? item.reason ?? item.description ?? item.detail ?? item.message ?? null;
+  const level = item.level ?? item.severity ?? null;
+  const parts = [label ? String(label).replace(/_/g, ' ') : null, body ? String(body) : null]
+    .filter(Boolean)
+    .join(' — ');
+  const base = parts || JSON.stringify(item);
+  return level ? `${base} (${String(level)})` : base;
+}
+
+
 function Bullets({ items }: { items?: AdvisoryObservation[] | string[] | null }) {
   if (!items?.length) return null;
   return (
