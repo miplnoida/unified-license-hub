@@ -170,17 +170,18 @@ export function AiReportDetailDrawer({ report, history = [], onOpenChange, onSel
                     {legacy.summary && <Section title="Summary"><p className="text-sm">{legacy.summary}</p></Section>}
                     {!!legacy.findings?.length && (
                       <Section title="What the assessment noted">
-                        <Bullets items={legacy.findings.map((f: any) => ({ text: f?.text ?? f?.title ?? String(f) }))} />
+                        <Bullets items={legacy.findings.map((f: any) => ({ text: legacyText(f) }))} />
                       </Section>
                     )}
                     {!!legacy.risks?.length && (
                       <Section title="Possible risks">
-                        <Bullets items={legacy.risks.map((f: any) => ({ text: f?.text ?? f?.title ?? String(f) }))} />
+                        <Bullets items={legacy.risks.map((f: any) => ({ text: legacyText(f) }))} />
                       </Section>
                     )}
                     {!!legacy.missing_information?.length && (
                       <Section title="Information that appears missing">
-                        <Bullets items={legacy.missing_information.map((f: any) => ({ text: f?.text ?? String(f) }))} />
+                        <Bullets items={legacy.missing_information.map((f: any) => ({ text: legacyText(f) }))} />
+
                       </Section>
                     )}
                   </>
