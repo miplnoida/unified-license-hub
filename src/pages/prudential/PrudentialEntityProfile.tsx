@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
+import { usePeerMinPeers } from '@/hooks/usePeerSettings';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
