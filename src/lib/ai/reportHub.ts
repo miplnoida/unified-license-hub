@@ -23,6 +23,11 @@ export type HubSource = 'ai_insights' | 'application_assessment' | 'fpa';
 
 export type Freshness = 'current' | 'outdated' | 'unknown';
 
+/** One normalised state for every source — source-specific statuses never leak. */
+export type HubReportState = 'available' | 'limited' | 'processing' | 'failed';
+
+export type HubConfidence = 'high' | 'moderate' | 'limited';
+
 export interface SupervisoryAiReport {
   /** Persistent identity of the stored analysis — used for de-duplication. */
   id: string;
@@ -35,19 +40,24 @@ export interface SupervisoryAiReport {
   entityName?: string | null;
   recordId?: string | null;
   recordReference?: string | null;
+  subjectName?: string | null;
   periodKey?: string | null;
   generatedAt: string;
   generatedBy?: string | null;
-  confidence?: string | null;
-  providerState?: string | null;
+  confidence?: HubConfidence | null;
+  reportState: HubReportState;
   freshness: Freshness;
   limitedEvidence?: boolean;
   flagged?: boolean;
   feedback?: string | null;
+  reviewStatus?: string | null;
+  /** Stable logical identity of the analysis across its versions. */
+  versionKey: string;
   sourceRoute?: string | null;
   /** Human wording for the "open the real record" action. */
   sourceActionLabel: string;
 }
+
 
 export const HUB_MODULE_LABEL: Record<HubModule, string> = {
   licensing: 'Licensing',
