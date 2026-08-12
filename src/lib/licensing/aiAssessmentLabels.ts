@@ -130,11 +130,11 @@ export function toEvidenceFact(raw: unknown): EvidenceFact | null {
     // Treat the left side as a data key/path whenever it has no spaces
     // (`amount_paid`, `submitted_forms[0].response_data.amount_paid`).
     if (/^[A-Za-z0-9_.\[\]-]+$/.test(pathPart)) {
-      return { label: formatEvidence(stripIndexes(pathPart)), value: valuePart, raw: str };
+      return { label: humanKey(pathPart), value: valuePart, raw: str };
     }
   }
   if (/[.\[]/.test(str) && !/\s/.test(str)) {
-    return { label: formatEvidence(stripIndexes(str)), raw: str };
+    return { label: humanKey(str), raw: str };
   }
   return { label: str, raw: str };
 }
@@ -142,6 +142,16 @@ export function toEvidenceFact(raw: unknown): EvidenceFact | null {
 export function toEvidenceFacts(list: unknown): EvidenceFact[] {
   if (!Array.isArray(list)) return [];
   return list.map(toEvidenceFact).filter(Boolean) as EvidenceFact[];
+}
+
+/**
+ * Business label for a data key or path. Dotted paths go through the shared
+ * evidence formatter; a single snake_case key is simply title-cased.
+ */
+function humanKey(path: string): string {
+  const stripped = stripIndexes(path);
+  if (stripped.includes('.')) return formatEvidence(stripped);
+  return categoryLabel(stripped) || stripped;
 }
 
 /** `submitted_forms[0].response_data.amount_paid` → `submitted_forms.response_data.amount_paid`. */
