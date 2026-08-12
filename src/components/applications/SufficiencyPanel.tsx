@@ -245,9 +245,16 @@ export function SufficiencyPanel({ applicationId }: Props) {
     }
   };
 
+  /**
+   * Bulk request candidates: only unsatisfied findings of the *current*
+   * evaluation that are flagged for auto-RFI and are not already linked to an
+   * existing request item (prevents duplicate requests for the same finding).
+   */
   const autoRfiCandidates = useMemo(
     () => (results || []).filter(
-      (r) => (r.status === 'fail' || r.status === 'warning') && r.rule_snapshot?.auto_rfi === true,
+      (r) => (r.status === 'fail' || r.status === 'warning')
+        && r.rule_snapshot?.auto_rfi === true
+        && !r.auto_rfi_item_id,
     ),
     [results],
   );
@@ -271,7 +278,8 @@ export function SufficiencyPanel({ applicationId }: Props) {
     setRfiOpen(true);
   };
 
-  const determinedByLabel = (id: string) => names?.[id] || 'a reviewer';
+  /** Falls back safely when the display-name lookup fails or is incomplete. */
+  const determinedByLabel = (id: string) => names?.[id] || 'Reviewer';
 
   return (
     <Card>
