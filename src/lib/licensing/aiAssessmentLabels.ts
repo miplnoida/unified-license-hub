@@ -127,8 +127,9 @@ export function toEvidenceFact(raw: unknown): EvidenceFact | null {
   if (m) {
     const pathPart = m[1].trim();
     const valuePart = m[2].trim();
-    // Only treat the left side as a data path when it looks like one.
-    if (/[.\[]/.test(pathPart) && !/\s/.test(pathPart)) {
+    // Treat the left side as a data key/path whenever it has no spaces
+    // (`amount_paid`, `submitted_forms[0].response_data.amount_paid`).
+    if (/^[A-Za-z0-9_.\[\]-]+$/.test(pathPart)) {
       return { label: formatEvidence(stripIndexes(pathPart)), value: valuePart, raw: str };
     }
   }
