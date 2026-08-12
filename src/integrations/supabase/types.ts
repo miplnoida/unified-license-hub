@@ -86,6 +86,7 @@ export type Database = {
           reviewer_id: string | null
           scope: string | null
           scope_id: string | null
+          source_modules: string[]
           source_records: Json
           title: string
           updated_at: string
@@ -120,6 +121,7 @@ export type Database = {
           reviewer_id?: string | null
           scope?: string | null
           scope_id?: string | null
+          source_modules?: string[]
           source_records?: Json
           title: string
           updated_at?: string
@@ -154,6 +156,7 @@ export type Database = {
           reviewer_id?: string | null
           scope?: string | null
           scope_id?: string | null
+          source_modules?: string[]
           source_records?: Json
           title?: string
           updated_at?: string
@@ -23927,7 +23930,16 @@ export type Database = {
         }
         Returns: boolean
       }
-      can_view_advisory_ai: { Args: { _module: string }; Returns: boolean }
+      can_view_advisory_ai:
+        | { Args: { _module: string }; Returns: boolean }
+        | {
+            Args: { _module: string; _source_modules: string[] }
+            Returns: boolean
+          }
+      can_view_advisory_ai_source: {
+        Args: { _source: string }
+        Returns: boolean
+      }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
