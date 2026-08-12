@@ -19,6 +19,7 @@ import {
   Info,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -222,6 +223,7 @@ export default function SupervisoryAiReports() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6">
       <PageHeader
         title="Supervisory AI Reports"
@@ -496,5 +498,6 @@ export default function SupervisoryAiReports() {
         onSelectHistory={(r) => setSelected(r)}
       />
     </div>
+    </DashboardLayout>
   );
 }
