@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { renderRationaleTemplate } from '@/hooks/useDecisionOptions';
 import { renderLicenseCertificateHtml } from '@/lib/licensing/decisionDocuments';
+import { resolveDecisionRationale, type DecisionActionRationale } from '@/lib/licensing/decisionRationale';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
@@ -158,6 +159,35 @@ export function DecisionDocumentPreview({
     })();
     return () => { alive = false; };
   }, []);
+
+  // Older workflow versions stored the final determination remarks only on
+  // approval_actions. Restore that recorded rationale when the canonical
+  // application field is empty so historical letters remain issuable.
+  useEffect(() => {
+    let cancelled = false;
+    const canonical = resolveDecisionRationale(defaultRationale, []);
+    setRationale(canonical);
+    setMissing([]);
+    if (canonical) return () => { cancelled = true; };
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('approval_actions' as any)
+        .select('action, action_type, comments, created_at')
+        .eq('application_id', applicationId)
+        .not('comments', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (cancelled) return;
+      if (error) {
+        console.warn('Unable to restore historical decision rationale', error.message);
+        return;
+      }
+      setRationale(resolveDecisionRationale(null, ((data as any[]) ?? []) as DecisionActionRationale[]));
+    })();
+
+    return () => { cancelled = true; };
+  }, [applicationId, defaultRationale]);
 
   // Auto-select the template that matches the chosen outcome.
   useEffect(() => {
@@ -339,6 +369,12 @@ export function DecisionDocumentPreview({
 
 
   async function issue(artifactType: 'decision_letter' | 'license_certificate') {
+    const issuanceRationale = rationale.trim();
+    if (artifactType === 'decision_letter' && !issuanceRationale) {
+      setMissing(['rationale']);
+      toast.error('Add the grounds for this determination before recording the letter');
+      return;
+    }
     setIssuing(artifactType);
     setMissing([]);
     try {
@@ -361,7 +397,7 @@ export function DecisionDocumentPreview({
         _decision: outcome,
         _template_id: artifactType === 'decision_letter' ? (templateId || null) : null,
         _template_version: null,
-        _rationale: rationale.trim() || null,
+        _rationale: issuanceRationale || null,
         _conditions: conditions.split('\n').map((l) => l.trim()).filter(Boolean) as any,
         _issuing_regulator_id: activeRegulator?.id ?? null,
         _effective_date: artifactType === 'license_certificate' ? (effectiveDate || null) : null,
