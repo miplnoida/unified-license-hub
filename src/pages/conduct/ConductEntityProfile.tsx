@@ -130,12 +130,32 @@ export default function ConductEntityProfile() {
             <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
+          <TabsContent value="overview" className="space-y-4">
             <Card><CardContent className="p-6 space-y-2 text-sm">
               <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className="ml-2 capitalize">{entity.status}</Badge></div>
               <div><span className="text-muted-foreground">Sector:</span> {entity.sectors?.name || '—'} / {entity.sub_sectors?.name || '—'}</div>
             </CardContent></Card>
+            <SupervisoryAiPanel
+              module="conduct"
+              analysisType="conduct_recurrence"
+              scope="entity"
+              scopeId={id}
+              ready={!complaints.isLoading && !alerts.isLoading}
+              label={`Conduct profile — ${entity.name}`}
+              title="AI recurring conduct pattern observations"
+              description="Optional interpretation of this entity's recorded conduct history. The counts and lists on this page remain the record."
+              actionLabel="Generate pattern observations"
+              stalenessFacts={{
+                complaints: (complaints.data ?? []).length,
+                alerts: (alerts.data ?? []).length,
+                investigations: (investigations.data ?? []).length,
+                actions: (actions.data ?? []).length,
+                summary,
+              }}
+              context={{ entity_status: entity.status, sector: entity.sectors?.name ?? null, on_screen_summary: summary }}
+            />
           </TabsContent>
+
 
           <TabsContent value="complaints">
             <ListCard rows={complaints.data} loading={complaints.isLoading} columns={['complaint_number','subject','severity','priority','status','created_at']} linkFn={r => `/complaints/${r.id}`} />
