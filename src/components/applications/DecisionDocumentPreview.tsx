@@ -321,6 +321,23 @@ export function DecisionDocumentPreview({
 
   useEffect(() => { void loadArtifacts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [applicationId]);
 
+  // Mirror the licence's own expiry once it exists — staff never set it by hand.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('licenses' as any)
+        .select('valid_until')
+        .eq('application_id', applicationId)
+        .order('issued_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setLicenseValidUntil((data as any)?.valid_until ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [applicationId]);
+
+
   async function issue(artifactType: 'decision_letter' | 'license_certificate') {
     setIssuing(artifactType);
     setMissing([]);
