@@ -325,19 +325,23 @@ export default function ApplicationDetail() {
     const userIds = [...new Set([...actionList.map(a => a.actor_id).filter(Boolean), applicantId].filter(Boolean))] as string[];
     let nameMap: Record<string, string> = {};
     if (userIds.length > 0) {
-      const [{ data: profiles }, { data: preUsers }] = await Promise.all([
-        supabase.from('profiles').select('id, email, full_name').in('id', userIds),
-        supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
-      ]);
-      profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
-      preUsers?.forEach((p: any) => { if (!nameMap[p.id]) nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
+      // Secure resolver so applicant (pre-licensee) names are visible to every
+      // internal reviewer role, not just Super Admin / Licensing Officer.
+      const { data: resolved } = await supabase.rpc('resolve_user_display_names' as any, {
+        _ids: userIds,
+      });
+      ((resolved as any[]) ?? []).forEach((row: any) => {
+        const label = row.display_name || row.email;
+        if (label && !nameMap[row.id]) nameMap[row.id] = label;
+      });
     }
     const resolveActor = (uid?: string | null) => {
-      if (!uid) return 'Unknown User';
+      if (!uid) return 'System';
       if (nameMap[uid]) return nameMap[uid];
       const d = appAny?.data || {};
-      return d.applicant_name || d.full_name || d.contact_person || d.email || 'Unknown User';
+      return d.applicant_name || d.full_name || d.contact_person || d.email || 'Unknown user';
     };
+
     const enriched: TimelineEvent[] = actionList.map(a => ({
       ...a,
       status: a.action,

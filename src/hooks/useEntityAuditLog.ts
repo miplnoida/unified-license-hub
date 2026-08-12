@@ -129,19 +129,17 @@ export function useEntityAuditLog(opts: UseEntityAuditLogOptions) {
 
       const nameMap: Record<string, string> = {};
       if (userIds.length) {
-        const [{ data: profiles }, { data: preUsers }] = await Promise.all([
-          supabase.from('profiles').select('id, email, full_name').in('id', userIds),
-          supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
-        ]);
-        preUsers?.forEach((u: any) => {
-          nameMap[u.id] = u.full_name || u.email || u.id;
+        // Secure resolver: covers both staff (`profiles`) and external
+        // (`pre_license_users`) identities for every reviewer role.
+        const { data: resolved } = await supabase.rpc('resolve_user_display_names' as any, {
+          _ids: userIds,
         });
-        profiles?.forEach((p: any) => {
-          const label = p.full_name || p.email;
-          if (label) nameMap[p.id] = label;
-          else if (!nameMap[p.id]) nameMap[p.id] = p.id;
+        ((resolved as any[]) ?? []).forEach((row: any) => {
+          const label = row.display_name || row.email;
+          if (label) nameMap[row.id] = label;
         });
       }
+
 
       return rows.map((r) => ({
         ...(r as Omit<EntityAuditRow, 'actor_name'>),

@@ -27424,6 +27424,15 @@ export type Database = {
           sla_source: string
         }[]
       }
+      resolve_user_display_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          kind: string
+        }[]
+      }
       restore_prudential_ratio: {
         Args: { _ratio_id: string }
         Returns: undefined

@@ -26,7 +26,7 @@ export default function EscalationsList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data: names } = useUserDisplayNames(data.map((e: any) => e.created_by));
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(data.map((e: any) => e.created_by));
 
   const q = search.trim().toLowerCase();
   const rows = data.filter((es: any) => {
@@ -86,7 +86,7 @@ export default function EscalationsList() {
                 </TableCell>
                 <TableCell>{escalationTypeLabel(es.escalation_type)}</TableCell>
                 <TableCell className="max-w-md truncate">{es.reason}</TableCell>
-                <TableCell className="text-sm">{actorLabel(es.created_by, names)}</TableCell>
+                <TableCell className="text-sm">{actorLabel(es.created_by, names, { isLoading: namesLoading, isError: namesError })}</TableCell>
                 <TableCell className="text-sm">{formatDateTime(es.created_at)}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={lifecycleBadgeClass(es.status)}>{escalationStatusLabel(es.status)}</Badge>

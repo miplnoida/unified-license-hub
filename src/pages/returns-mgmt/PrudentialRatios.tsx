@@ -62,7 +62,7 @@ export default function PrudentialRatios() {
 
   const versionsQuery = useRatioVersions(historyRatio?.id);
   const versions = versionsQuery.data ?? [];
-  const { data: names } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(versions.map((v: any) => v.published_by));
   const currentVersion = (historyRatio as any)?.current_version ?? (versions[0]?.version ?? null);
 
   // Human-readable formulas: resolve `formId.fieldName` tokens to "Form › Field label".
@@ -234,7 +234,7 @@ export default function PrudentialRatios() {
                     <FormulaText formula={v.formula} labels={tokenLabels} ratioLabels={ratioLabels} />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Format: {v.display_format ?? '—'} · effective {formatDateOnly(v.effective_from)} · by {actorLabel(v.published_by, names)}
+                    Format: {v.display_format ?? '—'} · effective {formatDateOnly(v.effective_from)} · by {actorLabel(v.published_by, names, { isLoading: namesLoading, isError: namesError })}
                   </div>
                 </div>
               );
