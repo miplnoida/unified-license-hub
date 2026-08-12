@@ -463,7 +463,22 @@ export function DecisionDocumentPreview({
           </TabsContent>
 
           <TabsContent value="certificate" className="mt-3 space-y-3">
-            {!outcomeMeta.certificate ? (
+            {isRejected ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  No licence certificate is issued for a rejected application.
+                </AlertDescription>
+              </Alert>
+            ) : !isApproved ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  The licence certificate becomes available once this application is approved and the licence is
+                  issued.
+                </AlertDescription>
+              </Alert>
+            ) : !outcomeMeta.certificate ? (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -479,10 +494,18 @@ export function DecisionDocumentPreview({
                     <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Expiry date <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+                    <Label className="text-xs">Expiry date</Label>
+                    <Input type="date" value={expiryDate} disabled readOnly />
+                    <p className="text-xs text-muted-foreground">
+                      {licenseValidUntil
+                        ? 'Taken from the issued licence.'
+                        : validityDays
+                          ? `Set automatically on approval from the licence validity configuration (${validityDays} days).`
+                          : 'Set automatically on approval from the licence validity configuration.'}
+                    </p>
                   </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={buildCertificate} disabled={certBusy}>
                     {certBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Stamp className="h-4 w-4 mr-1.5" />}
