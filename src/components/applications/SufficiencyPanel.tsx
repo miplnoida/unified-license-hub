@@ -63,6 +63,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const [running, setRunning] = useState(false);
   const [runFailed, setRunFailed] = useState(false);
   const [exception, setException] = useState<{ result: ResultRow | null; reason: string }>({ result: null, reason: '' });
+  const [exceptionSubmitting, setExceptionSubmitting] = useState(false);
   const [viewReason, setViewReason] = useState<{ rule: string; reason: string } | null>(null);
   const [rfiOpen, setRfiOpen] = useState(false);
   const [rfiItems, setRfiItems] = useState<RfiInitialItem[]>([]);
@@ -74,7 +75,12 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [gateError, setGateError] = useState<string[] | null>(null);
 
-  const { data: determinations = [] } = useSufficiencyDeterminations(applicationId);
+  const {
+    data: determinations = [],
+    isLoading: determinationsLoading,
+    isError: determinationsError,
+    refetch: refetchDeterminations,
+  } = useSufficiencyDeterminations(applicationId);
   const recordDetermination = useRecordSufficiencyDetermination(applicationId);
   const latestDetermination = determinations[0] ?? null;
   const previousDeterminations = determinations.slice(1);
@@ -106,17 +112,40 @@ export function SufficiencyPanel({ applicationId }: Props) {
     },
   });
 
-  const { data: overrides = [] } = useQuery({
-    queryKey: ['sufficiency_overrides', latest?.id],
-    enabled: !!latest?.id && !!results && results.length > 0,
+  /**
+   * The evaluation id whose findings are currently rendered. Used to tell a
+   * first load apart from switching to a newer evaluation, so we never show a
+   * new summary beside the previous evaluation's findings.
+   */
+  const loadedEvalIdRef = useRef<string | null>(null);
+  if (results && latest?.id) loadedEvalIdRef.current = latest.id;
+  const switchingEvaluation =
+    !!latest?.id && !!loadedEvalIdRef.current && loadedEvalIdRef.current !== latest.id;
+
+  /**
+   * Accepted exceptions are keyed on the evaluation *and* the exact finding ids
+   * they were fetched for, so exception state can never belong to a different
+   * evaluation than the findings on screen.
+   */
+  const resultIds = useMemo(() => (results || []).map((r) => r.id).sort(), [results]);
+  const {
+    data: overrides,
+    isLoading: exceptionsLoading,
+    isError: exceptionsError,
+    refetch: refetchExceptions,
+  } = useQuery({
+    queryKey: ['sufficiency_overrides', latest?.id, resultIds.join(',')],
+    enabled: !!latest?.id && !!results,
     queryFn: async () => {
-      const ids = (results || []).map((r) => r.id);
+      if (resultIds.length === 0) return [] as any[];
       const { data, error } = await supabase.from('sufficiency_overrides' as any)
-        .select('*').in('evaluation_result_id', ids);
+        .select('*').in('evaluation_result_id', resultIds);
       if (error) throw error;
       return (data || []) as any[];
     },
   });
+  /** Only when this is true do we know whether a finding already has an exception. */
+  const exceptionStatusKnown = !!overrides && !exceptionsError && !exceptionsLoading;
 
   const counts = {
     passed: latest?.pass_count ?? 0,
@@ -125,7 +154,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   };
 
   const staleDetermination = !!latest && !!latestDetermination &&
-    new Date(latest.evaluated_at).getTime() > new Date(latestDetermination.determined_at).getTime();
+    isStrictlyAfter(latest.evaluated_at, latestDetermination.determined_at);
 
   const run = async () => {
     setRunning(true);
