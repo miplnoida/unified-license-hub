@@ -24,6 +24,8 @@ import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
+import { RiskScoreTab } from '@/components/prudential/RiskScoreTab';
+
 import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
@@ -296,7 +298,9 @@ export default function PrudentialEntityProfile() {
       <Tabs defaultValue="overview">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="risk">Risk Score</TabsTrigger>
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
+
           <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
           <TabsTrigger value="breaches">Breaches</TabsTrigger>
           <TabsTrigger value="ewi">Early Warning</TabsTrigger>
@@ -310,7 +314,12 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="risk">
+          <RiskScoreTab entityId={e.id} entityName={e.name} />
+        </TabsContent>
+
         <TabsContent value="overview">
+
           <div className="grid md:grid-cols-4 gap-3">
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>
               <CardContent className="text-sm">
