@@ -279,7 +279,9 @@ export function SufficiencyPanel({ applicationId }: Props) {
   };
 
   /** Falls back safely when the display-name lookup fails or is incomplete. */
-  const determinedByLabel = (id: string) => names?.[id] || 'Reviewer';
+  const determinedByLabel = (id: string) =>
+    names?.[id] || (namesLoading ? '…' : namesError ? 'Name unavailable' : 'Reviewer');
+
 
   return (
     <Card>
