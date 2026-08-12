@@ -97,7 +97,36 @@ export function DecisionDocumentPreview({
   const [conditions, setConditions] = useState<string>('');
   const [signatory, setSignatory] = useState<{ name: string; title: string } | null>(null);
   const [effectiveDate, setEffectiveDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [expiryDate, setExpiryDate] = useState<string>('');
+  /** Expiry stored on the issued licence (authoritative), when one exists. */
+  const [licenseValidUntil, setLicenseValidUntil] = useState<string | null>(null);
+
+  const normalizedStatus = (applicationStatus ?? '').toLowerCase();
+  const isApproved = normalizedStatus === 'approved';
+  const isRejected = ['rejected', 'withdrawn', 'cancelled', 'declined'].includes(normalizedStatus);
+
+  /**
+   * Expiry is never entered by staff — the backend derives valid_until from the
+   * licence validity configuration when the licence is created. We mirror the
+   * same rule here so the preview matches what will be issued.
+   */
+  const validityDays = expiryConfig
+    ? expiryConfig.resolveFor({
+        sector_id: sectorId ?? null,
+        sub_sector_id: subSectorId ?? null,
+        category_id: categoryId ?? null,
+      }).period_days
+    : null;
+
+  const computedExpiry = (() => {
+    if (licenseValidUntil) return licenseValidUntil.slice(0, 10);
+    if (!effectiveDate || !validityDays) return '';
+    const d = new Date(`${effectiveDate}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) return '';
+    d.setUTCDate(d.getUTCDate() + validityDays);
+    return d.toISOString().slice(0, 10);
+  })();
+  const expiryDate = computedExpiry;
+
 
   const [certBusy, setCertBusy] = useState(false);
   const [certUrl, setCertUrl] = useState<string | null>(null);
