@@ -56,6 +56,11 @@ interface Props {
   disabledReason?: string;
   /** Show a free-text question box (governed natural-language enquiry). */
   askable?: boolean;
+  /**
+   * On-screen context (filters, window, displayed aggregates) so the analysis
+   * describes exactly what the user is looking at. Never record data.
+   */
+  context?: unknown;
   className?: string;
 }
 
@@ -94,6 +99,7 @@ export function SupervisoryAiPanel({
   ready = true,
   disabledReason,
   askable = false,
+  context,
   className,
 }: Props) {
   const [question, setQuestion] = useState('');
@@ -147,7 +153,11 @@ export function SupervisoryAiPanel({
               size="sm"
               variant={hasContent ? 'outline' : 'default'}
               onClick={() =>
-                generate.mutate({ force: hasContent, question: askable ? question.trim() || null : null })
+                generate.mutate({
+                  force: hasContent,
+                  question: askable ? question.trim() || null : null,
+                  context,
+                })
               }
               disabled={busy || !ready || (askable && !question.trim() && !hasContent)}
               title={!ready && disabledReason ? disabledReason : undefined}
