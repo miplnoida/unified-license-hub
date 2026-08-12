@@ -562,7 +562,7 @@ export function DecisionDocumentPreview({
                 {issuing === 'decision_letter' ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileText className="h-4 w-4 mr-1.5" />}
                 Record decision letter
               </Button>
-              {outcomeMeta.certificate && (
+              {isApproved && outcomeMeta.certificate && (
                 <Button data-rbac="application_management.approve" size="sm" variant="outline" disabled={issuing !== null}
                   onClick={() => issue('license_certificate')}>
 
