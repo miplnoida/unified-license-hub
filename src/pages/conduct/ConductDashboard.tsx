@@ -264,11 +264,25 @@ export default function ConductDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="trends" className="mt-4">
+          <TabsContent value="trends" className="mt-4 space-y-6">
             {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
               <ConductTrendsPanel complaints={complaints} alerts={alerts} days={Number(f.days)} labels={labels} />
             )}
+            <SupervisoryAiPanel
+              module="conduct"
+              analysisType="conduct_recurrence"
+              scope="portfolio"
+              periodKey={`${f.days}d`}
+              ready={!loading}
+              label={`Market conduct — last ${f.days} days`}
+              title="AI recurring conduct pattern observations"
+              description="Optional interpretation of the conduct data currently filtered on this page. The charts and figures above remain the record."
+              actionLabel="Generate pattern observations"
+              stalenessFacts={aiStaleness}
+              context={aiContext}
+            />
           </TabsContent>
+
 
           <TabsContent value="drillthrough" className="mt-4">
             {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
