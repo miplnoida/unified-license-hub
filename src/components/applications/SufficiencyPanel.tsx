@@ -538,7 +538,16 @@ export function SufficiencyPanel({ applicationId }: Props) {
             </div>
           )}
 
-          {!latestDetermination ? (
+          {determinationsError ? (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">Sufficiency decisions could not be loaded.</p>
+              <Button size="sm" variant="outline" onClick={() => refetchDeterminations()}>Try again</Button>
+            </div>
+          ) : determinationsLoading ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading sufficiency decisions…
+            </p>
+          ) : !latestDetermination ? (
             <p className="text-sm text-muted-foreground">No sufficiency determination has been recorded.</p>
           ) : (
             <div className="space-y-1">
