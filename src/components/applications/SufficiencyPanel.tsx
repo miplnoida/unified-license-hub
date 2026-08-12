@@ -630,7 +630,14 @@ export function SufficiencyPanel({ applicationId }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setException({ result: null, reason: '' })}>Cancel</Button>
-            <Button data-rbac="application_management.approve" onClick={submitException}>Accept exception</Button>
+            <Button
+              data-rbac="application_management.approve"
+              onClick={submitException}
+              disabled={exceptionSubmitting || !exceptionStatusKnown}
+            >
+              {exceptionSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Accept exception
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
