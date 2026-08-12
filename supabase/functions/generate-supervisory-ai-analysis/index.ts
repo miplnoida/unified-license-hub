@@ -26,9 +26,74 @@ const MODULE_PERMISSION: Record<Module, [string, string]> = {
   enforcement: ['enforcement_management', 'view'],
   complaints: ['complaint_management', 'view'],
   conduct: ['market_conduct', 'view'],
-  cross_module: ['prudential_supervision', 'view'],
+  // cross_module is gated per source (see SOURCE_PERMISSION) — never by one
+  // broad permission, because its facts come from several modules.
+  cross_module: ['', ''],
   executive: ['admin_dashboard', 'view'],
 };
+
+/**
+ * Per-source authorization. Service-role access is a technical necessity, never
+ * authorization: every source below is resolved against the caller's own
+ * permissions through the platform's `has_permission` before any query runs.
+ */
+export type SourceModule =
+  | 'prudential'
+  | 'examinations'
+  | 'complaints'
+  | 'conduct'
+  | 'enforcement'
+  | 'supervisory_actions'
+  | 'licensing'
+  | 'fit_and_proper';
+
+const SOURCE_PERMISSION: Record<SourceModule, Array<[string, string]>> = {
+  prudential: [['prudential_supervision', 'view']],
+  examinations: [['prudential_supervision', 'view'], ['inspection_management', 'view']],
+  complaints: [['complaint_management', 'view']],
+  conduct: [['market_conduct', 'view']],
+  enforcement: [['enforcement_management', 'view']],
+  supervisory_actions: [['prudential_supervision', 'view']],
+  licensing: [['license_management', 'view'], ['application_management', 'view']],
+  fit_and_proper: [['fit_proper_assessment', 'view']],
+};
+
+async function hasPerm(
+  supa: any,
+  userId: string,
+  module: string,
+  action: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supa.rpc('has_permission', {
+      _user_id: userId,
+      _module: module,
+      _action: action,
+    });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
+/** The source modules this user may receive information from. */
+async function resolvePermittedSources(
+  supa: any,
+  userId: string,
+): Promise<SourceModule[]> {
+  const sources = Object.keys(SOURCE_PERMISSION) as SourceModule[];
+  const results = await Promise.all(
+    sources.map(async (s) => {
+      for (const [m, a] of SOURCE_PERMISSION[s]) {
+        if (await hasPerm(supa, userId, m, a)) return s;
+      }
+      return null;
+    }),
+  );
+  return results.filter((s): s is SourceModule => s !== null);
+}
+
+
 
 interface Spec {
   module: Module;
@@ -253,178 +318,495 @@ function pick<T extends Record<string, unknown>>(rows: T[] | null | undefined, f
   });
 }
 
+/** Application-controlled evidence reference (never derived from model text). */
+export interface EvidenceRef {
+  label: string;
+  kind?: string;
+  id?: string | null;
+}
+
+const MAX_TEXT = 2000;
+const MAX_ITEMS = 25;
+
+const str = (v: unknown, max = MAX_TEXT): string | null => {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t ? t.slice(0, max) : null;
+};
+
+const strList = (v: unknown, max = MAX_ITEMS): string[] =>
+  Array.isArray(v)
+    ? v.map((x) => str(x, 600)).filter((x): x is string => !!x).slice(0, max)
+    : [];
+
+function observations(v: unknown): Array<{ text: string; evidence?: string[] }> {
+  if (!Array.isArray(v)) return [];
+  const out: Array<{ text: string; evidence?: string[] }> = [];
+  for (const item of v.slice(0, MAX_ITEMS)) {
+    const text = typeof item === 'string' ? str(item) : str((item as any)?.text);
+    if (!text) continue;
+    const ev = strList((item as any)?.evidence, 6);
+    out.push(ev.length ? { text, evidence: ev } : { text });
+  }
+  return out;
+}
+
+/**
+ * Validate and sanitise the model's structured output. Unexpected keys are
+ * dropped, types are coerced or discarded and sizes are capped, so malformed
+ * output can never crash the UI. Evidence references are resolved only against
+ * the application-supplied facts — model text never yields a route or link.
+ */
+function sanitizePayload(raw: unknown, trusted: EvidenceRef[]): Record<string, any> {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const out: Record<string, any> = {};
+
+  const summary = str(src.summary, 4000);
+  if (summary) out.summary = summary;
+
+  for (const key of ['facts', 'interpretation', 'suggested_focus_areas', 'limitations'] as const) {
+    const list = strList(src[key]);
+    if (list.length) out[key] = list;
+  }
+
+  for (const key of ['key_observations', 'chronology', 'issues', 'risks', 'gaps'] as const) {
+    const list = observations(src[key]);
+    if (list.length) out[key] = list;
+  }
+
+  if (Array.isArray(src.draft_sections)) {
+    const sections = src.draft_sections
+      .slice(0, 12)
+      .map((s: any) => {
+        const heading = str(s?.heading, 200);
+        const text = str(s?.text, 6000);
+        return heading && text ? { heading, text } : null;
+      })
+      .filter((s): s is { heading: string; text: string } => !!s);
+    if (sections.length) out.draft_sections = sections;
+  }
+
+  out.confidence = ['high', 'moderate', 'limited'].includes(String(src.confidence))
+    ? String(src.confidence)
+    : 'limited';
+  if (src.insufficient_evidence === true) out.insufficient_evidence = true;
+
+  // Trusted evidence only: the label/id pairs the platform itself supplied,
+  // kept when the model actually referred to them.
+  if (trusted.length) {
+    const blob = JSON.stringify(out).toLowerCase();
+    const refs = trusted
+      .filter((t) => blob.includes(t.label.toLowerCase()) || blob.includes(String(t.label.split(' ').pop()).toLowerCase()))
+      .slice(0, 12)
+      .map((t) => ({ label: t.label, kind: t.kind ?? null, id: t.id ?? null }));
+    if (refs.length) out.evidence_refs = refs;
+  }
+
+  return out;
+}
+
+function hasAnyContent(p: Record<string, any>): boolean {
+  if (p.summary) return true;
+  return ['facts', 'interpretation', 'suggested_focus_areas', 'key_observations', 'chronology', 'issues', 'risks', 'gaps', 'draft_sections']
+    .some((k) => Array.isArray(p[k]) && p[k].length > 0);
+}
+
+
+
 async function assembleFacts(
-  supa: ReturnType<typeof createClient>,
+  supa: any,
+  userId: string,
   module: Module,
   analysisType: string,
   scopeId: string | null,
   extra: { question?: string | null; context?: unknown },
-): Promise<Record<string, unknown>> {
+  sources: SourceModule[],
+): Promise<{ facts: Record<string, unknown>; used: SourceModule[]; evidence: EvidenceRef[] }> {
+  const can = (s: SourceModule) => sources.includes(s);
+  const used = new Set<SourceModule>();
+  const evidence: EvidenceRef[] = [];
   const facts: Record<string, unknown> = { module, analysis_type: analysisType };
   if (extra.question) facts.supervisor_question = String(extra.question).slice(0, 1000);
-  if (extra.context && typeof extra.context === 'object') facts.screen_context = extra.context;
+  const ctx = (extra.context && typeof extra.context === 'object' ? extra.context : {}) as Record<string, unknown>;
+  if (Object.keys(ctx).length) facts.screen_context = ctx;
 
   if (module === 'examination' && scopeId) {
+    if (!can('examinations')) return { facts, used: [], evidence };
+    used.add('examinations');
     const [exam, scoping, findings, workpapers, requests] = await Promise.all([
-      supa.from('examinations').select('*').eq('id', scopeId).maybeSingle(),
-      supa.from('examination_scoping').select('*').eq('examination_id', scopeId),
-      supa.from('examination_findings').select('*').eq('examination_id', scopeId),
-      supa.from('examination_workpapers').select('*').eq('examination_id', scopeId),
-      supa.from('examination_data_requests').select('*').eq('examination_id', scopeId),
+      supa.from('examinations').select(
+        'id, entity_id, reference, title, examination_type, stage, risk_rating, overall_conclusion, period_under_review_start, period_under_review_end, fieldwork_start, fieldwork_end, updated_at',
+      ).eq('id', scopeId).maybeSingle(),
+      supa.from('examination_scoping').select(
+        'objectives, risk_focus_areas, legal_basis, scope_exclusions, methodology, approved_at',
+      ).eq('examination_id', scopeId),
+      supa.from('examination_findings').select(
+        'id, reference, title, category, severity, status, criteria_breached, observation, root_cause, recommendation, entity_response, target_date',
+      ).eq('examination_id', scopeId),
+      supa.from('examination_workpapers').select(
+        'reference, area, procedure_performed, evidence_reference, conclusion, status, reviewed_at, review_notes',
+      ).eq('examination_id', scopeId),
+      supa.from('examination_data_requests').select(
+        'item_no, title, description, status, due_date, received_at, entity_response',
+      ).eq('examination_id', scopeId),
     ]);
     const exRow = exam.data as Record<string, unknown> | null;
-    facts.examination = exRow
-      ? pick([exRow], [
-          'reference', 'title', 'examination_type', 'stage', 'risk_rating', 'overall_conclusion',
-          'period_under_review_start', 'period_under_review_end', 'fieldwork_start', 'fieldwork_end',
-        ])[0]
-      : null;
-    facts.scoping = pick(scoping.data as any[], [
-      'objectives', 'risk_focus_areas', 'legal_basis', 'scope_exclusions', 'methodology', 'approved_at',
-    ], 5);
+    facts.examination = exRow ? { ...exRow, id: undefined, entity_id: undefined } : null;
+    facts.scoping = (scoping.data ?? []).slice(0, 5);
     facts.findings = pick(findings.data as any[], [
       'reference', 'title', 'category', 'severity', 'status', 'criteria_breached', 'observation',
       'root_cause', 'recommendation', 'entity_response', 'target_date',
     ]);
-    facts.workpapers = pick(workpapers.data as any[], [
-      'reference', 'area', 'procedure_performed', 'evidence_reference', 'conclusion', 'status',
-      'reviewed_at', 'review_notes',
-    ]);
-    facts.information_requests = pick(requests.data as any[], [
-      'item_no', 'title', 'description', 'status', 'due_date', 'received_at', 'entity_response',
-    ]);
+    facts.workpapers = workpapers.data ?? [];
+    facts.information_requests = requests.data ?? [];
+    for (const f of (findings.data ?? []) as any[]) {
+      if (f?.id && f?.reference) {
+        evidence.push({ label: `Finding ${f.reference}`, kind: 'examination_finding', id: f.id });
+      }
+    }
+    if (exRow?.reference) {
+      evidence.push({ label: `Examination ${exRow.reference}`, kind: 'examination', id: scopeId });
+    }
     const entityId = (exRow as any)?.entity_id ?? null;
     if (entityId) {
-      const [priorExams, actions] = await Promise.all([
-        supa.from('examinations').select('reference, title, examination_type, stage, risk_rating, fieldwork_end')
-          .eq('entity_id', entityId).neq('id', scopeId).order('created_at', { ascending: false }).limit(10),
-        supa.from('prudential_actions').select('action_reference, title, action_type, severity, status, due_date')
-          .eq('entity_id', entityId).order('created_at', { ascending: false }).limit(25),
-      ]);
+      const priorExams = await supa
+        .from('examinations')
+        .select('reference, title, examination_type, stage, risk_rating, fieldwork_end')
+        .eq('entity_id', entityId).neq('id', scopeId)
+        .order('created_at', { ascending: false }).limit(10);
       facts.prior_examinations = priorExams.data ?? [];
-      facts.open_supervisory_actions = actions.data ?? [];
+      if (can('supervisory_actions')) {
+        used.add('supervisory_actions');
+        const actions = await supa
+          .from('prudential_actions')
+          .select('action_reference, title, action_type, severity, status, due_date')
+          .eq('entity_id', entityId)
+          .order('created_at', { ascending: false }).limit(25);
+        facts.open_supervisory_actions = actions.data ?? [];
+      }
     }
   }
 
   if (module === 'enforcement' && scopeId) {
-    const [action, events, evidence, obligations] = await Promise.all([
-      supa.from('enforcement_actions').select('*').eq('id', scopeId).maybeSingle(),
-      supa.from('enforcement_case_events').select('*').eq('case_id', scopeId).order('created_at'),
-      supa.from('enforcement_compliance_evidence').select('*').eq('case_id', scopeId),
-      supa.from('enforcement_obligations').select('*').eq('case_id', scopeId),
+    if (!can('enforcement')) return { facts, used: [], evidence };
+    used.add('enforcement');
+    const [action, events, evidenceRows, obligations] = await Promise.all([
+      supa.from('enforcement_actions').select(
+        'id, entity_id, case_number, enforcement_type, status, description, findings, date_opened, notice_issued_at, response_received_at, response_summary, decision_at, decision_outcome, decision_rationale, penalty_amount, penalty_currency, monitoring_state, non_compliance_flag, non_compliance_note, updated_at',
+      ).eq('id', scopeId).maybeSingle(),
+      supa.from('enforcement_case_events').select('event_type, note, created_at')
+        .eq('case_id', scopeId).order('created_at').limit(60),
+      supa.from('enforcement_compliance_evidence').select(
+        'description, evidence_type, accepted, submitted_at, review_note',
+      ).eq('case_id', scopeId),
+      supa.from('enforcement_obligations').select('obligation, detail, status, deadline, breach_note')
+        .eq('case_id', scopeId),
     ]);
     const row = action.data as Record<string, unknown> | null;
-    facts.case = row
-      ? pick([row], [
-          'case_number', 'enforcement_type', 'status', 'description', 'findings', 'date_opened',
-          'notice_issued_at', 'response_received_at', 'response_summary', 'decision_at',
-          'decision_outcome', 'decision_rationale', 'penalty_amount', 'penalty_currency',
-          'monitoring_state', 'non_compliance_flag', 'non_compliance_note',
-        ])[0]
-      : null;
-    facts.case_events = pick(events.data as any[], ['event_type', 'note', 'created_at'], 60);
-    facts.evidence = pick(evidence.data as any[], [
-      'description', 'evidence_type', 'accepted', 'submitted_at', 'review_note',
-    ]);
-    facts.obligations = pick(obligations.data as any[], ['obligation', 'detail', 'status', 'deadline', 'breach_note']);
+    facts.case = row ? { ...row, id: undefined, entity_id: undefined } : null;
+    facts.case_events = events.data ?? [];
+    facts.evidence = evidenceRows.data ?? [];
+    facts.obligations = obligations.data ?? [];
+    if (row?.case_number) {
+      evidence.push({ label: `Case ${row.case_number}`, kind: 'enforcement_action', id: scopeId });
+    }
+
     if (analysisType === 'precedent_comparison') {
+      // Historical precedent must respect the caller's own visibility rules:
+      // assignment-only regulators see only their mapped entities.
+      let assignmentOnly = false;
+      try {
+        const { data } = await supa.rpc('is_assignment_only_regulator', { _user_id: userId });
+        assignmentOnly = data === true;
+      } catch {
+        assignmentOnly = true; // fail closed
+      }
       const { data: others } = await supa
         .from('enforcement_actions')
-        .select('case_number, enforcement_type, status, description, decision_outcome, decision_at, penalty_amount')
+        .select('entity_id, case_number, enforcement_type, status, decision_outcome, decision_at')
         .neq('id', scopeId)
         .order('created_at', { ascending: false })
-        .limit(15);
-      facts.past_actions_on_record = others ?? [];
+        .limit(40);
+      let permitted = (others ?? []) as any[];
+      if (assignmentOnly) {
+        const allowed: any[] = [];
+        for (const o of permitted) {
+          if (!o.entity_id) continue;
+          const { data: ok } = await supa.rpc('user_has_entity_assignment', {
+            _user_id: userId,
+            _licensee_id: o.entity_id,
+          });
+          if (ok === true) allowed.push(o);
+        }
+        permitted = allowed;
+      }
+      facts.past_actions_on_record = permitted
+        .slice(0, 15)
+        .map(({ entity_id: _e, ...rest }) => rest);
     }
   }
 
   if ((module === 'complaints' || module === 'conduct') && scopeId) {
-    const [complaint, evidence, tasks, rfis, corr] = await Promise.all([
-      supa.from('complaints').select('*').eq('id', scopeId).maybeSingle(),
-      supa.from('complaint_evidence').select('*').eq('complaint_id', scopeId),
-      supa.from('complaint_investigation_tasks').select('*').eq('complaint_id', scopeId),
-      supa.from('complaint_rfis').select('*').eq('complaint_id', scopeId),
-      supa.from('complaint_correspondence').select('*').eq('complaint_id', scopeId).order('created_at').limit(30),
+    const need: SourceModule = module === 'conduct' ? 'conduct' : 'complaints';
+    if (!can(need)) return { facts, used: [], evidence };
+    used.add(need);
+    // Explicit columns only — complainant name, address, phone, email and
+    // identity-document fields are never read into memory or sent to the model.
+    const [complaint, evidenceRows, tasks, rfis, corr] = await Promise.all([
+      supa.from('complaints').select(
+        'id, licensee_id, complaint_number, subject, description, status, severity, priority, customer_type, created_at, updated_at, sla_due_at, acknowledged_at, resolved_at, closed_at, closure_reason, closure_category, investigation_notes, resolution, resolution_notes, findings, repeat_complaint_count, vulnerability_indicator',
+      ).eq('id', scopeId).maybeSingle(),
+      supa.from('complaint_evidence').select('label, description, created_at').eq('complaint_id', scopeId).limit(40),
+      supa.from('complaint_investigation_tasks').select('title, description, status, due_date, completed_at')
+        .eq('complaint_id', scopeId).limit(40),
+      supa.from('complaint_rfis').select('summary, status, due_at, submitted_at, closure_notes, approval_state')
+        .eq('complaint_id', scopeId).limit(40),
+      supa.from('complaint_correspondence').select('direction, subject, created_at')
+        .eq('complaint_id', scopeId).order('created_at').limit(30),
     ]);
     const row = complaint.data as Record<string, unknown> | null;
-    facts.complaint = row
-      ? pick([row], [
-          'complaint_number', 'subject', 'description', 'status', 'severity', 'priority', 'customer_type',
-          'created_at', 'sla_due_at', 'acknowledged_at', 'resolved_at', 'closed_at', 'closure_reason',
-          'closure_category', 'investigation_notes', 'resolution', 'resolution_notes', 'findings',
-          'repeat_complaint_count', 'vulnerability_indicator', 'vulnerability_notes',
-        ])[0]
-      : null;
-    facts.evidence = pick(evidence.data as any[], ['label', 'description', 'created_at']);
-    facts.case_work = pick(tasks.data as any[], ['title', 'description', 'status', 'due_date', 'completed_at']);
-    facts.information_requests = pick(rfis.data as any[], [
-      'summary', 'status', 'due_at', 'submitted_at', 'closure_notes', 'approval_state',
-    ]);
-    facts.correspondence = pick(corr.data as any[], ['direction', 'subject', 'created_at'], 30);
+    facts.complaint = row ? { ...row, id: undefined, licensee_id: undefined } : null;
+    facts.evidence = evidenceRows.data ?? [];
+    facts.case_work = tasks.data ?? [];
+    facts.information_requests = rfis.data ?? [];
+    facts.correspondence = corr.data ?? [];
+    if (row?.complaint_number) {
+      evidence.push({ label: `Complaint ${row.complaint_number}`, kind: 'complaint', id: scopeId });
+    }
 
     const licenseeId = (row as any)?.licensee_id ?? null;
     if (licenseeId && ['similar_complaints', 'conduct_recurrence'].includes(analysisType)) {
       const { data: related } = await supa
         .from('complaints')
-        .select('complaint_number, subject, status, severity, priority, created_at, closure_category')
+        .select('id, complaint_number, subject, status, severity, priority, created_at, closure_category')
         .eq('licensee_id', licenseeId)
         .neq('id', scopeId)
         .order('created_at', { ascending: false })
         .limit(40);
-      facts.other_complaints_same_licensee = related ?? [];
+      facts.other_complaints_same_licensee = (related ?? []).map(({ id: _i, ...rest }: any) => rest);
+      for (const r of (related ?? []) as any[]) {
+        if (r?.id && r?.complaint_number) {
+          evidence.push({ label: `Complaint ${r.complaint_number}`, kind: 'complaint', id: r.id });
+        }
+      }
     }
+  }
+
+  // ---------- Market conduct: portfolio-level pattern analysis ----------
+  if (module === 'conduct' && !scopeId) {
+    if (!can('conduct') && !can('complaints')) return { facts, used: [], evidence };
+    used.add(can('conduct') ? 'conduct' : 'complaints');
+    const filters = (ctx.filters && typeof ctx.filters === 'object' ? ctx.filters : {}) as Record<string, string>;
+    const days = Math.min(Math.max(Number(filters.days ?? ctx.days ?? 90) || 90, 7), 730);
+    const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+    let q = supa
+      .from('complaints')
+      .select(
+        'complaint_number, subject, status, severity, priority, customer_type, vulnerability_indicator, closure_category, product_id, channel_id, conduct_risk_category_id, licensee_id, created_at, resolved_at, sla_due_at',
+      )
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(600);
+    for (const [key, col] of [
+      ['product_id', 'product_id'],
+      ['channel_id', 'channel_id'],
+      ['category_id', 'conduct_risk_category_id'],
+      ['licensee_id', 'licensee_id'],
+      ['severity', 'severity'],
+      ['priority', 'priority'],
+      ['customer_type', 'customer_type'],
+    ] as Array<[string, string]>) {
+      const v = filters[key];
+      if (v && v !== 'all') q = q.eq(col, v);
+    }
+    const { data: rows } = await q;
+    const list = (rows ?? []) as any[];
+
+    const tally = (fn: (r: any) => string | null) => {
+      const out: Record<string, number> = {};
+      for (const r of list) {
+        const k = fn(r);
+        if (!k) continue;
+        out[k] = (out[k] ?? 0) + 1;
+      }
+      return Object.fromEntries(Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 15));
+    };
+
+    const nameOf = (map: unknown, id: string | null) => {
+      if (!id) return null;
+      const m = (map && typeof map === 'object' ? map : {}) as Record<string, string>;
+      return m[id] ?? id;
+    };
+    const labelMaps = (ctx.labels && typeof ctx.labels === 'object' ? ctx.labels : {}) as Record<string, unknown>;
+
+    facts.window_days = days;
+    facts.applied_filters = filters;
+    facts.totals = {
+      complaints_in_window: list.length,
+      open: list.filter((r) => !['closed', 'resolved'].includes(String(r.status))).length,
+      vulnerable_customers: list.filter((r) => r.vulnerability_indicator).length,
+      sla_breached: list.filter((r) => r.sla_due_at && !r.resolved_at && new Date(r.sla_due_at) < new Date()).length,
+    };
+    facts.by_product = tally((r) => nameOf(labelMaps.products, r.product_id));
+    facts.by_channel = tally((r) => nameOf(labelMaps.channels, r.channel_id));
+    facts.by_risk_category = tally((r) => nameOf(labelMaps.categories, r.conduct_risk_category_id));
+    facts.by_licensee = tally((r) => nameOf(labelMaps.licensees, r.licensee_id));
+    facts.by_severity = tally((r) => (r.severity ? String(r.severity) : null));
+    facts.by_closure_category = tally((r) => (r.closure_category ? String(r.closure_category) : null));
+    facts.by_month = tally((r) => String(r.created_at ?? '').slice(0, 7) || null);
+    facts.complaint_subjects_sample = list.slice(0, 60).map((r) => ({
+      complaint_number: r.complaint_number,
+      subject: r.subject,
+      severity: r.severity,
+      status: r.status,
+      created_at: r.created_at,
+    }));
+    if (ctx.on_screen_aggregates) facts.on_screen_aggregates = ctx.on_screen_aggregates;
   }
 
   if (module === 'cross_module' && scopeId) {
-    const [licensee, risk, complaints, exams, enf, actions] = await Promise.all([
-      supa.from('licensees').select('id, name, status, sector_id, category_id, systemic_importance').eq('id', scopeId).maybeSingle(),
-      supa.from('entity_risk_scores').select('score, band, period_key, computed_at, components').eq('entity_id', scopeId).order('computed_at', { ascending: false }).limit(4),
-      supa.from('complaints').select('complaint_number, subject, status, severity, priority, created_at').eq('licensee_id', scopeId).order('created_at', { ascending: false }).limit(25),
-      supa.from('examinations').select('reference, title, examination_type, stage, risk_rating, fieldwork_end').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(10),
-      supa.from('enforcement_actions').select('case_number, enforcement_type, status, decision_outcome, decision_at').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(10),
-      supa.from('prudential_actions').select('action_reference, title, action_type, severity, status, due_date').eq('entity_id', scopeId).order('created_at', { ascending: false }).limit(25),
-    ]);
-    facts.entity = licensee.data ?? null;
-    facts.risk_scores = risk.data ?? [];
-    facts.complaints = complaints.data ?? [];
-    facts.examinations = exams.data ?? [];
-    facts.enforcement_actions = enf.data ?? [];
-    facts.supervisory_actions = actions.data ?? [];
+    // Per-source authorization. A source the caller cannot view is not queried,
+    // not counted and not referred to — the model is simply never told it exists.
+    if (can('licensing') || can('prudential')) {
+      const { data } = await supa
+        .from('licensees')
+        .select('id, name, status, sector_id, category_id, systemic_importance')
+        .eq('id', scopeId)
+        .maybeSingle();
+      facts.entity = data ? { ...data, id: undefined } : null;
+      used.add(can('licensing') ? 'licensing' : 'prudential');
+    }
+    if (can('prudential')) {
+      used.add('prudential');
+      const { data } = await supa
+        .from('entity_risk_scores')
+        .select('score, band, period_key, computed_at, components')
+        .eq('entity_id', scopeId)
+        .order('computed_at', { ascending: false })
+        .limit(4);
+      facts.risk_scores = data ?? [];
+    }
+    if (can('examinations')) {
+      used.add('examinations');
+      const { data } = await supa
+        .from('examinations')
+        .select('reference, title, examination_type, stage, risk_rating, fieldwork_end')
+        .eq('entity_id', scopeId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      facts.examinations = data ?? [];
+    }
+    if (can('complaints') || can('conduct')) {
+      used.add(can('complaints') ? 'complaints' : 'conduct');
+      const { data } = await supa
+        .from('complaints')
+        .select('id, complaint_number, subject, status, severity, priority, created_at')
+        .eq('licensee_id', scopeId)
+        .order('created_at', { ascending: false })
+        .limit(25);
+      facts.complaints = (data ?? []).map(({ id: _i, ...rest }: any) => rest);
+      for (const r of (data ?? []) as any[]) {
+        if (r?.id && r?.complaint_number) {
+          evidence.push({ label: `Complaint ${r.complaint_number}`, kind: 'complaint', id: r.id });
+        }
+      }
+    }
+    if (can('enforcement')) {
+      used.add('enforcement');
+      const { data } = await supa
+        .from('enforcement_actions')
+        .select('id, case_number, enforcement_type, status, decision_outcome, decision_at')
+        .eq('entity_id', scopeId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      facts.enforcement_actions = (data ?? []).map(({ id: _i, ...rest }: any) => rest);
+      for (const r of (data ?? []) as any[]) {
+        if (r?.id && r?.case_number) {
+          evidence.push({ label: `Case ${r.case_number}`, kind: 'enforcement_action', id: r.id });
+        }
+      }
+    }
+    if (can('supervisory_actions')) {
+      used.add('supervisory_actions');
+      const { data } = await supa
+        .from('prudential_actions')
+        .select('action_reference, title, action_type, severity, status, due_date')
+        .eq('entity_id', scopeId)
+        .order('created_at', { ascending: false })
+        .limit(25);
+      facts.supervisory_actions = data ?? [];
+    }
+    facts.available_sources = [...used];
+    facts.coverage_note =
+      'Only the supervisory sources listed in available_sources were supplied. Do not speculate about, refer to, count or imply the existence of any other source.';
   }
 
   if (module === 'executive') {
-    const since = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+    // Honour the window and scope the dashboard is actually showing.
+    const windowDays = Math.min(Math.max(Number(ctx.window_days ?? 0) || 0, 0), 3650);
+    const sinceIso = typeof ctx.since === 'string' && ctx.since ? ctx.since : null;
+    const since = sinceIso ?? (windowDays ? new Date(Date.now() - windowDays * 24 * 3600 * 1000).toISOString() : null);
+    const sectorId = typeof ctx.sector_id === 'string' && ctx.sector_id !== 'all' ? ctx.sector_id : null;
+
+    facts.window = {
+      label: (typeof ctx.window_label === 'string' ? ctx.window_label : null) ?? (windowDays ? `${windowDays} days` : null),
+      since,
+      sector_filter: sectorId,
+    };
+    if (!since) {
+      facts.comparison_note =
+        'No comparison window was supplied. State that a period-on-period comparison cannot be calculated rather than inferring movement.';
+    }
+
+    // Prefer the aggregates the dashboard itself computed and displayed.
+    if (ctx.dashboard_aggregates && typeof ctx.dashboard_aggregates === 'object') {
+      facts.dashboard_aggregates = ctx.dashboard_aggregates;
+    }
+    if (ctx.filters && typeof ctx.filters === 'object') facts.applied_filters = ctx.filters;
+
     const counts: Record<string, unknown> = {};
-    const tables: Array<[string, string]> = [
-      ['complaints', 'complaints'],
-      ['examinations', 'examinations'],
-      ['enforcement_actions', 'enforcement_actions'],
-      ['escalations', 'escalations'],
-      ['prudential_actions', 'supervisory_actions'],
+    const tables: Array<[string, string, SourceModule]> = [
+      ['complaints', 'complaints', 'complaints'],
+      ['examinations', 'examinations', 'examinations'],
+      ['enforcement_actions', 'enforcement_actions', 'enforcement'],
+      ['prudential_actions', 'supervisory_actions', 'supervisory_actions'],
     ];
-    for (const [table, key] of tables) {
+    for (const [table, key, source] of tables) {
+      if (!can(source)) continue;
+      used.add(source);
       const total = await supa.from(table).select('id', { count: 'exact', head: true });
-      const recent = await supa.from(table).select('id', { count: 'exact', head: true }).gte('created_at', since);
-      counts[key] = { total: total.count ?? 0, last_90_days: recent.count ?? 0 };
+      let recent: { count: number | null } = { count: null };
+      if (since) {
+        recent = await supa.from(table).select('id', { count: 'exact', head: true }).gte('created_at', since);
+      }
+      counts[key] = {
+        total: total.count ?? 0,
+        ...(since ? { in_selected_window: recent.count ?? 0 } : {}),
+      };
     }
     facts.portfolio_counts = counts;
-    const { data: bands } = await supa
-      .from('entity_risk_scores')
-      .select('band, entity_id, computed_at')
-      .order('computed_at', { ascending: false })
-      .limit(400);
-    const bandCounts: Record<string, number> = {};
-    const seen = new Set<string>();
-    for (const r of (bands ?? []) as any[]) {
-      if (seen.has(r.entity_id)) continue;
-      seen.add(r.entity_id);
-      const b = r.band ?? 'unrated';
-      bandCounts[b] = (bandCounts[b] ?? 0) + 1;
+
+    if (can('prudential')) {
+      used.add('prudential');
+      const { data: bands } = await supa
+        .from('entity_risk_scores')
+        .select('band, entity_id, computed_at')
+        .order('computed_at', { ascending: false })
+        .limit(400);
+      const bandCounts: Record<string, number> = {};
+      const seen = new Set<string>();
+      for (const r of (bands ?? []) as any[]) {
+        if (seen.has(r.entity_id)) continue;
+        seen.add(r.entity_id);
+        const b = r.band ?? 'unrated';
+        bandCounts[b] = (bandCounts[b] ?? 0) + 1;
+      }
+      facts.entities_by_risk_band = bandCounts;
     }
-    facts.entities_by_risk_band = bandCounts;
+    facts.available_sources = [...used];
   }
 
-  return facts;
+  return { facts, used: [...used], evidence };
 }
 
 Deno.serve(async (req) => {
@@ -443,14 +825,21 @@ Deno.serve(async (req) => {
 
   const module = spec.module;
   const [permModule, permAction] = MODULE_PERMISSION[module];
-  const gate = await requireUserPermission(req, permModule, permAction);
+  const gate = await requireUserPermission(req, permModule || undefined, permAction || undefined);
   if (!gate.ok) return gate.response;
-  const userId: string | null = gate.userId ?? null;
+  const userId: string = gate.userId;
 
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+
+  // Service-role access below is a technical requirement, never authorization:
+  // the caller's own permissions decide which sources may be read.
+  const permittedSources = await resolvePermittedSources(supa, userId);
+  if (module === 'cross_module' && permittedSources.length === 0) {
+    return json({ ok: false, error: 'Forbidden' }, 403);
+  }
 
   try {
     const scopeRaw = String(body.scope ?? 'record');
@@ -465,7 +854,8 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'A record is required for this analysis' }, 400);
     }
 
-    // Reuse a stored analysis when the underlying record has not moved on.
+    // Reuse a stored analysis only when the underlying record has not moved on
+    // AND every source that fed it is one this caller may see today.
     if (!force && fingerprint) {
       let q = supa
         .from('ai_insights')
@@ -473,12 +863,18 @@ Deno.serve(async (req) => {
         .eq('module', module)
         .eq('analysis_type', analysisType)
         .eq('input_fingerprint', fingerprint)
+        .containedBy('source_modules', permittedSources)
         .order('generated_at', { ascending: false })
         .limit(1);
       q = scopeId ? q.eq('scope_id', scopeId) : q.is('scope_id', null);
       const { data: cachedRows } = await q;
       const cached = cachedRows?.[0];
-      if (cached?.id) return json({ ok: true, cached: true, insight: cached });
+      // Legacy cross-module rows carry no source metadata — never reuse them.
+      const legacyCrossModule =
+        module === 'cross_module' && (cached?.source_modules ?? []).length === 0;
+      if (cached?.id && !legacyCrossModule) {
+        return json({ ok: true, cached: true, insight: { ...cached, source_records: undefined } });
+      }
     }
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -487,11 +883,21 @@ Deno.serve(async (req) => {
     }
 
     let facts: Record<string, unknown>;
+    let usedSources: SourceModule[] = [];
+    let trustedEvidence: EvidenceRef[] = [];
     try {
-      facts = await assembleFacts(supa, module, analysisType, scopeId, {
-        question: body.question ?? null,
-        context: body.context ?? null,
-      });
+      const assembled = await assembleFacts(
+        supa,
+        userId,
+        module,
+        analysisType,
+        scopeId,
+        { question: body.question ?? null, context: body.context ?? null },
+        permittedSources,
+      );
+      facts = assembled.facts;
+      usedSources = assembled.used;
+      trustedEvidence = assembled.evidence;
     } catch (e) {
       return json({
         ok: false,
@@ -501,13 +907,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (module === 'cross_module' && usedSources.length === 0) {
+      return json({ ok: false, error: 'Forbidden' }, 403);
+    }
+
     const prompt = `${spec.instruction}
 
 Subject: ${label || 'Supervisory record'}
 Period / window: ${periodKey ?? 'not specified'}
 
-Platform records (authoritative, do not alter):
+Platform records (authoritative, do not alter). These are the only records available for this analysis; say nothing about anything outside them:
 ${JSON.stringify(facts).slice(0, 28000)}`;
+
 
     const started = Date.now();
     let parsed: Record<string, unknown> | null = null;
@@ -536,13 +947,19 @@ ${JSON.stringify(facts).slice(0, 28000)}`;
       }
       if (!res.ok) throw new Error(`AI gateway ${res.status}: ${(await res.text()).slice(0, 300)}`);
       const raw = (await res.json())?.choices?.[0]?.message?.content ?? '{}';
-      parsed = JSON.parse(raw);
-      providerState = parsed?.insufficient_evidence === true ? 'INSUFFICIENT_DATA' : 'SUCCESS';
+      const rawParsed = JSON.parse(raw);
+      // Model output is never trusted merely because it parses.
+      parsed = sanitizePayload(rawParsed, trustedEvidence);
+      providerState = parsed.insufficient_evidence === true
+        ? 'INSUFFICIENT_DATA'
+        : hasAnyContent(parsed)
+          ? 'SUCCESS'
+          : 'INSUFFICIENT_DATA';
     } catch (e) {
       failure = (e as Error)?.message ?? String(e);
     }
 
-    await logIntegration(supa, {
+    await logIntegration(supa as any, {
       direction: 'outbound',
       integrationKey: `ai-gateway.${module}-${analysisType}`,
       status: failure ? 'failure' : 'success',
@@ -556,10 +973,8 @@ ${JSON.stringify(facts).slice(0, 28000)}`;
       return json({ ok: false, error: failure ?? 'AI analysis failed', provider_state: providerState });
     }
 
-    const confidence = ['high', 'moderate', 'limited'].includes(String(parsed.confidence))
-      ? String(parsed.confidence)
-      : 'limited';
-    const payload = { ...parsed, confidence };
+    const confidence = String(parsed.confidence ?? 'limited');
+    const payload = parsed;
 
     const { data: inserted, error: insertError } = await supa
       .from('ai_insights')
@@ -575,18 +990,22 @@ ${JSON.stringify(facts).slice(0, 28000)}`;
         object_type: module,
         object_id: scopeId,
         payload,
+        source_modules: usedSources,
         source_records: facts,
-        citations: [],
+        citations: payload.evidence_refs ?? [],
         provider: 'lovable-ai-gateway',
         model: MODEL,
         provider_state: providerState,
         confidence: confidence === 'high' ? 0.9 : confidence === 'moderate' ? 0.6 : 0.3,
-        explanation: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 4000) : null,
+        explanation: typeof payload.summary === 'string' ? payload.summary.slice(0, 4000) : null,
         review_status: 'pending',
         generated_by: userId,
       })
-      .select('*')
+      .select(
+        'id, title, module, analysis_type, payload, provider_state, model, period_key, input_fingerprint, generated_at, feedback, source_modules',
+      )
       .maybeSingle();
+
 
     if (insertError) {
       // Storage failure must not lose the analysis — return it unsaved.
