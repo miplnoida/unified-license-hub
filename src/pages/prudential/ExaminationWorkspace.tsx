@@ -430,17 +430,8 @@ export default function ExaminationWorkspace() {
               <TabsContent value="workpapers" className="mt-4 space-y-4">
                 {detourBanner()}
                 <WorkpapersPanel examinationId={exam.id} readOnly={readOnly} />
-                <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="workpaper_summary"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI workpaper summary"
-              actionLabel="Summarise workpapers"
-              description="Summary of what the workpapers record. Review sign-off requirements are unchanged."
-              stalenessFacts={aiStaleness}
-            />
+
+
               </TabsContent>
               <TabsContent value="exit-meeting" className="mt-4">{detourBanner()}<ExitMeetingPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
             </>
