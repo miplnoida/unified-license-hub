@@ -163,6 +163,20 @@ export default function ApplicationDetail() {
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
 
+  // Internal reviewers land on the Workflow tab when a workflow review is live,
+  // unless the URL asked for a specific tab.
+  const workflowTabAutoSelected = useRef(false);
+  useEffect(() => {
+    if (initialTabParam || workflowTabAutoSelected.current) return;
+    if (!isInternal || !workflowChecked) return;
+    const workflowLive = workflowApprovalEnabled && !!(app as any)?.workflow_id && workflowActive;
+    if (!workflowLive) return;
+    workflowTabAutoSelected.current = true;
+    setActiveTab('workflow');
+  }, [initialTabParam, isInternal, workflowChecked, workflowApprovalEnabled, workflowActive, (app as any)?.workflow_id]);
+
+
+
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
   const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
