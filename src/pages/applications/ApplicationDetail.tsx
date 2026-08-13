@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
+import { CaseSnapshotFields } from '@/components/applications/CaseSnapshotFields';
 import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 
