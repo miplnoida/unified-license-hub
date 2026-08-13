@@ -17,7 +17,7 @@ import {
   severityLabel, severityTone, toEvidenceFacts, type EvidenceFact,
 } from '@/lib/licensing/aiAssessmentLabels';
 import { formatDistanceToNow } from 'date-fns';
-import { formatDateTime } from '@/lib/datetime';
+import { formatDateTime, humanizeTimestamps } from '@/lib/datetime';
 import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
@@ -428,13 +428,13 @@ function CompletedView({
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm leading-relaxed text-muted-foreground">{f.description}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{humanizeTimestamps(f.description)}</p>
                         )}
                         <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
                           <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
                             <span className="font-medium text-primary">Suggested action: </span>
-                            {f.analyst_action}
+                            {humanizeTimestamps(f.analyst_action)}
                           </div>
                         )}
                       </div>
@@ -474,7 +474,7 @@ function CompletedView({
                   </Badge>
                   {r.risk_type && <Badge variant="outline">{categoryLabel(r.risk_type)}</Badge>}
                 </div>
-                {r.reason && <p className="text-sm leading-relaxed text-muted-foreground">{r.reason}</p>}
+                {r.reason && <p className="text-sm leading-relaxed text-muted-foreground">{humanizeTimestamps(r.reason)}</p>}
                 <EvidenceFacts evidence={r.evidence} />
               </div>
             ))}
