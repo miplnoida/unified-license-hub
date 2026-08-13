@@ -577,17 +577,8 @@ export default function ComplaintDetail() {
               </TabsContent>
 
               <TabsContent value="closure" className="space-y-4">
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="qa_assistance"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI closure quality observations"
-              actionLabel="Review closure record"
-              description="Observations on what the closure record contains and what looks missing. It cannot approve, reject or pass a QA review."
-              stalenessFacts={aiStaleness}
-            />
                 <ComplaintClosureSection
+
                   complaintId={complaint.id}
                   status={complaint.status}
                   onGoToCurrentStep={() => goSection('current')}
