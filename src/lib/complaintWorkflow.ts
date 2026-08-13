@@ -14,7 +14,9 @@ export type CaseSection =
   | 'current'
   | 'casework'
   | 'comms'
+  | 'ai'
   | 'history';
+
 
 export type CaseWorkSection = 'investigation' | 'rfis' | 'classification' | 'closure';
 
