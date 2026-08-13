@@ -505,26 +505,11 @@ export default function ComplaintDetail() {
 
               <TabsContent value="investigation" className="space-y-4">
                 <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="investigation_assistance"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI investigation support notes"
-              actionLabel="Suggest lines of enquiry"
-              description="Evidence gaps and questions for you to consider. No task is created or assigned by this analysis."
-              stalenessFacts={aiStaleness}
-            />
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="resolution_draft"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI draft response text"
-              actionLabel="Draft response text"
-              description="Suggested wording only, not saved to the case. The outcome and final wording remain yours."
-              stalenessFacts={aiStaleness}
-            />
+                <p className="text-xs text-muted-foreground">
+                  AI investigation support notes and draft response wording are on the{' '}
+                  <strong>AI analysis reports</strong> tab.
+                </p>
+
               </TabsContent>
 
               <TabsContent value="classification" className="space-y-4">
