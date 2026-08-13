@@ -28026,6 +28026,14 @@ export type Database = {
           title: string
         }[]
       }
+      supervisory_ai_report_entity_options: {
+        Args: never
+        Returns: {
+          entity_id: string
+          entity_name: string
+          n: number
+        }[]
+      }
       supervisory_ai_report_facets: {
         Args: {
           _from?: string
