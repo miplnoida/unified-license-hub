@@ -54,6 +54,8 @@ import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
