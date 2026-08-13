@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  Loader2, Sparkles, RefreshCw, AlertTriangle, Info,
+  Loader2, Sparkles, RefreshCw, AlertTriangle, Info, CircleDot,
   ThumbsUp, ThumbsDown, ShieldAlert, CheckCircle2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +21,15 @@ import { formatDateTime } from '@/lib/datetime';
 import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import {
+  AiReportEmptyState,
+  AiReportMetaChip,
+  AiReportNotice,
+  AiReportSection,
+  AiReportShell,
+  AiReportSkeleton,
+  AiReportSummary,
+} from '@/components/ai/report/AiReportKit';
 
 interface Props {
   applicationId: string;
@@ -222,84 +231,81 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
     }
   };
 
+  const shellActions = (
+    <div className="flex items-center gap-2">
+      {assessment && (
+        <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={handleGenerate} disabled={generating}>
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <span className="ml-1">Regenerate</span>
+        </Button>
+      )}
+    </div>
+  );
+
+  const shellMeta = assessment?.status === 'completed' ? (
+    <>
+      {assessment.generated_at && (
+        <AiReportMetaChip>Prepared {formatDateTime(assessment.generated_at)}</AiReportMetaChip>
+      )}
+      {typeof assessment.confidence_score === 'number' && (
+        <AiReportMetaChip>{confidenceLabel(assessment.confidence_score)} overall</AiReportMetaChip>
+      )}
+    </>
+  ) : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" />
-            AI Analyst Assessment
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">Advisory only</Badge>
-            {assessment && (
-              <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-1">Regenerate</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading AI assessment…
-          </div>
-        ) : !assessment ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              AI assessment has not been generated yet.
-            </p>
+    <AiReportShell
+      title="AI Analyst Assessment"
+      description="Interprets the information already recorded on this application. Analysts still take every decision through the Workflow panel."
+      actions={shellActions}
+      meta={shellMeta}
+    >
+      {loading ? (
+        <AiReportSkeleton message="Loading AI assessment…" />
+      ) : !assessment ? (
+        <div className="space-y-3">
+          <AiReportEmptyState message="No AI assessment has been prepared for this application yet." />
+          <div className="flex justify-center">
             <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Generate assessment
             </Button>
           </div>
-        ) : assessment.status === 'pending' && !isStalePending ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> AI assessment is being generated…
-          </div>
-        ) : assessment.status === 'pending' ? (
-          <div className="space-y-3">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Generation did not complete</AlertTitle>
-              <AlertDescription>
-                This assessment was started on {formatDateTime(assessment.created_at)} and never
-                finished. You can retry the generation.
-              </AlertDescription>
-            </Alert>
-            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-
-        ) : assessment.status === 'failed' ? (
-          <div className="space-y-3">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>AI assessment failed</AlertTitle>
-              <AlertDescription>
-                {assessment.error_message || 'The AI provider could not produce a valid response.'}
-              </AlertDescription>
-            </Alert>
-            <Button size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-        ) : (
-          <CompletedView
-            assessment={assessment}
-            applicationId={applicationId}
-            currentUserId={currentUserId}
-            onDecisionSaved={fetchLatest}
-          />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : assessment.status === 'pending' && !isStalePending ? (
+        <AiReportSkeleton message="AI assessment is being prepared…" />
+      ) : assessment.status === 'pending' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">Generation did not complete.</span>{' '}
+            This assessment was started on {formatDateTime(assessment.created_at)} and never finished. You can retry
+            the generation.
+          </AiReportNotice>
+          <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : assessment.status === 'failed' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">AI assessment failed.</span>{' '}
+            {assessment.error_message || 'The AI provider could not produce a valid response.'}
+          </AiReportNotice>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : (
+        <CompletedView
+          assessment={assessment}
+          applicationId={applicationId}
+          currentUserId={currentUserId}
+          onDecisionSaved={fetchLatest}
+        />
+      )}
+    </AiReportShell>
   );
 }
 
@@ -323,13 +329,9 @@ function CompletedView({
 
   return (
     <div className="space-y-5">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>AI-assisted and advisory only</AlertTitle>
-        <AlertDescription>
-          These results are suggestions. Analysts must still take all decisions through the Workflow panel below.
-        </AlertDescription>
-      </Alert>
+      <AiReportNotice>
+        These results are suggestions. Analysts must still take all decisions through the Workflow panel.
+      </AiReportNotice>
 
       <AnalystDecisionBar
         assessment={assessment}
@@ -338,60 +340,54 @@ function CompletedView({
         onSaved={onDecisionSaved}
       />
 
-      {assessment.summary && (
-        <section>
-          <div className="text-sm font-semibold mb-1">Summary</div>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{assessment.summary}</p>
-        </section>
-      )}
+      {assessment.summary && <AiReportSummary text={assessment.summary} />}
 
       {sections.length > 0 && (
-        <>
-          <Separator />
-          <section className="space-y-2">
-            <div className="text-sm font-semibold">Section-wise review</div>
-            <div className="space-y-2">
-              {sections.map((s, i) => {
-                const status = (s.status || '').toLowerCase();
-                return (
-                  <div key={`sec-${i}`} className="rounded-md border p-3 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
-                        {sectionStatusLabel(s.status)}
-                      </Badge>
-                      <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
-                      {s.risk_level && (
-                        <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
-                      )}
-                    </div>
-                    {Array.isArray(s.observations) && s.observations.length > 0 && (
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-                        {s.observations.map((o, idx) => <li key={idx}>{o}</li>)}
-                      </ul>
-                    )}
-                    <EvidenceFacts evidence={s.evidence} />
-                    {s.suggested_action && (
-                      <div className="text-xs">
-                        <span className="font-medium">Suggested action: </span>{s.suggested_action}
-                      </div>
+        <AiReportSection label="Section-wise review" sectionKey="key_observations" count={sections.length}>
+          <div className="space-y-2">
+            {sections.map((s, i) => {
+              const status = (s.status || '').toLowerCase();
+              return (
+                <div
+                  key={`sec-${i}`}
+                  className="space-y-1.5 rounded-md border bg-card/60 p-3 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
+                      {sectionStatusLabel(s.status)}
+                    </Badge>
+                    <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
+                    {s.risk_level && (
+                      <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        </>
+                  {Array.isArray(s.observations) && s.observations.length > 0 && (
+                    <ul className="space-y-1">
+                      {s.observations.map((o, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm leading-relaxed">
+                          <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span>{o}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <EvidenceFacts evidence={s.evidence} />
+                  {s.suggested_action && (
+                    <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                      <span className="font-medium text-primary">Suggested action: </span>{s.suggested_action}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </AiReportSection>
       )}
 
-      <Separator />
-
-
-
-      <section>
-        <div className="text-sm font-semibold mb-2">Routing recommendation</div>
+      <AiReportSection label="Routing recommendation" sectionKey="chronology">
         {routing.recommended_route ? (
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="space-y-2 rounded-md border bg-card/60 p-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge>{ROUTE_LABELS[routing.recommended_route] || routing.recommended_route}</Badge>
               {routing.recommended_action && (
                 <Badge variant="outline">Suggested next step: {categoryLabel(routing.recommended_action)}</Badge>
@@ -400,7 +396,7 @@ function CompletedView({
                 <Badge variant="secondary">{confidenceLabel(routing.confidence)}</Badge>
               )}
             </div>
-            {routing.reason && <p className="text-sm text-muted-foreground">{routing.reason}</p>}
+            {routing.reason && <p className="text-sm leading-relaxed text-muted-foreground">{routing.reason}</p>}
             <AIRoutingDecisionActions
               assessment={assessment}
               currentUserId={currentUserId}
@@ -410,33 +406,34 @@ function CompletedView({
         ) : (
           <p className="text-sm text-muted-foreground">No routing recommendation provided.</p>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Findings ({findings.length})</div>
+      <AiReportSection label="Findings" sectionKey="issues" count={findings.length}>
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings.</p>
         ) : (
           <div className="space-y-3">
             {SEVERITY_ORDER.map((sev) =>
               groupedFindings[sev]?.length ? (
-                <div key={sev}>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{severityLabel(sev)}</div>
+                <div key={sev} className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {severityLabel(sev)}
+                  </div>
                   <div className="space-y-2">
                     {groupedFindings[sev].map((f, idx) => (
-                      <div key={idx} className="rounded-md border p-3 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={severityTone(sev)}>{severityLabel(sev)}</Badge>
                           {f.category && <Badge variant="outline">{categoryLabel(f.category)}</Badge>}
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm text-muted-foreground">{f.description}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{f.description}</p>
                         )}
                         <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
-                          <div className="text-xs">
-                            <span className="font-medium">Suggested action: </span>
+                          <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                            <span className="font-medium text-primary">Suggested action: </span>
                             {f.analyst_action}
                           </div>
                         )}
@@ -447,11 +444,13 @@ function CompletedView({
               ) : null,
             )}
             {groupedFindings.other?.length > 0 && (
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Other observations</div>
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Other observations
+                </div>
                 <div className="space-y-2">
                   {groupedFindings.other.map((f, idx) => (
-                    <div key={idx} className="rounded-md border p-3 text-sm">
+                    <div key={idx} className="rounded-md border bg-card/60 p-3 text-sm">
                       {f.title || f.description || 'Finding'}
                     </div>
                   ))}
@@ -460,42 +459,40 @@ function CompletedView({
             )}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Identified risks ({risks.length})</div>
+      <AiReportSection label="Identified risks" sectionKey="risks" count={risks.length}>
         {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No risks identified.</p>
         ) : (
           <div className="space-y-2">
             {risks.map((r, idx) => (
-              <div key={idx} className="rounded-md border p-3 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={severityTone(r.level)}>
                     {riskLevelLabel(r.level) || 'Not rated'}
                   </Badge>
                   {r.risk_type && <Badge variant="outline">{categoryLabel(r.risk_type)}</Badge>}
                 </div>
-                {r.reason && <p className="text-sm text-muted-foreground">{r.reason}</p>}
+                {r.reason && <p className="text-sm leading-relaxed text-muted-foreground">{r.reason}</p>}
                 <EvidenceFacts evidence={r.evidence} />
               </div>
             ))}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
       {missing.length > 0 && (
-        <section>
-          <div className="text-sm font-semibold mb-2">Missing information</div>
-          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+        <AiReportSection label="Missing information" sectionKey="gaps" count={missing.length}>
+          <div className="grid gap-2 sm:grid-cols-2">
             {missing.map((m, idx) => (
-              <li key={idx}>{m}</li>
+              <div key={idx} className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
+                {m}
+              </div>
             ))}
-          </ul>
-        </section>
+          </div>
+        </AiReportSection>
       )}
-
-      <Separator />
 
       <AssessmentFooter assessment={assessment} />
     </div>
