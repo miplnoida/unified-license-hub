@@ -42,17 +42,6 @@ interface Props {
   actions?: ReactNode;
 }
 
-const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-function Fact({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-medium">{value}</p>
-    </div>
-  );
-}
 
 export function ApproverDecisionView({
   application,
