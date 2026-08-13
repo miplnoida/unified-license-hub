@@ -54,6 +54,8 @@ import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
@@ -362,8 +364,139 @@ export default function ComplaintDetail() {
             <TabsTrigger value="current">Current step</TabsTrigger>
             <TabsTrigger value="casework">Case work</TabsTrigger>
             <TabsTrigger value="comms">Evidence &amp; communications</TabsTrigger>
+            <TabsTrigger value="ai">AI analysis reports</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai" className="space-y-4">
+            {/* Advisory AI only — summarisation, suggestions and draft wording.
+                Nothing here changes status, severity, priority or outcome. */}
+            <AiReportsTab
+              description="Every AI-assisted analysis available for this complaint, in one place. These reports interpret the recorded case — they change no status, severity, priority, category or outcome."
+              blocks={[
+                {
+                  id: 'ai-complaint-summary',
+                  label: 'Case summary',
+                  hint: 'plain-language summary of the recorded case',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="complaint_summary"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI complaint case summary"
+                      actionLabel="Summarise complaint"
+                      description="A plain-language summary of the recorded case. It does not change the status, severity, priority or outcome."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-complaint-classification',
+                  label: 'Suggested categorisation',
+                  hint: 'for a case officer to consider',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="complaint_classification"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI suggested categorisation"
+                      actionLabel="Suggest categorisation"
+                      description="Suggestions for a case officer to consider. Severity and category of record stay system- and human-controlled."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-similar-complaints',
+                  label: 'Similar complaints observed',
+                  hint: 'across recorded complaints for the same licensee',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="similar_complaints"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI similar complaints observed"
+                      actionLabel="Find similar complaints"
+                      description="Similarities across recorded complaints for the same licensee. Duplicate handling stays with the existing process."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-conduct-recurrence',
+                  label: 'Recurring conduct patterns',
+                  hint: 'themes across the recorded complaint history',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="conduct"
+                      analysisType="conduct_recurrence"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI recurring conduct pattern observations"
+                      actionLabel="Review recurring themes"
+                      description="Recurring themes across the recorded complaint history. It creates no alert, rule or conduct action."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-investigation-support',
+                  label: 'Investigation support notes',
+                  hint: 'evidence gaps and lines of enquiry to consider',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="investigation_assistance"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI investigation support notes"
+                      actionLabel="Suggest lines of enquiry"
+                      description="Evidence gaps and questions for you to consider. No task is created or assigned by this analysis."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-resolution-draft',
+                  label: 'Draft response text',
+                  hint: 'suggested wording only, not saved to the case',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="resolution_draft"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI draft response text"
+                      actionLabel="Draft response text"
+                      description="Suggested wording only, not saved to the case. The outcome and final wording remain yours."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-closure-qa',
+                  label: 'Closure quality observations',
+                  hint: 'what the closure record contains and what looks missing',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="qa_assistance"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI closure quality observations"
+                      actionLabel="Review closure record"
+                      description="Observations on what the closure record contains and what looks missing. It cannot approve, reject or pass a QA review."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </TabsContent>
+
 
           <TabsContent value="overview" className="space-y-4">
             <ComplaintOverviewSummary
@@ -431,48 +564,11 @@ export default function ComplaintDetail() {
               </Card>
             )}
 
-            {/* Advisory AI — summarisation and suggestions only. Status,
-                severity, priority and category of record are unchanged. */}
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="complaint_summary"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI complaint case summary"
-              actionLabel="Summarise complaint"
-              description="A plain-language summary of the recorded case. It does not change the status, severity, priority or outcome."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="complaint_classification"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI suggested categorisation"
-              actionLabel="Suggest categorisation"
-              description="Suggestions for a case officer to consider. Severity and category of record stay system- and human-controlled."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="similar_complaints"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI similar complaints observed"
-              actionLabel="Find similar complaints"
-              description="Similarities across recorded complaints for the same licensee. Duplicate handling stays with the existing process."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="conduct"
-              analysisType="conduct_recurrence"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI recurring conduct pattern observations"
-              actionLabel="Review recurring themes"
-              description="Recurring themes across the recorded complaint history. It creates no alert, rule or conduct action."
-              stalenessFacts={aiStaleness}
-            />
+            {/* Advisory AI now lives on its own tab so it can be presented as a
+                report. Status, severity, priority and category of record are
+                unchanged by anything there. */}
+
+
 
             <ConductClassificationCard complaint={complaint} />
             {COMPLAINT_TRIAGE_HISTORY_ENABLED && <TriageHistoryCard complaint={complaint} />}
@@ -505,26 +601,11 @@ export default function ComplaintDetail() {
 
               <TabsContent value="investigation" className="space-y-4">
                 <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="investigation_assistance"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI investigation support notes"
-              actionLabel="Suggest lines of enquiry"
-              description="Evidence gaps and questions for you to consider. No task is created or assigned by this analysis."
-              stalenessFacts={aiStaleness}
-            />
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="resolution_draft"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI draft response text"
-              actionLabel="Draft response text"
-              description="Suggested wording only, not saved to the case. The outcome and final wording remain yours."
-              stalenessFacts={aiStaleness}
-            />
+                <p className="text-xs text-muted-foreground">
+                  AI investigation support notes and draft response wording are on the{' '}
+                  <strong>AI analysis reports</strong> tab.
+                </p>
+
               </TabsContent>
 
               <TabsContent value="classification" className="space-y-4">
@@ -577,17 +658,8 @@ export default function ComplaintDetail() {
               </TabsContent>
 
               <TabsContent value="closure" className="space-y-4">
-                <SupervisoryAiPanel
-              module="complaints"
-              analysisType="qa_assistance"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI closure quality observations"
-              actionLabel="Review closure record"
-              description="Observations on what the closure record contains and what looks missing. It cannot approve, reject or pass a QA review."
-              stalenessFacts={aiStaleness}
-            />
                 <ComplaintClosureSection
+
                   complaintId={complaint.id}
                   status={complaint.status}
                   onGoToCurrentStep={() => goSection('current')}
