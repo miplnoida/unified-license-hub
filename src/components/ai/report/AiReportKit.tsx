@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { humanizeTimestamps } from '@/lib/datetime';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -121,7 +122,7 @@ export function AiReportSummary({ text }: { text: string }) {
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-4">
       <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-primary">Summary</div>
-      <p className="text-sm leading-relaxed text-foreground">{text}</p>
+      <p className="text-sm leading-relaxed text-foreground">{humanizeTimestamps(text)}</p>
     </div>
   );
 }
@@ -181,7 +182,7 @@ export function AiReportObservations({
           <div className="flex items-start gap-2.5">
             <CircleDot className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', TONE_ICON[tone])} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm leading-relaxed">{o.text}</p>
+              <p className="text-sm leading-relaxed">{humanizeTimestamps(o.text)}</p>
               {!!o.evidence?.length && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {o.evidence.slice(0, 6).map((e, j) => (
@@ -190,7 +191,7 @@ export function AiReportObservations({
                       className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
                       title={e}
                     >
-                      {e}
+                      {humanizeTimestamps(e)}
                     </span>
                   ))}
                 </div>
