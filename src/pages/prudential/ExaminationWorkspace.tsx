@@ -399,17 +399,8 @@ export default function ExaminationWorkspace() {
               <TabsContent value="scoping" className="mt-4 space-y-4">
                 {detourBanner()}
                 <ScopingMemoPanel examinationId={exam.id} readOnly={readOnly} />
-                <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="scope_suggestions"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI suggested focus areas"
-              actionLabel="Suggest focus areas"
-              description="Suggestions for consideration. The approved scope is entirely what the examiner records."
-              stalenessFacts={aiStaleness}
-            />
+
+
               </TabsContent>
               <TabsContent value="team" className="mt-4">{detourBanner()}<TeamPanel examinationId={exam.id} readOnly={readOnly} /></TabsContent>
               <TabsContent value="data-requests" className="mt-4 space-y-4">
