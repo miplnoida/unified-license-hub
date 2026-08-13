@@ -222,84 +222,81 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
     }
   };
 
+  const shellActions = (
+    <div className="flex items-center gap-2">
+      {assessment && (
+        <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={handleGenerate} disabled={generating}>
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <span className="ml-1">Regenerate</span>
+        </Button>
+      )}
+    </div>
+  );
+
+  const shellMeta = assessment?.status === 'completed' ? (
+    <>
+      {assessment.generated_at && (
+        <AiReportMetaChip>Prepared {formatDateTime(assessment.generated_at)}</AiReportMetaChip>
+      )}
+      {typeof assessment.confidence_score === 'number' && (
+        <AiReportMetaChip>{confidenceLabel(assessment.confidence_score)} overall</AiReportMetaChip>
+      )}
+    </>
+  ) : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" />
-            AI Analyst Assessment
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">Advisory only</Badge>
-            {assessment && (
-              <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-1">Regenerate</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading AI assessment…
-          </div>
-        ) : !assessment ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              AI assessment has not been generated yet.
-            </p>
+    <AiReportShell
+      title="AI Analyst Assessment"
+      description="Interprets the information already recorded on this application. Analysts still take every decision through the Workflow panel."
+      actions={shellActions}
+      meta={shellMeta}
+    >
+      {loading ? (
+        <AiReportSkeleton message="Loading AI assessment…" />
+      ) : !assessment ? (
+        <div className="space-y-3">
+          <AiReportEmptyState message="No AI assessment has been prepared for this application yet." />
+          <div className="flex justify-center">
             <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Generate assessment
             </Button>
           </div>
-        ) : assessment.status === 'pending' && !isStalePending ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> AI assessment is being generated…
-          </div>
-        ) : assessment.status === 'pending' ? (
-          <div className="space-y-3">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Generation did not complete</AlertTitle>
-              <AlertDescription>
-                This assessment was started on {formatDateTime(assessment.created_at)} and never
-                finished. You can retry the generation.
-              </AlertDescription>
-            </Alert>
-            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-
-        ) : assessment.status === 'failed' ? (
-          <div className="space-y-3">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>AI assessment failed</AlertTitle>
-              <AlertDescription>
-                {assessment.error_message || 'The AI provider could not produce a valid response.'}
-              </AlertDescription>
-            </Alert>
-            <Button size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-        ) : (
-          <CompletedView
-            assessment={assessment}
-            applicationId={applicationId}
-            currentUserId={currentUserId}
-            onDecisionSaved={fetchLatest}
-          />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : assessment.status === 'pending' && !isStalePending ? (
+        <AiReportSkeleton message="AI assessment is being prepared…" />
+      ) : assessment.status === 'pending' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">Generation did not complete.</span>{' '}
+            This assessment was started on {formatDateTime(assessment.created_at)} and never finished. You can retry
+            the generation.
+          </AiReportNotice>
+          <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : assessment.status === 'failed' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">AI assessment failed.</span>{' '}
+            {assessment.error_message || 'The AI provider could not produce a valid response.'}
+          </AiReportNotice>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : (
+        <CompletedView
+          assessment={assessment}
+          applicationId={applicationId}
+          currentUserId={currentUserId}
+          onDecisionSaved={fetchLatest}
+        />
+      )}
+    </AiReportShell>
   );
 }
 
