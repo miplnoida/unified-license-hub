@@ -882,12 +882,12 @@ export default function ApplicationDetail() {
             <CardTitle className="text-base">Application Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusTimeline currentStatus={app.status} events={events} />
+            <StatusTimeline currentStatus={app.status} events={events} showActivityLog={false} />
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="w-full">
+          <div className="space-y-6">
             {/* Forms and Documents tabs - always visible */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
@@ -895,8 +895,10 @@ export default function ApplicationDetail() {
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                {showWorkflowTab && <TabsTrigger value="workflow">Workflow</TabsTrigger>}
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="rfi" className="gap-1.5">
+
                   RFI
                   {openRfiCount > 0 && (
                     <Badge variant="destructive" className="h-4 min-w-[1rem] px-1 text-[10px] leading-none">
