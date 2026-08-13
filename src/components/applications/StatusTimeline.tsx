@@ -31,7 +31,7 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   query_raised: { icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500' },
 };
 
-export function StatusTimeline({ currentStatus, events }: Props) {
+export function StatusTimeline({ currentStatus, events, showActivityLog = true }: Props) {
   const isRejected = currentStatus === 'rejected';
   const isResubmission = currentStatus === 'resubmission_requested' || currentStatus === 'query_raised';
   // For resubmission, show progress as if between submitted and in_progress
