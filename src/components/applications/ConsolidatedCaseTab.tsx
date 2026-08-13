@@ -9,9 +9,19 @@ import {
 } from 'lucide-react';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
+export type ConsolidatedCaseSection =
+  | 'other_applications'
+  | 'licenses'
+  | 'complaints'
+  | 'enforcement'
+  | 'pending_returns'
+  | 'prudential_breaches';
+
 interface Props {
   applicationId: string;
   applicantId: string;
+  /** Sections to suppress (used by the Decision tab to avoid duplicated data). */
+  hiddenSections?: ConsolidatedCaseSection[];
 }
 
 interface Bundle {
