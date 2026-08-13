@@ -1046,6 +1046,8 @@ export default function ApplicationDetail() {
                         )}
 
 
+                        {isInternal && <CaseSnapshotFields application={app as any} />}
+
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
                           <p className="text-sm">{formatDateTime(app.created_at)}</p>
