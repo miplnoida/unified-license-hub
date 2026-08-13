@@ -1376,7 +1376,7 @@ export default function ApplicationDetail() {
 
 
             {/* Manual staff actions (no workflow configured) */}
-            {showManualActions && (
+            {activeTab === 'workflow' && showManualActions && (
               <Card>
                 <CardContent className="pt-6">
                   <Accordion type="single" collapsible defaultValue="manual-review-actions" className="w-full rounded-md border border-border/60">
