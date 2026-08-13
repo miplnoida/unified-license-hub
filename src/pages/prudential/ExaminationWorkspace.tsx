@@ -273,7 +273,9 @@ export default function ExaminationWorkspace() {
             <TabsTrigger value="current">Current step</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
             <TabsTrigger value="documents">Documents &amp; reports</TabsTrigger>
+            <TabsTrigger value="ai-reports">AI analysis reports</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
+
             {showAll && <TabsTrigger value="scoping">Scoping</TabsTrigger>}
             {showAll && <TabsTrigger value="team">Team</TabsTrigger>}
             {showAll && <TabsTrigger value="data-requests">Data requests</TabsTrigger>}
