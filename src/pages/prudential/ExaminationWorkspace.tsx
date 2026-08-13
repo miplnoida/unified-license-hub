@@ -291,18 +291,154 @@ export default function ExaminationWorkspace() {
               counts={counts}
               readOnly={readOnly}
             />
-            <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="examination_brief"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI examination preparation brief"
-              actionLabel="Generate brief"
-              description="Background summary drawn from the recorded supervisory history. It does not set the scope, risk rating or any finding."
-              stalenessFacts={aiStaleness}
+          </TabsContent>
+
+          {/* Advisory AI only — drafting and summarisation of recorded material.
+              No scope, finding, rating or stage is changed from this tab. */}
+          <TabsContent value="ai-reports" className="mt-4">
+            <AiReportsTab
+              description="Every AI-assisted analysis available for this examination, in one place. These reports interpret recorded material — they set no scope, finding, severity, rating or stage."
+              blocks={[
+                {
+                  id: 'ai-exam-brief',
+                  label: 'Preparation brief',
+                  hint: 'background from the recorded supervisory history',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="examination_brief"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI examination preparation brief"
+                      actionLabel="Generate brief"
+                      description="Background summary drawn from the recorded supervisory history. It does not set the scope, risk rating or any finding."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-scope',
+                  label: 'Suggested focus areas',
+                  hint: 'scoping suggestions for consideration',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="scope_suggestions"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI suggested focus areas"
+                      actionLabel="Suggest focus areas"
+                      description="Suggestions for consideration. The approved scope is entirely what the examiner records."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-data-requests',
+                  label: 'Suggested information requests',
+                  hint: 'suggested items only, nothing is issued',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="data_request_suggestions"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI suggested information requests"
+                      actionLabel="Suggest requests"
+                      description="Suggested items only. Nothing is requested or issued until you create and send it yourself."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-workpapers',
+                  label: 'Workpaper summary',
+                  hint: 'what the workpapers record',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="workpaper_summary"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI workpaper summary"
+                      actionLabel="Summarise workpapers"
+                      description="Summary of what the workpapers record. Review sign-off requirements are unchanged."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-finding-draft',
+                  label: 'Draft finding text',
+                  hint: 'suggested wording, examiner remains the author',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="finding_draft"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI draft finding text"
+                      actionLabel="Draft finding text"
+                      description="Suggested wording based on recorded evidence. Copy it into a finding and edit it — the examiner remains the author."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-finding-consistency',
+                  label: 'Consistency review of findings',
+                  hint: 'clarity, duplication and evidence linkage',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="finding_consistency"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI consistency review of findings"
+                      actionLabel="Review findings"
+                      description="Observations on clarity, duplication and evidence linkage. Severity, status and ratings are unchanged."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-report-draft',
+                  label: 'Draft report sections',
+                  hint: 'narrative built from recorded findings and workpapers',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="report_draft"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI draft report sections"
+                      actionLabel="Draft report sections"
+                      description="Suggested narrative built only from recorded findings and workpapers. The report stays human-authored and human-approved."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-exam-management-response',
+                  label: 'Review of management responses',
+                  hint: 'whether responses address the findings',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="examination"
+                      analysisType="management_response_review"
+                      scopeId={exam.id}
+                      label={exam.reference || exam.title || 'Examination'}
+                      title="AI review of management responses"
+                      actionLabel="Review responses"
+                      description="Observations on whether responses address the findings. Accepting or rejecting a response remains a human decision."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+              ]}
             />
           </TabsContent>
+
 
           {/* The stage lifecycle can only be advanced from the current step. */}
           <TabsContent value="current" className="mt-4 space-y-4">
