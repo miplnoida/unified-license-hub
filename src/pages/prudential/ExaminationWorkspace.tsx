@@ -343,28 +343,8 @@ export default function ExaminationWorkspace() {
           <TabsContent value="findings" className="mt-4 space-y-4">
             {detourBanner()}
             <FindingsPanel examinationId={exam.id} readOnly={readOnly} />
-            <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="finding_draft"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI draft finding text"
-              actionLabel="Draft finding text"
-              description="Suggested wording based on recorded evidence. Copy it into a finding and edit it — the examiner remains the author."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="finding_consistency"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI consistency review of findings"
-              actionLabel="Review findings"
-              description="Observations on clarity, duplication and evidence linkage. Severity, status and ratings are unchanged."
-              stalenessFacts={aiStaleness}
-            />
+
+
           </TabsContent>
           <TabsContent value="documents" className="mt-4 space-y-4">
             {detourBanner()}
