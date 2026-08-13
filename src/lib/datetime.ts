@@ -58,3 +58,19 @@ export function formatDateOnly(
     return placeholder;
   }
 }
+
+/** ISO-8601 instants (with time) and plain ISO dates found inside free text. */
+const ISO_INSTANT_RE = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g;
+const ISO_DATE_RE = /(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d:T-])/g;
+
+/**
+ * Rewrites machine timestamps embedded in text (AI narrative, evidence values,
+ * raw field dumps) into the same readable form used across list pages.
+ * Non-timestamp text is returned untouched.
+ */
+export function humanizeTimestamps(text: string | null | undefined): string {
+  if (!text) return text ?? '';
+  return text
+    .replace(ISO_INSTANT_RE, (m) => formatDateTime(m, m))
+    .replace(ISO_DATE_RE, (m) => formatDateOnly(m, m));
+}
