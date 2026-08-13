@@ -202,12 +202,13 @@ export const mainNavSections: NavSection[] = [
       },
     ],
   },
-  {
-    label: 'Twin Peaks Coordination',
-    items: [
-      { label: 'Coordination Cases', href: '/coordination', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'coordination' },
-    ],
-  },
+  // Twin Peaks Coordination is hidden from the sidebar for now (routes/pages retained):
+  // {
+  //   label: 'Twin Peaks Coordination',
+  //   items: [
+  //     { label: 'Coordination Cases', href: '/coordination', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'coordination' },
+  //   ],
+  // },
   {
     label: 'Prudential Supervision',
     items: [

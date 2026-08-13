@@ -9,9 +9,19 @@ import {
 } from 'lucide-react';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
+export type ConsolidatedCaseSection =
+  | 'other_applications'
+  | 'licenses'
+  | 'complaints'
+  | 'enforcement'
+  | 'pending_returns'
+  | 'prudential_breaches';
+
 interface Props {
   applicationId: string;
   applicantId: string;
+  /** Sections to suppress (used by the Decision tab to avoid duplicated data). */
+  hiddenSections?: ConsolidatedCaseSection[];
 }
 
 interface Bundle {
@@ -32,7 +42,8 @@ const empty: Bundle = {
   prudentialBreaches: [],
 };
 
-export function ConsolidatedCaseTab({ applicationId, applicantId }: Props) {
+export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections = [] }: Props) {
+  const isHidden = (s: ConsolidatedCaseSection) => hiddenSections.includes(s);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Bundle>(empty);
 
@@ -132,12 +143,12 @@ export function ConsolidatedCaseTab({ applicationId, applicantId }: Props) {
   }
 
   const isEmpty =
-    !data.otherApplications.length &&
-    !data.licenses.length &&
-    !data.complaints.length &&
-    !data.enforcement.length &&
-    !data.pendingReturns.length &&
-    !data.prudentialBreaches.length;
+    (isHidden('other_applications') || !data.otherApplications.length) &&
+    (isHidden('licenses') || !data.licenses.length) &&
+    (isHidden('complaints') || !data.complaints.length) &&
+    (isHidden('enforcement') || !data.enforcement.length) &&
+    (isHidden('pending_returns') || !data.pendingReturns.length) &&
+    (isHidden('prudential_breaches') || !data.prudentialBreaches.length);
 
   if (isEmpty) {
     return (
@@ -151,7 +162,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId }: Props) {
 
   return (
     <div className="space-y-4">
-      {data.otherApplications.length > 0 && (
+      {!isHidden('other_applications') && data.otherApplications.length > 0 && (
         <Section
           icon={<FileText className="h-4 w-4" />}
           title="Other Applications"
@@ -172,7 +183,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId }: Props) {
         </Section>
       )}
 
-      {data.licenses.length > 0 && (
+      {!isHidden('licenses') && data.licenses.length > 0 && (
         <Section
           icon={<Shield className="h-4 w-4" />}
           title="Held Licenses"
