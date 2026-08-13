@@ -163,6 +163,20 @@ export default function ApplicationDetail() {
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
 
+  // Internal reviewers land on the Workflow tab when a workflow review is live,
+  // unless the URL asked for a specific tab.
+  const workflowTabAutoSelected = useRef(false);
+  useEffect(() => {
+    if (initialTabParam || workflowTabAutoSelected.current) return;
+    if (!isInternal || !workflowChecked) return;
+    const workflowLive = workflowApprovalEnabled && !!(app as any)?.workflow_id && workflowActive;
+    if (!workflowLive) return;
+    workflowTabAutoSelected.current = true;
+    setActiveTab('workflow');
+  }, [initialTabParam, isInternal, workflowChecked, workflowApprovalEnabled, workflowActive, (app as any)?.workflow_id]);
+
+
+
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
   const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
@@ -786,6 +800,14 @@ export default function ApplicationDetail() {
   const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
   const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'under_review', 'review', 'pending_review'].includes(app.status) && !hasPendingEditRequest;
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
+  const showResubmissionPendingNotice =
+    workflowChecked && workflowOn === false && isInternal &&
+    (app.status === 'resubmission_requested' || app.status === 'query_raised');
+  // Workflow/review lives in its own tab so it no longer repeats under every tab.
+  const showWorkflowTab =
+    showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
+
+
 
   // Admin allows the applicant's edit request → pause workflow and move app to
   // resubmission_requested so the applicant can edit and resubmit.
@@ -882,12 +904,12 @@ export default function ApplicationDetail() {
             <CardTitle className="text-base">Application Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusTimeline currentStatus={app.status} events={events} />
+            <StatusTimeline currentStatus={app.status} events={events} showActivityLog={false} />
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="w-full">
+          <div className="space-y-6">
             {/* Forms and Documents tabs - always visible */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
@@ -895,8 +917,10 @@ export default function ApplicationDetail() {
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                {showWorkflowTab && <TabsTrigger value="workflow">Workflow</TabsTrigger>}
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="rfi" className="gap-1.5">
+
                   RFI
                   {openRfiCount > 0 && (
                     <Badge variant="destructive" className="h-4 min-w-[1rem] px-1 text-[10px] leading-none">
@@ -1270,8 +1294,8 @@ export default function ApplicationDetail() {
 
 
 
-            {/* Admin: Edit Request Pending — bypasses workflow */}
-            {showEditRequestAdminPanel && (
+            {/* Admin: Edit Request Pending — bypasses workflow (Workflow tab only) */}
+            {activeTab === 'workflow' && showEditRequestAdminPanel && (
               <Card className="border-warning/40">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -1315,31 +1339,12 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Decision support (AI assessment, sufficiency, twin-peaks, readiness) now
-                lives in the consolidated "Decision" tab above for internal staff. */}
-            {isInternal && app.status !== 'draft' && activeTab !== 'decision' && (
-              <Card className="border-primary/30">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div>
-                    <p className="text-sm font-medium">Decision-ready view</p>
-                    <p className="text-sm text-muted-foreground">
-                      Readiness, sufficiency, twin-peaks clearances, AI assessment and document previews in one place.
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setActiveTab('decision')}>
-                    Open Decision view
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {/* Decision support lives in the "Decision" tab; no duplicate promo card here. */}
 
+            {/* Per-step SLA is rendered inside WorkflowPanel for the active step. */}
 
-            {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
-                top-level banner removed to avoid duplicate/misleading aggregate SLA. */}
-
-
-            {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
-            {showWorkflowPanel && (
+            {/* Workflow-based review panel — rendered only in the Workflow tab */}
+            {activeTab === 'workflow' && showWorkflowPanel && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
@@ -1366,7 +1371,7 @@ export default function ApplicationDetail() {
 
 
             {/* Manual staff actions (no workflow configured) */}
-            {showManualActions && (
+            {activeTab === 'workflow' && showManualActions && (
               <Card>
                 <CardContent className="pt-6">
                   <Accordion type="single" collapsible defaultValue="manual-review-actions" className="w-full rounded-md border border-border/60">
@@ -1437,7 +1442,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {workflowChecked && workflowOn === false && isInternal && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {activeTab === 'workflow' && showResubmissionPendingNotice && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -1596,38 +1601,8 @@ export default function ApplicationDetail() {
             })()}
           </div>
 
-          {/* Sidebar - Activity Log */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Activity Log</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No actions yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {events.slice().reverse().map(a => (
-                      <div key={a.id} className="border-l-2 border-border pl-3 py-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {a.action.replace(/_/g, ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{a.actor_email}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {formatDateTime(a.created_at)}
-                        </p>
-                        {a.comments && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">"{a.comments}"</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Activity trail lives solely in the "Activity" tab above. */}
+
         </div>
 
         {/* CollaborativeReview moved into the review column next to WorkflowPanel. */}

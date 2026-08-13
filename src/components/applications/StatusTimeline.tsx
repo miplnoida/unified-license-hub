@@ -15,7 +15,10 @@ interface TimelineEvent {
 interface Props {
   currentStatus: ApplicationStatus;
   events: TimelineEvent[];
+  /** Render the inline activity log below the progress bar. */
+  showActivityLog?: boolean;
 }
+
 
 const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   draft: { icon: <Circle className="h-4 w-4" />, color: 'text-muted-foreground' },
@@ -28,7 +31,7 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   query_raised: { icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500' },
 };
 
-export function StatusTimeline({ currentStatus, events }: Props) {
+export function StatusTimeline({ currentStatus, events, showActivityLog = true }: Props) {
   const isRejected = currentStatus === 'rejected';
   const isResubmission = currentStatus === 'resubmission_requested' || currentStatus === 'query_raised';
   // For resubmission, show progress as if between submitted and in_progress
@@ -69,7 +72,7 @@ export function StatusTimeline({ currentStatus, events }: Props) {
       </div>
 
       {/* Activity log */}
-      {events.length > 0 && (
+      {showActivityLog && events.length > 0 && (
         <div className="border-t pt-3">
           <p className="text-xs font-medium text-muted-foreground mb-2">Activity Log</p>
           <div className="relative">
