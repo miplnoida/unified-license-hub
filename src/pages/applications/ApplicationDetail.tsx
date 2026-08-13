@@ -1280,8 +1280,8 @@ export default function ApplicationDetail() {
 
 
 
-            {/* Admin: Edit Request Pending — bypasses workflow */}
-            {showEditRequestAdminPanel && (
+            {/* Admin: Edit Request Pending — bypasses workflow (Workflow tab only) */}
+            {activeTab === 'workflow' && showEditRequestAdminPanel && (
               <Card className="border-warning/40">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
