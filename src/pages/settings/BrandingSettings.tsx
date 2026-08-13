@@ -148,14 +148,14 @@ export default function BrandingSettingsPage() {
                 <input type="file" ref={logoInputRef} accept="image/*" className="hidden" onChange={handleLogoUpload} />
                 {brand.logo_url ? (
                   <div className="relative inline-block">
-                    <img src={brand.logo_url} alt="Logo preview" className="h-24 max-w-full rounded-lg border bg-muted/50 object-contain p-2" />
+                    <img src={brand.logo_url} alt="Logo preview" className="h-40 max-w-md rounded-lg border bg-muted/50 object-contain p-2" />
                     <button onClick={() => setBrand(prev => ({ ...prev, logo_url: '' }))}
                       className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground shadow-sm hover:bg-destructive/90">
                       <X className="h-3 w-3" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex h-28 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                  <div className="flex h-40 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
                     <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
                   </div>
                 )}

@@ -15,13 +15,15 @@ export function LandingNav() {
         {/* Logo */}
         <a href="#" className="flex items-center gap-2">
           {branding.logo_url ? (
-            <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-md object-contain" />
+            <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[200px] rounded-md object-contain" />
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <Layers className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
+                <Layers className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="text-base font-bold tracking-tight text-foreground">{branding.site_name}</span>
+            </>
           )}
-          <span className="text-base font-bold tracking-tight text-foreground">{branding.site_name}</span>
         </a>
 
         {/* Desktop links */}
