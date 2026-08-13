@@ -332,10 +332,14 @@ function RfiItemRow({
   const [saving, setSaving] = useState(false);
   const rfiClosed = rfiStatus === 'closed' || rfiStatus === 'cancelled';
 
+  const alreadyAnswered =
+    item.response_status === 'responded' || (item.responses?.length ?? 0) > 0;
+
   const canRespond =
     isApplicant &&
     (rfiStatus === 'open' || rfiStatus === 'responded') &&
-    item.response_status !== 'responded';
+    !alreadyAnswered;
+
 
   const submit = async () => {
     const needsText = item.question_type === 'text' || item.question_type === 'both';
