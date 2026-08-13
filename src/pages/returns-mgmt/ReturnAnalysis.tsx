@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { RiskBadge } from '@/components/prudential/RiskBadge';
 
 type RiskLevel = 'green' | 'amber' | 'red';
 interface Metric { key: string; label: string; value: number | null; unit: string | null; risk_level: RiskLevel; threshold: number | null; null_reason?: string | null; }
@@ -26,12 +27,6 @@ interface AnalysisRow {
   peer: Array<{ ratio_key: string; label: string; my_value: number | null; distribution: any }>;
   early_warnings: EarlyWarning[]; recommendations: Recommendation[]; inputs: Record<string, unknown>;
 }
-
-const RISK_BADGE: Record<RiskLevel, string> = {
-  green: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  red:   'bg-destructive/10 text-destructive border-destructive/30',
-};
 
 function ScoreGauge({ value }: { value: number | null }) {
   const v = value ?? 0;
@@ -59,7 +54,7 @@ function CategoryCard({ title, s }: { title: string; s: Summary | undefined }) {
             <span className="font-medium">{m.label}</span>
             <div className="flex items-center gap-2">
               <span className="tabular-nums">{m.value == null ? (m.null_reason ?? '—') : m.value.toFixed(2)}</span>
-              <Badge className={RISK_BADGE[m.risk_level]} variant="outline">{m.risk_level}</Badge>
+              <RiskBadge level={m.risk_level} />
             </div>
           </div>
         ))}
@@ -172,7 +167,7 @@ export default function ReturnAnalysis() {
                   {selected.heatmap?.map((h) => (
                     <div key={h.category} className="text-xs flex flex-col items-center gap-1 border rounded px-3 py-2">
                       <span className="capitalize text-muted-foreground">{h.category.replace('_', ' ')}</span>
-                      <Badge className={RISK_BADGE[h.risk_level]} variant="outline">{h.risk_level}</Badge>
+                      <RiskBadge level={h.risk_level} />
                     </div>
                   ))}
                 </div>
@@ -226,7 +221,7 @@ export default function ReturnAnalysis() {
                     <ul className="space-y-2 text-sm">
                       {selected.early_warnings.map((w, i) => (
                         <li key={i} className="flex items-start gap-2 border-b pb-2 last:border-b-0">
-                          <Badge className={RISK_BADGE[w.level]} variant="outline">{w.level}</Badge>
+                          <RiskBadge level={w.level} />
                           <div>
                             <div className="font-medium">{w.metric_key}</div>
                             <div className="text-xs text-muted-foreground">{w.reason.replace(/_/g, ' ')} — {JSON.stringify(w.evidence?.[0] ?? {})}</div>
@@ -247,7 +242,7 @@ export default function ReturnAnalysis() {
                         <li key={i} className="border-b pb-2 last:border-b-0">
                           <div className="flex items-center gap-2 text-xs">
                             <Badge variant="outline" className="capitalize">{r.category.replace('_', ' ')}</Badge>
-                            <Badge className={RISK_BADGE[r.level]} variant="outline">{r.level}</Badge>
+                            <RiskBadge level={r.level} />
                             <span className="text-muted-foreground">{r.metric_key}</span>
                           </div>
                           <p className="mt-1">{r.text}</p>
@@ -271,7 +266,7 @@ export default function ReturnAnalysis() {
                           <span>{m.label}</span>
                           <div className="flex items-center gap-2">
                             <span className="tabular-nums">{m.value == null ? '—' : m.value.toFixed(2)}</span>
-                            <Badge className={RISK_BADGE[m.risk_level]} variant="outline">{m.risk_level}</Badge>
+                            <RiskBadge level={m.risk_level} />
                           </div>
                         </li>
                       ))}

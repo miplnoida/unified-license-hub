@@ -343,3 +343,67 @@ export function useSupervisoryAiReportById(id: string | null) {
     },
   });
 }
+
+/**
+ * Every supervised entity the current user may see, with how many authorised AI
+ * reports each one has (zero included). The filter dropdown uses this so it
+ * lists the whole supervised population instead of only entities that happen to
+ * have an analysis already.
+ */
+export function useSupervisoryAiReportEntityOptions() {
+  const query = useQuery({
+    queryKey: ['ai_report_hub', 'entity-options'],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('supervisory_ai_report_entity_options');
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => ({
+        id: r.entity_id as string,
+        name: (r.entity_name as string) ?? 'Unnamed entity',
+        count: Number(r.n ?? 0),
+      }));
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  return {
+    entities: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    retry: () => query.refetch(),
+  };
+}
+
+/**
+ * Every authorised AI report for one entity, regardless of module — the input
+ * for the entity coverage view across the supervisory areas.
+ */
+export function useEntityAiCoverage(entityId: string | null) {
+  const query = useQuery({
+    queryKey: ['ai_report_hub', 'entity-coverage', entityId],
+    enabled: !!entityId,
+    queryFn: async (): Promise<SupervisoryAiReport[]> => {
+      const { data, error } = await sb.rpc('supervisory_ai_reports_index', {
+        _modules: null,
+        _analysis_types: null,
+        _entity_id: entityId,
+        _from: null,
+        _to: null,
+        _search: null,
+        _include_failed: false,
+        _confidence: null,
+        _freshness: null,
+        _limit: 500,
+        _offset: 0,
+      });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map(toReport);
+    },
+  });
+
+  return {
+    reports: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    retry: () => query.refetch(),
+  };
+}

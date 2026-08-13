@@ -42,6 +42,7 @@ import { formatDateTime } from '@/lib/datetime';
 import {
   DEFAULT_FILTERS,
   useSupervisoryAiReportById,
+  useSupervisoryAiReportEntityOptions,
   useSupervisoryAiReportFacets,
   useSupervisoryAiReportSources,
   useSupervisoryAiReports,
@@ -63,6 +64,18 @@ import {
   type TimeRange,
 } from '@/lib/ai/reportHub';
 import { AiReportDetailDrawer } from '@/components/ai/AiReportDetailDrawer';
+import { EntityCoverageView } from '@/components/ai-reports/EntityCoverageView';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ALL_MODULES = Object.keys(HUB_MODULE_LABEL) as HubModule[];
 
@@ -135,6 +148,84 @@ function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: (
   );
 }
 
+/**
+ * Entity picker over the whole supervised population the user may see — not only
+ * entities that already have a report. Entities without an analysis stay
+ * selectable so the gap is visible instead of invisible.
+ */
+function EntityFilter({
+  value,
+  onChange,
+  entities,
+  isLoading,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+  entities: Array<{ id: string; name: string; count: number }>;
+  isLoading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = entities.find((e) => e.id === value);
+  const withReports = entities.filter((e) => e.count > 0);
+  const withoutReports = entities.filter((e) => e.count === 0);
+
+  const row = (e: { id: string; name: string; count: number }) => (
+    <CommandItem
+      key={e.id}
+      value={`${e.name} ${e.id}`}
+      onSelect={() => {
+        onChange(e.id === value ? null : e.id);
+        setOpen(false);
+      }}
+    >
+      <Check className={cn('mr-2 h-4 w-4', value === e.id ? 'opacity-100' : 'opacity-0')} />
+      <span className={cn('flex-1 truncate', e.count === 0 && 'text-muted-foreground')}>{e.name}</span>
+      <span className="ml-2 text-xs text-muted-foreground">
+        {e.count > 0 ? `${e.count} report${e.count === 1 ? '' : 's'}` : 'none yet'}
+      </span>
+    </CommandItem>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          <span className="truncate">
+            {isLoading ? 'Loading entities…' : selected ? selected.name : 'All entities'}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search entities…" />
+          <CommandList>
+            <CommandEmpty>No entity matches that name.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="all entities"
+                onSelect={() => {
+                  onChange(null);
+                  setOpen(false);
+                }}
+              >
+                <Check className={cn('mr-2 h-4 w-4', value ? 'opacity-0' : 'opacity-100')} />
+                All entities
+              </CommandItem>
+            </CommandGroup>
+            {!!withReports.length && (
+              <CommandGroup heading="With AI reports">{withReports.map(row)}</CommandGroup>
+            )}
+            {!!withoutReports.length && (
+              <CommandGroup heading="No reports yet">{withoutReports.map(row)}</CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function LoadIssue({ label, onRetry }: { label: string; onRetry: () => void }) {
   return (
     <Alert variant="destructive">
@@ -185,6 +276,7 @@ export default function SupervisoryAiReports() {
   } = useSupervisoryAiReports(effectiveFilters);
 
   const facets = useSupervisoryAiReportFacets(effectiveFilters);
+  const entityOptions = useSupervisoryAiReportEntityOptions();
   const { data: sourceAvailability } = useSupervisoryAiReportSources();
 
   /** `?report=` deep link — opens the drawer for an authorised report only. */
@@ -232,6 +324,9 @@ export default function SupervisoryAiReports() {
 
   const noSourceAvailable =
     sourceAvailability && Object.values(sourceAvailability).every((v) => !v);
+
+  const selectedEntityName =
+    entityOptions.entities.find((e) => e.id === filters.entityId)?.name ?? null;
 
   const kpiValue = (value?: number) => {
     if (isError) return 'Counts incomplete';
@@ -350,6 +445,12 @@ export default function SupervisoryAiReports() {
             onRetry={retry}
           />
         )}
+        {entityOptions.isError && (
+          <LoadIssue
+            label="The entity list could not be loaded. The reports below are unaffected."
+            onRetry={entityOptions.retry}
+          />
+        )}
         {facets.isError && (
           <LoadIssue
             label="Filter options (entities and analysis types) could not be loaded. The reports below are unaffected."
@@ -447,22 +548,12 @@ export default function SupervisoryAiReports() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Entity</Label>
-                <Select
-                  value={filters.entityId ?? 'all'}
-                  onValueChange={(v) => set('entityId', v === 'all' ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All entities</SelectItem>
-                    {facets.entities.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name} ({e.count})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntityFilter
+                  value={filters.entityId}
+                  onChange={(id) => set('entityId', id)}
+                  entities={entityOptions.entities}
+                  isLoading={entityOptions.isLoading}
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -525,6 +616,7 @@ export default function SupervisoryAiReports() {
             <TabsTrigger value="lifecycle">By lifecycle stage</TabsTrigger>
             <TabsTrigger value="module">By area of work</TabsTrigger>
             <TabsTrigger value="recent">Most recent</TabsTrigger>
+            <TabsTrigger value="entity">Entity view</TabsTrigger>
           </TabsList>
 
           <TabsContent value="lifecycle" className="mt-4 space-y-6">
@@ -567,6 +659,14 @@ export default function SupervisoryAiReports() {
           <TabsContent value="recent" className="mt-4 space-y-4">
             {renderList(reports)}
             {loadMoreRow}
+          </TabsContent>
+
+          <TabsContent value="entity" className="mt-4 space-y-4">
+            <EntityCoverageView
+              entityId={filters.entityId}
+              entityName={selectedEntityName}
+              onOpen={(r) => setSelected(r)}
+            />
           </TabsContent>
         </Tabs>
 
