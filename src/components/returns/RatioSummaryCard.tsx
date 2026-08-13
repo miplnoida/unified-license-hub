@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { severityLabel } from '@/lib/prudentialSeverity';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, TrendingUp } from 'lucide-react';
 import type { ComputedRatio, DetectedBreach } from '@/lib/returnsRatios';
@@ -41,7 +42,7 @@ export function RatioSummaryCard({ ratios, breaches = [] }: Props) {
                     {b && (
                       <Badge variant="outline" className={b.level === 'breach' ? 'text-destructive border-destructive' : 'text-warning border-warning'}>
                         <AlertTriangle className="h-3 w-3 mr-1" />
-                        {b.level} · {b.comparator} {b.threshold_value}
+                        {severityLabel(b.level)} · {b.comparator} {b.threshold_value}
                       </Badge>
                     )}
                   </div>

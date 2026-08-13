@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RiskBadge } from '@/components/prudential/RiskBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -569,7 +570,7 @@ function DecisionReportBlock({
                           </Badge>
                           <span className="font-medium">{s.label || s.key}</span>
                           {s.risk_level && (
-                            <Badge variant="outline" className="text-[10px]">Risk: {s.risk_level}</Badge>
+                            <RiskBadge level={s.risk_level} className="text-[10px]" />
                           )}
                         </div>
                         {Array.isArray(s.observations) && s.observations.length > 0 && (
