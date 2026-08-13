@@ -1325,31 +1325,12 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Decision support (AI assessment, sufficiency, twin-peaks, readiness) now
-                lives in the consolidated "Decision" tab above for internal staff. */}
-            {isInternal && app.status !== 'draft' && activeTab !== 'decision' && (
-              <Card className="border-primary/30">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div>
-                    <p className="text-sm font-medium">Decision-ready view</p>
-                    <p className="text-sm text-muted-foreground">
-                      Readiness, sufficiency, twin-peaks clearances, AI assessment and document previews in one place.
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setActiveTab('decision')}>
-                    Open Decision view
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {/* Decision support lives in the "Decision" tab; no duplicate promo card here. */}
 
+            {/* Per-step SLA is rendered inside WorkflowPanel for the active step. */}
 
-            {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
-                top-level banner removed to avoid duplicate/misleading aggregate SLA. */}
-
-
-            {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
-            {showWorkflowPanel && (
+            {/* Workflow-based review panel — rendered only in the Workflow tab */}
+            {activeTab === 'workflow' && showWorkflowPanel && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
