@@ -21,6 +21,16 @@ import { formatDateTime } from '@/lib/datetime';
 import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import {
+  AiReportEmptyState,
+  AiReportFooter,
+  AiReportMetaChip,
+  AiReportNotice,
+  AiReportSection,
+  AiReportShell,
+  AiReportSkeleton,
+  AiReportSummary,
+} from '@/components/ai/report/AiReportKit';
 
 interface Props {
   applicationId: string;
