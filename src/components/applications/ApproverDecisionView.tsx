@@ -92,45 +92,12 @@ export function ApproverDecisionView({
 
   return (
     <div className="space-y-4">
-      <Card className="border-primary/30">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Gavel className="h-4 w-4 text-primary" />
-                Consolidated Decision View
-              </CardTitle>
-              <CardDescription>
-                Everything required to determine this application — readiness, gates, exposure and the documents
-                that will be issued.
-              </CardDescription>
-            </div>
-            <Badge variant="outline">
-              {APPLICATION_STATUS_LABELS[application?.status as keyof typeof APPLICATION_STATUS_LABELS] ??
-                application?.status ??
-                '—'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Fact label="Application" value={application?.application_number ?? '—'} />
-            <Fact label="Applicant" value={resolvedName || '—'} />
-            <Fact label="Licence type" value={application?.license_type ?? '—'} />
-            <Fact label="Submitted" value={fmtDate(application?.submitted_at)} />
-          </div>
-          <Separator className="my-4" />
-          <p className="text-xs text-muted-foreground">
-            Sections below are read-only decision support. The determination is recorded in the decision actions at
-            the end of this view.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* 1 — Gates */}
       <DecisionGatesPanel applicationId={application.id} />
       <SufficiencyPanel applicationId={application.id} />
-      <TwinPeaksPanel applicationId={application.id} />
+      {/* Twin Peaks clearance hidden for now (component retained for future use):
+      <TwinPeaksPanel applicationId={application.id} /> */}
+
 
 
       {/* 2 — Advisory AI assessment */}
