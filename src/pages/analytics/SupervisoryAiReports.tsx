@@ -639,7 +639,7 @@ export default function SupervisoryAiReports() {
                 </div>
               </div>
 
-              <CollapsibleContent className="mt-4 grid gap-4 border-t pt-4 md:grid-cols-2 lg:grid-cols-4">
+              <CollapsibleContent className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Evidence Quality</Label>
                   <Select
