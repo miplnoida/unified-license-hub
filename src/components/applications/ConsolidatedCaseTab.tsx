@@ -42,7 +42,8 @@ const empty: Bundle = {
   prudentialBreaches: [],
 };
 
-export function ConsolidatedCaseTab({ applicationId, applicantId }: Props) {
+export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections = [] }: Props) {
+  const isHidden = (s: ConsolidatedCaseSection) => hiddenSections.includes(s);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Bundle>(empty);
 
