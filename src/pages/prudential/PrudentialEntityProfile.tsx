@@ -591,18 +591,8 @@ export default function PrudentialEntityProfile() {
             );
           })()}
 
-          <AdvisoryAiPanel
-            className="mt-4"
-            analysisType="trend_commentary"
-            scopeId={e.id}
-            periodKey={ratioTrend.length ? String((ratioTrend[ratioTrend.length - 1] as any).period) : null}
-            label={e.name}
-            facts={trendFacts}
-            ready={ratioTrend.length > 0}
-            title="AI-assisted trend commentary"
-            description="Narrative on the movement in the ratios charted above. Every ratio value and threshold state is calculated by the system."
-          />
         </TabsContent>
+
 
 
         <TabsContent value="breaches">
