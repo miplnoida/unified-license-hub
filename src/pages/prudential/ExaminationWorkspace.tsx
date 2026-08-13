@@ -369,28 +369,8 @@ export default function ExaminationWorkspace() {
           <TabsContent value="documents" className="mt-4 space-y-4">
             {detourBanner()}
             <ReportsPanel examinationId={exam.id} readOnly={readOnly} />
-            <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="report_draft"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI draft report sections"
-              actionLabel="Draft report sections"
-              description="Suggested narrative built only from recorded findings and workpapers. The report stays human-authored and human-approved."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="management_response_review"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI review of management responses"
-              actionLabel="Review responses"
-              description="Observations on whether responses address the findings. Accepting or rejecting a response remains a human decision."
-              stalenessFacts={aiStaleness}
-            />
+
+
           </TabsContent>
           <TabsContent value="history" className="mt-4"><ExaminationTimeline examinationId={exam.id} /></TabsContent>
 
