@@ -415,17 +415,8 @@ export default function ExaminationWorkspace() {
               <TabsContent value="data-requests" className="mt-4 space-y-4">
                 {detourBanner()}
                 <DataRequestsPanel examinationId={exam.id} readOnly={readOnly} />
-                <SupervisoryAiPanel
-              className="mt-4"
-              module="examination"
-              analysisType="data_request_suggestions"
-              scopeId={exam.id}
-              label={exam.reference || exam.title || 'Examination'}
-              title="AI suggested information requests"
-              actionLabel="Suggest requests"
-              description="Suggested items only. Nothing is requested or issued until you create and send it yourself."
-              stalenessFacts={aiStaleness}
-            />
+
+
               </TabsContent>
               <TabsContent value="workpapers" className="mt-4 space-y-4">
                 {detourBanner()}
