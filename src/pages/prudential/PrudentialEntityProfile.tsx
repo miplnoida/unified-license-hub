@@ -25,6 +25,8 @@ import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from 
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
 import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 import { RiskScoreTab } from '@/components/prudential/RiskScoreTab';
 
 import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
