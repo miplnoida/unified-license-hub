@@ -115,7 +115,11 @@ export function ApproverDecisionView({
       />
 
       {/* 4 — Wider exposure for the same applicant */}
-      <ConsolidatedCaseTab applicationId={application.id} applicantId={application.applicant_id} />
+      <ConsolidatedCaseTab
+        applicationId={application.id}
+        applicantId={application.applicant_id}
+        hiddenSections={['other_applications', 'licenses']}
+      />
 
       {/* 5 — Documents that will be issued */}
       <DecisionDocumentPreview
