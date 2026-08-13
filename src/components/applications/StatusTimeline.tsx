@@ -15,7 +15,10 @@ interface TimelineEvent {
 interface Props {
   currentStatus: ApplicationStatus;
   events: TimelineEvent[];
+  /** Render the inline activity log below the progress bar. */
+  showActivityLog?: boolean;
 }
+
 
 const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   draft: { icon: <Circle className="h-4 w-4" />, color: 'text-muted-foreground' },
