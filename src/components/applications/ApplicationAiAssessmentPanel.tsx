@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  Loader2, Sparkles, RefreshCw, AlertTriangle, Info,
+  Loader2, Sparkles, RefreshCw, AlertTriangle, Info, CircleDot,
   ThumbsUp, ThumbsDown, ShieldAlert, CheckCircle2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
