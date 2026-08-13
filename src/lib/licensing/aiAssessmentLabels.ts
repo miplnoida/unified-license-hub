@@ -7,6 +7,7 @@
  * language here. Nothing in this file changes stored output.
  */
 import { formatEvidence } from '@/lib/evidenceLabel';
+import { humanizeTimestamps } from '@/lib/datetime';
 
 /** One severity word per finding — no duplicated code + label. */
 export function severityLabel(raw?: string | null): string {
@@ -130,13 +131,13 @@ export function toEvidenceFact(raw: unknown): EvidenceFact | null {
     // Treat the left side as a data key/path whenever it has no spaces
     // (`amount_paid`, `submitted_forms[0].response_data.amount_paid`).
     if (/^[A-Za-z0-9_.\[\]-]+$/.test(pathPart)) {
-      return { label: humanKey(pathPart), value: valuePart, raw: str };
+      return { label: humanKey(pathPart), value: humanizeTimestamps(valuePart), raw: str };
     }
   }
   if (/[.\[]/.test(str) && !/\s/.test(str)) {
     return { label: humanKey(str), raw: str };
   }
-  return { label: str, raw: str };
+  return { label: humanizeTimestamps(str), raw: str };
 }
 
 export function toEvidenceFacts(list: unknown): EvidenceFact[] {
