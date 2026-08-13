@@ -11,19 +11,14 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Gavel } from 'lucide-react';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { DecisionGatesPanel } from '@/components/applications/DecisionGatesPanel';
-
-import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
+// Twin Peaks clearance is currently hidden from the Decision tab (kept for future use):
+// import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 import { DecisionDocumentPreview } from '@/components/applications/DecisionDocumentPreview';
-import { APPLICATION_STATUS_LABELS } from '@/types/platform';
 
 interface TimelineEvent {
   id: string;
