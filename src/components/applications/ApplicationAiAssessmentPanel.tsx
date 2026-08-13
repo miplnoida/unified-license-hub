@@ -330,13 +330,9 @@ function CompletedView({
 
   return (
     <div className="space-y-5">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>AI-assisted and advisory only</AlertTitle>
-        <AlertDescription>
-          These results are suggestions. Analysts must still take all decisions through the Workflow panel below.
-        </AlertDescription>
-      </Alert>
+      <AiReportNotice>
+        These results are suggestions. Analysts must still take all decisions through the Workflow panel.
+      </AiReportNotice>
 
       <AnalystDecisionBar
         assessment={assessment}
@@ -345,60 +341,54 @@ function CompletedView({
         onSaved={onDecisionSaved}
       />
 
-      {assessment.summary && (
-        <section>
-          <div className="text-sm font-semibold mb-1">Summary</div>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{assessment.summary}</p>
-        </section>
-      )}
+      {assessment.summary && <AiReportSummary text={assessment.summary} />}
 
       {sections.length > 0 && (
-        <>
-          <Separator />
-          <section className="space-y-2">
-            <div className="text-sm font-semibold">Section-wise review</div>
-            <div className="space-y-2">
-              {sections.map((s, i) => {
-                const status = (s.status || '').toLowerCase();
-                return (
-                  <div key={`sec-${i}`} className="rounded-md border p-3 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
-                        {sectionStatusLabel(s.status)}
-                      </Badge>
-                      <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
-                      {s.risk_level && (
-                        <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
-                      )}
-                    </div>
-                    {Array.isArray(s.observations) && s.observations.length > 0 && (
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-                        {s.observations.map((o, idx) => <li key={idx}>{o}</li>)}
-                      </ul>
-                    )}
-                    <EvidenceFacts evidence={s.evidence} />
-                    {s.suggested_action && (
-                      <div className="text-xs">
-                        <span className="font-medium">Suggested action: </span>{s.suggested_action}
-                      </div>
+        <AiReportSection label="Section-wise review" sectionKey="key_observations" count={sections.length}>
+          <div className="space-y-2">
+            {sections.map((s, i) => {
+              const status = (s.status || '').toLowerCase();
+              return (
+                <div
+                  key={`sec-${i}`}
+                  className="space-y-1.5 rounded-md border bg-card/60 p-3 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
+                      {sectionStatusLabel(s.status)}
+                    </Badge>
+                    <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
+                    {s.risk_level && (
+                      <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        </>
+                  {Array.isArray(s.observations) && s.observations.length > 0 && (
+                    <ul className="space-y-1">
+                      {s.observations.map((o, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm leading-relaxed">
+                          <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span>{o}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <EvidenceFacts evidence={s.evidence} />
+                  {s.suggested_action && (
+                    <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                      <span className="font-medium text-primary">Suggested action: </span>{s.suggested_action}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </AiReportSection>
       )}
 
-      <Separator />
-
-
-
-      <section>
-        <div className="text-sm font-semibold mb-2">Routing recommendation</div>
+      <AiReportSection label="Routing recommendation" sectionKey="chronology">
         {routing.recommended_route ? (
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="space-y-2 rounded-md border bg-card/60 p-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge>{ROUTE_LABELS[routing.recommended_route] || routing.recommended_route}</Badge>
               {routing.recommended_action && (
                 <Badge variant="outline">Suggested next step: {categoryLabel(routing.recommended_action)}</Badge>
@@ -407,7 +397,7 @@ function CompletedView({
                 <Badge variant="secondary">{confidenceLabel(routing.confidence)}</Badge>
               )}
             </div>
-            {routing.reason && <p className="text-sm text-muted-foreground">{routing.reason}</p>}
+            {routing.reason && <p className="text-sm leading-relaxed text-muted-foreground">{routing.reason}</p>}
             <AIRoutingDecisionActions
               assessment={assessment}
               currentUserId={currentUserId}
@@ -417,33 +407,34 @@ function CompletedView({
         ) : (
           <p className="text-sm text-muted-foreground">No routing recommendation provided.</p>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Findings ({findings.length})</div>
+      <AiReportSection label="Findings" sectionKey="issues" count={findings.length}>
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings.</p>
         ) : (
           <div className="space-y-3">
             {SEVERITY_ORDER.map((sev) =>
               groupedFindings[sev]?.length ? (
-                <div key={sev}>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{severityLabel(sev)}</div>
+                <div key={sev} className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {severityLabel(sev)}
+                  </div>
                   <div className="space-y-2">
                     {groupedFindings[sev].map((f, idx) => (
-                      <div key={idx} className="rounded-md border p-3 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={severityTone(sev)}>{severityLabel(sev)}</Badge>
                           {f.category && <Badge variant="outline">{categoryLabel(f.category)}</Badge>}
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm text-muted-foreground">{f.description}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{f.description}</p>
                         )}
                         <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
-                          <div className="text-xs">
-                            <span className="font-medium">Suggested action: </span>
+                          <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                            <span className="font-medium text-primary">Suggested action: </span>
                             {f.analyst_action}
                           </div>
                         )}
@@ -454,11 +445,13 @@ function CompletedView({
               ) : null,
             )}
             {groupedFindings.other?.length > 0 && (
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Other observations</div>
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Other observations
+                </div>
                 <div className="space-y-2">
                   {groupedFindings.other.map((f, idx) => (
-                    <div key={idx} className="rounded-md border p-3 text-sm">
+                    <div key={idx} className="rounded-md border bg-card/60 p-3 text-sm">
                       {f.title || f.description || 'Finding'}
                     </div>
                   ))}
@@ -467,42 +460,40 @@ function CompletedView({
             )}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Identified risks ({risks.length})</div>
+      <AiReportSection label="Identified risks" sectionKey="risks" count={risks.length}>
         {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No risks identified.</p>
         ) : (
           <div className="space-y-2">
             {risks.map((r, idx) => (
-              <div key={idx} className="rounded-md border p-3 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={severityTone(r.level)}>
                     {riskLevelLabel(r.level) || 'Not rated'}
                   </Badge>
                   {r.risk_type && <Badge variant="outline">{categoryLabel(r.risk_type)}</Badge>}
                 </div>
-                {r.reason && <p className="text-sm text-muted-foreground">{r.reason}</p>}
+                {r.reason && <p className="text-sm leading-relaxed text-muted-foreground">{r.reason}</p>}
                 <EvidenceFacts evidence={r.evidence} />
               </div>
             ))}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
       {missing.length > 0 && (
-        <section>
-          <div className="text-sm font-semibold mb-2">Missing information</div>
-          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+        <AiReportSection label="Missing information" sectionKey="gaps" count={missing.length}>
+          <div className="grid gap-2 sm:grid-cols-2">
             {missing.map((m, idx) => (
-              <li key={idx}>{m}</li>
+              <div key={idx} className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
+                {m}
+              </div>
             ))}
-          </ul>
-        </section>
+          </div>
+        </AiReportSection>
       )}
-
-      <Separator />
 
       <AssessmentFooter assessment={assessment} />
     </div>
