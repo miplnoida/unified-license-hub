@@ -42,6 +42,8 @@ import { ExaminationStageActionsProvider } from '@/components/prudential/examina
 import { ExaminationResolveBanner } from '@/components/prudential/examination/ExaminationResolveBanner';
 import { ExaminationOverview } from '@/components/prudential/examination/ExaminationOverview';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 
 
 const ORDER: ExaminationStage[] = EXAMINATION_STAGES.map(s => s.value);
