@@ -143,12 +143,12 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
   }
 
   const isEmpty =
-    !data.otherApplications.length &&
-    !data.licenses.length &&
-    !data.complaints.length &&
-    !data.enforcement.length &&
-    !data.pendingReturns.length &&
-    !data.prudentialBreaches.length;
+    (isHidden('other_applications') || !data.otherApplications.length) &&
+    (isHidden('licenses') || !data.licenses.length) &&
+    (isHidden('complaints') || !data.complaints.length) &&
+    (isHidden('enforcement') || !data.enforcement.length) &&
+    (isHidden('pending_returns') || !data.pendingReturns.length) &&
+    (isHidden('prudential_breaches') || !data.prudentialBreaches.length);
 
   if (isEmpty) {
     return (
