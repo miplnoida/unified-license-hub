@@ -21,8 +21,10 @@ import {
   FRESHNESS_LABEL,
   HUB_MODULE_LABEL,
   analysisTypeLabel,
+  needsAttention,
   type SupervisoryAiReport,
 } from '@/lib/ai/reportHub';
+
 
 interface Props {
   entityId: string | null;
