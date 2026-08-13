@@ -786,6 +786,14 @@ export default function ApplicationDetail() {
   const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
   const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'under_review', 'review', 'pending_review'].includes(app.status) && !hasPendingEditRequest;
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
+  const showResubmissionPendingNotice =
+    workflowChecked && workflowOn === false && isInternal &&
+    (app.status === 'resubmission_requested' || app.status === 'query_raised');
+  // Workflow/review lives in its own tab so it no longer repeats under every tab.
+  const showWorkflowTab =
+    showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
+
+
 
   // Admin allows the applicant's edit request → pause workflow and move app to
   // resubmission_requested so the applicant can edit and resubmit.
