@@ -162,7 +162,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
 
   return (
     <div className="space-y-4">
-      {data.otherApplications.length > 0 && (
+      {!isHidden('other_applications') && data.otherApplications.length > 0 && (
         <Section
           icon={<FileText className="h-4 w-4" />}
           title="Other Applications"
