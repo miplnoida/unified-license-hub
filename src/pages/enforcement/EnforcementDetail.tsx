@@ -24,6 +24,8 @@ import { EnforcementLifecyclePanel } from '@/components/enforcement/EnforcementL
 import { EnforcementObligationsPanel } from '@/components/enforcement/EnforcementObligationsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 
 export default function EnforcementDetail() {
   const { id } = useParams<{ id: string }>();
