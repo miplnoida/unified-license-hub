@@ -28,6 +28,13 @@ import {
 } from '@/lib/ai/reportHub';
 import { SUPERVISORY_SECTIONS, type AdvisoryObservation, type SupervisoryPayload } from '@/lib/ai/advisoryAi';
 import {
+  plainLanguageFromLegacyApplication,
+  plainLanguageFromLegacyFpa,
+  plainLanguageFromPayload,
+  isEmptyPlainLanguage,
+  type PlainLanguageBlock,
+} from '@/lib/ai/reportPlainLanguage';
+import {
   useSupervisoryAiReportDetail,
   useSupervisoryAiReportVersions,
 } from '@/hooks/useSupervisoryAiReports';
@@ -88,6 +95,54 @@ function Bullets({ items }: { items?: AdvisoryObservation[] | string[] | null })
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Plain-language opening block: the same stored content, arranged under the
+ * questions a non-technical reader asks first. No new content is generated.
+ */
+function PlainLanguageSummary({ block }: { block: PlainLanguageBlock }) {
+  if (isEmptyPlainLanguage(block)) return null;
+  return (
+    <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">In plain language</p>
+      {block.whatThisSays && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">What this says</p>
+          <p className="text-sm text-foreground">{block.whatThisSays}</p>
+        </div>
+      )}
+      {!!block.whyItMatters.length && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">Why it matters</p>
+          <ul className="mt-1 space-y-1 text-sm text-foreground">
+            {block.whyItMatters.map((t, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!!block.whatToLookAtNext.length && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">What to look at next</p>
+          <ul className="mt-1 space-y-1 text-sm text-foreground">
+            {block.whatToLookAtNext.map((t, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        This is advisory context only. The decision and the official record stay in the source module.
+      </p>
+    </div>
   );
 }
 
@@ -187,6 +242,18 @@ export function AiReportDetailDrawer({ report, onOpenChange, onSelectHistory }: 
                       </Button>
                     </AlertDescription>
                   </Alert>
+                )}
+
+                {!isLoading && !isError && (
+                  <PlainLanguageSummary
+                    block={
+                      report.source === 'ai_insights'
+                        ? plainLanguageFromPayload(payload)
+                        : report.source === 'fpa'
+                          ? plainLanguageFromLegacyFpa(legacy)
+                          : plainLanguageFromLegacyApplication(legacy)
+                    }
+                  />
                 )}
 
                 {!isLoading && !isError && report.source === 'ai_insights' && (
