@@ -1606,38 +1606,8 @@ export default function ApplicationDetail() {
             })()}
           </div>
 
-          {/* Sidebar - Activity Log */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Activity Log</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No actions yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {events.slice().reverse().map(a => (
-                      <div key={a.id} className="border-l-2 border-border pl-3 py-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {a.action.replace(/_/g, ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{a.actor_email}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {formatDateTime(a.created_at)}
-                        </p>
-                        {a.comments && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">"{a.comments}"</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Activity trail lives solely in the "Activity" tab above. */}
+
         </div>
 
         {/* CollaborativeReview moved into the review column next to WorkflowPanel. */}
