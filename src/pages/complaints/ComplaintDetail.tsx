@@ -431,48 +431,11 @@ export default function ComplaintDetail() {
               </Card>
             )}
 
-            {/* Advisory AI — summarisation and suggestions only. Status,
-                severity, priority and category of record are unchanged. */}
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="complaint_summary"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI complaint case summary"
-              actionLabel="Summarise complaint"
-              description="A plain-language summary of the recorded case. It does not change the status, severity, priority or outcome."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="complaint_classification"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI suggested categorisation"
-              actionLabel="Suggest categorisation"
-              description="Suggestions for a case officer to consider. Severity and category of record stay system- and human-controlled."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="complaints"
-              analysisType="similar_complaints"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI similar complaints observed"
-              actionLabel="Find similar complaints"
-              description="Similarities across recorded complaints for the same licensee. Duplicate handling stays with the existing process."
-              stalenessFacts={aiStaleness}
-            />
-            <SupervisoryAiPanel
-              module="conduct"
-              analysisType="conduct_recurrence"
-              scopeId={complaint.id}
-              label={complaint.complaint_number || 'Complaint'}
-              title="AI recurring conduct pattern observations"
-              actionLabel="Review recurring themes"
-              description="Recurring themes across the recorded complaint history. It creates no alert, rule or conduct action."
-              stalenessFacts={aiStaleness}
-            />
+            {/* Advisory AI now lives on its own tab so it can be presented as a
+                report. Status, severity, priority and category of record are
+                unchanged by anything there. */}
+
+
 
             <ConductClassificationCard complaint={complaint} />
             {COMPLAINT_TRIAGE_HISTORY_ENABLED && <TriageHistoryCard complaint={complaint} />}
