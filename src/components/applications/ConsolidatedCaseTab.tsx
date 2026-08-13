@@ -183,7 +183,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
         </Section>
       )}
 
-      {data.licenses.length > 0 && (
+      {!isHidden('licenses') && data.licenses.length > 0 && (
         <Section
           icon={<Shield className="h-4 w-4" />}
           title="Held Licenses"
