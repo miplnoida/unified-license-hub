@@ -319,35 +319,88 @@ export default function PrudentialEntityProfile() {
           <RiskScoreTab entityId={e.id} entityName={e.name} />
         </TabsContent>
 
-        <TabsContent value="overview">
-          {/* Cross-module advisory brief. Reads existing prudential, examination,
-              complaint and enforcement records; changes none of them. */}
-          <div className="mb-4 space-y-4">
-            <SupervisoryAiPanel
-              module="cross_module"
-              analysisType="entity_supervisory_brief"
-              scope="entity"
-              scopeId={e.id}
-              label={e.name}
-              title="AI entity supervisory brief"
-              actionLabel="Generate brief"
-              description="A single view across risk, examinations, complaints and enforcement for this entity. It changes no rating, finding, case or decision."
-              stalenessFacts={{ entity: e.id, updated_at: (e as any).updated_at ?? null }}
-            />
-            <SupervisoryAiPanel
-              module="cross_module"
-              analysisType="supervisory_query"
-              scope="entity"
-              scopeId={e.id}
-              label={e.name}
-              title="Ask about this entity"
-              actionLabel="Ask"
-              askable
-              description="Answers come only from records you are already permitted to see. Asking a question changes nothing."
-              stalenessFacts={{ entity: e.id, ask: true }}
-            />
-          </div>
+        <TabsContent value="ai-reports">
+          {/* Read-only presentation of every AI-assisted analysis for this entity.
+              Reads existing prudential, examination, complaint and enforcement
+              records; changes none of them. */}
+          <AiReportsTab
+            blocks={[
+              {
+                id: 'ai-entity-brief',
+                label: 'Entity supervisory brief',
+                hint: 'cross-module view of risk, examinations, complaints and enforcement',
+                node: (
+                  <SupervisoryAiPanel
+                    module="cross_module"
+                    analysisType="entity_supervisory_brief"
+                    scope="entity"
+                    scopeId={e.id}
+                    label={e.name}
+                    title="AI entity supervisory brief"
+                    actionLabel="Generate brief"
+                    description="A single view across risk, examinations, complaints and enforcement for this entity. It changes no rating, finding, case or decision."
+                    stalenessFacts={{ entity: e.id, updated_at: (e as any).updated_at ?? null }}
+                  />
+                ),
+              },
+              {
+                id: 'ai-risk-interpretation',
+                label: 'Risk interpretation',
+                hint: 'plain-language reading of the supervisory picture',
+                node: (
+                  <AdvisoryAiPanel
+                    analysisType="risk_interpretation"
+                    scopeId={e.id}
+                    periodKey={latestSubmittedReturn?.period_end_date ?? null}
+                    label={e.name}
+                    facts={overviewFacts}
+                    title="AI-assisted risk interpretation"
+                    description="Explains the supervisory picture in plain language. Scores, ratings, breaches and counts remain calculated by the system."
+                  />
+                ),
+              },
+              {
+                id: 'ai-trend-commentary',
+                label: 'Trend commentary',
+                hint: 'movement in the charted ratios',
+                node: (
+                  <AdvisoryAiPanel
+                    analysisType="trend_commentary"
+                    scopeId={e.id}
+                    periodKey={ratioTrend.length ? String((ratioTrend[ratioTrend.length - 1] as any).period) : null}
+                    label={e.name}
+                    facts={trendFacts}
+                    ready={ratioTrend.length > 0}
+                    disabledReason="Available once ratios have been computed for at least one period."
+                    title="AI-assisted trend commentary"
+                    description="Narrative on the movement in the ratios charted under Ratios & Trends. Every ratio value and threshold state is calculated by the system."
+                  />
+                ),
+              },
+              {
+                id: 'ai-ask-entity',
+                label: 'Ask about this entity',
+                hint: 'governed question and answer over records you may already see',
+                node: (
+                  <SupervisoryAiPanel
+                    module="cross_module"
+                    analysisType="supervisory_query"
+                    scope="entity"
+                    scopeId={e.id}
+                    label={e.name}
+                    title="Ask about this entity"
+                    actionLabel="Ask"
+                    askable
+                    description="Answers come only from records you are already permitted to see. Asking a question changes nothing."
+                    stalenessFacts={{ entity: e.id, ask: true }}
+                  />
+                ),
+              },
+            ]}
+          />
+        </TabsContent>
 
+        <TabsContent value="overview">
           <div className="grid md:grid-cols-4 gap-3">
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>
               <CardContent className="text-sm">
@@ -387,18 +440,8 @@ export default function PrudentialEntityProfile() {
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Recent stress events</CardTitle></CardHeader>
               <CardContent className="text-sm">{(data.stress_events || []).filter((s: any) => !s.resolved_at).length}</CardContent></Card>
           </div>
-
-          <AdvisoryAiPanel
-            className="mt-4"
-            analysisType="risk_interpretation"
-            scopeId={e.id}
-            periodKey={latestSubmittedReturn?.period_end_date ?? null}
-            label={e.name}
-            facts={overviewFacts}
-            title="AI-assisted risk interpretation"
-            description="Explains the supervisory picture above in plain language. Scores, ratings, breaches and counts remain calculated by the system."
-          />
         </TabsContent>
+
 
 
         <TabsContent value="returns">
