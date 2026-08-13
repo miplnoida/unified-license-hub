@@ -72,7 +72,7 @@ export function StatusTimeline({ currentStatus, events, showActivityLog = true }
       </div>
 
       {/* Activity log */}
-      {events.length > 0 && (
+      {showActivityLog && events.length > 0 && (
         <div className="border-t pt-3">
           <p className="text-xs font-medium text-muted-foreground mb-2">Activity Log</p>
           <div className="relative">
