@@ -23,7 +23,7 @@ import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import {
   AiReportEmptyState,
-  AiReportFooter,
+  AiReportMetaChip,
   AiReportMetaChip,
   AiReportNotice,
   AiReportSection,
