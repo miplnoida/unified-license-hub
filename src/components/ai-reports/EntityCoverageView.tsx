@@ -21,8 +21,10 @@ import {
   FRESHNESS_LABEL,
   HUB_MODULE_LABEL,
   analysisTypeLabel,
+  needsAttention,
   type SupervisoryAiReport,
 } from '@/lib/ai/reportHub';
+
 
 interface Props {
   entityId: string | null;
@@ -75,23 +77,31 @@ export function EntityCoverageView({ entityId, entityName, onOpen }: Props) {
 
   const grouped = groupReportsByArea(reports);
   const covered = grouped.filter((g) => g.latest).length;
+  const attention = reports.filter(needsAttention).length;
+
+  const stats = [
+    { label: 'Reports available', value: reports.length },
+    { label: 'Supervisory areas covered', value: `${covered} of ${grouped.length}` },
+    { label: 'Areas with no report yet', value: grouped.length - covered },
+    { label: 'Reports needing attention', value: attention },
+  ];
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div>
-            <p className="font-semibold text-foreground">{entityName ?? 'Selected entity'}</p>
-            <p className="text-sm text-muted-foreground">
-              AI analysis exists in {covered} of {grouped.length} supervisory areas · {reports.length} report
-              {reports.length === 1 ? '' : 's'} in total.
-            </p>
+      <Card className="border-border/60 shadow-none">
+        <CardContent className="space-y-4 p-5">
+          <p className="font-semibold text-foreground">{entityName ?? 'Selected organisation'}</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((s) => (
+              <div key={s.label}>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className="mt-0.5 text-lg font-semibold text-foreground">{s.value}</p>
+              </div>
+            ))}
           </div>
-          <Badge variant={covered === grouped.length ? 'secondary' : 'outline'}>
-            {covered === grouped.length ? 'All areas covered' : `${grouped.length - covered} area(s) without analysis`}
-          </Badge>
         </CardContent>
       </Card>
+
 
       {grouped.map(({ area, latest, total }) => (
         <Card key={area.key}>

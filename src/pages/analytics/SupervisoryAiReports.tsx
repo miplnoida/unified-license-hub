@@ -18,11 +18,19 @@ import {
   FileText,
   Clock,
   Info,
-  Flag,
+  Library,
+  CalendarClock,
+  BellRing,
+  ShieldQuestion,
+  SlidersHorizontal,
+  ChevronDown,
+  Building2,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +39,7 @@ import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -49,17 +58,19 @@ import {
   type ReportFilters,
 } from '@/hooks/useSupervisoryAiReports';
 import {
-  FRESHNESS_LABEL,
+  ATTENTION_BUCKETS,
   HUB_DISCLAIMER,
   HUB_MODULE_LABEL,
   LIFECYCLE_GROUPS,
   REVIEW_STATUS_LABEL,
   TIME_RANGES,
   analysisTypeLabel,
+  needsAttention,
   rangeBounds,
-  reportStateBadge,
+  reportStatusChips,
   subjectLabel,
   type HubModule,
+  type ReportStatusTone,
   type SupervisoryAiReport,
   type TimeRange,
 } from '@/lib/ai/reportHub';
@@ -74,71 +85,66 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ALL_MODULES = Object.keys(HUB_MODULE_LABEL) as HubModule[];
 
-function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: () => void }) {
-  const stateBadge = reportStateBadge(report.reportState);
-  return (
-    <Card className="transition-shadow hover:shadow-md">
-      <CardContent className="space-y-3 p-4">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="secondary" className="text-xs">
-            {HUB_MODULE_LABEL[report.module]}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {analysisTypeLabel(report.analysisType)}
-          </Badge>
-          {report.flagged && (
-            <Badge variant="destructive" className="gap-1 text-xs">
-              <Flag className="h-3 w-3" />
-              Flagged for review
-            </Badge>
-          )}
-          {report.freshness === 'outdated' && (
-            <Badge variant="outline" className="border-amber-500 text-xs text-amber-600">
-              {FRESHNESS_LABEL.outdated}
-            </Badge>
-          )}
-          {report.limitedEvidence && (
-            <Badge variant="outline" className="text-xs">
-              Limited evidence
-            </Badge>
-          )}
-          {stateBadge && (
-            <Badge variant="outline" className="text-xs">
-              {stateBadge}
-            </Badge>
-          )}
-        </div>
+const STATUS_TONE: Record<ReportStatusTone, string> = {
+  urgent: 'border-destructive/40 bg-destructive/10 text-destructive',
+  warning: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  ok: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  neutral: 'border-border bg-muted text-muted-foreground',
+};
 
+function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: () => void }) {
+  const chips = reportStatusChips(report);
+  return (
+    <Card className="border-border/60 shadow-none transition-all hover:border-border hover:shadow-md">
+      <CardContent className="flex h-full flex-col gap-3 p-5">
         <div>
           <p className="font-semibold leading-snug text-foreground">{subjectLabel(report)}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Prepared {formatDateTime(report.generatedAt)}
-            {report.periodKey ? ` · Period ${report.periodKey}` : ''}
-            {report.reviewStatus && REVIEW_STATUS_LABEL[report.reviewStatus]
-              ? ` · ${REVIEW_STATUS_LABEL[report.reviewStatus]}`
-              : ''}
+          <p className="mt-1 text-xs text-muted-foreground">
+            {analysisTypeLabel(report.analysisType)} · {HUB_MODULE_LABEL[report.module]}
           </p>
         </div>
 
         {report.summary && (
-          <p className="line-clamp-3 text-sm text-muted-foreground">{report.summary}</p>
+          <p className="line-clamp-2 text-sm text-muted-foreground">{report.summary}</p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button size="sm" variant="secondary" className="gap-1.5" onClick={onOpen}>
+        <p className="text-xs text-muted-foreground">
+          Prepared {formatDateTime(report.generatedAt)}
+          {report.periodKey ? ` · Period ${report.periodKey}` : ''}
+          {report.reviewStatus && REVIEW_STATUS_LABEL[report.reviewStatus]
+            ? ` · ${REVIEW_STATUS_LABEL[report.reviewStatus]}`
+            : ''}
+        </p>
+
+        {!!chips.length && (
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((c) => (
+              <Badge key={c.key} variant="outline" className={cn('text-xs font-medium', STATUS_TONE[c.tone])}>
+                {c.label}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+          <Button size="sm" className="gap-1.5" onClick={onOpen}>
             <FileText className="h-3.5 w-3.5" />
-            View report
+            View Report
           </Button>
           {report.sourceRoute && (
-            <Button size="sm" variant="ghost" asChild className="gap-1.5">
+            <Button
+              size="sm"
+              variant="link"
+              asChild
+              className="h-auto gap-1 p-0 text-xs text-muted-foreground hover:text-foreground"
+            >
               <Link to={report.sourceRoute}>
-                <ExternalLink className="h-3.5 w-3.5" />
                 {report.sourceActionLabel}
+                <ExternalLink className="h-3 w-3" />
               </Link>
             </Button>
           )}
@@ -149,9 +155,9 @@ function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: (
 }
 
 /**
- * Entity picker over the whole supervised population the user may see — not only
- * entities that already have a report. Entities without an analysis stay
- * selectable so the gap is visible instead of invisible.
+ * Organisation picker over the whole supervised population the user may see —
+ * not only entities that already have a report. Entities without an analysis
+ * stay selectable so the gap is visible instead of invisible.
  */
 function EntityFilter({
   value,
@@ -191,26 +197,26 @@ function EntityFilter({
       <PopoverTrigger asChild>
         <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
           <span className="truncate">
-            {isLoading ? 'Loading entities…' : selected ? selected.name : 'All entities'}
+            {isLoading ? 'Loading organisations…' : selected ? selected.name : 'All organisations'}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search entities…" />
+          <CommandInput placeholder="Search organisations…" />
           <CommandList>
-            <CommandEmpty>No entity matches that name.</CommandEmpty>
+            <CommandEmpty>No organisation matches that name.</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                value="all entities"
+                value="all organisations"
                 onSelect={() => {
                   onChange(null);
                   setOpen(false);
                 }}
               >
                 <Check className={cn('mr-2 h-4 w-4', value ? 'opacity-0' : 'opacity-100')} />
-                All entities
+                All organisations
               </CommandItem>
             </CommandGroup>
             {!!withReports.length && (
@@ -255,6 +261,9 @@ export default function SupervisoryAiReports() {
     search: params.get('q') ?? '',
   });
   const [selected, setSelected] = useState<SupervisoryAiReport | null>(null);
+  const [tab, setTab] = useState('all');
+  const [areaGrouping, setAreaGrouping] = useState<'area' | 'lifecycle'>('area');
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const bounds = useMemo(() => rangeBounds(range, customFrom, customTo), [range, customFrom, customTo]);
   const effectiveFilters = useMemo<ReportFilters>(
@@ -322,11 +331,18 @@ export default function SupervisoryAiReports() {
     !!filters.freshness ||
     range !== 'all';
 
+  const advancedActive =
+    (filters.confidence ? 1 : 0) +
+    (filters.freshness ? 1 : 0) +
+    (filters.includeFailed ? 1 : 0);
+
   const noSourceAvailable =
     sourceAvailability && Object.values(sourceAvailability).every((v) => !v);
 
   const selectedEntityName =
     entityOptions.entities.find((e) => e.id === filters.entityId)?.name ?? null;
+
+  const attentionList = useMemo(() => reports.filter(needsAttention), [reports]);
 
   const kpiValue = (value?: number) => {
     if (isError) return 'Counts incomplete';
@@ -334,10 +350,45 @@ export default function SupervisoryAiReports() {
     return String(value ?? 0);
   };
 
+  const summaryCards = [
+    {
+      key: 'total',
+      label: 'Total Reports',
+      icon: Library,
+      value: kpiValue(counts?.total),
+      hint: 'across all supervisory areas',
+      onClick: undefined as undefined | (() => void),
+    },
+    {
+      key: 'recent',
+      label: 'New This Week',
+      icon: CalendarClock,
+      value: kpiValue(counts?.recent),
+      hint: 'prepared in the last 7 days',
+      onClick: undefined as undefined | (() => void),
+    },
+    {
+      key: 'attention',
+      label: 'Needs Attention',
+      icon: BellRing,
+      value: isLoading ? 'Calculating…' : String(attentionList.length),
+      hint: 'flagged, outdated or incomplete (of reports loaded)',
+      onClick: () => setTab('attention'),
+    },
+    {
+      key: 'limited',
+      label: 'Limited Evidence',
+      icon: ShieldQuestion,
+      value: kpiValue(counts?.limited),
+      hint: 'based on thin underlying data',
+      onClick: undefined as undefined | (() => void),
+    },
+  ];
+
   const renderList = (list: SupervisoryAiReport[]) => {
     if (isLoading) {
       return (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-40 w-full" />
           ))}
@@ -346,8 +397,8 @@ export default function SupervisoryAiReports() {
     }
     if (!list.length) {
       return (
-        <Card>
-          <CardContent className="p-8 text-center">
+        <Card className="border-border/60 shadow-none">
+          <CardContent className="p-10 text-center">
             <Sparkles className="mx-auto h-8 w-8 text-muted-foreground" />
             {anyFilterActive ? (
               <>
@@ -376,7 +427,7 @@ export default function SupervisoryAiReports() {
       );
     }
     return (
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {list.map((r) => (
           <ReportCard key={`${r.source}-${r.id}`} report={r} onOpen={() => setSelected(r)} />
         ))}
@@ -397,46 +448,67 @@ export default function SupervisoryAiReports() {
     </div>
   ) : null;
 
+  const areaGroups =
+    areaGrouping === 'area'
+      ? ALL_MODULES.map((m) => ({
+          key: m,
+          label: HUB_MODULE_LABEL[m],
+          list: latestByVersion.filter((r) => r.module === m),
+          total: counts?.byModule[m] ?? null,
+        }))
+      : LIFECYCLE_GROUPS.map((g) => ({
+          key: g.key,
+          label: g.label,
+          list: latestByVersion.filter((r) => g.modules.includes(r.module)),
+          total: g.modules.reduce((n, m) => n + (counts?.byModule[m] ?? 0), 0),
+        }));
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Supervisory AI Reports"
-          description="View AI analyses and reports across supervisory modules. Read-only — decisions stay in the source modules."
-        />
-
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-sm">{HUB_DISCLAIMER}</AlertDescription>
-        </Alert>
-
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>
-            {range === 'all'
-              ? 'Showing all available reports.'
-              : `Showing reports prepared: ${TIME_RANGES.find((r) => r.value === range)?.label.toLowerCase()}.`}
-          </span>
-          {range !== 'all' && (
-            <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setRange('all')}>
-              Show all available
-            </Button>
-          )}
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <PageHeader
+            title="Supervisory AI Reports"
+            description="Review AI-assisted supervisory reports across regulated entities and supervisory areas."
+          />
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{HUB_DISCLAIMER}</span>
+          </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Reports available', value: counts?.total },
-            { label: 'Prepared in last 7 days', value: counts?.recent },
-            { label: 'May be outdated', value: counts?.outdated },
-            { label: 'Limited evidence', value: counts?.limited },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">{kpiValue(s.value)}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((s) => {
+            const Icon = s.icon;
+            const clickable = !!s.onClick;
+            return (
+              <Card
+                key={s.key}
+                onClick={s.onClick}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    s.onClick?.();
+                  }
+                }}
+                className={cn(
+                  'border-border/60 shadow-none',
+                  clickable && 'cursor-pointer transition-colors hover:border-primary/40 hover:bg-accent/40',
+                )}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icon className="h-4 w-4" />
+                    <p className="text-sm font-medium">{s.label}</p>
+                  </div>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{s.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {isError && (
@@ -447,23 +519,20 @@ export default function SupervisoryAiReports() {
         )}
         {entityOptions.isError && (
           <LoadIssue
-            label="The entity list could not be loaded. The reports below are unaffected."
+            label="The organisation list could not be loaded. The reports below are unaffected."
             onRetry={entityOptions.retry}
           />
         )}
         {facets.isError && (
           <LoadIssue
-            label="Filter options (entities and analysis types) could not be loaded. The reports below are unaffected."
+            label="Filter options could not be loaded. The reports below are unaffected."
             onRetry={facets.retry}
           />
         )}
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Narrow down the list</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border/60 shadow-none">
+          <CardContent className="space-y-4 p-5">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <div className="space-y-1.5">
                 <Label className="text-xs">Search</Label>
                 <div className="relative">
@@ -471,14 +540,24 @@ export default function SupervisoryAiReports() {
                   <Input
                     value={filters.search}
                     onChange={(e) => set('search', e.target.value)}
-                    placeholder="Title, summary, entity or reference"
+                    placeholder="Organisation, reference or title"
                     className="pl-8"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Area of work</Label>
+                <Label className="text-xs">Organisation</Label>
+                <EntityFilter
+                  value={filters.entityId}
+                  onChange={(id) => set('entityId', id)}
+                  entities={entityOptions.entities}
+                  isLoading={entityOptions.isLoading}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Supervisory Area</Label>
                 <Select
                   value={filters.modules[0] ?? 'all'}
                   onValueChange={(v) => set('modules', v === 'all' ? [] : [v as HubModule])}
@@ -498,7 +577,23 @@ export default function SupervisoryAiReports() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Type of analysis</Label>
+                <Label className="text-xs">Date</Label>
+                <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_RANGES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Analysis Type</Label>
                 <Select
                   value={filters.analysisTypes[0] ?? 'all'}
                   onValueChange={(v) => set('analysisTypes', v === 'all' ? [] : [v])}
@@ -516,157 +611,205 @@ export default function SupervisoryAiReports() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Prepared</Label>
-                <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_RANGES.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
-                        {r.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {range === 'custom' && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">From</Label>
-                    <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">To (whole day included)</Label>
-                    <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Entity</Label>
-                <EntityFilter
-                  value={filters.entityId}
-                  onChange={(id) => set('entityId', id)}
-                  entities={entityOptions.entities}
-                  isLoading={entityOptions.isLoading}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Evidence confidence</Label>
-                <Select
-                  value={filters.confidence ?? 'all'}
-                  onValueChange={(v) => set('confidence', v === 'all' ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any confidence</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="limited">Limited</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Freshness</Label>
-                <Select
-                  value={filters.freshness ?? 'all'}
-                  onValueChange={(v) => set('freshness', v === 'all' ? null : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any</SelectItem>
-                    <SelectItem value="current">Current</SelectItem>
-                    <SelectItem value="outdated">May be outdated</SelectItem>
-                    <SelectItem value="unknown">Freshness unknown</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="include-failed"
-                  checked={filters.includeFailed}
-                  onCheckedChange={(v) => set('includeFailed', v)}
-                />
-                <Label htmlFor="include-failed" className="text-sm font-normal">
-                  Include analyses that did not complete
-                </Label>
+            <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    More filters
+                    {!moreOpen && advancedActive > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {advancedActive}
+                      </Badge>
+                    )}
+                    <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', moreOpen && 'rotate-180')} />
+                  </Button>
+                </CollapsibleTrigger>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {range === 'all'
+                      ? 'Showing all available reports'
+                      : `Showing: ${TIME_RANGES.find((r) => r.value === range)?.label.toLowerCase()}`}
+                  </span>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            </div>
+
+              <CollapsibleContent className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Evidence Quality</Label>
+                  <Select
+                    value={filters.confidence ?? 'all'}
+                    onValueChange={(v) => set('confidence', v === 'all' ? null : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any quality</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="limited">Limited</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Report Status</Label>
+                  <Select
+                    value={filters.freshness ?? 'all'}
+                    onValueChange={(v) => set('freshness', v === 'all' ? null : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any status</SelectItem>
+                      <SelectItem value="current">Current</SelectItem>
+                      <SelectItem value="outdated">May be outdated</SelectItem>
+                      <SelectItem value="unknown">Status unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {range === 'custom' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">From</Label>
+                      <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">To (whole day included)</Label>
+                      <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <Switch
+                    id="include-failed"
+                    checked={filters.includeFailed}
+                    onCheckedChange={(v) => set('includeFailed', v)}
+                  />
+                  <Label htmlFor="include-failed" className="text-sm font-normal">
+                    Show incomplete analyses
+                  </Label>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="lifecycle">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
-            <TabsTrigger value="lifecycle">By lifecycle stage</TabsTrigger>
-            <TabsTrigger value="module">By area of work</TabsTrigger>
-            <TabsTrigger value="recent">Most recent</TabsTrigger>
-            <TabsTrigger value="entity">Entity view</TabsTrigger>
+            <TabsTrigger value="all">All Reports</TabsTrigger>
+            <TabsTrigger value="attention" className="gap-1.5">
+              Needs Attention
+              {!isLoading && attentionList.length > 0 && (
+                <Badge variant="secondary">{attentionList.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="organisation">By Organisation</TabsTrigger>
+            <TabsTrigger value="area">By Supervisory Area</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="lifecycle" className="mt-4 space-y-6">
-            {LIFECYCLE_GROUPS.map((group) => {
-              const list = latestByVersion.filter((r) => group.modules.includes(r.module));
-              const total = group.modules.reduce((n, m) => n + (counts?.byModule[m] ?? 0), 0);
-              if (!isLoading && !list.length) return null;
-              return (
-                <div key={group.key} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-foreground">{group.label}</h2>
-                    <Badge variant="secondary">{total}</Badge>
-                  </div>
-                  {renderList(list)}
-                </div>
-              );
-            })}
-            {!isLoading && !latestByVersion.length && renderList([])}
-            {loadMoreRow}
-          </TabsContent>
-
-          <TabsContent value="module" className="mt-4 space-y-6">
-            {ALL_MODULES.map((m) => {
-              const list = latestByVersion.filter((r) => r.module === m);
-              if (!list.length) return null;
-              return (
-                <div key={m} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-foreground">{HUB_MODULE_LABEL[m]}</h2>
-                    <Badge variant="secondary">{counts?.byModule[m] ?? list.length}</Badge>
-                  </div>
-                  {renderList(list)}
-                </div>
-              );
-            })}
-            {!isLoading && !latestByVersion.length && renderList([])}
-            {loadMoreRow}
-          </TabsContent>
-
-          <TabsContent value="recent" className="mt-4 space-y-4">
+          <TabsContent value="all" className="mt-6 space-y-4">
             {renderList(reports)}
             {loadMoreRow}
           </TabsContent>
 
-          <TabsContent value="entity" className="mt-4 space-y-4">
+          <TabsContent value="attention" className="mt-6 space-y-8">
+            {isLoading ? (
+              renderList([])
+            ) : !attentionList.length ? (
+              <Card className="border-border/60 shadow-none">
+                <CardContent className="p-10 text-center">
+                  <p className="font-medium text-foreground">Nothing needs attention right now</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    No loaded report is flagged, outdated, incomplete or based on limited evidence in this date
+                    range.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              ATTENTION_BUCKETS.map((bucket) => {
+                const list = attentionList.filter(bucket.match);
+                if (!list.length) return null;
+                return (
+                  <div key={bucket.key} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-semibold text-foreground">{bucket.label}</h2>
+                      <Badge variant="secondary">{list.length}</Badge>
+                    </div>
+                    {renderList(list)}
+                  </div>
+                );
+              })
+            )}
+            {loadMoreRow}
+          </TabsContent>
+
+          <TabsContent value="organisation" className="mt-6 space-y-4">
+            <Card className="border-border/60 shadow-none">
+              <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Choose an organisation
+                  </Label>
+                  <EntityFilter
+                    value={filters.entityId}
+                    onChange={(id) => set('entityId', id)}
+                    entities={entityOptions.entities}
+                    isLoading={entityOptions.isLoading}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground sm:max-w-xs">
+                  Pick a regulated entity to see which supervisory areas already have a report and where a gap
+                  remains.
+                </p>
+              </CardContent>
+            </Card>
+
             <EntityCoverageView
               entityId={filters.entityId}
               entityName={selectedEntityName}
               onOpen={(r) => setSelected(r)}
             />
+          </TabsContent>
+
+          <TabsContent value="area" className="mt-6 space-y-8">
+            <div className="flex flex-wrap items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Group by</Label>
+              <Select value={areaGrouping} onValueChange={(v) => setAreaGrouping(v as 'area' | 'lifecycle')}>
+                <SelectTrigger className="h-8 w-[220px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="area">Supervisory area</SelectItem>
+                  <SelectItem value="lifecycle">Lifecycle stage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {areaGroups.map((group) => {
+              if (!isLoading && !group.list.length) return null;
+              return (
+                <div key={group.key} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-foreground">{group.label}</h2>
+                    <Badge variant="secondary">{group.total ?? group.list.length}</Badge>
+                  </div>
+                  {renderList(group.list)}
+                </div>
+              );
+            })}
+            {!isLoading && !latestByVersion.length && renderList([])}
+            {loadMoreRow}
           </TabsContent>
         </Tabs>
 

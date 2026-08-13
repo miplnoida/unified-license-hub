@@ -322,3 +322,74 @@ export const REVIEW_STATUS_LABEL: Record<string, string> = {
   escalated: 'Escalated in AI review',
 };
 
+/**
+ * Presentation-only status chips for one report. No new business rules — every
+ * chip is derived from a field the report model already carries.
+ */
+export type ReportStatusTone = 'urgent' | 'warning' | 'ok' | 'neutral';
+
+export interface ReportStatusChip {
+  key: 'flagged' | 'incomplete' | 'processing' | 'outdated' | 'limited' | 'current';
+  label: string;
+  tone: ReportStatusTone;
+}
+
+export function reportStatusChips(report: SupervisoryAiReport): ReportStatusChip[] {
+  const chips: ReportStatusChip[] = [];
+  if (report.flagged) chips.push({ key: 'flagged', label: 'Needs review', tone: 'urgent' });
+  if (report.reportState === 'failed')
+    chips.push({ key: 'incomplete', label: 'Incomplete', tone: 'urgent' });
+  if (report.reportState === 'processing')
+    chips.push({ key: 'processing', label: 'Still being prepared', tone: 'warning' });
+  if (report.freshness === 'outdated')
+    chips.push({ key: 'outdated', label: 'May be outdated', tone: 'warning' });
+  if (report.limitedEvidence || report.reportState === 'limited')
+    chips.push({ key: 'limited', label: 'Limited evidence', tone: 'neutral' });
+  if (!chips.length && report.freshness === 'current')
+    chips.push({ key: 'current', label: 'Current', tone: 'ok' });
+  return chips;
+}
+
+/** True when an existing state already marks the report as needing a look. */
+export function needsAttention(report: SupervisoryAiReport): boolean {
+  return (
+    !!report.flagged ||
+    report.freshness === 'outdated' ||
+    !!report.limitedEvidence ||
+    report.reportState === 'failed' ||
+    report.reportState === 'limited' ||
+    report.reportState === 'processing'
+  );
+}
+
+/** Buckets used by the "Needs Attention" tab, in priority order. */
+export const ATTENTION_BUCKETS: Array<{
+  key: string;
+  label: string;
+  match: (r: SupervisoryAiReport) => boolean;
+}> = [
+  { key: 'flagged', label: 'Flagged for review', match: (r) => !!r.flagged },
+  {
+    key: 'incomplete',
+    label: 'Incomplete analyses',
+    match: (r) => !r.flagged && (r.reportState === 'failed' || r.reportState === 'processing'),
+  },
+  {
+    key: 'outdated',
+    label: 'May be outdated',
+    match: (r) =>
+      !r.flagged && r.reportState !== 'failed' && r.reportState !== 'processing' && r.freshness === 'outdated',
+  },
+  {
+    key: 'limited',
+    label: 'Limited evidence',
+    match: (r) =>
+      !r.flagged &&
+      r.reportState !== 'failed' &&
+      r.reportState !== 'processing' &&
+      r.freshness !== 'outdated' &&
+      (!!r.limitedEvidence || r.reportState === 'limited'),
+  },
+];
+
+
