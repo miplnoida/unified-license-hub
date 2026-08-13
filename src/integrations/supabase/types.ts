@@ -23620,6 +23620,14 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      application_rfi_submit_response: {
+        Args: {
+          p_file_upload_ids?: string[]
+          p_response_text?: string
+          p_rfi_item_id: string
+        }
+        Returns: Json
+      }
       apply_application_guard: {
         Args: {
           _category_id: string

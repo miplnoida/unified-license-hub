@@ -332,10 +332,14 @@ function RfiItemRow({
   const [saving, setSaving] = useState(false);
   const rfiClosed = rfiStatus === 'closed' || rfiStatus === 'cancelled';
 
+  const alreadyAnswered =
+    item.response_status === 'responded' || (item.responses?.length ?? 0) > 0;
+
   const canRespond =
     isApplicant &&
     (rfiStatus === 'open' || rfiStatus === 'responded') &&
-    item.response_status !== 'responded';
+    !alreadyAnswered;
+
 
   const submit = async () => {
     const needsText = item.question_type === 'text' || item.question_type === 'both';
@@ -387,47 +391,22 @@ function RfiItemRow({
         fileUploadIds.push((rec as any).id);
       }
 
-      const { error: respErr } = await supabase.from('application_rfi_responses' as any).insert({
-        rfi_item_id: item.id,
-        response_text: text.trim() || null,
-        file_upload_ids: fileUploadIds,
-        submitted_by: currentUserId,
-      });
-      if (respErr) throw respErr;
+      const { data: result, error: rpcErr } = await supabase.rpc(
+        'application_rfi_submit_response' as any,
+        {
+          p_rfi_item_id: item.id,
+          p_response_text: text.trim() || null,
+          p_file_upload_ids: fileUploadIds,
+        } as any,
+      );
+      if (rpcErr) throw rpcErr;
 
-      await supabase
-        .from('application_rfi_items' as any)
-        .update({ response_status: 'responded' })
-        .eq('id', item.id);
-
-      // If all items responded, flip RFI status to 'responded' and resume SLA
-      const { data: siblings } = await supabase
-        .from('application_rfi_items' as any)
-        .select('response_status')
-        .eq('rfi_id', rfiId);
-      const allDone = (siblings as any[] | null)?.every((s) => s.response_status === 'responded');
-      if (allDone) {
-        const { data: rfiRow } = await supabase
-          .from('application_rfis' as any)
-          .select('approval_step_action_id')
-          .eq('id', rfiId)
-          .maybeSingle();
-        await supabase
-          .from('application_rfis' as any)
-          .update({ status: 'responded' })
-          .eq('id', rfiId);
-        const stepId = (rfiRow as any)?.approval_step_action_id;
-        if (stepId) {
-          await supabase
-            .from('approval_step_actions' as any)
-            .update({ resumed_at: new Date().toISOString() })
-            .eq('id', stepId);
-        }
-      }
+      const allDone = !!(result as any)?.all_items_done;
 
       await logAction('application.rfi_responded', 'application', applicationId, {
-        after: { rfi_id: rfiId, rfi_item_id: item.id, all_items_done: !!allDone },
+        after: { rfi_id: rfiId, rfi_item_id: item.id, all_items_done: allDone },
       });
+
 
       toast.success('Response submitted');
       setText('');
