@@ -1447,7 +1447,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {workflowChecked && workflowOn === false && isInternal && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {activeTab === 'workflow' && showResubmissionPendingNotice && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
