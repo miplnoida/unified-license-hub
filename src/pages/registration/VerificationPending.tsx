@@ -31,18 +31,14 @@ export default function VerificationPending() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button data-rbac="registration_management.edit" variant="outline" asChild>
-              <Link to="/registration/success">
-                Simulate Verification
-              </Link>
-            </Button>
-            <Button variant="ghost" asChild>
+            <Button variant="outline" asChild>
               <Link to="/">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Home
               </Link>
             </Button>
           </div>
+
         </CardContent>
       </Card>
     </div>

@@ -13,14 +13,17 @@ interface Props {
   nextStep?: string | null;
   /** Route for "Track Application". When omitted the track button is hidden. */
   trackHref?: string | null;
-  /** Route for "Return to Dashboard". Defaults to /. */
-  dashboardHref?: string;
+  /** Route for the primary navigation button. Defaults to /. Pass null to hide. */
+  dashboardHref?: string | null;
+  /** Label for the primary navigation button. */
+  dashboardLabel?: string;
   /**
    * Optional download handler. When omitted we fall back to `window.print()`
    * so the user can still keep a copy even if no backend endpoint exists.
    */
   onDownload?: () => void;
 }
+
 
 /**
  * Shared submission acknowledgement panel. Display-only; does not perform
@@ -35,8 +38,10 @@ export function SubmissionAcknowledgement({
   nextStep,
   trackHref,
   dashboardHref = '/',
+  dashboardLabel = 'Return to Dashboard',
   onDownload,
 }: Props) {
+
   const submittedLabel =
     submittedAt
       ? new Date(submittedAt).toLocaleString()
@@ -84,12 +89,15 @@ export function SubmissionAcknowledgement({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <Button asChild className="flex-1">
-            <Link to={dashboardHref}>
-              <LayoutDashboard className="h-4 w-4 mr-2" />
-              Return to Dashboard
-            </Link>
-          </Button>
+          {dashboardHref && (
+            <Button asChild className="flex-1">
+              <Link to={dashboardHref}>
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                {dashboardLabel}
+              </Link>
+            </Button>
+          )}
+
           {trackHref && (
             <Button asChild variant="outline" className="flex-1">
               <Link to={trackHref}>
