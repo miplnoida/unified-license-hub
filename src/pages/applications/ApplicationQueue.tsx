@@ -239,7 +239,8 @@ export default function ApplicationQueue() {
 
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [users, setUsers] = useState<Record<string, InternalUser>>({});
-  const [applicants, setApplicants] = useState<Record<string, string>>({});
+  const [applicants, setApplicants] = useState<Record<string, ApplicantInfo>>({});
+  const [licenseeNames, setLicenseeNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
