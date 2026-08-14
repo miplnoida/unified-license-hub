@@ -918,16 +918,6 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
   if (isRadio) {
     return (
       <div className="space-y-1.5">
-        {parentMissing && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-3 w-3 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent>Please select the parent field first</TooltipContent>
-            </Tooltip>
-          </p>
-        )}
         {!parentMissing && options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
         {options.map(opt => (
           <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
