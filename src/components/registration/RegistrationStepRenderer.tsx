@@ -485,12 +485,12 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           <div>
             <Select value={strValue} onValueChange={handleChange} disabled={isDisabled}>
               <SelectTrigger onBlur={() => handleBlur(strValue)} className={error ? 'border-destructive' : ''}>
-                <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
+                <SelectValue placeholder={parentMissing ? 'Select...' : (field.placeholder || 'Select...')} />
               </SelectTrigger>
               <SelectContent>
                 {dynamicOptions.length === 0 ? (
                   <SelectItem value="__empty" disabled>
-                    {parentMissing ? 'Select parent field first' : 'No options available'}
+                    {parentMissing ? '—' : 'No options available'}
                   </SelectItem>
                 ) : (
                   dynamicOptions.map((o: { value: string; label: string }) => (
@@ -501,8 +501,12 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
             </Select>
             {parentMissing && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Please select the parent field first
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>Please select the parent field first</TooltipContent>
+                </Tooltip>
               </p>
             )}
           </div>
