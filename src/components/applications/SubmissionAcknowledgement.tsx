@@ -89,12 +89,15 @@ export function SubmissionAcknowledgement({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <Button asChild className="flex-1">
-            <Link to={dashboardHref}>
-              <LayoutDashboard className="h-4 w-4 mr-2" />
-              Return to Dashboard
-            </Link>
-          </Button>
+          {dashboardHref && (
+            <Button asChild className="flex-1">
+              <Link to={dashboardHref}>
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                {dashboardLabel}
+              </Link>
+            </Button>
+          )}
+
           {trackHref && (
             <Button asChild variant="outline" className="flex-1">
               <Link to={trackHref}>
