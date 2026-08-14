@@ -38,8 +38,10 @@ export function SubmissionAcknowledgement({
   nextStep,
   trackHref,
   dashboardHref = '/',
+  dashboardLabel = 'Return to Dashboard',
   onDownload,
 }: Props) {
+
   const submittedLabel =
     submittedAt
       ? new Date(submittedAt).toLocaleString()
