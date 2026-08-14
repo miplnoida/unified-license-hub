@@ -44,7 +44,7 @@ function pickDefaultRegulator(regulators: Regulator[]): Regulator | null {
   return (
     regulators.find(r => r.settings?.default === true || r.settings?.is_default === true) ||
     regulators.find(r => String(r.code).toUpperCase() === 'R001') ||
-    regulators.find(r => /\bboj\b|bank of jamaica/i.test(`${r.name} ${r.code}`)) ||
+    regulators.find(r => /\bolras\b/i.test(`${r.name} ${r.code}`)) ||
     regulators[0]
   );
 }
