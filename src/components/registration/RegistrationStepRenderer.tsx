@@ -966,16 +966,6 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
           {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
-      {parentMissing && (
-        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-3 w-3 cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent>Please select the parent field first</TooltipContent>
-          </Tooltip>
-        </p>
-      )}
     </div>
   );
 }
