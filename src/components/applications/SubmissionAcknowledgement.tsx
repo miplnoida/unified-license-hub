@@ -13,14 +13,17 @@ interface Props {
   nextStep?: string | null;
   /** Route for "Track Application". When omitted the track button is hidden. */
   trackHref?: string | null;
-  /** Route for "Return to Dashboard". Defaults to /. */
-  dashboardHref?: string;
+  /** Route for the primary navigation button. Defaults to /. Pass null to hide. */
+  dashboardHref?: string | null;
+  /** Label for the primary navigation button. */
+  dashboardLabel?: string;
   /**
    * Optional download handler. When omitted we fall back to `window.print()`
    * so the user can still keep a copy even if no backend endpoint exists.
    */
   onDownload?: () => void;
 }
+
 
 /**
  * Shared submission acknowledgement panel. Display-only; does not perform
