@@ -97,6 +97,13 @@ interface QueueRow {
   data?: any;
 }
 
+interface ApplicantInfo {
+  name: string;
+  org?: string | null;
+}
+
+
+
 const WAITING_APPLICANT_STATUSES = new Set([
   'query_raised',
   'resubmission_requested',
