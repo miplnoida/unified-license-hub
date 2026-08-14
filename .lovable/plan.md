@@ -14,23 +14,26 @@ Second, smaller issue found while verifying: even when dispatch runs, `registrat
 
 ## Fix
 
-1. **Make dispatch from `perform-registration-workflow-action` reliable.**
-   - Send the dispatch through the durable queue (`notification_enqueue_event` RPC) instead of a bare cross-function HTTP invoke, with the per-step override payload preserved (template, recipient type/config, binding id, subject/body overrides). The existing queue worker then performs delivery, and its invocation path is the one proven to work.
-   - Keep a direct invoke as a first attempt, but with an explicit worker credential header so the gate accepts it; on any non-2xx, fall back to the queue. This removes silent loss in both directions.
-   - Pin the client import to the same version used by the working workers to eliminate the version drift.
-2. **Stop silent failure.** When both the direct dispatch and the enqueue fail, record it (dispatch log/queue error) so a failed applicant notification is visible in the admin notification log instead of only in function logs.
-3. **Re-verify the applicant path** for `registration.approved_step`: confirm the applicant is resolved from the registration (email `user4@yopmail.com` is already present in the event payload) and that the configured template renders subject/body for the applicant channel set (in-app + email).
+1. **Unblock server-to-server dispatch (no more 401).**
+   - `dispatch-notification-event` keeps its gate but explicitly accepts internal service-role / worker-token invocations from other edge functions, alongside signed-in user sessions. Anonymous browser calls stay rejected.
+   - `perform-registration-workflow-action` sends the worker credential header on every dispatch call and pins its client library to the same version the working notification workers use, removing the drift that caused the rejection.
+2. **Guarantee delivery even if a direct call fails.** Every dispatch (the generic workflow event and each configured step notification, with template / recipient / subject / body overrides preserved) falls back to the durable queue (`notification_enqueue_event`) when the direct call does not succeed, so the queue worker retries instead of the notification being lost.
+3. **Audit every dispatch attempt.** Record each attempt — success, skip, and failure with its reason — in the notification dispatch log and the compliance audit trail, so an admin can see in the UI that an applicant email was attempted, sent, or failed, instead of the evidence living only in function logs.
+4. **Apply the same treatment across the other workflow/action dispatchers** that call the dispatcher from server code (applications, complaints, returns, appeals sweeps), so the same 401 class of failure cannot silently drop notifications elsewhere.
+5. **Confirm the applicant path** for `registration.approved_step`: applicant resolved from the registration (`user4@yopmail.com` is already in the event payload) and the configured template renders subject/body for in-app + email.
 
-No change to workflow transition logic, step configuration, templates' content, signature capture, or any other event.
+No change to workflow transition logic, step configuration, template content, signature capture, or business rules.
 
 ## Verification before reporting done
 
-- Re-run a step-1 approval on a test registration and confirm `notification_dispatch_log` contains an `email` row for `registration.approved_step` addressed to the applicant with status `sent`, plus the in-app row.
+- Re-run a step-1 approval and confirm `notification_dispatch_log` has an `email` row for `registration.approved_step` addressed to the applicant with status `sent`, plus the in-app row.
 - Confirm no 401 lines remain in the `perform-registration-workflow-action` logs for that run.
-- Confirm the previously affected registration can be re-notified (or that a fresh action produces the applicant email) without duplicate sends — dedupe keys stay intact.
+- Confirm the audit trail shows the dispatch attempt, and that repeat actions do not duplicate sends (dedupe keys unchanged).
 
 ## Technical notes
 
-- Backend only: `supabase/functions/perform-registration-workflow-action/index.ts` (dispatch block, both the generic event and the `approval_action_notifications` loop), reusing `supabase/functions/_shared/notification-dispatch.ts` helpers (`enqueueNotificationEvent`, `dispatchNotificationEventNow`).
-- Possible small adjustment in `dispatch-notification-event`'s auth gate to accept the worker token header explicitly for server-to-server calls.
-- No frontend changes; no migration required unless step 3 shows the applicant rule needs to be added to the event config.
+- `supabase/functions/perform-registration-workflow-action/index.ts` — dispatch block plus the `approval_action_notifications` loop, using `_shared/notification-dispatch.ts` (`dispatchNotificationEventNow`, `enqueueNotificationEvent`).
+- `supabase/functions/dispatch-notification-event/index.ts` — auth gate accepts internal worker/service invocation explicitly.
+- `supabase/functions/_shared/workerAuth.ts` — shared helper for attaching/validating the internal invocation credential.
+- Audit writes go to the existing notification dispatch log and compliance audit log tables; no new tables. A migration is only needed if permissions/grants on those log tables block the write, or if step 5 shows an applicant recipient rule must be added to the event config.
+
