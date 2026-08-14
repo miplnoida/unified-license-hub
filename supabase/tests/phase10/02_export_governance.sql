@@ -43,12 +43,12 @@ SELECT throws_ok(
   NULL, NULL, 'export is refused when no justification is supplied');
 
 SELECT throws_ok(
-  $$SELECT public.request_export_job('', 'Regulatory request BOJ-2026-01')$$,
+  $$SELECT public.request_export_job('', 'Regulatory request OLRAS-2026-01')$$,
   NULL, NULL, 'export is refused when the source is blank');
 
 CREATE TEMP TABLE _job AS
 SELECT public.request_export_job(
-  'audit_logs', 'Regulatory examination request BOJ-2026-01',
+  'audit_logs', 'Regulatory examination request OLRAS-2026-01',
   NULL, NULL, 'applications', 'csv', '{"status":"approved"}'::jsonb, 42, NULL, NULL, 30
 ) AS id;
 
@@ -60,7 +60,7 @@ SELECT is(
   'completed', 'a request supplying a row count is recorded as completed');
 SELECT is(
   (SELECT justification FROM public.audit_export_jobs WHERE id = (SELECT id FROM _job)),
-  'Regulatory examination request BOJ-2026-01', 'justification is persisted verbatim');
+  'Regulatory examination request OLRAS-2026-01', 'justification is persisted verbatim');
 SELECT ok(
   (SELECT retention_expires_at::date FROM public.audit_export_jobs WHERE id = (SELECT id FROM _job))
     = (now() + interval '30 days')::date,
