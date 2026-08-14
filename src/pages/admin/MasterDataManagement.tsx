@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
@@ -28,7 +28,19 @@ export default function MasterDataManagement() {
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 
   const { data: types = [], isLoading: loadingTypes } = useMasterDataTypes();
-  const { data: items = [], isLoading: loadingItems } = useMasterDataItems(selectedTypeId);
+  const [itemSearch, setItemSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(itemSearch), 300);
+    return () => clearTimeout(t);
+  }, [itemSearch]);
+  const ITEM_PAGE_SIZE = 200;
+  const { data: itemsResult } = useMasterDataItems(selectedTypeId, {
+    search: debouncedSearch,
+    limit: ITEM_PAGE_SIZE,
+  });
+  const items = itemsResult?.rows ?? [];
+  const itemsTotal = itemsResult?.total ?? 0;
   const mutations = useMasterDataMutations();
 
   // Type dialog
@@ -181,7 +193,7 @@ export default function MasterDataManagement() {
   const itemColumns: Column<MasterDataItem>[] = [
     { key: 'name', label: 'Name', render: r => <span className="font-medium text-foreground">{r.name}</span> },
     { key: 'code', label: 'Code', render: r => r.code ? <Badge variant="outline">{r.code}</Badge> : <span className="text-muted-foreground">—</span> },
-    { key: 'parent_item_id', label: 'Parent', render: r => <span className="text-muted-foreground">{getParentName(r.parent_item_id)}</span> },
+    { key: 'parent_item_id', label: 'Parent', render: r => <span className="text-muted-foreground">{r.parent_name || getParentName(r.parent_item_id)}</span> },
     { key: 'sort_order', label: 'Order', render: r => <span>{r.sort_order}</span> },
     { key: 'status', label: 'Status', render: r => <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge> },
     {
@@ -222,7 +234,22 @@ export default function MasterDataManagement() {
                 </Select>
               </div>
               {selectedTypeId ? (
-                <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Search items..."
+                <>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    value={itemSearch}
+                    onChange={e => setItemSearch(e.target.value)}
+                    placeholder={`Search ${selectedType?.name || 'items'} by name or code...`}
+                    className="max-w-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {itemsTotal > items.length
+                      ? `Showing first ${items.length} of ${itemsTotal} — refine your search to narrow the list`
+                      : `${itemsTotal} item${itemsTotal === 1 ? '' : 's'}`}
+                  </span>
+                </div>
+                <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Filter loaded items..."
+
                   actions={
                     <div className="flex flex-wrap gap-2">
                       <Button data-rbac="settings.export" variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
@@ -234,6 +261,7 @@ export default function MasterDataManagement() {
                       <Button data-rbac="settings.edit" onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>
                     </div>
                   } />
+                </>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">Select a data type to manage its items.</div>
               )}
