@@ -234,7 +234,22 @@ export default function MasterDataManagement() {
                 </Select>
               </div>
               {selectedTypeId ? (
-                <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Search items..."
+                <>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    value={itemSearch}
+                    onChange={e => setItemSearch(e.target.value)}
+                    placeholder={`Search ${selectedType?.name || 'items'} by name or code...`}
+                    className="max-w-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {itemsTotal > items.length
+                      ? `Showing first ${items.length} of ${itemsTotal} — refine your search to narrow the list`
+                      : `${itemsTotal} item${itemsTotal === 1 ? '' : 's'}`}
+                  </span>
+                </div>
+                <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Filter loaded items..."
+
                   actions={
                     <div className="flex flex-wrap gap-2">
                       <Button data-rbac="settings.export" variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
