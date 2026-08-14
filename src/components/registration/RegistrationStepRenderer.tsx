@@ -6,13 +6,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { RegStep, RegField } from '@/types/registrationForm';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
-import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, Loader2, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
@@ -480,12 +485,12 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           <div>
             <Select value={strValue} onValueChange={handleChange} disabled={isDisabled}>
               <SelectTrigger onBlur={() => handleBlur(strValue)} className={error ? 'border-destructive' : ''}>
-                <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
+                <SelectValue placeholder={parentMissing ? 'Select...' : (field.placeholder || 'Select...')} />
               </SelectTrigger>
               <SelectContent>
                 {dynamicOptions.length === 0 ? (
                   <SelectItem value="__empty" disabled>
-                    {parentMissing ? 'Select parent field first' : 'No options available'}
+                    {parentMissing ? '—' : 'No options available'}
                   </SelectItem>
                 ) : (
                   dynamicOptions.map((o: { value: string; label: string }) => (
@@ -496,8 +501,12 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
             </Select>
             {parentMissing && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Please select the parent field first
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>Please select the parent field first</TooltipContent>
+                </Tooltip>
               </p>
             )}
           </div>
@@ -906,7 +915,16 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
   if (isRadio) {
     return (
       <div className="space-y-1.5">
-        {parentMissing && <p className="text-xs text-muted-foreground">Select parent field first</p>}
+        {parentMissing && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>Please select the parent field first</TooltipContent>
+            </Tooltip>
+          </p>
+        )}
         {!parentMissing && options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
         {options.map(opt => (
           <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -922,7 +940,16 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
     const selected = Array.isArray(value) ? value : [];
     return (
       <div className="space-y-1">
-        {parentMissing && <p className="text-xs text-muted-foreground">Select parent field first</p>}
+        {parentMissing && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>Please select the parent field first</TooltipContent>
+            </Tooltip>
+          </p>
+        )}
         {!parentMissing && options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
         {options.map(opt => (
           <label key={opt.value} className="flex items-center gap-2 text-sm">
@@ -945,12 +972,12 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
     <div>
       <Select value={strValue} onValueChange={onChange} disabled={!!isDisabled}>
         <SelectTrigger>
-          <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
+          <SelectValue placeholder={parentMissing ? 'Select...' : (field.placeholder || 'Select...')} />
         </SelectTrigger>
         <SelectContent>
           {options.length === 0 && (
             <SelectItem value="__empty" disabled>
-              {parentMissing ? 'Select parent field first' : 'No options available'}
+              {parentMissing ? '—' : 'No options available'}
             </SelectItem>
           )}
           {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -958,8 +985,12 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
       </Select>
       {parentMissing && (
         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          Please select the parent field first
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>Please select the parent field first</TooltipContent>
+          </Tooltip>
         </p>
       )}
     </div>
