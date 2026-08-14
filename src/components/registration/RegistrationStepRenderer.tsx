@@ -358,12 +358,25 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
 
   const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
+  const parentFieldName = field.dependsOn || field.masterDataParentField;
+  const parentValue = parentFieldName ? String(allData[parentFieldName] || '') : '';
+  const parentMissing = !!parentFieldName && !parentValue;
+
   const labelEl = !isDisplayOnlyField(field) && field.type !== 'checkbox' ? (
-    <Label className="text-sm">
+    <Label className="text-sm flex items-center gap-1.5">
       {field.label}
-      {field.required && <span className="text-destructive ml-1">*</span>}
+      {field.required && <span className="text-destructive ml-0.5">*</span>}
+      {parentMissing && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>Please select the parent field first</TooltipContent>
+        </Tooltip>
+      )}
     </Label>
   ) : null;
+
 
   let input: React.ReactNode;
   const strValue = typeof value === 'string' ? value : (value === null || value === undefined ? '' : String(value));
