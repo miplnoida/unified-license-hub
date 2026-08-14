@@ -512,16 +512,6 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
                 )}
               </SelectContent>
             </Select>
-            {parentMissing && (
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>Please select the parent field first</TooltipContent>
-                </Tooltip>
-              </p>
-            )}
           </div>
         );
       } else {
