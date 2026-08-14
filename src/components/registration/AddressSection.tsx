@@ -80,8 +80,15 @@ function AddressFields({
 
   const handleCountryChange = (countryId: string) => {
     onChange('country', countryId);
-    // Clear state when country changes
+    // Clear dependent state/city when country changes
     onChange('state', '');
+    onChange('city', '');
+  };
+
+  const handleStateChange = (stateId: string) => {
+    onChange('state', stateId);
+    // Clear dependent city when state changes
+    onChange('city', '');
   };
 
   return (
@@ -96,17 +103,6 @@ function AddressFields({
           className={errors[`${prefix}.street`] ? 'border-destructive' : ''}
         />
         {errors[`${prefix}.street`] && <p className="text-sm text-destructive">{errors[`${prefix}.street`]}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label>City / Town *</Label>
-        <Input
-          value={address.city}
-          onChange={e => onChange('city', e.target.value)}
-          placeholder="Enter city"
-          disabled={disabled}
-          className={errors[`${prefix}.city`] ? 'border-destructive' : ''}
-        />
-        {errors[`${prefix}.city`] && <p className="text-sm text-destructive">{errors[`${prefix}.city`]}</p>}
       </div>
       <div className="space-y-2 md:col-span-2">
         <Label>Country *</Label>
@@ -128,7 +124,7 @@ function AddressFields({
       <div className="space-y-2">
         <Label>State / Province / Region *</Label>
         {states.length > 0 ? (
-          <Select value={address.state} onValueChange={v => onChange('state', v)} disabled={disabled || !address.country}>
+          <Select value={address.state} onValueChange={handleStateChange} disabled={disabled || !address.country}>
             <SelectTrigger className={errors[`${prefix}.state`] ? 'border-destructive' : ''}>
               <SelectValue placeholder="Select state..." />
             </SelectTrigger>
@@ -148,6 +144,17 @@ function AddressFields({
           />
         )}
         {errors[`${prefix}.state`] && <p className="text-sm text-destructive">{errors[`${prefix}.state`]}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label>City / Town *</Label>
+        <Input
+          value={address.city}
+          onChange={e => onChange('city', e.target.value)}
+          placeholder="Enter city"
+          disabled={disabled}
+          className={errors[`${prefix}.city`] ? 'border-destructive' : ''}
+        />
+        {errors[`${prefix}.city`] && <p className="text-sm text-destructive">{errors[`${prefix}.city`]}</p>}
       </div>
     </div>
   );
