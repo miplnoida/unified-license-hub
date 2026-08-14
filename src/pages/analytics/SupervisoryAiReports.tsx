@@ -65,6 +65,7 @@ import {
   REVIEW_STATUS_LABEL,
   TIME_RANGES,
   analysisTypeLabel,
+  hubModuleVisual,
   needsAttention,
   rangeBounds,
   reportStatusChips,
@@ -75,7 +76,9 @@ import {
   type TimeRange,
 } from '@/lib/ai/reportHub';
 import { AiReportDetailDrawer } from '@/components/ai/AiReportDetailDrawer';
+import { ModuleAreaChip } from '@/components/ai-reports/ModuleAreaChip';
 import { EntityCoverageView } from '@/components/ai-reports/EntityCoverageView';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command,
