@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -371,7 +371,7 @@ export default function ApplicationQueue() {
           const cat = getApplicationCategory(r.data) === 'post_license' ? 'post' : 'pre';
           return (
             r.application_number?.toLowerCase().includes(q) ||
-            (applicants[r.applicant_id] || '').toLowerCase().includes(q) ||
+            applicantLabel(r).toLowerCase().includes(q) ||
             r.license_type?.toLowerCase().includes(q) ||
             formatLicenseType(r.license_type).toLowerCase().includes(q) ||
             cat.includes(q)
@@ -398,7 +398,7 @@ export default function ApplicationQueue() {
         sorted.sort((a, b) => (a.application_number || '').localeCompare(b.application_number || ''));
         break;
       case 'applicant':
-        sorted.sort((a, b) => (applicants[a.applicant_id] || '').localeCompare(applicants[b.applicant_id] || ''));
+        sorted.sort((a, b) => applicantLabel(a).localeCompare(applicantLabel(b)));
         break;
       case 'sla_age':
         sorted.sort((a, b) => {
@@ -416,7 +416,7 @@ export default function ApplicationQueue() {
         break;
     }
     return sorted;
-  }, [rows, search, applicants, sortBy]);
+  }, [rows, search, applicantLabel, sortBy]);
 
   const visibleIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
   const { byEntityId: totalSlaByApp } = useWorkflowTotalSla({
@@ -650,7 +650,7 @@ export default function ApplicationQueue() {
                             {r.application_number}
                           </Link>
                         </TableCell>
-                        <TableCell>{applicants[r.applicant_id] || '—'}</TableCell>
+                        <TableCell>{applicantLabel(r)}</TableCell>
                         <TableCell><Badge variant="outline">{formatLicenseType(r.license_type)}</Badge></TableCell>
                         <TableCell>
                           {getApplicationCategory(r.data) === 'post_license' ? (
