@@ -98,13 +98,42 @@ const STATUS_TONE: Record<ReportStatusTone, string> = {
 
 function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: () => void }) {
   const chips = reportStatusChips(report);
+  const visual = hubModuleVisual(report.module);
   return (
-    <Card className="border-border/60 shadow-none transition-all hover:border-border hover:shadow-md">
+    <Card
+      className={cn(
+        'border-l-4 border-border/60 shadow-none transition-all hover:border-border hover:shadow-md',
+        visual.accentClass,
+      )}
+    >
       <CardContent className="flex h-full flex-col gap-3 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ModuleAreaChip module={report.module} />
+            {report.periodKey && (
+              <Badge variant="outline" className={cn('text-[11px] font-medium', STATUS_TONE.neutral)}>
+                {report.periodKey}
+              </Badge>
+            )}
+          </div>
+          {!!chips.length && (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {chips.map((c) => (
+                <Badge key={c.key} variant="outline" className={cn('text-xs font-medium', STATUS_TONE[c.tone])}>
+                  {c.label}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div>
-          <p className="font-semibold leading-snug text-foreground">{subjectLabel(report)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {analysisTypeLabel(report.analysisType)} · {HUB_MODULE_LABEL[report.module]}
+          <p className="font-semibold leading-snug text-foreground">
+            {analysisTypeLabel(report.analysisType)}
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{subjectLabel(report)}</span>
           </p>
         </div>
 
@@ -114,23 +143,13 @@ function ReportCard({ report, onOpen }: { report: SupervisoryAiReport; onOpen: (
 
         <p className="text-xs text-muted-foreground">
           Prepared {formatDateTime(report.generatedAt)}
-          {report.periodKey ? ` · Period ${report.periodKey}` : ''}
           {report.reviewStatus && REVIEW_STATUS_LABEL[report.reviewStatus]
             ? ` · ${REVIEW_STATUS_LABEL[report.reviewStatus]}`
             : ''}
         </p>
 
-        {!!chips.length && (
-          <div className="flex flex-wrap gap-1.5">
-            {chips.map((c) => (
-              <Badge key={c.key} variant="outline" className={cn('text-xs font-medium', STATUS_TONE[c.tone])}>
-                {c.label}
-              </Badge>
-            ))}
-          </div>
-        )}
-
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+
           <Button size="sm" className="gap-1.5" onClick={onOpen}>
             <FileText className="h-3.5 w-3.5" />
             View Report
