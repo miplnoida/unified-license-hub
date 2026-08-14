@@ -16,14 +16,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDateTime } from '@/lib/datetime';
 import { useEntityAiCoverage } from '@/hooks/useSupervisoryAiReports';
 import { groupReportsByArea } from '@/lib/ai/reportPlainLanguage';
+import { ModuleAreaChip } from '@/components/ai-reports/ModuleAreaChip';
 import {
   CONFIDENCE_TEXT,
   FRESHNESS_LABEL,
-  HUB_MODULE_LABEL,
   analysisTypeLabel,
   needsAttention,
   type SupervisoryAiReport,
 } from '@/lib/ai/reportHub';
+
 
 
 interface Props {
