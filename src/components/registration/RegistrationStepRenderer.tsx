@@ -6,13 +6,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { RegStep, RegField } from '@/types/registrationForm';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
-import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, Loader2, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
