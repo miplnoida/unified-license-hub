@@ -392,4 +392,70 @@ export const ATTENTION_BUCKETS: Array<{
   },
 ];
 
+/**
+ * Presentation-only visual identity per supervisory area, so a wall of cards for
+ * the same organisation stays scannable. Tokens only — no hardcoded hex.
+ */
+export interface HubModuleVisual {
+  /** Short chip wording (the long label stays available in HUB_MODULE_LABEL). */
+  chip: string;
+  /** Tailwind classes for the area chip. */
+  chipClass: string;
+  /** Tailwind class for the card's left accent border. */
+  accentClass: string;
+}
+
+export const HUB_MODULE_VISUAL: Record<HubModule, HubModuleVisual> = {
+  licensing: {
+    chip: 'Licensing',
+    chipClass: 'border-primary/30 bg-primary/10 text-primary',
+    accentClass: 'border-l-primary/60',
+  },
+  fit_proper: {
+    chip: 'Fit & Proper',
+    chipClass: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    accentClass: 'border-l-sky-500/60',
+  },
+  prudential: {
+    chip: 'Prudential risk',
+    chipClass: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+    accentClass: 'border-l-indigo-500/60',
+  },
+  examination: {
+    chip: 'Examination',
+    chipClass: 'border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-400',
+    accentClass: 'border-l-teal-500/60',
+  },
+  complaints: {
+    chip: 'Complaints',
+    chipClass: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    accentClass: 'border-l-amber-500/60',
+  },
+  conduct: {
+    chip: 'Market conduct',
+    chipClass: 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-400',
+    accentClass: 'border-l-orange-500/60',
+  },
+  enforcement: {
+    chip: 'Enforcement',
+    chipClass: 'border-destructive/30 bg-destructive/10 text-destructive',
+    accentClass: 'border-l-destructive/60',
+  },
+  cross_module: {
+    chip: 'Cross-module',
+    chipClass: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-400',
+    accentClass: 'border-l-violet-500/60',
+  },
+  executive: {
+    chip: 'Executive',
+    chipClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    accentClass: 'border-l-emerald-500/60',
+  },
+};
+
+export function hubModuleVisual(module: HubModule): HubModuleVisual {
+  return HUB_MODULE_VISUAL[module] ?? HUB_MODULE_VISUAL.cross_module;
+}
+
+
 

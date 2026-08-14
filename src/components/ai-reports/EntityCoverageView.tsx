@@ -16,14 +16,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDateTime } from '@/lib/datetime';
 import { useEntityAiCoverage } from '@/hooks/useSupervisoryAiReports';
 import { groupReportsByArea } from '@/lib/ai/reportPlainLanguage';
+import { ModuleAreaChip } from '@/components/ai-reports/ModuleAreaChip';
 import {
   CONFIDENCE_TEXT,
   FRESHNESS_LABEL,
-  HUB_MODULE_LABEL,
   analysisTypeLabel,
   needsAttention,
   type SupervisoryAiReport,
 } from '@/lib/ai/reportHub';
+
 
 
 interface Props {
@@ -120,14 +121,18 @@ export function EntityCoverageView({ entityId, entityName, onOpen }: Props) {
           <CardContent className="space-y-2">
             {latest ? (
               <>
-                <p className="text-sm font-medium text-foreground">{latest.title}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <ModuleAreaChip module={latest.module} />
+                  {latest.periodKey && <Badge variant="outline" className="text-[11px]">{latest.periodKey}</Badge>}
+                </div>
+                <p className="text-sm font-semibold text-foreground">{analysisTypeLabel(latest.analysisType)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {HUB_MODULE_LABEL[latest.module]} · {analysisTypeLabel(latest.analysisType)} · Prepared{' '}
-                  {formatDateTime(latest.generatedAt)}
+                  {latest.title} · Prepared {formatDateTime(latest.generatedAt)}
                   {latest.confidence ? ` · ${CONFIDENCE_TEXT[latest.confidence] ?? latest.confidence}` : ''}
                   {latest.freshness === 'outdated' ? ` · ${FRESHNESS_LABEL.outdated}` : ''}
                 </p>
                 {latest.summary && <p className="line-clamp-2 text-sm text-muted-foreground">{latest.summary}</p>}
+
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => onOpen(latest)}>
                     <FileText className="h-3.5 w-3.5" />
