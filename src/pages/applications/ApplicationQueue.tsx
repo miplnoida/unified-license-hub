@@ -298,13 +298,27 @@ export default function ApplicationQueue() {
       if (applicantIds.length) {
         const [{ data: profs }, { data: pre }] = await Promise.all([
           supabase.from('profiles').select('id, full_name, email').in('id', applicantIds),
-          supabase.from('pre_license_users').select('id, full_name, email').in('id', applicantIds),
+          supabase.from('pre_license_users').select('id, full_name, email, entity_name').in('id', applicantIds),
         ]);
-        const map: Record<string, string> = {};
-        (profs || []).forEach((p: any) => { map[p.id] = p.full_name || p.email || 'Unknown'; });
-        (pre || []).forEach((p: any) => { if (!map[p.id]) map[p.id] = p.full_name || p.email || 'Unknown'; });
+        const map: Record<string, ApplicantInfo> = {};
+        (profs || []).forEach((p: any) => { map[p.id] = { name: p.full_name || p.email || 'Unknown' }; });
+        (pre || []).forEach((p: any) => {
+          if (!map[p.id]) map[p.id] = { name: p.full_name || p.email || 'Unknown', org: p.entity_name || null };
+        });
         setApplicants(map);
       }
+
+      // Organisation for applications filed against an existing licensee record.
+      const licenseeIds = Array.from(
+        new Set(list.map((r) => (r.data as any)?.licensee_id).filter(Boolean) as string[]),
+      );
+      if (licenseeIds.length) {
+        const { data: lics } = await supabase.from('licensees').select('id, name').in('id', licenseeIds);
+        const lmap: Record<string, string> = {};
+        (lics || []).forEach((l: any) => { if (l.name) lmap[l.id] = l.name; });
+        if (!cancelled) setLicenseeNames(lmap);
+      }
+
       setLoading(false);
     }
     load();
