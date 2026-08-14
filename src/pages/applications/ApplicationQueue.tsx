@@ -350,7 +350,20 @@ export default function ApplicationQueue() {
     loadUsers();
   }, []);
 
+  /** "Applicant Name (Organisation)" — organisation omitted when unknown. */
+  const applicantLabel = useCallback(
+    (row: QueueRow) => {
+      const info = applicants[row.applicant_id];
+      const name = info?.name || row.applicant_name || '—';
+      const licenseeId = (row.data as any)?.licensee_id as string | undefined;
+      const org = info?.org || (licenseeId ? licenseeNames[licenseeId] : null);
+      return org && org !== name ? `${name} (${org})` : name;
+    },
+    [applicants, licenseeNames],
+  );
+
   const filtered = useMemo(() => {
+
     const q = search.trim().toLowerCase();
     const base = !q
       ? rows
