@@ -493,6 +493,64 @@ Deno.serve(async (req) => {
 
     const workflowInstanceRows = (workflowInstances.data as Array<Record<string, unknown>>) || [];
 
+    /* ---------------------------------------------------------------------- */
+    /*  Deterministic data-integrity snapshot (computed in code, never by AI)  */
+    /* ---------------------------------------------------------------------- */
+    let expectedFeeTotal: number | null = null;
+    try {
+      const { data: feeRows } = await adminClient
+        .from("fee_components")
+        .select("amount")
+        .eq("application_id", application_id);
+      const rows = (feeRows as Array<{ amount: number | string | null }>) || [];
+      if (rows.length) {
+        expectedFeeTotal = Number(
+          rows.reduce((s, r) => s + (Number(r.amount) || 0), 0).toFixed(2),
+        );
+      }
+    } catch (_e) {
+      expectedFeeTotal = null;
+    }
+
+    let formDataUpdatedAt: string | null = null;
+    try {
+      const { data: lastUpdate } = await adminClient
+        .from("audit_logs")
+        .select("created_at")
+        .eq("entity_id", application_id)
+        .eq("action", "application.form_data_updated")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      formDataUpdatedAt = (lastUpdate?.created_at as string | undefined) ?? null;
+    } catch (_e) {
+      formDataUpdatedAt = null;
+    }
+
+    const dataIntegrity = computeDataIntegrity({
+      application: {
+        id: application_id,
+        status: app.status as string | null,
+        submitted_at: (app.submitted_at as string | null) ?? null,
+        created_at: (app.created_at as string | null) ?? null,
+        updated_at: (app.updated_at as string | null) ?? null,
+        data: appData,
+      },
+      submittedForms: submittedFormsGrouped,
+      documents: documentsList,
+      payments: paymentsList,
+      expectedFeeTotal,
+      expectedFeeCurrency:
+        (completedPayment?.currency as string | undefined) ??
+        (paymentsList[0]?.currency as string | undefined) ??
+        null,
+      rfiRequests: rfiHistory,
+      rfiResponses,
+      formDataUpdatedAt,
+    });
+
+
+
     // Build prompt payload (advisory only).
     const applicationContext = {
       application_details: {
