@@ -105,3 +105,72 @@ export async function refreshFormFileUrl(filePath: string): Promise<string> {
     .createSignedUrl(filePath, 300);
   return data?.signedUrl || '';
 }
+
+/**
+ * Resolve the persistent storage path for a form file value.
+ *
+ * Versioned uploads store `filePath: ''` in the form data and only keep the
+ * document version / group identifiers, so the real path must be looked up in
+ * `document_versions` (or `file_uploads` for legacy rows).
+ */
+export async function resolveFormFileStoragePath(fileData: {
+  filePath?: string | null;
+  url?: string | null;
+  uploadId?: string | null;
+  versionId?: string | null;
+  groupId?: string | null;
+}): Promise<string | null> {
+  if (fileData.filePath) return fileData.filePath;
+
+  const versionIds = [fileData.versionId, fileData.uploadId].filter(Boolean) as string[];
+  for (const id of versionIds) {
+    const { data } = await supabase
+      .from('document_versions' as any)
+      .select('storage_path')
+      .eq('id', id)
+      .maybeSingle();
+    const path = (data as any)?.storage_path as string | undefined;
+    if (path) return path;
+  }
+
+  if (fileData.groupId) {
+    const { data: group } = await supabase
+      .from('document_groups' as any)
+      .select('current_version_id')
+      .eq('id', fileData.groupId)
+      .maybeSingle();
+    const currentVersionId = (group as any)?.current_version_id as string | undefined;
+    if (currentVersionId) {
+      const { data: version } = await supabase
+        .from('document_versions' as any)
+        .select('storage_path')
+        .eq('id', currentVersionId)
+        .maybeSingle();
+      const path = (version as any)?.storage_path as string | undefined;
+      if (path) return path;
+    }
+    // Fallback: latest version row for this group
+    const { data: latest } = await supabase
+      .from('document_versions' as any)
+      .select('storage_path')
+      .eq('document_upload_id', fileData.groupId)
+      .order('version_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const latestPath = (latest as any)?.storage_path as string | undefined;
+    if (latestPath) return latestPath;
+  }
+
+  for (const id of versionIds) {
+    const { data } = await supabase
+      .from('file_uploads' as any)
+      .select('file_path')
+      .eq('id', id)
+      .maybeSingle();
+    const path = (data as any)?.file_path as string | undefined;
+    if (path) return path;
+  }
+
+  return null;
+}
+
