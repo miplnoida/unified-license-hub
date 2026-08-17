@@ -1,6 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
+import { dispatchOrEnqueueNotification } from "../_shared/notification-dispatch.ts";
 
 /**
  * Thin authentication wrapper around perform_registration_workflow_transition.
