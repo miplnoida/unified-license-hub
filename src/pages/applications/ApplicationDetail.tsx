@@ -889,6 +889,12 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {APPLICATION_STATUS_LABELS[app.status]}
               </Badge>
+              {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
+                <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} size="sm">
+                  <Send className="h-4 w-4 mr-2" />
+                  {processing ? 'Resubmitting...' : 'Resubmit Application'}
+                </Button>
+              )}
               {isInternal && <HistoryButton entityType="application" entityId={app.id} title={`History — ${app.application_number}`} />}
             </div>
           }
