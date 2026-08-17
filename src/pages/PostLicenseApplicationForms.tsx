@@ -177,6 +177,13 @@ export default function PostLicenseApplicationForms() {
       return false;
     }
   });
+  const [reviewAcknowledged, setReviewAcknowledged] = useState(() => {
+    try {
+      return sessionStorage.getItem(`${postLicenseStepStorageKey}:reviewAck`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const { data: reviewSettings } = useReviewSettings();
 
   useEffect(() => {
@@ -187,10 +194,12 @@ export default function PostLicenseApplicationForms() {
         sessionStorage.removeItem(postLicenseStepStorageKey);
       }
       sessionStorage.setItem(`${postLicenseStepStorageKey}:review`, String(showReview));
+      sessionStorage.setItem(`${postLicenseStepStorageKey}:reviewAck`, String(reviewAcknowledged));
     } catch {
       // noop
     }
-  }, [postLicenseStepStorageKey, activeFormTemplateId, showReview]);
+  }, [postLicenseStepStorageKey, activeFormTemplateId, showReview, reviewAcknowledged]);
+
 
   const serviceName = searchParams.get('service') || '';
 
