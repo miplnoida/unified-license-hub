@@ -45,6 +45,7 @@ function ActiveFormFiller({
   applicationId,
   versionLocked = false,
   originalData,
+  stepStorageKey,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -55,7 +56,9 @@ function ActiveFormFiller({
   applicationId?: string;
   versionLocked?: boolean;
   originalData?: Record<string, any>;
+  stepStorageKey?: string;
 }) {
+
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
     templateId,
