@@ -617,9 +617,14 @@ function CompletedView({
   currentUserId?: string;
   onDecisionSaved: () => void | Promise<void>;
 }) {
-  const findings = Array.isArray(assessment.findings) ? assessment.findings : [];
-  const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
-  const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
+  const findings = (Array.isArray(assessment.findings) ? assessment.findings : []).filter(
+    (f) => !isTaxonomyNamingNoise([f.title, f.description, ...(f.evidence || [])]),
+  );
+  const risks = (Array.isArray(assessment.risks) ? assessment.risks : []).filter(
+    (r) => !isTaxonomyNamingNoise([r.reason, ...(r.evidence || [])]),
+  );
+  const missing = (Array.isArray(assessment.missing_information) ? assessment.missing_information : [])
+    .filter((m) => !isTaxonomyNamingNoise([m]));
   const routing = assessment.routing_recommendation || {};
   const sections: Section[] = Array.isArray(assessment.sections) ? assessment.sections : [];
   const groupedFindings = groupBySeverity(findings);
