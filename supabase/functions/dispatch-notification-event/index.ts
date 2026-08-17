@@ -191,9 +191,44 @@ export function channelAllowed(pref: EffectivePreference | null, channel: string
 }
 
 
+/**
+ * Renders a stored notification template.
+ *
+ * Beyond simple `{{token}}` substitution this also normalises markup that
+ * historically leaked into delivered emails:
+ *   - literal `\n` / `\t` escape text stored in the template body,
+ *   - Mustache-style conditional sections `{{#key}}…{{/key}}` (and inverted
+ *     `{{^key}}…{{/key}}`), which are resolved on truthiness of the variable.
+ */
 export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
-  return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
+  const truthy = (k: string) => {
+    const v = vars[k];
+    return !(v === undefined || v === null || v === false || v === "" || (Array.isArray(v) && v.length === 0));
+  };
+
+  let out = String(tpl)
+    // literal escape sequences stored as text
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, " ");
+
+  // Resolve conditional sections (repeat to support nesting).
+  for (let pass = 0; pass < 5; pass++) {
+    const before = out;
+    out = out.replace(
+      /\{\{\s*([#^])\s*([\w.]+)\s*\}\}([\s\S]*?)\{\{\s*\/\s*\2\s*\}\}/g,
+      (_m, kind, key, body) => {
+        const keep = kind === "#" ? truthy(key) : !truthy(key);
+        return keep ? body : "";
+      },
+    );
+    if (out === before) break;
+  }
+  // Drop any stray section tags left behind by malformed templates.
+  out = out.replace(/\{\{\s*[#^/]\s*[\w.]+\s*\}\}/g, "");
+
+  return out.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const v = vars[k];
     return v === undefined || v === null ? "" : String(v);
   });
