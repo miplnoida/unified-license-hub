@@ -152,6 +152,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && products.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('products')}</p>}
           </div>
           <div>
             <Label className="text-xs">Channel</Label>
@@ -159,6 +160,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{channels.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && channels.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('channels')}</p>}
           </div>
           <div>
             <Label className="text-xs">Conduct Risk Category</Label>
@@ -166,7 +168,9 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{cats.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && cats.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('conduct categories')}</p>}
           </div>
+
           <div>
             <Label className="text-xs">Customer Type</Label>
             <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
