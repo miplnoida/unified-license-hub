@@ -65,6 +65,8 @@ export const SECTION_LABELS: Array<{ key: keyof AdvisoryPayload; label: string }
   { key: 'improving_indicators', label: 'Areas improving' },
   { key: 'peer_observations', label: 'Compared with peers' },
   { key: 'emerging_risks', label: 'Possible emerging risks' },
+  { key: 'business_impact', label: 'Business and supervisory implications' },
+  { key: 'data_quality', label: 'Data quality and integrity of the figures' },
 ];
 
 /** Stable JSON — key order must not change the fingerprint. */
