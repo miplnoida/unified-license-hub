@@ -11,6 +11,7 @@
 //   - Never mutates application state or workflow state.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { computeDataIntegrity } from "./dataIntegrity.ts";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
