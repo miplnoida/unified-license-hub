@@ -22,6 +22,7 @@ import {
   buildApplicationXmlTemplate,
   type AppTemplateSection,
 } from '@/lib/applicationTemplate';
+import { APPLICATION_BULK_FILL_ENABLED } from '@/lib/featureFlags';
 
 interface SectionLike {
   title?: string | null;
