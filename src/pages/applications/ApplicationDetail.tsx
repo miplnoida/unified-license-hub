@@ -924,13 +924,13 @@ export default function ApplicationDetail() {
             {/* Forms and Documents tabs - always visible */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
-                {showWorkflowTab && <TabsTrigger value="workflow">Workflow</TabsTrigger>}
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="rfi" className="gap-1.5">
+                <TabsTrigger value="details" className={TAB_TRIGGER_CLASS}>Details</TabsTrigger>
+                {hasSubmittedForms && <TabsTrigger value="form" className={TAB_TRIGGER_CLASS}>Submitted Forms</TabsTrigger>}
+                <TabsTrigger value="documents" className={TAB_TRIGGER_CLASS}>Documents</TabsTrigger>
+                <TabsTrigger value="fees" className={TAB_TRIGGER_CLASS}>{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                {showWorkflowTab && <TabsTrigger value="workflow" className={TAB_TRIGGER_CLASS}>Workflow</TabsTrigger>}
+                <TabsTrigger value="activity" className={TAB_TRIGGER_CLASS}>Activity</TabsTrigger>
+                <TabsTrigger value="rfi" className={`gap-1.5 ${TAB_TRIGGER_CLASS}`}>
 
                   RFI
                   {openRfiCount > 0 && (
@@ -939,10 +939,10 @@ export default function ApplicationDetail() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="communications">Communications</TabsTrigger>
-                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision">Decision</TabsTrigger>}
-                {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
-                {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
+                <TabsTrigger value="communications" className={TAB_TRIGGER_CLASS}>Communications</TabsTrigger>
+                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision" className={TAB_TRIGGER_CLASS}>Decision</TabsTrigger>}
+                {isInternal && <TabsTrigger value="consolidated" className={TAB_TRIGGER_CLASS}>Consolidated Case</TabsTrigger>}
+                {app.status === 'approved' && <TabsTrigger value="conditions" className={TAB_TRIGGER_CLASS}>Conditions</TabsTrigger>}
 
               </TabsList>
 
