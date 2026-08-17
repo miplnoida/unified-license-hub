@@ -13,13 +13,15 @@ Every other country has sort order 0. Because the admin Master Data list sorts b
 1. Data correction (no schema change):
    - Set India's sort order to 0 and its code to `IN`.
    - Set Anguilla's sort order to 0 and its code to `AI`.
-   - Re-check that no other country/state/city row carries a stray sort order.
-2. Admin list usability: keep the 200-row cap for performance, but make the list order purely alphabetical by name for these location types so no record can be hidden by a stray sort order, and show the "showing X of Y — refine your search" hint so admins know to search when the cap is hit.
+   - Normalise any remaining stray sort orders on location rows so nothing is pinned first or last.
+2. Alphabetical ordering everywhere for locations: order Country, State and City strictly by name (A→Z) in both the admin Master Data list and the registration dropdowns, so no record can jump to the top or bottom of the list.
+3. Keep the 200-row fetch cap for performance and show a "showing X of Y — refine your search" hint so admins know to search in long city lists.
 
 ## Verification
-- Query the country list ordered as the admin screen orders it and confirm India appears within the first page.
-- Open Master Data → Country in the admin panel, confirm India is listed and its code reads `IN`.
-- On the registration form, select India and confirm its states load, then pick a state and confirm its cities load.
+- Query the country list ordered as the admin screen orders it and confirm the full list reads A→Z with India in place.
+- Open Master Data → Country in the admin panel, confirm India is listed alphabetically and its code reads `IN`.
+- On the registration form, confirm countries, states and cities all appear alphabetically; select India and confirm its states load, then pick a state and confirm its cities load.
+
 
 ## Notes
 No changes to registration submission logic, seeding scripts, or other master data types.
