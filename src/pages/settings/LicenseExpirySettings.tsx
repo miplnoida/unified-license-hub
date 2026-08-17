@@ -214,9 +214,16 @@ export default function LicenseExpirySettings() {
 
   const saveDraft = async () => {
     if (!draft) return;
+    // Normalise the draft the same way it is stored, so the list reflects the
+    // saved values (e.g. sorted reminder days) immediately.
+    const normalised: DraftRule = {
+      ...draft,
+      ...sanitizePolicy(draft, draft._remindersText),
+    };
+    normalised._remindersText = (normalised.reminder_days || []).join(',');
     const next = isNew
-      ? [...rules, draft]
-      : rules.map((r) => (r.id === draft.id ? draft : r));
+      ? [...rules, normalised]
+      : rules.map((r) => (r.id === normalised.id ? normalised : r));
     const ok = await persist(next);
     if (ok) { setRules(next); closeDialog(); }
   };
