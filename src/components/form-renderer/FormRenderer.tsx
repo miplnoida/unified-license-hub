@@ -1417,13 +1417,14 @@ export function FormRenderer({
                   <button
                     key={key}
                     onClick={() => { setActiveGroup(key); setActiveFormIdx(0); }}
+                    aria-current={isActive ? 'step' : undefined}
                     className={`
-                      flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-bold transition-all
+                      flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all border
                       ${isActive
-                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-md'
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-md'
                         : allCompleted
-                          ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                          ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                       }
                     `}
                   >
@@ -1444,13 +1445,14 @@ export function FormRenderer({
                     key={s.id}
                     onClick={() => setActiveFormIdx(i)}
                     title={s.title}
+                    aria-current={isActive ? 'step' : undefined}
                     className={`
-                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border
                       ${isActive
-                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-sm'
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-sm'
                         : isCompleted
-                          ? 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30'
-                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                          ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                       }
                     `}
                   >
@@ -1460,6 +1462,7 @@ export function FormRenderer({
                 );
               })}
             </div>
+
           </div>
         )}
 
