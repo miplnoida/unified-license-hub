@@ -602,7 +602,20 @@ export function FormRenderer({
     }
   };
 
-  const handleSaveDraft = () => onSaveDraft(getMergedData());
+  // Callers may return a promise that rejects when the write is refused; the
+  // caller surfaces the error itself, we only prevent an unhandled rejection.
+  const runSave = (fn: (data: Record<string, any>) => void | Promise<void>, data: Record<string, any>) => {
+    try {
+      const maybe = fn(data) as unknown;
+      if (maybe && typeof (maybe as Promise<void>).catch === 'function') {
+        (maybe as Promise<void>).catch(() => undefined);
+      }
+    } catch {
+      // handled by caller
+    }
+  };
+
+  const handleSaveDraft = () => runSave(onSaveDraft, getMergedData());
 
   const handleSubmit = () => {
     const res = validateCurrentStep();
@@ -614,8 +627,9 @@ export function FormRenderer({
         // noop
       }
     }
-    onSubmit(getMergedData());
+    runSave(onSubmit, getMergedData());
   };
+
 
   // Handle file upload to storage.
   // When formId is provided (Form Management context), uses versioned upload:

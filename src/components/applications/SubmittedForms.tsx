@@ -33,6 +33,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
   const resolvedVersionId = (submittedVersionInfo?.id) || versionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
+  const [dirty, setDirty] = useState(false);
 
   const isLoading = tLoading || lvLoading || sLoading;
 
@@ -52,20 +53,29 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
     );
   }
 
-  const semanticVersion = versionInfo?.semantic_version || `v${versionInfo?.version || 1}`;
-  const isResubmission = applicationStatus === 'resubmission_requested' || applicationStatus === 'query_raised';
-  const badgeLabel = isResubmission ? `To Be Resubmitted — v${semanticVersion}` : `Submitted on v${semanticVersion}`;
-  const badgeVariant = isResubmission ? 'returned' : 'outline';
+  const handleSave = async (data: Record<string, any>) => {
+    if (!onSave) return;
+    // Let the error propagate — the caller toasts it and we keep the form
+    // marked dirty so the applicant knows the edit is not stored yet.
+    await onSave(templateId, data, resolvedVersionId);
+    setDirty(false);
+  };
 
   return (
     <div className="space-y-2">
+      {editable && dirty && (
+        <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+          You have unsaved changes in this form. Save the form before resubmitting, otherwise your edits will not reach the reviewer.
+        </div>
+      )}
       <FormRenderer
         key={`${templateId}:${resolvedVersionId || 'latest'}`}
         formName={template.name}
         sections={sections}
         initialData={formData}
-        onSaveDraft={editable && onSave ? async (data) => { await onSave(templateId, data, resolvedVersionId); } : () => {}}
-        onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data, resolvedVersionId); } : () => {}}
+        onChange={editable ? () => setDirty(true) : undefined}
+        onSaveDraft={editable && onSave ? handleSave : () => {}}
+        onSubmit={editable && onSave ? handleSave : () => {}}
         readOnly={!editable}
         saving={saving}
         showFullTabTitles
@@ -75,6 +85,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
     </div>
   );
 }
+
 
 
 interface SubmittedFormsProps {
