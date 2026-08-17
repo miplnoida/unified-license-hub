@@ -59,8 +59,8 @@ export function useMasterDataItems(typeId?: string | null, opts: MasterDataItems
       let query = supabase
         .from('master_data_items' as any)
         .select('*, parent:parent_item_id(name)', { count: 'exact' })
-        .order('sort_order')
         .order('name')
+
         .limit(limit);
       if (typeId) query = query.eq('type_id', typeId);
       if (term) query = query.or(`name.ilike.%${term}%,code.ilike.%${term}%`);
@@ -112,8 +112,8 @@ export function useActiveMasterItems(typeCode: string, parentItemId?: string | n
         .select('id, name, code, parent_item_id, metadata')
         .eq('type_id', (typeData as any).id)
         .eq('status', 'active')
-        .order('sort_order')
         .order('name');
+
 
       if (parentItemId) {
         query = query.eq('parent_item_id', parentItemId);
