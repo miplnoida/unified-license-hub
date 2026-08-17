@@ -153,8 +153,8 @@ export async function resolveFormFileStoragePath(fileData: {
     const { data: latest } = await supabase
       .from('document_versions' as any)
       .select('storage_path')
-      .eq('document_upload_id', fileData.groupId)
-      .order('version_number', { ascending: false })
+      .eq('group_id', fileData.groupId)
+      .order('version', { ascending: false })
       .limit(1)
       .maybeSingle();
     const latestPath = (latest as any)?.storage_path as string | undefined;
