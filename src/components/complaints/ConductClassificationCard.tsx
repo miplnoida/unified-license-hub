@@ -57,6 +57,43 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     })();
   }, []);
 
+  // Keep the editable form in sync with the loaded complaint record. The record
+  // may arrive (or be refetched after a save) after this card first renders.
+  useEffect(() => {
+    setForm({
+      conduct_risk_category_id: complaint.conduct_risk_category_id || '',
+      product_id: complaint.product_id || '',
+      channel_id: complaint.channel_id || '',
+      customer_type: complaint.customer_type || '',
+      vulnerability_indicator: !!complaint.vulnerability_indicator,
+      vulnerability_notes: complaint.vulnerability_notes || '',
+      priority: complaint.priority || '',
+      sla_days: complaint.sla_days ?? '',
+    });
+  }, [
+    complaint.id,
+    complaint.conduct_risk_category_id,
+    complaint.product_id,
+    complaint.channel_id,
+    complaint.customer_type,
+    complaint.vulnerability_indicator,
+    complaint.vulnerability_notes,
+    complaint.priority,
+    complaint.sla_days,
+  ]);
+
+  const nameOf = (list: any[], id?: string | null) =>
+    (id && list.find((x) => x.id === id)?.name) || null;
+
+  const recorded = [
+    { label: 'Product', value: nameOf(products, complaint.product_id) },
+    { label: 'Channel', value: nameOf(channels, complaint.channel_id) },
+    { label: 'Conduct Risk Category', value: nameOf(cats, complaint.conduct_risk_category_id) },
+    { label: 'Customer Type', value: complaint.customer_type || null },
+  ];
+
+
+
 
   const persist = async (payload: any) => {
     const { error } = await (supabase as any).rpc('classify_complaint', { _id: complaint.id, _payload: payload });
@@ -151,7 +188,19 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="rounded-md border bg-muted/40 p-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Recorded classification</p>
+          <div className="grid gap-2 md:grid-cols-4">
+            {recorded.map((r) => (
+              <div key={r.label}>
+                <p className="text-[11px] text-muted-foreground">{r.label}</p>
+                <p className="text-sm capitalize">{r.value ?? <span className="text-muted-foreground">Not recorded</span>}</p>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-3 md:grid-cols-3">
+
           <div>
             <Label className="text-xs">Product</Label>
             <Select value={form.product_id || 'none'} onValueChange={v => setForm({ ...form, product_id: v === 'none' ? '' : v })}>
