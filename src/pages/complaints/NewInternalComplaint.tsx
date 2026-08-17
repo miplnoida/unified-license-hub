@@ -217,6 +217,9 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>{(refs?.categories ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.categories.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('conduct categories')}</p>
+                )}
               </div>
               <div>
                 <Label>Product</Label>
@@ -224,6 +227,9 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>{(refs?.products ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.products.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('products')}</p>
+                )}
               </div>
               <div>
                 <Label>Channel</Label>
@@ -231,7 +237,11 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
                   <SelectContent>{(refs?.channels ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.channels.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('channels')}</p>
+                )}
               </div>
+
               <div>
                 <Label>Severity</Label>
                 <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
