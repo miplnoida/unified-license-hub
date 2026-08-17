@@ -768,15 +768,33 @@ export function FormRenderer({
     updateField(fieldName, list);
   };
 
-  // Handle file preview with fresh signed URL
-  const handleFilePreview = async (fileData: FormFileData) => {
-    if (fileData.filePath) {
-      const freshUrl = await refreshFormFileUrl(fileData.filePath);
-      setPreviewFile({ name: fileData.name, url: freshUrl, type: fileData.type });
-    } else if (fileData.url) {
-      setPreviewFile({ name: fileData.name, url: fileData.url, type: fileData.type });
+  // Handle file preview with fresh signed URL. Versioned uploads store an empty
+  // filePath in form data, so the real storage path is resolved from the
+  // document version / group identifiers before signing.
+  const handleFilePreview = async (fileData: FormFileData & { versionId?: string; groupId?: string }) => {
+    const key = (fileData as any).versionId || fileData.uploadId || (fileData as any).groupId || fileData.filePath || fileData.name;
+    setPreviewLoadingKey(key);
+    try {
+      const path = await resolveFormFileStoragePath(fileData as any);
+      if (path) {
+        const freshUrl = await refreshFormFileUrl(path);
+        if (freshUrl) {
+          setPreviewFile({ name: fileData.name, url: freshUrl, type: fileData.type });
+          return;
+        }
+      }
+      if (fileData.url) {
+        setPreviewFile({ name: fileData.name, url: fileData.url, type: fileData.type });
+        return;
+      }
+      toast.error('Unable to open this document — the stored file could not be located.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Unable to open this document');
+    } finally {
+      setPreviewLoadingKey(null);
     }
   };
+
 
   // Repeatable section helpers
   const addRepeatableEntry = (sectionId: string) => {
