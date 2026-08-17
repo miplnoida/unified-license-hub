@@ -1566,36 +1566,6 @@ export default function ApplicationDetail() {
               );
             })()}
 
-            {/* Applicant resubmit action */}
-            {isOwner && activeTab !== 'form' && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">{app.status === 'info_requested' ? 'Information Requested' : 'Resubmission Required'}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    {app.status === 'info_requested'
-                      ? 'The reviewer has requested more information. Answer the open requests, update your forms and documents, then resubmit.'
-                      : 'The reviewer has requested changes to your application. Please update your documents/forms and resubmit.'}
-                  </p>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Remarks (optional)</Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Describe the changes you made..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} className="flex-1">
-                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : licenseGate.isBlocked ? 'License Not Active' : 'Resubmit Application'}
-                    </Button>
-                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                      <Ban className="h-4 w-4 mr-2" />Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Applicant request edit (before approval, while submitted/in_progress) */}
             {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
