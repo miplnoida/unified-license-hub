@@ -15611,6 +15611,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           is_system: boolean
           key: string
           label: string
@@ -15623,6 +15624,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -15635,6 +15637,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key?: string
           label?: string
@@ -15717,6 +15720,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           is_system: boolean
           key: string
           label: string
@@ -15729,6 +15733,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -15741,6 +15746,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key?: string
           label?: string
