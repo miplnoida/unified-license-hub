@@ -2478,20 +2478,6 @@ export default function NewApplication() {
               description="Please review all entered information before final submission."
             />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Sector</span><span className="font-medium">{sectorObj?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Sub-Sector</span><span className="font-medium">{subSectorObj?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Category</span><span className="font-medium">{categoryObj?.name || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Forms Completed</span><span className="font-medium">{completedCount}/{matchedTemplates.length}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="font-medium">{paymentStatus === 'success' ? 'Paid' : 'Pending'} (${feeAmount.toFixed(2)})</span></div>
-                </div>
-              </CardContent>
-            </Card>
 
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => void goToStep('documents')}>
