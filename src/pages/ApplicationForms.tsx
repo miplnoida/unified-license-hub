@@ -383,6 +383,8 @@ export default function ApplicationForms() {
             onSubmit={handleFormSubmit}
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
+            stepStorageKey={`applicationFormStep:${applicationId || 'unknown'}:${activeTemplate.id}`}
+
           />
         </div>
       </DashboardLayout>
