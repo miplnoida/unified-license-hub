@@ -243,12 +243,14 @@ export function ClosureQaPanel({
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Label htmlFor="cq-res">Resolution</Label>
+              <Label htmlFor="cq-res">Resolution (min 10 characters)</Label>
               <Textarea id="cq-res" rows={3} value={resolution} onChange={(e) => setResolution(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">{resolution.trim().length}/10 characters</p>
             </div>
             <div className="md:col-span-2">
               <Label htmlFor="cq-rat">Rationale (min 10 characters)</Label>
               <Textarea id="cq-rat" rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">{rationale.trim().length}/10 characters</p>
             </div>
             <div>
               <Label>Outcome</Label>
