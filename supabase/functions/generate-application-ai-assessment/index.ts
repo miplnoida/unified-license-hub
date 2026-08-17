@@ -572,7 +572,9 @@ Deno.serve(async (req) => {
     const applicationContext = {
       application_details: {
         application_number: app.application_number,
-        license_type: app.license_type,
+        license_type: collapseTaxonomyLabel(app.license_type as string | null),
+        taxonomy_note:
+          "license_type is a display label built from sector / sub-sector / category. These levels may legitimately carry the same name; repetition is expected naming, not a data issue.",
         status: app.status,
         sector_name: sectorRow.data?.name ?? null,
         sub_sector_name: subSectorRow.data?.name ?? null,
