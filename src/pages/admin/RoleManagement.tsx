@@ -70,6 +70,50 @@ const humanizeActionLabel = (label?: string | null, key?: string) => {
   return k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
 };
 
+/**
+ * Turn a server-side rejection into a sentence an administrator can act on,
+ * so a failed grant is never mistaken for a saved one.
+ */
+const explainSaveFailure = (err: unknown, permissions: Permission[]): string => {
+  const raw = String((err as { message?: string })?.message || err || '').trim();
+  const moduleLabel = (key: string) => {
+    const perm = permissions.find(
+      p => String(p.module).toLowerCase().replace(/\s+/g, '_') === key.toLowerCase(),
+    );
+    return cleanModuleLabel(null, perm?.module || key);
+  };
+  if (/permission_dependency_violation/i.test(raw)) {
+    return 'An action was selected without "View" on the same area. Tick "View" for that area, then save again.';
+  }
+  const scopeMissing = raw.match(/scope_required_for_module:\s*([a-z0-9_]+)/i);
+  if (scopeMissing) {
+    return `Choose a data scope for ${moduleLabel(scopeMissing[1])} before saving.`;
+  }
+  const invalidScope = raw.match(/invalid_scope:\s*module=([a-z0-9_]+),\s*scope=([a-z0-9_]+)/i);
+  if (invalidScope) {
+    return `"${invalidScope[2]}" is not an allowed data scope for ${moduleLabel(invalidScope[1])}. Pick a different scope.`;
+  }
+  if (/dependency_still_referenced/i.test(raw)) {
+    return 'Cannot remove "View" while other actions in that area are still selected. Untick those actions first.';
+  }
+  if (/not_authorized|42501/i.test(raw)) {
+    return 'You do not have permission to change roles.';
+  }
+  if (/role_name_required/i.test(raw)) return 'Enter a role name.';
+  return raw || 'The role could not be saved. Nothing was changed.';
+};
+
+/** Read back the permissions actually stored for a role after a save. */
+const fetchStoredPermissionIds = async (roleId: string): Promise<Set<string> | null> => {
+  const { data, error } = await supabase
+    .from('role_permissions')
+    .select('permission_id')
+    .eq('role_id', roleId);
+  if (error || !data) return null;
+  return new Set(data.map(r => r.permission_id as string));
+};
+
+
 /** Business-friendly role type labels. */
 const ROLE_TYPE_LABELS: Record<RoleType, string> = {
   internal: 'Internal Regulatory User',
