@@ -321,7 +321,9 @@ function BusinessAssessmentBlock({ business }: { business: BusinessAssessment })
 function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
   const checks = Array.isArray(integrity.checks) ? integrity.checks : [];
   const commentary = integrity.commentary || null;
-  const issues = Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : [];
+  const issues = (Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : []).filter(
+    (x) => !isTaxonomyNamingNoise([x.what_it_means, x.suggested_verification, ...(x.evidence || [])]),
+  );
   const counts = integrity.counts || {};
   const sorted = [...checks].sort(
     (a, b) =>
