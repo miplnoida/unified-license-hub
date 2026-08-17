@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import {
-  Settings, CreditCard, CalendarClock, Bell, Shield, Globe,
+  Settings, CreditCard, Bell, Shield, Globe,
   Database, Mail, Palette, FileText, RefreshCw, PenLine,
 } from 'lucide-react';
 
