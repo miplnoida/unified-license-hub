@@ -669,6 +669,31 @@ Return VALID JSON ONLY matching this exact schema:
     "compliance_concerns": ["string"],
     "suggested_next_workflow_action": "string"
   },
+  "business_assessment": {
+    "overall_rating": "favourable|acceptable|needs_strengthening|adverse",
+    "overall_rationale": "string",
+    "dimensions": [
+      {
+        "key": "eligibility_fit|financial_substance|ownership_control|business_model_viability|consumer_market_impact|operational_readiness|supervisory_burden",
+        "label": "string",
+        "rating": "favourable|acceptable|needs_strengthening|adverse|insufficient_data",
+        "assessment": "string",
+        "evidence": ["string"],
+        "business_implication": "string"
+      }
+    ],
+    "commercial_conditions": ["string"],
+    "business_questions": ["string"],
+    "public_interest_considerations": ["string"]
+  },
+  "data_integrity_commentary": {
+    "overall_confidence": "high|moderate|limited",
+    "summary": "string",
+    "material_issues": [
+      { "check_key": "string", "severity": "low|medium|high|critical", "what_it_means": "string", "evidence": ["string"], "suggested_verification": "string" }
+    ],
+    "decision_impact": "string"
+  },
   "missing_information": ["string"],
   "confidence_score": 0.0
 }
@@ -678,6 +703,27 @@ Rules for the section-wise review:
 - If a section has no data, mark status="missing_info" with a clear observation, do not skip it.
 - Choose status="pass" only when the section is complete and consistent.
 - Choose status="high_risk" only when concrete evidence in the input shows material risk.
+
+Rules for business_assessment (the business point of view):
+- Assess the case commercially and prudentially, not just for completeness. Cover, where the data allows:
+  eligibility and fit against the applied licence category and sector; financial substance (declared capital
+  versus the applicable minimum, funding sources, sustainability); ownership, control and group structure;
+  business model viability, revenue basis and target market; consumer, market conduct and public interest
+  impact; operational readiness (governance, key persons, systems, premises); and the supervisory burden
+  if the licence were granted.
+- Produce one dimension entry per key you can assess. Use rating="insufficient_data" where the record does
+  not support a view, and state plainly what would be needed — never infer a figure that is not supplied.
+- business_implication must explain the consequence for the applicant's business, its customers, or the
+  regulator's supervisory effort in plain language.
+- commercial_conditions and business_questions are suggestions for the analyst only. Never present them as imposed.
+
+Rules for data_integrity_commentary:
+- Interpret ONLY the checks supplied in data_integrity_snapshot. Never invent a check, never re-score one,
+  and never contradict a supplied status.
+- For each check with status "fail" or "warning" that materially affects the decision, add a material_issues
+  entry that names the values involved and what a supervisor should verify.
+- decision_impact must state how far the data quality supports a decision now, and what remains unverifiable.
+- overall_confidence must reflect the supplied counts: many failed checks means "limited".
 
 Rules for decision_report.recommended_action:
 - "approve_with_conditions" must populate suggested_conditions.
