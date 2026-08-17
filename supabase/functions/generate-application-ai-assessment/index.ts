@@ -21,7 +21,24 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PROMPT_VERSION = "v3";
+const PROMPT_VERSION = "v4";
+
+/**
+ * `license_type` is stored as "sector - sub-sector - category". When the three
+ * taxonomy levels share a name the string repeats ("Building Society -
+ * Building Society - Building Society"), which the model used to report as a
+ * redundancy/data-quality issue. Collapse consecutive duplicates before the
+ * value reaches the prompt (mirrors src/lib/formatTaxonomyLabel.ts).
+ */
+function collapseTaxonomyLabel(value?: string | null): string | null {
+  if (!value) return value ?? null;
+  const parts = String(value).split(" - ").map((p) => p.trim()).filter(Boolean);
+  const deduped: string[] = [];
+  for (const p of parts) {
+    if (deduped[deduped.length - 1]?.toLowerCase() !== p.toLowerCase()) deduped.push(p);
+  }
+  return deduped.join(" - ");
+}
 const MODEL_PROVIDER = "lovable-ai-gateway";
 const MODEL_NAME = "google/gemini-2.5-flash";
 
@@ -555,7 +572,9 @@ Deno.serve(async (req) => {
     const applicationContext = {
       application_details: {
         application_number: app.application_number,
-        license_type: app.license_type,
+        license_type: collapseTaxonomyLabel(app.license_type as string | null),
+        taxonomy_note:
+          "license_type is a display label built from sector / sub-sector / category. These levels may legitimately carry the same name; repetition is expected naming, not a data issue.",
         status: app.status,
         sector_name: sectorRow.data?.name ?? null,
         sub_sector_name: subSectorRow.data?.name ?? null,
@@ -697,6 +716,12 @@ Return VALID JSON ONLY matching this exact schema:
   "missing_information": ["string"],
   "confidence_score": 0.0
 }
+
+Taxonomy naming rule (applies to every section, finding, risk and commentary):
+- sector_name, sub_sector_name, category_name and the licence type label are separate taxonomy levels.
+  They may legitimately carry the SAME name (e.g. sector "Building Society", sub-sector "Building Society",
+  category "Building Society"). Repeated or identical taxonomy names are correct reference data — NEVER raise
+  them as redundancy, duplication, inconsistency or a data-quality/integrity issue, and never comment on them.
 
 Rules for the section-wise review:
 - Always produce one entry per available section key in: ${SECTION_KEYS.join(", ")}.

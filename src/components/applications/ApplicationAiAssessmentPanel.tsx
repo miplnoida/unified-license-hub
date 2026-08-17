@@ -19,6 +19,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { formatDateTime, humanizeTimestamps } from '@/lib/datetime';
 import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
+import { cleanTaxonomyText, isTaxonomyNamingNoise } from '@/lib/licensing/taxonomyNoise';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import {
@@ -320,7 +321,9 @@ function BusinessAssessmentBlock({ business }: { business: BusinessAssessment })
 function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
   const checks = Array.isArray(integrity.checks) ? integrity.checks : [];
   const commentary = integrity.commentary || null;
-  const issues = Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : [];
+  const issues = (Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : []).filter(
+    (x) => !isTaxonomyNamingNoise([x.what_it_means, x.suggested_verification, ...(x.evidence || [])]),
+  );
   const counts = integrity.counts || {};
   const sorted = [...checks].sort(
     (a, b) =>
@@ -348,7 +351,7 @@ function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
 
         {commentary?.summary && (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {humanizeTimestamps(commentary.summary)}
+            {cleanTaxonomyText(humanizeTimestamps(commentary.summary))}
           </p>
         )}
 
@@ -406,7 +409,7 @@ function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
         {commentary?.decision_impact && (
           <div className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
             <span className="font-medium">Impact on the decision: </span>
-            {humanizeTimestamps(commentary.decision_impact)}
+            {cleanTaxonomyText(humanizeTimestamps(commentary.decision_impact))}
           </div>
         )}
       </div>
@@ -617,9 +620,14 @@ function CompletedView({
   currentUserId?: string;
   onDecisionSaved: () => void | Promise<void>;
 }) {
-  const findings = Array.isArray(assessment.findings) ? assessment.findings : [];
-  const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
-  const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
+  const findings = (Array.isArray(assessment.findings) ? assessment.findings : []).filter(
+    (f) => !isTaxonomyNamingNoise([f.title, f.description, ...(f.evidence || [])]),
+  );
+  const risks = (Array.isArray(assessment.risks) ? assessment.risks : []).filter(
+    (r) => !isTaxonomyNamingNoise([r.reason, ...(r.evidence || [])]),
+  );
+  const missing = (Array.isArray(assessment.missing_information) ? assessment.missing_information : [])
+    .filter((m) => !isTaxonomyNamingNoise([m]));
   const routing = assessment.routing_recommendation || {};
   const sections: Section[] = Array.isArray(assessment.sections) ? assessment.sections : [];
   const groupedFindings = groupBySeverity(findings);
@@ -637,7 +645,7 @@ function CompletedView({
         onSaved={onDecisionSaved}
       />
 
-      {assessment.summary && <AiReportSummary text={assessment.summary} />}
+      {assessment.summary && <AiReportSummary text={cleanTaxonomyText(assessment.summary)} />}
 
       {sections.length > 0 && (
         <AiReportSection label="Section-wise review" sectionKey="key_observations" count={sections.length}>
@@ -736,7 +744,7 @@ function CompletedView({
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm leading-relaxed text-muted-foreground">{humanizeTimestamps(f.description)}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{cleanTaxonomyText(humanizeTimestamps(f.description))}</p>
                         )}
                         <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
