@@ -2452,11 +2452,10 @@ export default function NewApplication() {
               versionIdByTemplate={assignedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
-              onAcknowledge={() =>
-                handleFinalSubmit(
-                  'I have reviewed all the information and confirm the details provided are accurate and complete.'
-                )
-              }
+              onAcknowledge={() => {
+                markReviewConfirmed();
+                void handleProceedToPayment();
+              }}
                 onEdit={(idx) => {
                   const tmpl = reviewTemplates[idx];
                 if (tmpl) {
