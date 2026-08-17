@@ -602,7 +602,8 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
-            {applicationId && allFormsCompleted && (
+            {/* When review is disabled in settings, payment stays on this screen before Submit */}
+            {applicationId && allFormsCompleted && reviewSettings?.application_review_enabled === false && (
               <LicenseePaymentPanel
                 applicationId={applicationId}
                 canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
@@ -622,11 +623,10 @@ export default function PostLicenseApplicationForms() {
               <div className="flex justify-end pt-4 border-t gap-2">
                 <Button data-rbac="application_management.edit"
                   size="lg"
-                  variant="outline"
-                  onClick={() => setShowReview(true)}
-                  disabled={submitting || paymentChecking || !paymentReady}
+                  onClick={() => { setReviewAcknowledged(false); setShowReview(true); }}
+                  disabled={submitting}
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review Application
                 </Button>
                 {reviewSettings?.application_review_enabled === false && (
                   <Button size="lg" onClick={handleSubmitApplication} disabled={submitting || paymentChecking || !paymentReady}>
@@ -640,7 +640,7 @@ export default function PostLicenseApplicationForms() {
               </div>
             )}
 
-            {(allFormsCompleted || completedCount > 0) && showReview && (
+            {(allFormsCompleted || completedCount > 0) && showReview && !reviewAcknowledged && (
               <div className="space-y-4 pt-4 border-t">
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
@@ -664,8 +664,8 @@ export default function PostLicenseApplicationForms() {
                     }
                   }}
                   title="Review Your Application"
-                  description="Please review all entered information before final submission."
-                  onAcknowledge={paymentReady ? handleSubmitApplication : () => toast.error('Complete payment before submitting this application.')}
+                  description="Please review all entered information. Payment and final submission come next."
+                  onAcknowledge={() => setReviewAcknowledged(true)}
                 />
                 <div className="flex justify-start">
                   <Button variant="outline" onClick={() => setShowReview(false)}>
@@ -674,6 +674,49 @@ export default function PostLicenseApplicationForms() {
                 </div>
               </div>
             )}
+
+            {/* Step 2 of review: payment, then final submission */}
+            {showReview && reviewAcknowledged && (
+              <div className="space-y-4 pt-4 border-t">
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-4 text-sm text-foreground">
+                    Review confirmed. Complete the payment below, then submit your application.
+                  </CardContent>
+                </Card>
+
+                {applicationId && (
+                  <LicenseePaymentPanel
+                    applicationId={applicationId}
+                    canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
+                    onPaid={() => setPaymentReady(true)}
+                  />
+                )}
+
+                {!paymentChecking && !paymentReady && (
+                  <p className="text-xs text-muted-foreground">
+                    Submission becomes available once the outstanding fee is paid.
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button variant="outline" onClick={() => setReviewAcknowledged(false)}>
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to Review
+                  </Button>
+                  <Button
+                    size="lg"
+                    onClick={handleSubmitApplication}
+                    disabled={submitting || paymentChecking || !paymentReady}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
           </>
         )}
       </div>
