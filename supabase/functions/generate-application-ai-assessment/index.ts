@@ -897,6 +897,14 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         parsed.decision_report && typeof parsed.decision_report === "object"
           ? parsed.decision_report
           : {};
+      const businessAssessment =
+        parsed.business_assessment && typeof parsed.business_assessment === "object"
+          ? parsed.business_assessment
+          : null;
+      const integrityCommentary =
+        parsed.data_integrity_commentary && typeof parsed.data_integrity_commentary === "object"
+          ? parsed.data_integrity_commentary
+          : null;
 
       await adminClient
         .from("application_ai_assessments")
@@ -910,6 +918,11 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           confidence_score: confidence,
           sections,
           decision_report: decisionReport,
+          business_assessment: businessAssessment,
+          data_integrity: {
+            ...dataIntegrity,
+            commentary: integrityCommentary,
+          },
           raw_response: null,
           source_payload_hash: sourcePayloadHash,
 
