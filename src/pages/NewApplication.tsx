@@ -2229,8 +2229,8 @@ export default function NewApplication() {
                 <Button variant="outline" onClick={() => void goToStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
-                <Button onClick={handleProceedToPayment}>
-                  {paymentComplete ? 'View Payment / Continue to Review' : 'Proceed to Payment'}
+                <Button onClick={() => void goToStep('review', { wizard_step: 'review' })}>
+                  Continue to Review
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
