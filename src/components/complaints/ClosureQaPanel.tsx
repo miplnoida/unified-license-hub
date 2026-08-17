@@ -277,16 +277,36 @@ export function ClosureQaPanel({
               </ul>
             </div>
           )}
+          {actionsError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
+              <span>We couldn’t check the available workflow actions.</span>
+              {onRetryActions && (
+                <Button size="sm" variant="outline" onClick={onRetryActions}>Retry</Button>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button data-rbac="complaint_management.edit"
-              disabled={closeMut.isPending || missing.length > 0 || !closingAction}
+              disabled={closeMut.isPending || actionsLoading || missing.length > 0 || !closingAction}
               onClick={() => closeMut.mutate()}>
-              {closeMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Close complaint
+              {(closeMut.isPending || actionsLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {actionsLoading ? 'Checking workflow…' : 'Close complaint'}
             </Button>
-            {!closingAction && (
+            {!actionsLoading && !actionsError && !closingAction && (
               <span className="text-xs text-muted-foreground">
-                No closing action is available to you right now — use the <strong>Current step</strong> tab.
+                {availableActionLabels.length > 0 ? (
+                  <>
+                    No closing action is configured for you at this step. Available to you:{' '}
+                    <strong>{availableActionLabels.join(', ')}</strong> — use the{' '}
+                    <strong>Current step</strong> tab.
+                  </>
+                ) : (
+                  <>No workflow action is available to you right now — use the <strong>Current step</strong> tab.</>
+                )}
               </span>
+            )}
+            {!closingAction && onGoToCurrentStep && !actionsLoading && (
+              <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>Go to Current step</Button>
             )}
           </div>
           {latest && (
