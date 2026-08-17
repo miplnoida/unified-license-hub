@@ -169,6 +169,15 @@ export function ApplicationRfiTab({
         )}
       </div>
 
+      {isApplicant && rfis.some((r) => r.status === 'open') && (
+        <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+          While a request is open your application is editable — you can correct any form or document from the other tabs,
+          then resubmit the application once you have answered the questions below.
+        </div>
+      )}
+
+
+
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin" />

@@ -817,7 +817,7 @@ export default function ApplicationDetail() {
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
   const showResubmissionPendingNotice =
     workflowChecked && workflowOn === false && isInternal &&
-    (app.status === 'resubmission_requested' || app.status === 'query_raised');
+    (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested');
   // Workflow/review lives in its own tab so it no longer repeats under every tab.
   const showWorkflowTab =
     showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
@@ -923,9 +923,21 @@ export default function ApplicationDetail() {
           </CardContent>
         </Card>
 
+        {isOwner && app.status === 'info_requested' && (
+          <div className="mb-4 rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Information requested by the reviewer</p>
+            <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+              Your application has been unlocked for editing. Answer the questions in the{' '}
+              <button type="button" className="underline font-medium" onClick={() => setActiveTab('rfi')}>Information Requests</button>{' '}
+              tab, update your forms and documents where needed, then resubmit the application.
+            </p>
+          </div>
+        )}
+
         <div className="w-full">
           <div className="space-y-6">
             {/* Forms and Documents tabs - always visible */}
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 <TabsTrigger value="details" className={TAB_TRIGGER_CLASS}>Details</TabsTrigger>
@@ -1106,7 +1118,7 @@ export default function ApplicationDetail() {
                       originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -1222,13 +1234,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     onPaid={loadData}
                   />
                 ))}
@@ -1545,12 +1557,14 @@ export default function ApplicationDetail() {
             })()}
 
             {/* Applicant resubmit action */}
-            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
               <Card>
-                <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{app.status === 'info_requested' ? 'Information Requested' : 'Resubmission Required'}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    The reviewer has requested changes to your application. Please update your documents/forms and resubmit.
+                    {app.status === 'info_requested'
+                      ? 'The reviewer has requested more information. Answer the open requests, update your forms and documents, then resubmit.'
+                      : 'The reviewer has requested changes to your application. Please update your documents/forms and resubmit.'}
                   </p>
                   <div className="space-y-2">
                     <Label className="text-sm">Remarks (optional)</Label>

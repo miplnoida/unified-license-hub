@@ -305,6 +305,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 2b. Resubmission after an information request: flag still-open RFIs as
+    //     responded so the reviewer queue and the paused SLA clock resume
+    //     without manual reconciliation. Non-fatal.
+    if (isResubmission) {
+      try {
+        await adminClient
+          .from("application_rfis")
+          .update({ status: "responded", updated_at: new Date().toISOString() })
+          .eq("application_id", application_id)
+          .eq("status", "open");
+      } catch (rfiSyncError) {
+        console.error("[verify-and-submit] failed to mark open RFIs responded", rfiSyncError);
+      }
+    }
+
+
+
     // Diagnostic (no PII / no form data): submission + workflow attach summary.
     console.log(
       "[verify-and-submit] submitted",
