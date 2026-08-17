@@ -188,7 +188,19 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="rounded-md border bg-muted/40 p-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Recorded classification</p>
+          <div className="grid gap-2 md:grid-cols-4">
+            {recorded.map((r) => (
+              <div key={r.label}>
+                <p className="text-[11px] text-muted-foreground">{r.label}</p>
+                <p className="text-sm capitalize">{r.value ?? <span className="text-muted-foreground">Not recorded</span>}</p>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-3 md:grid-cols-3">
+
           <div>
             <Label className="text-xs">Product</Label>
             <Select value={form.product_id || 'none'} onValueChange={v => setForm({ ...form, product_id: v === 'none' ? '' : v })}>
