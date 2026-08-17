@@ -392,10 +392,9 @@ export default function ApplicationDetail() {
   // Re-read the application whenever the reviewer opens the submitted forms or
   // RFI tab, so post-RFI applicant edits are always shown (never a snapshot
   // captured when the page first loaded).
-  const formsTabHydrated = useRef(false);
   useEffect(() => {
+    if (!id) return;
     if (activeTab !== 'forms' && activeTab !== 'rfi') return;
-    if (!formsTabHydrated.current) { formsTabHydrated.current = true; return; }
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
