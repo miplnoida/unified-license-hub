@@ -223,33 +223,20 @@ export async function handler(req: Request): Promise<Response> {
         `[perform-registration-workflow-action] dispatching event=${eventForAction} ` +
           `registration_id=${registration_id} step_id=${step_id ?? "(none)"} action=${raw_action}`,
       );
-      const { data: dispatchData, error: dispatchInvokeErr } = await admin.functions.invoke(
-        "dispatch-notification-event",
+      const genericOutcome = await dispatchOrEnqueueNotification(
+        admin,
         {
-          body: {
-            event_key: eventForAction,
-            entity_type: "registration",
-            entity_id: registration_id,
-            payload: sharedPayload,
-          },
+          event_key: eventForAction,
+          entity_type: "registration",
+          entity_id: registration_id,
+          payload: sharedPayload,
+          idempotency_suffix: `${raw_action}:${step_id ?? "none"}`,
         },
+        { source: "perform-registration-workflow-action", actor_id: caller.id },
       );
-      if (dispatchInvokeErr) {
-        console.error(
-          `[perform-registration-workflow-action] dispatch invoke error for ${eventForAction}:`,
-          dispatchInvokeErr,
-        );
-      } else if (dispatchData && (dispatchData as any).error) {
-        console.error(
-          `[perform-registration-workflow-action] dispatch returned error for ${eventForAction}:`,
-          JSON.stringify(dispatchData),
-        );
-      } else {
-        console.log(
-          `[perform-registration-workflow-action] dispatch ok for ${eventForAction}:`,
-          JSON.stringify(dispatchData ?? {}),
-        );
-      }
+      console.log(
+        `[perform-registration-workflow-action] dispatch ${genericOutcome} for ${eventForAction}`,
+      );
 
       if (step_id) {
         const { data: cfgRows } = await admin
@@ -262,38 +249,30 @@ export async function handler(req: Request): Promise<Response> {
         for (const row of (cfgRows ?? [])) {
           try {
             const override = overrideMap.get((row as any).id);
-            const { data: rowData, error: rowErr } = await admin.functions.invoke(
-              "dispatch-notification-event",
+            const outcome = await dispatchOrEnqueueNotification(
+              admin,
               {
-                body: {
-                  event_key: (row as any).event_key,
-                  entity_type: "registration",
-                  entity_id: registration_id,
-                  payload: {
-                    ...sharedPayload,
-                    step_id,
-                    action_notification_override: true,
-                    template_id: (row as any).template_id,
-                    recipient_type: (row as any).recipient_type,
-                    recipient_config: (row as any).recipient_config,
-                    binding_id: (row as any).id,
-                    subject_override: override?.subject,
-                    body_override: override?.body,
-                  },
+                event_key: (row as any).event_key,
+                entity_type: "registration",
+                entity_id: registration_id,
+                payload: {
+                  ...sharedPayload,
+                  step_id,
+                  action_notification_override: true,
+                  template_id: (row as any).template_id,
+                  recipient_type: (row as any).recipient_type,
+                  recipient_config: (row as any).recipient_config,
+                  binding_id: (row as any).id,
+                  subject_override: override?.subject,
+                  body_override: override?.body,
                 },
+                idempotency_suffix: `binding:${(row as any).id}:${raw_action}`,
               },
+              { source: "perform-registration-workflow-action", actor_id: caller.id },
             );
-            if (rowErr) {
-              console.error(
-                `[perform-registration-workflow-action] per-action dispatch invoke error for ${(row as any).event_key}:`,
-                rowErr,
-              );
-            } else if (rowData && (rowData as any).error) {
-              console.error(
-                `[perform-registration-workflow-action] per-action dispatch returned error for ${(row as any).event_key}:`,
-                JSON.stringify(rowData),
-              );
-            }
+            console.log(
+              `[perform-registration-workflow-action] per-action dispatch ${outcome} for ${(row as any).event_key}`,
+            );
           } catch (perRowErr) {
             console.error(
               "[perform-registration-workflow-action] per-action dispatch threw:",
