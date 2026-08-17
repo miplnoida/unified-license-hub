@@ -429,6 +429,8 @@ export default function PostLicenseApplicationForms() {
       try {
         sessionStorage.removeItem(postLicenseStepStorageKey);
         sessionStorage.removeItem(`${postLicenseStepStorageKey}:review`);
+        sessionStorage.removeItem(`${postLicenseStepStorageKey}:reviewAck`);
+
       } catch {
         // noop
       }
