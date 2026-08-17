@@ -573,7 +573,7 @@ export default function PostLicenseApplicationForms() {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${activeFormTemplateId === tmpl.id ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
