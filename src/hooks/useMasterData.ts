@@ -112,8 +112,8 @@ export function useActiveMasterItems(typeCode: string, parentItemId?: string | n
         .select('id, name, code, parent_item_id, metadata')
         .eq('type_id', (typeData as any).id)
         .eq('status', 'active')
-        .order('sort_order')
         .order('name');
+
 
       if (parentItemId) {
         query = query.eq('parent_item_id', parentItemId);
