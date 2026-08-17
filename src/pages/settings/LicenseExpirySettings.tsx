@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Save, ArrowLeft, Loader2, Plus, Trash2, Eye, Pencil, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,7 +62,7 @@ function PolicyFields({
     onPolicyChange({ ...policy, [key]: val });
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="grid md:grid-cols-2 gap-5">
       <div className="space-y-2">
         <Label>Renewal cycle</Label>
         <Select value={policy.cycle_type} onValueChange={(v) => set('cycle_type', v as any)}>
@@ -120,6 +125,11 @@ export default function LicenseExpirySettings() {
   const [subSectors, setSubSectors] = useState<TaxonomyRow[]>([]);
   const [categories, setCategories] = useState<TaxonomyRow[]>([]);
 
+  /** Dialog state: 'view' is read-only, 'edit' saves back into the list. */
+  const [dialogMode, setDialogMode] = useState<'view' | 'edit' | null>(null);
+  const [draft, setDraft] = useState<DraftRule | null>(null);
+  const [isNew, setIsNew] = useState(false);
+
   useEffect(() => {
     (async () => {
       let sQuery: any = supabase.from('sectors' as any).select('id, name, regulator_id').order('name');
@@ -135,7 +145,6 @@ export default function LicenseExpirySettings() {
     })();
   }, [activeRegulatorId]);
 
-
   const emptyRule = (): DraftRule => ({
     ...DEFAULT_LICENSE_EXPIRY_POLICY,
     id: newRuleId(),
@@ -147,38 +156,32 @@ export default function LicenseExpirySettings() {
 
   useEffect(() => {
     if (!data) return;
-    const loaded = data.rules.map((r) => ({
-      ...r,
-      _remindersText: (r.reminder_days || []).join(','),
-    }));
-    setRules(loaded.length ? loaded : [emptyRule()]);
+    setRules(data.rules.map((r) => ({ ...r, _remindersText: (r.reminder_days || []).join(',') })));
   }, [data]);
 
-  const addRule = () => {
-    setRules((prev) => [...prev, emptyRule()]);
+  const nameOf = (list: TaxonomyRow[], id?: string | null) =>
+    (id && list.find((r) => r.id === id)?.name) || null;
+
+  const scopeLabel = (r: DraftRule) => {
+    const parts = [
+      nameOf(sectors, r.sector_id) || 'Unassigned sector',
+      nameOf(subSectors, r.sub_sector_id) || 'Any sub-sector',
+      nameOf(categories, r.category_id) || 'Any category',
+    ];
+    return parts;
   };
 
-  const updateRule = (id: string, patch: Partial<DraftRule>) =>
-    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-
-  const removeRule = (id: string) =>
-    setRules((prev) => {
-      const next = prev.filter((r) => r.id !== id);
-      return next.length ? next : [emptyRule()];
-    });
-
-  const handleSave = async () => {
-    const missingSector = rules.some((r) => !r.sector_id);
-    if (missingSector) {
+  const persist = async (nextRules: DraftRule[]) => {
+    const invalid = nextRules.some((r) => !r.sector_id);
+    if (invalid) {
       toast.error('Every rule must have a sector selected.');
-      return;
+      return false;
     }
-
     const payload = {
       // No default policy — expiry/renewal applies only to licenses whose
       // sector matches a configured rule.
       default: null,
-      rules: rules.map((r) => ({
+      rules: nextRules.map((r) => ({
         id: r.id,
         sector_id: r.sector_id || null,
         sub_sector_id: r.sub_sector_id || null,
@@ -186,7 +189,6 @@ export default function LicenseExpirySettings() {
         ...sanitizePolicy(r, r._remindersText),
       })),
     };
-
     setSaving(true);
     try {
       const { error } = await (supabase
@@ -196,12 +198,43 @@ export default function LicenseExpirySettings() {
       qc.invalidateQueries({ queryKey: ['license_expiry_config'] });
       qc.invalidateQueries({ queryKey: ['license_expiry_status'] });
       toast.success('License expiry settings saved');
+      return true;
     } catch (err: any) {
       toast.error('Failed to save: ' + (err.message || 'Unknown error'));
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  const openAdd = () => { setDraft(emptyRule()); setIsNew(true); setDialogMode('edit'); };
+  const openEdit = (r: DraftRule) => { setDraft({ ...r }); setIsNew(false); setDialogMode('edit'); };
+  const openView = (r: DraftRule) => { setDraft({ ...r }); setIsNew(false); setDialogMode('view'); };
+  const closeDialog = () => { setDialogMode(null); setDraft(null); setIsNew(false); };
+
+  const saveDraft = async () => {
+    if (!draft) return;
+    const next = isNew
+      ? [...rules, draft]
+      : rules.map((r) => (r.id === draft.id ? draft : r));
+    const ok = await persist(next);
+    if (ok) { setRules(next); closeDialog(); }
+  };
+
+  const deleteRule = async (r: DraftRule) => {
+    const next = rules.filter((x) => x.id !== r.id);
+    const ok = await persist(next);
+    if (ok) setRules(next);
+  };
+
+  const availableSubSectors = useMemo(
+    () => subSectors.filter((ss) => !draft?.sector_id || ss.parent_id === draft.sector_id),
+    [subSectors, draft?.sector_id],
+  );
+  const availableCategories = useMemo(
+    () => categories.filter((c) => !draft?.sub_sector_id || c.parent_id === draft.sub_sector_id),
+    [categories, draft?.sub_sector_id],
+  );
 
   if (isLoading) {
     return (
@@ -215,7 +248,7 @@ export default function LicenseExpirySettings() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl">
+      <div className="space-y-6">
         <PageHeader
           title="License Expiry & Renewal"
           description="Set validity period, reminders, and grace period for each sector."
@@ -224,114 +257,192 @@ export default function LicenseExpirySettings() {
               <Button variant="outline" onClick={() => navigate('/settings')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
-              <Button data-rbac="settings.edit" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Changes
+              <Button data-rbac="settings.edit" onClick={openAdd}>
+                <Plus className="h-4 w-4 mr-2" />Add Rule
               </Button>
             </div>
           }
         />
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="text-lg">Sector expiry setup</CardTitle>
-              <CardDescription>
-                Set how long licenses stay valid, when reminders are sent, and the grace period for each sector.
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={addRule}>
-              <Plus className="h-4 w-4 mr-1" />Add another sector
-            </Button>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CalendarClock className="h-5 w-5 text-primary" />Configured expiry rules
+            </CardTitle>
+            <CardDescription>
+              Each rule decides how long licenses stay valid for a sector (optionally narrowed to a
+              sub-sector or category), when reminders go out, and the grace period after expiry.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {rules.map((rule, idx) => {
-              const availableSubSectors = subSectors.filter((ss) => !rule.sector_id || ss.parent_id === rule.sector_id);
-              const availableCategories = categories.filter((c) => !rule.sub_sector_id || c.parent_id === rule.sub_sector_id);
-              return (
-                <div key={rule.id} className="rounded-lg border p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">Sector {idx + 1}</p>
-                    {rules.length > 1 && (
-                      <Button variant="ghost" size="sm" onClick={() => removeRule(rule.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label>Sector</Label>
-                      <Select
-                        value={rule.sector_id || 'any'}
-                        onValueChange={(v) =>
-                          updateRule(rule.id, {
-                            sector_id: v === 'any' ? null : v,
-                            sub_sector_id: null,
-                            category_id: null,
-                          })
-                        }
-                      >
-                        <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
-                        <SelectContent>
-                          {sectors.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Sub-sector (optional)</Label>
-                      <Select
-                        value={rule.sub_sector_id || 'any'}
-                        onValueChange={(v) =>
-                          updateRule(rule.id, {
-                            sub_sector_id: v === 'any' ? null : v,
-                            category_id: null,
-                          })
-                        }
-                        disabled={!rule.sector_id}
-                      >
-                        <SelectTrigger><SelectValue placeholder={rule.sector_id ? 'Any sub-sector' : 'Pick sector first'} /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any sub-sector</SelectItem>
-                          {availableSubSectors.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Category (optional)</Label>
-                      <Select
-                        value={rule.category_id || 'any'}
-                        onValueChange={(v) =>
-                          updateRule(rule.id, { category_id: v === 'any' ? null : v })
-                        }
-                        disabled={!rule.sub_sector_id}
-                      >
-                        <SelectTrigger><SelectValue placeholder={rule.sub_sector_id ? 'Any category' : 'Pick sub-sector first'} /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any category</SelectItem>
-                          {availableCategories.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Separator />
-                  <PolicyFields
-                    policy={rule}
-                    remindersText={rule._remindersText}
-                    onPolicyChange={(next) => updateRule(rule.id, next)}
-                    onRemindersChange={(text) => updateRule(rule.id, { _remindersText: text })}
-                  />
-                </div>
-              );
-            })}
+          <CardContent>
+            {rules.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CalendarClock className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="mb-4">No expiry rules configured yet.</p>
+                <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" />Add your first rule</Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Scope</TableHead>
+                      <TableHead>Renewal cycle</TableHead>
+                      <TableHead>Validity</TableHead>
+                      <TableHead>Reminders</TableHead>
+                      <TableHead>Grace</TableHead>
+                      <TableHead>Notify officers</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rules.map((r) => {
+                      const [sec, sub, cat] = scopeLabel(r);
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell>
+                            <p className="font-medium">{sec}</p>
+                            <p className="text-xs text-muted-foreground">{sub} · {cat}</p>
+                          </TableCell>
+                          <TableCell>{r.cycle_type === 'annual' ? 'Annual' : 'Custom period'}</TableCell>
+                          <TableCell>{r.cycle_type === 'annual' ? 365 : r.period_days} days</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {(r.reminder_days || []).join(', ') || '—'}
+                          </TableCell>
+                          <TableCell>{r.grace_period_days} days</TableCell>
+                          <TableCell>
+                            <Badge variant={r.auto_notify_officer ? 'approved' : 'outline'}>
+                              {r.auto_notify_officer ? 'Yes' : 'No'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <Button variant="ghost" size="sm" onClick={() => openView(r)}>
+                              <Eye className="h-4 w-4 mr-1" />View
+                            </Button>
+                            <Button data-rbac="settings.edit" variant="ghost" size="sm" onClick={() => openEdit(r)}>
+                              <Pencil className="h-4 w-4 mr-1" />Edit
+                            </Button>
+                            <Button
+                              data-rbac="settings.edit"
+                              variant="ghost"
+                              size="sm"
+                              disabled={saving}
+                              onClick={() => deleteRule(r)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!dialogMode} onOpenChange={(o) => { if (!o) closeDialog(); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === 'view' ? 'Expiry rule details' : isNew ? 'Add expiry rule' : 'Edit expiry rule'}
+            </DialogTitle>
+            <DialogDescription>
+              Validity, reminder schedule and grace period applied to licenses matching this scope.
+            </DialogDescription>
+          </DialogHeader>
+
+          {draft && dialogMode === 'view' && (
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[
+                  ['Sector', scopeLabel(draft)[0]],
+                  ['Sub-sector', scopeLabel(draft)[1]],
+                  ['Category', scopeLabel(draft)[2]],
+                  ['Renewal cycle', draft.cycle_type === 'annual' ? 'Annual (365 days)' : 'Custom period'],
+                  ['Validity period', `${draft.cycle_type === 'annual' ? 365 : draft.period_days} days`],
+                  ['Grace period', `${draft.grace_period_days} days`],
+                  ['Reminder days', (draft.reminder_days || []).join(', ') || '—'],
+                  ['Notify officers', draft.auto_notify_officer ? 'Yes' : 'No'],
+                ].map(([label, value]) => (
+                  <div key={label as string} className="rounded-md border bg-muted/40 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+                    <p className="text-sm font-medium mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {draft && dialogMode === 'edit' && (
+            <div className="space-y-5">
+              <div className="grid md:grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label>Sector</Label>
+                  <Select
+                    value={draft.sector_id || ''}
+                    onValueChange={(v) => setDraft({ ...draft, sector_id: v, sub_sector_id: null, category_id: null })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
+                    <SelectContent>
+                      {sectors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sub-sector (optional)</Label>
+                  <Select
+                    value={draft.sub_sector_id || 'any'}
+                    onValueChange={(v) => setDraft({ ...draft, sub_sector_id: v === 'any' ? null : v, category_id: null })}
+                    disabled={!draft.sector_id}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Any sub-sector" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any sub-sector</SelectItem>
+                      {availableSubSectors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Category (optional)</Label>
+                  <Select
+                    value={draft.category_id || 'any'}
+                    onValueChange={(v) => setDraft({ ...draft, category_id: v === 'any' ? null : v })}
+                    disabled={!draft.sub_sector_id}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any category</SelectItem>
+                      {availableCategories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Separator />
+              <PolicyFields
+                policy={draft}
+                remindersText={draft._remindersText}
+                onPolicyChange={(next) => setDraft({ ...draft, ...next })}
+                onRemindersChange={(text) => setDraft({ ...draft, _remindersText: text })}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
+              {dialogMode === 'view' ? 'Close' : 'Cancel'}
+            </Button>
+            {dialogMode === 'edit' && (
+              <Button data-rbac="settings.edit" onClick={saveDraft} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Rule
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
