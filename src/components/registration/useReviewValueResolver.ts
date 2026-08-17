@@ -61,41 +61,40 @@ export function useReviewValueResolver(
     },
   });
 
-
-  // Unique master-data type codes used by select/multi/radio fields
-  const masterCodes = useMemo(() => {
-    const codes = new Set<string>();
+  // Master-data values are stored as item IDs. Collect only the IDs actually
+  // present in this submission and resolve those by ID — types such as STATE
+  // (~5.3k rows) and CITY (~15k rows) exceed the per-request row cap, so
+  // fetching a whole type would silently drop most labels.
+  const masterIds = useMemo(() => {
+    const values = submittedValues || {};
+    const ids = new Set<string>();
     fields.forEach(f => {
-      if (f.optionSource === 'master_data' && f.masterDataTypeCode) codes.add(f.masterDataTypeCode);
+      if (f.optionSource !== 'master_data') return;
+      const raw = (values as Record<string, unknown>)[f.fieldName];
+      const push = (v: unknown) => {
+        if (typeof v === 'string' && UUID_RE.test(v)) ids.add(v);
+      };
+      if (Array.isArray(raw)) raw.forEach(push);
+      else push(raw);
     });
-    return Array.from(codes);
-  }, [fields]);
+    return Array.from(ids).sort();
+  }, [fields, submittedValues]);
 
-  const masterQueries = useQueries({
-    queries: masterCodes.map(code => ({
-      queryKey: ['master_data_review', code],
+  const idChunks = useMemo(() => {
+    const chunks: string[][] = [];
+    for (let i = 0; i < masterIds.length; i += 100) chunks.push(masterIds.slice(i, i + 100));
+    return chunks;
+  }, [masterIds]);
+
+  const masterItemQueries = useQueries({
+    queries: idChunks.map(chunk => ({
+      queryKey: ['master_data_review_items', chunk],
+      staleTime: 5 * 60 * 1000,
       queryFn: async () => {
-        const { data: t1 } = await supabase
-          .from('master_data_types' as never)
-          .select('id')
-          .eq('code', code)
-          .eq('status', 'active')
-          .maybeSingle();
-        let typeData: any = t1;
-        if (!typeData) {
-          const { data: t2 } = await supabase
-            .from('master_data_types' as never)
-            .select('id')
-            .eq('name', code)
-            .eq('status', 'active')
-            .maybeSingle();
-          typeData = t2;
-        }
-        if (!typeData) return [] as { id: string; name: string }[];
         const { data, error } = await supabase
           .from('master_data_items' as never)
           .select('id,name')
-          .eq('type_id', (typeData as any).id);
+          .in('id', chunk);
         if (error) throw error;
         return (data || []) as unknown as { id: string; name: string }[];
       },
@@ -108,10 +107,10 @@ export function useReviewValueResolver(
       rows.forEach(r => { m[String(r.id)] = r.name; });
       return m;
     };
-    const masters: Record<string, LookupMap> = {};
-    masterCodes.forEach((code, i) => {
-      masters[code] = make((masterQueries[i]?.data as any) || []);
-    });
+    const masterItems = make(
+      masterItemQueries.flatMap(q => ((q.data as { id: string; name: string }[]) || [])),
+    );
+
     return {
       sector: make(sectors as any),
       sub_sector: make(subSectors as any),
