@@ -2436,14 +2436,13 @@ export default function NewApplication() {
                   </div>
                 )}
 
-                {!paymentComplete && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-800">
-                      Please complete payment to submit application.
-                    </p>
-                  </div>
-                )}
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary shrink-0" />
+                  <p className="text-sm text-foreground">
+                    Confirm your review below to continue to payment. You will submit the application after payment.
+                  </p>
+                </div>
+
               </CardContent>
             </Card>
 
