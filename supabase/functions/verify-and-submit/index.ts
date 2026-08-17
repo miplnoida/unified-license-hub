@@ -305,6 +305,56 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 2b. Resubmission after an information request: flag still-open RFIs as
+    //     responded so the reviewer queue and the paused SLA clock resume
+    //     without manual reconciliation. Non-fatal.
+    if (isResubmission) {
+      try {
+        const { data: openRfis } = await adminClient
+          .from("application_rfis")
+          .select("id, raised_at")
+          .eq("application_id", application_id)
+          .eq("status", "open")
+          .order("raised_at", { ascending: true });
+
+        await adminClient
+          .from("application_rfis")
+          .update({ status: "responded", updated_at: new Date().toISOString() })
+          .eq("application_id", application_id)
+          .eq("status", "open");
+
+        // Reviewer signal: did the applicant actually change any form data
+        // after the information request was raised?
+        const earliestRaisedAt = (openRfis ?? [])[0]?.raised_at as string | undefined;
+        if (earliestRaisedAt) {
+          const { count } = await adminClient
+            .from("audit_logs")
+            .select("id", { count: "exact", head: true })
+            .eq("entity_type", "application")
+            .eq("entity_id", application_id)
+            .in("action", ["application.form_data_updated", "application.draft_updated"])
+            .gte("created_at", earliestRaisedAt);
+
+          await adminClient.from("audit_logs").insert({
+            action: "application.resubmitted.form_change_check",
+            entity_type: "application",
+            entity_id: application_id,
+            user_id: user.id,
+            new_value: {
+              form_data_changed: (count ?? 0) > 0,
+              rfi_raised_at: earliestRaisedAt,
+              changes_recorded: count ?? 0,
+            },
+          });
+        }
+      } catch (rfiSyncError) {
+        console.error("[verify-and-submit] failed to mark open RFIs responded", rfiSyncError);
+      }
+    }
+
+
+
+
     // Diagnostic (no PII / no form data): submission + workflow attach summary.
     console.log(
       "[verify-and-submit] submitted",

@@ -57,19 +57,26 @@ export type Database = {
       }
       ai_insights: {
         Row: {
+          analysis_type: string | null
           citations: Json
           confidence: number | null
           created_at: string
           entity_id: string | null
           explanation: string | null
+          feedback: string | null
+          feedback_at: string | null
+          feedback_by: string | null
           generated_at: string
           generated_by: string | null
           id: string
+          input_fingerprint: string | null
           insight_kind: string
           model: string | null
           module: string
           object_id: string | null
           object_type: string | null
+          payload: Json
+          period_key: string | null
           provider: string | null
           provider_state: string
           recommendation: string | null
@@ -77,24 +84,34 @@ export type Database = {
           review_status: string
           reviewed_at: string | null
           reviewer_id: string | null
+          scope: string | null
+          scope_id: string | null
+          source_modules: string[]
           source_records: Json
           title: string
           updated_at: string
         }
         Insert: {
+          analysis_type?: string | null
           citations?: Json
           confidence?: number | null
           created_at?: string
           entity_id?: string | null
           explanation?: string | null
+          feedback?: string | null
+          feedback_at?: string | null
+          feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
           id?: string
+          input_fingerprint?: string | null
           insight_kind?: string
           model?: string | null
           module: string
           object_id?: string | null
           object_type?: string | null
+          payload?: Json
+          period_key?: string | null
           provider?: string | null
           provider_state?: string
           recommendation?: string | null
@@ -102,24 +119,34 @@ export type Database = {
           review_status?: string
           reviewed_at?: string | null
           reviewer_id?: string | null
+          scope?: string | null
+          scope_id?: string | null
+          source_modules?: string[]
           source_records?: Json
           title: string
           updated_at?: string
         }
         Update: {
+          analysis_type?: string | null
           citations?: Json
           confidence?: number | null
           created_at?: string
           entity_id?: string | null
           explanation?: string | null
+          feedback?: string | null
+          feedback_at?: string | null
+          feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
           id?: string
+          input_fingerprint?: string | null
           insight_kind?: string
           model?: string | null
           module?: string
           object_id?: string | null
           object_type?: string | null
+          payload?: Json
+          period_key?: string | null
           provider?: string | null
           provider_state?: string
           recommendation?: string | null
@@ -127,6 +154,9 @@ export type Database = {
           review_status?: string
           reviewed_at?: string | null
           reviewer_id?: string | null
+          scope?: string | null
+          scope_id?: string | null
+          source_modules?: string[]
           source_records?: Json
           title?: string
           updated_at?: string
@@ -356,8 +386,10 @@ export type Database = {
           analyst_decision_by: string | null
           analyst_justification: string | null
           application_id: string
+          business_assessment: Json | null
           confidence_score: number | null
           created_at: string
+          data_integrity: Json | null
           decision_report: Json
           error_message: string | null
           findings: Json
@@ -390,8 +422,10 @@ export type Database = {
           analyst_decision_by?: string | null
           analyst_justification?: string | null
           application_id: string
+          business_assessment?: Json | null
           confidence_score?: number | null
           created_at?: string
+          data_integrity?: Json | null
           decision_report?: Json
           error_message?: string | null
           findings?: Json
@@ -424,8 +458,10 @@ export type Database = {
           analyst_decision_by?: string | null
           analyst_justification?: string | null
           application_id?: string
+          business_assessment?: Json | null
           confidence_score?: number | null
           created_at?: string
+          data_integrity?: Json | null
           decision_report?: Json
           error_message?: string | null
           findings?: Json
@@ -2683,6 +2719,7 @@ export type Database = {
         Row: {
           allow_anonymous: boolean
           created_at: string
+          default_severity: string | null
           id: string
           max_attachments: number
           notes: string | null
@@ -2694,6 +2731,7 @@ export type Database = {
         Insert: {
           allow_anonymous?: boolean
           created_at?: string
+          default_severity?: string | null
           id?: string
           max_attachments?: number
           notes?: string | null
@@ -2705,6 +2743,7 @@ export type Database = {
         Update: {
           allow_anonymous?: boolean
           created_at?: string
+          default_severity?: string | null
           id?: string
           max_attachments?: number
           notes?: string | null
@@ -6680,6 +6719,7 @@ export type Database = {
           submitted_at: string | null
           token_hash: string
           verification_hash: string
+          verification_hash_alt: string | null
         }
         Insert: {
           assessment_id: string
@@ -6698,6 +6738,7 @@ export type Database = {
           submitted_at?: string | null
           token_hash: string
           verification_hash: string
+          verification_hash_alt?: string | null
         }
         Update: {
           assessment_id?: string
@@ -6716,6 +6757,7 @@ export type Database = {
           submitted_at?: string | null
           token_hash?: string
           verification_hash?: string
+          verification_hash_alt?: string | null
         }
         Relationships: [
           {
@@ -10727,8 +10769,10 @@ export type Database = {
           effective_to: string | null
           id: string
           individual_id: string
+          is_committee_override: boolean
           is_current: boolean
           outcome: string
+          override_reason: string | null
           rationale: string
           regulator_id: string | null
           signature_hash: string | null
@@ -10743,8 +10787,10 @@ export type Database = {
           effective_to?: string | null
           id?: string
           individual_id: string
+          is_committee_override?: boolean
           is_current?: boolean
           outcome: string
+          override_reason?: string | null
           rationale: string
           regulator_id?: string | null
           signature_hash?: string | null
@@ -10759,8 +10805,10 @@ export type Database = {
           effective_to?: string | null
           id?: string
           individual_id?: string
+          is_committee_override?: boolean
           is_current?: boolean
           outcome?: string
+          override_reason?: string | null
           rationale?: string
           regulator_id?: string | null
           signature_hash?: string | null
@@ -11464,6 +11512,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fp_training_attestations: {
+        Row: {
+          attested_at: string
+          id: string
+          notes: string | null
+          policy_version: string
+          user_id: string
+        }
+        Insert: {
+          attested_at?: string
+          id?: string
+          notes?: string | null
+          policy_version: string
+          user_id: string
+        }
+        Update: {
+          attested_at?: string
+          id?: string
+          notes?: string | null
+          policy_version?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       group_consolidated_snapshots: {
         Row: {
@@ -15539,6 +15611,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           is_system: boolean
           key: string
           label: string
@@ -15551,6 +15624,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -15563,6 +15637,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key?: string
           label?: string
@@ -15645,6 +15720,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           is_system: boolean
           key: string
           label: string
@@ -15657,6 +15733,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -15669,6 +15746,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean
           key?: string
           label?: string
@@ -23557,6 +23635,14 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      application_rfi_submit_response: {
+        Args: {
+          p_file_upload_ids?: string[]
+          p_response_text?: string
+          p_rfi_item_id: string
+        }
+        Returns: Json
+      }
       apply_application_guard: {
         Args: {
           _category_id: string
@@ -23753,6 +23839,7 @@ export type Database = {
         Args: { _user: string }
         Returns: boolean
       }
+      can_manage_returns_config: { Args: { _user: string }; Returns: boolean }
       can_manage_rule_engine: { Args: { _user_id?: string }; Returns: boolean }
       can_manage_thematic_review: {
         Args: { _review_id?: string }
@@ -23864,6 +23951,16 @@ export type Database = {
           _target_sector_id?: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      can_view_advisory_ai:
+        | { Args: { _module: string }; Returns: boolean }
+        | {
+            Args: { _module: string; _source_modules: string[] }
+            Returns: boolean
+          }
+      can_view_advisory_ai_source: {
+        Args: { _source: string }
         Returns: boolean
       }
       can_view_application_legal_notes: {
@@ -26141,6 +26238,16 @@ export type Database = {
         Returns: Json
       }
       list_duplicate_clusters: { Args: { _dimension?: string }; Returns: Json }
+      list_fp_assessments: {
+        Args: {
+          _filters?: Json
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _sort?: string
+        }
+        Returns: Json
+      }
       list_internal_users: {
         Args: { _include_ids?: string[]; _search?: string }
         Returns: {
@@ -26889,6 +26996,7 @@ export type Database = {
         Args: { _group_id: string; _period_key?: string }
         Returns: Json
       }
+      prudential_min_peers: { Args: never; Returns: number }
       prudential_sector_risk: {
         Args: { _lookback_days?: number }
         Returns: {
@@ -27276,6 +27384,10 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      resolve_complaint_entity_context: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
       resolve_effective_threshold: {
         Args: {
           _as_of?: string
@@ -27374,6 +27486,27 @@ export type Database = {
           sla_hours: number
           sla_source: string
         }[]
+      }
+      resolve_user_display_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+          kind: string
+        }[]
+      }
+      restore_prudential_ratio: {
+        Args: { _ratio_id: string }
+        Returns: undefined
+      }
+      restore_prudential_threshold: {
+        Args: { _threshold_id: string }
+        Returns: undefined
+      }
+      restore_validation_rule: {
+        Args: { _rule_id: string }
+        Returns: undefined
       }
       resubmit_return: {
         Args: { _actor_id: string; _comments: string; _return_id: string }
@@ -27612,6 +27745,7 @@ export type Database = {
         Args: { _justification?: string; _state: string; _thread_id: string }
         Returns: undefined
       }
+      set_prudential_min_peers: { Args: { _value: number }; Returns: number }
       set_review_comment_blocking: {
         Args: { _blocking: boolean; _comment_id: string }
         Returns: {
@@ -27880,6 +28014,175 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_ai_report_detail: {
+        Args: { _id: string }
+        Returns: {
+          analysis_type: string
+          citations: Json
+          entity_id: string
+          explanation: string
+          feedback: string
+          generated_at: string
+          generated_by: string
+          id: string
+          input_fingerprint: string
+          model: string
+          module: string
+          object_id: string
+          object_type: string
+          payload: Json
+          period_key: string
+          provider_state: string
+          recommendation: string
+          scope: string
+          scope_id: string
+          source_modules: string[]
+          source_records: Json
+          title: string
+        }[]
+      }
+      supervisory_ai_report_entity_options: {
+        Args: never
+        Returns: {
+          entity_id: string
+          entity_name: string
+          n: number
+        }[]
+      }
+      supervisory_ai_report_facets: {
+        Args: {
+          _from?: string
+          _include_failed?: boolean
+          _modules?: string[]
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          kind: string
+          label: string
+          n: number
+          value: string
+        }[]
+      }
+      supervisory_ai_report_sources: {
+        Args: never
+        Returns: {
+          available: boolean
+          source: string
+        }[]
+      }
+      supervisory_ai_report_versions: {
+        Args: { _version_key: string }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          entity_name: string
+          feedback: string
+          flagged: boolean
+          freshness: string
+          generated_at: string
+          generated_by: string
+          id: string
+          limited_evidence: boolean
+          module: string
+          period_key: string
+          record_id: string
+          record_reference: string
+          report_state: string
+          review_status: string
+          source: string
+          subject_name: string
+          summary: string
+          title: string
+          version_key: string
+        }[]
+      }
+      supervisory_ai_reports_index: {
+        Args: {
+          _analysis_types?: string[]
+          _confidence?: string
+          _entity_id?: string
+          _freshness?: string
+          _from?: string
+          _include_failed?: boolean
+          _limit?: number
+          _modules?: string[]
+          _offset?: number
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          entity_name: string
+          feedback: string
+          flagged: boolean
+          freshness: string
+          generated_at: string
+          generated_by: string
+          id: string
+          limited_count: number
+          limited_evidence: boolean
+          module: string
+          module_counts: Json
+          outdated_count: number
+          period_key: string
+          recent_7d: number
+          record_id: string
+          record_reference: string
+          report_state: string
+          review_status: string
+          source: string
+          subject_name: string
+          summary: string
+          title: string
+          total_count: number
+          version_key: string
+        }[]
+      }
+      supervisory_ai_reports_list: {
+        Args: {
+          _analysis_types?: string[]
+          _entity_id?: string
+          _from?: string
+          _include_failed?: boolean
+          _limit?: number
+          _modules?: string[]
+          _offset?: number
+          _search?: string
+          _to?: string
+        }
+        Returns: {
+          analysis_type: string
+          confidence: string
+          entity_id: string
+          feedback: string
+          generated_at: string
+          generated_by: string
+          id: string
+          input_fingerprint: string
+          insufficient_evidence: boolean
+          limitation_count: number
+          model: string
+          module: string
+          object_id: string
+          object_type: string
+          period_key: string
+          provider_state: string
+          scope: string
+          scope_id: string
+          source_modules: string[]
+          summary: string
+          title: string
+          total_count: number
+        }[]
+      }
+      supervisory_ai_source_updated_at: {
+        Args: { _entity_id: string; _module: string; _record_id: string }
+        Returns: string
+      }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined
@@ -28015,6 +28318,7 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
+      user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
       validate_scope_config: {
         Args: { _scope_config: Json }
         Returns: {
@@ -28030,6 +28334,7 @@ export type Database = {
           verified: boolean
         }[]
       }
+      worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json
@@ -28111,6 +28416,10 @@ export type Database = {
         | "scheduler_failure"
         | "notification_delivery_failure"
         | "system_health_alert"
+        | "prudential_breach"
+        | "complaint_escalation"
+        | "conduct_alert"
+        | "coordination_escalation"
       notification_category: "action_required" | "alert" | "system" | "info"
       notification_digest_frequency: "immediate" | "hourly" | "daily"
       notification_severity: "critical" | "high" | "medium" | "low"
@@ -28351,6 +28660,10 @@ export const Constants = {
         "scheduler_failure",
         "notification_delivery_failure",
         "system_health_alert",
+        "prudential_breach",
+        "complaint_escalation",
+        "conduct_alert",
+        "coordination_escalation",
       ],
       notification_category: ["action_required", "alert", "system", "info"],
       notification_digest_frequency: ["immediate", "hourly", "daily"],

@@ -12,12 +12,15 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { toast } from 'sonner';
 import { Sparkles, Save, Loader2 } from 'lucide-react';
+import { COMPLAINT_PRIORITIES, complaintPriorityLabel } from '@/lib/complaintStatus';
 
 interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
-const PRIORITIES = ['p1', 'p2', 'p3', 'p4'] as const;
-const SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
+
+const EMPTY_HINT = (label: string) =>
+  `No ${label} available. Add them under Admin Hub → Conduct, or contact an administrator.`;
+
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
@@ -32,13 +35,12 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_indicator: !!complaint.vulnerability_indicator,
     vulnerability_notes: complaint.vulnerability_notes || '',
     priority: complaint.priority || '',
-    severity: complaint.severity || '',
     sla_days: complaint.sla_days ?? '',
-    assigned_team: complaint.assigned_team || '',
   });
   const [saving, setSaving] = useState(false);
   const [autoRunning, setAutoRunning] = useState(false);
   const [overrideCtx, setOverrideCtx] = useState<null | { from: any; to: any }>(null);
+  const [refsLoaded, setRefsLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -51,8 +53,47 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
       if (c.error) toast.error(`Channels failed: ${c.error.message}`);
       if (k.error) toast.error(`Categories failed: ${k.error.message}`);
       setProducts(p.data ?? []); setChannels(c.data ?? []); setCats(k.data ?? []);
+      setRefsLoaded(true);
     })();
   }, []);
+
+  // Keep the editable form in sync with the loaded complaint record. The record
+  // may arrive (or be refetched after a save) after this card first renders.
+  useEffect(() => {
+    setForm({
+      conduct_risk_category_id: complaint.conduct_risk_category_id || '',
+      product_id: complaint.product_id || '',
+      channel_id: complaint.channel_id || '',
+      customer_type: complaint.customer_type || '',
+      vulnerability_indicator: !!complaint.vulnerability_indicator,
+      vulnerability_notes: complaint.vulnerability_notes || '',
+      priority: complaint.priority || '',
+      sla_days: complaint.sla_days ?? '',
+    });
+  }, [
+    complaint.id,
+    complaint.conduct_risk_category_id,
+    complaint.product_id,
+    complaint.channel_id,
+    complaint.customer_type,
+    complaint.vulnerability_indicator,
+    complaint.vulnerability_notes,
+    complaint.priority,
+    complaint.sla_days,
+  ]);
+
+  const nameOf = (list: any[], id?: string | null) =>
+    (id && list.find((x) => x.id === id)?.name) || null;
+
+  const recorded = [
+    { label: 'Product', value: nameOf(products, complaint.product_id) },
+    { label: 'Channel', value: nameOf(channels, complaint.channel_id) },
+    { label: 'Conduct Risk Category', value: nameOf(cats, complaint.conduct_risk_category_id) },
+    { label: 'Customer Type', value: complaint.customer_type || null },
+  ];
+
+
+
 
   const persist = async (payload: any) => {
     const { error } = await (supabase as any).rpc('classify_complaint', { _id: complaint.id, _payload: payload });
@@ -68,9 +109,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
     vulnerability_indicator: form.vulnerability_indicator,
     vulnerability_notes: form.vulnerability_notes || null,
     priority: form.priority || null,
-    severity: form.severity || null,
     sla_days: form.sla_days === '' ? null : Number(form.sla_days),
-    assigned_team: form.assigned_team || null,
   });
 
   const detectOverridden = (payload: any): Record<string, { from: any; to: any }> => {
@@ -86,10 +125,8 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         out[key] = { from: base[key], to: currVal };
       }
     };
-    cmp('severity', payload.severity);
     cmp('priority', payload.priority);
     cmp('sla_days', payload.sla_days);
-    cmp('assigned_team', payload.assigned_team);
     if (orig?.conduct_risk_category_id !== undefined) {
       if (orig.conduct_risk_category_id !== payload.conduct_risk_category_id) {
         out.conduct_risk_category_id = { from: orig.conduct_risk_category_id, to: payload.conduct_risk_category_id };
@@ -151,13 +188,26 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="rounded-md border bg-muted/40 p-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Recorded classification</p>
+          <div className="grid gap-2 md:grid-cols-4">
+            {recorded.map((r) => (
+              <div key={r.label}>
+                <p className="text-[11px] text-muted-foreground">{r.label}</p>
+                <p className="text-sm capitalize">{r.value ?? <span className="text-muted-foreground">Not recorded</span>}</p>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-3 md:grid-cols-3">
+
           <div>
             <Label className="text-xs">Product</Label>
             <Select value={form.product_id || 'none'} onValueChange={v => setForm({ ...form, product_id: v === 'none' ? '' : v })}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && products.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('products')}</p>}
           </div>
           <div>
             <Label className="text-xs">Channel</Label>
@@ -165,6 +215,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{channels.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && channels.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('channels')}</p>}
           </div>
           <div>
             <Label className="text-xs">Conduct Risk Category</Label>
@@ -172,7 +223,9 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{cats.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && cats.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('conduct categories')}</p>}
           </div>
+
           <div>
             <Label className="text-xs">Customer Type</Label>
             <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
@@ -184,23 +237,23 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
             <Label className="text-xs">Priority</Label>
             <Select value={form.priority || 'none'} onValueChange={v => setForm({ ...form, priority: v === 'none' ? '' : v })}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">(unset)</SelectItem>{PRIORITIES.map(x => <SelectItem key={x} value={x} className="uppercase">{x}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="none">(unset)</SelectItem>{COMPLAINT_PRIORITIES.map(x => <SelectItem key={x} value={x}>{complaintPriorityLabel(x)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Severity</Label>
-            <Select value={form.severity || 'none'} onValueChange={v => setForm({ ...form, severity: v === 'none' ? '' : v })}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent><SelectItem value="none">(unset)</SelectItem>{SEVERITIES.map(x => <SelectItem key={x} value={x} className="capitalize">{x}</SelectItem>)}</SelectContent>
-            </Select>
+            <Label className="text-xs">Severity (automatic)</Label>
+            <div className="mt-1 flex flex-col gap-1">
+              <Badge variant="outline" className="w-fit capitalize">{complaint.severity || 'Pending triage'}</Badge>
+              <span className="text-[11px] text-muted-foreground">
+                {complaint.triage_result_snapshot?.matched_rule?.name
+                  ? `From triage rule: ${complaint.triage_result_snapshot.matched_rule.name}`
+                  : 'Configured default — no triage rule matched'}
+              </span>
+            </div>
           </div>
           <div>
             <Label className="text-xs">SLA (days)</Label>
             <input type="number" min={0} className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.sla_days} onChange={e => setForm({ ...form, sla_days: e.target.value === '' ? '' : Number(e.target.value) })} />
-          </div>
-          <div>
-            <Label className="text-xs">Assigned Team</Label>
-            <input className="mt-1 w-full h-10 rounded-md border bg-transparent px-3 text-sm" value={form.assigned_team} onChange={e => setForm({ ...form, assigned_team: e.target.value })} placeholder="e.g. Conduct-Retail" />
           </div>
         </div>
 

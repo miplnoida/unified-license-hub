@@ -23,7 +23,7 @@ import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/f
 import { migrateSectionsToRows } from '@/lib/formRows';
 import { isFieldChanged, deepEqualField, isFileFieldChanged, diffRepeatable, type DiffPair, type DiffStatus } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
-import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
+import { uploadFormFile, deleteFormFile, refreshFormFileUrl, resolveFormFileStoragePath, type FormFileData } from '@/lib/formFileUpload';
 import { uploadVersionedDocument } from '@/lib/documentVersioning';
 import { DocumentVersionHistoryDialog } from '@/components/documents/versioned/DocumentVersionHistoryDialog';
 import { History } from 'lucide-react';
@@ -267,6 +267,7 @@ export function FormRenderer({
   }, [initialData]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [previewLoadingKey, setPreviewLoadingKey] = useState<string | null>(null);
   const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -601,7 +602,20 @@ export function FormRenderer({
     }
   };
 
-  const handleSaveDraft = () => onSaveDraft(getMergedData());
+  // Callers may return a promise that rejects when the write is refused; the
+  // caller surfaces the error itself, we only prevent an unhandled rejection.
+  const runSave = (fn: (data: Record<string, any>) => void | Promise<void>, data: Record<string, any>) => {
+    try {
+      const maybe = fn(data) as unknown;
+      if (maybe && typeof (maybe as Promise<void>).catch === 'function') {
+        (maybe as Promise<void>).catch(() => undefined);
+      }
+    } catch {
+      // handled by caller
+    }
+  };
+
+  const handleSaveDraft = () => runSave(onSaveDraft, getMergedData());
 
   const handleSubmit = () => {
     const res = validateCurrentStep();
@@ -613,8 +627,9 @@ export function FormRenderer({
         // noop
       }
     }
-    onSubmit(getMergedData());
+    runSave(onSubmit, getMergedData());
   };
+
 
   // Handle file upload to storage.
   // When formId is provided (Form Management context), uses versioned upload:
@@ -768,15 +783,33 @@ export function FormRenderer({
     updateField(fieldName, list);
   };
 
-  // Handle file preview with fresh signed URL
-  const handleFilePreview = async (fileData: FormFileData) => {
-    if (fileData.filePath) {
-      const freshUrl = await refreshFormFileUrl(fileData.filePath);
-      setPreviewFile({ name: fileData.name, url: freshUrl, type: fileData.type });
-    } else if (fileData.url) {
-      setPreviewFile({ name: fileData.name, url: fileData.url, type: fileData.type });
+  // Handle file preview with fresh signed URL. Versioned uploads store an empty
+  // filePath in form data, so the real storage path is resolved from the
+  // document version / group identifiers before signing.
+  const handleFilePreview = async (fileData: FormFileData & { versionId?: string; groupId?: string }) => {
+    const key = (fileData as any).versionId || fileData.uploadId || (fileData as any).groupId || fileData.filePath || fileData.name;
+    setPreviewLoadingKey(key);
+    try {
+      const path = await resolveFormFileStoragePath(fileData as any);
+      if (path) {
+        const freshUrl = await refreshFormFileUrl(path);
+        if (freshUrl) {
+          setPreviewFile({ name: fileData.name, url: freshUrl, type: fileData.type });
+          return;
+        }
+      }
+      if (fileData.url) {
+        setPreviewFile({ name: fileData.name, url: fileData.url, type: fileData.type });
+        return;
+      }
+      toast.error('Unable to open this document — the stored file could not be located.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Unable to open this document');
+    } finally {
+      setPreviewLoadingKey(null);
     }
   };
+
 
   // Repeatable section helpers
   const addRepeatableEntry = (sectionId: string) => {
@@ -996,9 +1029,12 @@ export function FormRenderer({
                           v{item.version}
                         </span>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(item)}>
-                        <Eye className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" title="View document" onClick={() => handleFilePreview(item)} disabled={previewLoadingKey === (item.versionId || item.uploadId || item.groupId || item.filePath || item.name)}>
+                        {previewLoadingKey === (item.versionId || item.uploadId || item.groupId || item.filePath || item.name)
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Eye className="h-3.5 w-3.5" />}
                       </Button>
+
                       {item.groupId && (
                         <Button
                           variant="ghost"
@@ -1057,9 +1093,12 @@ export function FormRenderer({
                     v{val.version}
                   </span>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(val)}>
-                  <Eye className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="View document" onClick={() => handleFilePreview(val)} disabled={previewLoadingKey === (val.versionId || val.uploadId || val.groupId || val.filePath || val.name)}>
+                  {previewLoadingKey === (val.versionId || val.uploadId || val.groupId || val.filePath || val.name)
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Eye className="h-3.5 w-3.5" />}
                 </Button>
+
                 {val.groupId && (
                   <Button
                     variant="ghost"
@@ -1417,13 +1456,14 @@ export function FormRenderer({
                   <button
                     key={key}
                     onClick={() => { setActiveGroup(key); setActiveFormIdx(0); }}
+                    aria-current={isActive ? 'step' : undefined}
                     className={`
-                      flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-bold transition-all
+                      flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all border
                       ${isActive
-                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-md'
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-md'
                         : allCompleted
-                          ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                          ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                       }
                     `}
                   >
@@ -1444,13 +1484,14 @@ export function FormRenderer({
                     key={s.id}
                     onClick={() => setActiveFormIdx(i)}
                     title={s.title}
+                    aria-current={isActive ? 'step' : undefined}
                     className={`
-                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border
                       ${isActive
-                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-sm'
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-sm'
                         : isCompleted
-                          ? 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30'
-                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                          ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                       }
                     `}
                   >
@@ -1460,6 +1501,7 @@ export function FormRenderer({
                 );
               })}
             </div>
+
           </div>
         )}
 
@@ -1475,16 +1517,18 @@ export function FormRenderer({
                   key={s.id}
                   onClick={() => setCurrentStep(i)}
                   title={s.title}
+                  aria-current={isActive ? 'step' : undefined}
                   className={`
                     relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border
                     ${isActive
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-sm'
                       : isCompleted
                         ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
                         : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                     }
                   `}
                 >
+
                   {showFullTabTitles ? (
                     <span className="max-w-[200px] truncate">{s.title}</span>
                   ) : (

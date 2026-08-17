@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Clock, ExternalLink, Lock, MessageSquare } from 'lucide-react';
 import { IntakeForm } from './IntakeForm';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ThreadDetail } from './ThreadDetail';
 import { useIsInternal } from '@/hooks/useUserPermissions';
 import {
@@ -64,7 +65,7 @@ function Row({ t, onOpen }: { t: FeedThread; onOpen: () => void }) {
 export function CaseThreadsPanel({ sourceType, sourceId, sourceReference, licenseeId, title }: Props) {
   const isInternal = useIsInternal();
   const [openId, setOpenId] = useState<string | null>(null);
-  const { data, isLoading, refetch } = useThreadFeed(
+  const { data, isLoading, isError, refetch } = useThreadFeed(
     { source_type: sourceType, source_id: sourceId },
     0,
     25,
@@ -93,8 +94,16 @@ export function CaseThreadsPanel({ sourceType, sourceId, sourceReference, licens
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {isLoading && <><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></>}
-        {!isLoading && threads.length === 0 && (
+        {isError && (
+          <QueryErrorState
+            title="We couldn’t load communications"
+            message="Communication threads could not be loaded. Please try again."
+            onRetry={() => refetch()}
+            compact
+          />
+        )}
+        {!isError && isLoading && <><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></>}
+        {!isError && !isLoading && threads.length === 0 && (
           <p className="text-sm text-muted-foreground py-4 text-center">
             No communication threads on this case yet.
           </p>

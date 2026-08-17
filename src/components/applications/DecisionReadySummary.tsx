@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RiskBadge } from '@/components/prudential/RiskBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -293,23 +294,8 @@ export function DecisionReadySummary({
               onChange={setAssessment}
             />
 
-            {/* Case Snapshot */}
+            {/* Case Snapshot moved to the Details tab to avoid duplicated data. */}
 
-            <section className="rounded-md border p-3 space-y-2">
-              <div className="text-sm font-semibold">Case Snapshot</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <Field label="Application #" value={application.application_number} />
-                <Field label="Status" value={APPLICATION_STATUS_LABELS[application.status as keyof typeof APPLICATION_STATUS_LABELS] || application.status} />
-                <Field label="Applicant" value={applicantLabel} />
-                <Field label="Email" value={applicantEmail || '—'} />
-                {entityName && <Field label="Entity" value={entityName} />}
-                <Field label="License type" value={application.license_type || '—'} />
-                {taxonomyLabel && <Field label="Taxonomy" value={taxonomyLabel} />}
-                <Field label="Current step" value={currentStepName || '—'} />
-                <Field label="Submitted" value={application.submitted_at ? new Date(application.submitted_at).toLocaleString() : '—'} />
-                <Field label="Created" value={new Date(application.created_at).toLocaleString()} />
-              </div>
-            </section>
 
             {/* SLA & Status */}
             <section className="rounded-md border p-3 space-y-2">
@@ -584,7 +570,7 @@ function DecisionReportBlock({
                           </Badge>
                           <span className="font-medium">{s.label || s.key}</span>
                           {s.risk_level && (
-                            <Badge variant="outline" className="text-[10px]">Risk: {s.risk_level}</Badge>
+                            <RiskBadge level={s.risk_level} className="text-[10px]" />
                           )}
                         </div>
                         {Array.isArray(s.observations) && s.observations.length > 0 && (

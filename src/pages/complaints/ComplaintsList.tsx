@@ -28,6 +28,8 @@ import { ComplaintAcknowledgement, type ComplaintAckInput } from '@/components/c
 import { ComplaintEvidenceRow } from '@/components/complaints/ComplaintEvidenceRow';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
+import { loadComplaintAttachments } from '@/lib/complaintAttachmentsView';
+
 import { getSignedUrl } from '@/lib/secureFileUpload';
 import { Paperclip, ExternalLink } from 'lucide-react';
 import { slaBucketFromRow, slaStatusLabel, slaStatusVariant, SLA_FILTER_OPTIONS } from '@/lib/complaintsSla';
@@ -46,7 +48,10 @@ import {
   complaintStatusVariant,
   isOpenComplaint,
   COMPLAINT_STATUS_LABELS,
+  COMPLAINT_PRIORITIES,
+  complaintPriorityLabel,
 } from '@/lib/complaintStatus';
+
 
 const statusVariant = new Proxy({} as Record<string, 'default' | 'secondary' | 'destructive' | 'outline'>, {
   get: (_t, k: string) => complaintStatusVariant(k),
@@ -320,33 +325,12 @@ export default function ComplaintsList() {
     if (!detailDialog?.id) { setDetailAttachments([]); return; }
     let cancelled = false;
     (async () => {
-      const { data: ev, error } = await supabase
-        .from('complaint_evidence' as any)
-        .select('label, file_upload_id')
-        .eq('complaint_id', detailDialog.id);
-      if (error) { if (!cancelled) toast.error(`Attachments failed to load: ${error.message}`); return; }
-      const rows = (ev as any[]) ?? [];
-      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
-      if (!ids.length) { if (!cancelled) setDetailAttachments([]); return; }
-      const { data: files, error: fErr } = await supabase
-        .from('file_uploads' as any)
-        .select('id, file_name, file_path, file_size')
-        .in('id', ids);
-      if (fErr) { if (!cancelled) toast.error(`File details failed: ${fErr.message}`); return; }
-      const fmap = new Map(((files as any[]) ?? []).map(f => [f.id, f]));
-      const atts = rows.map(r => {
-        const f = fmap.get(r.file_upload_id);
-        return {
-          id: r.file_upload_id,
-          name: r.label || f?.file_name || 'Attachment',
-          size: f?.file_size,
-          filePath: f?.file_path,
-        };
-      });
+      const atts = await loadComplaintAttachments(detailDialog.id);
       if (!cancelled) setDetailAttachments(atts);
     })();
     return () => { cancelled = true; };
   }, [detailDialog?.id]);
+
 
   const openDetailAttachment = async (filePath?: string) => {
     if (!filePath) return;
@@ -361,7 +345,7 @@ export default function ComplaintsList() {
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTypeId, setNewTypeId] = useState('');
-  const [newSeverity, setNewSeverity] = useState('medium');
+  
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -377,22 +361,27 @@ export default function ComplaintsList() {
     setCreating(true);
     // Canonical intake: server-side create_complaint handles number gen, audit,
     // and trigger-based notifications. No duplicate client-side dispatch here.
+    // Severity is never sent: complaint_intake_decide assigns it from triage
+    // configuration (matched rule or configured default).
+    // `variant` is explicit so the server records ownership correctly:
+    // internal = staff-filed (no complainant), licensee = filed by this user.
     const payload: Record<string, unknown> = isInternal
       ? {
+          variant: 'internal',
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email || null,
-          severity: 'medium',
           priority: 'p3',
           intake_source: 'internal',
         }
       : {
+          variant: 'licensee',
           subject: newSubject.trim(),
           description: newDesc.trim(),
           email: user.email,
-          severity: newSeverity || 'medium',
           intake_source: 'consumer_portal',
         };
+
     if (newTypeId) payload.complaint_type_id = newTypeId;
 
     const { data: insertedRaw, error } = await (supabase as any).rpc('create_complaint', { _payload: payload });
@@ -414,7 +403,11 @@ export default function ComplaintsList() {
       const r = await attachStagedFilesToComplaint(newAttachments, inserted.id, user.id);
       uploadedAttachments = r.attachments;
       if (r.failed.length) {
-        toast.warning(`Complaint filed. ${r.failed.length} attachment(s) failed: ${r.failed[0].error}`);
+        toast.error(
+          `Complaint filed, but ${r.failed.length} attachment(s) could not be attached: ` +
+            r.failed.map(f => `${f.name} (${f.error})`).join('; '),
+          { duration: 10000 },
+        );
       } else if (r.uploaded) {
         toast.success(`${r.uploaded} attachment(s) uploaded`);
       }
@@ -422,25 +415,29 @@ export default function ComplaintsList() {
 
     toast.success('Complaint submitted');
     setNewDialogOpen(false);
-    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewSeverity('medium'); setNewAttachments([]);
+    setNewSubject(''); setNewDesc(''); setNewTypeId(''); setNewAttachments([]);
     setCreating(false);
     if (inserted) {
+      // create_complaint returns { id, complaint_number, workflow_instance_id, complaint: <row> }.
+      // Read the record fields from `complaint`, falling back to the top level.
+      const row = ((inserted as any).complaint ?? inserted) as any;
       setAckDialog({
         id: inserted.id,
-        complaint_number: (inserted as any).complaint_number,
-        subject: (inserted as any).subject,
-        submitted_at: (inserted as any).created_at,
+        complaint_number: (inserted as any).complaint_number ?? row.complaint_number,
+        subject: row.subject ?? newSubject.trim(),
+        submitted_at: row.created_at ?? new Date().toISOString(),
         complainant_name: user.fullName ?? user.email ?? null,
-        complainant_email: (inserted as any).email ?? user.email ?? null,
-        channel: isInternal ? 'staff_intake' : 'consumer_portal',
-        sla_days: (inserted as any).sla_days ?? 20,
-        description: (inserted as any).description ?? null,
+        complainant_email: row.email ?? user.email ?? null,
+        channel: row.intake_source ?? (isInternal ? 'internal' : 'consumer_portal'),
+        sla_days: row.sla_days ?? null,
+        description: row.description ?? null,
         attachments: uploadedAttachments.map(a => ({
           name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.fileUploadId,
         })),
       });
       setAckVariant(isInternal ? 'internal' : 'applicant');
     }
+
     refetchAll();
   };
 
@@ -475,30 +472,11 @@ export default function ComplaintsList() {
   const reprintAck = async (c: any) => {
     const prof = c.complainant_id ? profileMap.get(c.complainant_id) : null;
 
-    // Fetch linked evidence + file paths for preview
-    let atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] = [];
-    const { data: evidence } = await supabase
-      .from('complaint_evidence' as any)
-      .select('label, file_upload_id')
-      .eq('complaint_id', c.id);
-    const rows = (evidence as any[]) || [];
-    if (rows.length) {
-      const ids = rows.map(r => r.file_upload_id).filter(Boolean);
-      const { data: files } = await supabase
-        .from('file_uploads' as any)
-        .select('id, file_name, file_path, file_size')
-        .in('id', ids);
-      const fmap = new Map((files as any[] || []).map(f => [f.id, f]));
-      atts = rows.map(r => {
-        const f = fmap.get(r.file_upload_id);
-        return {
-          name: r.label || f?.file_name || 'Attachment',
-          size: f?.file_size,
-          filePath: f?.file_path,
-          fileUploadId: r.file_upload_id,
-        };
-      });
-    }
+    // Fetch linked evidence + any unlinked complaint uploads for preview
+    const loaded = await loadComplaintAttachments(c.id);
+    const atts: { name: string; size?: number; filePath?: string; fileUploadId?: string }[] =
+      loaded.map(a => ({ name: a.name, size: a.size, filePath: a.filePath, fileUploadId: a.id }));
+
 
     setAckDialog({
       id: c.id,
@@ -508,7 +486,7 @@ export default function ComplaintsList() {
       complainant_name: prof?.full_name ?? null,
       complainant_email: c.email ?? prof?.email ?? null,
       channel: c.intake_source || null,
-      sla_days: c.sla_days ?? 20,
+      sla_days: c.sla_days ?? null,
       description: c.description ?? null,
       attachments: atts,
     });
@@ -616,17 +594,7 @@ export default function ComplaintsList() {
                       )}
                       <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                       <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
-                      <div>
-                        <Label>Severity</Label>
-                        <Select value={newSeverity} onValueChange={setNewSeverity}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {['low','medium','high','critical'].map(s => (
-                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+
                       <ComplaintAttachmentsField files={newAttachments} onChange={setNewAttachments} disabled={creating} />
                       <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
                     </div>
@@ -672,7 +640,7 @@ export default function ComplaintsList() {
                     <SelectTrigger className="w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Priority</SelectItem>
-                      {['p1','p2','p3','p4'].map(s => <SelectItem key={s} value={s} className="uppercase">{s}</SelectItem>)}
+                      {COMPLAINT_PRIORITIES.map(s => <SelectItem key={s} value={s}>{complaintPriorityLabel(s)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={slaFilter} onValueChange={(v) => updateUrl({ sla: v }, { resetPage: true })}>
@@ -915,7 +883,7 @@ export default function ComplaintsList() {
                           <TableCell>
                             <div className="flex flex-col gap-1">
                               {c.severity && <Badge variant={severityVariant[c.severity] || 'outline'} className="text-[10px] capitalize w-fit">{c.severity}</Badge>}
-                              {c.priority && <Badge variant={priorityVariant[c.priority] || 'outline'} className="text-[10px] uppercase w-fit">{c.priority}</Badge>}
+                              {c.priority && <Badge variant={priorityVariant[c.priority] || 'outline'} className="text-[10px] w-fit">{complaintPriorityLabel(c.priority)}</Badge>}
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">

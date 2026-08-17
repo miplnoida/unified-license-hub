@@ -6,13 +6,37 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, FileText, Loader2, Plus, Send, UserCheck } from 'lucide-react';
+import { Check, CheckCircle2, FileText, Loader2, Plus, Send, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useExaminationReports, useReportMutations } from '@/hooks/useExaminations';
+import { StageActions, type StageActionsMode } from './ExaminationStageActions';
+import { REPORT_STEPS, reportStatusLabel, reportStepIndex } from '@/lib/examinationWorkflow';
 
-export function ReportsPanel({ examinationId, readOnly }: { examinationId: string; readOnly?: boolean }) {
+function ReportStepper({ current }: { current: number }) {
+  return (
+    <ol className="flex flex-wrap items-center gap-1.5" aria-label="Report progress">
+      {REPORT_STEPS.map((s, i) => {
+        const done = current > i;
+        const active = current === i;
+        return (
+          <li key={s.key}
+            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+              active ? 'border-primary bg-primary/10 text-primary'
+                : done ? 'border-emerald-200 bg-emerald-500/10 text-emerald-700'
+                  : 'border-border bg-muted text-muted-foreground'
+            }`}>
+            {done && <Check className="h-3 w-3" />}{s.label}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function ReportsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationReports(examinationId);
   const { save } = useReportMutations(examinationId);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ report_type: 'draft', title: '', executive_summary: '', content: '', response_due_date: '' });
   const [responses, setResponses] = useState<Record<string, string>>({});
 
@@ -31,6 +55,7 @@ export function ReportsPanel({ examinationId, readOnly }: { examinationId: strin
       prepared_at: new Date().toISOString(),
     });
     setForm({ report_type: 'draft', title: '', executive_summary: '', content: '', response_due_date: '' });
+    setShowForm(false);
   };
 
   const act = async (r: any, action: 'review' | 'approve' | 'issue') => {
@@ -57,73 +82,108 @@ export function ReportsPanel({ examinationId, readOnly }: { examinationId: strin
 
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Reports &amp; management response</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="text-base">Examination reports</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Prepare the report, have it reviewed and approved, issue it to the entity, then record their response.
+        </p>
+      </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No reports prepared yet.</p>
+          <div className="rounded-md border p-6 text-center space-y-2">
+            <p className="text-sm font-medium">No report has been prepared yet</p>
+            <p className="text-xs text-muted-foreground">
+              Prepare the draft report so it can be reviewed, approved and issued to the entity.
+            </p>
+            {!readOnly && (
+              <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setShowForm(true)}>
+                <Plus className="h-4 w-4 mr-1" />Prepare report
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
-            {rows.map((r: any) => (
-              <div key={r.id} className="rounded-md border p-3 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div>
-                      <div className="text-sm font-medium">{r.title || `${r.report_type} report`}</div>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {r.report_type} · v{r.version}
-                        {r.response_due_date ? ` · response due ${new Date(r.response_due_date).toLocaleDateString()}` : ''}
-                      </p>
+            {rows.map((r: any) => {
+              const step = reportStepIndex(r);
+              const awaitingResponse = r.status === 'issued' && !r.management_response;
+              return (
+                <div key={r.id} className="rounded-md border p-3 space-y-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">
+                          {r.title || (r.report_type === 'final' ? 'Final report' : 'Draft report')}
+                        </div>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {r.report_type} report · version {r.version}
+                          {r.response_due_date ? ` · response due ${new Date(r.response_due_date).toLocaleDateString()}` : ''}
+                        </p>
+                      </div>
                     </div>
+                    <Badge variant="outline">{reportStatusLabel(r)}</Badge>
                   </div>
-                  <Badge variant="outline" className="capitalize">{r.status.replace('_', ' ')}</Badge>
-                </div>
-                {r.executive_summary && <p className="text-xs whitespace-pre-wrap">{r.executive_summary}</p>}
-                <div>
-                  <Label className="text-xs">Management response</Label>
-                  {readOnly ? (
-                    <p className="text-xs">{r.management_response || '—'}</p>
-                  ) : (
-                    <Textarea rows={2} value={responses[r.id] ?? r.management_response ?? ''}
-                      onChange={e => setResponses(s => ({ ...s, [r.id]: e.target.value }))} />
+
+                  <ReportStepper current={step} />
+
+                  {r.executive_summary && <p className="text-xs whitespace-pre-wrap">{r.executive_summary}</p>}
+
+                  {(r.management_response || awaitingResponse) && (
+                    <div>
+                      <Label className="text-xs" htmlFor={`mr-${r.id}`}>Management response</Label>
+                      {readOnly ? (
+                        <p className="text-xs">{r.management_response || '—'}</p>
+                      ) : (
+                        <Textarea id={`mr-${r.id}`} rows={2} value={responses[r.id] ?? r.management_response ?? ''}
+                          onChange={e => setResponses(s => ({ ...s, [r.id]: e.target.value }))} />
+                      )}
+                    </div>
+                  )}
+
+                  {!readOnly && (
+                    <div className="flex flex-wrap gap-2">
+                      {r.status === 'draft' && (
+                        <Button data-rbac="prudential_supervision.workflow_action" size="sm" onClick={() => act(r, 'review')}>
+                          <UserCheck className="h-3.5 w-3.5 mr-1" />Send for review
+                        </Button>
+                      )}
+                      {r.status === 'in_review' && (
+                        <Button data-rbac="prudential_supervision.workflow_action" size="sm" onClick={() => act(r, 'approve')}>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Approve report
+                        </Button>
+                      )}
+                      {r.status === 'approved' && (
+                        <Button data-rbac="prudential_supervision.workflow_action" size="sm" onClick={() => act(r, 'issue')}>
+                          <Send className="h-3.5 w-3.5 mr-1" />Issue to entity
+                        </Button>
+                      )}
+                      {(awaitingResponse || r.management_response) && (
+                        <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => recordResponse(r)}>
+                          Save management response
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-                {!readOnly && (
-                  <div className="flex flex-wrap gap-2">
-                    {r.status === 'draft' && (
-                      <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => act(r, 'review')}>
-                        <UserCheck className="h-3.5 w-3.5 mr-1" />Send for review
-                      </Button>
-                    )}
-                    {r.status === 'in_review' && (
-                      <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => act(r, 'approve')}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Approve
-                      </Button>
-                    )}
-                    {r.status === 'approved' && (
-                      <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => act(r, 'issue')}>
-                        <Send className="h-3.5 w-3.5 mr-1" />Issue to entity
-                      </Button>
-                    )}
-                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => recordResponse(r)}>
-                      Save response
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
+            {!readOnly && !showForm && (
+              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setShowForm(true)}>
+                <Plus className="h-4 w-4 mr-1" />Prepare another report
+              </Button>
+            )}
           </div>
         )}
 
-        {!readOnly && (
+        {!readOnly && showForm && (
           <div className="rounded-md border p-3 space-y-3 bg-muted/20">
             <div className="grid gap-3 md:grid-cols-3">
               <div>
-                <Label>Report type</Label>
+                <Label htmlFor="rp_type">Report type</Label>
                 <Select value={form.report_type} onValueChange={v => setForm(f => ({ ...f, report_type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="rp_type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft report</SelectItem>
                     <SelectItem value="final">Final report</SelectItem>
@@ -131,29 +191,35 @@ export function ReportsPanel({ examinationId, readOnly }: { examinationId: strin
                 </Select>
               </div>
               <div>
-                <Label>Title</Label>
-                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+                <Label htmlFor="rp_title">Title</Label>
+                <Input id="rp_title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
               </div>
               <div>
-                <Label>Response due date</Label>
-                <Input type="date" value={form.response_due_date}
+                <Label htmlFor="rp_due">Entity response due by</Label>
+                <Input id="rp_due" type="date" value={form.response_due_date}
                   onChange={e => setForm(f => ({ ...f, response_due_date: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>Executive summary</Label>
-              <Textarea rows={3} value={form.executive_summary}
+              <Label htmlFor="rp_sum">Executive summary</Label>
+              <Textarea id="rp_sum" rows={3} value={form.executive_summary}
                 onChange={e => setForm(f => ({ ...f, executive_summary: e.target.value }))} />
             </div>
             <div>
-              <Label>Report content</Label>
-              <Textarea rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
+              <Label htmlFor="rp_content">Report content</Label>
+              <Textarea id="rp_content" rows={4} value={form.content}
+                onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
             </div>
-            <Button data-rbac="prudential_supervision.edit" size="sm" disabled={save.isPending} onClick={add}>
-              <Plus className="h-4 w-4 mr-1" />Prepare report
-            </Button>
+            <div className="flex gap-2">
+              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={save.isPending} onClick={add}>
+                <Plus className="h-4 w-4 mr-1" />Prepare report
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
           </div>
         )}
+
+        {!readOnly && <StageActions mode={mode} />}
       </CardContent>
     </Card>
   );

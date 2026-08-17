@@ -16,7 +16,10 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
-import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
+import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info, RefreshCw, Eye } from 'lucide-react';
+import { formatDateTime } from '@/lib/datetime';
+import { Link } from 'react-router-dom';
+
 
 /* -------------------- Types -------------------- */
 
@@ -82,6 +85,8 @@ const WORKFLOW_ENTITY_TYPES_FOR_PROCESS: Record<string, string[]> = {
 };
 
 const CUSTOM_STAGE = '__custom__';
+const UNSET_PROCESS = '__unset__';
+
 
 const TIER_DEFAULTS: Array<{ tier: number; label: string; delay_days: number; recipients: string }> = [
   { tier: 1, label: 'Tier 1 — immediate', delay_days: 0, recipients: 'assigned_officer, team_lead' },
@@ -209,7 +214,8 @@ function SlaConfigTab() {
     if (!RUNTIME_PROCESS_TYPES.some(p => p.value === r.process_type))
       return 'Process Type must be one of the runtime process types, otherwise the SLA engine ignores this row';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
-    if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
+    if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1)
+      return `SLA duration must be a whole number of ${r.sla_unit === 'days' ? 'business days' : 'business hours'} (minimum 1)`;
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
@@ -344,14 +350,16 @@ function SlaConfigTab() {
                 <TableRow key={row.id}>
                   <TableCell className="min-w-[190px]">
                     <Select
-                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : ''}
+                      value={RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) ? row.process_type : UNSET_PROCESS}
                       onValueChange={v => update(row.id, { process_type: v }, true)}
                     >
                       <SelectTrigger><SelectValue placeholder="Select process type" /></SelectTrigger>
                       <SelectContent>
-                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.value}</SelectItem>)}
+                        <SelectItem value={UNSET_PROCESS} disabled>Select process type</SelectItem>
+                        {RUNTIME_PROCESS_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
+
                     {!RUNTIME_PROCESS_TYPES.some(p => p.value === row.process_type) && (
                       <p className="mt-1 text-xs text-destructive">
                         "{row.process_type}" is not a runtime process type — this row is ignored by the SLA engine.
@@ -366,7 +374,7 @@ function SlaConfigTab() {
                         <>
                           <Select
                             value={isKnown ? row.stage_name : CUSTOM_STAGE}
-                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? row.stage_name : v }, v !== CUSTOM_STAGE)}
+                            onValueChange={v => update(row.id, { stage_name: v === CUSTOM_STAGE ? '' : v }, v !== CUSTOM_STAGE)}
                           >
                             <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
                             <SelectContent>
@@ -383,7 +391,9 @@ function SlaConfigTab() {
                                 onBlur={() => saveRow(row.id)}
                               />
                               <p className="mt-1 text-xs text-warning">
-                                No active workflow step named this — SLA will fall back to the step default.
+                                {row.stage_name.trim()
+                                  ? 'No active workflow step named this — SLA will fall back to the step default.'
+                                  : 'Type the custom stage name to save this row.'}
                               </p>
                             </>
                           )}
@@ -436,17 +446,18 @@ function CalendarTab() {
   );
 
   const load = useCallback(async () => {
-    const [{ data: profs }, { data: cfgs }, { data: asn }] = await Promise.all([
+    const [{ data: profs }, { data: asn }] = await Promise.all([
       supabase.from('business_calendar_profiles').select('*').order('name'),
-      supabase.from('sla_configurations').select('process_type'),
       supabase.from('business_calendar_process_assignments').select('*'),
     ]);
     const list = (profs ?? []) as unknown as CalendarProfile[];
     setProfiles(list);
     setAssignments((asn ?? []) as unknown as Assignment[]);
-    setProcessOptions(Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
+    // Runtime process types — a calendar can be assigned before any SLA row exists.
+    setProcessOptions(RUNTIME_PROCESS_TYPES.map(p => p.value));
     setActiveId(prev => prev ?? list[0]?.id ?? null);
   }, []);
+
 
   const loadHolidays = useCallback(async (pid: string) => {
     const { data } = await supabase.from('business_calendar_holidays').select('*').eq('profile_id', pid).order('holiday_date');
@@ -613,7 +624,7 @@ function CalendarTab() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Calendar Profiles</CardTitle>
-            <CardDescription>e.g. BOJ Calendar, FSC Calendar</CardDescription>
+            <CardDescription>e.g. St. Lucia Calendar, FSC Calendar</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {profiles.map(p => {
@@ -751,31 +762,34 @@ function CalendarTab() {
 
 function EscalationTab() {
   const [tiers, setTiers] = useState<EscalationTier[]>([]);
-  const [processType, setProcessType] = useState('');
-  const [processOptions, setProcessOptions] = useState<string[]>([]);
+  const [processType, setProcessType] = useState(RUNTIME_PROCESS_TYPES[0].value);
+  const [loaded, setLoaded] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [tierErrors, setTierErrors] = useState<Record<string, string | null>>({});
+
   const latestRef = useRef<Record<string, EscalationTier>>({});
   const lastPersisted = useRef<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    const { data: cfgs } = await supabase.from('sla_configurations').select('process_type');
-    const distinct = Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort();
-    setProcessOptions(distinct);
-    setProcessType(prev => prev || distinct[0] || '');
     const { data } = await supabase.from('sla_escalation_tiers').select('*').order('process_type').order('tier');
     const list = (data ?? []) as unknown as EscalationTier[];
     setTiers(list);
     latestRef.current = Object.fromEntries(list.map(t => [t.id, t]));
     lastPersisted.current = Object.fromEntries(list.map(t => [t.id, JSON.stringify(t)]));
+    setLoaded(true);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // Fallback auto-seed in case the migration seed didn't run (e.g. brand new process_type).
+  // Seed defaults for a process type that has no tiers yet. Only runs after the
+  // initial load has resolved, and uses a conflict-ignoring upsert so a race can
+  // never produce a duplicate-key error.
   useEffect(() => {
-    if (!processType) return;
+    if (!loaded || seeding || !processType) return;
     const existing = tiers.filter(t => t.process_type === processType).map(t => t.tier);
     const missing = TIER_DEFAULTS.filter(d => !existing.includes(d.tier));
     if (missing.length === 0) return;
+    setSeeding(true);
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const inserts = missing.map(d => ({
@@ -787,17 +801,19 @@ function EscalationTab() {
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
       }));
-      const { data, error } = await supabase.from('sla_escalation_tiers').insert(inserts).select();
-      if (error) { toast({ title: 'Failed to seed tiers', description: error.message, variant: 'destructive' }); return; }
-      const added = (data ?? []) as unknown as EscalationTier[];
-      setTiers(prev => {
-        const next = [...prev, ...added];
-        latestRef.current = Object.fromEntries(next.map(t => [t.id, t]));
-        added.forEach(t => { lastPersisted.current[t.id] = JSON.stringify(t); });
-        return next;
-      });
+      const { error } = await supabase
+        .from('sla_escalation_tiers')
+        .upsert(inserts, { onConflict: 'process_type,tier', ignoreDuplicates: true });
+      if (error) {
+        toast({ title: 'Failed to prepare escalation tiers', description: error.message, variant: 'destructive' });
+        setSeeding(false);
+        return;
+      }
+      await load();
+      setSeeding(false);
     })();
-  }, [processType, tiers]);
+  }, [processType, tiers, loaded, seeding, load]);
+
 
   const tiersForProcess = tiers.filter(t => t.process_type === processType).sort((a, b) => a.tier - b.tier);
 
@@ -812,9 +828,14 @@ function EscalationTab() {
   const saveTier = async (id: string) => {
     const t = latestRef.current[id];
     if (!t) return;
-    if (t.tier < 1 || t.tier > 3) { toast({ title: 'Invalid tier', description: 'Tier must be 1, 2 or 3', variant: 'destructive' }); return; }
-    if (!Number.isInteger(t.delay_days) || t.delay_days < 0) { toast({ title: 'Invalid delay', description: 'Delay must be a non-negative integer', variant: 'destructive' }); return; }
-    if (!t.recipients.trim()) { toast({ title: 'Recipients required', variant: 'destructive' }); return; }
+    const problem =
+      t.tier < 1 || t.tier > 3 ? 'Tier must be 1, 2 or 3'
+      : !Number.isInteger(t.delay_days) || t.delay_days < 0 ? 'Delay must be a whole number of days (0 or more)'
+      : !t.recipients.trim() ? 'At least one recipient is required'
+      : null;
+    setTierErrors(prev => ({ ...prev, [id]: problem }));
+    if (problem) return;
+
 
     const snapshot = JSON.stringify(t);
     if (lastPersisted.current[id] === snapshot) return;
@@ -849,15 +870,16 @@ function EscalationTab() {
         <RetroNotice />
         <div className="flex items-center gap-3">
           <Label>Process Type</Label>
-          <Select value={processType || 'none'} onValueChange={v => setProcessType(v === 'none' ? '' : v)}>
+          <Select value={processType} onValueChange={setProcessType}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Select process type" /></SelectTrigger>
             <SelectContent>
-              {processOptions.length === 0
-                ? <SelectItem value="none" disabled>No SLA configs yet</SelectItem>
-                : processOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              {RUNTIME_PROCESS_TYPES.map(p => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+
 
         {processType && tiersForProcess.length > 0 && (
           <div className="space-y-3">
@@ -886,12 +908,21 @@ function EscalationTab() {
                         onBlur={() => saveTier(t.id)}
                       />
                     </div>
+                    {tierErrors[t.id] && (
+                      <p className="md:col-span-4 text-xs text-destructive">{tierErrors[t.id]}</p>
+                    )}
                   </CardContent>
                 </Card>
               );
             })}
           </div>
         )}
+        {processType && tiersForProcess.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {seeding ? 'Preparing default escalation tiers…' : 'No escalation tiers configured for this process type yet.'}
+          </p>
+        )}
+
       </CardContent>
     </Card>
   );
@@ -983,45 +1014,96 @@ const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'out
  * configuration vs workflow step default), and which escalation tiers have
  * been dispatched by the sweep.
  */
+const ENTITY_ROUTE: Record<string, (id: string) => string> = {
+  application: id => `/applications/${id}`,
+  pre_application: id => `/applications/${id}`,
+  complaint: id => `/complaints/${id}`,
+  return: id => `/returns-management/${id}`,
+};
+
 function StageMonitorTab() {
   const [rows, setRows] = useState<StageMonitorRow[]>([]);
   /** Dispatched escalation tiers per workflow instance (sla_escalation_dispatches). */
   const [tiersByInstance, setTiersByInstance] = useState<Record<string, number[]>>({});
+  /** entity_id → human case reference (application/complaint/registration number). */
+  const [refById, setRefById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState<number | null>(null);
   const [stateFilter, setStateFilter] = useState<string>('open');
   const [processFilter, setProcessFilter] = useState<string>('all');
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data, error } = await (supabase as any)
+  const ROW_LIMIT = 500;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data, error }, { count }] = await Promise.all([
+      (supabase as any)
         .from('sla_stage_instances')
         .select('id,process_type,entity_type,entity_id,workflow_instance_id,stage_name,sla_hours,sla_source,started_at,due_at,paused_at,pause_seconds,state,breached_at')
         .order('due_at', { ascending: true, nullsFirst: false })
-        .limit(500);
-      if (error) {
-        toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
-      const list = (data ?? []) as StageMonitorRow[];
-      setRows(list);
-
-      const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
-      if (instanceIds.length > 0) {
-        const { data: dispatches } = await (supabase as any)
-          .from('sla_escalation_dispatches')
-          .select('workflow_instance_id, tier')
-          .in('workflow_instance_id', instanceIds);
-        const map: Record<string, number[]> = {};
-        ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
-          map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
-        });
-        setTiersByInstance(map);
-      }
+        .limit(ROW_LIMIT),
+      (supabase as any).from('sla_stage_instances').select('id', { count: 'exact', head: true }),
+    ]);
+    if (error) {
+      toast({ title: 'Failed to load SLA stages', description: error.message, variant: 'destructive' });
       setLoading(false);
-    })();
+      return;
+    }
+    const list = (data ?? []) as StageMonitorRow[];
+    setRows(list);
+    setTotal(typeof count === 'number' ? count : null);
+
+    const instanceIds = Array.from(new Set(list.map(r => r.workflow_instance_id).filter((v): v is string => !!v)));
+    if (instanceIds.length > 0) {
+      const { data: dispatches } = await (supabase as any)
+        .from('sla_escalation_dispatches')
+        .select('workflow_instance_id, tier')
+        .in('workflow_instance_id', instanceIds);
+      const map: Record<string, number[]> = {};
+      ((dispatches ?? []) as Array<{ workflow_instance_id: string; tier: number }>).forEach(d => {
+        map[d.workflow_instance_id] = [...(map[d.workflow_instance_id] ?? []), d.tier].sort();
+      });
+      setTiersByInstance(map);
+    }
+
+    // Resolve human case references so the monitor is usable as evidence.
+    const idsFor = (types: string[]) =>
+      Array.from(new Set(list.filter(r => types.includes(r.entity_type)).map(r => r.entity_id)));
+    const refs: Record<string, string> = {};
+    const appIds = idsFor(['application', 'pre_application']);
+    const complaintIds = idsFor(['complaint']);
+    const registrationIds = idsFor(['registration']);
+    const lookups: Promise<void>[] = [];
+    if (appIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('applications').select('id, application_number').in('id', appIds);
+        ((d ?? []) as Array<{ id: string; application_number: string | null }>).forEach(a => {
+          if (a.application_number) refs[a.id] = a.application_number;
+        });
+      })());
+    }
+    if (complaintIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('complaints').select('id, complaint_number').in('id', complaintIds);
+        ((d ?? []) as Array<{ id: string; complaint_number: string | null }>).forEach(c => {
+          if (c.complaint_number) refs[c.id] = c.complaint_number;
+        });
+      })());
+    }
+    if (registrationIds.length) {
+      lookups.push((async () => {
+        const { data: d } = await (supabase as any).from('registrations').select('id, registration_number').in('id', registrationIds);
+        ((d ?? []) as Array<{ id: string; registration_number: string | null }>).forEach(x => {
+          if (x.registration_number) refs[x.id] = x.registration_number;
+        });
+      })());
+    }
+    await Promise.all(lookups);
+    setRefById(refs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => rows.filter(r => {
     const stateOk =
@@ -1041,24 +1123,37 @@ function StageMonitorTab() {
     return c;
   }, [rows]);
 
-  const fmt = (ts?: string | null) => (ts ? new Date(ts).toLocaleString() : '—');
+  const fmt = (ts?: string | null) => formatDateTime(ts);
+
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Live Stages &amp; Breaches</CardTitle>
-        <CardDescription>
-          What the SLA engine is tracking right now. Read-only — state changes are made by the
-          workflow engine and the escalation sweep.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>Live Stages &amp; Breaches</CardTitle>
+          <CardDescription>
+            What the SLA engine is tracking right now. Read-only — state changes are made by the
+            workflow engine and the escalation sweep.
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant="default">Active {counts.active}</Badge>
           <Badge variant="secondary">Paused {counts.paused}</Badge>
           <Badge variant="destructive">Breached {counts.breached}</Badge>
           <Badge variant="outline">Completed {counts.completed}</Badge>
+          {total != null && (
+            <span className="text-xs text-muted-foreground">
+              Showing {filtered.length} of {total} tracked stage{total === 1 ? '' : 's'}
+              {total > ROW_LIMIT ? ` (latest ${ROW_LIMIT} loaded)` : ''}
+            </span>
+          )}
         </div>
+
 
         {counts.unconfigured > 0 && (
           <Alert>
@@ -1103,6 +1198,7 @@ function StageMonitorTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Case</TableHead>
                 <TableHead>Process</TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>State</TableHead>
@@ -1115,11 +1211,22 @@ function StageMonitorTab() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-6 text-center text-muted-foreground">Loading…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-6 text-center text-muted-foreground">No stages match this filter.</TableCell></TableRow>
               ) : filtered.map(r => (
                 <TableRow key={r.id}>
+                  <TableCell className="text-xs">
+                    {(() => {
+                      const label = refById[r.entity_id] ?? `${r.entity_type.replace(/_/g, ' ')} · ${r.entity_id.slice(0, 8)}`;
+                      const to = ENTITY_ROUTE[r.entity_type]?.(r.entity_id);
+                      return to ? (
+                        <Link to={to} className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <Eye className="h-3.5 w-3.5" /> {label}
+                        </Link>
+                      ) : <span className="text-muted-foreground">{label}</span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{r.process_type}</TableCell>
                   <TableCell>{r.stage_name || '—'}</TableCell>
                   <TableCell><Badge variant={STATE_BADGE[r.state] ?? 'outline'}>{r.state}</Badge></TableCell>
@@ -1130,7 +1237,9 @@ function StageMonitorTab() {
                   </TableCell>
                   <TableCell className="text-xs">{fmt(r.started_at)}</TableCell>
                   <TableCell className="text-xs">{fmt(r.due_at)}</TableCell>
-                  <TableCell className="text-xs">{Math.round((r.pause_seconds ?? 0) / 60)} min</TableCell>
+                  <TableCell className="text-xs">
+                    {r.pause_seconds && r.pause_seconds > 0 ? `${Math.round(r.pause_seconds / 60)} min` : '—'}
+                  </TableCell>
                   <TableCell className="text-xs">
                     {(() => {
                       const tiers = r.workflow_instance_id ? (tiersByInstance[r.workflow_instance_id] ?? []) : [];
@@ -1139,6 +1248,7 @@ function StageMonitorTab() {
                   </TableCell>
                 </TableRow>
               ))}
+
             </TableBody>
           </Table>
         </div>

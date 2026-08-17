@@ -196,9 +196,44 @@ export function channelAllowed(pref: EffectivePreference | null, channel: string
 }
 
 
+/**
+ * Renders a stored notification template.
+ *
+ * Beyond simple `{{token}}` substitution this also normalises markup that
+ * historically leaked into delivered emails:
+ *   - literal `\n` / `\t` escape text stored in the template body,
+ *   - Mustache-style conditional sections `{{#key}}…{{/key}}` (and inverted
+ *     `{{^key}}…{{/key}}`), which are resolved on truthiness of the variable.
+ */
 export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
-  return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
+  const truthy = (k: string) => {
+    const v = vars[k];
+    return !(v === undefined || v === null || v === false || v === "" || (Array.isArray(v) && v.length === 0));
+  };
+
+  let out = String(tpl)
+    // literal escape sequences stored as text
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, " ");
+
+  // Resolve conditional sections (repeat to support nesting).
+  for (let pass = 0; pass < 5; pass++) {
+    const before = out;
+    out = out.replace(
+      /\{\{\s*([#^])\s*([\w.]+)\s*\}\}([\s\S]*?)\{\{\s*\/\s*\2\s*\}\}/g,
+      (_m, kind, key, body) => {
+        const keep = kind === "#" ? truthy(key) : !truthy(key);
+        return keep ? body : "";
+      },
+    );
+    if (out === before) break;
+  }
+  // Drop any stray section tags left behind by malformed templates.
+  out = out.replace(/\{\{\s*[#^/]\s*[\w.]+\s*\}\}/g, "");
+
+  return out.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const v = vars[k];
     return v === undefined || v === null ? "" : String(v);
   });
@@ -896,8 +931,29 @@ async function resolveRecipients(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Accept either a worker/cron invocation (service key or worker token) OR a
+  // signed-in user session — the client fires business events (submissions,
+  // payments, screening, appeals) through this dispatcher with its user JWT.
   const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
+  if (!__workerGate.ok) {
+    const authHeader = req.headers.get("Authorization") || "";
+    let authorizedUser = false;
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data, error } = await userClient.auth.getUser();
+        authorizedUser = !error && !!data?.user?.id;
+      } catch {
+        authorizedUser = false;
+      }
+    }
+    if (!authorizedUser) return __workerGate.response;
+  }
+
   const summary: Record<string, any> = { sent: 0, skipped: 0, failed: 0, recipients: 0 };
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

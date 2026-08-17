@@ -25,7 +25,7 @@ export type WorkerAuthResult = WorkerAuthOk | WorkerAuthFail;
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-worker-token',
+    'authorization, x-client-info, apikey, content-type, x-worker-token, x-internal-service-key',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
@@ -44,16 +44,26 @@ export function requireWorkerInvocation(req: Request): WorkerAuthResult {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   const workerToken = Deno.env.get('WORKER_INVOKE_TOKEN') || '';
 
-  const auth = req.headers.get('Authorization') || '';
+  const auth = req.headers.get('Authorization') || req.headers.get('authorization') || '';
   if (auth.startsWith('Bearer ') && serviceKey) {
     const token = auth.slice('Bearer '.length);
     if (timingSafeEqual(token, serviceKey)) return { ok: true };
   }
 
+  // Internal edge-function-to-edge-function calls: the Supabase client may send
+  // the service credential only as `apikey` depending on library version.
+  const apiKey = req.headers.get('apikey') || '';
+  if (apiKey && serviceKey && timingSafeEqual(apiKey, serviceKey)) return { ok: true };
+
   const supplied = req.headers.get('x-worker-token') || '';
   if (supplied && workerToken && timingSafeEqual(supplied, workerToken)) {
     return { ok: true };
   }
+
+  // Explicit internal marker signed with the service key (set by
+  // `internalInvokeHeaders()` in _shared/notification-dispatch.ts).
+  const internal = req.headers.get('x-internal-service-key') || '';
+  if (internal && serviceKey && timingSafeEqual(internal, serviceKey)) return { ok: true };
 
   return { ok: false, response: deny() };
 }

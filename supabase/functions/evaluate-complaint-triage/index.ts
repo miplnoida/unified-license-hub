@@ -248,6 +248,26 @@ Deno.serve(async (req) => {
       triage_last_error: null,
     };
     const appliedOutputs: Record<string, any> = {};
+
+    // Severity is fully system-assigned. When no rule matches (or the matched
+    // rule sets no severity) fall back to the configured default severity from
+    // complaint_intake_rules so a complaint is never left without one.
+    if (!matched?.outputs?.severity) {
+      const { data: sevRule } = await supabase
+        .from('complaint_intake_rules')
+        .select('default_severity, regulator_id')
+        .not('default_severity', 'is', null)
+        .order('regulator_id', { ascending: true, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      const fallbackSeverity = sevRule?.default_severity ?? 'medium';
+      if (complaint.severity !== fallbackSeverity) {
+        update.severity = fallbackSeverity;
+      }
+      appliedOutputs.severity_source = 'configured_default';
+      appliedOutputs.severity = fallbackSeverity;
+    }
+
     if (matched) {
       const o = matched.outputs || {};
       if (o.severity) { update.severity = o.severity; appliedOutputs.severity = o.severity; }

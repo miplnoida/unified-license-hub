@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -15,7 +15,7 @@ import { useCreateInternalComplaint } from '@/hooks/useMarketConduct';
 import { useAuth } from '@/contexts/AuthContext';
 import { ComplaintAttachmentsField } from '@/components/complaints/ComplaintAttachmentsField';
 import { attachStagedFilesToComplaint } from '@/lib/complaintAttachments';
-import { internalComplaintSchema, INTAKE_SOURCES, SEVERITIES } from '@/lib/complaintSchemas';
+import { internalComplaintSchema, INTAKE_SOURCES } from '@/lib/complaintSchemas';
 import { LicenseePicker } from '@/components/complaints/LicenseePicker';
 import { toast } from 'sonner';
 
@@ -46,7 +46,7 @@ export default function NewInternalComplaint() {
   const [form, setForm] = useState<any>({
     subject: '', description: '',
     licensee_id: '', complaint_type_id: '', conduct_risk_category_id: '',
-    product_id: '', channel_id: '', severity: 'medium', priority: 'p3',
+    product_id: '', channel_id: '', priority: 'p3',
     intake_source: 'internal', email: '', customer_type: '',
     vulnerability_indicator: false, vulnerability_notes: '',
   });
@@ -56,18 +56,36 @@ export default function NewInternalComplaint() {
     setDirty(true);
   };
 
-  const { data: refs } = useQuery({
+  const { data: refs, error: refsError } = useQuery({
     queryKey: ['internal-complaint-refs'],
     queryFn: async () => {
-      const [{ data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
+      const [ct, crc, p, c] = await Promise.all([
         sb.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
         sb.from('conduct_risk_categories').select('id, name').eq('active', true).order('sort_order,name'),
         sb.from('conduct_products').select('id, name').eq('active', true).order('name'),
         sb.from('conduct_channels').select('id, name').eq('active', true).order('name'),
       ]);
-      return { types: ct ?? [], categories: crc ?? [], products: p ?? [], channels: c ?? [] };
+      // Surface load failures instead of silently rendering empty dropdowns.
+      const firstError = [ct, crc, p, c].find((r: any) => r?.error)?.error;
+      if (firstError) throw firstError;
+      return {
+        types: ct?.data ?? [],
+        categories: crc?.data ?? [],
+        products: p?.data ?? [],
+        channels: c?.data ?? [],
+      };
     },
   });
+
+  useEffect(() => {
+    if (refsError) {
+      toast.error('Could not load reference lists (complaint types, conduct categories, products, channels). You may not have permission to view conduct master data.');
+    }
+  }, [refsError]);
+
+  const emptyHint = (label: string) =>
+    `No ${label} available. Add them under Admin Hub → Conduct, or contact an administrator if you expect entries here.`;
+
 
   const cancel = () => {
     if (dirty && !window.confirm('Discard this complaint? Unsaved changes will be lost.')) return;
@@ -199,6 +217,9 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>{(refs?.categories ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.categories.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('conduct categories')}</p>
+                )}
               </div>
               <div>
                 <Label>Product</Label>
@@ -206,6 +227,9 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>{(refs?.products ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.products.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('products')}</p>
+                )}
               </div>
               <div>
                 <Label>Channel</Label>
@@ -213,13 +237,16 @@ export default function NewInternalComplaint() {
                   <SelectTrigger><SelectValue placeholder="Select channel" /></SelectTrigger>
                   <SelectContent>{(refs?.channels ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {refs && refs.channels.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyHint('channels')}</p>
+                )}
               </div>
+
               <div>
                 <Label>Severity</Label>
-                <Select value={form.severity} onValueChange={v => updateForm({ severity: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="mt-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                  Assigned automatically by triage configuration after submission.
+                </div>
               </div>
               <div>
                 <Label>Customer type</Label>

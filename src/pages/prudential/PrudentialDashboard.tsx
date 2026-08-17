@@ -2,7 +2,8 @@ import { usePrudentialDashboardMetrics, useMarkOverdue, useStressEvents, useActi
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Play, Clock } from 'lucide-react';
+import { RefreshCw, Play, Clock, AlertTriangle } from 'lucide-react';
+import { formatDateTime } from '@/lib/datetime';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,14 +37,13 @@ function Stat({ label, value, to, tone }: { label: string; value: number | strin
 
 const PIE_COLORS = ['#dc2626','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#0ea5e9','#84cc16'];
 
-function formatSweepTime(iso?: string | null) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch { return iso; }
+const formatSweepTime = formatDateTime;
+
+/** A sweep is considered stale once it has not completed for more than 36h. */
+function isStale(iso?: string | null): boolean {
+  if (!iso) return true;
+  const t = new Date(iso).getTime();
+  return !Number.isFinite(t) || Date.now() - t > 36 * 60 * 60 * 1000;
 }
 
 function nextMidnight() {
@@ -66,7 +66,6 @@ export default function PrudentialDashboard() {
   // Derived widgets
   const critical = entities.filter((e: any) => normalizeSeverity(e.worst_breach) === 'breach').length;
   const amber = entities.filter((e: any) => normalizeSeverity(e.worst_breach) === 'warn').length;
-  const highRisk = critical + amber;
   const topRisk = [...entities]
     .sort((a: any, b: any) => (b.breach_count || 0) - (a.breach_count || 0))
     .slice(0, 10);
@@ -113,12 +112,25 @@ export default function PrudentialDashboard() {
         </CardContent>
       </Card>
 
+      {isStale(schedule?.last_monitoring_sweep?.completed_at || schedule?.last_monitoring_sweep?.started_at) && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex items-start gap-2 py-3 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive" />
+            <div>
+              <div className="font-medium text-destructive">Monitoring data may be stale</div>
+              <div className="text-muted-foreground">
+                The automated monitoring sweep has not completed in the last 36 hours. Breach, early-warning
+                and risk-score figures below may not reflect the latest filings — run the sweep now to refresh.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Supervised entities" value={entities.length || m?.total_entities || 0} to="/prudential/entities" />
-        <Stat label="High-risk entities" value={highRisk} tone="warning" to="/prudential/entities?risk=high" />
-        <Stat label="Critical breaches" value={critical} tone="danger" to="/prudential/entities?risk=critical" />
-        <Stat label="Amber/High breaches" value={amber} tone="warning" to="/prudential/entities?risk=high" />
+        <Stat label="Entities in breach" value={critical} tone="danger" to="/prudential/entities?risk=critical" />
+        <Stat label="Entities on warning" value={amber} tone="warning" to="/prudential/entities?risk=high" />
         <Stat label="Open actions" value={m?.open_actions ?? 0} to="/prudential/actions" />
         <Stat label="Overdue actions" value={m?.overdue_actions ?? 0} tone="danger" to="/prudential/actions" />
         <Stat label="Open escalations" value={m?.open_escalations ?? 0} tone="warning" to="/prudential/escalations" />

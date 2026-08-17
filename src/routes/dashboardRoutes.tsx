@@ -60,6 +60,8 @@ const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboa
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const ComplaintBulkIntake = lazy(() => import('@/pages/complaints/BulkIntake'));
 const AiInsightsHub = lazy(() => import('@/pages/analytics/AiInsightsHub'));
+const SupervisoryAiReports = lazy(() => import('@/pages/analytics/SupervisoryAiReports'));
+
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
@@ -184,6 +186,8 @@ export const dashboardRoutes = (
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
     <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
     <Route path="/analytics/ai-insights" element={<M module="report_management"><AiInsightsHub /></M>} />
+    <Route path="/analytics/ai-reports" element={<M module="report_management"><SupervisoryAiReports /></M>} />
+
     <Route path="/reports" element={<M module="report_management"><ReportsDashboard /></M>} />
     <Route path="/reports/*" element={<M module="report_management"><ReportsDashboard /></M>} />
 

@@ -18,6 +18,8 @@ import {
   useCreateExamination,
   useExaminations,
 } from '@/hooks/useExaminations';
+import { EXAMINATION_PHASES, phaseLabel, stagePhase } from '@/lib/examinationWorkflow';
+
 
 const stageTone = (stage: string) => {
   if (stage === 'closed') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
@@ -29,7 +31,9 @@ const stageTone = (stage: string) => {
 export default function ExaminationsList() {
   const [params] = useSearchParams();
   const [stage, setStage] = useState('all');
+  const [phase, setPhase] = useState('all');
   const [type, setType] = useState('all');
+
   const [entity, setEntity] = useState(params.get('entity') || 'all');
   const [search, setSearch] = useState('');
 
@@ -53,11 +57,13 @@ export default function ExaminationsList() {
   });
 
   const filtered = rows.filter(r =>
-    !search ||
-    r.reference.toLowerCase().includes(search.toLowerCase()) ||
-    r.title.toLowerCase().includes(search.toLowerCase()) ||
-    (r.licensee?.name || '').toLowerCase().includes(search.toLowerCase()),
+    (phase === 'all' || stagePhase(r.stage) === phase) &&
+    (!search ||
+      r.reference.toLowerCase().includes(search.toLowerCase()) ||
+      r.title.toLowerCase().includes(search.toLowerCase()) ||
+      (r.licensee?.name || '').toLowerCase().includes(search.toLowerCase())),
   );
+
 
   const submit = async () => {
     const payload: Record<string, unknown> = {
@@ -146,16 +152,24 @@ export default function ExaminationsList() {
             <CardTitle className="text-base">Register</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 md:grid-cols-4 mb-4">
+            <div className="grid gap-2 md:grid-cols-5 mb-4">
               <Input placeholder="Search reference, title or entity" value={search} onChange={e => setSearch(e.target.value)} />
-              <Select value={stage} onValueChange={setStage}>
-                <SelectTrigger><SelectValue placeholder="Stage" /></SelectTrigger>
+              <Select value={phase} onValueChange={setPhase}>
+                <SelectTrigger><SelectValue placeholder="Phase" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All stages</SelectItem>
+                  <SelectItem value="all">All phases</SelectItem>
+                  {EXAMINATION_PHASES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger><SelectValue placeholder="Detailed step" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All steps</SelectItem>
                   {EXAMINATION_STAGES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
@@ -185,7 +199,9 @@ export default function ExaminationsList() {
                       <TableHead>Entity</TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Stage</TableHead>
+                      <TableHead>Phase</TableHead>
+                      <TableHead>Current step</TableHead>
+
                       <TableHead>Fieldwork</TableHead>
                       <TableHead className="text-right">Findings</TableHead>
                       <TableHead className="text-right">Open CAP</TableHead>
@@ -200,7 +216,13 @@ export default function ExaminationsList() {
                         <TableCell>{r.licensee?.name || '—'}</TableCell>
                         <TableCell className="max-w-[240px] truncate">{r.title}</TableCell>
                         <TableCell className="capitalize">{r.examination_type.replace('_', ' ')}</TableCell>
-                        <TableCell><Badge variant="outline" className={stageTone(r.stage)}>{stageLabel(r.stage)}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={stageTone(r.stage)}>
+                            {r.stage === 'cancelled' ? 'Cancelled' : phaseLabel(stagePhase(r.stage))}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{stageLabel(r.stage)}</TableCell>
+
                         <TableCell className="text-xs">
                           {r.fieldwork_start ? new Date(r.fieldwork_start).toLocaleDateString() : '—'}
                           {r.fieldwork_end ? ` → ${new Date(r.fieldwork_end).toLocaleDateString()}` : ''}

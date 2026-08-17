@@ -348,6 +348,13 @@ function OtpVerificationSection({
             </Button>
           ) : (
             <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                We sent a 6-digit code to{' '}
+                <strong className="text-foreground">{sentToEmail || resolvedEmail}</strong>. It expires in
+                10 minutes. If this address is not correct, go back to the earlier step and fix it, then
+                request a new code.
+              </p>
+
               <div className="flex gap-2 max-w-sm">
                 <Input
                   placeholder="Enter 6-digit code"

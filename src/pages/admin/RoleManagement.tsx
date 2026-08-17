@@ -53,6 +53,7 @@ import { buildRoleSummary } from '@/lib/rbac/roleSummary';
 import { RecordScopePanel } from '@/components/rbac/RecordScopePanel';
 import { RoleMigrationRunnerDialog } from '@/components/rbac/RoleMigrationRunnerDialog';
 import { normalizeScopeConfig, validateScopeSelectors } from '@/lib/rbac/scopeConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 
 /** Strip developer-style "Module N - " prefixes. */
@@ -69,6 +70,50 @@ const humanizeActionLabel = (label?: string | null, key?: string) => {
   const k = String(key || cleaned);
   return k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
 };
+
+/**
+ * Turn a server-side rejection into a sentence an administrator can act on,
+ * so a failed grant is never mistaken for a saved one.
+ */
+const explainSaveFailure = (err: unknown, permissions: Permission[]): string => {
+  const raw = String((err as { message?: string })?.message || err || '').trim();
+  const moduleLabel = (key: string) => {
+    const perm = permissions.find(
+      p => String(p.module).toLowerCase().replace(/\s+/g, '_') === key.toLowerCase(),
+    );
+    return cleanModuleLabel(null, perm?.module || key);
+  };
+  if (/permission_dependency_violation/i.test(raw)) {
+    return 'An action was selected without "View" on the same area. Tick "View" for that area, then save again.';
+  }
+  const scopeMissing = raw.match(/scope_required_for_module:\s*([a-z0-9_]+)/i);
+  if (scopeMissing) {
+    return `Choose a data scope for ${moduleLabel(scopeMissing[1])} before saving.`;
+  }
+  const invalidScope = raw.match(/invalid_scope:\s*module=([a-z0-9_]+),\s*scope=([a-z0-9_]+)/i);
+  if (invalidScope) {
+    return `"${invalidScope[2]}" is not an allowed data scope for ${moduleLabel(invalidScope[1])}. Pick a different scope.`;
+  }
+  if (/dependency_still_referenced/i.test(raw)) {
+    return 'Cannot remove "View" while other actions in that area are still selected. Untick those actions first.';
+  }
+  if (/not_authorized|42501/i.test(raw)) {
+    return 'You do not have permission to change roles.';
+  }
+  if (/role_name_required/i.test(raw)) return 'Enter a role name.';
+  return raw || 'The role could not be saved. Nothing was changed.';
+};
+
+/** Read back the permissions actually stored for a role after a save. */
+const fetchStoredPermissionIds = async (roleId: string): Promise<Set<string> | null> => {
+  const { data, error } = await supabase
+    .from('role_permissions')
+    .select('permission_id')
+    .eq('role_id', roleId);
+  if (error || !data) return null;
+  return new Set(data.map(r => r.permission_id as string));
+};
+
 
 /** Business-friendly role type labels. */
 const ROLE_TYPE_LABELS: Record<RoleType, string> = {
@@ -487,13 +532,41 @@ export default function RoleManagement() {
       permissionIds: resolvedIds,
     };
 
+    try {
+      if (editingRole) {
+        await updateRole.mutateAsync({ id: editingRole.id, ...payload });
+      } else {
+        await createRole.mutateAsync(payload);
+      }
+    } catch (err) {
+      // Keep the dialog open with the ticked boxes intact so an admin never
+      // walks away believing a grant was saved when the server rejected it.
+      toast.error(explainSaveFailure(err, permissions));
+      return;
+    }
+
+    // Read back what was actually stored and warn on any difference, so a
+    // silently partial save cannot look like a successful grant.
     if (editingRole) {
-      await updateRole.mutateAsync({ id: editingRole.id, ...payload });
-    } else {
-      await createRole.mutateAsync(payload);
+      const stored = await fetchStoredPermissionIds(editingRole.id);
+      if (stored) {
+        const missing = resolvedIds.filter(id => !stored.has(id));
+        if (missing.length > 0) {
+          const labels = missing
+            .map(id => permissions.find(p => p.id === id))
+            .filter(Boolean)
+            .map(p => `${cleanModuleLabel(null, p!.module)}: ${humanizeActionLabel(null, p!.name)}`)
+            .join(', ');
+          toast.error(
+            `Some capabilities were not saved (${labels}). Please reopen the role and try again.`,
+          );
+          return;
+        }
+      }
     }
     setDialogOpen(false);
   };
+
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;

@@ -45,6 +45,7 @@ function ActiveFormFiller({
   applicationId,
   versionLocked = false,
   originalData,
+  stepStorageKey,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -55,7 +56,9 @@ function ActiveFormFiller({
   applicationId?: string;
   versionLocked?: boolean;
   originalData?: Record<string, any>;
+  stepStorageKey?: string;
 }) {
+
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
     templateId,
@@ -103,6 +106,8 @@ function ActiveFormFiller({
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
+        stepStorageKey={stepStorageKey}
+
         formId={templateId}
         formVersionId={resolvedVersionId}
         submissionId={applicationId || null}
@@ -172,6 +177,13 @@ export default function PostLicenseApplicationForms() {
       return false;
     }
   });
+  const [reviewAcknowledged, setReviewAcknowledged] = useState(() => {
+    try {
+      return sessionStorage.getItem(`${postLicenseStepStorageKey}:reviewAck`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const { data: reviewSettings } = useReviewSettings();
 
   useEffect(() => {
@@ -182,10 +194,12 @@ export default function PostLicenseApplicationForms() {
         sessionStorage.removeItem(postLicenseStepStorageKey);
       }
       sessionStorage.setItem(`${postLicenseStepStorageKey}:review`, String(showReview));
+      sessionStorage.setItem(`${postLicenseStepStorageKey}:reviewAck`, String(reviewAcknowledged));
     } catch {
       // noop
     }
-  }, [postLicenseStepStorageKey, activeFormTemplateId, showReview]);
+  }, [postLicenseStepStorageKey, activeFormTemplateId, showReview, reviewAcknowledged]);
+
 
   const serviceName = searchParams.get('service') || '';
 
@@ -415,6 +429,8 @@ export default function PostLicenseApplicationForms() {
       try {
         sessionStorage.removeItem(postLicenseStepStorageKey);
         sessionStorage.removeItem(`${postLicenseStepStorageKey}:review`);
+        sessionStorage.removeItem(`${postLicenseStepStorageKey}:reviewAck`);
+
       } catch {
         // noop
       }
@@ -472,6 +488,8 @@ export default function PostLicenseApplicationForms() {
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
             originalData={hasRenewalDiff ? originalFormsData?.[activeTemplate.id] : undefined}
+            stepStorageKey={`${postLicenseStepStorageKey}:form:${activeTemplate.id}`}
+
           />
         </div>
       </DashboardLayout>
@@ -555,7 +573,7 @@ export default function PostLicenseApplicationForms() {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${activeFormTemplateId === tmpl.id ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -595,7 +613,8 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
-            {applicationId && allFormsCompleted && (
+            {/* When review is disabled in settings, payment stays on this screen before Submit */}
+            {applicationId && allFormsCompleted && reviewSettings?.application_review_enabled === false && (
               <LicenseePaymentPanel
                 applicationId={applicationId}
                 canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
@@ -605,7 +624,7 @@ export default function PostLicenseApplicationForms() {
 
             {!showReview && completedCount > 0 && !allFormsCompleted && (
               <div className="flex justify-end pt-4 border-t">
-                <Button size="lg" variant="outline" onClick={() => setShowReview(true)}>
+                <Button size="lg" variant="outline" onClick={() => { setReviewAcknowledged(false); setShowReview(true); }}>
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Review Entered Data
                 </Button>
               </div>
@@ -615,11 +634,10 @@ export default function PostLicenseApplicationForms() {
               <div className="flex justify-end pt-4 border-t gap-2">
                 <Button data-rbac="application_management.edit"
                   size="lg"
-                  variant="outline"
-                  onClick={() => setShowReview(true)}
-                  disabled={submitting || paymentChecking || !paymentReady}
+                  onClick={() => { setReviewAcknowledged(false); setShowReview(true); }}
+                  disabled={submitting}
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review Application
                 </Button>
                 {reviewSettings?.application_review_enabled === false && (
                   <Button size="lg" onClick={handleSubmitApplication} disabled={submitting || paymentChecking || !paymentReady}>
@@ -633,7 +651,7 @@ export default function PostLicenseApplicationForms() {
               </div>
             )}
 
-            {(allFormsCompleted || completedCount > 0) && showReview && (
+            {(allFormsCompleted || completedCount > 0) && showReview && !reviewAcknowledged && (
               <div className="space-y-4 pt-4 border-t">
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
@@ -657,8 +675,8 @@ export default function PostLicenseApplicationForms() {
                     }
                   }}
                   title="Review Your Application"
-                  description="Please review all entered information before final submission."
-                  onAcknowledge={paymentReady ? handleSubmitApplication : () => toast.error('Complete payment before submitting this application.')}
+                  description="Please review all entered information. Payment and final submission come next."
+                  onAcknowledge={() => setReviewAcknowledged(true)}
                 />
                 <div className="flex justify-start">
                   <Button variant="outline" onClick={() => setShowReview(false)}>
@@ -667,6 +685,49 @@ export default function PostLicenseApplicationForms() {
                 </div>
               </div>
             )}
+
+            {/* Step 2 of review: payment, then final submission */}
+            {showReview && reviewAcknowledged && allFormsCompleted && (
+              <div className="space-y-4 pt-4 border-t">
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-4 text-sm text-foreground">
+                    Review confirmed. Complete the payment below, then submit your application.
+                  </CardContent>
+                </Card>
+
+                {applicationId && (
+                  <LicenseePaymentPanel
+                    applicationId={applicationId}
+                    canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
+                    onPaid={() => setPaymentReady(true)}
+                  />
+                )}
+
+                {!paymentChecking && !paymentReady && (
+                  <p className="text-xs text-muted-foreground">
+                    Submission becomes available once the outstanding fee is paid.
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Button variant="outline" onClick={() => setReviewAcknowledged(false)}>
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to Review
+                  </Button>
+                  <Button
+                    size="lg"
+                    onClick={handleSubmitApplication}
+                    disabled={submitting || paymentChecking || !paymentReady}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
           </>
         )}
       </div>

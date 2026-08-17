@@ -993,23 +993,23 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       if (data?.warning) toast.warning(data.warning);
 
-      if (emailVal && passwordVal) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: emailVal,
-          password: passwordVal,
-        });
-        if (signInError) {
-          toast.error('Account created but sign-in failed. Please log in manually.');
-          resetRegistrationFlow();
-          navigate('/');
-          return;
-        }
+      // Do NOT sign the applicant in: the registration still needs approval,
+      // so a session would only park them behind the approval gate (and show a
+      // confusing second "sign out" screen). Clear any stale session instead.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore — nothing to sign out of */
       }
 
       const registrationRef = data?.registration_reference || '';
       resetRegistrationFlow();
       toast.success('Registration submitted successfully!');
-      navigate('/registration/success', { state: { registrationReference: registrationRef } });
+      navigate('/registration/success', {
+        state: { registrationReference: registrationRef, submittedAt: new Date().toISOString() },
+        replace: true,
+      });
+
     } catch (err) {
       console.error('Registration error:', err);
       toast.error('An unexpected error occurred. Please try again.');
@@ -1102,7 +1102,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
   };
 
-  const resolveReviewValue = useReviewValueResolver(config?.formSchema);
+  const resolveReviewValue = useReviewValueResolver(config?.formSchema, dynamicFormData as Record<string, unknown>);
 
   function buildReviewSections() {
     type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string };

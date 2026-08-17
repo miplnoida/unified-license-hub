@@ -11,9 +11,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Mail, RefreshCw, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
+import { QueryErrorState } from '@/components/complaints/QueryErrorState';
+import {
+  plainChannelLabel,
+  plainDirectionLabel,
+  plainFailureReason,
+  plainStateHint,
+  plainStateLabel,
+  plainSubject,
+} from '@/lib/communicationPlainLanguage';
+
 
 export type CommunicationObjectType =
   | 'application'
@@ -83,18 +92,23 @@ export function CommunicationTimeline({ objectType, objectId, title = 'Communica
     setLoading(true);
     setError(null);
     setDenied(false);
-    const { data, error: rpcError } = await supabase.rpc('communication_timeline' as never, {
-      _object_type: objectType,
-      _object_id: objectId,
-    } as never);
-    if (rpcError) {
-      if (rpcError.code === '42501' || /not authorized/i.test(rpcError.message)) setDenied(true);
-      else setError(rpcError.message);
-      setRows([]);
-    } else {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('communication_timeline' as never, {
+        _object_type: objectType,
+        _object_id: objectId,
+      } as never);
+      if (rpcError) throw rpcError;
       setRows((data || []) as unknown as CommunicationTimelineRow[]);
+    } catch (e: any) {
+      // Any thrown exception must still terminate the loader — otherwise the
+      // spinner would stay on screen forever.
+      const message = e?.message ?? 'Unexpected error';
+      if (e?.code === '42501' || /not authorized|permission denied/i.test(message)) setDenied(true);
+      else setError(message);
+      setRows([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [objectType, objectId]);
 
   useEffect(() => {
@@ -122,72 +136,96 @@ export function CommunicationTimeline({ objectType, objectId, title = 'Communica
         </Button>
       </CardHeader>
       <CardContent>
-        {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
-        {loading ? (
+        {error ? (
+          <QueryErrorState
+            title="We couldn’t load communications"
+            message="Communications could not be loaded. This is a temporary problem — please try again."
+            onRetry={() => void load()}
+            compact
+          />
+        ) : loading ? (
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading communications…
           </div>
         ) : rows.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">No communications recorded for this record.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Direction</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Event / subject</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Delivery state</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Retry / failure</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="whitespace-nowrap font-mono text-xs">
-                      {r.occurred_at ? format(new Date(r.occurred_at), 'dd MMM yyyy HH:mm') : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs capitalize">{r.direction}</TableCell>
-                    <TableCell className="text-xs">{r.channel}</TableCell>
-                    <TableCell className="max-w-[280px] text-xs">
-                      <div className="font-medium">{r.subject || r.event_key || '—'}</div>
-                      {r.event_key && r.subject && (
-                        <div className="font-mono text-[11px] text-muted-foreground">{r.event_key}</div>
-                      )}
-                      {r.template_version != null && (
-                        <div className="text-[11px] text-muted-foreground">template v{r.template_version}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">{r.recipient || '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={stateTone(r.communication_state)} className="text-[11px] uppercase">
-                        {stateLabel(r.communication_state)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {r.provider || '—'}
-                      {r.provider_message_id && (
-                        <div className="font-mono text-[11px] text-muted-foreground">{r.provider_message_id}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {(r.retry_count ?? 0) > 0 && <div>attempts: {r.retry_count}</div>}
-                      {r.failure_category && <div className="text-destructive">{r.failure_category}</div>}
-                      {r.error && <div className="text-muted-foreground">{r.error}</div>}
-                      {!r.failure_category && !r.error && (r.retry_count ?? 0) === 0 && '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <ol className="relative space-y-3 border-l pl-4">
+            {rows.map((r) => (
+              <li key={r.id} className="relative">
+                <span className="absolute -left-[21px] top-2 h-3 w-3 rounded-full bg-primary" />
+                <MessageCard row={r} />
+              </li>
+            ))}
+          </ol>
+
         )}
       </CardContent>
     </Card>
   );
 }
+
+function MessageCard({ row }: { row: CommunicationTimelineRow }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const hint = plainStateHint(row.communication_state);
+  const reason = plainFailureReason(row.failure_category, row.error);
+  const attempts = row.retry_count ?? 0;
+
+  return (
+    <div className="rounded-md border border-border p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium">{plainSubject(row.subject, row.event_key)}</span>
+        <Badge variant={stateTone(row.communication_state)} className="text-[11px]">
+          {plainStateLabel(row.communication_state)}
+        </Badge>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {plainChannelLabel(row.channel)} · {plainDirectionLabel(row.direction)}
+        {row.recipient ? ` · to ${row.recipient}` : ''}
+        {row.occurred_at ? ` · ${format(new Date(row.occurred_at), 'dd MMM yyyy HH:mm')}` : ''}
+      </p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      {reason && <p className="mt-1 text-xs text-destructive">{reason}</p>}
+      {attempts > 0 && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sending was attempted {attempts + 1} time{attempts + 1 === 1 ? '' : 's'}.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={() => setShowDetails((s) => !s)}
+        className="mt-2 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+      >
+        {showDetails ? 'Hide technical details' : 'Technical details'}
+      </button>
+      {showDetails && (
+        <dl className="mt-2 grid gap-1 rounded bg-muted/50 p-2 text-[11px] text-muted-foreground sm:grid-cols-2">
+          <Detail label="Internal state" value={row.communication_state} mono />
+          <Detail label="Event key" value={row.event_key} mono />
+          <Detail label="Provider" value={row.provider} />
+          <Detail label="Provider message ID" value={row.provider_message_id} mono />
+          <Detail label="Template version" value={row.template_version != null ? `v${row.template_version}` : null} />
+          <Detail label="Failure category" value={row.failure_category} mono />
+          <Detail label="Error" value={row.error} />
+          <Detail
+            label="Delivered at"
+            value={row.delivered_at ? format(new Date(row.delivered_at), 'dd MMM yyyy HH:mm') : null}
+          />
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function Detail({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="inline text-foreground/70">{label}: </dt>
+      <dd className={`inline ${mono ? 'font-mono' : ''}`}>{value}</dd>
+    </div>
+  );
+}
+
 
 export default CommunicationTimeline;

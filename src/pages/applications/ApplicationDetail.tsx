@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
+import { CaseSnapshotFields } from '@/components/applications/CaseSnapshotFields';
 import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 
@@ -45,6 +46,10 @@ import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/
 import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+
+// Strong active-tab treatment so the current tab is obvious on the wrapped tab strip.
+const TAB_TRIGGER_CLASS =
+  'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:ring-2 data-[state=active]:ring-primary/30 text-muted-foreground hover:bg-muted';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -162,6 +167,20 @@ export default function ApplicationDetail() {
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
+
+  // Internal reviewers land on the Workflow tab when a workflow review is live,
+  // unless the URL asked for a specific tab.
+  const workflowTabAutoSelected = useRef(false);
+  useEffect(() => {
+    if (initialTabParam || workflowTabAutoSelected.current) return;
+    if (!isInternal || !workflowChecked) return;
+    const workflowLive = workflowApprovalEnabled && !!(app as any)?.workflow_id && workflowActive;
+    if (!workflowLive) return;
+    workflowTabAutoSelected.current = true;
+    setActiveTab('workflow');
+  }, [initialTabParam, isInternal, workflowChecked, workflowApprovalEnabled, workflowActive, (app as any)?.workflow_id]);
+
+
 
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
@@ -325,19 +344,23 @@ export default function ApplicationDetail() {
     const userIds = [...new Set([...actionList.map(a => a.actor_id).filter(Boolean), applicantId].filter(Boolean))] as string[];
     let nameMap: Record<string, string> = {};
     if (userIds.length > 0) {
-      const [{ data: profiles }, { data: preUsers }] = await Promise.all([
-        supabase.from('profiles').select('id, email, full_name').in('id', userIds),
-        supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
-      ]);
-      profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
-      preUsers?.forEach((p: any) => { if (!nameMap[p.id]) nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
+      // Secure resolver so applicant (pre-licensee) names are visible to every
+      // internal reviewer role, not just Super Admin / Licensing Officer.
+      const { data: resolved } = await supabase.rpc('resolve_user_display_names' as any, {
+        _ids: userIds,
+      });
+      ((resolved as any[]) ?? []).forEach((row: any) => {
+        const label = row.display_name || row.email;
+        if (label && !nameMap[row.id]) nameMap[row.id] = label;
+      });
     }
     const resolveActor = (uid?: string | null) => {
-      if (!uid) return 'Unknown User';
+      if (!uid) return 'System';
       if (nameMap[uid]) return nameMap[uid];
       const d = appAny?.data || {};
-      return d.applicant_name || d.full_name || d.contact_person || d.email || 'Unknown User';
+      return d.applicant_name || d.full_name || d.contact_person || d.email || 'Unknown user';
     };
+
     const enriched: TimelineEvent[] = actionList.map(a => ({
       ...a,
       status: a.action,
@@ -369,6 +392,16 @@ export default function ApplicationDetail() {
   };
 
   useEffect(() => { loadData(); }, [id]);
+
+  // Re-read the application whenever the reviewer opens the submitted forms or
+  // RFI tab, so post-RFI applicant edits are always shown (never a snapshot
+  // captured when the page first loaded).
+  useEffect(() => {
+    if (!id) return;
+    if (activeTab !== 'form' && activeTab !== 'rfi') return;
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Load form template names for review modal
   useEffect(() => {
@@ -782,6 +815,14 @@ export default function ApplicationDetail() {
   const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
   const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'under_review', 'review', 'pending_review'].includes(app.status) && !hasPendingEditRequest;
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
+  const showResubmissionPendingNotice =
+    workflowChecked && workflowOn === false && isInternal &&
+    (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested');
+  // Workflow/review lives in its own tab so it no longer repeats under every tab.
+  const showWorkflowTab =
+    showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
+
+
 
   // Admin allows the applicant's edit request → pause workflow and move app to
   // resubmission_requested so the applicant can edit and resubmit.
@@ -848,6 +889,12 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {APPLICATION_STATUS_LABELS[app.status]}
               </Badge>
+              {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
+                <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} size="sm">
+                  <Send className="h-4 w-4 mr-2" />
+                  {processing ? 'Resubmitting...' : 'Resubmit Application'}
+                </Button>
+              )}
               {isInternal && <HistoryButton entityType="application" entityId={app.id} title={`History — ${app.application_number}`} />}
             </div>
           }
@@ -878,21 +925,25 @@ export default function ApplicationDetail() {
             <CardTitle className="text-base">Application Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusTimeline currentStatus={app.status} events={events} />
+            <StatusTimeline currentStatus={app.status} events={events} showActivityLog={false} />
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+
+        <div className="w-full">
+          <div className="space-y-6">
             {/* Forms and Documents tabs - always visible */}
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="rfi" className="gap-1.5">
+                <TabsTrigger value="details" className={TAB_TRIGGER_CLASS}>Details</TabsTrigger>
+                {hasSubmittedForms && <TabsTrigger value="form" className={TAB_TRIGGER_CLASS}>Submitted Forms</TabsTrigger>}
+                <TabsTrigger value="documents" className={TAB_TRIGGER_CLASS}>Documents</TabsTrigger>
+                <TabsTrigger value="fees" className={TAB_TRIGGER_CLASS}>{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                {showWorkflowTab && <TabsTrigger value="workflow" className={TAB_TRIGGER_CLASS}>Workflow</TabsTrigger>}
+                <TabsTrigger value="activity" className={TAB_TRIGGER_CLASS}>Activity</TabsTrigger>
+                <TabsTrigger value="rfi" className={`gap-1.5 ${TAB_TRIGGER_CLASS}`}>
+
                   RFI
                   {openRfiCount > 0 && (
                     <Badge variant="destructive" className="h-4 min-w-[1rem] px-1 text-[10px] leading-none">
@@ -900,10 +951,10 @@ export default function ApplicationDetail() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="communications">Communications</TabsTrigger>
-                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision">Decision</TabsTrigger>}
-                {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
-                {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
+                <TabsTrigger value="communications" className={TAB_TRIGGER_CLASS}>Communications</TabsTrigger>
+                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision" className={TAB_TRIGGER_CLASS}>Decision</TabsTrigger>}
+                {isInternal && <TabsTrigger value="consolidated" className={TAB_TRIGGER_CLASS}>Consolidated Case</TabsTrigger>}
+                {app.status === 'approved' && <TabsTrigger value="conditions" className={TAB_TRIGGER_CLASS}>Conditions</TabsTrigger>}
 
               </TabsList>
 
@@ -1018,6 +1069,8 @@ export default function ApplicationDetail() {
                         )}
 
 
+                        {isInternal && <CaseSnapshotFields application={app as any} />}
+
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
                           <p className="text-sm">{formatDateTime(app.created_at)}</p>
@@ -1061,7 +1114,7 @@ export default function ApplicationDetail() {
                       originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -1084,8 +1137,21 @@ export default function ApplicationDetail() {
                           form_version_ids: updatedFormVersionIds,
                           form_meta: updatedFormMeta,
                         };
-                        const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
-                        if (error) { toast.error('Failed to save form'); return; }
+                        const { data: written, error } = await supabase
+                          .from('applications')
+                          .update({ data: updatedAppData } as any)
+                          .eq('id', app.id)
+                          .select('id');
+                        if (error) {
+                          toast.error(error.message || 'Failed to save form');
+                          throw new Error(error.message || 'Failed to save form');
+                        }
+                        if (!written || written.length === 0) {
+                          const msg = 'This application is not currently open for editing — your changes were not saved.';
+                          toast.error(msg);
+                          throw new Error(msg);
+                        }
+
                         try {
                           const nextStatus = await markApplicationInProgressIfDraft(app.id);
                           if (nextStatus) {
@@ -1099,8 +1165,9 @@ export default function ApplicationDetail() {
                           console.error('[ApplicationDetail] Failed to promote draft application after form save:', statusError);
                           toast.error(statusError?.message || 'Form saved, but failed to update application status');
                         }
-                        // Lightweight inline state via SubmittedForms; no per-save toast spam.
+                        toast.success('Form saved');
                         await loadData();
+
                       }}
                       onAllFormsCompleted={() => {
                         // Auto-advance to next pending step after all forms are filled
@@ -1143,13 +1210,15 @@ export default function ApplicationDetail() {
                           )}
                         </>
                       )}
-                      {!!(app as any).submitted_at && (
+                      {/* Submission acknowledgement is an applicant/licensee receipt only.
+                          Internal reviewers no longer see it here (component retained). */}
+                      {!isInternal && !!(app as any).submitted_at && (
                         <div className="space-y-2">
                           <p className="text-sm font-semibold">System-generated artifacts</p>
                           <SubmissionAcknowledgementPanel
                             applicationId={app.id}
                             submitted={!!(app as any).submitted_at}
-                            variant={isInternal ? 'internal' : 'artifact'}
+                            variant="artifact"
                             applicationNumber={app.application_number}
                           />
                         </div>
@@ -1175,13 +1244,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     onPaid={loadData}
                   />
                 ))}
@@ -1266,8 +1335,8 @@ export default function ApplicationDetail() {
 
 
 
-            {/* Admin: Edit Request Pending — bypasses workflow */}
-            {showEditRequestAdminPanel && (
+            {/* Admin: Edit Request Pending — bypasses workflow (Workflow tab only) */}
+            {activeTab === 'workflow' && showEditRequestAdminPanel && (
               <Card className="border-warning/40">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -1311,31 +1380,12 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Decision support (AI assessment, sufficiency, twin-peaks, readiness) now
-                lives in the consolidated "Decision" tab above for internal staff. */}
-            {isInternal && app.status !== 'draft' && activeTab !== 'decision' && (
-              <Card className="border-primary/30">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div>
-                    <p className="text-sm font-medium">Decision-ready view</p>
-                    <p className="text-sm text-muted-foreground">
-                      Readiness, sufficiency, twin-peaks clearances, AI assessment and document previews in one place.
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setActiveTab('decision')}>
-                    Open Decision view
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {/* Decision support lives in the "Decision" tab; no duplicate promo card here. */}
 
+            {/* Per-step SLA is rendered inside WorkflowPanel for the active step. */}
 
-            {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
-                top-level banner removed to avoid duplicate/misleading aggregate SLA. */}
-
-
-            {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
-            {showWorkflowPanel && (
+            {/* Workflow-based review panel — rendered only in the Workflow tab */}
+            {activeTab === 'workflow' && showWorkflowPanel && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
@@ -1362,7 +1412,7 @@ export default function ApplicationDetail() {
 
 
             {/* Manual staff actions (no workflow configured) */}
-            {showManualActions && (
+            {activeTab === 'workflow' && showManualActions && (
               <Card>
                 <CardContent className="pt-6">
                   <Accordion type="single" collapsible defaultValue="manual-review-actions" className="w-full rounded-md border border-border/60">
@@ -1433,7 +1483,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {workflowChecked && workflowOn === false && isInternal && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {activeTab === 'workflow' && showResubmissionPendingNotice && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -1516,34 +1566,6 @@ export default function ApplicationDetail() {
               );
             })()}
 
-            {/* Applicant resubmit action */}
-            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    The reviewer has requested changes to your application. Please update your documents/forms and resubmit.
-                  </p>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Remarks (optional)</Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Describe the changes you made..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} className="flex-1">
-                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : licenseGate.isBlocked ? 'License Not Active' : 'Resubmit Application'}
-                    </Button>
-                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                      <Ban className="h-4 w-4 mr-2" />Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Applicant request edit (before approval, while submitted/in_progress) */}
             {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
@@ -1592,38 +1614,8 @@ export default function ApplicationDetail() {
             })()}
           </div>
 
-          {/* Sidebar - Activity Log */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Activity Log</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No actions yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {events.slice().reverse().map(a => (
-                      <div key={a.id} className="border-l-2 border-border pl-3 py-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] capitalize">
-                            {a.action.replace(/_/g, ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{a.actor_email}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {formatDateTime(a.created_at)}
-                        </p>
-                        {a.comments && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">"{a.comments}"</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* Activity trail lives solely in the "Activity" tab above. */}
+
         </div>
 
         {/* CollaborativeReview moved into the review column next to WorkflowPanel. */}

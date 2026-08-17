@@ -70,9 +70,10 @@ export default function AiInsightsHub() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title="AI Insights Hub"
-          description="Advisory signals across supervision. Insights are never decisions — each one requires a human decision with justification."
+          title="AI Insight Review"
+          description="Review, accept, reject or escalate AI insights requiring human disposition. To browse existing AI reports instead, use Supervisory AI Reports."
         />
+
 
         {!!nonLive.length && (
           <Alert>

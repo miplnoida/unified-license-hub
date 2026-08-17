@@ -4,7 +4,7 @@ import {
   UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar,
+  Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar, Sparkles,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -144,6 +144,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Conduct Entities', href: '/conduct/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Investigations', href: '/conduct/investigations', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Investigation Closure Approvals', href: '/conduct/closure-approvals', icon: <Gavel className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Enforcement Cases', href: '/enforcement', icon: <Gavel className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'license_management' },
 
       { label: 'Thematic Reviews', href: '/supervision/thematic-reviews', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Thematic Closure Approvals', href: '/supervision/thematic-closure-approvals', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
@@ -204,12 +205,13 @@ export const mainNavSections: NavSection[] = [
       },
     ],
   },
-  {
-    label: 'Twin Peaks Coordination',
-    items: [
-      { label: 'Coordination Cases', href: '/coordination', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'coordination' },
-    ],
-  },
+  // Twin Peaks Coordination is hidden from the sidebar for now (routes/pages retained):
+  // {
+  //   label: 'Twin Peaks Coordination',
+  //   items: [
+  //     { label: 'Coordination Cases', href: '/coordination', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'coordination' },
+  //   ],
+  // },
   {
     label: 'Prudential Supervision',
     items: [
@@ -280,7 +282,9 @@ export const mainNavSections: NavSection[] = [
     label: 'Analytics & Reports',
     items: [
       { label: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
+      { label: 'Supervisory AI Reports', href: '/analytics/ai-reports', icon: <Sparkles className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
       { label: 'Reports', href: '/reports', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },
+
     ],
   },
 ];

@@ -161,8 +161,10 @@ export function useCreateRole() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
       qc.invalidateQueries({ queryKey: ['all-role-permissions'] });
+      qc.invalidateQueries({ queryKey: ['user-permissions'], refetchType: 'all' });
       toast.success('Role created successfully');
     },
+
     onError: (e: any) => toast.error(e.message || 'Failed to create role'),
   });
 }
@@ -195,9 +197,13 @@ export function useUpdateRole() {
       qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
       qc.invalidateQueries({ queryKey: ['all-role-permissions'] });
       qc.invalidateQueries({ queryKey: ['role-permissions'] });
-      qc.invalidateQueries({ queryKey: ['user-permissions'] });
+      // Force-refetch resolved access for the signed-in session so newly
+      // granted modules appear in the sidebar/routes without a hard reload.
+      qc.invalidateQueries({ queryKey: ['user-permissions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['user-entity-assignments'], refetchType: 'all' });
       toast.success('Role updated successfully');
     },
+
     onError: (e: any) => toast.error(e.message || 'Failed to update role'),
   });
 }

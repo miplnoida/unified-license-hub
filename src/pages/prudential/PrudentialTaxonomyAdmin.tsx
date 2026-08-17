@@ -8,13 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const emptyForm = { is_active: true, sort_order: 100 } as any;
 
 export default function PrudentialTaxonomyAdmin() {
-  const { data = [] } = useRiskTaxonomy();
+  const { data = [], isLoading } = useRiskTaxonomy();
   const upsert = useUpsertTaxonomy();
   const del = useDeleteTaxonomy();
   const [open, setOpen] = useState(false);
@@ -28,6 +29,7 @@ export default function PrudentialTaxonomyAdmin() {
       label: row.label,
       description: row.description || '',
       sort_order: row.sort_order ?? 100,
+      parent_id: row.parent_id ?? 'none',
       is_active: !!row.is_active,
     });
     setOpen(true);
@@ -36,7 +38,8 @@ export default function PrudentialTaxonomyAdmin() {
   const handleSave = async () => {
     if (upsert.isPending) return;
     try {
-      await upsert.mutateAsync(form);
+      const payload = { ...form, parent_id: form.parent_id && form.parent_id !== 'none' ? form.parent_id : null };
+      await upsert.mutateAsync(payload);
       setOpen(false);
       setForm(emptyForm);
     } catch { /* toast from hook */ }
@@ -60,6 +63,23 @@ export default function PrudentialTaxonomyAdmin() {
               <div><Label>Code</Label><Input value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} /></div>
               <div><Label>Label</Label><Input value={form.label || ''} onChange={(e) => setForm({ ...form, label: e.target.value })} /></div>
               <div><Label>Description</Label><Textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+              <div>
+                <Label>Parent category</Label>
+                <Select
+                  value={form.parent_id || 'none'}
+                  onValueChange={(v) => setForm({ ...form, parent_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="No parent" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No parent (top level)</SelectItem>
+                    {data
+                      .filter((t: any) => t.id !== form.id)
+                      .map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label>Sort order</Label><Input type="number" value={form.sort_order ?? 100} onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} /></div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="taxonomy-active">Active</Label>
@@ -78,14 +98,18 @@ export default function PrudentialTaxonomyAdmin() {
         <Card><CardContent className="pt-4">
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Description</TableHead><TableHead>Active</TableHead><TableHead className="text-right">Actions</TableHead>
+              <TableHead>Code</TableHead><TableHead>Label</TableHead><TableHead>Parent</TableHead><TableHead>Description</TableHead><TableHead className="w-24">Sort order</TableHead><TableHead>Active</TableHead><TableHead className="text-right">Actions</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {data.map((t: any) => (
                 <TableRow key={t.id}>
                   <TableCell><code>{t.code}</code></TableCell>
                   <TableCell>{t.label}</TableCell>
-                  <TableCell className="max-w-md truncate">{t.description}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {data.find((p: any) => p.id === t.parent_id)?.label || '—'}
+                  </TableCell>
+                  <TableCell className="max-w-md truncate">{t.description || '—'}</TableCell>
+                  <TableCell>{t.sort_order ?? '—'}</TableCell>
                   <TableCell>{t.is_active ? 'Yes' : 'No'}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => openEdit(t)}>
@@ -99,6 +123,16 @@ export default function PrudentialTaxonomyAdmin() {
                   </TableCell>
                 </TableRow>
               ))}
+              {isLoading && (
+                <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin inline" />Loading taxonomy…
+                </TableCell></TableRow>
+              )}
+              {!isLoading && data.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  No risk categories configured yet.
+                </TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent></Card>

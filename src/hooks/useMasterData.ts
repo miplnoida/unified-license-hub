@@ -43,23 +43,40 @@ export function useMasterDataTypes() {
   });
 }
 
-export function useMasterDataItems(typeId?: string | null) {
+export interface MasterDataItemsOptions {
+  /** Server-side name/code search term. */
+  search?: string;
+  /** Max rows to fetch (large datasets such as cities are capped). */
+  limit?: number;
+}
+
+export function useMasterDataItems(typeId?: string | null, opts: MasterDataItemsOptions = {}) {
+  const { search = '', limit = 200 } = opts;
+  const term = search.trim();
   return useQuery({
-    queryKey: ['master_data_items', typeId],
+    queryKey: ['master_data_items', typeId, term, limit],
     queryFn: async () => {
       let query = supabase
         .from('master_data_items' as any)
-        .select('*')
-        .order('sort_order')
-        .order('name');
+        .select('*, parent:parent_item_id(name)', { count: 'exact' })
+        .order('name')
+
+        .limit(limit);
       if (typeId) query = query.eq('type_id', typeId);
-      const { data, error } = await query;
+      if (term) query = query.or(`name.ilike.%${term}%,code.ilike.%${term}%`);
+      const { data, error, count } = await query;
       if (error) throw error;
-      return (data || []) as unknown as MasterDataItem[];
+      const rows = ((data || []) as any[]).map(r => ({
+        ...r,
+        parent_name: r.parent?.name ?? undefined,
+      })) as unknown as MasterDataItem[];
+      return { rows, total: count ?? rows.length };
     },
     enabled: !!typeId,
+    placeholderData: prev => prev,
   });
 }
+
 
 /** Fetch only active items for a given type code (for use in forms/dropdowns) */
 export function useActiveMasterItems(typeCode: string, parentItemId?: string | null) {
@@ -95,8 +112,8 @@ export function useActiveMasterItems(typeCode: string, parentItemId?: string | n
         .select('id, name, code, parent_item_id, metadata')
         .eq('type_id', (typeData as any).id)
         .eq('status', 'active')
-        .order('sort_order')
         .order('name');
+
 
       if (parentItemId) {
         query = query.eq('parent_item_id', parentItemId);

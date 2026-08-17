@@ -12,6 +12,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { RiskBadge } from '@/components/prudential/RiskBadge';
+import {
+  describeEarlyWarning,
+  formatRatioValue,
+  peerPosition,
+} from '@/lib/prudential/analysisNarrative';
 
 type RiskLevel = 'green' | 'amber' | 'red';
 interface Metric { key: string; label: string; value: number | null; unit: string | null; risk_level: RiskLevel; threshold: number | null; null_reason?: string | null; }
@@ -26,12 +32,6 @@ interface AnalysisRow {
   peer: Array<{ ratio_key: string; label: string; my_value: number | null; distribution: any }>;
   early_warnings: EarlyWarning[]; recommendations: Recommendation[]; inputs: Record<string, unknown>;
 }
-
-const RISK_BADGE: Record<RiskLevel, string> = {
-  green: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  red:   'bg-destructive/10 text-destructive border-destructive/30',
-};
 
 function ScoreGauge({ value }: { value: number | null }) {
   const v = value ?? 0;
@@ -59,7 +59,7 @@ function CategoryCard({ title, s }: { title: string; s: Summary | undefined }) {
             <span className="font-medium">{m.label}</span>
             <div className="flex items-center gap-2">
               <span className="tabular-nums">{m.value == null ? (m.null_reason ?? '—') : m.value.toFixed(2)}</span>
-              <Badge className={RISK_BADGE[m.risk_level]} variant="outline">{m.risk_level}</Badge>
+              <RiskBadge level={m.risk_level} />
             </div>
           </div>
         ))}
@@ -95,6 +95,19 @@ export default function ReturnAnalysis() {
     () => rows.find((r) => r.id === selectedId) ?? rows[0],
     [rows, selectedId],
   );
+
+  /** Configured ratio labels by key, so warnings never show a database key. */
+  const ratioLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    const add = (list?: Metric[]) => list?.forEach((m) => { if (m?.key && m.label) map[m.key] = m.label; });
+    add(selected?.capital_summary?.metrics);
+    add(selected?.liquidity_summary?.metrics);
+    add(selected?.asset_quality_summary?.metrics);
+    add(selected?.profitability_summary?.metrics);
+    add(selected?.concentration_risks);
+    selected?.peer?.forEach((p) => { if (p.ratio_key && p.label) map[p.ratio_key] = p.label; });
+    return map;
+  }, [selected]);
 
   const regenerate = useMutation({
     mutationFn: async () => {
@@ -172,7 +185,7 @@ export default function ReturnAnalysis() {
                   {selected.heatmap?.map((h) => (
                     <div key={h.category} className="text-xs flex flex-col items-center gap-1 border rounded px-3 py-2">
                       <span className="capitalize text-muted-foreground">{h.category.replace('_', ' ')}</span>
-                      <Badge className={RISK_BADGE[h.risk_level]} variant="outline">{h.risk_level}</Badge>
+                      <RiskBadge level={h.risk_level} />
                     </div>
                   ))}
                 </div>
@@ -223,16 +236,31 @@ export default function ReturnAnalysis() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Early Warnings</CardTitle></CardHeader>
                 <CardContent>
                   {selected.early_warnings?.length ? (
-                    <ul className="space-y-2 text-sm">
-                      {selected.early_warnings.map((w, i) => (
-                        <li key={i} className="flex items-start gap-2 border-b pb-2 last:border-b-0">
-                          <Badge className={RISK_BADGE[w.level]} variant="outline">{w.level}</Badge>
-                          <div>
-                            <div className="font-medium">{w.metric_key}</div>
-                            <div className="text-xs text-muted-foreground">{w.reason.replace(/_/g, ' ')} — {JSON.stringify(w.evidence?.[0] ?? {})}</div>
-                          </div>
-                        </li>
-                      ))}
+                    <ul className="space-y-3 text-sm">
+                      {selected.early_warnings.map((w, i) => {
+                        const n = describeEarlyWarning(w, ratioLabels);
+                        return (
+                          <li key={i} className="flex items-start gap-2 border-b pb-3 last:border-b-0">
+                            <RiskBadge level={w.level} />
+                            <div className="min-w-0 space-y-1">
+                              <div className="font-medium">{n.headline}</div>
+                              <p className="text-sm text-muted-foreground">{n.sentence}</p>
+                              {!!n.details.length && (
+                                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                  {n.details.map((d) => (
+                                    <span
+                                      key={d.label}
+                                      className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                                    >
+                                      {d.label}: <span className="tabular-nums text-foreground">{d.value}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : <p className="text-xs text-muted-foreground italic">No early warnings detected.</p>}
                 </CardContent>
@@ -247,7 +275,7 @@ export default function ReturnAnalysis() {
                         <li key={i} className="border-b pb-2 last:border-b-0">
                           <div className="flex items-center gap-2 text-xs">
                             <Badge variant="outline" className="capitalize">{r.category.replace('_', ' ')}</Badge>
-                            <Badge className={RISK_BADGE[r.level]} variant="outline">{r.level}</Badge>
+                            <RiskBadge level={r.level} />
                             <span className="text-muted-foreground">{r.metric_key}</span>
                           </div>
                           <p className="mt-1">{r.text}</p>
@@ -271,7 +299,7 @@ export default function ReturnAnalysis() {
                           <span>{m.label}</span>
                           <div className="flex items-center gap-2">
                             <span className="tabular-nums">{m.value == null ? '—' : m.value.toFixed(2)}</span>
-                            <Badge className={RISK_BADGE[m.risk_level]} variant="outline">{m.risk_level}</Badge>
+                            <RiskBadge level={m.risk_level} />
                           </div>
                         </li>
                       ))}
@@ -307,17 +335,44 @@ export default function ReturnAnalysis() {
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Peer Snapshot</CardTitle></CardHeader>
                 <CardContent>
-                  <ul className="text-sm space-y-1">
-                    {selected.peer.map((p) => (
-                      <li key={p.ratio_key} className="flex items-center justify-between border-b pb-1 last:border-b-0">
-                        <span>{p.label}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          you: {p.my_value == null ? '—' : Number(p.my_value).toFixed(2)}
-                          {p.distribution?.median != null && ` · peer median: ${Number(p.distribution.median).toFixed(2)}`}
-                          {p.distribution?.p25 != null && p.distribution?.p75 != null && ` · IQR ${Number(p.distribution.p25).toFixed(2)}–${Number(p.distribution.p75).toFixed(2)}`}
-                        </span>
-                      </li>
-                    ))}
+                  <ul className="space-y-3 text-sm">
+                    {selected.peer.map((p) => {
+                      const pos = peerPosition(p.my_value, p.distribution?.median);
+                      const hasRange = p.distribution?.p25 != null && p.distribution?.p75 != null;
+                      return (
+                        <li key={p.ratio_key} className="space-y-1 border-b pb-3 last:border-b-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{p.label}</span>
+                            {pos && (
+                              <Badge variant="outline" className="text-[11px] font-normal">
+                                {pos.label}
+                                {pos.gap ? ` (by ${pos.gap})` : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                            <span>
+                              This entity:{' '}
+                              <span className="tabular-nums text-foreground">{formatRatioValue(p.my_value)}</span>
+                            </span>
+                            <span>
+                              Peer median:{' '}
+                              <span className="tabular-nums text-foreground">
+                                {formatRatioValue(p.distribution?.median)}
+                              </span>
+                            </span>
+                            {hasRange && (
+                              <span>
+                                Typical peer range:{' '}
+                                <span className="tabular-nums text-foreground">
+                                  {formatRatioValue(p.distribution.p25)} – {formatRatioValue(p.distribution.p75)}
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardContent>
               </Card>

@@ -18,7 +18,7 @@
 // or `status = 'failed'` if the whole run crashes.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { requireWorkerOrPrudentialUser } from "../_shared/prudentialSweepAuth.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -30,22 +30,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
 
-  const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
+  const __workerGate = await requireWorkerOrPrudentialUser(req, "prudential-monitoring-sweep");
+  if (!__workerGate.ok) return __workerGate.response!;
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, service);
 
   // Optional auth: cron POSTs with just the anon key; a UI-triggered call
   // carries a real user token. We resolve actor id when possible for audit.
-  let actorId: string | null = null;
+  let actorId: string | null = __workerGate.actorId;
   const auth = req.headers.get("authorization");
   if (auth) {
     try {
       const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
       const userClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
       const { data } = await userClient.auth.getUser();
-      actorId = data?.user?.id ?? null;
+      actorId = data?.user?.id ?? actorId;
     } catch { /* ignore */ }
   }
 
@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
   const summary = {
     entities_scanned: 0,
     returns_evaluated: 0,
+    ewi_evaluated: 0,
     failed: 0,
     errors: [] as Array<{ entity_id: string; error: string }>,
   };
@@ -105,7 +106,8 @@ Deno.serve(async (req) => {
     const { data: licensees, error: licErr } = await q;
     if (licErr) throw licErr;
 
-    const touchedEntities = new Set<string>();
+    // entity id -> period end of the return we just evaluated (for EWI evaluation)
+    const touchedEntities = new Map<string, string | null>();
 
     for (const l of (licensees as any[]) ?? []) {
       summary.entities_scanned += 1;
@@ -137,17 +139,26 @@ Deno.serve(async (req) => {
           headers: invokeHeaders,
         });
         summary.returns_evaluated += 1;
-        touchedEntities.add(l.id);
+        touchedEntities.set(l.id, latestReturn.period_end_date ?? null);
       } catch (e) {
         summary.failed += 1;
         summary.errors.push({ entity_id: l.id, error: e instanceof Error ? e.message : String(e) });
       }
     }
 
-    // Recompute composite risk scores for entities whose returns we touched.
-    for (const entityId of touchedEntities) {
+    // Recompute composite risk scores and re-evaluate early-warning rules for
+    // entities whose returns we touched. Both are idempotent.
+    for (const [entityId, periodEnd] of touchedEntities) {
       try {
         await admin.functions.invoke("risk-score-recompute", { body: { entity_id: entityId } });
+      } catch { /* best effort */ }
+      if (!periodEnd) continue;
+      try {
+        const { error: ewiErr } = await admin.rpc("prudential_ewi_evaluate", {
+          _entity_id: entityId,
+          _period_end: periodEnd,
+        });
+        if (!ewiErr) summary.ewi_evaluated += 1;
       } catch { /* best effort */ }
     }
 

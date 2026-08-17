@@ -161,7 +161,14 @@ export function useUpsertTaxonomy() {
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
-    onError: (e: any) => toast.error(e.message || 'Failed'),
+    onError: (e: any) => {
+      const msg = String(e?.message || '');
+      if (/duplicate key|unique constraint/i.test(msg)) {
+        toast.error('A risk category with this code already exists.');
+        return;
+      }
+      toast.error(msg || 'Failed');
+    },
   });
 }
 export function useDeleteTaxonomy() {
@@ -268,7 +275,26 @@ export function usePrudentialEntities(filters?: EntityUniverseFilters) {
   });
 }
 
+/**
+ * Recomputations are appended, not replaced, so a return can hold several rows
+ * for the same ratio/breach. Keep only the newest record per logical key so the
+ * profile page never renders the same ratio or breach twice.
+ */
+function dedupeLatest<T extends Record<string, any>>(rows: T[], keyOf: (row: T) => string, tsField: string): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows ?? []) {
+    const key = keyOf(row);
+    const current = best.get(key);
+    if (!current) { best.set(key, row); continue; }
+    const a = new Date(row?.[tsField] ?? 0).getTime();
+    const b = new Date(current?.[tsField] ?? 0).getTime();
+    if (a > b) best.set(key, row);
+  }
+  return Array.from(best.values());
+}
+
 export function useEntityHistoricalProfile(entityId?: string | null) {
+
   return useQuery({
     queryKey: ['entity_prudential_profile', entityId],
     enabled: !!entityId,
@@ -283,15 +309,27 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
         sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('entity_id', entityId).order('triggered_at', { ascending: false }),
       ]);
       const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
-      const breaches = (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id));
+      const breaches = dedupeLatest(
+        (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id)),
+        (b) => `${b.return_id}|${b.metric_key ?? b.ratio_key ?? ''}`,
+        'detected_at',
+      ).sort((a: any, b: any) => new Date(b.detected_at ?? 0).getTime() - new Date(a.detected_at ?? 0).getTime());
+
       const ratiosRes = returnIds.length
         ? await sb.from('return_calculated_ratios').select('*').in('return_id', returnIds).order('computed_at', { ascending: false })
         : { data: [] };
+      const ratios = dedupeLatest(
+        ratiosRes.data ?? [],
+        (r) => `${r.return_id}|${r.ratio_key}`,
+        'computed_at',
+      ).sort((a: any, b: any) => new Date(b.computed_at ?? 0).getTime() - new Date(a.computed_at ?? 0).getTime());
+
       return {
         entity: entityRes.data,
         returns: returnsRes.data ?? [],
         breaches,
-        ratios: ratiosRes.data ?? [],
+        ratios,
+
         assessments: assessRes.data ?? [],
         actions: actionsRes.data ?? [],
         escalations: escRes.data ?? [],

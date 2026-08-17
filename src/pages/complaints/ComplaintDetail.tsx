@@ -1,6 +1,6 @@
 import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -27,6 +27,7 @@ import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
+import { COMPLAINT_TRIAGE_HISTORY_ENABLED } from '@/lib/featureFlags';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
@@ -36,7 +37,13 @@ import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrac
 import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
-import { ClosureQaPanel } from '@/components/complaints/ClosureQaPanel';
+import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
+import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
+import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
+import { ComplaintEntityCard } from '@/components/complaints/ComplaintEntityCard';
+
+import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
+
 // Lifecycle mutations (assign / resolve / close / escalate / severity) are
 // driven exclusively by the Complaint Management Workflow via
 // <WorkflowActionPanel>. Notification dispatch is owned by
@@ -46,6 +53,9 @@ import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintSta
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
+
 
 
 const SEVERITY_META: Record<string, { label: string; variant: any }> = {
@@ -61,16 +71,27 @@ export default function ComplaintDetail() {
   const { user } = useAuth();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+
+  // Guided navigation: `section` picks the top-level area, `sub` the Case work
+  // sub-section, so Current step can deep-link into supporting work.
+  const section = (params.get('section') as CaseSection) || 'overview';
+  const sub = (params.get('sub') as CaseWorkSection) || 'investigation';
+  const goSection = (next: CaseSection, nextSub?: CaseWorkSection) => {
+    const p = new URLSearchParams(params);
+    p.set('section', next);
+    if (nextSub) p.set('sub', nextSub);
+    setParams(p, { replace: true });
+  };
+  const openCaseWork = (nextSub: CaseWorkSection) => goSection('casework', nextSub);
 
   // Only presentation + data-helper state remains. All lifecycle mutations
   // (assign / resolve / close / escalate / notice / decision / appeal / payment)
-  // execute through <WorkflowActionPanel> in the Tracking tab.
+  // execute through <WorkflowActionPanel>, surfaced on the Current step tab.
+
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
   const [ackOpen, setAckOpen] = useState(false);
-  const [licPickerOpen, setLicPickerOpen] = useState(false);
-  const [licSearch, setLicSearch] = useState('');
-  const [stagedLicensee, setStagedLicensee] = useState<{ id: string; name: string; license_number?: string | null } | null>(null);
 
   const complaintQ = useQuery({
     queryKey: ['complaint', id],
@@ -86,19 +107,43 @@ export default function ComplaintDetail() {
   const complaint = complaintQ.data;
   const isLoading = complaintQ.isLoading;
 
+  /**
+   * Complainants can be internal staff (`profiles`) OR portal/applicant users
+   * (`pre_license_users`). Looking only in `profiles` left Name / User Type
+   * blank for every complaint filed from the applicant portal, so we resolve
+   * from both sources and derive a plain-language user type.
+   */
   const complainantQ = useQuery({
     queryKey: ['complaint_complainant', complaint?.complainant_id],
     enabled: !!complaint?.complainant_id,
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles')
-        .select('full_name, email, user_type')
-        .eq('id', complaint!.complainant_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const cid = complaint!.complainant_id as string;
+      const [staff, portal] = await Promise.all([
+        supabase.from('profiles').select('full_name, email, user_type').eq('id', cid).maybeSingle(),
+        supabase.from('pre_license_users').select('full_name, email, entity_name').eq('id', cid).maybeSingle(),
+      ]);
+      if (staff.error && portal.error) throw staff.error;
+      if (staff.data) {
+        return {
+          full_name: (staff.data as any).full_name,
+          email: (staff.data as any).email,
+          user_type_label: (staff.data as any).user_type
+            ? String((staff.data as any).user_type).replace(/_/g, ' ')
+            : 'Regulator staff',
+        };
+      }
+      if (portal.data) {
+        return {
+          full_name: (portal.data as any).full_name || (portal.data as any).entity_name,
+          email: (portal.data as any).email,
+          user_type_label: 'Applicant / Licensee user',
+        };
+      }
+      return null;
     },
   });
   const complainant = complainantQ.data;
+
 
   const complaintTypeQ = useQuery({
     queryKey: ['complaint_type', complaint?.complaint_type_id],
@@ -222,54 +267,13 @@ export default function ComplaintDetail() {
   // now execute through <WorkflowActionPanel> → `execute_complaint_workflow_action`,
   // which handles state transition, audit log, and notification-outbox rows.
 
-  const licenseeSearchQ = useQuery({
-    // Regulator-scoped, server-side search across name AND license_number.
-    // Previously limited to first 20 rows and filtered locally, which hid
-    // matches beyond page 1. We now use two targeted server queries and
-    // merge — no client-side truncation of the result set.
-    queryKey: ['licensee_search_for_complaint', licSearch, complaint?.regulator_id],
-    enabled: licPickerOpen,
-    queryFn: async () => {
-      const term = licSearch.trim();
-      const pageSize = 50;
-
-      const nameQ = (supabase as any)
-        .from('licensees')
-        .select('id, name, license_id, regulator_id, licenses:license_id(license_number)')
-        .order('name')
-        .limit(pageSize);
-      if (term) nameQ.ilike('name', `%${term}%`);
-      if (complaint?.regulator_id) nameQ.eq('regulator_id', complaint.regulator_id);
-
-      const numberQ = term
-        ? (supabase as any)
-            .from('licensees')
-            .select('id, name, license_id, regulator_id, licenses:license_id!inner(license_number)')
-            .ilike('licenses.license_number', `%${term}%`)
-            .limit(pageSize)
-        : null;
-      if (numberQ && complaint?.regulator_id) numberQ.eq('regulator_id', complaint.regulator_id);
-
-      const [nameRes, numberRes] = await Promise.all([nameQ, numberQ ?? Promise.resolve({ data: [], error: null } as any)]);
-      if (nameRes.error) throw nameRes.error;
-      if (numberRes.error) throw numberRes.error;
-      const seen = new Set<string>();
-      const merged = [...(nameRes.data ?? []), ...((numberRes.data as any[]) ?? [])]
-        .filter((l: any) => (seen.has(l.id) ? false : (seen.add(l.id), true)))
-        .map((l: any) => ({
-          id: l.id,
-          name: l.name,
-          license_number: l.licenses?.license_number ?? null,
-        }));
-      return merged;
-    },
-  });
-
-
-
+  // Entity mapping (licensed vs applicant entity), its search fallback and the
+  // link mutation all live in <ComplaintEntityCard>. This query only supplies
+  // the linked entity's display name to other panels.
   const linkedLicenseeQ = useQuery({
     queryKey: ['complaint_linked_licensee', complaint?.licensee_id],
     enabled: !!complaint?.licensee_id,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.from('licensees')
         .select('id, name, license_id, licenses:license_id(license_number)')
@@ -286,22 +290,6 @@ export default function ComplaintDetail() {
   });
 
 
-  const linkLicensee = useMutation({
-    mutationFn: async () => {
-      if (!stagedLicensee) throw new Error('Select a licensee first');
-      const { error } = await (supabase as any).rpc('link_complaint_licensee', {
-        _complaint_id: id!,
-        _licensee_id: stagedLicensee.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Licensee linked');
-      setStagedLicensee(null);
-      invalidate();
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed to link licensee'),
-  });
 
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (complaintQ.isError) return <DashboardLayout><div className="p-8"><QueryErrorState title="Failed to load complaint" error={complaintQ.error} onRetry={() => complaintQ.refetch()} /></div></DashboardLayout>;
@@ -317,6 +305,14 @@ export default function ComplaintDetail() {
   // Canonical SLA — server-computed when available (list_complaints/get_complaint
   // return sla_status); JS helper is fallback for optimistic UI.
   const slaStatus = slaBucketFromRow(complaint);
+  // Marker of the case as displayed — used only for advisory-analysis staleness.
+  const aiStaleness = {
+    status: complaint.status,
+    severity: complaint.severity,
+    updated_at: (complaint as any).updated_at ?? null,
+    resolved_at: complaint.resolved_at ?? null,
+    closed_at: (complaint as any).closed_at ?? null,
+  };
 
   return (
     <DashboardLayout>
@@ -326,7 +322,14 @@ export default function ComplaintDetail() {
           description={complaint.subject}
           actions={
             <div className="flex items-center gap-2">
-              <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
+              <HistoryButton
+                entityType="complaint"
+                entityId={complaint.id}
+                label="Audit details"
+                variant="ghost"
+                title={`Audit details — ${complaint.complaint_number}`}
+              />
+
               <Button data-rbac="complaint_management.edit" variant="outline" size="sm" onClick={() => setAckOpen(true)}>
                 <Printer className="h-4 w-4 mr-2" />Reprint acknowledgement
               </Button>
@@ -355,19 +358,155 @@ export default function ComplaintDetail() {
           onCompleted={() => complaintQ.refetch()}
         />
 
-        <Tabs defaultValue="overview">
-          <TabsList>
+        <Tabs value={section} onValueChange={(v) => goSection(v as CaseSection)}>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="investigation">Investigation</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
-            <TabsTrigger value="communications">Communications</TabsTrigger>
-            <TabsTrigger value="rfis">Information Requests</TabsTrigger>
-            <TabsTrigger value="tracking">Tracking</TabsTrigger>
-            <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
-
+            <TabsTrigger value="current">Current step</TabsTrigger>
+            <TabsTrigger value="casework">Case work</TabsTrigger>
+            <TabsTrigger value="comms">Evidence &amp; communications</TabsTrigger>
+            <TabsTrigger value="ai">AI analysis reports</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="ai" className="space-y-4">
+            {/* Advisory AI only — summarisation, suggestions and draft wording.
+                Nothing here changes status, severity, priority or outcome. */}
+            <AiReportsTab
+              description="Every AI-assisted analysis available for this complaint, in one place. These reports interpret the recorded case — they change no status, severity, priority, category or outcome."
+              blocks={[
+                {
+                  id: 'ai-complaint-summary',
+                  label: 'Case summary',
+                  hint: 'plain-language summary of the recorded case',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="complaint_summary"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI complaint case summary"
+                      actionLabel="Summarise complaint"
+                      description="A plain-language summary of the recorded case. It does not change the status, severity, priority or outcome."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-complaint-classification',
+                  label: 'Suggested categorisation',
+                  hint: 'for a case officer to consider',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="complaint_classification"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI suggested categorisation"
+                      actionLabel="Suggest categorisation"
+                      description="Suggestions for a case officer to consider. Severity and category of record stay system- and human-controlled."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-similar-complaints',
+                  label: 'Similar complaints observed',
+                  hint: 'across recorded complaints for the same licensee',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="similar_complaints"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI similar complaints observed"
+                      actionLabel="Find similar complaints"
+                      description="Similarities across recorded complaints for the same licensee. Duplicate handling stays with the existing process."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-conduct-recurrence',
+                  label: 'Recurring conduct patterns',
+                  hint: 'themes across the recorded complaint history',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="conduct"
+                      analysisType="conduct_recurrence"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI recurring conduct pattern observations"
+                      actionLabel="Review recurring themes"
+                      description="Recurring themes across the recorded complaint history. It creates no alert, rule or conduct action."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-investigation-support',
+                  label: 'Investigation support notes',
+                  hint: 'evidence gaps and lines of enquiry to consider',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="investigation_assistance"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI investigation support notes"
+                      actionLabel="Suggest lines of enquiry"
+                      description="Evidence gaps and questions for you to consider. No task is created or assigned by this analysis."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-resolution-draft',
+                  label: 'Draft response text',
+                  hint: 'suggested wording only, not saved to the case',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="resolution_draft"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI draft response text"
+                      actionLabel="Draft response text"
+                      description="Suggested wording only, not saved to the case. The outcome and final wording remain yours."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+                {
+                  id: 'ai-closure-qa',
+                  label: 'Closure quality observations',
+                  hint: 'what the closure record contains and what looks missing',
+                  node: (
+                    <SupervisoryAiPanel
+                      module="complaints"
+                      analysisType="qa_assistance"
+                      scopeId={complaint.id}
+                      label={complaint.complaint_number || 'Complaint'}
+                      title="AI closure quality observations"
+                      actionLabel="Review closure record"
+                      description="Observations on what the closure record contains and what looks missing. It cannot approve, reject or pass a QA review."
+                      stalenessFacts={aiStaleness}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </TabsContent>
+
+
           <TabsContent value="overview" className="space-y-4">
+            <ComplaintOverviewSummary
+              complaint={complaint}
+              complaintTypeName={complaintType?.name ?? null}
+              complainantName={complainant?.full_name ?? null}
+              licenseeName={linkedLicenseeQ.data?.name ?? null}
+              onOpenCurrentStep={() => goSection('current')}
+            />
+
             <Card>
               <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -404,20 +543,148 @@ export default function ComplaintDetail() {
                   </div>
                 ) : (
                   <>
-                    <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || '—'}</p></div>
+                    <div><p className="text-muted-foreground">Name</p><p>{complainant?.full_name || (complaint.email ? 'Not provided' : '—')}</p></div>
                     <div><p className="text-muted-foreground">Email</p><p>{complaint.email || complainant?.email || '—'}</p></div>
-                    <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type || '—'}</p></div>
+                    <div><p className="text-muted-foreground">User Type</p><p className="capitalize">{complainant?.user_type_label || (complaint.email ? 'Public complainant' : '—')}</p></div>
                   </>
                 )}
               </CardContent>
             </Card>
+            {attachments.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />Evidence supplied
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {attachments.length} file{attachments.length === 1 ? '' : 's'} attached — open the{' '}
+                  <span className="text-foreground font-medium">Evidence &amp; communications</span> tab to view them.
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Advisory AI now lives on its own tab so it can be presented as a
+                report. Status, severity, priority and category of record are
+                unchanged by anything there. */}
+
+
+
+            <ConductClassificationCard complaint={complaint} />
+            {COMPLAINT_TRIAGE_HISTORY_ENABLED && <TriageHistoryCard complaint={complaint} />}
+          </TabsContent>
+
+          <TabsContent value="current" className="space-y-4">
+            <ComplaintCurrentStepPanel
+              complaintId={complaint.id}
+              status={complaint.status}
+              licenseeId={(complaint as any).licensee_id ?? null}
+              onOpenSection={openCaseWork}
+            />
+          </TabsContent>
+
+          <TabsContent value="casework" className="space-y-4">
+            <div className="rounded-md border bg-muted/40 p-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                Supporting case work. Lifecycle progression stays on the <strong>Current step</strong> tab.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => goSection('current')}>Return to current step</Button>
+            </div>
+
+            <Tabs value={sub} onValueChange={(v) => goSection('casework', v as CaseWorkSection)}>
+              <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="investigation">Investigation</TabsTrigger>
+                <TabsTrigger value="rfis">Information requests</TabsTrigger>
+                <TabsTrigger value="classification">Classification &amp; case setup</TabsTrigger>
+                <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="investigation" className="space-y-4">
+                <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+                <p className="text-xs text-muted-foreground">
+                  AI investigation support notes and draft response wording are on the{' '}
+                  <strong>AI analysis reports</strong> tab.
+                </p>
+
+              </TabsContent>
+
+              <TabsContent value="classification" className="space-y-4">
+
             <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Paperclip className="h-4 w-4" />Attachments {attachments.length > 0 && <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>}</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Override severity</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Severity is assigned automatically from triage configuration. Changing it here is
+                  recorded as a supervisory override and requires a reason.
+                </p>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label>Severity</Label>
+                    <Select value={severity || complaint.severity} onValueChange={setSeverity}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SEVERITY_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button data-rbac="complaint_management.edit" onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Override</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <ComplaintEntityCard
+              complaintId={id!}
+              regulatorId={complaint.regulator_id ?? null}
+              enforcementActionId={complaint.enforcement_action_id ?? null}
+            />
+
+
+            <Card>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                These are classification and case-setup details, not lifecycle steps. The complaint only progresses
+                through the workflow action shown on the <strong>Current step</strong> tab, exactly as configured in
+                the Complaint Management Workflow.
+              </CardContent>
+            </Card>
+              </TabsContent>
+
+              <TabsContent value="rfis" className="space-y-4">
+                <ComplaintRfiTab
+                  complaintId={complaint.id}
+                  complaintNumber={complaint.complaint_number}
+                  licenseeId={(complaint as any).licensee_id ?? null}
+                  licenseeName={linkedLicenseeQ.data?.name ?? null}
+                />
+              </TabsContent>
+
+              <TabsContent value="closure" className="space-y-4">
+                <ComplaintClosureSection
+
+                  complaintId={complaint.id}
+                  status={complaint.status}
+                  onGoToCurrentStep={() => goSection('current')}
+                />
+
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          <TabsContent value="comms" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />Evidence &amp; attachments
+                  {attachments.length > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal">({attachments.length})</span>
+                  )}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Files supplied with the complaint or added during the case.</p>
+              </CardHeader>
               <CardContent className="text-sm">
                 {attachmentsQ.isError ? (
                   <QueryErrorState message="Failed to load attachments" onRetry={() => attachmentsQ.refetch()} />
                 ) : attachments.length === 0 ? (
-                  <p className="text-muted-foreground">No attachments uploaded with this complaint.</p>
+                  <p className="text-muted-foreground">No files have been attached to this complaint.</p>
                 ) : (
                   <ul className="divide-y">
                     {attachments.map((a: any) => {
@@ -428,8 +695,8 @@ export default function ComplaintDetail() {
                           <div className="min-w-0">
                             <p className="truncate font-medium">{name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatSize(f.file_size)}{f.file_size ? ' • ' : ''}
-                              {formatDateTime(a.created_at)}
+                              Added {formatDateTime(a.created_at)}
+                              {f.file_size ? ` • ${formatSize(f.file_size)}` : ''}
                             </p>
                           </div>
                           <Button size="sm" variant="outline" onClick={() => openAttachment(f.file_path)} disabled={!f.file_path}>
@@ -442,162 +709,28 @@ export default function ComplaintDetail() {
                 )}
               </CardContent>
             </Card>
-            <ConductClassificationCard complaint={complaint} />
-            <TriageHistoryCard complaint={complaint} />
-          </TabsContent>
-
-          <TabsContent value="investigation">
-            <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
-          </TabsContent>
-
-          <TabsContent value="actions" className="space-y-4">
-            {/* Triage — severity + licensee mapping remain as data helpers.
-                All lifecycle actions (assign, resolve, close, escalate, notice, decision,
-                appeal, payment) live in the Tracking tab, driven by the workflow config. */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Triage</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Label>Severity</Label>
-                    <Select value={severity || complaint.severity} onValueChange={setSeverity}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(SEVERITY_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button data-rbac="complaint_management.edit" onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {!complaint.enforcement_action_id && !complaint.licensee_id && (
-              <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Link Licensee</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Map to Licensee (required before escalation action becomes available in Tracking)</Label>
-                    <Popover open={licPickerOpen} onOpenChange={setLicPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={licPickerOpen} className="w-full justify-between font-normal">
-                          <span className="truncate">
-                            {stagedLicensee ? stagedLicensee.name : 'Search licensee by name or license #'}
-                          </span>
-                          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                        <Command shouldFilter={false}>
-                          <CommandInput placeholder="Search licensees…" value={licSearch} onValueChange={setLicSearch} />
-                          <CommandList>
-                            {licenseeSearchQ.isLoading ? (
-                              <div className="py-6 text-center text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Searching…</div>
-                            ) : (licenseeSearchQ.data ?? []).length === 0 ? (
-                              <CommandEmpty>No licensees found.</CommandEmpty>
-                            ) : (
-                              <CommandGroup>
-                                {(licenseeSearchQ.data ?? []).map((l: any) => (
-                                  <CommandItem
-                                    key={l.id}
-                                    value={l.id}
-                                    onSelect={() => {
-                                      setStagedLicensee({ id: l.id, name: l.name, license_number: l.license_number });
-                                      setLicPickerOpen(false);
-                                    }}
-                                  >
-                                    <Check className={cn('h-4 w-4 mr-2', stagedLicensee?.id === l.id ? 'opacity-100' : 'opacity-0')} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="truncate">{l.name}</div>
-                                      {l.license_number && <div className="text-[10px] text-muted-foreground font-mono">{l.license_number}</div>}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <div className="flex justify-end">
-                      <Button data-rbac="complaint_management.edit"
-                        size="sm"
-                        variant="secondary"
-                        disabled={!stagedLicensee || linkLicensee.isPending}
-                        onClick={() => linkLicensee.mutate()}
-                      >
-                        {linkLicensee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Building2 className="h-4 w-4 mr-2" />}
-                        Link Licensee
-                      </Button>
-                    </div>
-                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] flex gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <span>A licensee must be linked before this complaint can be escalated to enforcement.</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {complaint.licensee_id && linkedLicenseeQ.data && (
-              <Card>
-                <CardContent className="pt-6 text-xs flex items-start gap-2">
-                  <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{linkedLicenseeQ.data.name}</div>
-                    {linkedLicenseeQ.data.license_number && (
-                      <div className="text-muted-foreground font-mono">{linkedLicenseeQ.data.license_number}</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                Lifecycle actions (assign, resolve, close, escalate, issue notice, record response, decision,
-                appeal, payment, withdraw) are available in the <strong>Tracking</strong> tab. What's shown
-                there is decided by the Complaint Management Workflow configuration — administrators can add,
-                rename, or reorder actions without a code change.
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-
-          <TabsContent value="communications" className="space-y-4">
             <CaseThreadsPanel
               sourceType="complaint"
               sourceId={complaint.id}
               sourceReference={complaint.reference_number ?? null}
               licenseeId={(complaint as any).licensee_id ?? null}
-              title="Complaint communications"
+              title="Messages with the complainant and licensee"
             />
-            <CommunicationTimeline objectType="complaint" objectId={complaint.id} title="Outbound communications" />
-          </TabsContent>
-
-          <TabsContent value="rfis" className="space-y-4">
-            <ComplaintRfiTab
-              complaintId={complaint.id}
-              complaintNumber={complaint.complaint_number}
-              licenseeId={(complaint as any).licensee_id ?? null}
-              licenseeName={linkedLicenseeQ.data?.name ?? null}
+            <CommunicationTimeline
+              objectType="complaint"
+              objectId={complaint.id}
+              title="Emails and text messages sent"
             />
           </TabsContent>
 
 
-
-          <TabsContent value="tracking" className="space-y-4">
-            <WorkflowActionPanel complaintId={complaint.id} />
-
+          <TabsContent value="history" className="space-y-4">
             <ComplaintTrackingTimeline
               complaintId={complaint.id}
               enforcementId={complaint.enforcement_action_id ?? undefined}
             />
           </TabsContent>
 
-          <TabsContent value="closure" className="space-y-4">
-            <ClosureQaPanel complaintId={complaint.id} />
-          </TabsContent>
         </Tabs>
 
         {severityOverride && complaint && (

@@ -7,7 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import {
+  usePeerMinPeers,
+  useSavePeerMinPeers,
+  useCanManagePrudentialConfig,
+  PEER_MIN_PEERS_DEFAULT,
+  PEER_MIN_PEERS_FLOOR,
+  PEER_MIN_PEERS_CEILING,
+} from '@/hooks/usePeerSettings';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { formatDateOnly } from '@/lib/datetime';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend, ReferenceLine } from 'recharts';
+
 
 function useRatioKeys() {
   return useQuery({
@@ -98,13 +112,21 @@ function useRatioTrend(ratioKey: string | undefined, licenseeId: string | undefi
       if (rfErr) throw rfErr;
       const byId = new Map<string, { period_end_date: string | null }>();
       (rf ?? []).forEach((r: any) => byId.set(r.id, { period_end_date: r.period_end_date }));
-      return (rcr ?? [])
+      // Keep only the most recent computation per reporting period so repeated
+      // recomputations do not plot duplicate points for the same period.
+      const latest = new Map<string, { period: string; value: number; computed_at: string }>();
+      (rcr ?? [])
         .filter((r: any) => byId.has(r.return_id))
-        .map((r: any) => ({
-          period: byId.get(r.return_id)?.period_end_date || r.computed_at,
-          value: Number(r.value ?? 0),
-        }))
-        .sort((a: any, b: any) => String(a.period).localeCompare(String(b.period)));
+        .forEach((r: any) => {
+          const period = String(byId.get(r.return_id)?.period_end_date || r.computed_at);
+          const prev = latest.get(period);
+          if (!prev || String(r.computed_at ?? '') >= prev.computed_at) {
+            latest.set(period, { period, value: Number(r.value ?? 0), computed_at: String(r.computed_at ?? '') });
+          }
+        });
+      return Array.from(latest.values())
+        .map((r) => ({ period: r.period, label: formatDateOnly(r.period), value: r.value }))
+        .sort((a, b) => a.period.localeCompare(b.period));
     },
   });
 }
@@ -121,6 +143,14 @@ export default function PrudentialAnalytics() {
   const periods = periodsQuery.data ?? [];
   const trend = useRatioTrend(ratioKey, licenseeId);
   const peer = usePeerSnapshot(ratioKey, periodEnd || null);
+  const minPeersQuery = usePeerMinPeers();
+  const canManageConfig = useCanManagePrudentialConfig().data ?? false;
+  const savePeerMin = useSavePeerMinPeers();
+  const [minPeersDraft, setMinPeersDraft] = useState<string>('');
+  useEffect(() => {
+    if (minPeersQuery.data != null) setMinPeersDraft(String(minPeersQuery.data));
+  }, [minPeersQuery.data]);
+
 
   // Auto-select defaults
   useEffect(() => {
@@ -154,6 +184,14 @@ export default function PrudentialAnalytics() {
       setPeriodEnd(periods[0]);
     }
   }, [ratioKey, periods, periodEnd, periodsQuery.isFetched]);
+
+  const MIN_PEERS = minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT;
+  const peerCount = Number((peer.data as any)?.count ?? 0);
+  const entityValue = useMemo(() => {
+    if (!periodEnd || !trend.data) return null;
+    const point = (trend.data as any[]).find((d) => d.period === periodEnd);
+    return point ? Number(point.value) : null;
+  }, [trend.data, periodEnd]);
 
   const peerData = useMemo(() => {
     if (!peer.data || (peer.data as any).count === 0) return [];
@@ -208,7 +246,7 @@ export default function PrudentialAnalytics() {
               <ResponsiveContainer>
                 <LineChart data={trend.data}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
+                  <XAxis dataKey="label" />
                   <YAxis />
                   <Tooltip />
                   <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" />
@@ -218,6 +256,57 @@ export default function PrudentialAnalytics() {
           </CardContent>
         </Card>
 
+
+
+
+
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Peer comparison settings</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="w-56">
+              <Label htmlFor="min-peers">Minimum peers required to publish a distribution</Label>
+              <Input
+                id="min-peers"
+                type="number"
+                min={PEER_MIN_PEERS_FLOOR}
+                max={PEER_MIN_PEERS_CEILING}
+                value={minPeersDraft}
+                disabled={!canManageConfig || minPeersQuery.isLoading}
+                onChange={(e) => setMinPeersDraft(e.target.value)}
+              />
+            </div>
+            <Button
+              disabled={
+                !canManageConfig ||
+                savePeerMin.isPending ||
+                Number(minPeersDraft) === (minPeersQuery.data ?? PEER_MIN_PEERS_DEFAULT)
+              }
+              onClick={() => {
+                const value = Number(minPeersDraft);
+                if (!Number.isInteger(value) || value < PEER_MIN_PEERS_FLOOR || value > PEER_MIN_PEERS_CEILING) {
+                  toast.error(`Enter a whole number between ${PEER_MIN_PEERS_FLOOR} and ${PEER_MIN_PEERS_CEILING}.`);
+                  return;
+                }
+                savePeerMin.mutate(value, {
+                  onSuccess: () => toast.success(`Minimum peer count set to ${value}.`),
+                  onError: (e: any) => toast.error(e?.message || 'Could not save the minimum peer count.'),
+                });
+              }}
+            >
+              {savePeerMin.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Peer distributions are withheld until at least this many entities have filed the ratio for the selected
+              period. The floor of {PEER_MIN_PEERS_FLOOR} protects peer confidentiality and cannot be lowered.
+              {!canManageConfig && ' You do not have permission to change this setting.'}
+            </p>
+          </CardContent>
+        </Card>
+
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Peer Comparison ({(peer.data as any)?.count ?? 0} peers)</CardTitle>
@@ -225,6 +314,10 @@ export default function PrudentialAnalytics() {
           <CardContent style={{ height: 320 }}>
             {peer.isLoading ? (
               <p className="text-sm text-muted-foreground italic">Loading peer distribution…</p>
+            ) : peerCount > 0 && peerCount < MIN_PEERS ? (
+              <p className="text-sm text-muted-foreground italic">
+                Insufficient peer data — {peerCount} peer{peerCount === 1 ? '' : 's'} filed this ratio for the selected period; at least {MIN_PEERS} are required to publish a peer distribution.
+              </p>
             ) : peerData.length > 0 ? (
               <ResponsiveContainer>
                 <BarChart data={peerData}>
@@ -234,11 +327,39 @@ export default function PrudentialAnalytics() {
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  {entityValue !== null && (
+                    <ReferenceLine
+                      y={entityValue}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="4 4"
+                      label={{ value: `Selected licensee: ${entityValue}`, position: 'insideTopRight', fontSize: 11 }}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="text-sm text-muted-foreground italic">No peer data for the selected ratio and period.</p>}
           </CardContent>
         </Card>
+
+        {/* Advisory AI commentary sits after the deterministic trend and peer
+            comparison it interprets — data first, interpretation second. */}
+        <AdvisoryAiPanel
+          analysisType="peer_divergence"
+          scopeId={licenseeId || null}
+          periodKey={periodEnd || null}
+          facts={{
+            ratio: keys.find((k) => k.ratio_key === ratioKey)?.label ?? ratioKey ?? null,
+            selected_period: periodEnd || null,
+            entity_value_for_period: entityValue,
+            trend: (trend.data as any[] | undefined)?.slice(-12).map((d) => ({ period: d.period, value: d.value })) ?? [],
+            peer_statistics: peerCount >= MIN_PEERS
+              ? { sample_size: peerCount, min: (peer.data as any)?.min ?? null, median: (peer.data as any)?.median ?? null, p90: (peer.data as any)?.p90 ?? null, max: (peer.data as any)?.max ?? null }
+              : { publishable: false, minimum_sample_required: MIN_PEERS, sample_size: peerCount },
+          }}
+          ready={!!ratioKey && !!licenseeId && !trend.isLoading}
+          title="AI-assisted trend and peer commentary"
+          description="Interprets the trend and peer statistics shown on this page. Peer institutions are never identified and no value is recalculated."
+        />
       </div>
     </DashboardLayout>
   );

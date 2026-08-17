@@ -20,13 +20,15 @@ export function LandingFooter() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               {branding.logo_url ? (
-                <img src={branding.logo_url} alt={branding.site_name} className="h-7 w-7 rounded-md object-contain" />
+                <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[180px] rounded-md object-contain" />
               ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-                  <Layers className="h-3.5 w-3.5 text-primary-foreground" />
-                </div>
+                <>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+                    <Layers className="h-3.5 w-3.5 text-primary-foreground" />
+                  </div>
+                  <span className="font-bold text-foreground text-sm">{branding.site_name}</span>
+                </>
               )}
-              <span className="font-bold text-foreground text-sm">{branding.site_name}</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {branding.tagline}

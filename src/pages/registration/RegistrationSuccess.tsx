@@ -10,14 +10,15 @@ export default function RegistrationSuccess() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <SubmissionAcknowledgement
-        title="Registration Completed"
-        message="Your registration has been saved successfully. You will be able to log in once it is approved."
+        title="Registration Submitted"
+        message="Your registration has been received and is awaiting approval."
         referenceNumber={registrationReference}
         submittedAt={submittedAt}
-        status="Pending Review"
-        nextStep="Your registration will be reviewed by the regulator. You will receive an email once a decision is made."
+        status="Pending approval"
+        nextStep="The regulator will review your registration. Once approved, you will receive an email with a link to log in."
         dashboardHref="/"
-        trackHref="/registration/status"
+        dashboardLabel="Back to Home"
+        trackHref={null}
       />
     </div>
   );

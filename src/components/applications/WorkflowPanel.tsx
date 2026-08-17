@@ -168,13 +168,12 @@ function useActorsMap(actorIds: string[]) {
     queryKey: ['workflow_panel_actors', key],
     enabled: key.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', key);
+      // Secure resolver: covers staff and external (applicant) identities so
+      // actor lines never fall back to "Unknown user" for reviewer roles.
+      const { data } = await supabase.rpc('resolve_user_display_names' as any, { _ids: key });
       const map: Record<string, { name: string; email: string | null }> = {};
-      ((data as any[]) || []).forEach(p => {
-        map[p.id] = { name: p.full_name || p.email || 'Unknown user', email: p.email };
+      ((data as any[]) || []).forEach((p: any) => {
+        map[p.id] = { name: p.display_name || p.email || 'Unknown user', email: p.email };
       });
       return map;
     },

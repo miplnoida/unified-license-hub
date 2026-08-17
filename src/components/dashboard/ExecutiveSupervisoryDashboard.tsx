@@ -18,6 +18,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 import {
   ResponsiveContainer,
   BarChart,
@@ -244,6 +245,47 @@ export function ExecutiveSupervisoryDashboard() {
         <Badge variant="outline" className="gap-1">
           <TrendingUp className="h-3 w-3" /> Live — auto-refreshes every 60s
         </Badge>
+      </div>
+
+      {/* Advisory AI briefings — narrative over the figures already shown.
+          No target, alert, escalation or action is created here. */}
+      <div className="space-y-4">
+        <SupervisoryAiPanel
+          module="executive"
+          analysisType="executive_briefing"
+          scope="portfolio"
+          title="AI executive briefing"
+          actionLabel="Generate briefing"
+          description="Narrative over the portfolio figures shown on this dashboard. Every number here is calculated by the system, not by AI."
+          stalenessFacts={stats}
+        />
+        <SupervisoryAiPanel
+          module="executive"
+          analysisType="what_changed"
+          scope="portfolio"
+          title="AI change summary"
+          actionLabel="Summarise what changed"
+          description="What moved over the recent window, using only the recorded counts."
+          stalenessFacts={stats}
+        />
+        <SupervisoryAiPanel
+          module="executive"
+          analysisType="suggested_priorities"
+          scope="portfolio"
+          title="AI suggested review priorities"
+          actionLabel="Suggest priorities"
+          description="Suggestions for consideration only — no supervisory priority, action or escalation is created."
+          stalenessFacts={stats}
+        />
+        <SupervisoryAiPanel
+          module="executive"
+          analysisType="meeting_brief"
+          scope="portfolio"
+          title="AI supervisory meeting brief"
+          actionLabel="Draft talking points"
+          description="Draft talking points you can copy and edit. Nothing is saved to any record."
+          stalenessFacts={stats}
+        />
       </div>
 
       {/* Top KPI row */}

@@ -7,16 +7,30 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
-  Loader2, Sparkles, RefreshCw, AlertTriangle, Info,
+  Loader2, Sparkles, RefreshCw, AlertTriangle, Info, CircleDot,
   ThumbsUp, ThumbsDown, ShieldAlert, CheckCircle2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { formatEvidenceList } from '@/lib/evidenceLabel';
+import {
+  categoryLabel, confidenceLabel, riskLevelLabel, sectionStatusLabel,
+  severityLabel, severityTone, toEvidenceFacts, type EvidenceFact,
+} from '@/lib/licensing/aiAssessmentLabels';
 import { formatDistanceToNow } from 'date-fns';
-import { formatDateTime } from '@/lib/datetime';
+import { formatDateTime, humanizeTimestamps } from '@/lib/datetime';
+import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
+import { cleanTaxonomyText, isTaxonomyNamingNoise } from '@/lib/licensing/taxonomyNoise';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import {
+  AiReportEmptyState,
+  AiReportMetaChip,
+  AiReportNotice,
+  AiReportSection,
+  AiReportShell,
+  AiReportSkeleton,
+  AiReportSummary,
+} from '@/components/ai/report/AiReportKit';
 
 interface Props {
   applicationId: string;
@@ -57,6 +71,54 @@ interface Section {
   links?: Array<{ type?: string; id?: string; label?: string }>;
 }
 
+interface BusinessDimension {
+  key?: string;
+  label?: string;
+  rating?: string;
+  assessment?: string;
+  evidence?: string[];
+  business_implication?: string;
+}
+
+interface BusinessAssessment {
+  overall_rating?: string;
+  overall_rationale?: string;
+  dimensions?: BusinessDimension[];
+  commercial_conditions?: string[];
+  business_questions?: string[];
+  public_interest_considerations?: string[];
+}
+
+interface IntegrityCheck {
+  key?: string;
+  label?: string;
+  group?: string;
+  status?: string;
+  detail?: string;
+  values?: Array<{ label?: string; value?: string }>;
+}
+
+interface IntegrityCommentaryIssue {
+  check_key?: string;
+  severity?: string;
+  what_it_means?: string;
+  evidence?: string[];
+  suggested_verification?: string;
+}
+
+interface DataIntegrity {
+  computed_at?: string;
+  counts?: { pass?: number; warning?: number; fail?: number; not_applicable?: number };
+  checks?: IntegrityCheck[];
+  commentary?: {
+    overall_confidence?: string;
+    summary?: string;
+    material_issues?: IntegrityCommentaryIssue[];
+    decision_impact?: string;
+  } | null;
+}
+
+
 interface Assessment {
   id: string;
   application_id?: string;
@@ -75,6 +137,8 @@ interface Assessment {
   created_at: string;
   sections?: Section[];
   decision_report?: Record<string, unknown> | null;
+  business_assessment?: BusinessAssessment | null;
+  data_integrity?: DataIntegrity | null;
   analyst_decision?: string | null;
   analyst_decision_action?: string | null;
   analyst_justification?: string | null;
@@ -94,12 +158,6 @@ const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destruct
   missing_info: 'default',
   high_risk: 'destructive',
 };
-const SECTION_STATUS_LABEL: Record<string, string> = {
-  pass: 'Pass',
-  concern: 'Concern',
-  missing_info: 'Missing Info',
-  high_risk: 'High Risk',
-};
 
 const ROUTE_LABELS: Record<string, string> = {
   standard_review: 'Continue current workflow',
@@ -109,14 +167,256 @@ const ROUTE_LABELS: Record<string, string> = {
   reject_review: 'Review for possible rejection',
 };
 
-const SEVERITY_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  low: 'secondary',
-  medium: 'outline',
-  high: 'default',
-  critical: 'destructive',
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+
+const BUSINESS_RATING_LABEL: Record<string, string> = {
+  favourable: 'Favourable',
+  acceptable: 'Acceptable',
+  needs_strengthening: 'Needs strengthening',
+  adverse: 'Adverse',
+  insufficient_data: 'Insufficient data',
 };
 
-const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+const BUSINESS_RATING_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  favourable: 'secondary',
+  acceptable: 'secondary',
+  needs_strengthening: 'default',
+  adverse: 'destructive',
+  insufficient_data: 'outline',
+};
+
+const INTEGRITY_STATUS_LABEL: Record<string, string> = {
+  pass: 'Verified',
+  warning: 'Check',
+  fail: 'Discrepancy',
+  not_applicable: 'Not applicable',
+};
+
+const INTEGRITY_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  pass: 'secondary',
+  warning: 'default',
+  fail: 'destructive',
+  not_applicable: 'outline',
+};
+
+const INTEGRITY_GROUP_LABEL: Record<string, string> = {
+  fees_payment: 'Fees and payment',
+  cross_form_consistency: 'Cross-form consistency',
+  arithmetic: 'Totals and percentages',
+  date_logic: 'Date logic',
+  completeness: 'Completeness',
+  lifecycle: 'Case lifecycle',
+};
+
+const INTEGRITY_STATUS_ORDER = ['fail', 'warning', 'pass', 'not_applicable'];
+
+/** Business point-of-view assessment — advisory commercial reading of the case. */
+function BusinessAssessmentBlock({ business }: { business: BusinessAssessment }) {
+  const dimensions = Array.isArray(business.dimensions) ? business.dimensions : [];
+  const conditions = Array.isArray(business.commercial_conditions) ? business.commercial_conditions : [];
+  const questions = Array.isArray(business.business_questions) ? business.business_questions : [];
+  const publicInterest = Array.isArray(business.public_interest_considerations)
+    ? business.public_interest_considerations
+    : [];
+
+  return (
+    <AiReportSection label="Business assessment" sectionKey="key_observations" count={dimensions.length}>
+      <div className="space-y-3">
+        {(business.overall_rating || business.overall_rationale) && (
+          <div className="space-y-1.5 rounded-md border bg-card/60 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={BUSINESS_RATING_VARIANT[String(business.overall_rating || '').toLowerCase()] || 'outline'}>
+                {BUSINESS_RATING_LABEL[String(business.overall_rating || '').toLowerCase()] || 'Overall view'}
+              </Badge>
+              <span className="text-sm font-medium">Overall business view</span>
+            </div>
+            {business.overall_rationale && (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {humanizeTimestamps(business.overall_rationale)}
+              </p>
+            )}
+          </div>
+        )}
+
+        {dimensions.map((d, i) => {
+          const rating = String(d.rating || '').toLowerCase();
+          return (
+            <div
+              key={`bus-${i}`}
+              className="space-y-1.5 rounded-md border bg-card/60 p-3 transition-colors hover:border-primary/30"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={BUSINESS_RATING_VARIANT[rating] || 'outline'}>
+                  {BUSINESS_RATING_LABEL[rating] || 'Not rated'}
+                </Badge>
+                <span className="text-sm font-medium">{d.label || categoryLabel(d.key) || 'Business dimension'}</span>
+              </div>
+              {d.assessment && (
+                <p className="text-sm leading-relaxed">{humanizeTimestamps(d.assessment)}</p>
+              )}
+              <EvidenceFacts evidence={d.evidence} />
+              {d.business_implication && (
+                <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                  <span className="font-medium text-primary">Business implication: </span>
+                  {humanizeTimestamps(d.business_implication)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {conditions.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Suggested commercial conditions
+            </div>
+            <ul className="space-y-1">
+              {conditions.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {questions.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Business questions to put to the applicant
+            </div>
+            <ul className="space-y-1">
+              {questions.map((q, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{q}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {publicInterest.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Consumer and public interest considerations
+            </div>
+            <ul className="space-y-1">
+              {publicInterest.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </AiReportSection>
+  );
+}
+
+/** Deterministic data-integrity checks plus the AI's reading of their impact. */
+function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
+  const checks = Array.isArray(integrity.checks) ? integrity.checks : [];
+  const commentary = integrity.commentary || null;
+  const issues = (Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : []).filter(
+    (x) => !isTaxonomyNamingNoise([x.what_it_means, x.suggested_verification, ...(x.evidence || [])]),
+  );
+  const counts = integrity.counts || {};
+  const sorted = [...checks].sort(
+    (a, b) =>
+      INTEGRITY_STATUS_ORDER.indexOf(String(a.status || '')) -
+      INTEGRITY_STATUS_ORDER.indexOf(String(b.status || '')),
+  );
+
+  return (
+    <AiReportSection label="Data integrity checks" sectionKey="issues" count={checks.length}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {typeof counts.fail === 'number' && counts.fail > 0 && (
+            <Badge variant="destructive">{counts.fail} discrepancy{counts.fail === 1 ? '' : 'ies'}</Badge>
+          )}
+          {typeof counts.warning === 'number' && counts.warning > 0 && (
+            <Badge>{counts.warning} to check</Badge>
+          )}
+          {typeof counts.pass === 'number' && counts.pass > 0 && (
+            <Badge variant="secondary">{counts.pass} verified</Badge>
+          )}
+          {commentary?.overall_confidence && (
+            <Badge variant="outline">Data confidence: {commentary.overall_confidence}</Badge>
+          )}
+        </div>
+
+        {commentary?.summary && (
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {cleanTaxonomyText(humanizeTimestamps(commentary.summary))}
+          </p>
+        )}
+
+        {sorted.length > 0 && (
+          <div className="space-y-2">
+            {sorted.map((c, i) => {
+              const status = String(c.status || '').toLowerCase();
+              const related = issues.find((x) => x.check_key && x.check_key === c.key);
+              return (
+                <div key={`chk-${i}`} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={INTEGRITY_STATUS_VARIANT[status] || 'outline'}>
+                      {INTEGRITY_STATUS_LABEL[status] || 'Checked'}
+                    </Badge>
+                    <span className="text-sm font-medium">{c.label || categoryLabel(c.key) || 'Check'}</span>
+                    {c.group && (
+                      <Badge variant="outline" className="text-xs">
+                        {INTEGRITY_GROUP_LABEL[c.group] || categoryLabel(c.group)}
+                      </Badge>
+                    )}
+                  </div>
+                  {c.detail && <p className="text-sm leading-relaxed">{c.detail}</p>}
+                  {Array.isArray(c.values) && c.values.length > 0 && (
+                    <ul className="space-y-1 rounded-md bg-muted/40 p-2">
+                      {c.values.map((v, idx) => (
+                        <li key={idx} className="text-xs leading-relaxed">
+                          <span className="font-medium">{v.label}: </span>
+                          <span className="font-mono">{v.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {related && (
+                    <div className="space-y-1 rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                      {related.what_it_means && (
+                        <div>
+                          <span className="font-medium text-primary">What this means: </span>
+                          {humanizeTimestamps(related.what_it_means)}
+                        </div>
+                      )}
+                      {related.suggested_verification && (
+                        <div>
+                          <span className="font-medium text-primary">Suggested verification: </span>
+                          {related.suggested_verification}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {commentary?.decision_impact && (
+          <div className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
+            <span className="font-medium">Impact on the decision: </span>
+            {cleanTaxonomyText(humanizeTimestamps(commentary.decision_impact))}
+          </div>
+        )}
+      </div>
+    </AiReportSection>
+  );
+}
+
 
 function groupBySeverity(items: Finding[]) {
   const grouped: Record<string, Finding[]> = { critical: [], high: [], medium: [], low: [], other: [] };
@@ -126,6 +426,41 @@ function groupBySeverity(items: Finding[]) {
     else grouped.other.push(f);
   });
   return grouped;
+}
+
+/**
+ * Evidence shown as labelled business facts; the raw data paths stay available
+ * behind a "Technical details" toggle for anyone who needs them.
+ */
+function EvidenceFacts({ evidence }: { evidence: unknown }) {
+  const [showRaw, setShowRaw] = useState(false);
+  const facts: EvidenceFact[] = toEvidenceFacts(evidence);
+  if (!facts.length) return null;
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium">What this is based on</div>
+      <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+        {facts.map((fact, i) => (
+          <li key={i}>
+            {fact.label}
+            {fact.value ? <>: <span className="font-medium text-foreground">{fact.value}</span></> : null}
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className="text-xs underline text-muted-foreground"
+        onClick={() => setShowRaw((v) => !v)}
+      >
+        {showRaw ? 'Hide technical details' : 'Technical details'}
+      </button>
+      {showRaw && (
+        <ul className="list-disc pl-5 text-xs font-mono text-muted-foreground break-all space-y-0.5">
+          {facts.map((fact, i) => <li key={`raw-${i}`}>{fact.raw}</li>)}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 const STALE_PENDING_MS = 10 * 60 * 1000;
@@ -196,84 +531,81 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
     }
   };
 
+  const shellActions = (
+    <div className="flex items-center gap-2">
+      {assessment && (
+        <Button data-rbac="application_management.edit" size="sm" variant="outline" onClick={handleGenerate} disabled={generating}>
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <span className="ml-1">Regenerate</span>
+        </Button>
+      )}
+    </div>
+  );
+
+  const shellMeta = assessment?.status === 'completed' ? (
+    <>
+      {assessment.generated_at && (
+        <AiReportMetaChip>Prepared {formatDateTime(assessment.generated_at)}</AiReportMetaChip>
+      )}
+      {typeof assessment.confidence_score === 'number' && (
+        <AiReportMetaChip>{confidenceLabel(assessment.confidence_score)} overall</AiReportMetaChip>
+      )}
+    </>
+  ) : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" />
-            AI Analyst Assessment
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">Advisory only</Badge>
-            {assessment && (
-              <Button data-rbac="application_management.edit" size="sm" variant="ghost" onClick={handleGenerate} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-1">Regenerate</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading AI assessment…
-          </div>
-        ) : !assessment ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              AI assessment has not been generated yet.
-            </p>
+    <AiReportShell
+      title="AI Analyst Assessment"
+      description="Interprets the information already recorded on this application. Analysts still take every decision through the Workflow panel."
+      actions={shellActions}
+      meta={shellMeta}
+    >
+      {loading ? (
+        <AiReportSkeleton message="Loading AI assessment…" />
+      ) : !assessment ? (
+        <div className="space-y-3">
+          <AiReportEmptyState message="No AI assessment has been prepared for this application yet." />
+          <div className="flex justify-center">
             <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Generate assessment
             </Button>
           </div>
-        ) : assessment.status === 'pending' && !isStalePending ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> AI assessment is being generated…
-          </div>
-        ) : assessment.status === 'pending' ? (
-          <div className="space-y-3">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Generation did not complete</AlertTitle>
-              <AlertDescription>
-                This assessment was started on {formatDateTime(assessment.created_at)} and never
-                finished. You can retry the generation.
-              </AlertDescription>
-            </Alert>
-            <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-
-        ) : assessment.status === 'failed' ? (
-          <div className="space-y-3">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>AI assessment failed</AlertTitle>
-              <AlertDescription>
-                {assessment.error_message || 'The AI provider could not produce a valid response.'}
-              </AlertDescription>
-            </Alert>
-            <Button size="sm" onClick={handleGenerate} disabled={generating}>
-              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry generation
-            </Button>
-          </div>
-        ) : (
-          <CompletedView
-            assessment={assessment}
-            applicationId={applicationId}
-            currentUserId={currentUserId}
-            onDecisionSaved={fetchLatest}
-          />
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : assessment.status === 'pending' && !isStalePending ? (
+        <AiReportSkeleton message="AI assessment is being prepared…" />
+      ) : assessment.status === 'pending' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">Generation did not complete.</span>{' '}
+            This assessment was started on {formatDateTime(assessment.created_at)} and never finished. You can retry
+            the generation.
+          </AiReportNotice>
+          <Button data-rbac="application_management.edit" size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : assessment.status === 'failed' ? (
+        <div className="space-y-3">
+          <AiReportNotice tone="warning">
+            <span className="font-medium">AI assessment failed.</span>{' '}
+            {assessment.error_message || 'The AI provider could not produce a valid response.'}
+          </AiReportNotice>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Retry generation
+          </Button>
+        </div>
+      ) : (
+        <CompletedView
+          assessment={assessment}
+          applicationId={applicationId}
+          currentUserId={currentUserId}
+          onDecisionSaved={fetchLatest}
+        />
+      )}
+    </AiReportShell>
   );
 }
 
@@ -288,22 +620,23 @@ function CompletedView({
   currentUserId?: string;
   onDecisionSaved: () => void | Promise<void>;
 }) {
-  const findings = Array.isArray(assessment.findings) ? assessment.findings : [];
-  const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
-  const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
+  const findings = (Array.isArray(assessment.findings) ? assessment.findings : []).filter(
+    (f) => !isTaxonomyNamingNoise([f.title, f.description, ...(f.evidence || [])]),
+  );
+  const risks = (Array.isArray(assessment.risks) ? assessment.risks : []).filter(
+    (r) => !isTaxonomyNamingNoise([r.reason, ...(r.evidence || [])]),
+  );
+  const missing = (Array.isArray(assessment.missing_information) ? assessment.missing_information : [])
+    .filter((m) => !isTaxonomyNamingNoise([m]));
   const routing = assessment.routing_recommendation || {};
   const sections: Section[] = Array.isArray(assessment.sections) ? assessment.sections : [];
   const groupedFindings = groupBySeverity(findings);
 
   return (
     <div className="space-y-5">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>AI-assisted and advisory only</AlertTitle>
-        <AlertDescription>
-          These results are suggestions. Analysts must still take all decisions through the Workflow panel below.
-        </AlertDescription>
-      </Alert>
+      <AiReportNotice>
+        These results are suggestions. Analysts must still take all decisions through the Workflow panel.
+      </AiReportNotice>
 
       <AnalystDecisionBar
         assessment={assessment}
@@ -312,73 +645,63 @@ function CompletedView({
         onSaved={onDecisionSaved}
       />
 
-      {assessment.summary && (
-        <section>
-          <div className="text-sm font-semibold mb-1">Summary</div>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{assessment.summary}</p>
-        </section>
-      )}
+      {assessment.summary && <AiReportSummary text={cleanTaxonomyText(assessment.summary)} />}
 
       {sections.length > 0 && (
-        <>
-          <Separator />
-          <section className="space-y-2">
-            <div className="text-sm font-semibold">Section-wise review</div>
-            <div className="space-y-2">
-              {sections.map((s, i) => {
-                const status = (s.status || '').toLowerCase();
-                return (
-                  <div key={`sec-${i}`} className="rounded-md border p-3 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
-                        {SECTION_STATUS_LABEL[status] || s.status || 'unknown'}
-                      </Badge>
-                      <span className="text-sm font-medium">{s.label || s.key || 'Section'}</span>
-                      {s.risk_level && (
-                        <Badge variant="outline" className="text-xs">Risk: {s.risk_level}</Badge>
-                      )}
-                    </div>
-                    {Array.isArray(s.observations) && s.observations.length > 0 && (
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-                        {s.observations.map((o, idx) => <li key={idx}>{o}</li>)}
-                      </ul>
-                    )}
-                    {Array.isArray(s.evidence) && s.evidence.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Evidence: </span>{formatEvidenceList(s.evidence).join('; ')}
-                      </div>
-                    )}
-                    {s.suggested_action && (
-                      <div className="text-xs">
-                        <span className="font-medium">Suggested action: </span>{s.suggested_action}
-                      </div>
+        <AiReportSection label="Section-wise review" sectionKey="key_observations" count={sections.length}>
+          <div className="space-y-2">
+            {sections.map((s, i) => {
+              const status = (s.status || '').toLowerCase();
+              return (
+                <div
+                  key={`sec-${i}`}
+                  className="space-y-1.5 rounded-md border bg-card/60 p-3 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
+                      {sectionStatusLabel(s.status)}
+                    </Badge>
+                    <span className="text-sm font-medium">{s.label || categoryLabel(s.key) || 'Section'}</span>
+                    {s.risk_level && (
+                      <Badge variant="outline" className="text-xs">{riskLevelLabel(s.risk_level)}</Badge>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        </>
+                  {Array.isArray(s.observations) && s.observations.length > 0 && (
+                    <ul className="space-y-1">
+                      {s.observations.map((o, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm leading-relaxed">
+                          <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                          <span>{o}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <EvidenceFacts evidence={s.evidence} />
+                  {s.suggested_action && (
+                    <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                      <span className="font-medium text-primary">Suggested action: </span>{s.suggested_action}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </AiReportSection>
       )}
 
-      <Separator />
-
-
-
-      <section>
-        <div className="text-sm font-semibold mb-2">Routing recommendation</div>
+      <AiReportSection label="Routing recommendation" sectionKey="chronology">
         {routing.recommended_route ? (
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="space-y-2 rounded-md border bg-card/60 p-3">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge>{ROUTE_LABELS[routing.recommended_route] || routing.recommended_route}</Badge>
               {routing.recommended_action && (
-                <Badge variant="outline">Action: {routing.recommended_action}</Badge>
+                <Badge variant="outline">Suggested next step: {categoryLabel(routing.recommended_action)}</Badge>
               )}
               {typeof routing.confidence === 'number' && (
-                <Badge variant="secondary">Confidence: {(routing.confidence * 100).toFixed(0)}%</Badge>
+                <Badge variant="secondary">{confidenceLabel(routing.confidence)}</Badge>
               )}
             </div>
-            {routing.reason && <p className="text-sm text-muted-foreground">{routing.reason}</p>}
+            {routing.reason && <p className="text-sm leading-relaxed text-muted-foreground">{routing.reason}</p>}
             <AIRoutingDecisionActions
               assessment={assessment}
               currentUserId={currentUserId}
@@ -388,39 +711,46 @@ function CompletedView({
         ) : (
           <p className="text-sm text-muted-foreground">No routing recommendation provided.</p>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Findings ({findings.length})</div>
+      {assessment.business_assessment &&
+        (assessment.business_assessment.overall_rationale ||
+          (assessment.business_assessment.dimensions?.length ?? 0) > 0) && (
+          <BusinessAssessmentBlock business={assessment.business_assessment} />
+        )}
+
+      {assessment.data_integrity && (assessment.data_integrity.checks?.length ?? 0) > 0 && (
+        <DataIntegrityBlock integrity={assessment.data_integrity} />
+      )}
+
+      <AiReportSection label="Findings" sectionKey="issues" count={findings.length}>
+
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings.</p>
         ) : (
           <div className="space-y-3">
             {SEVERITY_ORDER.map((sev) =>
               groupedFindings[sev]?.length ? (
-                <div key={sev}>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{sev}</div>
+                <div key={sev} className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {severityLabel(sev)}
+                  </div>
                   <div className="space-y-2">
                     {groupedFindings[sev].map((f, idx) => (
-                      <div key={idx} className="rounded-md border p-3 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={SEVERITY_VARIANT[sev] || 'outline'}>{sev}</Badge>
-                          {f.category && <Badge variant="outline">{f.category}</Badge>}
+                      <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={severityTone(sev)}>{severityLabel(sev)}</Badge>
+                          {f.category && <Badge variant="outline">{categoryLabel(f.category)}</Badge>}
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm text-muted-foreground">{f.description}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{cleanTaxonomyText(humanizeTimestamps(f.description))}</p>
                         )}
-                        {Array.isArray(f.evidence) && f.evidence.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            <span className="font-medium">Evidence: </span>
-                            {formatEvidenceList(f.evidence).join('; ')}
-                          </div>
-                        )}
+                        <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
-                          <div className="text-xs">
-                            <span className="font-medium">Suggested action: </span>
-                            {f.analyst_action}
+                          <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                            <span className="font-medium text-primary">Suggested action: </span>
+                            {humanizeTimestamps(f.analyst_action)}
                           </div>
                         )}
                       </div>
@@ -430,11 +760,13 @@ function CompletedView({
               ) : null,
             )}
             {groupedFindings.other?.length > 0 && (
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">other</div>
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Other observations
+                </div>
                 <div className="space-y-2">
                   {groupedFindings.other.map((f, idx) => (
-                    <div key={idx} className="rounded-md border p-3 text-sm">
+                    <div key={idx} className="rounded-md border bg-card/60 p-3 text-sm">
                       {f.title || f.description || 'Finding'}
                     </div>
                   ))}
@@ -443,59 +775,67 @@ function CompletedView({
             )}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
-      <section>
-        <div className="text-sm font-semibold mb-2">Identified risks ({risks.length})</div>
+      <AiReportSection label="Identified risks" sectionKey="risks" count={risks.length}>
         {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground">No risks identified.</p>
         ) : (
           <div className="space-y-2">
             {risks.map((r, idx) => (
-              <div key={idx} className="rounded-md border p-3 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant={SEVERITY_VARIANT[(r.level || '').toLowerCase()] || 'outline'}>
-                    {r.level || 'unknown'}
+              <div key={idx} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={severityTone(r.level)}>
+                    {riskLevelLabel(r.level) || 'Not rated'}
                   </Badge>
-                  {r.risk_type && <Badge variant="outline">{r.risk_type}</Badge>}
+                  {r.risk_type && <Badge variant="outline">{categoryLabel(r.risk_type)}</Badge>}
                 </div>
-                {r.reason && <p className="text-sm text-muted-foreground">{r.reason}</p>}
-                {Array.isArray(r.evidence) && r.evidence.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Evidence: </span>
-                    {formatEvidenceList(r.evidence).join('; ')}
-                  </div>
-                )}
+                {r.reason && <p className="text-sm leading-relaxed text-muted-foreground">{humanizeTimestamps(r.reason)}</p>}
+                <EvidenceFacts evidence={r.evidence} />
               </div>
             ))}
           </div>
         )}
-      </section>
+      </AiReportSection>
 
       {missing.length > 0 && (
-        <section>
-          <div className="text-sm font-semibold mb-2">Missing information</div>
-          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+        <AiReportSection label="Missing information" sectionKey="gaps" count={missing.length}>
+          <div className="grid gap-2 sm:grid-cols-2">
             {missing.map((m, idx) => (
-              <li key={idx}>{m}</li>
+              <div key={idx} className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
+                {m}
+              </div>
             ))}
-          </ul>
-        </section>
+          </div>
+        </AiReportSection>
       )}
 
-      <Separator />
+      <AssessmentFooter assessment={assessment} />
+    </div>
+  );
+}
 
-      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
-        {assessment.generated_at && (
-          <span>Generated: {new Date(assessment.generated_at).toLocaleString()}</span>
-        )}
-        {assessment.model_provider && <span>Provider: {assessment.model_provider}</span>}
-        {assessment.model_name && <span>Model: {assessment.model_name}</span>}
-        {assessment.prompt_version && <span>Prompt: {assessment.prompt_version}</span>}
+/** Business summary line; provider/model/prompt build info stays collapsed. */
+function AssessmentFooter({ assessment }: { assessment: Assessment }) {
+  const [showTech, setShowTech] = useState(false);
+  return (
+    <div className="text-xs text-muted-foreground space-y-1">
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {assessment.generated_at && <span>Prepared {formatDateTime(assessment.generated_at)}</span>}
         {typeof assessment.confidence_score === 'number' && (
-          <span>Overall confidence: {(assessment.confidence_score * 100).toFixed(0)}%</span>
+          <span>{confidenceLabel(assessment.confidence_score)} overall</span>
         )}
+        <button type="button" className="underline" onClick={() => setShowTech((v) => !v)}>
+          {showTech ? 'Hide technical details' : 'Technical details'}
+        </button>
       </div>
+      {showTech && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono">
+          {assessment.model_provider && <span>Provider: {assessment.model_provider}</span>}
+          {assessment.model_name && <span>Model: {assessment.model_name}</span>}
+          {assessment.prompt_version && <span>Prompt: {assessment.prompt_version}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -528,6 +868,11 @@ function AnalystDecisionBar({
   onSaved: () => void | Promise<void>;
 }) {
   const [mode, setMode] = useState<'accepted' | 'overridden' | 'escalated' | null>(null);
+  const {
+    data: decisionNames,
+    isLoading: decisionNamesLoading,
+    isError: decisionNamesError,
+  } = useUserDisplayNames([assessment.analyst_decision_by]);
   const [justification, setJustification] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -624,9 +969,12 @@ function AnalystDecisionBar({
           </Badge>
           {assessment.analyst_decision_at && (
             <span className="text-xs font-normal text-muted-foreground">
-              {formatDistanceToNow(new Date(assessment.analyst_decision_at), {
-                addSuffix: true,
-              })}
+              Recorded by{' '}
+              {actorLabel(assessment.analyst_decision_by, decisionNames, {
+                isLoading: decisionNamesLoading,
+                isError: decisionNamesError,
+              })}{' '}
+              on {formatDateTime(assessment.analyst_decision_at)}
             </span>
           )}
         </AlertTitle>

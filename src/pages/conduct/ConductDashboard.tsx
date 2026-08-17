@@ -17,6 +17,7 @@ import { ConductDrillthroughPanel } from '@/components/conduct/analytics/Conduct
 import { ConductPeerComparisonPanel } from '@/components/conduct/analytics/ConductPeerComparisonPanel';
 import { SavedViewsBar } from '@/components/conduct/analytics/SavedViewsBar';
 import { useConductSavedViews } from '@/hooks/useConductSavedViews';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--info))', 'hsl(var(--success))', '#8b5cf6', '#ec4899'];
 
@@ -120,6 +121,35 @@ export default function ConductDashboard() {
     const arr = groupBy(complaints, c => licensees.find(l => l.id === c.licensee_id)?.name || '—');
     return arr.sort((a, b) => b.value - a.value).slice(0, 10);
   }, [complaints, licensees]);
+
+  // Deterministic marker of what is on screen (staleness only) and the display
+  // context handed to the advisory layer. No complainant identity is included.
+  const aiStaleness = useMemo(
+    () => ({ filters: f, counts: kpis, complaint_ids: complaints.length, alert_ids: alerts.length }),
+    [f, kpis, complaints.length, alerts.length],
+  );
+  const aiContext = useMemo(
+    () => ({
+      filters: f,
+      days: Number(f.days),
+      labels: {
+        products: Object.fromEntries(products.map((p) => [p.id, p.name])),
+        channels: Object.fromEntries(channels.map((c) => [c.id, c.name])),
+        categories: Object.fromEntries(categories.map((c) => [c.id, c.name])),
+        licensees: Object.fromEntries(licensees.map((l) => [l.id, l.name])),
+      },
+      on_screen_aggregates: {
+        kpis,
+        by_product: byProduct,
+        by_channel: byChannel,
+        by_risk_category: byCategory,
+        by_severity: bySeverity,
+        top_licensees: topLicensees,
+      },
+    }),
+    [f, products, channels, categories, licensees, kpis, byProduct, byChannel, byCategory, bySeverity, topLicensees],
+  );
+
 
   return (
     <DashboardLayout>
@@ -264,11 +294,25 @@ export default function ConductDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="trends" className="mt-4">
+          <TabsContent value="trends" className="mt-4 space-y-6">
             {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (
               <ConductTrendsPanel complaints={complaints} alerts={alerts} days={Number(f.days)} labels={labels} />
             )}
+            <SupervisoryAiPanel
+              module="conduct"
+              analysisType="conduct_recurrence"
+              scope="portfolio"
+              periodKey={`${f.days}d`}
+              ready={!loading}
+              label={`Market conduct — last ${f.days} days`}
+              title="AI recurring conduct pattern observations"
+              description="Optional interpretation of the conduct data currently filtered on this page. The charts and figures above remain the record."
+              actionLabel="Generate pattern observations"
+              stalenessFacts={aiStaleness}
+              context={aiContext}
+            />
           </TabsContent>
+
 
           <TabsContent value="drillthrough" className="mt-4">
             {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> : (

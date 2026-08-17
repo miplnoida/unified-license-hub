@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchOverridesForEntity, type RuleOverrideRow } from '@/lib/ruleOverrides';
-import { humanizeAction, computeChanges, summarizeSingle, type Change } from './humanizeAudit';
+import { humanizeAction, summarizeSingle } from './humanizeAudit';
+import { historyChanges, dayHeading, timeOfDay } from '@/lib/complaintHistoryLabels';
+
 import { History, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Props {
@@ -69,31 +71,43 @@ function badgeClass(action: string): string {
   return 'bg-muted text-muted-foreground border-border';
 }
 
-/** Compact key/value diff or single-value summary. */
-function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
+/**
+ * Change list written as sentences for non-technical readers. Internal
+ * identifiers are hidden; the raw payload stays behind a "Technical details"
+ * toggle.
+ */
+const ChangeSummary = forwardRef<HTMLDivElement, { before: unknown; after: unknown }>(function ChangeSummary(
+  { before, after },
+  ref,
+) {
   const [showRaw, setShowRaw] = useState(false);
-  const changes: Change[] = useMemo(() => computeChanges(before, after), [before, after]);
+  const changes = useMemo(() => historyChanges(before, after), [before, after]);
   const singleAfter = changes.length === 0 ? summarizeSingle(after) : null;
   const singleBefore = changes.length === 0 && !singleAfter ? summarizeSingle(before) : null;
-  const hasRaw = before !== null && before !== undefined || after !== null && after !== undefined;
+  const hasRaw = (before !== null && before !== undefined) || (after !== null && after !== undefined);
 
-  if (changes.length === 0 && !singleAfter && !singleBefore) {
+  if (changes.length === 0 && !singleAfter && !singleBefore && !hasRaw) {
     return null;
   }
 
   return (
-    <div className="mt-2 space-y-1.5">
+    <div ref={ref} className="mt-2 space-y-1.5">
       {changes.length > 0 && (
-        <div className="rounded bg-muted/40 p-2 text-sm space-y-1">
+        <ul className="space-y-1 rounded bg-muted/40 p-2 text-xs">
           {changes.map((c) => (
-            <div key={c.key} className="flex items-baseline gap-2 text-xs">
-              <span className="font-medium text-foreground/80 min-w-[110px]">{c.label}:</span>
-              <span className="text-muted-foreground line-through">{c.before}</span>
-              <span className="text-muted-foreground">→</span>
-              <span className="text-foreground font-medium">{c.after}</span>
-            </div>
+            <li key={c.key}>
+              <span className="font-medium text-foreground/80">{c.label}:</span>{' '}
+              {c.before ? (
+                <span className="text-muted-foreground">
+                  changed from <span className="text-foreground">{c.before}</span> to{' '}
+                  <span className="font-medium text-foreground">{c.after ?? 'not set'}</span>
+                </span>
+              ) : (
+                <span className="font-medium text-foreground">{c.after ?? 'not set'}</span>
+              )}
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {singleAfter && (
         <div className="rounded bg-muted/40 p-2 text-sm text-foreground whitespace-pre-wrap">
@@ -104,6 +118,9 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
         <div className="rounded bg-muted/40 p-2 text-sm text-muted-foreground whitespace-pre-wrap">
           {singleBefore}
         </div>
+      )}
+      {changes.length === 0 && !singleAfter && !singleBefore && (
+        <p className="text-xs text-muted-foreground">No business fields changed in this entry.</p>
       )}
       {hasRaw && (
         <button
@@ -122,7 +139,8 @@ function ChangeSummary({ before, after }: { before: unknown; after: unknown }) {
       )}
     </div>
   );
-}
+});
+
 
 /**
  * Right-side drawer showing the change timeline for a single domain entity,
@@ -153,6 +171,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
           .limit(200),
         (supabase.from('compliance_audit_logs') as any)
           .select('entry_id, timestamp, action_type, user_id, user_role, before_value, after_value, metadata')
+          .eq('object_type', entityType)
           .eq('object_id', entityId)
           .order('timestamp', { ascending: false })
           .limit(200),
@@ -202,9 +221,16 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
       const mid = (a.metadata as any)?.override_id;
       return !(a.action === 'RULE_OVERRIDE' && typeof mid === 'string' && overrideIds.has(mid));
     });
+    /** Same event written to both audit tables — keep one copy. */
+    const auditSignatures = new Set(
+      filteredAudits.map((a) => `${String(a.action).toLowerCase()}|${a.created_at.slice(0, 16)}`),
+    );
+    const filteredCompliance = compliance.filter(
+      (c) => !auditSignatures.has(`${String(c.action_type).toLowerCase()}|${String(c.timestamp).slice(0, 16)}`),
+    );
     const merged: TimelineEntry[] = [
       ...filteredAudits.map((row) => ({ kind: 'audit' as const, row })),
-      ...compliance.map((row) => ({ kind: 'compliance' as const, row })),
+      ...filteredCompliance.map((row) => ({ kind: 'compliance' as const, row })),
       ...overrides.map((row) => ({ kind: 'override' as const, row })),
     ];
     merged.sort((a, b) => ts(b).localeCompare(ts(a)));
@@ -224,7 +250,7 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
             <History className="h-5 w-5" />
             {title ?? 'Change history'}
           </SheetTitle>
-          <SheetDescription>Timeline of all changes and reviewer actions.</SheetDescription>
+          <SheetDescription>Full technical audit trail, including field-level changes and overrides.</SheetDescription>
         </SheetHeader>
 
         <div className="mt-3 flex items-center justify-between">
@@ -248,74 +274,66 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
             <p className="text-sm text-muted-foreground">No history recorded for this record yet.</p>
           )}
 
-          {timeline.map((e) => {
-            if (e.kind === 'override') {
-              const o = e.row;
-              return (
-                <div key={`o-${o.id}`} className="rounded-md border border-warning/40 bg-warning/5 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <ShieldAlert className="h-4 w-4 text-warning" />
-                      <Badge variant="outline" className={badgeClass('RULE_OVERRIDE')}>Rule override</Badge>
-                      <span className="text-xs font-mono">{o.rule_key}</span>
-                      <Badge variant="outline" className="text-[10px]">{o.module}</Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(o.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    By {actorLabel(o.user_id, o.user_role)}
-                  </div>
-                  <div className="mt-2 rounded bg-background/70 p-2 text-sm">
-                    <div className="text-[10px] uppercase text-muted-foreground">Reason</div>
-                    <div className="whitespace-pre-wrap">{o.reason}</div>
-                  </div>
-                  <ChangeSummary before={o.original_value} after={o.overridden_value} />
-                </div>
-              );
-            }
-            if (e.kind === 'compliance') {
-              const c = e.row;
-              return (
-                <div key={`c-${c.entry_id}`} className="rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={badgeClass(c.action_type)}>
-                        {humanizeAction(c.action_type)}
-                      </Badge>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(c.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    By {actorLabel(c.user_id, c.user_role)}
-                  </div>
-                  <ChangeSummary before={c.before_value} after={c.after_value} />
-                </div>
-              );
-            }
-            const a = e.row;
+          {timeline.map((e, idx) => {
+            const day = dayHeading(ts(e));
+            const showDay = idx === 0 || dayHeading(ts(timeline[idx - 1])) !== day;
+            const key =
+              e.kind === 'override' ? `o-${e.row.id}` : e.kind === 'compliance' ? `c-${e.row.entry_id}` : `a-${e.row.id}`;
             return (
-              <div key={`a-${a.id}`} className="rounded-md border border-border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={badgeClass(a.action)}>
-                      {humanizeAction(a.action)}
-                    </Badge>
+              <div key={key} className="space-y-2">
+                {showDay && (
+                  <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{day}</p>
+                )}
+                {e.kind === 'override' ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4 text-warning" />
+                        <Badge variant="outline" className={badgeClass('RULE_OVERRIDE')}>Rule override</Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.created_at)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)} · rule{' '}
+                      {String(e.row.rule_key || '').replace(/[._]/g, ' ')} ({String(e.row.module || '').replace(/_/g, ' ')})
+                    </div>
+                    <div className="mt-2 rounded bg-background/70 p-2 text-sm">
+                      <div className="text-[10px] uppercase text-muted-foreground">Reason given</div>
+                      <div className="whitespace-pre-wrap">{e.row.reason}</div>
+                    </div>
+                    <ChangeSummary before={e.row.original_value} after={e.row.overridden_value} />
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  By {actorLabel(a.user_id, a.user_role)}
-                </div>
-                <ChangeSummary before={a.old_value} after={a.new_value} />
+                ) : e.kind === 'compliance' ? (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="outline" className={badgeClass(e.row.action_type)}>
+                        {humanizeAction(e.row.action_type)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.timestamp)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)}
+                    </div>
+                    <ChangeSummary before={e.row.before_value} after={e.row.after_value} />
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="outline" className={badgeClass(e.row.action)}>
+                        {humanizeAction(e.row.action)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{timeOfDay(e.row.created_at)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      By {actorLabel(e.row.user_id, e.row.user_role)}
+                    </div>
+                    <ChangeSummary before={e.row.old_value} after={e.row.new_value} />
+                  </div>
+                )}
               </div>
             );
           })}
+
         </div>
       </SheetContent>
     </Sheet>

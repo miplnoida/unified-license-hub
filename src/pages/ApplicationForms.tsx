@@ -37,6 +37,7 @@ function ActiveFormFiller({
   onSubmit,
   applicationId,
   versionLocked = false,
+  stepStorageKey,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -45,7 +46,9 @@ function ActiveFormFiller({
   onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   applicationId?: string;
   versionLocked?: boolean;
+  stepStorageKey?: string;
 }) {
+
   // Backend resolver decides which version to use and pins it on first call.
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
@@ -93,6 +96,8 @@ function ActiveFormFiller({
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
+        stepStorageKey={stepStorageKey}
+
         formId={templateId}
         formVersionId={resolvedVersionId}
         submissionId={applicationId || null}
@@ -244,7 +249,18 @@ export default function ApplicationForms() {
     versionId: string | null,
   ) => {
     if (!applicationId || !appData) return;
-    const appJson = (appData as any).data || {};
+
+    // Always merge onto the CURRENT server snapshot, never a stale in-memory
+    // copy — otherwise a long editing session (e.g. after an RFI) can write
+    // back older sibling form values.
+    const { data: freshRow, error: freshErr } = await supabase
+      .from('applications')
+      .select('data')
+      .eq('id', applicationId)
+      .maybeSingle();
+    if (freshErr) throw new Error(freshErr.message);
+
+    const appJson = ((freshRow as any)?.data ?? (appData as any).data ?? {}) as Record<string, any>;
     const existingFormsData = appJson.forms_data || {};
     const existingVersionIds = appJson.form_version_ids || {};
     const updatedFormsData = { ...existingFormsData, [templateId]: data };
@@ -252,13 +268,19 @@ export default function ApplicationForms() {
       ? { ...existingVersionIds, [templateId]: versionId }
       : existingVersionIds;
 
-    await supabase.from('applications').update({
+    // `.select()` lets us detect a write that matched no row (permission /
+    // status gate) instead of showing a false "saved" confirmation.
+    const { data: written, error: writeErr } = await supabase.from('applications').update({
       data: {
         ...appJson,
         forms_data: updatedFormsData,
         form_version_ids: updatedVersionIds,
       },
-    } as any).eq('id', applicationId);
+    } as any).eq('id', applicationId).select('id');
+    if (writeErr) throw new Error(writeErr.message);
+    if (!written || written.length === 0) {
+      throw new Error('Your changes could not be saved. This application is not currently open for editing.');
+    }
 
     await markApplicationInProgressIfDraft(applicationId);
 
@@ -272,26 +294,36 @@ export default function ApplicationForms() {
   const handleFormSaveDraft = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
-    setFormProgressMap(prev => ({
-      ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data, versionId },
-    }));
-    await persistFormsData(activeFormTemplateId, data, false, versionId);
-    toast.success('Draft saved');
-    setSaving(false);
+    try {
+      await persistFormsData(activeFormTemplateId, data, false, versionId);
+      setFormProgressMap(prev => ({
+        ...prev,
+        [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data, versionId },
+      }));
+      toast.success('Draft saved');
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save your changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleFormSubmit = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
-    setFormProgressMap(prev => ({
-      ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data, versionId },
-    }));
-    await persistFormsData(activeFormTemplateId, data, true, versionId);
-    toast.success('Form completed!');
-    setActiveFormTemplateId(null);
-    setSaving(false);
+    try {
+      await persistFormsData(activeFormTemplateId, data, true, versionId);
+      setFormProgressMap(prev => ({
+        ...prev,
+        [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data, versionId },
+      }));
+      toast.success('Form completed!');
+      setActiveFormTemplateId(null);
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save your changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmitApplication = async () => {
@@ -351,6 +383,8 @@ export default function ApplicationForms() {
             onSubmit={handleFormSubmit}
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
+            stepStorageKey={`applicationFormStep:${applicationId || 'unknown'}:${activeTemplate.id}`}
+
           />
         </div>
       </DashboardLayout>
@@ -421,7 +455,7 @@ export default function ApplicationForms() {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${activeFormTemplateId === tmpl.id ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

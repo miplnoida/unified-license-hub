@@ -6,6 +6,9 @@ import type { RegField, RegFormSchema } from '@/types/registrationForm';
 
 type LookupMap = Record<string, string>; // value(id) -> label(name)
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+
 function collectFields(schema: RegFormSchema | undefined): RegField[] {
   if (!schema) return [];
   const out: RegField[] = [];
@@ -18,7 +21,15 @@ function collectFields(schema: RegFormSchema | undefined): RegField[] {
  * country, state, master data) to their human-readable labels for the review
  * screen. Falls back to the raw value if the lookup cannot be resolved.
  */
-export function useReviewValueResolver(schema: RegFormSchema | undefined) {
+export function useReviewValueResolver(
+  schema: RegFormSchema | undefined,
+  /**
+   * Submitted values for this registration. Used to resolve master-data IDs by
+   * targeted lookup — STATE/CITY types hold thousands of rows, far beyond the
+   * backend's per-request row cap, so whole-type fetches cannot be relied on.
+   */
+  submittedValues?: Record<string, unknown> | null,
+) {
   const fields = useMemo(() => collectFields(schema), [schema]);
 
   const needsCountries = fields.some(f => f.dataSource === 'country');
@@ -53,40 +64,40 @@ export function useReviewValueResolver(schema: RegFormSchema | undefined) {
     },
   });
 
-  // Unique master-data type codes used by select/multi/radio fields
-  const masterCodes = useMemo(() => {
-    const codes = new Set<string>();
+  // Master-data values are stored as item IDs. Collect only the IDs actually
+  // present in this submission and resolve those by ID — types such as STATE
+  // (~5.3k rows) and CITY (~15k rows) exceed the per-request row cap, so
+  // fetching a whole type would silently drop most labels.
+  const masterIds = useMemo(() => {
+    const values = submittedValues || {};
+    const ids = new Set<string>();
     fields.forEach(f => {
-      if (f.optionSource === 'master_data' && f.masterDataTypeCode) codes.add(f.masterDataTypeCode);
+      if (f.optionSource !== 'master_data') return;
+      const raw = (values as Record<string, unknown>)[f.fieldName];
+      const push = (v: unknown) => {
+        if (typeof v === 'string' && UUID_RE.test(v)) ids.add(v);
+      };
+      if (Array.isArray(raw)) raw.forEach(push);
+      else push(raw);
     });
-    return Array.from(codes);
-  }, [fields]);
+    return Array.from(ids).sort();
+  }, [fields, submittedValues]);
 
-  const masterQueries = useQueries({
-    queries: masterCodes.map(code => ({
-      queryKey: ['master_data_review', code],
+  const idChunks = useMemo(() => {
+    const chunks: string[][] = [];
+    for (let i = 0; i < masterIds.length; i += 100) chunks.push(masterIds.slice(i, i + 100));
+    return chunks;
+  }, [masterIds]);
+
+  const masterItemQueries = useQueries({
+    queries: idChunks.map(chunk => ({
+      queryKey: ['master_data_review_items', chunk],
+      staleTime: 5 * 60 * 1000,
       queryFn: async () => {
-        const { data: t1 } = await supabase
-          .from('master_data_types' as never)
-          .select('id')
-          .eq('code', code)
-          .eq('status', 'active')
-          .maybeSingle();
-        let typeData: any = t1;
-        if (!typeData) {
-          const { data: t2 } = await supabase
-            .from('master_data_types' as never)
-            .select('id')
-            .eq('name', code)
-            .eq('status', 'active')
-            .maybeSingle();
-          typeData = t2;
-        }
-        if (!typeData) return [] as { id: string; name: string }[];
         const { data, error } = await supabase
           .from('master_data_items' as never)
           .select('id,name')
-          .eq('type_id', (typeData as any).id);
+          .in('id', chunk);
         if (error) throw error;
         return (data || []) as unknown as { id: string; name: string }[];
       },
@@ -99,19 +110,20 @@ export function useReviewValueResolver(schema: RegFormSchema | undefined) {
       rows.forEach(r => { m[String(r.id)] = r.name; });
       return m;
     };
-    const masters: Record<string, LookupMap> = {};
-    masterCodes.forEach((code, i) => {
-      masters[code] = make((masterQueries[i]?.data as any) || []);
-    });
+    const masterItems = make(
+      masterItemQueries.flatMap(q => ((q.data as { id: string; name: string }[]) || [])),
+    );
+
     return {
       sector: make(sectors as any),
       sub_sector: make(subSectors as any),
       category: make(categories as any),
       country: make(countries as any),
       state: make(states as any),
-      masters,
+      masterItems,
     };
-  }, [sectors, subSectors, categories, countries, states, masterCodes, masterQueries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors, subSectors, categories, countries, states, masterItemQueries.map(q => q.dataUpdatedAt).join(',')]);
 
   return useMemo(() => {
     function resolveOne(field: RegField, raw: unknown): unknown {
@@ -121,9 +133,10 @@ export function useReviewValueResolver(schema: RegFormSchema | undefined) {
 
       const mapValue = (val: unknown): unknown => {
         const key = String(val);
-        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
-          return lookups.masters[field.masterDataTypeCode]?.[key] ?? val;
+        if (field.optionSource === 'master_data') {
+          return lookups.masterItems[key] ?? val;
         }
+
         if (field.dataSource && lookups[field.dataSource]) {
           return lookups[field.dataSource][key] ?? val;
         }

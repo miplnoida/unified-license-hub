@@ -11,19 +11,14 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Gavel } from 'lucide-react';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { DecisionGatesPanel } from '@/components/applications/DecisionGatesPanel';
-
-import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
+// Twin Peaks clearance is currently hidden from the Decision tab (kept for future use):
+// import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 import { DecisionDocumentPreview } from '@/components/applications/DecisionDocumentPreview';
-import { APPLICATION_STATUS_LABELS } from '@/types/platform';
 
 interface TimelineEvent {
   id: string;
@@ -47,17 +42,6 @@ interface Props {
   actions?: ReactNode;
 }
 
-const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-function Fact({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-medium">{value}</p>
-    </div>
-  );
-}
 
 export function ApproverDecisionView({
   application,
@@ -92,45 +76,12 @@ export function ApproverDecisionView({
 
   return (
     <div className="space-y-4">
-      <Card className="border-primary/30">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Gavel className="h-4 w-4 text-primary" />
-                Consolidated Decision View
-              </CardTitle>
-              <CardDescription>
-                Everything required to determine this application — readiness, gates, exposure and the documents
-                that will be issued.
-              </CardDescription>
-            </div>
-            <Badge variant="outline">
-              {APPLICATION_STATUS_LABELS[application?.status as keyof typeof APPLICATION_STATUS_LABELS] ??
-                application?.status ??
-                '—'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Fact label="Application" value={application?.application_number ?? '—'} />
-            <Fact label="Applicant" value={resolvedName || '—'} />
-            <Fact label="Licence type" value={application?.license_type ?? '—'} />
-            <Fact label="Submitted" value={fmtDate(application?.submitted_at)} />
-          </div>
-          <Separator className="my-4" />
-          <p className="text-xs text-muted-foreground">
-            Sections below are read-only decision support. The determination is recorded in the decision actions at
-            the end of this view.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* 1 — Gates */}
       <DecisionGatesPanel applicationId={application.id} />
       <SufficiencyPanel applicationId={application.id} />
-      <TwinPeaksPanel applicationId={application.id} />
+      {/* Twin Peaks clearance hidden for now (component retained for future use):
+      <TwinPeaksPanel applicationId={application.id} /> */}
+
 
 
       {/* 2 — Advisory AI assessment */}
@@ -148,7 +99,11 @@ export function ApproverDecisionView({
       />
 
       {/* 4 — Wider exposure for the same applicant */}
-      <ConsolidatedCaseTab applicationId={application.id} applicantId={application.applicant_id} />
+      <ConsolidatedCaseTab
+        applicationId={application.id}
+        applicantId={application.applicant_id}
+        hiddenSections={['other_applications', 'licenses']}
+      />
 
       {/* 5 — Documents that will be issued */}
       <DecisionDocumentPreview
@@ -158,6 +113,11 @@ export function ApproverDecisionView({
         licenseType={application.license_type ?? ''}
         submittedAt={application.submitted_at ?? null}
         defaultRationale={application.decision_rationale ?? ''}
+        applicationStatus={(application as any).status ?? null}
+        sectorId={(application as any).sector_id ?? null}
+        subSectorId={(application as any).sub_sector_id ?? null}
+        categoryId={(application as any).category_id ?? null}
+
       />
 
       {/* 6 — Decision actions */}

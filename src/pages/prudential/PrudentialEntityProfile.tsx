@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
+import { usePeerMinPeers } from '@/hooks/usePeerSettings';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { History, Download, ChevronLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreatePrudentialActionDialog } from '@/components/prudential/CreatePrudentialActionDialog';
 import { CreatePrudentialEscalationDialog } from '@/components/prudential/CreatePrudentialEscalationDialog';
 import { PrudentialEntityHistoryDrawer } from '@/components/prudential/PrudentialEntityHistoryDrawer';
@@ -21,18 +23,34 @@ import { useLicenseeGroupMembership } from '@/hooks/useFinancialGroups';
 import { EwiPanel } from '@/components/prudential/EwiPanel';
 import { readPeerState, RATIO_RESULT_STATE_LABEL, deriveRatioResultState } from '@/lib/prudentialPhase2';
 import { EntityExaminationsTab } from '@/components/prudential/examination/EntityExaminationsTab';
-import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
+import { AdvisoryAiPanel } from '@/components/prudential/AdvisoryAiPanel';
+import { SupervisoryAiPanel } from '@/components/ai/SupervisoryAiPanel';
+import { AiReportsTab } from '@/components/ai/report/AiReportsTab';
 
-const RISK_TONE: Record<string, string> = {
-  critical: 'bg-destructive/10 text-destructive border-destructive/30',
-  red: 'bg-destructive/10 text-destructive border-destructive/30',
-  high: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  amber: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  medium: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  warn: 'bg-amber-500/10 text-amber-700 border-amber-200',
-  breach: 'bg-destructive/10 text-destructive border-destructive/30',
-  low: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-};
+import { RiskScoreTab } from '@/components/prudential/RiskScoreTab';
+
+import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib/prudentialSeverity';
+import { formatDateOnly, formatDateTime } from '@/lib/datetime';
+import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import {
+  humanizeToken,
+  stressSeverityLabel,
+
+  returnStatusLabel,
+  isSubmittedReturnStatus,
+  isRatedAssessmentStatus,
+  assessmentStatusLabel,
+  actionTypeLabel,
+  actionStatusLabel,
+  escalationTypeLabel,
+  escalationStatusLabel,
+  auditObjectLabel,
+  auditActionLabel,
+  groupMemberRoleLabel,
+  consolidationTreatmentLabel,
+  formatObservedValue,
+} from '@/lib/prudentialLabels';
+
 
 function formatRatio(value: any, fmt?: string) {
   const n = Number(value);
@@ -78,6 +96,10 @@ export default function PrudentialEntityProfile() {
   const { data, isLoading, refetch } = useEntityHistoricalProfile(id);
   const evalStress = useEvaluateStressForReturn();
   const audit = useEntityAuditHistory(id);
+  const auditActorNames = useUserDisplayNames(
+    ((audit.data as any[]) || []).map((a: any) => a.user_id),
+  );
+
   const [createAction, setCreateAction] = useState<any>(null);
   const [createEscalation, setCreateEscalation] = useState<any>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -143,12 +165,76 @@ export default function PrudentialEntityProfile() {
   if (isLoading || !data?.entity) return <DashboardLayout><div>Loading…</div></DashboardLayout>;
   const e: any = data.entity;
   const latestAssess = data.assessments?.[0];
+  // Overview must distinguish supervisory facts from work-in-progress:
+  // only submitted/validated returns and rated assessments count.
+  const latestSubmittedReturn = (data.returns || []).find((r: any) =>
+    isSubmittedReturnStatus(r.workflow_status || r.status),
+  );
+  const latestDraftReturn = (data.returns || []).find((r: any) =>
+    !isSubmittedReturnStatus(r.workflow_status || r.status),
+  );
+  const latestRatedAssess = (data.assessments || []).find((a: any) => isRatedAssessmentStatus(a.status));
+
   const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
   const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
   const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
   const worstBreachSev = worstSeverity(
     (data.breaches || []).map((b: any) => b.risk_level || b.severity || b.level),
   );
+
+  // ---- Advisory AI inputs -------------------------------------------------
+  // Only facts the deterministic engines have already produced are shared with
+  // the advisory layer. Nothing here changes what is displayed above.
+  const latestRatioFacts = (() => {
+    const byKey: Record<string, any> = {};
+    (data.ratios || []).forEach((r: any) => {
+      const cur = byKey[r.ratio_key];
+      if (!cur || String(r.computed_at || '') > String(cur.computed_at || '')) byKey[r.ratio_key] = r;
+    });
+    return Object.values(byKey).map((r: any) => ({
+      ratio: r.label || r.ratio_key,
+      value: formatRatio(r.value, r.display_format),
+      calculated_at: r.computed_at ?? null,
+    }));
+  })();
+
+  const overviewFacts = {
+    entity_sector_id: e.sector_id ?? null,
+    latest_submitted_return_period: latestSubmittedReturn?.period_end_date ?? null,
+    latest_rating: latestRatedAssess?.overall_rating ?? null,
+    worst_breach_severity: worstBreachSev ? severityLabel(worstBreachSev) : null,
+    breach_count: (data.breaches || []).length,
+    breaches_by_severity: (data.breaches || []).reduce((acc: Record<string, number>, b: any) => {
+      const key = severityLabel(b.risk_level || b.severity || b.level) || 'Unclassified';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {}),
+    open_actions: openActions.length,
+    overdue_actions: overdueActions.length,
+    open_escalations: openEsc.length,
+    unresolved_stress_events: (data.stress_events || []).filter((s: any) => !s.resolved_at).length,
+    latest_ratios: latestRatioFacts,
+  };
+
+  const trendFacts = {
+    periods: ratioTrend.slice(-8).map((p: any) => {
+      const { period, ...values } = p;
+      const labelled: Record<string, number> = {};
+      Object.entries(values).forEach(([k, v]) => {
+        labelled[ratioLabels[k]?.label ?? k] = v as number;
+      });
+      return { period, ratios: labelled };
+    }),
+    breaches: (data.breaches || []).slice(0, 40).map((b: any) => ({
+      metric: b.metric_key || b.ratio_key || null,
+      severity: severityLabel(b.risk_level || b.severity || b.level) || null,
+      observed_value: b.value ?? b.observed_value ?? null,
+      threshold_value: b.threshold_value ?? null,
+      acknowledged: !!b.acknowledged_at,
+    })),
+  };
+
+
 
   const exportProfile = async () => {
     await authorizedExport('prudential_supervision', 'export', { entity: e.name });
@@ -192,11 +278,18 @@ export default function PrudentialEntityProfile() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{e.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            License: <Badge variant="outline">{e.status || '—'}</Badge>{' '}
-            {e.systemic_importance && <>· Systemic: <Badge>{e.systemic_importance}</Badge></>}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>License status:</span>
+            <Badge variant="outline">{e.status ? humanizeToken(e.status) : '—'}</Badge>
+            {e.systemic_importance && (
+              <>
+                <span>· Systemic importance:</span>
+                <Badge>{humanizeToken(e.systemic_importance)}</Badge>
+              </>
+            )}
+          </div>
         </div>
+
         <div className="flex gap-2">
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
           <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
@@ -208,7 +301,11 @@ export default function PrudentialEntityProfile() {
       <Tabs defaultValue="overview">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="ai-reports">AI Analysis Reports</TabsTrigger>
+          <TabsTrigger value="risk">Risk Heatmap</TabsTrigger>
+
           <TabsTrigger value="returns">Historical Returns</TabsTrigger>
+
           <TabsTrigger value="ratios">Ratios & Trends</TabsTrigger>
           <TabsTrigger value="breaches">Breaches</TabsTrigger>
           <TabsTrigger value="ewi">Early Warning</TabsTrigger>
@@ -222,12 +319,122 @@ export default function PrudentialEntityProfile() {
           <TabsTrigger value="audit">Audit History</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="risk">
+          <RiskScoreTab entityId={e.id} entityName={e.name} />
+        </TabsContent>
+
+        <TabsContent value="ai-reports">
+          {/* Read-only presentation of every AI-assisted analysis for this entity.
+              Reads existing prudential, examination, complaint and enforcement
+              records; changes none of them. */}
+          <AiReportsTab
+            blocks={[
+              {
+                id: 'ai-entity-brief',
+                label: 'Entity supervisory brief',
+                hint: 'cross-module view of risk, examinations, complaints and enforcement',
+                node: (
+                  <SupervisoryAiPanel
+                    module="cross_module"
+                    analysisType="entity_supervisory_brief"
+                    scope="entity"
+                    scopeId={e.id}
+                    label={e.name}
+                    title="AI entity supervisory brief"
+                    actionLabel="Generate brief"
+                    description="A single view across risk, examinations, complaints and enforcement for this entity. It changes no rating, finding, case or decision."
+                    stalenessFacts={{ entity: e.id, updated_at: (e as any).updated_at ?? null }}
+                  />
+                ),
+              },
+              {
+                id: 'ai-risk-interpretation',
+                label: 'Risk interpretation',
+                hint: 'plain-language reading of the supervisory picture',
+                node: (
+                  <AdvisoryAiPanel
+                    analysisType="risk_interpretation"
+                    scopeId={e.id}
+                    periodKey={latestSubmittedReturn?.period_end_date ?? null}
+                    label={e.name}
+                    facts={overviewFacts}
+                    title="AI-assisted risk interpretation"
+                    description="Explains the supervisory picture in plain language. Scores, ratings, breaches and counts remain calculated by the system."
+                  />
+                ),
+              },
+              {
+                id: 'ai-trend-commentary',
+                label: 'Trend commentary',
+                hint: 'movement in the charted ratios',
+                node: (
+                  <AdvisoryAiPanel
+                    analysisType="trend_commentary"
+                    scopeId={e.id}
+                    periodKey={ratioTrend.length ? String((ratioTrend[ratioTrend.length - 1] as any).period) : null}
+                    label={e.name}
+                    facts={trendFacts}
+                    ready={ratioTrend.length > 0}
+                    disabledReason="Available once ratios have been computed for at least one period."
+                    title="AI-assisted trend commentary"
+                    description="Narrative on the movement in the ratios charted under Ratios & Trends. Every ratio value and threshold state is calculated by the system."
+                  />
+                ),
+              },
+              {
+                id: 'ai-ask-entity',
+                label: 'Ask about this entity',
+                hint: 'governed question and answer over records you may already see',
+                node: (
+                  <SupervisoryAiPanel
+                    module="cross_module"
+                    analysisType="supervisory_query"
+                    scope="entity"
+                    scopeId={e.id}
+                    label={e.name}
+                    title="Ask about this entity"
+                    actionLabel="Ask"
+                    askable
+                    description="Answers come only from records you are already permitted to see. Asking a question changes nothing."
+                    stalenessFacts={{ entity: e.id, ask: true }}
+                  />
+                ),
+              },
+            ]}
+          />
+        </TabsContent>
+
         <TabsContent value="overview">
           <div className="grid md:grid-cols-4 gap-3">
-            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest return</CardTitle></CardHeader>
-              <CardContent className="text-sm">{data.returns[0]?.period_end_date || '—'}<br /><Badge variant="outline">{data.returns[0]?.workflow_status || data.returns[0]?.status || '—'}</Badge></CardContent></Card>
+            <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest submitted return</CardTitle></CardHeader>
+              <CardContent className="text-sm">
+                {latestSubmittedReturn ? (
+                  <>
+                    {formatDateOnly(latestSubmittedReturn.period_end_date)}<br />
+                    <Badge variant="outline">{returnStatusLabel(latestSubmittedReturn.workflow_status || latestSubmittedReturn.status)}</Badge>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">No submitted return</span>
+                )}
+                {latestDraftReturn && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Draft in progress: {formatDateOnly(latestDraftReturn.period_end_date)}
+                  </div>
+                )}
+              </CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Latest rating</CardTitle></CardHeader>
-              <CardContent className="text-sm">{latestAssess?.overall_rating || '—'}<br /><span className="text-xs text-muted-foreground">{latestAssess?.status || 'no assessment'}</span></CardContent></Card>
+              <CardContent className="text-sm">
+                {latestRatedAssess ? (
+                  <>
+                    {latestRatedAssess.overall_rating || 'Not rated'}<br />
+                    <span className="text-xs text-muted-foreground">{assessmentStatusLabel(latestRatedAssess.status)}</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {latestAssess ? `Draft assessment in progress` : 'No assessment'}
+                  </span>
+                )}
+              </CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Worst breach</CardTitle></CardHeader>
               <CardContent className="text-sm">{worstBreachSev ? <Badge variant="outline" className={severityTone(worstBreachSev)}>{severityLabel(worstBreachSev)}</Badge> : '—'}</CardContent></Card>
             <Card><CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Open actions</CardTitle></CardHeader>
@@ -239,6 +446,8 @@ export default function PrudentialEntityProfile() {
           </div>
         </TabsContent>
 
+
+
         <TabsContent value="returns">
           <Card><CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Return</TableHead><TableHead>Period end</TableHead><TableHead>Submitted</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -246,9 +455,10 @@ export default function PrudentialEntityProfile() {
                 {data.returns.map((r: any) => (
                   <TableRow key={r.id}>
                     <TableCell><Link className="text-primary underline" to={`/returns-management/${r.id}`}>{r.unique_id || r.id.slice(0,8)}</Link></TableCell>
-                    <TableCell>{r.period_end_date}</TableCell>
-                    <TableCell>{r.submit_date ? new Date(r.submit_date).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{r.workflow_status || r.status}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(r.period_end_date)}</TableCell>
+                    <TableCell>{formatDateTime(r.submit_date)}</TableCell>
+                    <TableCell><Badge variant="outline">{returnStatusLabel(r.workflow_status || r.status)}</Badge></TableCell>
+
                     <TableCell className="text-right">
                       <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={async () => { await evalStress.mutateAsync(r.id); refetch(); }}>Evaluate stress</Button>
                     </TableCell>
@@ -427,7 +637,9 @@ export default function PrudentialEntityProfile() {
               </>
             );
           })()}
+
         </TabsContent>
+
 
 
         <TabsContent value="breaches">
@@ -526,12 +738,13 @@ export default function PrudentialEntityProfile() {
               <TableBody>
                 {data.assessments.map((a: any) => (
                   <TableRow key={a.id}>
-                    <TableCell>{a.period_start} → {a.period_end}</TableCell>
-                    <TableCell><Badge>{a.overall_rating || '—'}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(a.period_start)} → {formatDateOnly(a.period_end)}</TableCell>
+                    <TableCell><Badge variant="outline">{a.overall_rating || 'Not rated'}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{assessmentStatusLabel(a.status)}</Badge></TableCell>
                     <TableCell className="text-right"><Link className="text-primary underline" to={`/prudential/assessments/${a.id}`}>Open</Link></TableCell>
                   </TableRow>
                 ))}
+
                 {!data.assessments.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No assessments.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
@@ -544,12 +757,15 @@ export default function PrudentialEntityProfile() {
                 {data.actions.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell>{a.title}</TableCell>
-                    <TableCell>{a.action_type}</TableCell>
-                    <TableCell><Badge className={RISK_TONE[a.severity] || ''}>{a.severity}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{a.status}</Badge></TableCell>
-                    <TableCell>{a.due_date || '—'}</TableCell>
+                    <TableCell>{actionTypeLabel(a.action_type)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={severityTone(a.severity)}>{stressSeverityLabel(a.severity)}</Badge>
+                    </TableCell>
+                    <TableCell><Badge variant="outline">{actionStatusLabel(a.status)}</Badge></TableCell>
+                    <TableCell>{formatDateOnly(a.due_date)}</TableCell>
                   </TableRow>
                 ))}
+
                 {!data.actions.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No actions.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
@@ -561,13 +777,14 @@ export default function PrudentialEntityProfile() {
               <TableBody>
                 {data.escalations.map((es: any) => (
                   <TableRow key={es.id}>
-                    <TableCell>{es.escalation_type}</TableCell>
+                    <TableCell>{escalationTypeLabel(es.escalation_type)}</TableCell>
                     <TableCell className="max-w-md truncate">{es.reason}</TableCell>
-                    <TableCell><Badge variant="outline">{es.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{escalationStatusLabel(es.status)}</Badge></TableCell>
                     <TableCell className="max-w-xs truncate">{es.decision || '—'}</TableCell>
-                    <TableCell>{es.decided_at ? new Date(es.decided_at).toLocaleDateString() : '—'}</TableCell>
+                    <TableCell>{formatDateTime(es.decided_at)}</TableCell>
                   </TableRow>
                 ))}
+
                 {!data.escalations.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No escalations.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
@@ -577,16 +794,32 @@ export default function PrudentialEntityProfile() {
           <Card><CardContent className="pt-4">
             <Table><TableHeader><TableRow><TableHead>Indicator</TableHead><TableHead>Metric</TableHead><TableHead>Observed</TableHead><TableHead>Severity</TableHead><TableHead>Triggered</TableHead><TableHead>Resolved</TableHead></TableRow></TableHeader>
               <TableBody>
-                {(data.stress_events || []).map((s: any) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.prudential_stress_indicators?.label || s.indicator_id}</TableCell>
-                    <TableCell>{s.prudential_stress_indicators?.metric_key || '—'}</TableCell>
-                    <TableCell className="tabular-nums">{s.observed_value ?? '—'}</TableCell>
-                    <TableCell><Badge className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>{s.prudential_stress_indicators?.severity || '—'}</Badge></TableCell>
-                    <TableCell>{new Date(s.triggered_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{s.resolved_at ? new Date(s.resolved_at).toLocaleDateString() : '—'}</TableCell>
-                  </TableRow>
-                ))}
+                {(data.stress_events || []).map((s: any) => {
+                  const ind = s.prudential_stress_indicators;
+                  const metricKey = ind?.metric_key || s.metric_key;
+                  const metricMeta = metricKey ? ratioLabels[metricKey] : undefined;
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell>{ind?.label || 'Stress indicator'}</TableCell>
+                      <TableCell>{metricMeta?.label || (metricKey ? metricKey.replace(/_/g, ' ') : '—')}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {s.observed_value == null
+                          ? '—'
+                          : metricMeta?.fmt
+                            ? formatRatio(s.observed_value, metricMeta.fmt)
+                            : formatObservedValue(s.observed_value)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={severityTone(ind?.severity)}>
+                          {ind?.severity ? stressSeverityLabel(ind.severity) : '—'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDateTime(s.triggered_at)}</TableCell>
+                      <TableCell>{formatDateTime(s.resolved_at)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+
                 {!(data.stress_events || []).length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No stress events.</TableCell></TableRow>}
               </TableBody></Table>
           </CardContent></Card>
@@ -617,11 +850,12 @@ export default function PrudentialEntityProfile() {
                   <TableBody>
                     {audit.data.slice(0, 200).map((a: any) => (
                       <TableRow key={a.entry_id}>
-                        <TableCell className="whitespace-nowrap">{new Date(a.timestamp).toLocaleString()}</TableCell>
-                        <TableCell>{a.action_type}</TableCell>
-                        <TableCell>{a.object_type}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDateTime(a.timestamp)}</TableCell>
+                        <TableCell>{auditActionLabel(a.action_type)}</TableCell>
+                        <TableCell>{auditObjectLabel(a.object_type)}</TableCell>
                         <TableCell className="max-w-md truncate">{a.justification || '—'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{a.user_id?.slice(0,8) || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{actorLabel(a.user_id, auditActorNames.data, { isLoading: auditActorNames.isLoading, isError: auditActorNames.isError })}</TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
@@ -675,7 +909,7 @@ export default function PrudentialEntityProfile() {
                                 {severityLabel(b.risk_level || b.level)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {b.detected_at ? new Date(b.detected_at).toLocaleDateString() : ''}
+                                {formatDateTime(b.detected_at, '')}
                               </span>
                             </div>
                             <div className="text-xs">
@@ -696,10 +930,11 @@ export default function PrudentialEntityProfile() {
                         {stressEvents.map((s: any) => (
                           <div key={s.id} className="rounded-md border p-2 text-xs flex items-center justify-between">
                             <span>{s.prudential_stress_indicators?.label || s.metric_key}</span>
-                            <Badge variant="outline" className={RISK_TONE[s.prudential_stress_indicators?.severity] || ''}>
-                              {s.prudential_stress_indicators?.severity || 'triggered'}
+                            <Badge variant="outline" className={severityTone(s.prudential_stress_indicators?.severity)}>
+                              {s.prudential_stress_indicators?.severity ? stressSeverityLabel(s.prudential_stress_indicators.severity) : 'Triggered'}
                             </Badge>
                           </div>
+
                         ))}
                       </div>
                     </div>
@@ -709,11 +944,12 @@ export default function PrudentialEntityProfile() {
                     <div>
                       <div className="text-xs font-medium text-muted-foreground mb-1">Source return</div>
                       <div className="rounded-md border p-2 text-xs space-y-1">
-                        <div className="flex justify-between"><span>ID</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
-                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{rf.workflow_status}</Badge></div>
+                        <div className="flex justify-between"><span>Reference</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
+                        <div className="flex justify-between"><span>Status</span><Badge variant="outline">{returnStatusLabel(rf.workflow_status || rf.status)}</Badge></div>
                         <Button asChild size="sm" variant="outline" className="w-full mt-2">
-                          <Link to={`/admin/returns/queue/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
+                          <Link to={`/returns-management/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
                         </Button>
+
                       </div>
                     </div>
                   )}
@@ -730,58 +966,203 @@ export default function PrudentialEntityProfile() {
 
 // --- Peer Comparison tab (uses usePeerSnapshot per ratio_key) ---
 function PeerComparisonTab({ entity, ratios, returns }: { entity: any; ratios: any[]; returns: any[] }) {
-  // Latest computed ratio per ratio_key, plus its period_end from returns.
   const returnsById = useMemo(() => {
     const m: Record<string, any> = {};
     (returns || []).forEach((r) => { m[r.id] = r; });
     return m;
   }, [returns]);
-  const latestByKey = useMemo(() => {
+
+  const { data: minPeers } = usePeerMinPeers();
+
+  /** Reporting periods that actually carry computed ratios, newest first. */
+  const periods = useMemo(() => {
+    const set = new Set<string>();
+    (ratios || []).forEach((r: any) => {
+      const p = returnsById[r.return_id]?.period_end_date;
+      if (p) set.add(p);
+    });
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [ratios, returnsById]);
+
+  const [period, setPeriod] = useState<string | null>(null);
+  const [manualPeriod, setManualPeriod] = useState(false);
+  const [basis, setBasis] = useState<'sector_category' | 'sector'>('sector_category');
+  const [peerFacts, setPeerFacts] = useState<Record<string, any>>({});
+
+  const selectedPeriod = period ?? periods[0] ?? null;
+
+  const onSnapshot = useCallback((ratioKey: string, fact: any) => {
+    setPeerFacts((prev) => (JSON.stringify(prev[ratioKey]) === JSON.stringify(fact) ? prev : { ...prev, [ratioKey]: fact }));
+  }, []);
+
+  // Snapshots are period + basis specific — never mix them across selections.
+  useEffect(() => { setPeerFacts({}); }, [selectedPeriod, basis]);
+
+  /** Latest computed ratio per ratio_key inside the selected period only. */
+  const rows = useMemo(() => {
     const byKey: Record<string, any> = {};
     (ratios || []).forEach((r: any) => {
+      if (returnsById[r.return_id]?.period_end_date !== selectedPeriod) return;
       const cur = byKey[r.ratio_key];
-      const ts = r.computed_at || returnsById[r.return_id]?.period_end_date;
-      const curTs = cur ? (cur.computed_at || returnsById[cur.return_id]?.period_end_date) : null;
-      if (!cur || (ts && (!curTs || ts > curTs))) byKey[r.ratio_key] = r;
+      if (!cur || (r.computed_at && (!cur.computed_at || r.computed_at > cur.computed_at))) byKey[r.ratio_key] = r;
     });
-    return byKey;
-  }, [ratios, returnsById]);
-  const rows = Object.values(latestByKey) as any[];
-  if (!rows.length) return (
+    return Object.values(byKey) as any[];
+  }, [ratios, returnsById, selectedPeriod]);
+
+  const allLoaded = rows.length > 0 && rows.every((r) => peerFacts[r.ratio_key] !== undefined);
+  const comparable = Object.values(peerFacts).filter((f: any) => f?.peer_comparison_available);
+  const maxSampleSeen = Object.values(peerFacts).reduce(
+    (acc: number, f: any) => Math.max(acc, Number(f?.peer_sample_size ?? f?.peers_reported ?? 0) || 0),
+    0,
+  );
+
+  // When the newest period has no publishable peer sample, fall back to the
+  // most recent period that does instead of leaving the tab empty.
+  useEffect(() => {
+    if (manualPeriod || !allLoaded || comparable.length > 0 || !selectedPeriod) return;
+    const idx = periods.indexOf(selectedPeriod);
+    const next = periods[idx + 1];
+    if (next) setPeriod(next);
+  }, [manualPeriod, allLoaded, comparable.length, selectedPeriod, periods]);
+
+  if (!periods.length || !selectedPeriod) return (
     <Card><CardContent className="pt-4 text-sm text-muted-foreground">No ratios available for peer comparison.</CardContent></Card>
   );
+
+  const disabledReason = !comparable.length
+    ? allLoaded
+      ? `No ratio has a publishable peer sample for ${selectedPeriod} on this basis (${maxSampleSeen} peer${maxSampleSeen === 1 ? '' : 's'} reported, minimum ${minPeers ?? 3}). Choose an earlier period or compare at sector level.`
+      : 'Checking peer samples for this period…'
+    : undefined;
+
   return (
-    <Card><CardContent className="pt-4">
-      <Table>
-        <TableHeader><TableRow>
-          <TableHead>Ratio</TableHead><TableHead>Period</TableHead>
-          <TableHead className="text-right">Entity</TableHead>
-          <TableHead className="text-right">Peer Median</TableHead>
-          <TableHead className="text-right">Peer P90</TableHead>
-          <TableHead className="text-right">Peer Range</TableHead>
-          <TableHead className="text-right">Sample</TableHead>
-          <TableHead className="text-right">Δ vs Median</TableHead>
-        </TableRow></TableHeader>
-        <TableBody>
-          {rows.map((r) => (
-            <PeerRow key={r.ratio_key} row={r} entity={entity} period={returnsById[r.return_id]?.period_end_date} />
-          ))}
-        </TableBody>
-      </Table>
-    </CardContent></Card>
+    <div className="space-y-4">
+      <Card><CardContent className="pt-4 flex flex-wrap items-end gap-4">
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Reporting period</div>
+          <Select
+            value={selectedPeriod}
+            onValueChange={(v) => { setManualPeriod(true); setPeriod(v); }}
+          >
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">Peer group</div>
+          <Select value={basis} onValueChange={(v) => setBasis(v as any)}>
+            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sector_category">Same sector and category</SelectItem>
+              <SelectItem value="sector">Same sector (wider sample)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <p className="text-xs text-muted-foreground max-w-xl">
+          Peer statistics are published only when at least {minPeers ?? 3} peers reported the same ratio for the
+          selected period. Peer institutions are never identified.
+        </p>
+      </CardContent></Card>
+
+      {!rows.length ? (
+        <Card><CardContent className="pt-4 text-sm text-muted-foreground">No computed ratios for {selectedPeriod}.</CardContent></Card>
+      ) : (
+      <Card><CardContent className="pt-4">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Ratio</TableHead><TableHead>Period</TableHead>
+            <TableHead className="text-right">Entity</TableHead>
+            <TableHead className="text-right">Peer Median</TableHead>
+            <TableHead className="text-right">Peer P90</TableHead>
+            <TableHead className="text-right">Peer Range</TableHead>
+            <TableHead className="text-right">Sample</TableHead>
+            <TableHead className="text-right">Δ vs Median</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {rows.map((r) => (
+              <PeerRow
+                key={`${basis}|${selectedPeriod}|${r.ratio_key}`}
+                row={r}
+                entity={entity}
+                period={selectedPeriod}
+                basis={basis}
+                onSnapshot={onSnapshot}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
+      )}
+
+      <AdvisoryAiPanel
+        analysisType="peer_divergence"
+        scopeId={entity.id}
+        periodKey={selectedPeriod}
+        label={entity.name}
+        facts={{
+          period: selectedPeriod,
+          peer_basis: basis === 'sector'
+            ? 'Sector peer group, aggregate statistics only'
+            : 'Sector and category peer group, aggregate statistics only',
+          ratios: comparable,
+        }}
+        ready={comparable.length > 0}
+        disabledReason={disabledReason}
+        title="AI-assisted peer comparison commentary"
+        description={comparable.length
+          ? 'Interprets where this entity sits against published peer aggregates. Peer institutions are never identified and no peer statistic is recalculated.'
+          : 'Available once at least one ratio has a publishable peer sample for the selected period.'}
+      />
+    </div>
   );
 }
 
-function PeerRow({ row, entity, period }: { row: any; entity: any; period?: string }) {
-  // Peer group is narrowed to the entity's sector + category server-side; the
-  // RPC refuses to publish statistics below the minimum peer sample.
-  const peer = usePeerSnapshot(row.ratio_key, period || null, entity.sector_id || null, entity.id);
+
+function PeerRow({ row, entity, period, basis = 'sector_category', onSnapshot }: {
+  row: any;
+  entity: any;
+  period?: string;
+  basis?: 'sector_category' | 'sector';
+  onSnapshot?: (ratioKey: string, fact: any) => void;
+}) {
+  // Passing the entity narrows the peer group to its sector + category server-side.
+  // Omitting it keeps the wider sector-only group. Either way the RPC refuses to
+  // publish statistics below the configured minimum peer sample.
+  const peer = usePeerSnapshot(
+    row.ratio_key,
+    period || null,
+    entity.sector_id || null,
+    basis === 'sector_category' ? entity.id : null,
+  );
   const p = peer.data as any;
   const peerState = readPeerState(p);
   const resultState = deriveRatioResultState(row.value, row.null_reason);
   const entityVal = Number(row.value);
   const delta = peerState === 'OK' && p?.median != null && Number.isFinite(entityVal)
     ? entityVal - Number(p.median) : null;
+
+  useEffect(() => {
+    if (!onSnapshot || peer.isLoading) return;
+    onSnapshot(row.ratio_key, {
+      ratio: row.label || row.ratio_key,
+      period: period ?? null,
+      peer_comparison_available: peerState === 'OK',
+      peers_reported: p?.peer_count ?? p?.count ?? 0,
+      entity_value: resultState === 'CALCULATED' ? Number(row.value) : null,
+      peer_median: peerState === 'OK' ? p?.median ?? null : null,
+      peer_p90: peerState === 'OK' ? p?.p90 ?? null : null,
+      peer_min: peerState === 'OK' ? p?.min ?? null : null,
+      peer_max: peerState === 'OK' ? p?.max ?? null : null,
+      peer_sample_size: peerState === 'OK' ? p?.peer_count ?? p?.count ?? null : null,
+      entity_percentile: peerState === 'OK' ? p?.percentile ?? null : null,
+
+      difference_vs_median: delta,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peer.isLoading, peerState, resultState, p?.median, p?.p90, p?.min, p?.max, p?.peer_count, p?.percentile, delta]);
+
 
   if (peerState !== 'OK') {
     return (
@@ -849,9 +1230,12 @@ function GroupMembershipCard({ licenseeId }: { licenseeId: string }) {
         <CardDescription className="font-mono text-xs">{data.group_code}</CardDescription></CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">{String(data.member_role || '').replace(/_/g, ' ')}</Badge>
-          {data.ownership_percentage != null && <Badge variant="outline">{Number(data.ownership_percentage).toFixed(2)}% owned</Badge>}
-          <Badge variant="outline">{String(data.consolidation_treatment || '')} consolidation</Badge>
+          <Badge variant="outline">Relationship: {groupMemberRoleLabel(data.member_role)}</Badge>
+          {data.ownership_percentage != null && (
+            <Badge variant="outline">Ownership: {Number(data.ownership_percentage).toFixed(2)}%</Badge>
+          )}
+          <Badge variant="outline">Treatment: {consolidationTreatmentLabel(data.consolidation_treatment)}</Badge>
+
         </div>
         <Link className="text-primary underline" to={`/prudential/groups/${data.group_id}`}>
           Open consolidated group risk profile

@@ -38,7 +38,25 @@ interface Props {
   variant?: 'applicant' | 'internal';
 }
 
+/** Turns intake/channel codes such as `consumer_portal` into readable text. */
+function channelLabel(code: string) {
+  const map: Record<string, string> = {
+    consumer_portal: 'Consumer portal',
+    licensee_portal: 'Licensee portal',
+    internal: 'Regulator staff intake',
+    staff_intake: 'Regulator staff intake',
+    referral: 'Referral',
+    email: 'Email',
+    phone: 'Telephone',
+    walk_in: 'Walk-in',
+    letter: 'Letter',
+    bulk_import: 'Bulk import',
+  };
+  return map[code] ?? code.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+}
+
 function formatSize(size?: number) {
+
   if (!size) return '';
   return size < 1024 * 1024
     ? `${(size / 1024).toFixed(1)} KB`
@@ -110,7 +128,12 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
     });
   };
 
-  const submittedFmt = new Date(complaint.submitted_at).toLocaleString();
+  const submittedDate = complaint.submitted_at ? new Date(complaint.submitted_at) : null;
+  const submittedFmt =
+    submittedDate && !Number.isNaN(submittedDate.getTime())
+      ? submittedDate.toLocaleString()
+      : '—';
+
   const attachments = complaint.attachments ?? [];
 
   // ---------- APPLICANT VARIANT ----------
@@ -259,7 +282,7 @@ export function ComplaintAcknowledgement({ open, onOpenChange, complaint, varian
 
             {complaint.complainant_name && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Complainant</dt><dd style={{ margin: 0 }}>{complaint.complainant_name}</dd></>)}
             {complaint.complainant_email && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Contact email</dt><dd style={{ margin: 0 }}>{complaint.complainant_email}</dd></>)}
-            {complaint.channel && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Channel</dt><dd style={{ margin: 0 }}>{complaint.channel}</dd></>)}
+            {complaint.channel && (<><dt style={{ fontWeight: 600, color: '#475569' }}>Received via</dt><dd style={{ margin: 0 }}>{channelLabel(complaint.channel)}</dd></>)}
             {complaint.sla_days && (
               <>
                 <dt style={{ fontWeight: 600, color: '#475569' }}>Target response</dt>

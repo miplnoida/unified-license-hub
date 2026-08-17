@@ -76,19 +76,23 @@ async function hydrate(rfiRows: any[]): Promise<ComplaintRfi[]> {
   let items: any[] = [];
   let responses: any[] = [];
   if (ids.length) {
-    const { data: it } = await supabase
+    // Hydration failures must propagate: silently returning [] would show
+    // "0 questions" / "no responses" as if that were the real state.
+    const { data: it, error: itErr } = await supabase
       .from('complaint_rfi_items' as any)
       .select('*')
       .in('rfi_id', ids)
       .order('ordinal', { ascending: true });
+    if (itErr) throw itErr;
     items = (it as any[]) || [];
     const itemIds = items.map((i) => i.id);
     if (itemIds.length) {
-      const { data: rs } = await supabase
+      const { data: rs, error: rsErr } = await supabase
         .from('complaint_rfi_responses' as any)
         .select('*')
         .in('rfi_item_id', itemIds)
         .order('submitted_at', { ascending: true });
+      if (rsErr) throw rsErr;
       responses = (rs as any[]) || [];
     }
   }

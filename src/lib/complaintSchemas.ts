@@ -144,14 +144,14 @@ export type PublicComplaintInput = z.infer<typeof publicComplaintSchema>;
 
 /**
  * INTERNAL complaint schema (regulator staff intake).
- * Staff may record an initial severity; final severity remains subject to
- * server-side triage rules.
+ * Severity is NEVER accepted from any caller — the backend assigns it from
+ * complaint intake/triage configuration. Supervisors can only change it later
+ * through the logged override path on the complaint detail page.
  */
 export const internalComplaintSchema = z
   .object({
     ...commonComplaintFields,
     intake_source: z.enum(INTAKE_SOURCES).default('internal'),
-    severity: z.enum(SEVERITIES).default('medium'),
     email: emailField.optional(),
     phone: phoneField.optional(),
     /** True when logging a whistleblower / anonymous walk-in. */

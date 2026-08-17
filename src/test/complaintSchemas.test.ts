@@ -16,13 +16,18 @@ describe('complaint schemas', () => {
     subject: 'Card fraud reported',
     description: 'Customer alleged unauthorised transactions on debit card.',
     intake_source: 'internal' as const,
-    severity: 'medium' as const,
     vulnerability_indicator: false,
   };
 
   it('accepts a minimal internal complaint', () => {
     const parsed = internalComplaintSchema.safeParse(baseInternal);
     expect(parsed.success).toBe(true);
+  });
+
+  it('ignores any severity supplied to the internal schema', () => {
+    const parsed = internalComplaintSchema.safeParse({ ...baseInternal, severity: 'critical' } as any);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect((parsed.data as any).severity).toBeUndefined();
   });
 
   it('rejects subject shorter than 3 chars with a field-specific message', () => {

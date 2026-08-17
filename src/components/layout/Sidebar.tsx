@@ -222,13 +222,15 @@ export function Sidebar() {
           <div className="flex h-14 items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-2.5">
               {branding.logo_url ? (
-                <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-lg object-contain" />
+                <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[180px] rounded-lg object-contain" />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                  <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
-                </div>
+                <>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+                    <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
+                  </div>
+                  <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
+                </>
               )}
-              <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="h-8 w-8 text-sidebar-foreground/60">
               <X className="h-4 w-4" />
@@ -285,13 +287,15 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2.5">
             {branding.logo_url ? (
-              <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-lg object-contain" />
+              <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[180px] rounded-lg object-contain" />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
-              </div>
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+                  <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
+                </div>
+                <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
+              </>
             )}
-            <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
           </div>
         )}
         <Button

@@ -24,7 +24,12 @@ interface Props {
   complaintId: string;
   instanceUpdatedAt?: string | null;
   onCompleted?: (result: any) => void;
+  /** Configured label of the current workflow step (presentation only). */
+  currentStepLabel?: string | null;
+  /** Configured step list, used to name the target step of an action. */
+  steps?: Array<{ step_key: string; label: string }>;
 }
+
 
 interface RequiredField {
   key: string;
@@ -45,11 +50,12 @@ interface ActionRow {
   mutation_kind: string;
 }
 
-export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onCompleted }: Props) {
+export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onCompleted, currentStepLabel, steps }: Props) {
   const qc = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, any>>({});
   const [comments, setComments] = useState("");
+
 
   // Concurrency source of truth is workflow_instances.updated_at, exposed by
   // get_complaint_tracking. Never use complaints.updated_at for workflow guards.
@@ -136,16 +142,20 @@ export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onComplete
   }
 
   const actions = actionsQ.data || [];
+  const stepName = currentStepLabel ? `Current step: ${currentStepLabel}` : "Next action";
+  const targetLabel = (a: ActionRow) =>
+    a.target_step_key ? (steps || []).find((s) => s.step_key === a.target_step_key)?.label ?? a.target_step_key : null;
+
   if (actions.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Workflow Actions</CardTitle>
+          <CardTitle className="text-base">{stepName}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No actions available for you at this step. The complaint may be in a terminal state, or your role isn't
-            configured to act here in the Complaint Management Workflow.
+            There is nothing for you to do on this step right now. The case may be waiting on someone else, or it may
+            have reached the end of the configured workflow.
           </p>
         </CardContent>
       </Card>
@@ -154,62 +164,86 @@ export function WorkflowActionPanel({ complaintId, instanceUpdatedAt, onComplete
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Workflow Actions</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{stepName}</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {actions.length === 1
+            ? "This is the action available to you on this step."
+            : "Choose the action that matches what you have decided."}
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {actions.map((a) => (
-            <Button
-              key={a.action_key}
-              size="sm"
-              variant={selectedKey === a.action_key ? "default" : "outline"}
-              onClick={() => {
-                setSelectedKey(a.action_key);
-                setValues({});
-                setComments("");
-              }}
-            >
-              {a.label}
-            </Button>
-          ))}
-        </div>
+      <CardContent className="space-y-3">
+        {actions.map((a) => {
+          const isOpen = selectedKey === a.action_key;
+          const target = targetLabel(a);
+          return (
+            <div key={a.action_key} className={`rounded-md border p-3 ${isOpen ? "border-primary/50 bg-primary/5" : ""}`}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{a.label}</p>
+                  {target && (
+                    <p className="text-xs text-muted-foreground">This moves the case to “{target}”.</p>
+                  )}
+                  {(a.required_fields || []).length > 0 && !isOpen && (
+                    <p className="text-xs text-muted-foreground">
+                      Required before continuing: {(a.required_fields || []).map((f) => f.label).join(", ")}
+                    </p>
+                  )}
+                </div>
+                {!isOpen && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedKey(a.action_key);
+                      setValues({});
+                      setComments("");
+                    }}
+                  >
+                    {a.label}
+                  </Button>
+                )}
+              </div>
 
-        {selected && (
-          <div className="space-y-3 border-t pt-4">
-            {(selected.required_fields || []).map((f) => (
-              <FieldInput
-                key={f.key}
-                field={f}
-                value={values[f.key]}
-                onChange={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
-              />
-            ))}
+              {isOpen && (
+                <div className="space-y-3 border-t mt-3 pt-3">
+                  {(a.required_fields || []).map((f) => (
+                    <FieldInput
+                      key={f.key}
+                      field={f}
+                      value={values[f.key]}
+                      onChange={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
+                    />
+                  ))}
 
-            <div className="space-y-1">
-              <Label>Comments {selected.require_comments && <span className="text-destructive">*</span>}</Label>
-              <Textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={3}
-                placeholder="Add a note about this action (visible in the timeline)…"
-              />
+                  <div className="space-y-1">
+                    <Label>Comments {a.require_comments && <span className="text-destructive">*</span>}</Label>
+                    <Textarea
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      rows={3}
+                      placeholder="Add a note about this action (visible in the case history)…"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedKey(null)} disabled={execMut.isPending}>
+                      Cancel
+                    </Button>
+                    <Button data-rbac="complaint_management.edit" size="sm" onClick={() => execMut.mutate()} disabled={execMut.isPending}>
+                      {execMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Confirm: {a.label}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedKey(null)} disabled={execMut.isPending}>
-                Cancel
-              </Button>
-              <Button data-rbac="complaint_management.edit" size="sm" onClick={() => execMut.mutate()} disabled={execMut.isPending}>
-                {execMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Confirm: {selected.label}
-              </Button>
-            </div>
-          </div>
-        )}
+          );
+        })}
       </CardContent>
     </Card>
   );
+
 }
 
 function FieldInput({

@@ -10,12 +10,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2, RotateCcw } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
 import type { ValidationRule } from '@/lib/returnsValidation';
+import { useFormulaLabels } from '@/hooks/useFormulaLabels';
+import { FormulaText } from '@/components/prudential/FormulaText';
 import Swal from 'sweetalert2';
+import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
+import { formatDateTime } from '@/lib/datetime';
+import { Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 function useReturnConfigurationOptions() {
@@ -35,29 +40,56 @@ const emptyRule: Partial<ValidationRule> = {
   name: '', expression: '', error_message: '', field_refs: [],
 };
 
+function useRuleVersions(ruleId?: string | null) {
+  return useQuery({
+    queryKey: ['return_validation_rule_versions', ruleId],
+    enabled: !!ruleId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_validation_rule_versions')
+        .select('version,published_at,published_by,is_current,definition')
+        .eq('rule_id', ruleId)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+}
+
 export default function ManageValidations() {
+  const qc = useQueryClient();
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<ValidationRule> | null>(null);
   const [historyRule, setHistoryRule] = useState<ValidationRule | null>(null);
-  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useReturnConfigurationOptions();
   const { data: rules = [], isLoading } = useValidationRules(selectedConfig);
   const upsert = useUpsertValidationRule();
   const del = useDeleteValidationRule();
 
-  const openHistory = async (r: ValidationRule) => {
-    setHistoryRule(r);
-    const { data } = await (supabase as any)
-      .from('return_validation_rule_versions')
-      .select('version,published_at,published_by,is_current,definition')
-      .eq('rule_id', r.id)
-      .order('version', { ascending: false });
-    setVersions(data ?? []);
+  const versionsQuery = useRuleVersions(historyRule?.id);
+  const versions = versionsQuery.data ?? [];
+  const { data: names, isLoading: namesLoading, isError: namesError } = useUserDisplayNames(versions.map((v: any) => v.published_by));
+
+  // Human-readable expressions: resolve `formId.fieldName` tokens to "Form › Field label".
+  const allExpressions = useMemo(
+    () => [
+      ...rules.map((r: any) => r.expression),
+      ...versions.map((v: any) => v.definition?.expression),
+      editing?.expression ?? '',
+    ],
+    [rules, versions, editing?.expression],
+  );
+  const { data: tokenLabels } = useFormulaLabels(allExpressions);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['return_validation_rules'] });
+    qc.invalidateQueries({ queryKey: ['return_validation_rule_versions'] });
   };
 
   const publish = async (r: ValidationRule) => {
     const { error } = await (supabase as any).rpc('publish_validation_rule', { _rule_id: r.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'New rule version published', timer: 1400, showConfirmButton: false });
   };
 
@@ -72,6 +104,7 @@ export default function ManageValidations() {
     if (!name) return;
     const { error } = await (supabase as any).rpc('clone_validation_rule', { _rule_id: r.id, _new_name: name });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rule cloned', timer: 1200, showConfirmButton: false });
   };
 
@@ -80,7 +113,17 @@ export default function ManageValidations() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('archive_validation_rule', { _rule_id: r.id });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rule archived', timer: 1200, showConfirmButton: false });
+  };
+
+  const restoreRule = async (r: ValidationRule) => {
+    const ok = await Swal.fire({ title: 'Restore rule?', text: r.name, icon: 'question', showCancelButton: true, confirmButtonText: 'Restore' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('restore_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
+    Swal.fire({ icon: 'success', text: 'Rule restored', timer: 1200, showConfirmButton: false });
   };
 
   const rollback = async (rule_id: string, to_version: number) => {
@@ -88,20 +131,22 @@ export default function ManageValidations() {
     if (!ok.isConfirmed) return;
     const { error } = await (supabase as any).rpc('rollback_validation_rule', { _rule_id: rule_id, _to_version: to_version });
     if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    refresh();
     Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
     setHistoryRule(null);
   };
+
 
   const columns = useMemo<Column<ValidationRule>[]>(() => [
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'scope', label: 'Scope', render: (r) => <Badge variant="outline">{r.scope}</Badge> },
     { key: 'rule_type', label: 'Type', render: (r) => <Badge variant="outline">{r.rule_type}</Badge> },
-    { key: 'expression', label: 'Expression', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.expression}</code> },
+    { key: 'expression', label: 'Expression', render: (r) => <FormulaText inline formula={r.expression} labels={tokenLabels} /> },
     { key: 'severity', label: 'Severity', render: (r) => (
       <Badge className={r.severity === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-warning text-warning-foreground'}>{r.severity}</Badge>
     )},
     { key: 'is_active', label: 'Status', render: (r) => (
-      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge>
+      <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'archived'}</Badge>
     )},
     { key: 'current_version', label: 'v', render: (r: any) => (
       <Badge variant="outline">v{r.current_version ?? 1}</Badge>
@@ -110,16 +155,20 @@ export default function ManageValidations() {
       <div className="flex gap-1">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRule(r)} title="Version history"><History className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cloneRule(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        {r.is_active ? (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => restoreRule(r)} title="Restore"><RotateCcw className="h-4 w-4" /></Button>
+        )}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
-          if (ok.isConfirmed) del.mutate(r.id);
+          if (ok.isConfirmed) del.mutate(r.id, { onSuccess: refresh });
         }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
-  ], [del]);
+  ], [del, tokenLabels]);
 
   const save = async () => {
     if (!editing) return;
@@ -128,6 +177,7 @@ export default function ManageValidations() {
       Swal.fire({ icon: 'error', text: 'Name, expression, and error message are required' }); return;
     }
     await upsert.mutateAsync(editing as any);
+    refresh();
     setEditing(null);
   };
 
@@ -159,7 +209,11 @@ export default function ManageValidations() {
 
         <div className="animate-slide-up delay-100">
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading rules…</div>
+            <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading rules…</div>
+          ) : rules.length === 0 ? (
+            <div className="text-sm text-muted-foreground border rounded-md p-6 text-center">
+              No validation rules configured{selectedConfig ? ' for this configuration' : ''}. Use “Add Rule” to create one.
+            </div>
           ) : (
             <DataTableShell columns={columns} data={rules} searchPlaceholder="Search rules..." />
           )}
@@ -256,13 +310,21 @@ export default function ManageValidations() {
         <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
           <SheetHeader><SheetTitle>Version history — {historyRule?.name}</SheetTitle></SheetHeader>
           <div className="mt-4 space-y-3">
-            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versionsQuery.isLoading && (
+              <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Loading version history…</div>
+            )}
+            {!!versionsQuery.error && (
+              <div className="text-sm text-destructive">Could not load version history: {(versionsQuery.error as any).message}</div>
+            )}
+            {!versionsQuery.isLoading && !versionsQuery.error && versions.length === 0 && (
+              <div className="text-sm text-muted-foreground">No versions recorded yet.</div>
+            )}
             {versions.map((v: any) => (
               <div key={v.version} className="border rounded p-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
                   <div className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{formatDateTime(v.published_at)}</div>
                     {!v.is_current && historyRule && (
                       <Button data-rbac="returns_management.edit" size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
                         <Undo2 className="h-3 w-3 mr-1" /> Rollback
@@ -270,8 +332,10 @@ export default function ManageValidations() {
                     )}
                   </div>
                 </div>
-                <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
-                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>
+                <div className="bg-muted p-2 rounded">
+                  <FormulaText formula={v.definition?.expression} labels={tokenLabels} />
+                </div>
+                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity ?? '—'} · Type: {v.definition?.rule_type ?? '—'} · by {actorLabel(v.published_by, names, { isLoading: namesLoading, isError: namesError })}</div>
               </div>
             ))}
           </div>
