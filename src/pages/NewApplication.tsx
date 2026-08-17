@@ -2482,10 +2482,15 @@ export default function NewApplication() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-start">
-              <Button variant="outline" onClick={() => void goToStep('payment')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />Back
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => void goToStep('documents')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Documents
               </Button>
+              {reviewConfirmed && (
+                <Button onClick={() => void handleProceedToPayment()}>
+                  Continue to Payment<ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
             </div>
           </div>
         )}
