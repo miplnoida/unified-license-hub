@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logFpAction } from '@/lib/fpAudit';
 import {
   Loader2,
   Play,
@@ -237,6 +238,8 @@ export default function FpaScreening() {
 
   const runMutation = useMutation({
     mutationFn: async ({
+      configId,
+      individualId,
       assessmentId,
     }: {
       configId: string;
@@ -252,6 +255,12 @@ export default function FpaScreening() {
       });
       if (error) throw error;
       if (data && data.ok === false) throw new Error(data.error ?? 'Screening run failed');
+
+      await logFpAction('fp.screening.run_triggered', 'fp_screening_run', data?.run_id ?? null, {
+        after: { config_id: configId, total_checks: data?.total_checks, total_hits: data?.total_hits },
+        context: { individualId, assessmentId, screeningRunId: data?.run_id },
+      });
+
       return data as { ok: boolean; run_id: string; total_checks: number; total_hits: number };
     },
     onSuccess: async (data, variables) => {
@@ -287,6 +296,11 @@ export default function FpaScreening() {
         .update({ status: 'failed', completed_at: new Date().toISOString() })
         .eq('id', runId);
       if (error) throw error;
+
+      await logFpAction('fp.screening.run_cancelled', 'fp_screening_run', runId, {
+        after: { status: 'failed' },
+        context: { screeningRunId: runId },
+      });
     },
     onSuccess: () => {
       toast.success('Run cancelled');

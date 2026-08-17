@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logComplianceAudit } from '@/lib/complianceAudit';
 import {
   Loader2,
   AlertTriangle,
@@ -34,6 +35,7 @@ import {
   Filter,
   TrendingUp,
   ClipboardList,
+  Search,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -186,6 +188,7 @@ export default function FpaFindings() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [checkTypeFilter, setCheckTypeFilter] = useState<string>('ALL');
   const [quickTab, setQuickTab] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const tab = searchParams.get('quickTab');
@@ -317,7 +320,10 @@ export default function FpaFindings() {
 
     // Quick tab filter
     if (quickTab === 'action') {
-      rows = rows.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status)));
+      // 'false_positive_draft' is a confidence-based auto-classification
+      // (fp_finding_apply_confidence_bands), not a human decision — it still
+      // needs someone to confirm/reject it, same as 'true_positive_draft'.
+      rows = rows.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft', 'under_review'].includes(normStatus(f.resolution_status)));
     } else if (quickTab === 'high') {
       rows = rows.filter((f) => normSeverity(f.severity) === 'HIGH');
     } else if (quickTab === 'confirmed') {
@@ -341,8 +347,18 @@ export default function FpaFindings() {
       rows = rows.filter((f) => f.check_type === checkTypeFilter);
     }
 
+    // Free-text search — locate a specific assessment by ID, individual, or title
+    const q = search.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter((f) =>
+        f.assessment_id?.toLowerCase().includes(q) ||
+        f.individual_name?.toLowerCase().includes(q) ||
+        f.title?.toLowerCase().includes(q)
+      );
+    }
+
     return rows;
-  }, [findings, individualIdFilter, quickTab, severityFilter, statusFilter, checkTypeFilter]);
+  }, [findings, individualIdFilter, quickTab, severityFilter, statusFilter, checkTypeFilter, search]);
 
   // ---------------------------------------------------------------------------
   // Stats (always from full dataset, not filtered)
@@ -354,7 +370,7 @@ export default function FpaFindings() {
       high: all.filter((f) => normSeverity(f.severity) === 'HIGH').length,
       medium: all.filter((f) => normSeverity(f.severity) === 'MEDIUM').length,
       low: all.filter((f) => normSeverity(f.severity) === 'LOW').length,
-      open: all.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'under_review'].includes(normStatus(f.resolution_status))).length,
+      open: all.filter((f) => ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft', 'under_review'].includes(normStatus(f.resolution_status))).length,
       confirmed: all.filter((f) => normStatus(f.resolution_status) === 'true_positive_draft').length,
       escalated: all.filter((f) => f.severity_basis?.escalated === true).length,
     };
@@ -396,14 +412,17 @@ export default function FpaFindings() {
         .eq('id', finding.id);
       if (error) throw error;
 
-      // Attempt compliance audit log — best-effort
+      // Best-effort compliance audit log — routed through the shared RPC
+      // helper (log_compliance_audit) like every other F&P screen, instead
+      // of inserting into compliance_audit_logs directly. Direct inserts
+      // bypass the server-side actor/role attribution the RPC provides and
+      // drift from the one audited path the rest of the module uses.
       try {
-        await (supabase as any).from('compliance_audit_logs').insert({
+        await logComplianceAudit({
           action_type: 'WORKFLOW_TRANSITION',
           object_type: 'fp_findings',
           object_id: finding.id,
-          user_id: user?.id ?? null,
-          metadata: { note, finding_title: finding.title, severity: finding.severity },
+          after_value: { note, finding_title: finding.title, severity: finding.severity },
         });
       } catch {
         // non-fatal
@@ -520,6 +539,19 @@ export default function FpaFindings() {
                   </div>
 
                   <div className="space-y-1">
+                    <Label className="text-xs">Search</Label>
+                    <div className="relative w-56">
+                      <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="h-8 pl-8"
+                        placeholder="Assessment ID, individual, or title…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
                     <Label className="text-xs">Severity</Label>
                     <Select value={severityFilter} onValueChange={setSeverityFilter}>
                       <SelectTrigger className="h-8 w-36">
@@ -569,7 +601,7 @@ export default function FpaFindings() {
                     </Select>
                   </div>
 
-                  {(severityFilter !== 'ALL' || statusFilter !== 'ALL' || checkTypeFilter !== 'ALL') && (
+                  {(severityFilter !== 'ALL' || statusFilter !== 'ALL' || checkTypeFilter !== 'ALL' || search.trim() !== '') && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -578,6 +610,7 @@ export default function FpaFindings() {
                         setSeverityFilter('ALL');
                         setStatusFilter('ALL');
                         setCheckTypeFilter('ALL');
+                        setSearch('');
                       }}
                     >
                       Clear filters

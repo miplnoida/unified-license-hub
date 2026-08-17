@@ -34,8 +34,10 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCan } from '@/hooks/useCan';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
 import { resolveFpSectorRule, evaluateFpCriteria, type CriteriaEvaluation } from '@/lib/fpSectorRules';
@@ -83,6 +85,8 @@ interface FormState {
   effective_from: string;
   effective_to: string;
   regulator_id: string;
+  isOverride: boolean;
+  overrideReason: string;
 }
 
 interface AssessmentDetail {
@@ -109,6 +113,8 @@ const EMPTY_FORM: FormState = {
   effective_from: '',
   effective_to: '',
   regulator_id: '',
+  isOverride: false,
+  overrideReason: '',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -482,6 +488,7 @@ export default function FpaDeterminations() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const canOverrideCommittee = useCan('fit_and_proper', 'override_committee');
 
   const [view, setView] = useState<'list' | 'comparison'>('list');
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
@@ -626,18 +633,44 @@ export default function FpaDeterminations() {
   // than the assessment it's based on.
   const assessmentRegulatorId = selectedAssessmentObj?.regulator_id ?? null;
 
-  // A DB trigger (fp_check_determination_finalize) rejects any fresh, current
-  // determination unless the assessment already has a committee assigned OR
-  // the caller holds the admin role — this screen has no committee-assignment
-  // step of its own (that lives on the individual profile's Determinations
-  // tab, /fpa/individuals/:id), so warn before submit instead of letting the
-  // raw Postgres exception be the first sign of the problem.
-  // user.role is the primary static role and doesn't capture admin access
-  // granted only through a dynamic role, so this is a best-effort hint, not
-  // the authoritative check — the trigger itself remains the real gate.
-  const isLikelyAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  // A DB trigger (fp_check_determination_finalize) is the real gate here.
+  // When a committee is attached, quorum/threshold are mandatory (no
+  // override). When no committee is attached, finalizing requires a
+  // completed screening run with no open high/critical findings — anything
+  // less now requires the explicit, permissioned "override" path instead of
+  // the old silent any-staff bypass.
   const assessmentHasCommittee = !!selectedAssessmentObj?.committee_id;
-  const showsNoCommitteeWarning = !!form.assessment_id && !assessmentHasCommittee && !isLikelyAdmin;
+
+  const { data: assessmentFindings } = useQuery({
+    queryKey: ['fpa_det_findings', form.assessment_id],
+    enabled: !!form.assessment_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_findings')
+        .select('check_type, severity, is_false_positive, resolution_status, confidence_score')
+        .eq('assessment_id', form.assessment_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: screeningRuns } = useQuery({
+    queryKey: ['fpa_det_screening_runs', form.assessment_id],
+    enabled: !!form.assessment_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_screening_runs')
+        .select('status')
+        .eq('assessment_id', form.assessment_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const screeningComplete = (screeningRuns ?? []).some((r: any) => r.status === 'completed');
+  const openHighFindings = (assessmentFindings ?? []).filter(
+    (f: any) => ['high', 'critical'].includes(f.severity) && !f.is_false_positive && (f.resolution_status ?? 'pending') === 'pending',
+  );
+  const needsOverride = !!form.assessment_id && !assessmentHasCommittee && (!screeningComplete || openHighFindings.length > 0);
 
   // ── Sector-specific decision logic (mirrors FpDeterminationsPanel) ─────────
 
@@ -675,19 +708,6 @@ export default function FpaDeterminations() {
     queryFn: async () => resolveFpSectorRule(sectorContext!),
   });
 
-  const { data: assessmentFindings } = useQuery({
-    queryKey: ['fpa_det_findings', form.assessment_id],
-    enabled: !!form.assessment_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fp_findings')
-        .select('check_type, severity, is_false_positive, resolution_status, confidence_score')
-        .eq('assessment_id', form.assessment_id);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
   const criteriaEval: CriteriaEvaluation = useMemo(() => {
     const active = (assessmentFindings ?? []).filter((f: any) => !f.is_false_positive && f.resolution_status !== 'false_positive');
     const completedChecks = Array.from(new Set(active.map((f: any) => f.check_type)));
@@ -709,6 +729,23 @@ export default function FpaDeterminations() {
           sectorRule && !criteriaEval.passed
             ? 'Rationale must justify overriding the sector rule (min 10 characters).'
             : 'Rationale is required (min 10 characters).',
+        );
+      }
+      if (needsOverride && form.isOverride && form.overrideReason.trim().length < 20) {
+        throw new Error('Override reason is required (min 20 characters).');
+      }
+      // fp_check_determination_finalize() only governs the fp_determinations
+      // insert itself — the SEPARATE fp_check_assessment_transition() trigger
+      // independently blocks fp_assessments.status ever jumping straight to
+      // 'determined' from anything but 'submitted'/'awaiting_committee'. The
+      // two writes below are not atomic (two REST calls, not one RPC), so
+      // without this check a determination could insert successfully and
+      // then the assessment-status update fails, leaving a "Current"
+      // determination attached to an assessment still stuck on its old
+      // status. Catch it here, before either write happens.
+      if (!['submitted', 'awaiting_committee'].includes(selectedAssessmentObj?.status ?? '')) {
+        throw new Error(
+          `This assessment is currently "${selectedAssessmentObj?.status ?? 'unknown'}" — a determination can only be recorded once it reaches Submitted or Awaiting Committee.`,
         );
       }
 
@@ -741,6 +778,8 @@ export default function FpaDeterminations() {
         determined_by: user.id,
         supersedes_id: prior?.id ?? null,
         regulator_id: resolvedRegulatorId,
+        is_committee_override: needsOverride && form.isOverride,
+        override_reason: needsOverride && form.isOverride ? form.overrideReason.trim() : null,
       };
       if (form.effective_from) payload.effective_from = form.effective_from;
       if (form.effective_to) payload.effective_to = form.effective_to;
@@ -767,6 +806,8 @@ export default function FpaDeterminations() {
           regulator_id: resolvedRegulatorId,
           supersedes_id: prior?.id ?? null,
           sector_rule_passed: sectorRule ? criteriaEval.passed : null,
+          is_committee_override: payload.is_committee_override,
+          override_reason: payload.override_reason,
         },
         context: {
           individualId: form.individual_id,
@@ -774,8 +815,19 @@ export default function FpaDeterminations() {
           determinationId: inserted.id,
           regulatorId: resolvedRegulatorId ?? undefined,
         },
-        justification: form.rationale.trim(),
+        justification: payload.is_committee_override ? payload.override_reason : form.rationale.trim(),
       });
+
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'fp_determination_finalized',
+            entity_type: 'fp_determination',
+            entity_id: inserted.id,
+            payload: { outcome: form.outcome, individual_id: form.individual_id },
+          },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
 
       return {
         outcome: form.outcome,
@@ -808,6 +860,14 @@ export default function FpaDeterminations() {
         ? `Committee quorum not met yet: ${raw.replace(/^.*?Quorum not met: /, '')}. Cast more votes on /fpa/committee before finalizing.`
         : raw.includes('Approval threshold not met')
         ? `Committee approval threshold not met: ${raw.replace(/^.*?Approval threshold not met: /, '')}.`
+        : raw.includes('unresolved high/critical finding')
+        ? `${raw} Resolve them on /fpa/findings, or check the override box above.`
+        : raw.includes('committee-override permission')
+        ? "You don't hold the F&P committee-override permission — ask an admin or supervisor to grant it."
+        : raw.includes('override reason must be at least')
+        ? 'Override reason must be at least 20 characters explaining why committee/screening was bypassed.'
+        : raw.includes('no completed screening run and no committee assigned')
+        ? 'No completed screening run and no committee assigned — complete screening, assign a committee, or use the override option.'
         : raw;
       toast.error(friendly);
     },
@@ -849,7 +909,7 @@ export default function FpaDeterminations() {
                     <Select
                       value={form.individual_id}
                       onValueChange={(v) =>
-                        setForm((f) => ({ ...f, individual_id: v, assessment_id: '' }))
+                        setForm((f) => ({ ...f, individual_id: v, assessment_id: '', isOverride: false, overrideReason: '' }))
                       }
                     >
                       <SelectTrigger>
@@ -872,7 +932,7 @@ export default function FpaDeterminations() {
                     </Label>
                     <Select
                       value={form.assessment_id}
-                      onValueChange={(v) => setForm((f) => ({ ...f, assessment_id: v }))}
+                      onValueChange={(v) => setForm((f) => ({ ...f, assessment_id: v, isOverride: false, overrideReason: '' }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select an assessment…" />
@@ -916,25 +976,68 @@ export default function FpaDeterminations() {
                     )}
                   </div>
 
-                  {/* No-committee warning — this screen has no way to assign a
-                      committee itself; surface the blocker before submit. */}
-                  {showsNoCommitteeWarning && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  {/* Committee/screening override — this screen has no committee-
+                      assignment step of its own; when no committee is attached,
+                      finalizing normally requires a completed screening run with
+                      no open high/critical findings. Anything less requires an
+                      explicit, permissioned, reasoned override instead of a
+                      silent bypass. */}
+                  {needsOverride && (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 space-y-2">
                       <div className="font-medium flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4" />
-                        No committee assigned to this assessment
+                        This assessment isn't ready for a normal determination
                       </div>
-                      <p className="text-xs mt-1">
-                        Recording a determination here will be rejected unless a committee is first
-                        assigned to this assessment, or you hold admin access. Assign a committee from{' '}
+                      <ul className="text-xs list-disc pl-4 space-y-0.5">
+                        {!screeningComplete && <li>No completed screening run exists for this assessment.</li>}
+                        {openHighFindings.length > 0 && (
+                          <li>{openHighFindings.length} unresolved high/critical finding(s) remain open.</li>
+                        )}
+                      </ul>
+                      <p className="text-xs">
+                        Assign a committee from{' '}
                         {form.individual_id ? (
                           <Link to={`/fpa/individuals/${form.individual_id}`} className="underline font-medium" target="_blank" rel="noreferrer">
                             this individual's Determinations tab
                           </Link>
                         ) : (
-                          "the individual's Determinations tab"
-                        )}, or ask an admin to record this one.
+                          "this individual's Determinations tab"
+                        )}, complete screening, or resolve the findings above — or use the override below if this case genuinely needs a fast-track decision.
                       </p>
+
+                      <div className="flex items-start gap-2 pt-1 border-t border-amber-200">
+                        <Checkbox
+                          id="det-override"
+                          checked={form.isOverride}
+                          disabled={!canOverrideCommittee}
+                          onCheckedChange={(v) => setForm((f) => ({ ...f, isOverride: !!v }))}
+                          data-rbac="fit_and_proper.override_committee"
+                        />
+                        <div>
+                          <Label htmlFor="det-override" className="cursor-pointer">
+                            Override and finalize without committee/complete screening
+                          </Label>
+                          {!canOverrideCommittee && (
+                            <p className="text-xs text-amber-700 mt-0.5">
+                              You don't hold the F&amp;P committee-override permission — ask an admin or supervisor to grant it, or route this case through a committee instead.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {form.isOverride && (
+                        <div>
+                          <Label className="text-xs">
+                            Override reason <span className="text-red-500">*</span> (min 20 characters)
+                          </Label>
+                          <Textarea
+                            rows={2}
+                            value={form.overrideReason}
+                            onChange={(e) => setForm((f) => ({ ...f, overrideReason: e.target.value }))}
+                            placeholder="Explain why this determination must bypass committee review / completed screening…"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1039,13 +1142,14 @@ export default function FpaDeterminations() {
                       !form.individual_id ||
                       !form.assessment_id ||
                       !form.outcome ||
-                      form.rationale.trim().length < 10
+                      form.rationale.trim().length < 10 ||
+                      (needsOverride && (!form.isOverride || !canOverrideCommittee || form.overrideReason.trim().length < 20))
                     }
                   >
                     {addDetermination.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}
-                    Record Determination
+                    {needsOverride && form.isOverride ? 'Finalize With Override' : 'Record Determination'}
                   </Button>
                 </DialogFooter>
               </DialogContent>

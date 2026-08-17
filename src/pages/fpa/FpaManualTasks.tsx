@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,7 @@ import {
   ClipboardList,
   ShieldAlert,
   MessageSquare,
+  Search,
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -259,6 +261,7 @@ export default function FpaManualTasks() {
   // Severity filter uses lowercase values that match DB storage directly
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   // ── fetch findings joined with individuals ────────────────────────────────
   // individual_id is always non-null per the fp_findings schema, so we look
@@ -267,9 +270,15 @@ export default function FpaManualTasks() {
     queryKey: ['fpa_manual_tasks', severityFilter, statusFilter],
     queryFn: async () => {
       // The DB trigger sets resolution_status to 'pending', 'needs_review',
-      // 'true_positive_draft', or 'false_positive_draft' on insert.
+      // 'true_positive_draft', or 'false_positive_draft' on insert
+      // (fp_finding_apply_confidence_bands, keyed off confidence_score) —
+      // none of these are a human decision, just a confidence-based
+      // pre-fill, so 'false_positive_draft' needs a human to confirm/reject
+      // it exactly like 'true_positive_draft' does. Only 'false_positive'
+      // and 'confirmed' (set by staff via Mark Cleared / Confirm Adverse in
+      // FpaManualTaskDetail.tsx) are actually resolved.
       // 'under_review' is set by the "Assign to Me" action.
-      const ACTIONABLE_STATUSES = ['pending', 'needs_review', 'true_positive_draft', 'under_review'];
+      const ACTIONABLE_STATUSES = ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft', 'under_review'];
 
       // assigned_to is cast via `as any` below — it's a recently-added column
       // not yet reflected in the generated Supabase types.
@@ -289,7 +298,7 @@ export default function FpaManualTasks() {
       }
       if (statusFilter === 'open') {
         // 'open' covers all unassigned states before someone claims a task
-        query = query.in('resolution_status', ['pending', 'needs_review', 'true_positive_draft']);
+        query = query.in('resolution_status', ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft']);
       } else if (statusFilter !== 'all') {
         query = query.eq('resolution_status', statusFilter);
       }
@@ -321,6 +330,18 @@ export default function FpaManualTasks() {
     },
   });
 
+  // ── search: locate a specific assessment by ID, individual name, or title ──
+  const filteredFindings = useMemo(() => {
+    if (!findings) return findings;
+    const q = search.trim().toLowerCase();
+    if (!q) return findings;
+    return findings.filter((f) =>
+      f.assessment_id?.toLowerCase().includes(q) ||
+      f.individual_name?.toLowerCase().includes(q) ||
+      f.title?.toLowerCase().includes(q)
+    );
+  }, [findings, search]);
+
   // ── active employees for the assignee dropdown ────────────────────────────
   const { data: allEmployees } = useEmployeeApprovers();
   const activeEmployees = (allEmployees ?? []).filter((e) => e.status === 'active');
@@ -338,7 +359,7 @@ export default function FpaManualTasks() {
       const { data, error } = await supabase
         .from('fp_findings')
         .select('id, resolution_status, resolved_at, reviewed_at, reviewed_by')
-        .in('resolution_status', ['pending', 'needs_review', 'true_positive_draft', 'under_review', 'resolved'])
+        .in('resolution_status', ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft', 'under_review', 'resolved'])
         .in('severity', ['high', 'medium', 'low']);
       if (error) throw error;
       return (data ?? []) as Finding[];
@@ -349,7 +370,7 @@ export default function FpaManualTasks() {
   // reviewed_at being null is not a reliable assignment proxy since a finding
   // can be reviewed without being assigned via the manual queue.
   const statsUnassigned = isStatsError ? 0 : allFindings?.filter(
-    (f) => ['pending', 'needs_review', 'true_positive_draft'].includes(f.resolution_status ?? '')
+    (f) => ['pending', 'needs_review', 'true_positive_draft', 'false_positive_draft'].includes(f.resolution_status ?? '')
   ).length;
   const statsInProgress = isStatsError ? 0 : allFindings?.filter(
     (f) => f.resolution_status === 'under_review'
@@ -433,6 +454,16 @@ export default function FpaManualTasks() {
 
         {/* filter bar */}
         <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative w-full sm:w-64">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-9 pl-9"
+              placeholder="Search by assessment ID, individual, or title…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Severity</span>
             <Select value={severityFilter} onValueChange={setSeverityFilter}>
@@ -462,21 +493,21 @@ export default function FpaManualTasks() {
             </Select>
           </div>
 
-          {(severityFilter !== 'all' || statusFilter !== 'all') && (
+          {(severityFilter !== 'all' || statusFilter !== 'all' || search.trim() !== '') && (
             <Button
               variant="ghost"
               size="sm"
               className="h-9 text-xs"
-              onClick={() => { setSeverityFilter('all'); setStatusFilter('all'); }}
+              onClick={() => { setSeverityFilter('all'); setStatusFilter('all'); setSearch(''); }}
             >
               Clear filters
             </Button>
           )}
 
           <span className="ml-auto text-xs text-muted-foreground">
-            {findings !== undefined ? (
+            {filteredFindings !== undefined ? (
               <>
-                {findings.length} task{findings.length !== 1 ? 's' : ''}
+                {filteredFindings.length} task{filteredFindings.length !== 1 ? 's' : ''}
               </>
             ) : null}
           </span>
@@ -488,14 +519,14 @@ export default function FpaManualTasks() {
             <Loader2 className="h-5 w-5 animate-spin" />
             <span className="text-sm">Loading tasks…</span>
           </div>
-        ) : !findings || findings.length === 0 ? (
+        ) : !filteredFindings || filteredFindings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
             <CalendarDays className="h-8 w-8 opacity-40" />
             <p className="text-sm">No tasks match the current filters.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {findings.map((finding) => (
+            {filteredFindings.map((finding) => (
               <TaskCard
                 key={finding.id}
                 finding={finding}

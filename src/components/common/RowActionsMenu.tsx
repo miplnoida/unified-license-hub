@@ -75,7 +75,15 @@ export function RowActionsMenu({
                   window.location.assign(action.href);
                   return;
                 }
-                action.onClick?.(e);
+                // Defer to the next tick so this (modal) dropdown finishes
+                // closing — releasing its focus trap / pointer-events lock on
+                // <body> — before an action that opens its own modal (e.g. an
+                // Edit dialog) grabs one. Opening synchronously here races
+                // the two Radix focus scopes; if the new dialog is then
+                // closed without any state change, the dropdown's lock can
+                // be left stuck, making every button on the page unclickable
+                // until a full reload.
+                setTimeout(() => action.onClick?.(e), 0);
               }}
               className={cn(
                 'cursor-pointer',

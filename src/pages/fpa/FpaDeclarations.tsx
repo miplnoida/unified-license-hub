@@ -29,6 +29,8 @@ import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { PQ_STATE_META, type PqState } from '@/lib/fp/pqState';
 import { FpPqAmendmentDialog } from '@/components/fit-and-proper/FpPqAmendmentDialog';
+import { generateToken, computeVerificationHash, computeIdentityHashes, getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
+import { SubmittedDeclarationView } from '@/components/fit-and-proper/SubmittedDeclarationView';
 
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -53,24 +55,6 @@ function fmtTime(d: string | null) {
   return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Generate a cryptographically random token and return both the raw value and its SHA-256 hex digest. */
-async function generateToken(): Promise<{ raw: string; hash: string }> {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const raw = Array.from(array).map((b) => b.toString(16).padStart(2, '0')).join('');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-  const hash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  return { raw, hash };
-}
-
-/** Compute the identity gate hash that the portal verification function will compare against.
- *  Must match: sha256(p_dob || '|' || upper(p_last4id)) used in verify_declaration_identity(). */
-async function computeVerificationHash(dob: string, last4: string): Promise<string> {
-  const input = `${dob}|${last4.toUpperCase()}`;
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 const ACTION_COLORS: Record<string, string> = {
   NOTIFICATION_SENT:    'bg-blue-50 text-blue-700 border-blue-200',
   WORKFLOW_TRANSITION:  'bg-amber-50 text-amber-700 border-amber-200',
@@ -84,6 +68,10 @@ function AssessmentDetailDialog({ row }: { row: any }) {
   const [open, setOpen] = useState(false);
   const indiv = row.fp_individuals as any;
   const ds = declStatus(row.status);
+  // Only a genuinely submitted declaration has answers worth rendering — while
+  // still in Draft, declaration_data (if any) is just "an invitation was sent",
+  // not a completed questionnaire.
+  const isSubmitted = !canRequestDeclaration(row.status);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -93,7 +81,7 @@ function AssessmentDetailDialog({ row }: { row: any }) {
           View
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assessment Detail</DialogTitle>
         </DialogHeader>
@@ -136,6 +124,20 @@ function AssessmentDetailDialog({ row }: { row: any }) {
               <p className="text-xs">{fmtDate((row.declaration_data as any).requested_at)} at {fmtTime((row.declaration_data as any).requested_at)}</p>
             </div>
           )}
+
+          {isSubmitted && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Submitted Declaration</p>
+                <SubmittedDeclarationView
+                  formTemplateId={row.form_template_id}
+                  formVersionId={row.form_version_id}
+                  declarationData={row.declaration_data}
+                />
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
@@ -162,8 +164,12 @@ export default function FpaDeclarations() {
 
   const [note, setNote] = useState('');
 
-  // identity-gate verification hash state
+  // identity-gate verification hash state — verificationHash is whichever
+  // identity document (national ID or passport) is on file, verificationHashAlt
+  // the second one's hash when both are, so either may be presented at
+  // verification (see computeIdentityHashes()).
   const [verificationHash, setVerificationHash] = useState('');
+  const [verificationHashAlt, setVerificationHashAlt] = useState('');
   const [manualDob, setManualDob] = useState('');
   const [manualLast4, setManualLast4] = useState('');
   // null = not yet computed, true = auto-computed from profile, false = profile missing DOB/national_id
@@ -223,14 +229,14 @@ export default function FpaDeclarations() {
       const [withDecl, byStatus] = await Promise.all([
         supabase
           .from('fp_assessments' as any)
-          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, created_at, fp_individuals(full_name, national_id)')
+          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, form_template_id, form_version_id, created_at, fp_individuals(full_name, national_id)')
 
           .not('declaration_data', 'is', null)
           .order('created_at', { ascending: false })
           .limit(50),
         supabase
           .from('fp_assessments' as any)
-          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, created_at, fp_individuals(full_name, national_id)')
+          .select('id, individual_id, assessment_type, status, pq_state, pq_amendment_reason, declaration_data, form_template_id, form_version_id, created_at, fp_individuals(full_name, national_id)')
           .in('status', ['draft', 'submitted'])
           .order('created_at', { ascending: false })
           .limit(50),
@@ -281,7 +287,7 @@ export default function FpaDeclarations() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_individuals' as any)
-        .select('id, full_name, national_id, date_of_birth, email')
+        .select('id, full_name, national_id, passport_number, date_of_birth, email')
         .order('full_name')
         .limit(200);
       if (error) throw error;
@@ -312,21 +318,130 @@ export default function FpaDeclarations() {
   // ── mutations ─────────────────────────────────────────────────────────────
 
   const sendReminder = useMutation({
-    mutationFn: async (id: string) => {
-      // Insert a NOTIFICATION_SENT audit log entry for the reminder
-      const { error } = await supabase.rpc('log_compliance_audit' as any, {
+    mutationFn: async ({ assessmentId, individualId }: { assessmentId: string; individualId: string }) => {
+      // A genuine resend needs a fresh token — only the SHA-256 hash of the
+      // original raw token was ever stored, so the old portal link cannot be
+      // recovered or re-sent as-is. Reuse the prior invitation's
+      // verification_hash/channel/recipient so identity verification still
+      // matches what was originally set up, mint a new token, expire the old
+      // invitation, and actually send the email this time instead of only
+      // writing an audit entry that implied one went out.
+      const { data: priorInvitation, error: priorErr } = await supabase
+        .from('declaration_invitations' as any)
+        .select('id, verification_hash, verification_hash_alt, channel, recipient_email, recipient_phone')
+        .eq('assessment_id', assessmentId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (priorErr) throw priorErr;
+      if (!priorInvitation) {
+        throw new Error('No declaration invitation has been sent for this assessment yet — use "Request Declaration" first.');
+      }
+      const prior = priorInvitation as any;
+
+      const { data: individual, error: indErr } = await supabase
+        .from('fp_individuals' as any)
+        .select('full_name, email')
+        .eq('id', individualId)
+        .maybeSingle();
+      if (indErr) throw indErr;
+      const recipientEmail = (individual as any)?.email || prior.recipient_email || '';
+
+      const { raw: rawToken, hash: tokenHash } = await generateToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { error: insertErr } = await supabase.from('declaration_invitations' as any).insert({
+        individual_id: individualId,
+        assessment_id: assessmentId,
+        token_hash: tokenHash,
+        verification_hash: prior.verification_hash,
+        verification_hash_alt: prior.verification_hash_alt ?? null,
+        channel: prior.channel,
+        recipient_email: recipientEmail || null,
+        recipient_phone: prior.recipient_phone ?? null,
+        status: 'SENT',
+        expires_at: expiresAt,
+      });
+      if (insertErr) throw insertErr;
+
+      await supabase.from('declaration_invitations' as any)
+        .update({ status: 'EXPIRED' })
+        .eq('id', prior.id);
+
+      const portalLink = `${window.location.origin}/declaration/${rawToken}`;
+      let emailSent = false;
+      if (recipientEmail) {
+        const individualName = (individual as any)?.full_name || 'Applicant';
+        const entityName = await getAssessmentEntityName(assessmentId);
+        const entityLine = entityName ? ` in connection with your role at ${entityName}` : '';
+        const emailSubject = 'Reminder: Fit & Proper Declaration — Action Required';
+        const emailText = [
+          `Dear ${individualName},`,
+          '',
+          `This is a reminder that your Fit & Proper Personal Questionnaire Declaration${entityLine} is still outstanding.`,
+          '',
+          'Please use the link below to access the secure declaration form:',
+          portalLink,
+          '',
+          'When prompted, verify your identity using your date of birth and the last 4 digits of your national ID or passport number.',
+          '',
+          'This link expires in 7 days. If you did not expect this request, please disregard this message.',
+          '',
+          'Regards,',
+          'The Compliance Team',
+        ].join('\n');
+        const emailHtml = `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a">
+            <h2 style="margin-top:0;color:#111827">Reminder: Fit &amp; Proper Declaration</h2>
+            <p>Dear <strong>${individualName}</strong>,</p>
+            <p>This is a reminder that your <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>${entityName ? ` in connection with your role at <strong>${entityName}</strong>` : ''} is still outstanding.</p>
+            <p>Click the button below to access the secure declaration form:</p>
+            <p style="text-align:center;margin:32px 0">
+              <a href="${portalLink}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
+                Complete Declaration Form
+              </a>
+            </p>
+            <p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br>
+              <span style="word-break:break-all;color:#2563eb">${portalLink}</span>
+            </p>
+            <p>When prompted, you will need your <strong>date of birth</strong> and the <strong>last 4 digits of your national ID or passport number</strong> to verify your identity.</p>
+            <p style="color:#dc2626;font-size:13px">⚠ This link expires in 7 days.</p>
+            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+            <p style="font-size:12px;color:#9ca3af">This is an automated message from the Regulatory Compliance Portal. Do not reply to this email.</p>
+          </div>`;
+        try {
+          const { data: emailResult } = await supabase.functions.invoke('send-notification', {
+            body: { type: 'email', to: recipientEmail, subject: emailSubject, body: emailText, html: emailHtml },
+          });
+          emailSent = emailResult?.success === true;
+        } catch {
+          // Email send threw — the new invitation row is still valid; caller gets a warning.
+        }
+      }
+
+      await supabase.rpc('log_compliance_audit' as any, {
         _action_type: 'NOTIFICATION_SENT',
         _object_type: 'fp_assessment',
-        _object_id: id,
-        _justification: 'Manual reminder dispatched by regulator from Declarations page',
+        _object_id: assessmentId,
+        _justification: emailSent
+          ? `Reminder re-sent to ${recipientEmail} (new invitation, prior one expired)`
+          : 'Reminder invitation re-issued (email not sent — no recipient email or SMTP unavailable)',
       });
-      if (error) throw error;
+
+      return { emailSent, recipientEmail };
     },
-    onSuccess: () => {
-      toast.success('Reminder logged');
+    onSuccess: ({ emailSent, recipientEmail }) => {
+      if (recipientEmail && !emailSent) {
+        toast.warning('New invitation issued but email could not be sent — SMTP may not be configured.');
+      } else if (recipientEmail) {
+        toast.success(`Reminder sent to ${recipientEmail}`);
+      } else {
+        toast.warning('New invitation issued, but this individual has no email on file to send it to.');
+      }
       qc.invalidateQueries({ queryKey: ['fpa_notif_log'] });
+      qc.invalidateQueries({ queryKey: ['fpa_declaration_queue'] });
     },
-    onError: (e: any) => toast.error(e?.message || 'Failed to log reminder'),
+    onError: (e: any) => toast.error(e?.message || 'Failed to send reminder'),
   });
 
   const requestDeclaration = useMutation({
@@ -338,7 +453,7 @@ export default function FpaDeclarations() {
       const { raw: rawToken, hash: tokenHash } = await generateToken();
 
       // 2. Use the pre-computed verification hash (sha256 of dob|last4 matching verify_declaration_identity()).
-      if (!verificationHash) throw new Error('Verification hash not ready. Ensure the individual has a date of birth and national ID on file, or enter them manually.');
+      if (!verificationHash) throw new Error('Verification hash not ready. Ensure the individual has a date of birth and a national ID or passport number on file, or enter them manually.');
 
       // 3. Insert the declaration_invitation record
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -349,6 +464,7 @@ export default function FpaDeclarations() {
           assessment_id: selectedAssessment,
           token_hash: tokenHash,
           verification_hash: verificationHash,
+          verification_hash_alt: verificationHashAlt || null,
           channel: channel,
           recipient_email: recipientEmail.trim() || null,
           recipient_phone: null,
@@ -391,16 +507,18 @@ export default function FpaDeclarations() {
       let emailSent = false;
       if (recipientEmail.trim()) {
         const individualName = (individuals ?? []).find((i: any) => i.id === selectedIndividual)?.full_name || 'Applicant';
+        const entityName = await getAssessmentEntityName(selectedAssessment);
+        const entityLine = entityName ? ` in connection with your role at ${entityName}` : '';
         const emailSubject = 'Fit & Proper Declaration — Action Required';
         const emailText = [
           `Dear ${individualName},`,
           '',
-          'You have been invited to complete a Fit & Proper Personal Questionnaire Declaration.',
+          `You have been invited to complete a Fit & Proper Personal Questionnaire Declaration${entityLine}.`,
           '',
           'Please use the link below to access the secure declaration form:',
           portalLink,
           '',
-          'When prompted, verify your identity using your date of birth and the last 4 digits of your national ID.',
+          'When prompted, verify your identity using your date of birth and the last 4 digits of your national ID or passport number.',
           '',
           'This link expires in 7 days. If you did not expect this request, please disregard this message.',
           '',
@@ -411,7 +529,7 @@ export default function FpaDeclarations() {
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a">
             <h2 style="margin-top:0;color:#111827">Fit &amp; Proper Declaration — Action Required</h2>
             <p>Dear <strong>${individualName}</strong>,</p>
-            <p>You have been invited to complete a <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>.</p>
+            <p>You have been invited to complete a <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>${entityName ? ` in connection with your role at <strong>${entityName}</strong>` : ''}.</p>
             <p>Click the button below to access the secure declaration form:</p>
             <p style="text-align:center;margin:32px 0">
               <a href="${portalLink}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
@@ -421,7 +539,7 @@ export default function FpaDeclarations() {
             <p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br>
               <span style="word-break:break-all;color:#2563eb">${portalLink}</span>
             </p>
-            <p>When prompted, you will need your <strong>date of birth</strong> and the <strong>last 4 digits of your national ID</strong> to verify your identity.</p>
+            <p>When prompted, you will need your <strong>date of birth</strong> and the <strong>last 4 digits of your national ID or passport number</strong> to verify your identity.</p>
             <p style="color:#dc2626;font-size:13px">⚠ This link expires in 7 days.</p>
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
             <p style="font-size:12px;color:#9ca3af">This is an automated message from the Regulatory Compliance Portal. Do not reply to this email.</p>
@@ -459,17 +577,17 @@ export default function FpaDeclarations() {
     setSelectedIndividual(id);
     setSelectedAssessment('');
     setVerificationHash('');
+    setVerificationHashAlt('');
     setVerifDataSource(null);
     setManualDob('');
     setManualLast4('');
 
     const ind = (individuals ?? []).find((i: any) => i.id === id) as any;
     if (ind?.email) setRecipientEmail(ind.email);
-    if (ind?.date_of_birth && ind?.national_id && ind.national_id.length >= 4) {
-      const dob = ind.date_of_birth as string; // "YYYY-MM-DD"
-      const last4 = (ind.national_id as string).slice(-4);
-      const hash = await computeVerificationHash(dob, last4);
-      setVerificationHash(hash);
+    const { primary, alt } = await computeIdentityHashes(ind?.date_of_birth, ind?.national_id, ind?.passport_number);
+    if (primary) {
+      setVerificationHash(primary);
+      setVerificationHashAlt(alt);
       setVerifDataSource('auto');
     } else {
       setVerifDataSource('manual');
@@ -482,6 +600,7 @@ export default function FpaDeclarations() {
     if (dob && last4.length === 4) {
       const hash = await computeVerificationHash(dob, last4);
       setVerificationHash(hash);
+      setVerificationHashAlt('');
     } else {
       setVerificationHash('');
     }
@@ -494,6 +613,7 @@ export default function FpaDeclarations() {
     setRecipientEmail('');
     setNote('');
     setVerificationHash('');
+    setVerificationHashAlt('');
     setManualDob('');
     setManualLast4('');
     setVerifDataSource(null);
@@ -580,7 +700,7 @@ export default function FpaDeclarations() {
                     {verifDataSource === 'auto' && (
                       <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
                         <CheckCheck className="h-3.5 w-3.5 shrink-0" />
-                        Identity gate ready — DOB and national ID loaded from profile.
+                        Identity gate ready — DOB and {verificationHashAlt ? 'national ID and passport number' : 'national ID or passport number'} loaded from profile.
                       </div>
                     )}
                     {verifDataSource === 'manual' && (
@@ -588,7 +708,7 @@ export default function FpaDeclarations() {
                         <div className="flex items-start gap-2 text-xs text-amber-800">
                           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                           <span>
-                            This individual is missing a date of birth or national ID on their profile.
+                            This individual is missing a date of birth, national ID, and passport number on their profile.
                             Enter the values below to set the identity gate the portal will verify against.
                           </span>
                         </div>
@@ -602,7 +722,7 @@ export default function FpaDeclarations() {
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Last 4 of National ID <span className="text-red-500">*</span></Label>
+                            <Label className="text-xs">Last 4 of National ID / Passport <span className="text-red-500">*</span></Label>
                             <Input
                               type="text"
                               maxLength={4}
@@ -896,18 +1016,23 @@ export default function FpaDeclarations() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button data-rbac="fit_and_proper.edit"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 text-xs"
-                                  disabled={sendReminder.isPending || !canRequestDeclaration(row.status)}
-                                  onClick={() => sendReminder.mutate(row.id)}
-                                >
-                                  {sendReminder.isPending
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <Bell className="h-3 w-3" />}
-                                  <span className="ml-1">Remind</span>
-                                </Button>
+                                {(() => {
+                                  const isThisRowSending = sendReminder.isPending && sendReminder.variables?.assessmentId === row.id;
+                                  return (
+                                    <Button data-rbac="fit_and_proper.edit"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 text-xs"
+                                      disabled={sendReminder.isPending || !canRequestDeclaration(row.status)}
+                                      onClick={() => sendReminder.mutate({ assessmentId: row.id, individualId: row.individual_id })}
+                                    >
+                                      {isThisRowSending
+                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                        : <Bell className="h-3 w-3" />}
+                                      <span className="ml-1">Remind</span>
+                                    </Button>
+                                  );
+                                })()}
                                 <AssessmentDetailDialog row={row} />
                                 {pq === 'submitted' && (
                                   <FpPqAmendmentDialog

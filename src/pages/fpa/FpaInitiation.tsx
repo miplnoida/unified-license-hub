@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import { logFpAction } from '@/lib/fpAudit';
+import { RequestDeclarationDialog } from '@/components/fit-and-proper/RequestDeclarationDialog';
 import {
   FileText,
   RefreshCw,
@@ -47,29 +48,7 @@ import {
   ArrowRight,
   ClipboardList,
   Send,
-  CheckCheck,
-  Copy,
-  AlertCircle,
 } from 'lucide-react';
-
-// ---------------------------------------------------------------------------
-// Helpers (shared with FpaDeclarations logic)
-// ---------------------------------------------------------------------------
-
-async function generateToken(): Promise<{ raw: string; hash: string }> {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const raw = Array.from(array).map((b) => b.toString(16).padStart(2, '0')).join('');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-  const hash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
-  return { raw, hash };
-}
-
-async function computeVerificationHash(dob: string, last4: string): Promise<string> {
-  const input = `${dob}|${last4.toUpperCase()}`;
-  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -222,21 +201,14 @@ export default function FpaInitiation() {
   const [appSearch, setAppSearch] = useState('');
   const [selectedAppNumber, setSelectedAppNumber] = useState('');
 
-  // ── Declaration request dialog state ────────────────────────────────────
+  // ── Declaration request dialog state — RequestDeclarationDialog owns
+  // everything else about the flow; this page only needs to know which
+  // individual/assessment it's currently targeting. ───────────────────────
   const [declDialogOpen, setDeclDialogOpen] = useState(false);
   const [declAssessmentId, setDeclAssessmentId] = useState('');
   const [declIndividualId, setDeclIndividualId] = useState('');
   const [declIndividualName, setDeclIndividualName] = useState('');
   const [declAssessmentLabel, setDeclAssessmentLabel] = useState('');
-  const [declRecipientEmail, setDeclRecipientEmail] = useState('');
-  const [declNote, setDeclNote] = useState('');
-  const [declPortalLink, setDeclPortalLink] = useState('');
-  const [declSubmitted, setDeclSubmitted] = useState(false);
-  const [declCopied, setDeclCopied] = useState(false);
-  const [declVerifHash, setDeclVerifHash] = useState('');
-  const [declVerifSource, setDeclVerifSource] = useState<'auto' | 'manual' | null>(null);
-  const [declManualDob, setDeclManualDob] = useState('');
-  const [declManualLast4, setDeclManualLast4] = useState('');
 
   // ── Application ID search ────────────────────────────────────────────────
   const {
@@ -329,36 +301,6 @@ export default function FpaInitiation() {
     },
   });
 
-  // ── Individual detail for declaration verification hash ──────────────────
-  const { data: declIndividualData } = useQuery<{ id: string; date_of_birth: string | null; national_id: string | null } | null>({
-    queryKey: ['fp_individual_detail_decl', declIndividualId],
-    enabled: !!declIndividualId && declDialogOpen,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fp_individuals')
-        .select('id, date_of_birth, national_id')
-        .eq('id', declIndividualId)
-        .maybeSingle();
-      if (error) throw error;
-      return data as { id: string; date_of_birth: string | null; national_id: string | null } | null;
-    },
-  });
-
-  // Auto-compute verification hash when individual data loads
-  useEffect(() => {
-    if (!declIndividualData || !declDialogOpen) return;
-    const { date_of_birth, national_id } = declIndividualData;
-    if (date_of_birth && national_id && national_id.length >= 4) {
-      const last4 = national_id.slice(-4);
-      computeVerificationHash(date_of_birth, last4).then((hash) => {
-        setDeclVerifHash(hash);
-        setDeclVerifSource('auto');
-      });
-    } else {
-      setDeclVerifSource('manual');
-    }
-  }, [declIndividualData, declDialogOpen]);
-
   // ── Assessment detail dialog ─────────────────────────────────────────────
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedAssessment, setSelectedAssessment] = useState<AssessmentRow | null>(null);
@@ -374,34 +316,7 @@ export default function FpaInitiation() {
     setDeclIndividualId(individualId);
     setDeclIndividualName(individualName);
     setDeclAssessmentLabel(assessmentLabel);
-    setDeclRecipientEmail('');
-    setDeclNote('');
-    setDeclPortalLink('');
-    setDeclSubmitted(false);
-    setDeclCopied(false);
-    setDeclVerifHash('');
-    setDeclVerifSource(null);
-    setDeclManualDob('');
-    setDeclManualLast4('');
     setDeclDialogOpen(true);
-  }
-
-  async function handleDeclManualVerifChange(dob: string, last4: string) {
-    setDeclManualDob(dob);
-    setDeclManualLast4(last4);
-    if (dob && last4.length === 4) {
-      const hash = await computeVerificationHash(dob, last4);
-      setDeclVerifHash(hash);
-    } else {
-      setDeclVerifHash('');
-    }
-  }
-
-  function copyDeclLink() {
-    navigator.clipboard.writeText(declPortalLink).then(() => {
-      setDeclCopied(true);
-      setTimeout(() => setDeclCopied(false), 2000);
-    });
   }
 
   // ── Initiation mutation ──────────────────────────────────────────────────
@@ -455,123 +370,6 @@ export default function FpaInitiation() {
     onError: (e: any) => {
       toast.error(e?.message || 'Failed to initiate assessment');
     },
-  });
-
-  // ── Declaration request mutation ─────────────────────────────────────────
-  const requestDeclarationMutation = useMutation({
-    mutationFn: async () => {
-      if (!declAssessmentId) throw new Error('Assessment not selected');
-      if (!declIndividualId) throw new Error('Individual not selected');
-      if (!declVerifHash) throw new Error('Verification hash not ready. Ensure the individual has a date of birth and national ID on file, or enter them manually.');
-
-      const { raw: rawToken, hash: tokenHash } = await generateToken();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      const { error: invError } = await supabase
-        .from('declaration_invitations' as any)
-        .insert({
-          individual_id: declIndividualId,
-          assessment_id: declAssessmentId,
-          token_hash: tokenHash,
-          verification_hash: declVerifHash,
-          channel: 'EMAIL',
-          recipient_email: declRecipientEmail.trim() || null,
-          status: 'PENDING',
-          expires_at: expiresAt,
-        });
-      if (invError) throw invError;
-
-      const { data: existing } = await supabase
-        .from('fp_assessments' as any)
-        .select('declaration_data')
-        .eq('id', declAssessmentId)
-        .single();
-
-      const prev = (existing as any)?.declaration_data ?? {};
-      const merged = {
-        ...prev,
-        channel: 'EMAIL',
-        requested_at: new Date().toISOString(),
-        note: declNote.trim() || null,
-      };
-
-      const { error: updateError } = await supabase
-        .from('fp_assessments' as any)
-        .update({ declaration_data: merged })
-        .eq('id', declAssessmentId);
-      if (updateError) throw updateError;
-
-      await supabase.rpc('log_compliance_audit' as any, {
-        _action_type: 'NOTIFICATION_SENT',
-        _object_type: 'fp_assessment',
-        _object_id: declAssessmentId,
-        _justification: 'Declaration invitation created via EMAIL channel from Assessment Initiation',
-      });
-
-      // Send the invitation email with the secure portal link
-      const portalLink = `${window.location.origin}/declaration/${rawToken}`;
-      let emailSent = false;
-      if (declRecipientEmail.trim()) {
-        const emailSubject = 'Fit & Proper Declaration — Action Required';
-        const emailText = [
-          `Dear ${declIndividualName || 'Applicant'},`,
-          '',
-          'You have been invited to complete a Fit & Proper Personal Questionnaire Declaration.',
-          '',
-          'Please use the link below to access the secure declaration form:',
-          portalLink,
-          '',
-          'When prompted, verify your identity using your date of birth and the last 4 digits of your national ID.',
-          '',
-          'This link expires in 7 days. If you did not expect this request, please disregard this message.',
-          '',
-          'Regards,',
-          'The Compliance Team',
-        ].join('\n');
-        const emailHtml = `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a">
-            <h2 style="margin-top:0;color:#111827">Fit &amp; Proper Declaration — Action Required</h2>
-            <p>Dear <strong>${declIndividualName || 'Applicant'}</strong>,</p>
-            <p>You have been invited to complete a <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>.</p>
-            <p>Click the button below to access the secure declaration form:</p>
-            <p style="text-align:center;margin:32px 0">
-              <a href="${portalLink}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
-                Complete Declaration Form
-              </a>
-            </p>
-            <p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br>
-              <span style="word-break:break-all;color:#2563eb">${portalLink}</span>
-            </p>
-            <p>When prompted, you will need your <strong>date of birth</strong> and the <strong>last 4 digits of your national ID</strong> to verify your identity.</p>
-            <p style="color:#dc2626;font-size:13px">⚠ This link expires in 7 days.</p>
-            <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-            <p style="font-size:12px;color:#9ca3af">This is an automated message from the Regulatory Compliance Portal. Do not reply to this email.</p>
-          </div>`;
-
-        try {
-          const { data: emailResult } = await supabase.functions.invoke('send-notification', {
-            body: { type: 'email', to: declRecipientEmail.trim(), subject: emailSubject, body: emailText, html: emailHtml },
-          });
-          emailSent = emailResult?.success === true;
-        } catch {
-          // Email send threw — invitation row is still valid; caller gets a warning
-        }
-      }
-
-      return { rawToken, emailSent, recipientEmail: declRecipientEmail.trim() };
-    },
-    onSuccess: ({ rawToken, emailSent, recipientEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
-      if (recipientEmail && !emailSent) {
-        toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
-      } else {
-        toast.success(recipientEmail ? `Declaration request sent to ${recipientEmail}` : 'Declaration invitation created');
-      }
-      qc.invalidateQueries({ queryKey: ['fp_recent_assessments'] });
-      const link = `${window.location.origin}/declaration/${rawToken}`;
-      setDeclPortalLink(link);
-      setDeclSubmitted(true);
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed to send declaration request'),
   });
 
   // ── Initiation form helpers ──────────────────────────────────────────────
@@ -826,164 +624,15 @@ export default function FpaInitiation() {
         </Dialog>
 
         {/* ── Declaration Request Dialog (pre-filled, email-only) ── */}
-        <Dialog open={declDialogOpen} onOpenChange={(o) => {
-          setDeclDialogOpen(o);
-        }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Send className="h-4 w-4 text-muted-foreground" />
-                Request Declaration
-              </DialogTitle>
-            </DialogHeader>
-
-            {!declSubmitted ? (
-              <div className="space-y-4 py-1">
-                {/* Individual — read-only */}
-                <div className="space-y-1.5">
-                  <Label>Individual</Label>
-                  <div className="flex items-center h-9 rounded-md border bg-muted/40 px-3 text-sm font-medium">
-                    {declIndividualName || '—'}
-                  </div>
-                </div>
-
-                {/* Assessment — read-only */}
-                <div className="space-y-1.5">
-                  <Label>Assessment</Label>
-                  <div className="flex items-center h-9 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
-                    {declAssessmentLabel || '—'}
-                  </div>
-                </div>
-
-                {/* Delivery Channel — fixed to Email */}
-                <div className="space-y-1.5">
-                  <Label>Delivery Channel</Label>
-                  <div className="flex items-center h-9 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
-                    Email
-                  </div>
-                </div>
-
-                {/* Identity gate status */}
-                {declVerifSource === 'auto' && (
-                  <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
-                    <CheckCheck className="h-3.5 w-3.5 shrink-0" />
-                    Identity gate ready — DOB and national ID loaded from profile.
-                  </div>
-                )}
-                {declVerifSource === 'manual' && (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 space-y-2.5">
-                    <div className="flex items-start gap-2 text-xs text-amber-800">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>
-                        This individual is missing a date of birth or national ID on their profile.
-                        Enter the values below to set the identity gate the portal will verify against.
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Date of Birth <span className="text-red-500">*</span></Label>
-                        <Input
-                          type="date"
-                          value={declManualDob}
-                          onChange={(e) => handleDeclManualVerifChange(e.target.value, declManualLast4)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Last 4 of National ID <span className="text-red-500">*</span></Label>
-                        <Input
-                          type="text"
-                          maxLength={4}
-                          placeholder="e.g. 5993"
-                          value={declManualLast4}
-                          onChange={(e) => {
-                            const v = e.target.value.replace(/\D/g, '').slice(0, 4);
-                            handleDeclManualVerifChange(declManualDob, v);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {declVerifSource === null && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Loading individual profile…
-                  </div>
-                )}
-
-                {/* Recipient email */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="decl-email">Recipient Email</Label>
-                  <Input
-                    id="decl-email"
-                    type="email"
-                    placeholder="applicant@example.com"
-                    value={declRecipientEmail}
-                    onChange={(e) => setDeclRecipientEmail(e.target.value)}
-                  />
-                </div>
-
-                {/* Note */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="decl-note">Note (optional)</Label>
-                  <Textarea
-                    id="decl-note"
-                    rows={3}
-                    placeholder="Internal note about this declaration request…"
-                    value={declNote}
-                    onChange={(e) => setDeclNote(e.target.value)}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Post-submit confirmation */
-              <div className="space-y-4 py-2">
-                <div className="flex items-center gap-2 text-emerald-700">
-                  <CheckCheck className="h-5 w-5 flex-shrink-0" />
-                  <p className="text-sm font-medium">Declaration invitation recorded and logged.</p>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Share this secure, expiring link with the applicant to complete the declaration form.
-                    This link expires in 7 days.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded bg-muted px-3 py-2 text-xs font-mono break-all">
-                      {declPortalLink}
-                    </code>
-                    <Button size="icon" variant="outline" onClick={copyDeclLink} className="flex-shrink-0">
-                      {declCopied ? <CheckCheck className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              {!declSubmitted ? (
-                <>
-                  <Button data-rbac="fit_and_proper.edit" variant="ghost" onClick={() => setDeclDialogOpen(false)}>
-                    Skip for now
-                  </Button>
-                  <Button data-rbac="fit_and_proper.edit"
-                    onClick={() => requestDeclarationMutation.mutate()}
-                    disabled={requestDeclarationMutation.isPending || !declVerifHash}
-                  >
-                    {requestDeclarationMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Request
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setDeclDialogOpen(false)}>
-                  Close
-                </Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <RequestDeclarationDialog
+          open={declDialogOpen}
+          onOpenChange={setDeclDialogOpen}
+          individualId={declIndividualId}
+          individualName={declIndividualName}
+          assessmentId={declAssessmentId}
+          assessmentLabel={declAssessmentLabel}
+          onSent={() => qc.invalidateQueries({ queryKey: ['fp_recent_assessments'] })}
+        />
 
         {/* Recent initiations */}
         <Card>

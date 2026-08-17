@@ -11,9 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert, Plus } from 'lucide-react';
+import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert, Plus, Info } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
 import { resolveFpSectorRule, evaluateFpCriteria } from '@/lib/fpSectorRules';
+import { canTransitionFp, fpStatusLabel } from '@/lib/fpStatus';
+import { AssignCommitteeCard } from '@/components/fit-and-proper/AssignCommitteeCard';
 
 const OUTCOME_META: Record<string, { label: string; className: string }> = {
   approved: { label: 'Approved', className: 'bg-green-100 text-green-800' },
@@ -29,31 +31,94 @@ const VOTE_META: Record<string, { icon: any; className: string }> = {
   abstain: { icon: MinusCircle, className: 'text-slate-500' },
 };
 
-interface Props { individualId: string; assessmentId?: string | null }
+function capitalize(s: string | null | undefined): string {
+  if (!s) return '—';
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
+}
 
-export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString();
+}
+
+function ineligibleReason(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'Declaration not yet submitted — complete it on the Assessments tab before this assessment can be routed to a committee.';
+    case 'determined':
+      return 'Already has a finalized determination.';
+    case 'closed':
+      return 'Already closed.';
+    case 'withdrawn':
+      return 'Withdrawn — no further action needed.';
+    default:
+      return `Currently "${fpStatusLabel(status)}" — not ready for committee assignment.`;
+  }
+}
+
+interface Assessment {
+  id: string;
+  assessment_type: string;
+  status: string;
+  created_at: string;
+  committee_id: string | null;
+  regulator_id: string | null;
+  role_id: string | null;
+  licensee_id: string | null;
+}
+
+interface Props { individualId: string }
+
+export function FpDeterminationsPanel({ individualId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [assignCommitteeId, setAssignCommitteeId] = useState<string>('');
   const [voteChoice, setVoteChoice] = useState<string>('approve');
   const [voteNote, setVoteNote] = useState('');
   const [rationale, setRationale] = useState('');
+  const [selectedRoutedId, setSelectedRoutedId] = useState<string | null>(null);
   // A conditional outcome should have at least one condition attached — a
   // centered dialog (rather than a dismissable toast action) so the
   // follow-up decision isn't easy to miss.
   const [conditionPromptDeterminationId, setConditionPromptDeterminationId] = useState<string | null>(null);
 
-  const { data: assessment } = useQuery({
-    queryKey: ['fp_assessment_for_det', assessmentId],
-    enabled: !!assessmentId,
+  const { data: assessments, isLoading: assessmentsLoading } = useQuery({
+    queryKey: ['fp_assessments_for_det', individualId],
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_assessments')
-        .select('id, individual_id, status, committee_id, regulator_id, role_id, licensee_id').eq('id', assessmentId!).maybeSingle();
+        .select('id, assessment_type, status, created_at, committee_id, regulator_id, role_id, licensee_id')
+        .eq('individual_id', individualId)
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []) as Assessment[];
     },
   });
+
+  // Eligible to be routed to a committee right now: no committee assigned yet,
+  // and the assessment's own status actually allows that transition (the
+  // same rule the database trigger enforces — see fpStatus.ts).
+  const eligibleAssessments = useMemo(
+    () => (assessments ?? []).filter((a) => !a.committee_id && canTransitionFp(a.status, 'awaiting_committee')),
+    [assessments],
+  );
+  // Already routed to a committee (regardless of where that committee's
+  // voting currently stands) — these get the voting/finalize UI below.
+  const routedAssessments = useMemo(
+    () => (assessments ?? []).filter((a) => !!a.committee_id),
+    [assessments],
+  );
+  // Neither eligible nor routed — drafts, or assessments finalized without a
+  // committee. Shown as an explicit "why not" list rather than silently absent.
+  const otherAssessments = useMemo(
+    () => (assessments ?? []).filter((a) => !a.committee_id && !canTransitionFp(a.status, 'awaiting_committee')),
+    [assessments],
+  );
+
+  const effectiveRoutedId = routedAssessments.some((a) => a.id === selectedRoutedId)
+    ? selectedRoutedId
+    : (routedAssessments[0]?.id ?? null);
+  const assessment = routedAssessments.find((a) => a.id === effectiveRoutedId) ?? null;
+  const assessmentId = assessment?.id ?? null;
 
   // Resolve sector context for sector-specific rule evaluation.
   const { data: sectorContext } = useQuery({
@@ -187,26 +252,6 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     [votes, user?.id],
   );
 
-  const assign = useMutation({
-    mutationFn: async () => {
-      if (!assessmentId || !assignCommitteeId) throw new Error('Pick a committee');
-      const { error } = await supabase.from('fp_assessments')
-        .update({ committee_id: assignCommitteeId, status: 'awaiting_committee' })
-        .eq('id', assessmentId);
-      if (error) throw error;
-      await logFpAction('fp.assessment.committee_assigned', 'fp_assessment', assessmentId, {
-        after: { committee_id: assignCommitteeId, status: 'awaiting_committee' },
-        context: { individualId, assessmentId, committeeId: assignCommitteeId },
-      });
-    },
-    onSuccess: () => {
-      toast.success('Committee assigned');
-      qc.invalidateQueries({ queryKey: ['fp_assessment_for_det', assessmentId] });
-      qc.invalidateQueries({ queryKey: ['fp_assessment', assessmentId] });
-    },
-    onError: (e: any) => toast.error(e?.message || 'Failed'),
-  });
-
   const castVote = useMutation({
     mutationFn: async () => {
       if (!assessmentId || !assessment?.committee_id || !myMembership) throw new Error('Not a member');
@@ -308,6 +353,17 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
         justification: rationale.trim(),
       });
 
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'fp_determination_finalized',
+            entity_type: 'fp_determination',
+            entity_id: inserted.id,
+            payload: { outcome, individual_id: individualId },
+          },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
+
       return { outcome, determinationId: inserted.id };
     },
     onSuccess: (result) => {
@@ -318,8 +374,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
       // from the one above, so a determination finalized here never showed up
       // there until the cache aged out or the page was reloaded.
       qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual', individualId] });
-      qc.invalidateQueries({ queryKey: ['fp_assessment_for_det', assessmentId] });
-      qc.invalidateQueries({ queryKey: ['fp_assessment', assessmentId] });
+      qc.invalidateQueries({ queryKey: ['fp_assessments_for_det', individualId] });
 
       toast.success('Determination recorded');
       if (result.outcome === 'conditional') {
@@ -331,45 +386,80 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
 
   return (
     <div className="space-y-4">
-      {!assessmentId ? (
-        <Card><CardContent className="p-6 text-sm text-muted-foreground">Open an assessment to route it to a committee.</CardContent></Card>
+      {assessmentsLoading ? (
+        <Card><CardContent className="p-6 text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading assessments…</CardContent></Card>
+      ) : (assessments ?? []).length === 0 ? (
+        <Card><CardContent className="p-6 text-sm text-muted-foreground">No assessments recorded for this individual yet. Start one from the Assessments tab.</CardContent></Card>
       ) : (
         <>
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Committee</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Committee assignment</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {!committee ? (
+              {eligibleAssessments.length > 0 ? (
                 <>
-                  <p className="text-sm text-muted-foreground">No committee assigned yet.</p>
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Label className="text-xs">Assign committee</Label>
-                      <Select value={assignCommitteeId} onValueChange={setAssignCommitteeId}>
-                        <SelectTrigger><SelectValue placeholder="Pick active committee" /></SelectTrigger>
-                        <SelectContent>{(committees ?? []).map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name} (quorum {c.quorum}, {c.approval_threshold_pct}%)</SelectItem>
-                        ))}</SelectContent>
-                      </Select>
-                    </div>
-                    <Button data-rbac="fit_and_proper.edit" onClick={() => assign.mutate()} disabled={assign.isPending || !assignCommitteeId}>Assign</Button>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {eligibleAssessments.length === 1
+                      ? 'One assessment is ready to be routed to a committee:'
+                      : `${eligibleAssessments.length} assessments are ready to be routed to a committee — each is assigned separately:`}
+                  </p>
+                  {eligibleAssessments.map((a) => (
+                    <AssignCommitteeCard
+                      key={a.id}
+                      individualId={individualId}
+                      assessment={a}
+                      committees={(committees ?? []) as any[]}
+                      onAssigned={() => qc.invalidateQueries({ queryKey: ['fp_assessments_for_det', individualId] })}
+                    />
+                  ))}
                 </>
               ) : (
-                <div className="text-sm">
-                  <div className="font-medium">{committee.name}</div>
-                  <div className="text-xs text-muted-foreground">Quorum {committee.quorum} · Approval threshold {committee.approval_threshold_pct}%</div>
-                  {committee.description && <div className="text-xs mt-1">{committee.description}</div>}
+                <div className="border rounded p-3 bg-muted/30 space-y-2">
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    <Info className="h-4 w-4" /> No assessment is currently eligible for committee assignment.
+                  </p>
+                  {otherAssessments.length > 0 && (
+                    <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                      {otherAssessments.map((a) => (
+                        <li key={a.id}>
+                          <span className="font-medium text-foreground">{capitalize(a.assessment_type)}</span> assessment (created {fmtDate(a.created_at)}) — {ineligibleReason(a.status)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {committee && (
+          {routedAssessments.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">Voting</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gavel className="h-4 w-4" /> Committee &amp; voting</CardTitle></CardHeader>
               <CardContent className="space-y-3">
+                {routedAssessments.length > 1 && (
+                  <div>
+                    <Label className="text-xs">Viewing committee progress for</Label>
+                    <Select value={effectiveRoutedId ?? ''} onValueChange={setSelectedRoutedId}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {routedAssessments.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {capitalize(a.assessment_type)} · created {fmtDate(a.created_at)} · {fpStatusLabel(a.status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {committee && (
+                  <div className="text-sm">
+                    <div className="font-medium">{committee.name}</div>
+                    <div className="text-xs text-muted-foreground">Quorum {committee.quorum} · Approval threshold {committee.approval_threshold_pct}%</div>
+                    {committee.description && <div className="text-xs mt-1">{committee.description}</div>}
+                  </div>
+                )}
+
                 <div className="flex gap-4 text-sm flex-wrap">
-                  <span>Total: <strong>{tally.total}</strong> / {committee.quorum}</span>
+                  <span>Total: <strong>{tally.total}</strong> / {committee?.quorum ?? '—'}</span>
                   <span className="text-green-700">Approve: {tally.approve} <span className="text-xs">(w {tally.w_approve.toFixed(1)})</span></span>
                   <span className="text-amber-700">Conditional: {tally.conditional} <span className="text-xs">(w {tally.w_conditional.toFixed(1)})</span></span>
                   <span className="text-red-700">Reject: {tally.reject} <span className="text-xs">(w {tally.w_reject.toFixed(1)})</span></span>

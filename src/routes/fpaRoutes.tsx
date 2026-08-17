@@ -14,6 +14,7 @@ function M({ children }: { children: React.ReactNode }) {
 }
 
 const FpaDashboard = lazy(() => import('@/pages/fpa/FpaDashboard'));
+const FpaProcessList = lazy(() => import('@/pages/fpa/FpaProcessList'));
 const FpaIndividuals = lazy(() => import('@/pages/fpa/FpaIndividuals'));
 const FpaIndividualProfile = lazy(() => import('@/pages/fpa/FpaIndividualProfile'));
 const FpaInitiation = lazy(() => import('@/pages/fpa/FpaInitiation'));
@@ -36,10 +37,13 @@ const FpaScheduler = lazy(() => import('@/pages/fpa/FpaScheduler'));
 const FpaInitiationLog = lazy(() => import('@/pages/fpa/FpaInitiationLog'));
 const FpaInvitationTracker = lazy(() => import('@/pages/fpa/FpaInvitationTracker'));
 const FpaAssessmentRedirect = lazy(() => import('@/pages/fpa/FpaAssessmentRedirect'));
+const FpaEntityRedirect = lazy(() => import('@/pages/fpa/FpaEntityRedirect'));
+const FpaTraining = lazy(() => import('@/pages/fpa/FpaTraining'));
 
 export const fpaRoutes = (
   <>
     <Route path="/fpa" element={<M><FpaDashboard /></M>} />
+    <Route path="/fpa/processes" element={<M><FpaProcessList /></M>} />
     <Route path="/fpa/individuals" element={<M><FpaIndividuals /></M>} />
     <Route path="/fpa/individuals/:id" element={<M><FpaIndividualProfile /></M>} />
     <Route path="/fpa/initiation" element={<M><FpaInitiation /></M>} />
@@ -62,5 +66,7 @@ export const fpaRoutes = (
     <Route path="/fpa/initiation-log" element={<M><FpaInitiationLog /></M>} />
     <Route path="/fpa/invitations" element={<M><FpaInvitationTracker /></M>} />
     <Route path="/fpa/assessments/:id" element={<M><FpaAssessmentRedirect /></M>} />
+    <Route path="/fpa/entity/:type/:id" element={<M><FpaEntityRedirect /></M>} />
+    <Route path="/fpa/training" element={<M><FpaTraining /></M>} />
   </>
 );

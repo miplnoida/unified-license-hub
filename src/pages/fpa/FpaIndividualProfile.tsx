@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -45,10 +45,9 @@ import { FpRegulatorPositionsPanel } from '@/components/fit-and-proper/FpRegulat
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 import { FpMonitoringPanel } from '@/components/fit-and-proper/FpMonitoringPanel';
-import { PinnedPqForm } from '@/components/fit-and-proper/PinnedPqForm';
-import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { migrateSectionsToRows } from '@/lib/formRows';
-import type { FormSection } from '@/types/formBuilder';
+import { RequestDeclarationDialog } from '@/components/fit-and-proper/RequestDeclarationDialog';
+import { SubmittedDeclarationView } from '@/components/fit-and-proper/SubmittedDeclarationView';
+import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import {
   Loader2,
   Pencil,
@@ -59,6 +58,7 @@ import {
   ClipboardList,
   PlayCircle,
   Save,
+  Send,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -353,6 +353,7 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
 
 function RolesTab({ id }: { id: string }) {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [roleType, setRoleType] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
@@ -443,6 +444,7 @@ function RolesTab({ id }: { id: string }) {
         is_current: isCurrent,
         reassessment_cycle_months: months,
         next_reassessment_due: nextDue,
+        created_by: user?.id ?? null,
       };
       const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
       if (error) throw error;
@@ -648,15 +650,15 @@ function AssessmentDetailDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { user } = useAuth();
   const qc = useQueryClient();
+  const [requestDeclOpen, setRequestDeclOpen] = useState(false);
   const { data: detail, isLoading } = useQuery({
     queryKey: ['fp_assessment_detail', assessment?.id],
     enabled: open && !!assessment?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_assessments')
-        .select('*')
+        .select('*, fp_individuals(full_name)')
         .eq('id', assessment.id)
         .single();
       if (error) throw error;
@@ -664,38 +666,15 @@ function AssessmentDetailDialog({
     },
   });
 
-  // Assessments pinned to a specific form_version_id/form_template_id (all
-  // historically-imported declarations, and any assessment created against a
-  // since-superseded form) must render against THAT exact schema — the field
-  // keys it was captured with (e.g. pq01_...) won't match the current live
-  // form's field names. Only fall back to "whatever the current live form
-  // looks like" when nothing was pinned.
-  const hasPinnedForm = !!detail?.form_version_id && !!detail?.form_template_id;
-
-  // The submitted declaration lives as flat answers in declaration_data —
-  // the public portal (DeclarationQuestionnaire.tsx) doesn't pin a specific
-  // form_version_id per assessment, it always renders whatever the current
-  // live "fit_and_proper"/"declaration" form is. Reuse that exact same RPC
-  // (already granted to `authenticated`, not just `anon`) so staff see the
-  // submitted answers labeled and sectioned the same way the declarant saw
-  // them, instead of a raw key/value dump.
-  const hasDeclaration = !!detail?.declaration_data && Object.keys(detail.declaration_data).length > 0;
-  const { data: formVersion, isLoading: loadingForm } = useQuery({
-    queryKey: ['fp_declaration_form_public'],
-    enabled: open && hasDeclaration && !hasPinnedForm,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_fp_declaration_form_public' as any);
-      if (error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      return (row ?? null) as { template_id: string; version_id: string; schema_snapshot: unknown } | null;
-    },
-  });
-  const declarationSections = (() => {
-    if (!formVersion?.schema_snapshot) return [] as FormSection[];
-    return migrateSectionsToRows(formVersion.schema_snapshot as FormSection[]);
-  })();
+  // A Fit & Proper declaration is a self-attestation by the individual, not
+  // something staff should key in on their behalf — so a draft assessment
+  // (no declaration invited or submitted yet) offers the same identity-gated
+  // "Request Declaration" invitation used on /fpa/initiation rather than an
+  // inline form staff could edit directly.
+  const isDraft = canRequestDeclaration(detail?.status);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -738,38 +717,28 @@ function AssessmentDetailDialog({
 
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Declaration</p>
-              {hasPinnedForm ? (
-                <PinnedPqForm
-                  assessmentId={detail.id}
-                  templateId={detail.form_template_id}
-                  versionId={detail.form_version_id}
-                  individualId={detail.individual_id}
-                  existingResponseId={detail.form_response_id}
-                  initialData={detail.declaration_data || {}}
-                  currentStatus={detail.status}
-                  userId={user?.id ?? null}
-                  onSubmitted={() => qc.invalidateQueries({ queryKey: ['fp_assessment_detail', assessment?.id] })}
-                />
-              ) : !hasDeclaration ? (
-                <p className="text-sm text-muted-foreground italic">No declaration submitted yet for this assessment.</p>
-              ) : loadingForm ? (
-                <div className="py-4 text-center text-muted-foreground">
-                  <Loader2 className="h-4 w-4 inline animate-spin mr-2" />
-                  Loading declaration form…
+              {isDraft ? (
+                <div className="border rounded p-3 space-y-2 bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    This assessment is still in Draft — no declaration has been requested or submitted yet.
+                    The individual must complete their own Personal Questionnaire declaration through a
+                    secure, identity-verified link; staff cannot fill it in on their behalf.
+                  </p>
+                  <Button
+                    data-rbac="fit_and_proper.edit"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setRequestDeclOpen(true)}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Request Declaration
+                  </Button>
                 </div>
-              ) : declarationSections.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  Declaration was submitted, but the form used to render it could not be loaded.
-                </p>
               ) : (
-                <FormRenderer
-                  formName=""
-                  sections={declarationSections}
-                  initialData={detail.declaration_data}
-                  readOnly
-                  saving={false}
-                  onSaveDraft={() => {}}
-                  onSubmit={() => {}}
+                <SubmittedDeclarationView
+                  formTemplateId={detail.form_template_id}
+                  formVersionId={detail.form_version_id}
+                  declarationData={detail.declaration_data}
                 />
               )}
             </div>
@@ -784,6 +753,18 @@ function AssessmentDetailDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {detail && (
+      <RequestDeclarationDialog
+        open={requestDeclOpen}
+        onOpenChange={setRequestDeclOpen}
+        individualId={detail.individual_id}
+        individualName={detail.fp_individuals?.full_name ?? ''}
+        assessmentId={detail.id}
+        assessmentLabel={`${capitalize(detail.assessment_type)} · ${capitalize(detail.status)}`}
+        onSent={() => qc.invalidateQueries({ queryKey: ['fp_assessment_detail', assessment?.id] })}
+      />
+    )}
+    </>
   );
 }
 
@@ -1127,8 +1108,16 @@ function AccessControlTab({ id }: { id: string }) {
 // Page
 // ---------------------------------------------------------------------------
 
+const PROFILE_TAB_VALUES = ['profile', 'roles', 'assessments', 'screening', 'determinations', 'conditions', 'appeals', 'monitoring', 'access-control'];
+
 export default function FpaIndividualProfile() {
   const { id } = useParams<{ id: string }>();
+  // Deep-links (notification bell, entity redirects) land on a specific tab
+  // via ?tab=... — Tabs below stays uncontrolled otherwise, this only seeds
+  // its initial value.
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const initialTab = requestedTab && PROFILE_TAB_VALUES.includes(requestedTab) ? requestedTab : 'profile';
 
   const { data: individual, isLoading, error: individualError, refetch } = useQuery({
     queryKey: ['fp_individual', id],
@@ -1238,7 +1227,7 @@ export default function FpaIndividualProfile() {
           }
         />
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue={initialTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -1270,7 +1259,7 @@ export default function FpaIndividualProfile() {
           <TabsContent value="determinations" className="space-y-4">
             {/* Phase 3G — independent regulator positions (Twin Peaks) */}
             <FpRegulatorPositionsPanel individualId={id!} />
-            <FpDeterminationsPanel individualId={id!} assessmentId={latestAssessmentId} />
+            <FpDeterminationsPanel individualId={id!} />
           </TabsContent>
 
           <TabsContent value="conditions">

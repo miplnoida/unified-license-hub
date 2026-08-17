@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { logFpAction } from '@/lib/fpAudit';
 import {
   Loader2,
   Activity,
@@ -478,7 +479,7 @@ export default function FpaMonitoring() {
         ? { text: triggerDetail.trim() }
         : null;
 
-      const { error } = await (supabase as any)
+      const { data: inserted, error } = await (supabase as any)
         .from('fp_monitoring_events')
         .insert({
           // individual_id is NOT NULL — use the value directly; canTrigger already ensures it's set
@@ -488,8 +489,15 @@ export default function FpaMonitoring() {
           summary: triggerSummary.trim(),
           detail: detailPayload,
           raised_at: new Date().toISOString(),
-        });
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+
+      await logFpAction('fp.monitoring.event_triggered', 'fp_monitoring_event', inserted.id, {
+        after: { event_type: triggerEventType || null, severity: triggerSeverity || null, summary: triggerSummary.trim() },
+        context: { individualId: triggerIndividualId },
+      });
     },
     onSuccess: () => {
       toast.success('Event triggered');
@@ -516,6 +524,12 @@ export default function FpaMonitoring() {
         })
         .eq('id', event.id);
       if (error) throw error;
+
+      await logFpAction('fp.monitoring.event_acknowledged', 'fp_monitoring_event', event.id, {
+        after: { acknowledgement_note: note.trim() || null },
+        context: { individualId: event.individual_id },
+        justification: note.trim() || undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Event acknowledged');

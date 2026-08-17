@@ -18,6 +18,7 @@ import { Loader2, PlayCircle, Download, CalendarClock, AlertTriangle, RefreshCw 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
+import { logFpAction } from '@/lib/fpAudit';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -246,6 +247,11 @@ export default function FpaScheduler() {
       const opened = data?.opened ?? 0;
       const evaluated = data?.evaluated ?? 0;
       const due = data?.due ?? 0;
+
+      await logFpAction('fp.scheduler.manual_run', 'fp_cycle_scheduler', null, {
+        after: { opened, evaluated, due },
+      });
+
       toast.success(
         `Cycle scheduler ran — ${opened} assessment(s) opened, ${evaluated} evaluated, ${due} due`
       );

@@ -37,6 +37,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logFpAction } from '@/lib/fpAudit';
 import {
   Loader2,
   Plus,
@@ -99,6 +100,7 @@ interface Assessment {
   status: string | null;
   individual_id: string | null;
   created_at: string;
+  fp_individuals?: { full_name: string | null; national_id: string | null } | null;
 }
 
 interface CommitteeVote {
@@ -193,6 +195,16 @@ function shortenId(id: string): string {
 
 function fmtPct(n: number): string {
   return n.toFixed(1) + '%';
+}
+
+function capitalize(s: string | null | undefined): string {
+  if (!s) return '—';
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
+}
+
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString();
 }
 
 // ── Vote Tally Logic ──────────────────────────────────────────────────────────
@@ -419,7 +431,7 @@ export default function FpaCommittee() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('fp_assessments')
-        .select('id, committee_id, assessment_type, status, individual_id, created_at')
+        .select('id, committee_id, assessment_type, status, individual_id, created_at, fp_individuals(full_name, national_id)')
         .eq('committee_id', selectedCommitteeId)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -480,15 +492,20 @@ export default function FpaCommittee() {
 
       const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
       await authorizedAction('fit_and_proper_committee', 'create', { name: name.trim() });
-      const { error } = await (supabase as any).from('fp_committees').insert({
+      const { data: inserted, error } = await (supabase as any).from('fp_committees').insert({
 
         name: name.trim(),
         description: description.trim() || null,
         quorum: q,
         approval_threshold_pct: t,
         is_active: true,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      await logFpAction('fp.committee.created', 'fp_committee', inserted.id, {
+        after: { name: name.trim(), quorum: q, approval_threshold_pct: t },
+        context: { committeeId: inserted.id },
+      });
     },
     onSuccess: () => {
       toast.success('Committee created.');
@@ -525,6 +542,15 @@ export default function FpaCommittee() {
         })
         .eq('id', selectedCommitteeId);
       if (error) throw error;
+
+      await logFpAction('fp.committee.updated', 'fp_committee', selectedCommitteeId, {
+        before: selectedCommittee ? {
+          name: selectedCommittee.name, quorum: selectedCommittee.quorum,
+          approval_threshold_pct: selectedCommittee.approval_threshold_pct, is_active: selectedCommittee.is_active,
+        } : null,
+        after: { name: name.trim(), quorum: q, approval_threshold_pct: t, is_active },
+        context: { committeeId: selectedCommitteeId },
+      });
     },
     onSuccess: () => {
       toast.success('Committee updated.');
@@ -544,14 +570,19 @@ export default function FpaCommittee() {
       const weight = parseFloat(addMemberForm.vote_weight);
       if (isNaN(weight) || weight <= 0) throw new Error('Vote weight must be a positive number.');
 
-      const { error } = await supabase.from('fp_committee_members').insert({
+      const { data: inserted, error } = await supabase.from('fp_committee_members').insert({
         committee_id: selectedCommitteeId,
         user_id: addMemberForm.user_id,
         member_role: addMemberForm.member_role,
         vote_weight: weight,
         is_active: true,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      await logFpAction('fp.committee.member_added', 'fp_committee_member', inserted.id, {
+        after: { committee_id: selectedCommitteeId, user_id: addMemberForm.user_id, member_role: addMemberForm.member_role, vote_weight: weight },
+        context: { committeeId: selectedCommitteeId ?? undefined },
+      });
     },
     onSuccess: () => {
       toast.success('Member added to committee.');
@@ -579,7 +610,7 @@ export default function FpaCommittee() {
         throw new Error('Justification is required when rationale is required.');
       }
 
-      const { error } = await (supabase as any).from('fp_committee_votes').insert({
+      const { data: inserted, error } = await (supabase as any).from('fp_committee_votes').insert({
         assessment_id: selectedAssessmentId,
         committee_id: selectedCommitteeId,
         member_id: myMembership.id,
@@ -588,8 +619,18 @@ export default function FpaCommittee() {
         justification: voteForm.justification.trim() || null,
         voted_at: new Date().toISOString(),
         rationale_required: voteForm.rationale_required,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', inserted.id, {
+        after: { vote: voteForm.vote, weight, justification: voteForm.justification.trim() || null },
+        context: {
+          committeeId: selectedCommitteeId ?? undefined,
+          assessmentId: selectedAssessmentId || undefined,
+          extra: { member_id: myMembership.id },
+        },
+        justification: voteForm.justification.trim() || undefined,
+      });
     },
     onSuccess: () => {
       toast.success('Vote recorded.');
@@ -628,6 +669,25 @@ export default function FpaCommittee() {
         _assessment_id: selectedAssessmentId,
       });
       if (error) throw error;
+
+      await logFpAction('fp.committee.decision_recorded', 'fp_assessment', selectedAssessmentId, {
+        after: {
+          quorum: selectedCommittee?.quorum, approval_threshold_pct: selectedCommittee?.approval_threshold_pct,
+          votes_counted: tally?.totalVotes, outcome: tally?.outcome,
+        },
+        context: { committeeId: selectedCommitteeId ?? undefined, assessmentId: selectedAssessmentId },
+      });
+
+      try {
+        await supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'fp_committee_decision_recorded',
+            entity_type: 'fp_assessment',
+            entity_id: selectedAssessmentId,
+            payload: { outcome: tally?.outcome, votes_counted: tally?.totalVotes },
+          },
+        });
+      } catch (e) { console.warn('dispatch-notification-event failed', e); }
     },
     onSuccess: () => {
       toast.success('Committee decision recorded and frozen.');
@@ -1101,7 +1161,7 @@ export default function FpaCommittee() {
                             setVoteForm(EMPTY_VOTE_FORM);
                           }}
                         >
-                          <SelectTrigger className="w-full max-w-sm">
+                          <SelectTrigger className="w-full max-w-md">
                             <SelectValue placeholder="Choose an assessment…" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1112,11 +1172,20 @@ export default function FpaCommittee() {
                             )}
                             {(assessments ?? []).map((a) => (
                               <SelectItem key={a.id} value={a.id}>
-                                <span className="font-mono text-xs">{a.id.slice(0, 8)}…</span>
-                                {' — '}
-                                <span className="capitalize">{a.assessment_type ?? 'assessment'}</span>
-                                {' '}
-                                <span className="text-muted-foreground text-xs">({a.status ?? 'unknown'})</span>
+                                <span className="font-medium">
+                                  {a.fp_individuals?.full_name ?? 'Unknown individual'}
+                                </span>
+                                {a.fp_individuals?.national_id && (
+                                  <span className="text-muted-foreground font-mono text-xs"> ({a.fp_individuals.national_id})</span>
+                                )}
+                                <span className="text-muted-foreground">
+                                  {' — '}
+                                  {a.assessment_type ? capitalize(a.assessment_type) : 'Assessment'}
+                                  {' · '}
+                                  {fmtDate(a.created_at)}
+                                  {' · '}
+                                  <span className="text-xs">{a.status ?? 'unknown'}</span>
+                                </span>
                               </SelectItem>
                             ))}
                           </SelectContent>

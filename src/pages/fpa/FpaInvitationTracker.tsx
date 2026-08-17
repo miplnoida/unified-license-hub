@@ -21,6 +21,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
+import { getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
+import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import { Loader2, Plus, Copy, Check, RefreshCw } from 'lucide-react';
 
 // ── Status badge config ────────────────────────────────────────────────────
@@ -123,7 +125,7 @@ export default function FpaInvitationTracker() {
       if (!selectedIndividualId) throw new Error('Select an individual');
       if (!selectedAssessmentId) throw new Error('Select an assessment');
       if (!invDob) throw new Error('Date of birth is required');
-      if (invLast4.length !== 4) throw new Error('Last 4 digits of national ID required');
+      if (invLast4.length !== 4) throw new Error('Last 4 digits of national ID or passport number required');
       if (!user?.id) throw new Error('Not authenticated');
 
       // a. Generate raw token
@@ -181,25 +183,76 @@ export default function FpaInvitationTracker() {
   });
 
   // ── Resend mutation ────────────────────────────────────────────────────────
+  // Only the SHA-256 hash of the original token was ever stored, so the old
+  // portal link can't be recovered or literally re-sent — a real resend
+  // mints a fresh token/invitation (reusing the same verification_hash and
+  // channel), expires the old one, and actually emails the new link instead
+  // of just flipping a status flag with no message going anywhere.
   const resend = useMutation({
     mutationFn: async (row: any) => {
-      const { error } = await supabase
-        .from('declaration_invitations')
-        .update({ status: 'RESENT', sent_at: new Date().toISOString() })
-        .eq('id', row.id);
-      if (error) throw error;
+      const recipientEmail: string = row.fp_individuals?.email || row.recipient_email || '';
+      const { raw: rawToken, hash: tokenHash } = await (async () => {
+        const rt = crypto.randomUUID();
+        return { raw: rt, hash: await sha256hex(rt) };
+      })();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { error: insertErr } = await supabase.from('declaration_invitations').insert({
+        individual_id: row.individual_id,
+        assessment_id: row.assessment_id,
+        token_hash: tokenHash,
+        verification_hash: row.verification_hash,
+        verification_hash_alt: row.verification_hash_alt ?? null,
+        channel: row.channel,
+        recipient_email: recipientEmail || null,
+        status: 'SENT',
+        expires_at: expiresAt,
+      });
+      if (insertErr) throw insertErr;
+
+      await supabase.from('declaration_invitations').update({ status: 'EXPIRED' }).eq('id', row.id);
+
+      let emailSent = false;
+      if (recipientEmail) {
+        const portalLink = `${window.location.origin}/declaration/${rawToken}`;
+        const individualName = row.fp_individuals?.full_name || 'Applicant';
+        const entityName = await getAssessmentEntityName(row.assessment_id);
+        const entityLine = entityName ? ` in connection with your role at ${entityName}` : '';
+        try {
+          const { data: emailResult } = await supabase.functions.invoke('send-notification', {
+            body: {
+              type: 'email',
+              to: recipientEmail,
+              subject: 'Reminder: Fit & Proper Declaration — Action Required',
+              body: `Dear ${individualName},\n\nThis is a reminder that your Fit & Proper Personal Questionnaire Declaration${entityLine} is still outstanding.\n\nPlease use the link below to access the secure declaration form:\n${portalLink}\n\nWhen prompted, verify your identity using your date of birth and the last 4 digits of your national ID or passport number.\n\nThis link expires in 7 days.\n\nRegards,\nThe Compliance Team`,
+              html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a"><h2 style="margin-top:0;color:#111827">Reminder: Fit &amp; Proper Declaration</h2><p>Dear <strong>${individualName}</strong>,</p><p>This is a reminder that your <strong>Fit &amp; Proper Personal Questionnaire Declaration</strong>${entityName ? ` in connection with your role at <strong>${entityName}</strong>` : ''} is still outstanding.</p><p style="text-align:center;margin:32px 0"><a href="${portalLink}" style="background:#2563eb;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">Complete Declaration Form</a></p><p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br><span style="word-break:break-all;color:#2563eb">${portalLink}</span></p><p style="color:#dc2626;font-size:13px">⚠ This link expires in 7 days.</p></div>`,
+            },
+          });
+          emailSent = emailResult?.success === true;
+        } catch {
+          // Email send threw — the new invitation row is still valid.
+        }
+      }
 
       await logFpAction('fp.invitation.resent', 'declaration_invitation', row.id, {
         before: { status: row.status },
-        after: { status: 'RESENT' },
+        after: { status: 'EXPIRED', new_invitation_email_sent: emailSent },
         context: {
           individualId: row.individual_id,
           assessmentId: row.assessment_id,
         },
       });
+
+      return { emailSent, recipientEmail };
     },
-    onSuccess: () => {
-      toast.success('Invitation marked as resent');
+    onSuccess: ({ emailSent, recipientEmail }) => {
+      if (recipientEmail && emailSent) {
+        toast.success(`Reminder sent to ${recipientEmail}`);
+      } else if (recipientEmail) {
+        toast.warning('New invitation issued but email could not be sent — SMTP may not be configured.');
+      } else {
+        toast.warning('New invitation issued, but this individual has no email on file.');
+      }
       qc.invalidateQueries({ queryKey: ['declaration_invitations'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Resend failed'),
@@ -295,11 +348,16 @@ export default function FpaInvitationTracker() {
                           <SelectValue placeholder="Select assessment…" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(assessments ?? []).map((a) => (
+                          {(assessments ?? []).filter((a) => canRequestDeclaration(a.status)).map((a) => (
                             <SelectItem key={a.id} value={a.id}>
                               {a.assessment_type} — {a.status}
                             </SelectItem>
                           ))}
+                          {selectedIndividualId && (assessments ?? []).filter((a) => canRequestDeclaration(a.status)).length === 0 && (
+                            <SelectItem value="__none__" disabled>
+                              No assessments awaiting declaration
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -331,7 +389,7 @@ export default function FpaInvitationTracker() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="inv-last4">Last 4 national ID *</Label>
+                        <Label htmlFor="inv-last4">Last 4 national ID / passport *</Label>
                         <Input
                           id="inv-last4"
                           type="text"

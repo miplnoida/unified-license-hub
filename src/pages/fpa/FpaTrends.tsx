@@ -4,10 +4,13 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { authorizedExport } from '@/lib/rbac/authorizedExport';
 import {
   Loader2,
   ClipboardList,
@@ -16,6 +19,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   Activity,
+  Download,
 } from 'lucide-react';
 import {
   LineChart,
@@ -391,12 +395,68 @@ export default function FpaTrends() {
     return map[rawType] ?? '#6B7280';
   };
 
+  // Step 16 (Reporting & MI) — a downloadable regulator-facing summary of the
+  // same figures shown on this page, rather than a live-only dashboard.
+  async function handleExportMiSummary() {
+    try {
+      await authorizedExport('fit_and_proper', 'export', { kind: 'mi_summary' });
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Not authorized');
+      return;
+    }
+    const lines: string[] = [];
+    const esc = (v: unknown) => `"${String(v).replace(/"/g, '""')}"`;
+    const row = (...cells: unknown[]) => lines.push(cells.map(esc).join(','));
+
+    lines.push(`Fit & Proper — MI Summary,Generated ${new Date().toISOString()}`);
+    lines.push('');
+    row('Metric', 'Value');
+    row('Total Assessments', stats.totalAssessments);
+    row('Active Pipeline', stats.activePipeline);
+    row('High-Severity Open Findings', stats.highSeverityOpen);
+    row('Findings Finalized', `${stats.finalizedFindings} / ${stats.totalFindings} (${stats.finalizedRate}%)`);
+    lines.push('');
+
+    row('Assessment Pipeline Stage', 'Count');
+    for (const s of pipelineData.stages) row(s.label, s.count);
+    if (pipelineData.otherCount > 0) row('Other', pipelineData.otherCount);
+    lines.push('');
+
+    row('Review Status', 'Count');
+    for (const s of reviewStatusData.stages) row(s.label, s.count);
+    if (reviewStatusData.otherCount > 0) row('Other', reviewStatusData.otherCount);
+    lines.push('');
+
+    row('Check Type', 'Total Findings', 'Cleared', 'Clearance Rate %');
+    for (const c of clearanceByCheckType) row(c.checkType.replace(/_/g, ' '), c.total, c.cleared, c.rate);
+    lines.push('');
+
+    row('Nationality', 'Count', '% of Total');
+    for (const n of nationalityData) row(n.nationality, n.count, n.pct);
+    lines.push('');
+
+    row('Screening Runs', 'Completed', 'With Hits', 'Hit Rate %');
+    row(runsSummary.total, runsSummary.completed, runsSummary.withHits, runsSummary.hitRate);
+
+    const csv = lines.join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `fp-mi-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Trends & History"
           description="Pipeline health, review backlog, and population analytics — FPA-008"
+          actions={
+            <Button data-rbac="fit_and_proper.export" size="sm" variant="outline" onClick={handleExportMiSummary} disabled={isLoading || !!isError}>
+              <Download className="h-4 w-4 mr-2" />
+              Export MI Summary
+            </Button>
+          }
         />
 
         {isLoading ? (

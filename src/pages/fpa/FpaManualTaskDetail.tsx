@@ -35,8 +35,11 @@ import {
   ShieldAlert,
   ShieldCheck,
   Trash2,
+  Gavel,
 } from 'lucide-react';
 import { normalizeFpEvidence, fpEvidenceDisplayName, openFpEvidenceFile } from '@/lib/fpEvidence';
+import { AssignCommitteeCard } from '@/components/fit-and-proper/AssignCommitteeCard';
+import { canTransitionFp, fpStatusLabel } from '@/lib/fpStatus';
 
 // ── Severity helpers ──────────────────────────────────────────────────────────
 
@@ -69,6 +72,36 @@ function resolutionBadge(status: string | undefined) {
       {status.replace(/_/g, ' ')}
     </Badge>
   );
+}
+
+// fp_findings.citations is written by the screening provider as objects —
+// [{ source_url, excerpt, published_at }] (see screeningProvider.ts) — not
+// plain strings, though older/manually-entered rows may still be bare
+// strings. Normalize both shapes so rendering never assumes a string.
+interface FpCitationItem {
+  url: string | null;
+  text: string;
+  publishedAt: string | null;
+}
+
+function normalizeFpCitations(raw: unknown): FpCitationItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FpCitationItem[] = [];
+  for (const c of raw) {
+    if (typeof c === 'string') {
+      if (c) out.push({ url: c.startsWith('http') ? c : null, text: c, publishedAt: null });
+    } else if (c && typeof c === 'object') {
+      const obj = c as Record<string, unknown>;
+      const url = typeof obj.source_url === 'string' && obj.source_url ? obj.source_url : null;
+      const excerpt = typeof obj.excerpt === 'string' ? obj.excerpt : '';
+      out.push({
+        url,
+        text: excerpt || url || 'Citation',
+        publishedAt: typeof obj.published_at === 'string' ? obj.published_at : null,
+      });
+    }
+  }
+  return out;
 }
 
 function routingBanner(severity: string | undefined) {
@@ -148,11 +181,29 @@ export default function FpaManualTaskDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fp_assessments')
-        .select('id, assessment_type, fp_individuals(id, full_name)')
+        .select('id, assessment_type, status, committee_id, created_at, fp_individuals(id, full_name)')
         .eq('id', finding.assessment_id)
         .maybeSingle();
       if (error) throw error;
       return data as any;
+    },
+  });
+
+  // ── Committee assignment (so staff can route the assessment to a
+  // committee right from the review task, instead of a separate trip to the
+  // individual's profile) ────────────────────────────────────────────────────
+
+  const { data: committees } = useQuery({
+    queryKey: ['fp_committees_active'],
+    enabled: !!finding?.assessment_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fp_committees')
+        .select('id, name, quorum, approval_threshold_pct')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -438,7 +489,7 @@ export default function FpaManualTaskDetail() {
 
   // ── Derived data ──────────────────────────────────────────────────────────
 
-  const citations: string[] = Array.isArray(finding.citations) ? finding.citations : [];
+  const citations = normalizeFpCitations(finding.citations);
   const evidenceItems = normalizeFpEvidence(finding.evidence_urls);
   const isResolved =
     finding.resolution_status === 'false_positive' ||
@@ -545,20 +596,25 @@ export default function FpaManualTaskDetail() {
                       Citations
                     </p>
                     <ul className="space-y-1.5 pl-4 list-disc marker:text-muted-foreground">
-                      {citations.map((c: string, i: number) => (
+                      {citations.map((c, i) => (
                         <li key={i} className="text-sm">
-                          {c.startsWith('http') ? (
+                          {c.url ? (
                             <a
-                              href={c}
+                              href={c.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline break-all inline-flex items-center gap-1"
                             >
-                              {c}
+                              {c.text}
                               <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             </a>
                           ) : (
-                            <span className="text-foreground">{c}</span>
+                            <span className="text-foreground">{c.text}</span>
+                          )}
+                          {c.publishedAt && (
+                            <span className="text-xs text-muted-foreground ml-1.5">
+                              ({new Date(c.publishedAt).toLocaleDateString()})
+                            </span>
                           )}
                         </li>
                       ))}
@@ -886,6 +942,46 @@ export default function FpaManualTaskDetail() {
                       {finding.assessment_id}
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Committee Assignment */}
+            {finding.assessment_id && assessmentInfo && !assessmentError && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Gavel className="h-4 w-4 text-muted-foreground" />
+                    Committee Assignment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {assessmentInfo.committee_id ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        This assessment has already been routed to a committee for voting.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/fpa/individuals/${individual?.id}?tab=determinations`)}
+                      >
+                        <Gavel className="h-3.5 w-3.5 mr-1.5" />
+                        View Committee &amp; Voting
+                      </Button>
+                    </>
+                  ) : canTransitionFp(assessmentInfo.status, 'awaiting_committee') ? (
+                    <AssignCommitteeCard
+                      individualId={individual?.id ?? ''}
+                      assessment={assessmentInfo}
+                      committees={(committees ?? []) as any[]}
+                      onAssigned={() => qc.invalidateQueries({ queryKey: ['fpa_finding_assessment', finding.assessment_id] })}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Not yet eligible for committee assignment — this assessment is currently "{fpStatusLabel(assessmentInfo.status)}".
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
