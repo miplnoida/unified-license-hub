@@ -389,6 +389,16 @@ export default function ApplicationDetail() {
 
   useEffect(() => { loadData(); }, [id]);
 
+  // Re-read the application whenever the reviewer opens the submitted forms or
+  // RFI tab, so post-RFI applicant edits are always shown (never a snapshot
+  // captured when the page first loaded).
+  useEffect(() => {
+    if (!id) return;
+    if (activeTab !== 'forms' && activeTab !== 'rfi') return;
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   // Load form template names for review modal
   useEffect(() => {
     if (formTemplateIds.length === 0) return;
@@ -1174,13 +1184,15 @@ export default function ApplicationDetail() {
                           )}
                         </>
                       )}
-                      {!!(app as any).submitted_at && (
+                      {/* Submission acknowledgement is an applicant/licensee receipt only.
+                          Internal reviewers no longer see it here (component retained). */}
+                      {!isInternal && !!(app as any).submitted_at && (
                         <div className="space-y-2">
                           <p className="text-sm font-semibold">System-generated artifacts</p>
                           <SubmissionAcknowledgementPanel
                             applicationId={app.id}
                             submitted={!!(app as any).submitted_at}
-                            variant={isInternal ? 'internal' : 'artifact'}
+                            variant="artifact"
                             applicationNumber={app.application_number}
                           />
                         </div>

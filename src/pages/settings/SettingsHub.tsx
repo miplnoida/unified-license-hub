@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import {
-  Settings, CreditCard, CalendarClock, Bell, Shield, Globe,
+  Settings, CreditCard, Bell, Shield, Globe,
   Database, Mail, Palette, FileText, RefreshCw, PenLine,
 } from 'lucide-react';
 
@@ -27,12 +27,7 @@ const settingsCards: SettingsCard[] = [
     icon: <CreditCard className="h-6 w-6" />,
     href: '/settings/payments',
   },
-  {
-    title: 'Schedule',
-    description: 'Business hours, working days, and holiday calendar.',
-    icon: <CalendarClock className="h-6 w-6" />,
-    href: '/settings/schedule',
-  },
+  // Schedule card hidden on request. Route /settings/schedule remains available.
   {
     title: 'Notifications',
     description: 'Email templates, SMS settings, and alert preferences.',

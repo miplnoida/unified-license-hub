@@ -171,7 +171,7 @@ export function SubmissionAcknowledgementPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-md border bg-muted/40 p-3">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Application Reference</p>
               <p className="text-sm font-medium font-mono mt-0.5 break-all">
@@ -182,20 +182,8 @@ export function SubmissionAcknowledgementPanel({
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submitted Date &amp; Time</p>
               <p className="text-sm font-medium mt-0.5">{formatDateTime(ack?.submitted_at)}</p>
             </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submission Status</p>
-              <p className="text-sm font-medium mt-0.5">
-                {ack?.document_path ? 'Acknowledgement issued' : 'Acknowledgement being generated'}
-              </p>
-            </div>
           </div>
 
-          {ack?.ack_text && (
-            <div className="rounded-md border p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your declaration</p>
-              <p className="text-sm mt-1 whitespace-pre-wrap">{ack.ack_text}</p>
-            </div>
-          )}
 
           <div className="flex flex-wrap items-center gap-2">
             {ack?.document_path ? (
@@ -273,11 +261,7 @@ export function SubmissionAcknowledgementPanel({
           {ack.is_resubmission && <Badge variant="outline">Resubmission</Badge>}
         </CardTitle>
         <div className="flex items-center gap-2">
-          <Badge variant={meta.variant} className="whitespace-nowrap">
-            {failed ? <MailWarning className="h-3 w-3 mr-1" /> : <MailCheck className="h-3 w-3 mr-1" />}
-            {meta.label}
-          </Badge>
-          <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching} title="Refresh delivery state">
+          <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching} title="Refresh">
             <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -285,19 +269,12 @@ export function SubmissionAcknowledgementPanel({
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {field('Reference', <span className="font-mono">{ack.reference}</span>)}
-          {field('Submission version', `v${ack.submission_version}`)}
           {field('Submitted at', formatDateTime(ack.submitted_at))}
           {field('Applicant / entity', ack.entity_name || ack.applicant_name)}
           {field('Notified address', ack.applicant_email)}
           {field('Licence / service', ack.license_type)}
         </div>
 
-        {ack.ack_text && (
-          <div className="rounded-md border p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Applicant declaration</p>
-            <p className="text-sm mt-1 whitespace-pre-wrap">{ack.ack_text}</p>
-          </div>
-        )}
 
         <p className="text-xs text-muted-foreground flex items-start gap-2">
           {failed && <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-destructive shrink-0" />}

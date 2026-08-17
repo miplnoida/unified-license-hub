@@ -698,9 +698,11 @@ export default function LicenseDetail() {
               </CardContent>
             </Card>
 
-            {isInternal && (
+            {/* Certificate Signing & Dispatch hidden on request (component retained). */}
+            {false && isInternal && (
               <LicenseSignaturePanel licenseId={license.id} />
             )}
+
 
 
 
