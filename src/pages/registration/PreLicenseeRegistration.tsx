@@ -1102,7 +1102,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
   };
 
-  const resolveReviewValue = useReviewValueResolver(config?.formSchema);
+  const resolveReviewValue = useReviewValueResolver(config?.formSchema, dynamicFormData as Record<string, unknown>);
 
   function buildReviewSections() {
     type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string };

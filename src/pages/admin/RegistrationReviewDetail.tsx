@@ -142,7 +142,10 @@ export default function RegistrationReviewDetail() {
     !!reg,
   );
 
-  const resolveReviewValue = useReviewValueResolver(config?.formSchema);
+  const resolveReviewValue = useReviewValueResolver(
+    config?.formSchema,
+    (reg?.entity_specific_data as Record<string, unknown> | null) ?? null,
+  );
   const { data: sectors = [] } = useSectors();
   const { data: subSectors = [] } = useSubSectors();
   const { data: categories = [] } = useCategories();
