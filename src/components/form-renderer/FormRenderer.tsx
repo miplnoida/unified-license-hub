@@ -267,6 +267,7 @@ export function FormRenderer({
   }, [initialData]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [previewLoadingKey, setPreviewLoadingKey] = useState<string | null>(null);
   const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
