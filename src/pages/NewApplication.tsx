@@ -1831,17 +1831,22 @@ export default function NewApplication() {
                     void goToStep(WIZARD_STEPS[i].key);
                   }}
                   disabled={!clickable}
-                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors rounded-md px-1 py-0.5 ${
-                    i <= stepIndex ? 'text-primary' : 'text-muted-foreground'
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`flex items-center gap-1.5 text-xs transition-all rounded-md px-2 py-1 border ${
+                    isCurrent
+                      ? 'font-semibold text-primary bg-primary/10 border-primary/40 ring-2 ring-primary/30'
+                      : i < stepIndex
+                        ? 'font-medium text-primary border-transparent'
+                        : 'font-medium text-muted-foreground border-transparent'
                   } ${clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default'}`}
                   aria-label={`Go to step ${i + 1}: ${step.label}`}
                 >
                   <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
-                    i < stepIndex ? 'bg-primary border-primary text-primary-foreground'
-                    : i === stepIndex ? 'border-primary text-primary'
+                    isCurrent ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                    : i < stepIndex ? 'bg-primary/15 border-primary text-primary'
                     : 'border-muted-foreground/30'
                   }`}>
-                    {i < stepIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
+                    {i < stepIndex && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
                   </div>
                   <span className="hidden sm:inline">{step.label}</span>
                 </button>
@@ -1971,12 +1976,13 @@ export default function NewApplication() {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
               const cardComplete = isFormComplete(tmpl.id);
+              const isActiveForm = activeFormTemplateId === tmpl.id;
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${cardComplete ? 'border-emerald-200 bg-emerald-50/30' : status === 'needs_update' ? 'border-yellow-200 bg-yellow-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${isActiveForm ? 'border-primary ring-2 ring-primary/30 bg-primary/5' : cardComplete ? 'border-emerald-200 bg-emerald-50/30' : status === 'needs_update' ? 'border-yellow-200 bg-yellow-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                        <span className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${isActiveForm ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
                           {idx + 1}
                         </span>
                         <CardTitle className="text-base">{tmpl.name}</CardTitle>

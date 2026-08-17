@@ -46,6 +46,10 @@ import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/
 import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+
+// Strong active-tab treatment so the current tab is obvious on the wrapped tab strip.
+const TAB_TRIGGER_CLASS =
+  'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:ring-2 data-[state=active]:ring-primary/30 text-muted-foreground hover:bg-muted';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -924,13 +928,13 @@ export default function ApplicationDetail() {
             {/* Forms and Documents tabs - always visible */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
-                {showWorkflowTab && <TabsTrigger value="workflow">Workflow</TabsTrigger>}
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="rfi" className="gap-1.5">
+                <TabsTrigger value="details" className={TAB_TRIGGER_CLASS}>Details</TabsTrigger>
+                {hasSubmittedForms && <TabsTrigger value="form" className={TAB_TRIGGER_CLASS}>Submitted Forms</TabsTrigger>}
+                <TabsTrigger value="documents" className={TAB_TRIGGER_CLASS}>Documents</TabsTrigger>
+                <TabsTrigger value="fees" className={TAB_TRIGGER_CLASS}>{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                {showWorkflowTab && <TabsTrigger value="workflow" className={TAB_TRIGGER_CLASS}>Workflow</TabsTrigger>}
+                <TabsTrigger value="activity" className={TAB_TRIGGER_CLASS}>Activity</TabsTrigger>
+                <TabsTrigger value="rfi" className={`gap-1.5 ${TAB_TRIGGER_CLASS}`}>
 
                   RFI
                   {openRfiCount > 0 && (
@@ -939,10 +943,10 @@ export default function ApplicationDetail() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="communications">Communications</TabsTrigger>
-                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision">Decision</TabsTrigger>}
-                {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
-                {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
+                <TabsTrigger value="communications" className={TAB_TRIGGER_CLASS}>Communications</TabsTrigger>
+                {isInternal && app.status !== 'draft' && <TabsTrigger value="decision" className={TAB_TRIGGER_CLASS}>Decision</TabsTrigger>}
+                {isInternal && <TabsTrigger value="consolidated" className={TAB_TRIGGER_CLASS}>Consolidated Case</TabsTrigger>}
+                {app.status === 'approved' && <TabsTrigger value="conditions" className={TAB_TRIGGER_CLASS}>Conditions</TabsTrigger>}
 
               </TabsList>
 
