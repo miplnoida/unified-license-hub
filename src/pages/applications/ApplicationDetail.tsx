@@ -923,9 +923,21 @@ export default function ApplicationDetail() {
           </CardContent>
         </Card>
 
+        {isOwner && app.status === 'info_requested' && (
+          <div className="mb-4 rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Information requested by the reviewer</p>
+            <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+              Your application has been unlocked for editing. Answer the questions in the{' '}
+              <button type="button" className="underline font-medium" onClick={() => setActiveTab('rfi')}>Information Requests</button>{' '}
+              tab, update your forms and documents where needed, then resubmit the application.
+            </p>
+          </div>
+        )}
+
         <div className="w-full">
           <div className="space-y-6">
             {/* Forms and Documents tabs - always visible */}
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
                 <TabsTrigger value="details" className={TAB_TRIGGER_CLASS}>Details</TabsTrigger>
