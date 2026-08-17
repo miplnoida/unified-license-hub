@@ -118,6 +118,8 @@ export const SUPERVISORY_SECTIONS: Array<{ key: keyof SupervisoryPayload; label:
   { key: 'key_observations', label: 'What the record shows' },
   { key: 'issues', label: 'Points needing attention' },
   { key: 'risks', label: 'Possible risks' },
+  { key: 'business_impact', label: 'Business and supervisory implications' },
+  { key: 'data_quality', label: 'Data quality and integrity of the figures' },
   { key: 'gaps', label: 'Gaps in the available evidence' },
 ];
 
