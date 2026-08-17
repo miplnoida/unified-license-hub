@@ -124,7 +124,7 @@ export function ClosureQaPanel({
   const reviews = closureQ.data;
   const isLoading = closureQ.isLoading;
 
-  const closingAction = resolveClosingAction(availableActions);
+  const closingAction = resolveClosingAction(availableActions, terminalStepKeys);
   const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
 
   const closeMut = useMutation({
