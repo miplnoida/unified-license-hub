@@ -18,7 +18,15 @@ function collectFields(schema: RegFormSchema | undefined): RegField[] {
  * country, state, master data) to their human-readable labels for the review
  * screen. Falls back to the raw value if the lookup cannot be resolved.
  */
-export function useReviewValueResolver(schema: RegFormSchema | undefined) {
+export function useReviewValueResolver(
+  schema: RegFormSchema | undefined,
+  /**
+   * Submitted values for this registration. Used to resolve master-data IDs by
+   * targeted lookup — STATE/CITY types hold thousands of rows, far beyond the
+   * backend's per-request row cap, so whole-type fetches cannot be relied on.
+   */
+  submittedValues?: Record<string, unknown> | null,
+) {
   const fields = useMemo(() => collectFields(schema), [schema]);
 
   const needsCountries = fields.some(f => f.dataSource === 'country');
@@ -52,6 +60,7 @@ export function useReviewValueResolver(schema: RegFormSchema | undefined) {
       return (data || []) as unknown as { id: string; name: string }[];
     },
   });
+
 
   // Unique master-data type codes used by select/multi/radio fields
   const masterCodes = useMemo(() => {
