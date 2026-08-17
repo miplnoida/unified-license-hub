@@ -307,6 +307,15 @@ You produce ADVISORY interpretation, summarisation and draft text only. Absolute
 - Omit sections that do not apply rather than padding them.
 - If the record is too thin for a reliable conclusion, set "insufficient_evidence": true and keep the summary short and honest.
 - Every "evidence" entry must be a short factual string quoting a supplied value.
+- "business_impact" is the business point of view: what the supplied figures and events mean commercially and
+  prudentially — effect on the entity's business model, earnings, capital or liquidity position, its customers
+  and the market, the plausibility of the trend against the entity's stated business, and the supervisory
+  effort the position implies. Never invent a figure to support a business reading; where the record cannot
+  support one, say plainly what would be needed.
+- "data_quality" is the integrity of the information being interpreted: internal consistency of the supplied
+  figures, arithmetic or period mismatches visible in the data, stale, missing or unusually round values,
+  gaps between related records, and how far each weakens the conclusions above. Never assert an error that
+  the supplied values do not demonstrate.
 Return strict JSON only, matching this shape exactly: ${SCHEMA_HINT}`;
 
 const MODEL = 'google/gemini-3.5-flash';
