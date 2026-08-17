@@ -705,7 +705,18 @@ function CompletedView({
         )}
       </AiReportSection>
 
+      {assessment.business_assessment &&
+        (assessment.business_assessment.overall_rationale ||
+          (assessment.business_assessment.dimensions?.length ?? 0) > 0) && (
+          <BusinessAssessmentBlock business={assessment.business_assessment} />
+        )}
+
+      {assessment.data_integrity && (assessment.data_integrity.checks?.length ?? 0) > 0 && (
+        <DataIntegrityBlock integrity={assessment.data_integrity} />
+      )}
+
       <AiReportSection label="Findings" sectionKey="issues" count={findings.length}>
+
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings.</p>
         ) : (
