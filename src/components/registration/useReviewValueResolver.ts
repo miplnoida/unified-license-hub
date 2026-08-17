@@ -117,9 +117,10 @@ export function useReviewValueResolver(
       category: make(categories as any),
       country: make(countries as any),
       state: make(states as any),
-      masters,
+      masterItems,
     };
-  }, [sectors, subSectors, categories, countries, states, masterCodes, masterQueries]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors, subSectors, categories, countries, states, masterItemQueries.map(q => q.dataUpdatedAt).join(',')]);
 
   return useMemo(() => {
     function resolveOne(field: RegField, raw: unknown): unknown {
@@ -129,9 +130,10 @@ export function useReviewValueResolver(
 
       const mapValue = (val: unknown): unknown => {
         const key = String(val);
-        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
-          return lookups.masters[field.masterDataTypeCode]?.[key] ?? val;
+        if (field.optionSource === 'master_data') {
+          return lookups.masterItems[key] ?? val;
         }
+
         if (field.dataSource && lookups[field.dataSource]) {
           return lookups[field.dataSource][key] ?? val;
         }
