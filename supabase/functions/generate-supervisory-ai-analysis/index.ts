@@ -287,6 +287,8 @@ const SCHEMA_HINT = `{
   "chronology": [{"text": string, "evidence": [string]}],
   "issues": [{"text": string, "evidence": [string]}],
   "risks": [{"text": string, "evidence": [string]}],
+  "business_impact": [{"text": string, "evidence": [string]}],
+  "data_quality": [{"text": string, "evidence": [string]}],
   "gaps": [{"text": string, "evidence": [string]}],
   "suggested_focus_areas": [string],
   "draft_sections": [{"heading": string, "text": string}],
