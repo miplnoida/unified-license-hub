@@ -817,7 +817,7 @@ export default function ApplicationDetail() {
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
   const showResubmissionPendingNotice =
     workflowChecked && workflowOn === false && isInternal &&
-    (app.status === 'resubmission_requested' || app.status === 'query_raised');
+    (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested');
   // Workflow/review lives in its own tab so it no longer repeats under every tab.
   const showWorkflowTab =
     showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
@@ -1106,7 +1106,7 @@ export default function ApplicationDetail() {
                       originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -1222,13 +1222,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     onPaid={loadData}
                   />
                 ))}
@@ -1545,7 +1545,7 @@ export default function ApplicationDetail() {
             })()}
 
             {/* Applicant resubmit action */}
-            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
                 <CardContent className="space-y-4">

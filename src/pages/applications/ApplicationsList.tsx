@@ -46,6 +46,7 @@ const statusBadgeVariant = (s: string) => {
     case 'in_progress': return 'under-review';
     case 'resubmission_requested': return 'returned';
     case 'query_raised': return 'returned';
+    case 'info_requested': return 'returned';
     case 'cancelled': return 'destructive';
     default: return 'draft';
   }
@@ -1025,7 +1026,7 @@ export default function ApplicationsList() {
               {
                 label: 'Edit', icon: Pencil,
                 onClick: () => navigate(editHref),
-                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised'].includes(app.status)),
+                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised', 'info_requested'].includes(app.status)),
               },
               {
                 label: 'Lodge an appeal', icon: Gavel, separator: true,
