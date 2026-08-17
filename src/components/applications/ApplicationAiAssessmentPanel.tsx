@@ -136,6 +136,8 @@ interface Assessment {
   created_at: string;
   sections?: Section[];
   decision_report?: Record<string, unknown> | null;
+  business_assessment?: BusinessAssessment | null;
+  data_integrity?: DataIntegrity | null;
   analyst_decision?: string | null;
   analyst_decision_action?: string | null;
   analyst_justification?: string | null;
