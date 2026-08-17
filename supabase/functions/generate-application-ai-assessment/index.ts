@@ -606,6 +606,14 @@ Deno.serve(async (req) => {
         prior_rfi_count: rfiHistory.length,
       },
       rule_check_snapshot: ruleCheckSnapshot,
+      applicable_fee: {
+        expected_total: expectedFeeTotal,
+        currency:
+          (completedPayment?.currency as string | undefined) ??
+          (paymentsList[0]?.currency as string | undefined) ??
+          null,
+      },
+      data_integrity_snapshot: dataIntegrity,
     };
 
     const sourcePayloadHash = await sha256Hex(JSON.stringify(applicationContext));
