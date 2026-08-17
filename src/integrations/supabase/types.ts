@@ -6713,6 +6713,7 @@ export type Database = {
           submitted_at: string | null
           token_hash: string
           verification_hash: string
+          verification_hash_alt: string | null
         }
         Insert: {
           assessment_id: string
@@ -6731,6 +6732,7 @@ export type Database = {
           submitted_at?: string | null
           token_hash: string
           verification_hash: string
+          verification_hash_alt?: string | null
         }
         Update: {
           assessment_id?: string
@@ -6749,6 +6751,7 @@ export type Database = {
           submitted_at?: string | null
           token_hash?: string
           verification_hash?: string
+          verification_hash_alt?: string | null
         }
         Relationships: [
           {
