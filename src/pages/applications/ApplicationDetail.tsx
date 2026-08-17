@@ -1141,8 +1141,21 @@ export default function ApplicationDetail() {
                           form_version_ids: updatedFormVersionIds,
                           form_meta: updatedFormMeta,
                         };
-                        const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
-                        if (error) { toast.error('Failed to save form'); return; }
+                        const { data: written, error } = await supabase
+                          .from('applications')
+                          .update({ data: updatedAppData } as any)
+                          .eq('id', app.id)
+                          .select('id');
+                        if (error) {
+                          toast.error(error.message || 'Failed to save form');
+                          throw new Error(error.message || 'Failed to save form');
+                        }
+                        if (!written || written.length === 0) {
+                          const msg = 'This application is not currently open for editing — your changes were not saved.';
+                          toast.error(msg);
+                          throw new Error(msg);
+                        }
+
                         try {
                           const nextStatus = await markApplicationInProgressIfDraft(app.id);
                           if (nextStatus) {
