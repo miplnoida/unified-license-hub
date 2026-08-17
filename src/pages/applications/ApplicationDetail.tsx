@@ -398,7 +398,7 @@ export default function ApplicationDetail() {
   // captured when the page first loaded).
   useEffect(() => {
     if (!id) return;
-    if (activeTab !== 'forms' && activeTab !== 'rfi') return;
+    if (activeTab !== 'form' && activeTab !== 'rfi') return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
