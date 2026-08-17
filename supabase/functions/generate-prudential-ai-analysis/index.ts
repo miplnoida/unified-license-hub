@@ -63,6 +63,8 @@ const SCHEMA_HINT = `{
   "improving_indicators": [{"text": string, "evidence": [string]}],
   "peer_observations": [{"text": string, "evidence": [string]}],
   "emerging_risks": [{"text": string, "evidence": [string]}],
+  "business_impact": [{"text": string, "evidence": [string]}],
+  "data_quality": [{"text": string, "evidence": [string]}],
   "suggested_focus_areas": [string],
   "confidence": "high" | "moderate" | "limited",
   "limitations": [string],
