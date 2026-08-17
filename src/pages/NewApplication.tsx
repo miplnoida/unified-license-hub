@@ -651,6 +651,20 @@ export default function NewApplication() {
   const paymentComplete = !renewalFeeMissing && (feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord);
   const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
 
+  // Review confirmation (review comes before payment) is remembered per
+  // application so a reload does not send the applicant back through review.
+  const reviewAckStorageKey = applicationId ? `newApplication:reviewConfirmed:${applicationId}` : null;
+  useEffect(() => {
+    if (!reviewAckStorageKey || typeof sessionStorage === 'undefined') return;
+    setReviewConfirmed(sessionStorage.getItem(reviewAckStorageKey) === 'true');
+  }, [reviewAckStorageKey]);
+  const markReviewConfirmed = useCallback(() => {
+    setReviewConfirmed(true);
+    if (reviewAckStorageKey && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(reviewAckStorageKey, 'true');
+    }
+  }, [reviewAckStorageKey]);
+
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
   const categoryObj = allCategories.find(c => c.id === selectedCategory);
