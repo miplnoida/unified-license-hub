@@ -81,6 +81,13 @@ You produce ADVISORY interpretation only. Absolute rules:
 - Peer information is aggregate only. Never name or infer an individual peer institution.
 - If the facts are too thin for a reliable interpretation, set "insufficient_evidence": true and keep the summary short and honest.
 - Every observation's "evidence" entries must be short factual strings quoting supplied values.
+- "business_impact" is the business point of view: what the supplied movements imply for the institution's
+  business model, earnings capacity, funding and capital headroom, its customers and the wider market, and the
+  supervisory intensity the position implies. Base every statement on a supplied value; where the record cannot
+  support a business reading, state what additional information would be needed.
+- "data_quality" is the integrity of the figures being interpreted: internal inconsistencies, period or
+  arithmetic mismatches, stale or missing submissions, implausibly round or unchanged values, and how far each
+  weakens the observations above. Never assert an error the supplied values do not demonstrate.
 Return strict JSON only, matching this shape exactly: ${SCHEMA_HINT}`;
 
 Deno.serve(async (req) => {
