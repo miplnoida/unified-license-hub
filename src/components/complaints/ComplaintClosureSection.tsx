@@ -27,6 +27,8 @@ export function ComplaintClosureSection({
       readOnly={!relevant}
       currentStepLabel={(trackingQ.data as any)?.current_step_label ?? null}
       availableActionLabels={actions.map((a) => a.label).filter(Boolean)}
+      availableActions={actions}
+      status={status ?? null}
       onGoToCurrentStep={onGoToCurrentStep}
     />
   );
