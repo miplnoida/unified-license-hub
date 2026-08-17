@@ -398,7 +398,7 @@ export default function ApplicationDetail() {
   // captured when the page first loaded).
   useEffect(() => {
     if (!id) return;
-    if (activeTab !== 'forms' && activeTab !== 'rfi') return;
+    if (activeTab !== 'form' && activeTab !== 'rfi') return;
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -889,6 +889,12 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {APPLICATION_STATUS_LABELS[app.status]}
               </Badge>
+              {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
+                <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} size="sm">
+                  <Send className="h-4 w-4 mr-2" />
+                  {processing ? 'Resubmitting...' : 'Resubmit Application'}
+                </Button>
+              )}
               {isInternal && <HistoryButton entityType="application" entityId={app.id} title={`History — ${app.application_number}`} />}
             </div>
           }
@@ -923,16 +929,6 @@ export default function ApplicationDetail() {
           </CardContent>
         </Card>
 
-        {isOwner && app.status === 'info_requested' && (
-          <div className="mb-4 rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Information requested by the reviewer</p>
-            <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
-              Your application has been unlocked for editing. Answer the questions in the{' '}
-              <button type="button" className="underline font-medium" onClick={() => setActiveTab('rfi')}>Information Requests</button>{' '}
-              tab, update your forms and documents where needed, then resubmit the application.
-            </p>
-          </div>
-        )}
 
         <div className="w-full">
           <div className="space-y-6">
@@ -1570,36 +1566,6 @@ export default function ApplicationDetail() {
               );
             })()}
 
-            {/* Applicant resubmit action */}
-            {isOwner && activeTab !== 'form' && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">{app.status === 'info_requested' ? 'Information Requested' : 'Resubmission Required'}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    {app.status === 'info_requested'
-                      ? 'The reviewer has requested more information. Answer the open requests, update your forms and documents, then resubmit.'
-                      : 'The reviewer has requested changes to your application. Please update your documents/forms and resubmit.'}
-                  </p>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Remarks (optional)</Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Describe the changes you made..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} className="flex-1">
-                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : licenseGate.isBlocked ? 'License Not Active' : 'Resubmit Application'}
-                    </Button>
-                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                      <Ban className="h-4 w-4 mr-2" />Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Applicant request edit (before approval, while submitted/in_progress) */}
             {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
