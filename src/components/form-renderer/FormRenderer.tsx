@@ -1079,9 +1079,12 @@ export function FormRenderer({
                     v{val.version}
                   </span>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(val)}>
-                  <Eye className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="View document" onClick={() => handleFilePreview(val)} disabled={previewLoadingKey === (val.versionId || val.uploadId || val.groupId || val.filePath || val.name)}>
+                  {previewLoadingKey === (val.versionId || val.uploadId || val.groupId || val.filePath || val.name)
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Eye className="h-3.5 w-3.5" />}
                 </Button>
+
                 {val.groupId && (
                   <Button
                     variant="ghost"
