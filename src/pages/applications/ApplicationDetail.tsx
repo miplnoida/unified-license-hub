@@ -1169,8 +1169,9 @@ export default function ApplicationDetail() {
                           console.error('[ApplicationDetail] Failed to promote draft application after form save:', statusError);
                           toast.error(statusError?.message || 'Form saved, but failed to update application status');
                         }
-                        // Lightweight inline state via SubmittedForms; no per-save toast spam.
+                        toast.success('Form saved');
                         await loadData();
+
                       }}
                       onAllFormsCompleted={() => {
                         // Auto-advance to next pending step after all forms are filled
