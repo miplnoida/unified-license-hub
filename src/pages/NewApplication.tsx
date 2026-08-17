@@ -1472,18 +1472,16 @@ export default function NewApplication() {
     await loadFees();
     if (applicationId) {
       const existing = await hydratePaymentState(applicationId);
-        if (existing.successful) {
+      if (existing.successful) {
         toast.info('Payment already completed for this application.');
-          await goToStep('review', {
-            wizard_step: 'review',
-            completed_steps: ['selection', 'forms', 'documents', 'payment'],
-          });
-        return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
     }
-    await goToStep('payment', { wizard_step: 'payment' });
+    await goToStep('payment', {
+      wizard_step: 'payment',
+      completed_steps: ['selection', 'forms', 'documents', 'review'],
+    });
     // Once per browser session per application to avoid spam on back/forward.
     if (applicationId) {
       const flagKey = `audit:payment_step_started:${applicationId}`;
