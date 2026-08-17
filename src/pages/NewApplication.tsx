@@ -79,8 +79,8 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
   { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'documents', label: 'Upload Documents', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
-  { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
+  { key: 'review', label: 'Review', icon: <Send className="h-4 w-4" /> },
+  { key: 'payment', label: 'Payment & Submit', icon: <CreditCard className="h-4 w-4" /> },
 ];
 
 export default function NewApplication() {
