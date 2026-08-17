@@ -46,6 +46,10 @@ import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/
 import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+
+// Strong active-tab treatment so the current tab is obvious on the wrapped tab strip.
+const TAB_TRIGGER_CLASS =
+  'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:ring-2 data-[state=active]:ring-primary/30 text-muted-foreground hover:bg-muted';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
