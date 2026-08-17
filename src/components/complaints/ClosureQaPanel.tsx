@@ -51,13 +51,23 @@ function friendlyRecordError(e: unknown): string {
  * hardcoded to a specific complaint workflow: we look at the mutation kind and
  * fall back to the action's target step.
  */
-function resolveClosingAction(actions: WorkflowAction[]): WorkflowAction | null {
+function resolveClosingAction(
+  actions: WorkflowAction[],
+  terminalStepKeys: string[] = [],
+): WorkflowAction | null {
   const list = actions ?? [];
+  const terminal = new Set(terminalStepKeys);
+  const byTerminalTarget = list.filter(
+    (a: any) => a.target_step_key && terminal.has(a.target_step_key),
+  );
   return (
     list.find((a: any) => a.mutation_kind === 'close_complaint') ||
     list.find((a: any) => a.mutation_kind === 'resolve_complaint') ||
     list.find((a: any) => a.target_step_key === 'closed') ||
     list.find((a: any) => a.target_step_key === 'resolved') ||
+    // Configured terminal step (from the workflow tracking steps), so a
+    // renamed closing step still resolves without hardcoded keys.
+    byTerminalTarget[0] ||
     null
   );
 }
@@ -68,6 +78,10 @@ export function ClosureQaPanel({
   currentStepLabel = null,
   availableActionLabels = [],
   availableActions = [],
+  terminalStepKeys = [],
+  actionsLoading = false,
+  actionsError = false,
+  onRetryActions,
   status = null,
   onGoToCurrentStep,
 }: {
@@ -79,6 +93,11 @@ export function ClosureQaPanel({
   availableActionLabels?: string[];
   /** Full configured actions available now, used to resolve the closing action. */
   availableActions?: WorkflowAction[];
+  /** Step keys the configured workflow marks as terminal. */
+  terminalStepKeys?: string[];
+  actionsLoading?: boolean;
+  actionsError?: boolean;
+  onRetryActions?: () => void;
   status?: string | null;
   onGoToCurrentStep?: () => void;
 }) {
