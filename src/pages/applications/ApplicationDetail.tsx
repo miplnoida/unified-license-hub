@@ -1571,7 +1571,7 @@ export default function ApplicationDetail() {
             })()}
 
             {/* Applicant resubmit action */}
-            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
+            {isOwner && activeTab !== 'form' && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">{app.status === 'info_requested' ? 'Information Requested' : 'Resubmission Required'}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
