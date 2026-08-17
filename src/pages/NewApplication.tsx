@@ -2399,15 +2399,26 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => void goToStep('documents')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />Back
+              <Button variant="outline" onClick={() => void goToStep('review')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Review
               </Button>
               <Button
-                onClick={() => void goToStep('review', { wizard_step: 'review', completed_steps: ['selection', 'forms', 'documents', 'payment'] })}
-                disabled={!paymentComplete}
+                onClick={() =>
+                  handleFinalSubmit(
+                    'I have reviewed all the information and confirm the details provided are accurate and complete.'
+                  )
+                }
+                disabled={!paymentComplete || !reviewConfirmed || submitting}
               >
-                {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
-                <ArrowRight className="h-4 w-4 ml-2" />
+                {submitting ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting…</>
+                ) : !reviewConfirmed ? (
+                  'Confirm review first'
+                ) : !paymentComplete ? (
+                  'Complete payment first'
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                )}
               </Button>
             </div>
           </div>
