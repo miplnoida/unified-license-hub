@@ -53,6 +53,7 @@ import { buildRoleSummary } from '@/lib/rbac/roleSummary';
 import { RecordScopePanel } from '@/components/rbac/RecordScopePanel';
 import { RoleMigrationRunnerDialog } from '@/components/rbac/RoleMigrationRunnerDialog';
 import { normalizeScopeConfig, validateScopeSelectors } from '@/lib/rbac/scopeConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 
 /** Strip developer-style "Module N - " prefixes. */
