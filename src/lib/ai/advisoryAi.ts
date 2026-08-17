@@ -81,6 +81,8 @@ export interface SupervisoryPayload {
   issues?: AdvisoryObservation[];
   gaps?: AdvisoryObservation[];
   chronology?: AdvisoryObservation[];
+  business_impact?: AdvisoryObservation[];
+  data_quality?: AdvisoryObservation[];
   suggested_focus_areas?: string[];
   draft_sections?: AdvisoryDraftSection[];
   evidence_refs?: AdvisoryEvidenceRef[];
