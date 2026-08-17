@@ -687,7 +687,7 @@ export default function PostLicenseApplicationForms() {
             )}
 
             {/* Step 2 of review: payment, then final submission */}
-            {showReview && reviewAcknowledged && (
+            {showReview && reviewAcknowledged && allFormsCompleted && (
               <div className="space-y-4 pt-4 border-t">
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-4 text-sm text-foreground">
