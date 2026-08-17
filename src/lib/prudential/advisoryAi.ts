@@ -32,6 +32,8 @@ export interface AdvisoryPayload {
   improving_indicators?: AdvisoryObservation[];
   peer_observations?: AdvisoryObservation[];
   emerging_risks?: AdvisoryObservation[];
+  business_impact?: AdvisoryObservation[];
+  data_quality?: AdvisoryObservation[];
   suggested_focus_areas?: string[];
   confidence?: 'high' | 'moderate' | 'limited';
   limitations?: string[];
