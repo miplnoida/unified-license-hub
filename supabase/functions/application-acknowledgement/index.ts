@@ -110,14 +110,10 @@ async function buildAcknowledgementPdf(opts: {
   y -= 32;
 
   row("Application reference", ack.reference);
-  row("Submission version", `v${ack.submission_version}${ack.is_resubmission ? " (resubmission)" : ""}`);
   row("Submitted at (UTC)", new Date(ack.submitted_at).toISOString().replace("T", " ").slice(0, 19));
   row("Applicant / entity", ack.entity_name || ack.applicant_name || "—");
   row("Applicant contact", ack.applicant_email || "—");
   row("Licence / service", [ack.license_type, opts.sectorPath].filter(Boolean).join(" — ") || "—");
-  row("Acknowledgement status", ack.status);
-  if (opts.currentStep) row("Current stage", opts.currentStep);
-  if (ack.ack_text) row("Applicant declaration", ack.ack_text);
 
   page.drawText(
     "This acknowledgement confirms receipt only. It is not a decision, approval, or licence.",
