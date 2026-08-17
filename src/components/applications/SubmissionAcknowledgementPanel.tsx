@@ -171,7 +171,7 @@ export function SubmissionAcknowledgementPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-md border bg-muted/40 p-3">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Application Reference</p>
               <p className="text-sm font-medium font-mono mt-0.5 break-all">
@@ -182,20 +182,8 @@ export function SubmissionAcknowledgementPanel({
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submitted Date &amp; Time</p>
               <p className="text-sm font-medium mt-0.5">{formatDateTime(ack?.submitted_at)}</p>
             </div>
-            <div className="rounded-md border bg-muted/40 p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Submission Status</p>
-              <p className="text-sm font-medium mt-0.5">
-                {ack?.document_path ? 'Acknowledgement issued' : 'Acknowledgement being generated'}
-              </p>
-            </div>
           </div>
 
-          {ack?.ack_text && (
-            <div className="rounded-md border p-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Your declaration</p>
-              <p className="text-sm mt-1 whitespace-pre-wrap">{ack.ack_text}</p>
-            </div>
-          )}
 
           <div className="flex flex-wrap items-center gap-2">
             {ack?.document_path ? (
