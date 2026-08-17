@@ -477,6 +477,8 @@ export default function PostLicenseApplicationForms() {
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
             originalData={hasRenewalDiff ? originalFormsData?.[activeTemplate.id] : undefined}
+            stepStorageKey={`${postLicenseStepStorageKey}:form:${activeTemplate.id}`}
+
           />
         </div>
       </DashboardLayout>
