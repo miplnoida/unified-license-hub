@@ -79,8 +79,8 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
   { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'documents', label: 'Upload Documents', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
-  { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
+  { key: 'review', label: 'Review', icon: <Send className="h-4 w-4" /> },
+  { key: 'payment', label: 'Payment & Submit', icon: <CreditCard className="h-4 w-4" /> },
 ];
 
 export default function NewApplication() {
@@ -122,6 +122,7 @@ export default function NewApplication() {
   const [isRenewalApp, setIsRenewalApp] = useState(false);
   const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
   const [showInlineReview, setShowInlineReview] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
   const { data: appSettings } = useApplicationSettings();
@@ -649,6 +650,20 @@ export default function NewApplication() {
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
   const paymentComplete = !renewalFeeMissing && (feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord);
   const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
+
+  // Review confirmation (review comes before payment) is remembered per
+  // application so a reload does not send the applicant back through review.
+  const reviewAckStorageKey = applicationId ? `newApplication:reviewConfirmed:${applicationId}` : null;
+  useEffect(() => {
+    if (!reviewAckStorageKey || typeof sessionStorage === 'undefined') return;
+    setReviewConfirmed(sessionStorage.getItem(reviewAckStorageKey) === 'true');
+  }, [reviewAckStorageKey]);
+  const markReviewConfirmed = useCallback(() => {
+    setReviewConfirmed(true);
+    if (reviewAckStorageKey && typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(reviewAckStorageKey, 'true');
+    }
+  }, [reviewAckStorageKey]);
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
@@ -1457,18 +1472,16 @@ export default function NewApplication() {
     await loadFees();
     if (applicationId) {
       const existing = await hydratePaymentState(applicationId);
-        if (existing.successful) {
+      if (existing.successful) {
         toast.info('Payment already completed for this application.');
-          await goToStep('review', {
-            wizard_step: 'review',
-            completed_steps: ['selection', 'forms', 'documents', 'payment'],
-          });
-        return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
     }
-    await goToStep('payment', { wizard_step: 'payment' });
+    await goToStep('payment', {
+      wizard_step: 'payment',
+      completed_steps: ['selection', 'forms', 'documents', 'review'],
+    });
     // Once per browser session per application to avoid spam on back/forward.
     if (applicationId) {
       const flagKey = `audit:payment_step_started:${applicationId}`;
@@ -1810,17 +1823,19 @@ export default function NewApplication() {
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between">
             {WIZARD_STEPS.map((step, i) => {
-              const reachable = (() => {
-                if (i === 0) return true;
+              const stepDone = (() => {
                 const target = WIZARD_STEPS[i].key;
-                if (target === 'forms') return !!applicationId;
-                if (target === 'documents') return allFormsCompleted;
-                if (target === 'payment') return allFormsCompleted;
-                if (target === 'review') return allFormsCompleted && paymentComplete;
+                if (target === 'selection') return !!applicationId;
+                if (target === 'forms') return !!applicationId && allFormsCompleted;
+                if (target === 'documents') return stepIndex > i;
+                if (target === 'review') return reviewConfirmed;
+                if (target === 'payment') return paymentComplete;
                 return false;
               })();
               const isCurrent = i === stepIndex;
-              const clickable = reachable && !isCurrent && currentStep !== 'filling';
+              // Only steps the applicant has actually finished — and never a
+              // step ahead of the current one — are navigable.
+              const clickable = stepDone && !isCurrent && i < stepIndex && currentStep !== 'filling';
               return (
                 <button
                   key={step.key}
@@ -1835,18 +1850,18 @@ export default function NewApplication() {
                   className={`flex items-center gap-1.5 text-xs transition-all rounded-md px-2 py-1 border ${
                     isCurrent
                       ? 'font-semibold text-primary bg-primary/10 border-primary/40 ring-2 ring-primary/30'
-                      : i < stepIndex
+                      : stepDone && i < stepIndex
                         ? 'font-medium text-primary border-transparent'
-                        : 'font-medium text-muted-foreground border-transparent'
+                        : 'font-medium text-muted-foreground border-transparent opacity-70'
                   } ${clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default'}`}
                   aria-label={`Go to step ${i + 1}: ${step.label}`}
                 >
                   <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
                     isCurrent ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                    : i < stepIndex ? 'bg-primary/15 border-primary text-primary'
+                    : stepDone && i < stepIndex ? 'bg-primary/15 border-primary text-primary'
                     : 'border-muted-foreground/30'
                   }`}>
-                    {i < stepIndex && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
+                    {stepDone && i < stepIndex && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
                   </div>
                   <span className="hidden sm:inline">{step.label}</span>
                 </button>
@@ -2214,8 +2229,8 @@ export default function NewApplication() {
                 <Button variant="outline" onClick={() => void goToStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
-                <Button onClick={handleProceedToPayment}>
-                  {paymentComplete ? 'View Payment / Continue to Review' : 'Proceed to Payment'}
+                <Button onClick={() => void goToStep('review', { wizard_step: 'review' })}>
+                  Continue to Review
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -2384,15 +2399,26 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => void goToStep('documents')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />Back
+              <Button variant="outline" onClick={() => void goToStep('review')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Review
               </Button>
               <Button
-                onClick={() => void goToStep('review', { wizard_step: 'review', completed_steps: ['selection', 'forms', 'documents', 'payment'] })}
-                disabled={!paymentComplete}
+                onClick={() =>
+                  handleFinalSubmit(
+                    'I have reviewed all the information and confirm the details provided are accurate and complete.'
+                  )
+                }
+                disabled={!paymentComplete || !reviewConfirmed || submitting}
               >
-                {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
-                <ArrowRight className="h-4 w-4 ml-2" />
+                {submitting ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting…</>
+                ) : !reviewConfirmed ? (
+                  'Confirm review first'
+                ) : !paymentComplete ? (
+                  'Complete payment first'
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                )}
               </Button>
             </div>
           </div>
@@ -2421,14 +2447,13 @@ export default function NewApplication() {
                   </div>
                 )}
 
-                {!paymentComplete && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-800">
-                      Please complete payment to submit application.
-                    </p>
-                  </div>
-                )}
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary shrink-0" />
+                  <p className="text-sm text-foreground">
+                    Confirm your review below to continue to payment. You will submit the application after payment.
+                  </p>
+                </div>
+
               </CardContent>
             </Card>
 
@@ -2438,11 +2463,10 @@ export default function NewApplication() {
               versionIdByTemplate={assignedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
-              onAcknowledge={() =>
-                handleFinalSubmit(
-                  'I have reviewed all the information and confirm the details provided are accurate and complete.'
-                )
-              }
+              onAcknowledge={() => {
+                markReviewConfirmed();
+                void handleProceedToPayment();
+              }}
                 onEdit={(idx) => {
                   const tmpl = reviewTemplates[idx];
                 if (tmpl) {
@@ -2469,10 +2493,15 @@ export default function NewApplication() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-start">
-              <Button variant="outline" onClick={() => void goToStep('payment')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />Back
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => void goToStep('documents')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Documents
               </Button>
+              {reviewConfirmed && (
+                <Button onClick={() => void handleProceedToPayment()}>
+                  Continue to Payment<ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
             </div>
           </div>
         )}
