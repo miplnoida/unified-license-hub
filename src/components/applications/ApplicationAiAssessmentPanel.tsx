@@ -351,7 +351,7 @@ function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
 
         {commentary?.summary && (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {humanizeTimestamps(commentary.summary)}
+            {cleanTaxonomyText(humanizeTimestamps(commentary.summary))}
           </p>
         )}
 
@@ -409,7 +409,7 @@ function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
         {commentary?.decision_impact && (
           <div className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
             <span className="font-medium">Impact on the decision: </span>
-            {humanizeTimestamps(commentary.decision_impact)}
+            {cleanTaxonomyText(humanizeTimestamps(commentary.decision_impact))}
           </div>
         )}
       </div>
@@ -645,7 +645,7 @@ function CompletedView({
         onSaved={onDecisionSaved}
       />
 
-      {assessment.summary && <AiReportSummary text={assessment.summary} />}
+      {assessment.summary && <AiReportSummary text={cleanTaxonomyText(assessment.summary)} />}
 
       {sections.length > 0 && (
         <AiReportSection label="Section-wise review" sectionKey="key_observations" count={sections.length}>
@@ -744,7 +744,7 @@ function CompletedView({
                           {f.title && <span className="text-sm font-medium">{f.title}</span>}
                         </div>
                         {f.description && (
-                          <p className="text-sm leading-relaxed text-muted-foreground">{humanizeTimestamps(f.description)}</p>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{cleanTaxonomyText(humanizeTimestamps(f.description))}</p>
                         )}
                         <EvidenceFacts evidence={f.evidence} />
                         {f.analyst_action && (
