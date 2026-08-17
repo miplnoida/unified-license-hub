@@ -1478,16 +1478,18 @@ export function FormRenderer({
                   key={s.id}
                   onClick={() => setCurrentStep(i)}
                   title={s.title}
+                  aria-current={isActive ? 'step' : undefined}
                   className={`
                     relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border
                     ${isActive
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-sm'
                       : isCompleted
                         ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
                         : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
                     }
                   `}
                 >
+
                   {showFullTabTitles ? (
                     <span className="max-w-[200px] truncate">{s.title}</span>
                   ) : (
