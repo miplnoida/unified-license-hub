@@ -386,8 +386,10 @@ export type Database = {
           analyst_decision_by: string | null
           analyst_justification: string | null
           application_id: string
+          business_assessment: Json | null
           confidence_score: number | null
           created_at: string
+          data_integrity: Json | null
           decision_report: Json
           error_message: string | null
           findings: Json
@@ -420,8 +422,10 @@ export type Database = {
           analyst_decision_by?: string | null
           analyst_justification?: string | null
           application_id: string
+          business_assessment?: Json | null
           confidence_score?: number | null
           created_at?: string
+          data_integrity?: Json | null
           decision_report?: Json
           error_message?: string | null
           findings?: Json
@@ -454,8 +458,10 @@ export type Database = {
           analyst_decision_by?: string | null
           analyst_justification?: string | null
           application_id?: string
+          business_assessment?: Json | null
           confidence_score?: number | null
           created_at?: string
+          data_integrity?: Json | null
           decision_report?: Json
           error_message?: string | null
           findings?: Json

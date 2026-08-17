@@ -70,6 +70,54 @@ interface Section {
   links?: Array<{ type?: string; id?: string; label?: string }>;
 }
 
+interface BusinessDimension {
+  key?: string;
+  label?: string;
+  rating?: string;
+  assessment?: string;
+  evidence?: string[];
+  business_implication?: string;
+}
+
+interface BusinessAssessment {
+  overall_rating?: string;
+  overall_rationale?: string;
+  dimensions?: BusinessDimension[];
+  commercial_conditions?: string[];
+  business_questions?: string[];
+  public_interest_considerations?: string[];
+}
+
+interface IntegrityCheck {
+  key?: string;
+  label?: string;
+  group?: string;
+  status?: string;
+  detail?: string;
+  values?: Array<{ label?: string; value?: string }>;
+}
+
+interface IntegrityCommentaryIssue {
+  check_key?: string;
+  severity?: string;
+  what_it_means?: string;
+  evidence?: string[];
+  suggested_verification?: string;
+}
+
+interface DataIntegrity {
+  computed_at?: string;
+  counts?: { pass?: number; warning?: number; fail?: number; not_applicable?: number };
+  checks?: IntegrityCheck[];
+  commentary?: {
+    overall_confidence?: string;
+    summary?: string;
+    material_issues?: IntegrityCommentaryIssue[];
+    decision_impact?: string;
+  } | null;
+}
+
+
 interface Assessment {
   id: string;
   application_id?: string;
@@ -88,6 +136,8 @@ interface Assessment {
   created_at: string;
   sections?: Section[];
   decision_report?: Record<string, unknown> | null;
+  business_assessment?: BusinessAssessment | null;
+  data_integrity?: DataIntegrity | null;
   analyst_decision?: string | null;
   analyst_decision_action?: string | null;
   analyst_justification?: string | null;
@@ -117,6 +167,253 @@ const ROUTE_LABELS: Record<string, string> = {
 };
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+
+const BUSINESS_RATING_LABEL: Record<string, string> = {
+  favourable: 'Favourable',
+  acceptable: 'Acceptable',
+  needs_strengthening: 'Needs strengthening',
+  adverse: 'Adverse',
+  insufficient_data: 'Insufficient data',
+};
+
+const BUSINESS_RATING_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  favourable: 'secondary',
+  acceptable: 'secondary',
+  needs_strengthening: 'default',
+  adverse: 'destructive',
+  insufficient_data: 'outline',
+};
+
+const INTEGRITY_STATUS_LABEL: Record<string, string> = {
+  pass: 'Verified',
+  warning: 'Check',
+  fail: 'Discrepancy',
+  not_applicable: 'Not applicable',
+};
+
+const INTEGRITY_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  pass: 'secondary',
+  warning: 'default',
+  fail: 'destructive',
+  not_applicable: 'outline',
+};
+
+const INTEGRITY_GROUP_LABEL: Record<string, string> = {
+  fees_payment: 'Fees and payment',
+  cross_form_consistency: 'Cross-form consistency',
+  arithmetic: 'Totals and percentages',
+  date_logic: 'Date logic',
+  completeness: 'Completeness',
+  lifecycle: 'Case lifecycle',
+};
+
+const INTEGRITY_STATUS_ORDER = ['fail', 'warning', 'pass', 'not_applicable'];
+
+/** Business point-of-view assessment — advisory commercial reading of the case. */
+function BusinessAssessmentBlock({ business }: { business: BusinessAssessment }) {
+  const dimensions = Array.isArray(business.dimensions) ? business.dimensions : [];
+  const conditions = Array.isArray(business.commercial_conditions) ? business.commercial_conditions : [];
+  const questions = Array.isArray(business.business_questions) ? business.business_questions : [];
+  const publicInterest = Array.isArray(business.public_interest_considerations)
+    ? business.public_interest_considerations
+    : [];
+
+  return (
+    <AiReportSection label="Business assessment" sectionKey="key_observations" count={dimensions.length}>
+      <div className="space-y-3">
+        {(business.overall_rating || business.overall_rationale) && (
+          <div className="space-y-1.5 rounded-md border bg-card/60 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={BUSINESS_RATING_VARIANT[String(business.overall_rating || '').toLowerCase()] || 'outline'}>
+                {BUSINESS_RATING_LABEL[String(business.overall_rating || '').toLowerCase()] || 'Overall view'}
+              </Badge>
+              <span className="text-sm font-medium">Overall business view</span>
+            </div>
+            {business.overall_rationale && (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {humanizeTimestamps(business.overall_rationale)}
+              </p>
+            )}
+          </div>
+        )}
+
+        {dimensions.map((d, i) => {
+          const rating = String(d.rating || '').toLowerCase();
+          return (
+            <div
+              key={`bus-${i}`}
+              className="space-y-1.5 rounded-md border bg-card/60 p-3 transition-colors hover:border-primary/30"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={BUSINESS_RATING_VARIANT[rating] || 'outline'}>
+                  {BUSINESS_RATING_LABEL[rating] || 'Not rated'}
+                </Badge>
+                <span className="text-sm font-medium">{d.label || categoryLabel(d.key) || 'Business dimension'}</span>
+              </div>
+              {d.assessment && (
+                <p className="text-sm leading-relaxed">{humanizeTimestamps(d.assessment)}</p>
+              )}
+              <EvidenceFacts evidence={d.evidence} />
+              {d.business_implication && (
+                <div className="rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                  <span className="font-medium text-primary">Business implication: </span>
+                  {humanizeTimestamps(d.business_implication)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {conditions.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Suggested commercial conditions
+            </div>
+            <ul className="space-y-1">
+              {conditions.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {questions.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Business questions to put to the applicant
+            </div>
+            <ul className="space-y-1">
+              {questions.map((q, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{q}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {publicInterest.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-dashed p-3">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Consumer and public interest considerations
+            </div>
+            <ul className="space-y-1">
+              {publicInterest.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <CircleDot className="mt-1 h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </AiReportSection>
+  );
+}
+
+/** Deterministic data-integrity checks plus the AI's reading of their impact. */
+function DataIntegrityBlock({ integrity }: { integrity: DataIntegrity }) {
+  const checks = Array.isArray(integrity.checks) ? integrity.checks : [];
+  const commentary = integrity.commentary || null;
+  const issues = Array.isArray(commentary?.material_issues) ? commentary!.material_issues! : [];
+  const counts = integrity.counts || {};
+  const sorted = [...checks].sort(
+    (a, b) =>
+      INTEGRITY_STATUS_ORDER.indexOf(String(a.status || '')) -
+      INTEGRITY_STATUS_ORDER.indexOf(String(b.status || '')),
+  );
+
+  return (
+    <AiReportSection label="Data integrity checks" sectionKey="issues" count={checks.length}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {typeof counts.fail === 'number' && counts.fail > 0 && (
+            <Badge variant="destructive">{counts.fail} discrepancy{counts.fail === 1 ? '' : 'ies'}</Badge>
+          )}
+          {typeof counts.warning === 'number' && counts.warning > 0 && (
+            <Badge>{counts.warning} to check</Badge>
+          )}
+          {typeof counts.pass === 'number' && counts.pass > 0 && (
+            <Badge variant="secondary">{counts.pass} verified</Badge>
+          )}
+          {commentary?.overall_confidence && (
+            <Badge variant="outline">Data confidence: {commentary.overall_confidence}</Badge>
+          )}
+        </div>
+
+        {commentary?.summary && (
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {humanizeTimestamps(commentary.summary)}
+          </p>
+        )}
+
+        {sorted.length > 0 && (
+          <div className="space-y-2">
+            {sorted.map((c, i) => {
+              const status = String(c.status || '').toLowerCase();
+              const related = issues.find((x) => x.check_key && x.check_key === c.key);
+              return (
+                <div key={`chk-${i}`} className="space-y-1.5 rounded-md border bg-card/60 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={INTEGRITY_STATUS_VARIANT[status] || 'outline'}>
+                      {INTEGRITY_STATUS_LABEL[status] || 'Checked'}
+                    </Badge>
+                    <span className="text-sm font-medium">{c.label || categoryLabel(c.key) || 'Check'}</span>
+                    {c.group && (
+                      <Badge variant="outline" className="text-xs">
+                        {INTEGRITY_GROUP_LABEL[c.group] || categoryLabel(c.group)}
+                      </Badge>
+                    )}
+                  </div>
+                  {c.detail && <p className="text-sm leading-relaxed">{c.detail}</p>}
+                  {Array.isArray(c.values) && c.values.length > 0 && (
+                    <ul className="space-y-1 rounded-md bg-muted/40 p-2">
+                      {c.values.map((v, idx) => (
+                        <li key={idx} className="text-xs leading-relaxed">
+                          <span className="font-medium">{v.label}: </span>
+                          <span className="font-mono">{v.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {related && (
+                    <div className="space-y-1 rounded-md bg-primary/[0.06] px-2.5 py-1.5 text-xs">
+                      {related.what_it_means && (
+                        <div>
+                          <span className="font-medium text-primary">What this means: </span>
+                          {humanizeTimestamps(related.what_it_means)}
+                        </div>
+                      )}
+                      {related.suggested_verification && (
+                        <div>
+                          <span className="font-medium text-primary">Suggested verification: </span>
+                          {related.suggested_verification}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {commentary?.decision_impact && (
+          <div className="rounded-md border border-dashed p-3 text-sm leading-relaxed">
+            <span className="font-medium">Impact on the decision: </span>
+            {humanizeTimestamps(commentary.decision_impact)}
+          </div>
+        )}
+      </div>
+    </AiReportSection>
+  );
+}
+
 
 function groupBySeverity(items: Finding[]) {
   const grouped: Record<string, Finding[]> = { critical: [], high: [], medium: [], low: [], other: [] };
@@ -408,7 +705,18 @@ function CompletedView({
         )}
       </AiReportSection>
 
+      {assessment.business_assessment &&
+        (assessment.business_assessment.overall_rationale ||
+          (assessment.business_assessment.dimensions?.length ?? 0) > 0) && (
+          <BusinessAssessmentBlock business={assessment.business_assessment} />
+        )}
+
+      {assessment.data_integrity && (assessment.data_integrity.checks?.length ?? 0) > 0 && (
+        <DataIntegrityBlock integrity={assessment.data_integrity} />
+      )}
+
       <AiReportSection label="Findings" sectionKey="issues" count={findings.length}>
+
         {findings.length === 0 ? (
           <p className="text-sm text-muted-foreground">No findings.</p>
         ) : (

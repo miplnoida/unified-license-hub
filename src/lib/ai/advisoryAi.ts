@@ -81,6 +81,8 @@ export interface SupervisoryPayload {
   issues?: AdvisoryObservation[];
   gaps?: AdvisoryObservation[];
   chronology?: AdvisoryObservation[];
+  business_impact?: AdvisoryObservation[];
+  data_quality?: AdvisoryObservation[];
   suggested_focus_areas?: string[];
   draft_sections?: AdvisoryDraftSection[];
   evidence_refs?: AdvisoryEvidenceRef[];
@@ -116,6 +118,8 @@ export const SUPERVISORY_SECTIONS: Array<{ key: keyof SupervisoryPayload; label:
   { key: 'key_observations', label: 'What the record shows' },
   { key: 'issues', label: 'Points needing attention' },
   { key: 'risks', label: 'Possible risks' },
+  { key: 'business_impact', label: 'Business and supervisory implications' },
+  { key: 'data_quality', label: 'Data quality and integrity of the figures' },
   { key: 'gaps', label: 'Gaps in the available evidence' },
 ];
 

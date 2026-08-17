@@ -11,6 +11,7 @@
 //   - Never mutates application state or workflow state.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { computeDataIntegrity } from "./dataIntegrity.ts";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
@@ -20,7 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PROMPT_VERSION = "v2";
+const PROMPT_VERSION = "v3";
 const MODEL_PROVIDER = "lovable-ai-gateway";
 const MODEL_NAME = "google/gemini-2.5-flash";
 
@@ -492,6 +493,64 @@ Deno.serve(async (req) => {
 
     const workflowInstanceRows = (workflowInstances.data as Array<Record<string, unknown>>) || [];
 
+    /* ---------------------------------------------------------------------- */
+    /*  Deterministic data-integrity snapshot (computed in code, never by AI)  */
+    /* ---------------------------------------------------------------------- */
+    let expectedFeeTotal: number | null = null;
+    try {
+      const { data: feeRows } = await adminClient
+        .from("fee_components")
+        .select("amount")
+        .eq("application_id", application_id);
+      const rows = (feeRows as Array<{ amount: number | string | null }>) || [];
+      if (rows.length) {
+        expectedFeeTotal = Number(
+          rows.reduce((s, r) => s + (Number(r.amount) || 0), 0).toFixed(2),
+        );
+      }
+    } catch (_e) {
+      expectedFeeTotal = null;
+    }
+
+    let formDataUpdatedAt: string | null = null;
+    try {
+      const { data: lastUpdate } = await adminClient
+        .from("audit_logs")
+        .select("created_at")
+        .eq("entity_id", application_id)
+        .eq("action", "application.form_data_updated")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      formDataUpdatedAt = (lastUpdate?.created_at as string | undefined) ?? null;
+    } catch (_e) {
+      formDataUpdatedAt = null;
+    }
+
+    const dataIntegrity = computeDataIntegrity({
+      application: {
+        id: application_id,
+        status: app.status as string | null,
+        submitted_at: (app.submitted_at as string | null) ?? null,
+        created_at: (app.created_at as string | null) ?? null,
+        updated_at: (app.updated_at as string | null) ?? null,
+        data: appData,
+      },
+      submittedForms: submittedFormsGrouped,
+      documents: documentsList,
+      payments: paymentsList,
+      expectedFeeTotal,
+      expectedFeeCurrency:
+        (completedPayment?.currency as string | undefined) ??
+        (paymentsList[0]?.currency as string | undefined) ??
+        null,
+      rfiRequests: rfiHistory,
+      rfiResponses,
+      formDataUpdatedAt,
+    });
+
+
+
     // Build prompt payload (advisory only).
     const applicationContext = {
       application_details: {
@@ -547,6 +606,14 @@ Deno.serve(async (req) => {
         prior_rfi_count: rfiHistory.length,
       },
       rule_check_snapshot: ruleCheckSnapshot,
+      applicable_fee: {
+        expected_total: expectedFeeTotal,
+        currency:
+          (completedPayment?.currency as string | undefined) ??
+          (paymentsList[0]?.currency as string | undefined) ??
+          null,
+      },
+      data_integrity_snapshot: dataIntegrity,
     };
 
     const sourcePayloadHash = await sha256Hex(JSON.stringify(applicationContext));
@@ -602,6 +669,31 @@ Return VALID JSON ONLY matching this exact schema:
     "compliance_concerns": ["string"],
     "suggested_next_workflow_action": "string"
   },
+  "business_assessment": {
+    "overall_rating": "favourable|acceptable|needs_strengthening|adverse",
+    "overall_rationale": "string",
+    "dimensions": [
+      {
+        "key": "eligibility_fit|financial_substance|ownership_control|business_model_viability|consumer_market_impact|operational_readiness|supervisory_burden",
+        "label": "string",
+        "rating": "favourable|acceptable|needs_strengthening|adverse|insufficient_data",
+        "assessment": "string",
+        "evidence": ["string"],
+        "business_implication": "string"
+      }
+    ],
+    "commercial_conditions": ["string"],
+    "business_questions": ["string"],
+    "public_interest_considerations": ["string"]
+  },
+  "data_integrity_commentary": {
+    "overall_confidence": "high|moderate|limited",
+    "summary": "string",
+    "material_issues": [
+      { "check_key": "string", "severity": "low|medium|high|critical", "what_it_means": "string", "evidence": ["string"], "suggested_verification": "string" }
+    ],
+    "decision_impact": "string"
+  },
   "missing_information": ["string"],
   "confidence_score": 0.0
 }
@@ -611,6 +703,27 @@ Rules for the section-wise review:
 - If a section has no data, mark status="missing_info" with a clear observation, do not skip it.
 - Choose status="pass" only when the section is complete and consistent.
 - Choose status="high_risk" only when concrete evidence in the input shows material risk.
+
+Rules for business_assessment (the business point of view):
+- Assess the case commercially and prudentially, not just for completeness. Cover, where the data allows:
+  eligibility and fit against the applied licence category and sector; financial substance (declared capital
+  versus the applicable minimum, funding sources, sustainability); ownership, control and group structure;
+  business model viability, revenue basis and target market; consumer, market conduct and public interest
+  impact; operational readiness (governance, key persons, systems, premises); and the supervisory burden
+  if the licence were granted.
+- Produce one dimension entry per key you can assess. Use rating="insufficient_data" where the record does
+  not support a view, and state plainly what would be needed — never infer a figure that is not supplied.
+- business_implication must explain the consequence for the applicant's business, its customers, or the
+  regulator's supervisory effort in plain language.
+- commercial_conditions and business_questions are suggestions for the analyst only. Never present them as imposed.
+
+Rules for data_integrity_commentary:
+- Interpret ONLY the checks supplied in data_integrity_snapshot. Never invent a check, never re-score one,
+  and never contradict a supplied status.
+- For each check with status "fail" or "warning" that materially affects the decision, add a material_issues
+  entry that names the values involved and what a supervisor should verify.
+- decision_impact must state how far the data quality supports a decision now, and what remains unverifiable.
+- overall_confidence must reflect the supplied counts: many failed checks means "limited".
 
 Rules for decision_report.recommended_action:
 - "approve_with_conditions" must populate suggested_conditions.
@@ -784,6 +897,14 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         parsed.decision_report && typeof parsed.decision_report === "object"
           ? parsed.decision_report
           : {};
+      const businessAssessment =
+        parsed.business_assessment && typeof parsed.business_assessment === "object"
+          ? parsed.business_assessment
+          : null;
+      const integrityCommentary =
+        parsed.data_integrity_commentary && typeof parsed.data_integrity_commentary === "object"
+          ? parsed.data_integrity_commentary
+          : null;
 
       await adminClient
         .from("application_ai_assessments")
@@ -797,6 +918,11 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           confidence_score: confidence,
           sections,
           decision_report: decisionReport,
+          business_assessment: businessAssessment,
+          data_integrity: {
+            ...dataIntegrity,
+            commentary: integrityCommentary,
+          },
           raw_response: null,
           source_payload_hash: sourcePayloadHash,
 
