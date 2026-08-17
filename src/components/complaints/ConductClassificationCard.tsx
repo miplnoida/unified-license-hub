@@ -18,6 +18,9 @@ interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
 
+const EMPTY_HINT = (label: string) =>
+  `No ${label} available. Add them under Admin Hub → Conduct, or contact an administrator.`;
+
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
