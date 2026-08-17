@@ -70,6 +70,54 @@ interface Section {
   links?: Array<{ type?: string; id?: string; label?: string }>;
 }
 
+interface BusinessDimension {
+  key?: string;
+  label?: string;
+  rating?: string;
+  assessment?: string;
+  evidence?: string[];
+  business_implication?: string;
+}
+
+interface BusinessAssessment {
+  overall_rating?: string;
+  overall_rationale?: string;
+  dimensions?: BusinessDimension[];
+  commercial_conditions?: string[];
+  business_questions?: string[];
+  public_interest_considerations?: string[];
+}
+
+interface IntegrityCheck {
+  key?: string;
+  label?: string;
+  group?: string;
+  status?: string;
+  detail?: string;
+  values?: Array<{ label?: string; value?: string }>;
+}
+
+interface IntegrityCommentaryIssue {
+  check_key?: string;
+  severity?: string;
+  what_it_means?: string;
+  evidence?: string[];
+  suggested_verification?: string;
+}
+
+interface DataIntegrity {
+  computed_at?: string;
+  counts?: { pass?: number; warning?: number; fail?: number; not_applicable?: number };
+  checks?: IntegrityCheck[];
+  commentary?: {
+    overall_confidence?: string;
+    summary?: string;
+    material_issues?: IntegrityCommentaryIssue[];
+    decision_impact?: string;
+  } | null;
+}
+
+
 interface Assessment {
   id: string;
   application_id?: string;
