@@ -717,6 +717,12 @@ Return VALID JSON ONLY matching this exact schema:
   "confidence_score": 0.0
 }
 
+Taxonomy naming rule (applies to every section, finding, risk and commentary):
+- sector_name, sub_sector_name, category_name and the licence type label are separate taxonomy levels.
+  They may legitimately carry the SAME name (e.g. sector "Building Society", sub-sector "Building Society",
+  category "Building Society"). Repeated or identical taxonomy names are correct reference data — NEVER raise
+  them as redundancy, duplication, inconsistency or a data-quality/integrity issue, and never comment on them.
+
 Rules for the section-wise review:
 - Always produce one entry per available section key in: ${SECTION_KEYS.join(", ")}.
 - If a section has no data, mark status="missing_info" with a clear observation, do not skip it.
