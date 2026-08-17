@@ -56,18 +56,36 @@ export default function NewInternalComplaint() {
     setDirty(true);
   };
 
-  const { data: refs } = useQuery({
+  const { data: refs, error: refsError } = useQuery({
     queryKey: ['internal-complaint-refs'],
     queryFn: async () => {
-      const [{ data: ct }, { data: crc }, { data: p }, { data: c }] = await Promise.all([
+      const [ct, crc, p, c] = await Promise.all([
         sb.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
         sb.from('conduct_risk_categories').select('id, name').eq('active', true).order('sort_order,name'),
         sb.from('conduct_products').select('id, name').eq('active', true).order('name'),
         sb.from('conduct_channels').select('id, name').eq('active', true).order('name'),
       ]);
-      return { types: ct ?? [], categories: crc ?? [], products: p ?? [], channels: c ?? [] };
+      // Surface load failures instead of silently rendering empty dropdowns.
+      const firstError = [ct, crc, p, c].find((r: any) => r?.error)?.error;
+      if (firstError) throw firstError;
+      return {
+        types: ct?.data ?? [],
+        categories: crc?.data ?? [],
+        products: p?.data ?? [],
+        channels: c?.data ?? [],
+      };
     },
   });
+
+  useEffect(() => {
+    if (refsError) {
+      toast.error('Could not load reference lists (complaint types, conduct categories, products, channels). You may not have permission to view conduct master data.');
+    }
+  }, [refsError]);
+
+  const emptyHint = (label: string) =>
+    `No ${label} available. Add them under Admin Hub → Conduct, or contact an administrator if you expect entries here.`;
+
 
   const cancel = () => {
     if (dirty && !window.confirm('Discard this complaint? Unsaved changes will be lost.')) return;
