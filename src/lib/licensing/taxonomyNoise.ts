@@ -7,9 +7,9 @@
  * redundancy / data-quality issue. It is correct reference data, so those items
  * are hidden from the report and any repeated label is collapsed for display.
  */
-import { n as collapseTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
-export { collapseTaxonomyLabel };
+export { formatTaxonomyLabel as collapseTaxonomyLabel };
 
 /** True when a string contains a "X - X" style repeated taxonomy label. */
 function hasRepeatedTaxonomySegment(text: string): boolean {
