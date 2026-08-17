@@ -37,6 +37,7 @@ function ActiveFormFiller({
   onSubmit,
   applicationId,
   versionLocked = false,
+  stepStorageKey,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -45,7 +46,9 @@ function ActiveFormFiller({
   onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   applicationId?: string;
   versionLocked?: boolean;
+  stepStorageKey?: string;
 }) {
+
   // Backend resolver decides which version to use and pins it on first call.
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
