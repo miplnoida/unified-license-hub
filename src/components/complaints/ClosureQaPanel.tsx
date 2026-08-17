@@ -184,7 +184,7 @@ export function ClosureQaPanel({
 
   /** Client-side mirror of the server's closure requirements. */
   const missing: string[] = [];
-  if (!resolution.trim()) missing.push('Add a resolution describing how the complaint was handled.');
+  if (resolution.trim().length < 10) missing.push('Write a resolution of at least 10 characters.');
   if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
   if (!outcome) missing.push('Choose an outcome.');
   if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
