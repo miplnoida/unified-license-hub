@@ -1559,10 +1559,12 @@ export default function ApplicationDetail() {
             {/* Applicant resubmit action */}
             {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
               <Card>
-                <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{app.status === 'info_requested' ? 'Information Requested' : 'Resubmission Required'}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    The reviewer has requested changes to your application. Please update your documents/forms and resubmit.
+                    {app.status === 'info_requested'
+                      ? 'The reviewer has requested more information. Answer the open requests, update your forms and documents, then resubmit.'
+                      : 'The reviewer has requested changes to your application. Please update your documents/forms and resubmit.'}
                   </p>
                   <div className="space-y-2">
                     <Label className="text-sm">Remarks (optional)</Label>
