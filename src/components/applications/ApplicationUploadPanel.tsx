@@ -44,6 +44,8 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024;
 const SKIP_TYPES = new Set(['section', 'divider', 'heading', 'content']);
 
 export function ApplicationUploadPanel({ formName, sections, disabled }: Props) {
+  if (!APPLICATION_BULK_FILL_ENABLED) return null;
+
   const [collapsed, setCollapsed] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
 
