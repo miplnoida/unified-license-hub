@@ -289,26 +289,36 @@ export default function ApplicationForms() {
   const handleFormSaveDraft = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
-    setFormProgressMap(prev => ({
-      ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data, versionId },
-    }));
-    await persistFormsData(activeFormTemplateId, data, false, versionId);
-    toast.success('Draft saved');
-    setSaving(false);
+    try {
+      await persistFormsData(activeFormTemplateId, data, false, versionId);
+      setFormProgressMap(prev => ({
+        ...prev,
+        [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data, versionId },
+      }));
+      toast.success('Draft saved');
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save your changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleFormSubmit = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
-    setFormProgressMap(prev => ({
-      ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data, versionId },
-    }));
-    await persistFormsData(activeFormTemplateId, data, true, versionId);
-    toast.success('Form completed!');
-    setActiveFormTemplateId(null);
-    setSaving(false);
+    try {
+      await persistFormsData(activeFormTemplateId, data, true, versionId);
+      setFormProgressMap(prev => ({
+        ...prev,
+        [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data, versionId },
+      }));
+      toast.success('Form completed!');
+      setActiveFormTemplateId(null);
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save your changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmitApplication = async () => {
