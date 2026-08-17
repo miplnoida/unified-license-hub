@@ -40,6 +40,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const [saving, setSaving] = useState(false);
   const [autoRunning, setAutoRunning] = useState(false);
   const [overrideCtx, setOverrideCtx] = useState<null | { from: any; to: any }>(null);
+  const [refsLoaded, setRefsLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -52,8 +53,10 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
       if (c.error) toast.error(`Channels failed: ${c.error.message}`);
       if (k.error) toast.error(`Categories failed: ${k.error.message}`);
       setProducts(p.data ?? []); setChannels(c.data ?? []); setCats(k.data ?? []);
+      setRefsLoaded(true);
     })();
   }, []);
+
 
   const persist = async (payload: any) => {
     const { error } = await (supabase as any).rpc('classify_complaint', { _id: complaint.id, _payload: payload });
