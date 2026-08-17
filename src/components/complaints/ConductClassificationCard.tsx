@@ -18,6 +18,9 @@ interface Props { complaint: any; onChanged?: () => void }
 
 const CUSTOMER_TYPES = ['retail', 'sme', 'corporate', 'vulnerable', 'other'] as const;
 
+const EMPTY_HINT = (label: string) =>
+  `No ${label} available. Add them under Admin Hub → Conduct, or contact an administrator.`;
+
 
 export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const qc = useQueryClient();
@@ -37,6 +40,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
   const [saving, setSaving] = useState(false);
   const [autoRunning, setAutoRunning] = useState(false);
   const [overrideCtx, setOverrideCtx] = useState<null | { from: any; to: any }>(null);
+  const [refsLoaded, setRefsLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -49,8 +53,10 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
       if (c.error) toast.error(`Channels failed: ${c.error.message}`);
       if (k.error) toast.error(`Categories failed: ${k.error.message}`);
       setProducts(p.data ?? []); setChannels(c.data ?? []); setCats(k.data ?? []);
+      setRefsLoaded(true);
     })();
   }, []);
+
 
   const persist = async (payload: any) => {
     const { error } = await (supabase as any).rpc('classify_complaint', { _id: complaint.id, _payload: payload });
@@ -152,6 +158,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && products.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('products')}</p>}
           </div>
           <div>
             <Label className="text-xs">Channel</Label>
@@ -159,6 +166,7 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{channels.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && channels.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('channels')}</p>}
           </div>
           <div>
             <Label className="text-xs">Conduct Risk Category</Label>
@@ -166,7 +174,9 @@ export function ConductClassificationCard({ complaint, onChanged }: Props) {
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent><SelectItem value="none">(unset)</SelectItem>{cats.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
             </Select>
+            {refsLoaded && cats.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{EMPTY_HINT('conduct categories')}</p>}
           </div>
+
           <div>
             <Label className="text-xs">Customer Type</Label>
             <Select value={form.customer_type || 'none'} onValueChange={v => setForm({ ...form, customer_type: v === 'none' ? '' : v })}>
