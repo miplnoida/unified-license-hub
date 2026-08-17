@@ -51,13 +51,23 @@ function friendlyRecordError(e: unknown): string {
  * hardcoded to a specific complaint workflow: we look at the mutation kind and
  * fall back to the action's target step.
  */
-function resolveClosingAction(actions: WorkflowAction[]): WorkflowAction | null {
+function resolveClosingAction(
+  actions: WorkflowAction[],
+  terminalStepKeys: string[] = [],
+): WorkflowAction | null {
   const list = actions ?? [];
+  const terminal = new Set(terminalStepKeys);
+  const byTerminalTarget = list.filter(
+    (a: any) => a.target_step_key && terminal.has(a.target_step_key),
+  );
   return (
     list.find((a: any) => a.mutation_kind === 'close_complaint') ||
     list.find((a: any) => a.mutation_kind === 'resolve_complaint') ||
     list.find((a: any) => a.target_step_key === 'closed') ||
     list.find((a: any) => a.target_step_key === 'resolved') ||
+    // Configured terminal step (from the workflow tracking steps), so a
+    // renamed closing step still resolves without hardcoded keys.
+    byTerminalTarget[0] ||
     null
   );
 }
@@ -68,6 +78,10 @@ export function ClosureQaPanel({
   currentStepLabel = null,
   availableActionLabels = [],
   availableActions = [],
+  terminalStepKeys = [],
+  actionsLoading = false,
+  actionsError = false,
+  onRetryActions,
   status = null,
   onGoToCurrentStep,
 }: {
@@ -79,6 +93,11 @@ export function ClosureQaPanel({
   availableActionLabels?: string[];
   /** Full configured actions available now, used to resolve the closing action. */
   availableActions?: WorkflowAction[];
+  /** Step keys the configured workflow marks as terminal. */
+  terminalStepKeys?: string[];
+  actionsLoading?: boolean;
+  actionsError?: boolean;
+  onRetryActions?: () => void;
   status?: string | null;
   onGoToCurrentStep?: () => void;
 }) {
@@ -105,7 +124,7 @@ export function ClosureQaPanel({
   const reviews = closureQ.data;
   const isLoading = closureQ.isLoading;
 
-  const closingAction = resolveClosingAction(availableActions);
+  const closingAction = resolveClosingAction(availableActions, terminalStepKeys);
   const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
 
   const closeMut = useMutation({
@@ -165,7 +184,7 @@ export function ClosureQaPanel({
 
   /** Client-side mirror of the server's closure requirements. */
   const missing: string[] = [];
-  if (!resolution.trim()) missing.push('Add a resolution describing how the complaint was handled.');
+  if (resolution.trim().length < 10) missing.push('Write a resolution of at least 10 characters.');
   if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
   if (!outcome) missing.push('Choose an outcome.');
   if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
@@ -224,12 +243,14 @@ export function ClosureQaPanel({
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Label htmlFor="cq-res">Resolution</Label>
+              <Label htmlFor="cq-res">Resolution (min 10 characters)</Label>
               <Textarea id="cq-res" rows={3} value={resolution} onChange={(e) => setResolution(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">{resolution.trim().length}/10 characters</p>
             </div>
             <div className="md:col-span-2">
               <Label htmlFor="cq-rat">Rationale (min 10 characters)</Label>
               <Textarea id="cq-rat" rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">{rationale.trim().length}/10 characters</p>
             </div>
             <div>
               <Label>Outcome</Label>
@@ -258,16 +279,36 @@ export function ClosureQaPanel({
               </ul>
             </div>
           )}
+          {actionsError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
+              <span>We couldn’t check the available workflow actions.</span>
+              {onRetryActions && (
+                <Button size="sm" variant="outline" onClick={onRetryActions}>Retry</Button>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button data-rbac="complaint_management.edit"
-              disabled={closeMut.isPending || missing.length > 0 || !closingAction}
+              disabled={closeMut.isPending || actionsLoading || missing.length > 0 || !closingAction}
               onClick={() => closeMut.mutate()}>
-              {closeMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Close complaint
+              {(closeMut.isPending || actionsLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {actionsLoading ? 'Checking workflow…' : 'Close complaint'}
             </Button>
-            {!closingAction && (
+            {!actionsLoading && !actionsError && !closingAction && (
               <span className="text-xs text-muted-foreground">
-                No closing action is available to you right now — use the <strong>Current step</strong> tab.
+                {availableActionLabels.length > 0 ? (
+                  <>
+                    No closing action is configured for you at this step. Available to you:{' '}
+                    <strong>{availableActionLabels.join(', ')}</strong> — use the{' '}
+                    <strong>Current step</strong> tab.
+                  </>
+                ) : (
+                  <>No workflow action is available to you right now — use the <strong>Current step</strong> tab.</>
+                )}
               </span>
+            )}
+            {!closingAction && onGoToCurrentStep && !actionsLoading && (
+              <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>Go to Current step</Button>
             )}
           </div>
           {latest && (
