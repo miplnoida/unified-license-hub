@@ -122,6 +122,7 @@ export default function NewApplication() {
   const [isRenewalApp, setIsRenewalApp] = useState(false);
   const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
   const [showInlineReview, setShowInlineReview] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
   const { data: appSettings } = useApplicationSettings();
