@@ -487,13 +487,41 @@ export default function RoleManagement() {
       permissionIds: resolvedIds,
     };
 
+    try {
+      if (editingRole) {
+        await updateRole.mutateAsync({ id: editingRole.id, ...payload });
+      } else {
+        await createRole.mutateAsync(payload);
+      }
+    } catch (err) {
+      // Keep the dialog open with the ticked boxes intact so an admin never
+      // walks away believing a grant was saved when the server rejected it.
+      toast.error(explainSaveFailure(err, permissions));
+      return;
+    }
+
+    // Read back what was actually stored and warn on any difference, so a
+    // silently partial save cannot look like a successful grant.
     if (editingRole) {
-      await updateRole.mutateAsync({ id: editingRole.id, ...payload });
-    } else {
-      await createRole.mutateAsync(payload);
+      const stored = await fetchStoredPermissionIds(editingRole.id);
+      if (stored) {
+        const missing = resolvedIds.filter(id => !stored.has(id));
+        if (missing.length > 0) {
+          const labels = missing
+            .map(id => permissions.find(p => p.id === id))
+            .filter(Boolean)
+            .map(p => `${cleanModuleLabel(null, p!.module)}: ${humanizeActionLabel(null, p!.name)}`)
+            .join(', ');
+          toast.error(
+            `Some capabilities were not saved (${labels}). Please reopen the role and try again.`,
+          );
+          return;
+        }
+      }
     }
     setDialogOpen(false);
   };
+
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
