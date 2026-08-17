@@ -396,9 +396,6 @@ export function deriveWaitingState(input: {
       detail: input.rfi.detail,
     };
   }
-  if (input.closurePhase && input.closure.qaRequired && !input.closure.qaApproved) {
-    return { label: 'Waiting for QA review of the closure assessment', detail: input.closure.label };
-  }
   if ((input.actions ?? []).length === 0) {
     const who = input.tracking?.assigned_user_name || input.tracking?.assigned_role;
     const step = input.tracking?.current_step_label;
