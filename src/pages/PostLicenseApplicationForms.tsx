@@ -103,6 +103,8 @@ function ActiveFormFiller({
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
+        stepStorageKey={stepStorageKey}
+
         formId={templateId}
         formVersionId={resolvedVersionId}
         submissionId={applicationId || null}
