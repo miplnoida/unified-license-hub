@@ -1823,17 +1823,19 @@ export default function NewApplication() {
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between">
             {WIZARD_STEPS.map((step, i) => {
-              const reachable = (() => {
-                if (i === 0) return true;
+              const stepDone = (() => {
                 const target = WIZARD_STEPS[i].key;
-                if (target === 'forms') return !!applicationId;
-                if (target === 'documents') return allFormsCompleted;
-                if (target === 'payment') return allFormsCompleted;
-                if (target === 'review') return allFormsCompleted && paymentComplete;
+                if (target === 'selection') return !!applicationId;
+                if (target === 'forms') return !!applicationId && allFormsCompleted;
+                if (target === 'documents') return stepIndex > i;
+                if (target === 'review') return reviewConfirmed;
+                if (target === 'payment') return paymentComplete;
                 return false;
               })();
               const isCurrent = i === stepIndex;
-              const clickable = reachable && !isCurrent && currentStep !== 'filling';
+              // Only steps the applicant has actually finished — and never a
+              // step ahead of the current one — are navigable.
+              const clickable = stepDone && !isCurrent && i < stepIndex && currentStep !== 'filling';
               return (
                 <button
                   key={step.key}
@@ -1848,18 +1850,18 @@ export default function NewApplication() {
                   className={`flex items-center gap-1.5 text-xs transition-all rounded-md px-2 py-1 border ${
                     isCurrent
                       ? 'font-semibold text-primary bg-primary/10 border-primary/40 ring-2 ring-primary/30'
-                      : i < stepIndex
+                      : stepDone && i < stepIndex
                         ? 'font-medium text-primary border-transparent'
-                        : 'font-medium text-muted-foreground border-transparent'
+                        : 'font-medium text-muted-foreground border-transparent opacity-70'
                   } ${clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default'}`}
                   aria-label={`Go to step ${i + 1}: ${step.label}`}
                 >
                   <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
                     isCurrent ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                    : i < stepIndex ? 'bg-primary/15 border-primary text-primary'
+                    : stepDone && i < stepIndex ? 'bg-primary/15 border-primary text-primary'
                     : 'border-muted-foreground/30'
                   }`}>
-                    {i < stepIndex && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
+                    {stepDone && i < stepIndex && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
                   </div>
                   <span className="hidden sm:inline">{step.label}</span>
                 </button>
