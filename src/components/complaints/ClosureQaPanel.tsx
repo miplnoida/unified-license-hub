@@ -1,9 +1,11 @@
 /**
- * MCS-CMP-006 — closure and QA review.
+ * MCS-CMP-006 — closure assessment.
  *
- * Every closure/QA decision is appended to `complaint_closure_reviews`
+ * Every closure decision is appended to `complaint_closure_reviews`
  * (append-only), so a prior closure decision can never be silently
- * overwritten and closed-case history stays reconstructable.
+ * overwritten and closed-case history stays reconstructable. The single
+ * "Close complaint" action records the assessment and then performs the
+ * configured closing workflow action, so the complaint status actually moves.
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
-import { closureDecisionLabel } from '@/lib/complaintWorkflow';
+import { closureDecisionLabel, type WorkflowAction } from '@/lib/complaintWorkflow';
 import { formatDateTime } from '@/lib/datetime';
 
 const OUTCOMES = ['upheld', 'partially_upheld', 'not_upheld', 'withdrawn', 'referred', 'no_jurisdiction'];
@@ -31,23 +33,42 @@ function friendlyRecordError(e: unknown): string {
     (typeof e === 'string' ? e : '') ??
     '';
   const msg = String(raw).toLowerCase();
-  if (msg.includes('resolution summary')) return 'Add a resolution before recording a closure decision.';
+  if (msg.includes('resolution summary')) return 'Add a resolution before closing the complaint.';
   if (msg.includes('rationale')) return 'The rationale must be at least 10 characters.';
-  if (msg.includes('outcome category')) return 'Choose an outcome before recording a closure decision.';
-  if (msg.includes('evidence completeness')) return 'Tick “Evidence is complete” before recording a closure decision.';
-  if (msg.includes('return reason')) return 'Give a return reason of at least 10 characters.';
+  if (msg.includes('outcome category')) return 'Choose an outcome before closing the complaint.';
+  if (msg.includes('evidence completeness')) return 'Tick “Evidence is complete” before closing the complaint.';
+  if (msg.includes('stale_state')) return 'Someone else acted on this complaint. Please reload and try again.';
+  if (msg.includes('role_not_permitted')) return 'Your role isn’t allowed to close this complaint.';
+  if (msg.includes('action_not_allowed_at_step')) return 'Closing isn’t available at the current workflow step.';
   if (msg.includes('not authorised') || msg.includes('42501')) {
-    return 'You do not have permission to record a closure decision.';
+    return 'You do not have permission to close this complaint.';
   }
-  return raw ? `Could not record decision: ${raw}` : 'Could not record decision. Please try again.';
+  return raw ? `Could not close the complaint: ${raw}` : 'Could not close the complaint. Please try again.';
 }
 
+/**
+ * Pick the configured workflow action that closes the case. Nothing is
+ * hardcoded to a specific complaint workflow: we look at the mutation kind and
+ * fall back to the action's target step.
+ */
+function resolveClosingAction(actions: WorkflowAction[]): WorkflowAction | null {
+  const list = actions ?? [];
+  return (
+    list.find((a: any) => a.mutation_kind === 'close_complaint') ||
+    list.find((a: any) => a.mutation_kind === 'resolve_complaint') ||
+    list.find((a: any) => a.target_step_key === 'closed') ||
+    list.find((a: any) => a.target_step_key === 'resolved') ||
+    null
+  );
+}
 
 export function ClosureQaPanel({
   complaintId,
   readOnly = false,
   currentStepLabel = null,
   availableActionLabels = [],
+  availableActions = [],
+  status = null,
   onGoToCurrentStep,
 }: {
   complaintId: string;
@@ -56,6 +77,9 @@ export function ClosureQaPanel({
   currentStepLabel?: string | null;
   /** Configured labels of the workflow actions this user may perform now. */
   availableActionLabels?: string[];
+  /** Full configured actions available now, used to resolve the closing action. */
+  availableActions?: WorkflowAction[];
+  status?: string | null;
   onGoToCurrentStep?: () => void;
 }) {
   const qc = useQueryClient();
@@ -64,9 +88,6 @@ export function ClosureQaPanel({
   const [outcome, setOutcome] = useState('');
   const [commRef, setCommRef] = useState('');
   const [evidenceComplete, setEvidenceComplete] = useState(false);
-  const [qaRequired, setQaRequired] = useState(false);
-  const [qaNote, setQaNote] = useState('');
-
 
   const closureQ = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
@@ -84,35 +105,63 @@ export function ClosureQaPanel({
   const reviews = closureQ.data;
   const isLoading = closureQ.isLoading;
 
-  const record = useMutation({
-    mutationFn: async (args: { decision: string; note?: string }) => {
-      const { data, error } = await supabase.rpc('complaint_record_closure_review', {
+  const closingAction = resolveClosingAction(availableActions);
+  const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
+
+  const closeMut = useMutation({
+    mutationFn: async () => {
+      // 1) record the closure assessment (append-only history)
+      const { error: recErr } = await supabase.rpc('complaint_record_closure_review', {
         _complaint_id: complaintId,
-        _decision: args.decision,
+        _decision: 'closed',
         _resolution_summary: resolution || null,
-        _rationale: args.note ?? rationale ?? null,
+        _rationale: rationale || null,
         _outcome_category: outcome || null,
         _final_communication_ref: commRef || null,
         _evidence_complete: evidenceComplete,
-        _qa_required: qaRequired,
+        _qa_required: false,
         _reviewer_id: null,
       });
-      if (error) throw error;
-      return data;
+      if (recErr) throw recErr;
+
+      if (!closingAction) return;
+
+      // 2) perform the configured closing workflow action
+      const { data: tracking, error: trackErr } = await (supabase as any).rpc('get_complaint_tracking', {
+        _complaint_id: complaintId,
+      });
+      if (trackErr) throw trackErr;
+
+      const payload: Record<string, any> = { comments: rationale };
+      for (const f of ((closingAction as any).required_fields || []) as Array<{ key: string }>) {
+        payload[f.key] =
+          f.key === 'resolution' || f.key === 'findings'
+            ? resolution || rationale
+            : f.key === 'closure_reason'
+              ? rationale
+              : rationale;
+      }
+
+      const { error: actErr } = await (supabase as any).rpc('execute_complaint_workflow_action', {
+        _complaint_id: complaintId,
+        _action_key: (closingAction as any).action_key,
+        _payload: payload,
+        _expected_updated_at: (tracking || {})?.instance_updated_at ?? null,
+      });
+      if (actErr) throw actErr;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['complaint_closure_reviews', complaintId] });
-      toast.success('Decision recorded');
+      qc.invalidateQueries({ queryKey: ['complaint', complaintId] });
+      qc.invalidateQueries({ queryKey: ['complaint_actions', complaintId] });
+      qc.invalidateQueries({ queryKey: ['complaint_tracking', complaintId] });
+      toast.success('Complaint closed');
     },
     onError: (e) => toast.error(friendlyRecordError(e)),
   });
 
   const latest = reviews?.[0] as any | undefined;
   const latestLabel = closureDecisionLabel(latest?.decision);
-  /** Once QA has approved (or a closure assessment is recorded), QA is done. */
-  const qaLocked = (reviews ?? []).some(
-    (r: any) => r.decision === 'qa_approved' || r.decision === 'closed',
-  );
 
   /** Client-side mirror of the server's closure requirements. */
   const missing: string[] = [];
@@ -121,15 +170,8 @@ export function ClosureQaPanel({
   if (!outcome) missing.push('Choose an outcome.');
   if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
 
-
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
-        This section records the <strong>closure assessment and QA decision</strong> only. It does not close the
-        complaint. The complaint moves to <strong>Closed</strong> when the configured workflow action is performed on the{' '}
-        <strong>Current step</strong> tab.
-      </div>
-
       {readOnly && (
         <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm space-y-2">
           {currentStepLabel && (
@@ -159,7 +201,24 @@ export function ClosureQaPanel({
         </div>
       )}
 
-      {!readOnly && (
+      {!readOnly && alreadyClosed && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Complaint closed</CardTitle></CardHeader>
+          <CardContent className="text-sm space-y-1">
+            <p className="text-muted-foreground">
+              This complaint is closed. No further closure assessment is needed.
+            </p>
+            {latest && (
+              <p>
+                Recorded outcome: <strong>{latest.outcome_category || '—'}</strong> ·{' '}
+                {formatDateTime(latest.decided_at)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!readOnly && !alreadyClosed && (
       <Card>
         <CardHeader><CardTitle className="text-base">Closure assessment</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -190,72 +249,27 @@ export function ClosureQaPanel({
                 onCheckedChange={(v) => setEvidenceComplete(v === true)} />
               <Label htmlFor="cq-ev" className="font-normal">Evidence is complete</Label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox id="cq-qa" checked={qaRequired} onCheckedChange={(v) => setQaRequired(v === true)} />
-              <Label htmlFor="cq-qa" className="font-normal">QA review required before closure</Label>
-            </div>
           </div>
           {missing.length > 0 && (
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
-              <p className="font-medium">What's still needed before you can record a closure decision</p>
+              <p className="font-medium">What's still needed before you can close this complaint</p>
               <ul className="mt-1 list-disc pl-5 text-muted-foreground">
                 {missing.map((m) => <li key={m}>{m}</li>)}
               </ul>
             </div>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button data-rbac="complaint_management.edit" disabled={record.isPending || missing.length > 0}
-              onClick={() => record.mutate({ decision: 'closure_proposed' })}>
-              {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Propose closure (recommendation)
+          <div className="flex flex-wrap items-center gap-2">
+            <Button data-rbac="complaint_management.edit"
+              disabled={closeMut.isPending || missing.length > 0 || !closingAction}
+              onClick={() => closeMut.mutate()}>
+              {closeMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Close complaint
             </Button>
-            <Button variant="outline" data-rbac="complaint_management.edit"
-              disabled={record.isPending || missing.length > 0}
-              onClick={() => record.mutate({ decision: 'closed' })}>
-              Record closure assessment
-            </Button>
+            {!closingAction && (
+              <span className="text-xs text-muted-foreground">
+                No closing action is available to you right now — use the <strong>Current step</strong> tab.
+              </span>
+            )}
           </div>
-
-        </CardContent>
-      </Card>
-      )}
-
-      {!readOnly && (
-      <Card>
-        <CardHeader><CardTitle className="text-base">QA review</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {qaLocked ? (
-            <div className="rounded-md border border-success/30 bg-success/10 p-3 text-sm">
-              <p className="font-medium">Quality review completed</p>
-              <p className="text-muted-foreground">
-                {latestLabel.label}
-                {latest?.decided_at ? ` on ${formatDateTime(latest.decided_at)}` : ''} — no further quality review
-                action is needed. The complaint is closed from the <strong>Current step</strong> tab.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div>
-                <Label htmlFor="cq-qanote">QA note / return reason (at least 10 characters when returning)</Label>
-                <Textarea id="cq-qanote" rows={2} value={qaNote} onChange={(e) => setQaNote(e.target.value)} />
-                {qaNote.trim().length > 0 && qaNote.trim().length < 10 && (
-                  <p className="mt-1 text-xs text-destructive">
-                    Add at least 10 characters to return this case to the officer.
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" data-rbac="complaint_management.edit" disabled={record.isPending}
-                  onClick={() => record.mutate({ decision: 'qa_approved', note: qaNote || 'QA approved' })}>
-                  {record.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}QA approve
-                </Button>
-                <Button variant="outline" data-rbac="complaint_management.edit"
-                  disabled={record.isPending || qaNote.trim().length < 10}
-                  onClick={() => record.mutate({ decision: 'qa_returned', note: qaNote })}>
-                  Return to officer
-                </Button>
-              </div>
-            </>
-          )}
           {latest && (
             <p className="text-xs text-muted-foreground">
               Latest decision: <strong>{latestLabel.label}</strong>
@@ -265,8 +279,6 @@ export function ClosureQaPanel({
         </CardContent>
       </Card>
       )}
-
-
 
       <Card>
         <CardHeader><CardTitle className="text-base">Closure history</CardTitle></CardHeader>
@@ -296,7 +308,6 @@ export function ClosureQaPanel({
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground">{formatDateTime(r.decided_at)}</span>
-
               </div>
               {r.outcome_category && <div className="mt-1">Outcome: {r.outcome_category}</div>}
               {r.resolution_summary && <div className="mt-1">{r.resolution_summary}</div>}
@@ -305,7 +316,7 @@ export function ClosureQaPanel({
                 <div className="mt-1 text-xs">Final communication: {r.final_communication_ref}</div>
               )}
               <div className="mt-1 text-xs text-muted-foreground">
-                Evidence complete: {r.evidence_complete ? 'yes' : 'no'} · QA required: {r.qa_required ? 'yes' : 'no'}
+                Evidence complete: {r.evidence_complete ? 'yes' : 'no'}
               </div>
             </div>
           ))}

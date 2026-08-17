@@ -247,7 +247,9 @@ export function summariseClosure(reviews: ClosureReviewLike[] | undefined | null
   const latest = rows[0];
   const qaApproved = rows.some(r => r.decision === 'qa_approved');
   const proposed = rows.some(r => r.decision === 'closure_proposed' || r.decision === 'closed');
-  const qaRequired = !!rows.find(r => r.qa_required)?.qa_required && !qaApproved;
+  // QA review was removed from the closure flow; historical rows may still
+  // carry the flag, but it never blocks closure any more.
+  const qaRequired = false;
   const label = !latest
     ? 'No closure assessment recorded'
     : latest.decision === 'qa_approved'
@@ -255,7 +257,7 @@ export function summariseClosure(reviews: ClosureReviewLike[] | undefined | null
       : latest.decision === 'qa_returned'
         ? 'Returned to officer by QA'
         : latest.decision === 'closure_proposed'
-          ? 'Closure recommended — awaiting QA'
+          ? 'Closure recommended'
           : 'Closure assessment recorded';
   return {
     latestDecision: latest?.decision ?? null,
@@ -393,9 +395,6 @@ export function deriveWaitingState(input: {
       label: 'Waiting for internal approval of the information request',
       detail: input.rfi.detail,
     };
-  }
-  if (input.closurePhase && input.closure.qaRequired && !input.closure.qaApproved) {
-    return { label: 'Waiting for QA review of the closure assessment', detail: input.closure.label };
   }
   if ((input.actions ?? []).length === 0) {
     const who = input.tracking?.assigned_user_name || input.tracking?.assigned_role;
