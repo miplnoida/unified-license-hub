@@ -27,3 +27,9 @@ export const PRUDENTIAL_ADVISORY_AI_ENABLED = true;
  * decision, workflow step and manual capability is unaffected when this is off.
  */
 export const SUPERVISORY_ADVISORY_AI_ENABLED = true;
+
+/**
+ * Applicant panel "Bulk Fill via Excel or XML" section.
+ * Hidden per business request; the component is kept for future re-enablement.
+ */
+export const APPLICATION_BULK_FILL_ENABLED = false;
