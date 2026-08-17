@@ -21,7 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PROMPT_VERSION = "v2";
+const PROMPT_VERSION = "v3";
 const MODEL_PROVIDER = "lovable-ai-gateway";
 const MODEL_NAME = "google/gemini-2.5-flash";
 
