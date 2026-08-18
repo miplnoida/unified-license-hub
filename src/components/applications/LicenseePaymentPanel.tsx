@@ -7,9 +7,12 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CreditCard, Loader2, CheckCircle2, AlertCircle, Banknote, FileDown, Clock } from 'lucide-react';
 import { logAudit } from '@/hooks/useAuditLog';
 import { resolveApplicationFeeBreakdownMeta, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { OfflinePaymentDialog } from '@/components/payments/OfflinePaymentDialog';
+import { downloadInvoiceForPayment } from '@/lib/invoice';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props {
   applicationId: string;
@@ -29,7 +32,14 @@ interface PaymentRow {
   transaction_ref?: string | null;
   receipt_number?: string | null;
   currency?: string | null;
+  payment_channel?: string | null;
+  offline_method?: string | null;
+  verification_status?: string | null;
+  verification_remarks?: string | null;
+  payment_date?: string | null;
+  bank_name?: string | null;
 }
+
 
 /**
  * Licensee-facing payment panel.
