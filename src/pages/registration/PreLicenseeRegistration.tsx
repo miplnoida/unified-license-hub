@@ -41,6 +41,7 @@ import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } f
 import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
 import { AlertCircle } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
+import { useCaptchaRuntime } from '@/hooks/useCaptchaConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   buildUpdateRegistrationUrl,
