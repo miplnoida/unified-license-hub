@@ -24,9 +24,58 @@ Deno.serve(async (req) => {
       sector_id, sub_sector_id, category_id,
       mailing_address, physical_address, same_as_mailing, telephone,
       username, registration_number, entity_specific_data,
-      documents_metadata, terms_accepted,
+      documents_metadata, terms_accepted, captcha_verification_id,
     } = body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    // ── Server-side CAPTCHA enforcement ──
+    // A client-sent boolean is never trusted. When CAPTCHA is globally enabled the
+    // request must carry a verification id minted by `manage-captcha` after the
+    // provider token was verified with the secret key. It is single use and expires.
+    {
+      const { data: setting } = await supabaseAdmin
+        .from("site_settings")
+        .select("value")
+        .eq("key", "captcha_enabled")
+        .maybeSingle();
+      const rawEnabled = setting?.value as unknown;
+      const captchaEnabled = rawEnabled === true || rawEnabled === "true";
+
+      if (captchaEnabled) {
+        const verificationId = String(captcha_verification_id || "").trim();
+        const captchaError = (message: string) =>
+          new Response(JSON.stringify({ error: message, code: "CAPTCHA_REQUIRED" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+
+        if (!verificationId) {
+          return captchaError("Security verification is required before submitting.");
+        }
+
+        const { data: verification } = await supabaseAdmin
+          .from("captcha_verifications")
+          .select("id, consumed_at, expires_at")
+          .eq("id", verificationId)
+          .maybeSingle();
+
+        if (!verification || verification.consumed_at || new Date(verification.expires_at) < new Date()) {
+          return captchaError("Security verification expired. Please complete the challenge again.");
+        }
+
+        // Consume atomically — only the request that flips consumed_at may proceed.
+        const { data: consumed } = await supabaseAdmin
+          .from("captcha_verifications")
+          .update({ consumed_at: new Date().toISOString() })
+          .eq("id", verificationId)
+          .is("consumed_at", null)
+          .select("id");
+
+        if (!consumed || consumed.length === 0) {
+          return captchaError("Security verification expired. Please complete the challenge again.");
+        }
+      }
+    }
 
     // Validate required fields
     const missing: string[] = [];
