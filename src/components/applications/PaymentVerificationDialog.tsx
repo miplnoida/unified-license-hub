@@ -306,6 +306,42 @@ export function PaymentVerificationDialog({
             )}
           </div>
 
+          {/* Offline payment declaration */}
+          {payment.payment_channel === 'offline' && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3 text-sm dark:border-amber-900/40 dark:bg-amber-950/30">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">Offline payment declaration</p>
+                <Badge variant="outline" className="capitalize">
+                  {payment.verification_status || 'pending'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Offline method</p>
+                  <p className="capitalize">{(payment.offline_method || '—').replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Declared payment date</p>
+                  <p>{payment.payment_date ? formatDateTime(payment.payment_date) : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Bank / institution</p>
+                  <p>{payment.bank_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Applicant remarks</p>
+                  <p>{payment.verification_remarks || '—'}</p>
+                </div>
+              </div>
+              {isOfflinePending && (
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  Review the attached proof of payment below, then approve or reject. A rejection
+                  requires a reason of at least 10 characters entered in the remarks above.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Admin Remarks Thread */}
           {payment.id && (
             <>
@@ -329,7 +365,26 @@ export function PaymentVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {isAdminView && normalizedPaymentStatus !== 'paid' ? (
+          {normalizedPaymentStatus === 'paid' && payment.id && (
+            <Button variant="outline" onClick={handleInvoice} disabled={invoiceBusy}>
+              {invoiceBusy
+                ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                : <FileDown className="h-4 w-4 mr-1.5" />}
+              Download invoice
+            </Button>
+          )}
+          {isAdminView && isOfflinePending ? (
+            <>
+              <Button variant="outline" onClick={() => reviewOffline(false)} disabled={offlineBusy}>
+                <XCircle className="h-4 w-4 mr-1.5" />
+                Reject payment
+              </Button>
+              <Button data-rbac="application_management.edit" onClick={() => reviewOffline(true)} disabled={offlineBusy}>
+                {offlineBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                Verify & issue invoice
+              </Button>
+            </>
+          ) : isAdminView && normalizedPaymentStatus !== 'paid' ? (
             <>
               <Button variant="outline" onClick={handleClose} disabled={loading}>
                 <XCircle className="h-4 w-4 mr-1.5" />
@@ -346,6 +401,7 @@ export function PaymentVerificationDialog({
             </Button>
           )}
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
