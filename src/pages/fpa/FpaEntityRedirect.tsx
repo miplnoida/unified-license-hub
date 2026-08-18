@@ -30,7 +30,7 @@ export default function FpaEntityRedirect() {
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
-      return data as { individual_id: string | null } | null;
+      return data as unknown as { individual_id: string | null } | null;
     },
   });
 

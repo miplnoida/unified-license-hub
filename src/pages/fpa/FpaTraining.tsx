@@ -39,7 +39,7 @@ export default function FpaTraining() {
         .order('attested_at', { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as { id: string; user_id: string; policy_version: string; attested_at: string }[];
+      return (data ?? []) as unknown as { id: string; user_id: string; policy_version: string; attested_at: string }[];
     },
   });
 
