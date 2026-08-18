@@ -175,12 +175,16 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       .catch(() => {
         if (cancelled) return;
         setStatus('error');
-
         setMessage('Security verification could not be loaded. Check your connection and retry.');
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // Allow a remount to render a fresh challenge instead of skipping it.
+      widgetIdRef.current = null;
+    };
   }, [config, verifyToken, onVerificationChange, runV3]);
+
 
   if (isLoading) {
     return (
