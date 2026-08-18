@@ -216,7 +216,7 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       widgetIdRef.current = null;
       host.remove();
     };
-  }, [configId, provider, siteKey, verifyToken, onVerificationChange, runV3]);
+  }, [configId, provider, siteKey, verifyToken, runV3]);
 
 
 
