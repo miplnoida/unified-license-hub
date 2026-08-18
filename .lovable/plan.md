@@ -1,0 +1,25 @@
+# Fix empty "Security Verification" box
+
+## What we know
+
+The active configuration is a reCAPTCHA v2 (checkbox) provider with a site key, and CAPTCHA is on. The widget now renders its frame with an empty area inside and no error text — so `CaptchaWidget` reached the render stage but the reCAPTCHA checkbox never appeared.
+
+The root cause is not yet confirmed. Two candidates, both consistent with "frame present, no checkbox, no error":
+
+1. **Render throws silently.** In the v2 path the render call runs inside `grecaptcha.ready(render)`, which is outside the promise chain, so any exception there is never caught and no message is shown. The effect's cleanup also resets the widget guard to `null` without telling reCAPTCHA to reset, so a second effect run (StrictMode double-mount, or a new `config` object identity from the query) wipes the container with `innerHTML = ''` and calls `render` on an element reCAPTCHA still considers rendered — which throws and leaves the box blank.
+2. **Key type / domain mismatch.** A reCAPTCHA v3 (score-based) key registered as `recaptcha_v2`, or a key whose allowed domains don't include the preview/custom domain, produces no visible checkbox.
+
+## Plan
+
+1. **Verify first.** Load the registration page in a headless browser, capture console errors and the reCAPTCHA network calls, and screenshot the widget area. This tells us which of the two causes is real (an "already been rendered" / "Invalid site key" / "Invalid domain" message is decisive).
+2. **Fix the render lifecycle** in `src/components/shared/CaptchaWidget.tsx` regardless of the outcome:
+   - Wrap the v2 `render` call in try/catch and surface a real error instead of a silent blank box.
+   - On cleanup, call the provider's `reset`/`remove` for the stored widget id before clearing the guard, so remounts re-render cleanly.
+   - Stabilise the effect dependency on the config's identifying fields (id, provider, site key) instead of the whole object, so a refetch doesn't force a re-render of the challenge.
+   - Show a clear, actionable error when the provider reports an invalid key or domain.
+3. **If the cause is the key**, report exactly what the provider said and what needs changing in the CAPTCHA settings (correct provider for the key type, or the domains registered with the key). No code change can substitute for a key valid on this domain.
+4. **Re-verify** on the registration page: checkbox visible, passing it shows "Verification complete.", and navigating away and back re-renders it without error.
+
+## Notes
+
+No change to the verification contract: the provider token is still exchanged via `manage-captcha` for a single-use verification id, and there is still no checkbox fallback.
