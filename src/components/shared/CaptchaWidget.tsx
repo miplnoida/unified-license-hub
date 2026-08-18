@@ -83,6 +83,13 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
   const config = data?.enabled ? data.config : null;
   const misconfigured = !!data?.misconfigured;
 
+  // Parents pass inline callbacks; keeping them in a ref stops the render effect from
+  // tearing the challenge down and rebuilding it on every parent re-render.
+  const changeRef = useRef(onVerificationChange);
+  changeRef.current = onVerificationChange;
+  const actionRef = useRef(action);
+  actionRef.current = action;
+
   const verifyToken = useCallback(async (token: string) => {
     setStatus('verifying');
     setMessage(null);
@@ -93,17 +100,17 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       if (fnError || !result?.ok || !result?.verification_id) {
         setStatus('error');
         setMessage(result?.error ?? 'CAPTCHA verification failed. Please try again.');
-        onVerificationChange(null);
+        changeRef.current(null);
         return;
       }
       setStatus('idle');
-      onVerificationChange(result.verification_id as string);
+      changeRef.current(result.verification_id as string);
     } catch {
       setStatus('error');
       setMessage('CAPTCHA verification failed. Please try again.');
-      onVerificationChange(null);
+      changeRef.current(null);
     }
-  }, [onVerificationChange]);
+  }, []);
 
   const runV3 = useCallback(async (siteKey: string) => {
     try {
@@ -112,14 +119,15 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       if (!api?.ready || !api?.execute) throw new Error('unavailable');
       setStatus('verifying');
       await new Promise<void>((resolve) => api.ready(() => resolve()));
-      const token: string = await api.execute(siteKey, { action });
+      const token: string = await api.execute(siteKey, { action: actionRef.current });
       await verifyToken(token);
     } catch {
       setStatus('error');
       setMessage('Security verification could not be loaded. Please retry.');
-      onVerificationChange(null);
+      changeRef.current(null);
     }
-  }, [action, verifyToken, onVerificationChange]);
+  }, [verifyToken]);
+
 
   // Depend on the identifying fields only: a query refetch returns a new object
   // identity for the same configuration and must not re-render the challenge.
