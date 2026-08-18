@@ -344,6 +344,26 @@ export function FormRenderer({
     }
   }, [groupKeys, activeGroup]);
 
+  // Jump to the requested section (per-section "Edit" from the review screen).
+  useEffect(() => {
+    if (!focusSectionId) return;
+    if (sectionGroups) {
+      for (const [letter, forms] of sectionGroups.entries()) {
+        const idx = forms.findIndex((s) => s.id === focusSectionId);
+        if (idx >= 0) {
+          setActiveGroup(letter);
+          setActiveFormIdx(idx);
+          return;
+        }
+      }
+      return;
+    }
+    const idx = visibleSections.findIndex((s) => s.id === focusSectionId);
+    if (idx >= 0) setCurrentStep(idx);
+  }, [focusSectionId, sectionGroups, visibleSections]);
+
+
+
   useEffect(() => {
     if (!stepStorageKey) return;
     try {
