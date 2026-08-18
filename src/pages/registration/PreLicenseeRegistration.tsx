@@ -479,7 +479,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           return validateDeclarations(
             effectiveDeclarations,
             config?.requireOtp ?? true,
-            config?.requireCaptcha ?? true,
+            effectiveRequireCaptcha,
           );
         }
         return validateStep(3);
@@ -973,6 +973,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           registration_number: form.registrationNumber || String(latestDynamicFormData.registration_number || '') || null,
           entity_specific_data: { ...form.entitySpecificData, ...latestDynamicFormData },
           documents_metadata: form.documents,
+          captcha_verification_id: form.captchaVerificationId ?? null,
           terms_accepted: true, // validated before reaching submit
         },
       });
@@ -1079,7 +1080,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}
             requireOtp={config?.requireOtp ?? true}
-            requireCaptcha={config?.requireCaptcha ?? true}
+            requireCaptcha={effectiveRequireCaptcha}
             updateMode={isUpdateMode}
           />
         );
