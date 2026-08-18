@@ -183,7 +183,7 @@ export default function CaptchaSettings() {
             : 'Unexpected error';
       toast({
         title: 'Could not save configuration',
-        description: error instanceof Error ? error.message : 'Unexpected error',
+        description,
         variant: 'destructive',
       });
     } finally {
