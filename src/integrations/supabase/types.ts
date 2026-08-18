@@ -1989,6 +1989,74 @@ export type Database = {
         }
         Relationships: []
       }
+      captcha_configurations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          provider: string
+          site_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          provider: string
+          site_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          provider?: string
+          site_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      captcha_secrets: {
+        Row: {
+          configuration_id: string
+          secret_key: string
+          updated_at: string
+        }
+        Insert: {
+          configuration_id: string
+          secret_key: string
+          updated_at?: string
+        }
+        Update: {
+          configuration_id?: string
+          secret_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captcha_secrets_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: true
+            referencedRelation: "captcha_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -23556,6 +23624,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      activate_captcha_configuration: { Args: { _id: string }; Returns: Json }
       activate_form_version_as_current: {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
@@ -25522,6 +25591,15 @@ export type Database = {
       generate_receipt_number: { Args: never; Returns: string }
       generate_registration_reference: { Args: never; Returns: string }
       generate_return_unique_id: { Args: never; Returns: string }
+      get_active_captcha: {
+        Args: never
+        Returns: {
+          environment: string
+          id: string
+          provider: string
+          site_key: string
+        }[]
+      }
       get_application_actions: {
         Args: { _application_id: string }
         Returns: {
