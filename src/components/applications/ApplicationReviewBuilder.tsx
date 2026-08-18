@@ -185,7 +185,14 @@ function ReviewBuilderInner({
       mode={mode}
       loading={loading}
       onAcknowledge={onAcknowledge}
-      onEdit={onEdit}
+      onEdit={(sectionIndex, editRef) => {
+        const templateIndex = editRef?.templateIndex ?? sectionIndex;
+        if (editRef?.sectionId && onEditSection) {
+          onEditSection(templateIndex, editRef.sectionId);
+          return;
+        }
+        onEdit?.(templateIndex);
+      }}
       title={title}
       description={description}
       sections={sections}
