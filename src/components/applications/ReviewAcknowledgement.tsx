@@ -268,7 +268,7 @@ export function ReviewAcknowledgement({
                 </div>
                 {mode === 'editable' && onEdit && (
                   <div className="flex justify-end pt-2">
-                    <Button data-rbac="application_management.edit" variant="outline" size="sm" onClick={() => onEdit(sIdx)}>
+                    <Button data-rbac="application_management.edit" variant="outline" size="sm" onClick={() => onEdit(sIdx, section.editRef)}>
                       <Edit className="h-3 w-3 mr-1" /> Edit Section
                     </Button>
                   </div>
