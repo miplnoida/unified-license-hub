@@ -106,7 +106,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(form));
   }, [form, options?.updateMode]);
 
-  const setField = useCallback((field: string, value: string | boolean) => {
+  const setField = useCallback((field: string, value: string | boolean | null) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setErrors(prev => {
       const next = { ...prev };
