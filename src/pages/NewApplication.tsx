@@ -2139,6 +2139,7 @@ export default function NewApplication() {
                   entityType="application"
                   entityId={applicationId || null}
                   stepStorageKey={applicationId ? `app:${applicationId}:tpl:${activeTemplate.id}` : undefined}
+                  focusSectionId={focusSectionId}
                 />
 
               )}
