@@ -82,7 +82,14 @@ const settingsCards: SettingsCard[] = [
     icon: <PenLine className="h-6 w-6" />,
     href: '/settings/certificate-signatory',
   },
+  {
+    title: 'Security Verification (CAPTCHA)',
+    description: 'CAPTCHA provider, site/secret keys, environment, and enforcement on public forms.',
+    icon: <ShieldCheck className="h-6 w-6" />,
+    href: '/settings/captcha',
+  },
 ];
+
 
 export default function SettingsHub() {
   const navigate = useNavigate();
