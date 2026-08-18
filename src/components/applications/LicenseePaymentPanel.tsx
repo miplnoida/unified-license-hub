@@ -56,6 +56,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
   const [processing, setProcessing] = useState(false);
   const [isRenewal, setIsRenewal] = useState(false);
   const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
+  const [offlineOpen, setOfflineOpen] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -63,7 +65,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
       resolveApplicationFeeBreakdownMeta(applicationId),
       supabase
         .from('payments')
-        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
+        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency, payment_channel, offline_method, verification_status, verification_remarks, payment_date, bank_name')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false }),
     ]);
@@ -75,7 +77,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
-    const chosen = successful || payments[0] || null;
+    const awaiting = payments.find(p => p.verification_status === 'pending');
+    const chosen = successful || awaiting || payments[0] || null;
     setPayment(chosen);
     if (chosen?.currency) setCurrency(chosen.currency);
     setLoading(false);
@@ -89,6 +92,19 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     () => !!payment && ['success', 'paid', 'completed'].includes(payment.status),
     [payment],
   );
+
+  const awaitingVerification = useMemo(
+    () => !!payment && !isPaid && payment.verification_status === 'pending',
+    [payment, isPaid],
+  );
+
+  const handleDownloadInvoice = async () => {
+    if (!payment) return;
+    setInvoiceLoading(true);
+    await downloadInvoiceForPayment(payment.id);
+    setInvoiceLoading(false);
+  };
+
 
   const handlePay = async () => {
     if (!user) return;
