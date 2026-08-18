@@ -139,23 +139,46 @@ function ReviewBuilderInner({
             changed,
           });
         });
+
+        perSection.push({
+          sectionId: sec.id,
+          sectionTitle: sec.title || 'Section',
+          fields,
+        });
       });
 
+      const totalFields = perSection.reduce((sum, s) => sum + s.fields.length, 0);
+
       // Fallback: if no schema fields resolved yet, dump raw entries
-      if (fields.length === 0) {
+      if (totalFields === 0) {
+        const fallback: ReviewFieldEntry[] = [];
         Object.entries(data)
           .filter(([k]) => !k.startsWith('_') && k.trim().length > 0)
           .forEach(([k, v]) => {
-            fields.push({
+            fallback.push({
               label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
               value: typeof v === 'object' && v !== null ? JSON.stringify(v) : (v as any),
             });
           });
+        return [{ title: t.name, fields: fallback, editRef: { templateIndex: idx } }];
       }
 
-      return { title: t.name, fields };
+      if (!splitSections || perSection.length <= 1) {
+        return [{
+          title: t.name,
+          fields: perSection.flatMap((s) => s.fields),
+          editRef: { templateIndex: idx, sectionId: perSection.length === 1 ? perSection[0].sectionId : undefined },
+        }];
+      }
+
+      return perSection.map((s) => ({
+        title: `${t.name} — ${s.sectionTitle}`,
+        fields: s.fields,
+        editRef: { templateIndex: idx, sectionId: s.sectionId },
+      }));
     });
-  }, [templates, templateSections, formProgressMap, originalFormsData]);
+  }, [templates, templateSections, formProgressMap, originalFormsData, splitSections]);
+
 
   return (
     <ReviewAcknowledgement
