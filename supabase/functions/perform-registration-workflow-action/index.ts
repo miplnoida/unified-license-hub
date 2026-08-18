@@ -205,6 +205,22 @@ export async function handler(req: Request): Promise<Response> {
         Deno.env.get("APP_BASE_URL") ||
         "";
 
+      // Only actions that genuinely require applicant input carry an action
+      // button. Approvals / rejections / escalations / comments must NOT show
+      // an "Update Registration" CTA.
+      const applicantActionRequired = [
+        "request_resubmission",
+        "return_for_correction",
+        "request_more_info",
+        "send_back",
+      ].includes(raw_action);
+      const ctaFields = applicantActionRequired && origin
+        ? {
+            cta_url: `${origin}/registration/update/${registration_id}`,
+            cta_label: "Update Registration",
+          }
+        : {};
+
       const sharedPayload = {
         registration_id,
         action_type: raw_action,
@@ -216,8 +232,7 @@ export async function handler(req: Request): Promise<Response> {
         new_status: (result as any).new_status,
         portal_url: origin,
         app_url: origin,
-        cta_url: origin ? `${origin}/registration/update/${registration_id}` : "",
-        cta_label: "Update Registration",
+        ...ctaFields,
       };
 
       console.log(
