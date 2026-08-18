@@ -175,9 +175,15 @@ export default function CaptchaSettings() {
       invalidate();
       toast({ title: form.id ? 'Configuration updated' : 'Configuration created' });
     } catch (error) {
+      const description =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : 'Unexpected error';
       toast({
         title: 'Could not save configuration',
-        description: error instanceof Error ? error.message : 'Unexpected error',
+        description,
         variant: 'destructive',
       });
     } finally {

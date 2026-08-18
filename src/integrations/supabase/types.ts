@@ -2000,7 +2000,7 @@ export type Database = {
           name: string
           notes: string | null
           provider: string
-          score_threshold: number
+          score_threshold: number | null
           site_key: string
           updated_at: string
           updated_by: string | null
@@ -2015,7 +2015,7 @@ export type Database = {
           name: string
           notes?: string | null
           provider: string
-          score_threshold?: number
+          score_threshold?: number | null
           site_key: string
           updated_at?: string
           updated_by?: string | null
@@ -2030,7 +2030,7 @@ export type Database = {
           name?: string
           notes?: string | null
           provider?: string
-          score_threshold?: number
+          score_threshold?: number | null
           site_key?: string
           updated_at?: string
           updated_by?: string | null
