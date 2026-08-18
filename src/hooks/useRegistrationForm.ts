@@ -43,6 +43,8 @@ export interface RegistrationFormData {
   privacyAccepted: boolean;
   dataProtectionAccepted: boolean;
   captchaChecked: boolean;
+  /** Server-issued, single-use CAPTCHA verification id (null until verified). */
+  captchaVerificationId: string | null;
   emailVerified: boolean;
 
   // Dynamic declaration keys
@@ -74,6 +76,7 @@ const initialState: RegistrationFormData = {
   privacyAccepted: false,
   dataProtectionAccepted: false,
   captchaChecked: false,
+  captchaVerificationId: null,
   emailVerified: false,
 };
 
@@ -84,7 +87,7 @@ function loadFromStorage(): RegistrationFormData {
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...initialState, ...parsed, emailVerified: false };
+      return { ...initialState, ...parsed, emailVerified: false, captchaVerificationId: null };
     }
   } catch {}
   return { ...initialState };
@@ -238,7 +241,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
       if (!form.termsAccepted) errs.termsAccepted = 'You must accept the Terms & Conditions';
       if (!form.privacyAccepted) errs.privacyAccepted = 'You must accept the Privacy Policy';
       if (!form.dataProtectionAccepted) errs.dataProtectionAccepted = 'You must accept the Data Protection Notice';
-      if (!form.captchaChecked) errs.captcha = 'Please verify the captcha';
+      if (!form.captchaVerificationId) errs.captcha = 'Please complete the security verification';
       if (!options?.updateMode && !form.emailVerified) errs.emailVerified = 'Email verification is required';
     }
 
@@ -264,8 +267,8 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
       }
     }
 
-    if (requireCaptcha && !form.captchaChecked) {
-      errs.captcha = 'Please verify the captcha';
+    if (requireCaptcha && !form.captchaVerificationId) {
+      errs.captcha = 'Please complete the security verification';
     }
     if (!options?.updateMode && requireOtp && !form.emailVerified) {
       errs.emailVerified = 'Email verification is required';
