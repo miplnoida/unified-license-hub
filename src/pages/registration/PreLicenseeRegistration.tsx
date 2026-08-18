@@ -989,12 +989,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       if (error) {
         const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
+        // The verification id is single-use server-side: force a fresh challenge.
+        setField('captchaVerificationId', null);
         toast.error(errMsg || 'Registration failed. Please try again.');
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
+        setField('captchaVerificationId', null);
         toast.error(data.error);
         setSubmitting(false);
         return;
@@ -1021,6 +1024,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
     } catch (err) {
       console.error('Registration error:', err);
+      setField('captchaVerificationId', null);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
