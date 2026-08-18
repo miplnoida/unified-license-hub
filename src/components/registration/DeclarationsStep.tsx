@@ -1,3 +1,4 @@
+import { CaptchaSection } from '@/components/registration/CaptchaSection';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
