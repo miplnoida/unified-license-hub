@@ -11,6 +11,11 @@ That function reads two fields that do not exist on the registrations table:
 
 The registrations table actually stores the applicant name as `applicant_name` (plus `applicant_name_alt`, `first_name`, `last_name`). In PL/pgSQL, referencing a non-existent field on `NEW` raises the exact runtime error you see, so the whole approval transaction aborts. This affects every registration at final approval, not just REG-2026-000033.
 
+## Why it broke only now
+
+It genuinely did work until yesterday. The trigger function was last rewritten in the migration dated 2026-08-17 09:01 UTC (yesterday morning), as part of the notification-payload work. The earlier version read `COALESCE(NEW.applicant_name, 'Applicant')` — a real column. The rewrite changed that line to `COALESCE(NEW.contact_person_name, NEW.entity_name, 'Applicant')`, borrowing column names from a different table. PL/pgSQL only resolves `NEW.<field>` at execution time, so the migration applied cleanly and nothing failed until the first registration reached final approval after that change.
+
+
 ## Fix
 
 Update the trigger function so the applicant name resolves from real columns, in this order:
