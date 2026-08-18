@@ -235,7 +235,7 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
-  hideActions, formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData,
+  hideActions, formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData, focusSectionId,
 }: Props) {
   const { user } = useAuth();
   const { can } = useExternalPortalAccess();
