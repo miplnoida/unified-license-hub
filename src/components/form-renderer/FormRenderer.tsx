@@ -88,7 +88,14 @@ interface Props {
    * relative to the original approved application.
    */
   originalData?: Record<string, any>;
+  /**
+   * When set, the renderer opens the section with this id on mount (and whenever
+   * the value changes). Used by the review screen's per-section "Edit" action so
+   * the applicant lands directly on the section they chose to correct.
+   */
+  focusSectionId?: string | null;
 }
+
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
   const watchedField = allFields.find(f => f.id === rule.fieldId);
@@ -228,7 +235,7 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
-  hideActions, formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData,
+  hideActions, formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData, focusSectionId,
 }: Props) {
   const { user } = useAuth();
   const { can } = useExternalPortalAccess();
@@ -336,6 +343,26 @@ export function FormRenderer({
       setActiveFormIdx(0);
     }
   }, [groupKeys, activeGroup]);
+
+  // Jump to the requested section (per-section "Edit" from the review screen).
+  useEffect(() => {
+    if (!focusSectionId) return;
+    if (sectionGroups) {
+      for (const [letter, forms] of sectionGroups.entries()) {
+        const idx = forms.findIndex((s) => s.id === focusSectionId);
+        if (idx >= 0) {
+          setActiveGroup(letter);
+          setActiveFormIdx(idx);
+          return;
+        }
+      }
+      return;
+    }
+    const idx = visibleSections.findIndex((s) => s.id === focusSectionId);
+    if (idx >= 0) setCurrentStep(idx);
+  }, [focusSectionId, sectionGroups, visibleSections]);
+
+
 
   useEffect(() => {
     if (!stepStorageKey) return;

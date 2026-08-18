@@ -1989,6 +1989,74 @@ export type Database = {
         }
         Relationships: []
       }
+      captcha_configurations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          provider: string
+          site_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          provider: string
+          site_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          provider?: string
+          site_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      captcha_secrets: {
+        Row: {
+          configuration_id: string
+          secret_key: string
+          updated_at: string
+        }
+        Insert: {
+          configuration_id: string
+          secret_key: string
+          updated_at?: string
+        }
+        Update: {
+          configuration_id?: string
+          secret_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captcha_secrets_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: true
+            referencedRelation: "captcha_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -15225,43 +15293,76 @@ export type Database = {
       payment_receipts: {
         Row: {
           amount: number
+          application_id: string | null
           created_at: string
           currency: string
           fee_breakdown: Json
           id: string
+          invoice_number: string | null
           issued_at: string
+          issued_by: string | null
           issued_to_email: string | null
           issued_to_name: string
+          paid_at: string | null
+          payment_channel: string | null
           payment_id: string
+          payment_method: string | null
+          payment_reference: string | null
           receipt_number: string
+          snapshot: Json
+          subtotal: number | null
+          tax_amount: number
+          total_amount: number | null
           voided_at: string | null
           voided_reason: string | null
         }
         Insert: {
           amount: number
+          application_id?: string | null
           created_at?: string
           currency?: string
           fee_breakdown?: Json
           id?: string
+          invoice_number?: string | null
           issued_at?: string
+          issued_by?: string | null
           issued_to_email?: string | null
           issued_to_name: string
+          paid_at?: string | null
+          payment_channel?: string | null
           payment_id: string
+          payment_method?: string | null
+          payment_reference?: string | null
           receipt_number?: string
+          snapshot?: Json
+          subtotal?: number | null
+          tax_amount?: number
+          total_amount?: number | null
           voided_at?: string | null
           voided_reason?: string | null
         }
         Update: {
           amount?: number
+          application_id?: string | null
           created_at?: string
           currency?: string
           fee_breakdown?: Json
           id?: string
+          invoice_number?: string | null
           issued_at?: string
+          issued_by?: string | null
           issued_to_email?: string | null
           issued_to_name?: string
+          paid_at?: string | null
+          payment_channel?: string | null
           payment_id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
           receipt_number?: string
+          snapshot?: Json
+          subtotal?: number | null
+          tax_amount?: number
+          total_amount?: number | null
           voided_at?: string | null
           voided_reason?: string | null
         }
@@ -15540,46 +15641,70 @@ export type Database = {
           admin_remarks: string | null
           amount: number
           application_id: string | null
+          bank_name: string | null
           created_at: string
           currency: string
           fee_configuration_id: string | null
           id: string
+          offline_method: string | null
           paid_at: string | null
+          payment_channel: string
+          payment_date: string | null
           payment_method: string | null
           receipt_number: string | null
           status: string
           transaction_ref: string | null
           user_id: string
+          verification_remarks: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           admin_remarks?: string | null
           amount: number
           application_id?: string | null
+          bank_name?: string | null
           created_at?: string
           currency?: string
           fee_configuration_id?: string | null
           id?: string
+          offline_method?: string | null
           paid_at?: string | null
+          payment_channel?: string
+          payment_date?: string | null
           payment_method?: string | null
           receipt_number?: string | null
           status?: string
           transaction_ref?: string | null
           user_id: string
+          verification_remarks?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           admin_remarks?: string | null
           amount?: number
           application_id?: string | null
+          bank_name?: string | null
           created_at?: string
           currency?: string
           fee_configuration_id?: string | null
           id?: string
+          offline_method?: string | null
           paid_at?: string | null
+          payment_channel?: string
+          payment_date?: string | null
           payment_method?: string | null
           receipt_number?: string | null
           status?: string
           transaction_ref?: string | null
           user_id?: string
+          verification_remarks?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -23556,6 +23681,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      activate_captcha_configuration: { Args: { _id: string }; Returns: Json }
       activate_form_version_as_current: {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
@@ -25522,6 +25648,15 @@ export type Database = {
       generate_receipt_number: { Args: never; Returns: string }
       generate_registration_reference: { Args: never; Returns: string }
       generate_return_unique_id: { Args: never; Returns: string }
+      get_active_captcha: {
+        Args: never
+        Returns: {
+          environment: string
+          id: string
+          provider: string
+          site_key: string
+        }[]
+      }
       get_application_actions: {
         Args: { _application_id: string }
         Returns: {
@@ -26162,6 +26297,14 @@ export type Database = {
         }
         Returns: Json
       }
+      issue_payment_invoice: {
+        Args: {
+          _fee_breakdown?: Json
+          _payment_id: string
+          _tax_amount?: number
+        }
+        Returns: Json
+      }
       issue_worker_token: { Args: { _purpose: string }; Returns: string }
       jsonb_changed_fields: {
         Args: { _after: Json; _before: Json }
@@ -26425,6 +26568,7 @@ export type Database = {
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      next_invoice_number: { Args: never; Returns: string }
       no_plan: { Args: never; Returns: boolean[] }
       notif_enqueue: {
         Args: {
@@ -28006,6 +28150,18 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_offline_payment: {
+        Args: {
+          _amount: number
+          _application_id: string
+          _bank_name?: string
+          _offline_method: string
+          _payment_date: string
+          _reference: string
+          _remarks?: string
+        }
+        Returns: Json
+      }
       submit_prudential_action_response: {
         Args: {
           _action_id: string
@@ -28333,6 +28489,15 @@ export type Database = {
           invitation_id: string
           verified: boolean
         }[]
+      }
+      verify_offline_payment: {
+        Args: {
+          _approve: boolean
+          _fee_breakdown?: Json
+          _payment_id: string
+          _remarks?: string
+        }
+        Returns: Json
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_diagnostic_for_application: {

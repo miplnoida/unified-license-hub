@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigate } from 'react-router-dom';
 import {
   Settings, CreditCard, Bell, Shield, Globe,
-  Database, Mail, Palette, FileText, RefreshCw, PenLine,
+  Database, Mail, Palette, FileText, RefreshCw, PenLine, ShieldCheck,
 } from 'lucide-react';
 
 interface SettingsCard {
@@ -82,7 +82,14 @@ const settingsCards: SettingsCard[] = [
     icon: <PenLine className="h-6 w-6" />,
     href: '/settings/certificate-signatory',
   },
+  {
+    title: 'Security Verification (CAPTCHA)',
+    description: 'CAPTCHA provider, site/secret keys, environment, and enforcement on public forms.',
+    icon: <ShieldCheck className="h-6 w-6" />,
+    href: '/settings/captcha',
+  },
 ];
+
 
 export default function SettingsHub() {
   const navigate = useNavigate();

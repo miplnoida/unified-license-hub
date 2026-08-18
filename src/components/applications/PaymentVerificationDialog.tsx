@@ -6,11 +6,13 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, DollarSign, FileDown } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
+import { downloadInvoiceForPayment } from '@/lib/invoice';
+import { formatDateTime } from '@/lib/datetime';
 
 export interface PaymentInfo {
   id?: string;
@@ -23,7 +25,14 @@ export interface PaymentInfo {
   receipt_number?: string | null;
   created_at?: string;
   paid_at?: string | null;
+  payment_channel?: string | null;
+  offline_method?: string | null;
+  verification_status?: string | null;
+  verification_remarks?: string | null;
+  payment_date?: string | null;
+  bank_name?: string | null;
 }
+
 
 interface Props {
   open: boolean;
@@ -57,6 +66,8 @@ export function PaymentVerificationDialog({
   const { user } = useAuth();
   const [draftRemark, setDraftRemark] = useState('');
   const [loading, setLoading] = useState(false);
+  const [offlineBusy, setOfflineBusy] = useState(false);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
 
   useEffect(() => {
@@ -68,7 +79,49 @@ export function PaymentVerificationDialog({
     }
   }, [open, payment?.application_id]);
 
+  const reviewOffline = async (approve: boolean) => {
+    if (!payment?.id) return;
+    if (!approve && draftRemark.trim().length < 10) {
+      toast.error('Enter a rejection reason of at least 10 characters.');
+      return;
+    }
+    setOfflineBusy(true);
+    try {
+      const { data, error } = await supabase.rpc('verify_offline_payment', {
+        _payment_id: payment.id,
+        _approve: approve,
+        _remarks: draftRemark.trim() || null,
+        _fee_breakdown: feeComponents.length
+          ? feeComponents.map((fc) => ({ label: fc.name, amount: Number(fc.amount) }))
+          : null,
+      });
+      if (error) throw error;
+      const result = data as { ok?: boolean; message?: string } | null;
+      if (!result?.ok) throw new Error(result?.message || 'Could not update the payment.');
+
+      toast.success(approve ? 'Offline payment verified and invoice issued.' : 'Offline payment rejected.');
+      setDraftRemark('');
+      onOpenChange(false);
+      onVerified?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update the payment.');
+    } finally {
+      setOfflineBusy(false);
+    }
+  };
+
+  const handleInvoice = async () => {
+    if (!payment?.id) return;
+    setInvoiceBusy(true);
+    await downloadInvoiceForPayment(payment.id, { applicationNumber });
+    setInvoiceBusy(false);
+  };
+
   if (!payment) return null;
+
+  const isOfflinePending =
+    payment.payment_channel === 'offline' && payment.verification_status === 'pending';
+
 
   const normalizedPaymentStatus = normalizePaymentStatus(payment.status);
   const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -253,6 +306,42 @@ export function PaymentVerificationDialog({
             )}
           </div>
 
+          {/* Offline payment declaration */}
+          {payment.payment_channel === 'offline' && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3 text-sm dark:border-amber-900/40 dark:bg-amber-950/30">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">Offline payment declaration</p>
+                <Badge variant="outline" className="capitalize">
+                  {payment.verification_status || 'pending'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Offline method</p>
+                  <p className="capitalize">{(payment.offline_method || '—').replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Declared payment date</p>
+                  <p>{payment.payment_date ? formatDateTime(payment.payment_date) : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Bank / institution</p>
+                  <p>{payment.bank_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Applicant remarks</p>
+                  <p>{payment.verification_remarks || '—'}</p>
+                </div>
+              </div>
+              {isOfflinePending && (
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  Review the attached proof of payment below, then approve or reject. A rejection
+                  requires a reason of at least 10 characters entered in the remarks above.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Admin Remarks Thread */}
           {payment.id && (
             <>
@@ -276,7 +365,26 @@ export function PaymentVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {isAdminView && normalizedPaymentStatus !== 'paid' ? (
+          {normalizedPaymentStatus === 'paid' && payment.id && (
+            <Button variant="outline" onClick={handleInvoice} disabled={invoiceBusy}>
+              {invoiceBusy
+                ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                : <FileDown className="h-4 w-4 mr-1.5" />}
+              Download invoice
+            </Button>
+          )}
+          {isAdminView && isOfflinePending ? (
+            <>
+              <Button data-rbac="application_management.edit" variant="outline" onClick={() => reviewOffline(false)} disabled={offlineBusy}>
+                <XCircle className="h-4 w-4 mr-1.5" />
+                Reject payment
+              </Button>
+              <Button data-rbac="application_management.edit" onClick={() => reviewOffline(true)} disabled={offlineBusy}>
+                {offlineBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                Verify & issue invoice
+              </Button>
+            </>
+          ) : isAdminView && normalizedPaymentStatus !== 'paid' ? (
             <>
               <Button variant="outline" onClick={handleClose} disabled={loading}>
                 <XCircle className="h-4 w-4 mr-1.5" />
@@ -293,6 +401,7 @@ export function PaymentVerificationDialog({
             </Button>
           )}
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );

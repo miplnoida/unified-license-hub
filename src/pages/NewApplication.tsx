@@ -364,6 +364,8 @@ export default function NewApplication() {
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
   const latestDraftDataRef = useRef<Record<string, any>>({});
+  // Section the applicant chose to correct from the review screen (per-section Edit).
+  const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
   // Sticky cache of the last successfully-loaded form renderer inputs so we
   // don't briefly unmount the renderer (and blink the action buttons) when
   // background refetches transiently empty `sections` / `resolvedVersionId`.
@@ -2057,10 +2059,21 @@ export default function NewApplication() {
                     const tmpl = reviewTemplates[idx];
                     if (tmpl) {
                       setShowInlineReview(false);
+                      setFocusSectionId(null);
                       setActiveFormTemplateId(tmpl.id);
                       void goToStep('filling', { last_active_form_template_id: tmpl.id });
                     }
                   }}
+                  onEditSection={(idx, sectionId) => {
+                    const tmpl = reviewTemplates[idx];
+                    if (tmpl) {
+                      setShowInlineReview(false);
+                      setFocusSectionId(sectionId);
+                      setActiveFormTemplateId(tmpl.id);
+                      void goToStep('filling', { last_active_form_template_id: tmpl.id });
+                    }
+                  }}
+
                   title="Review Entered Data"
                   description="Review the data you have entered so far. You can continue editing forms before proceeding."
                 />
@@ -2139,6 +2152,7 @@ export default function NewApplication() {
                   entityType="application"
                   entityId={applicationId || null}
                   stepStorageKey={applicationId ? `app:${applicationId}:tpl:${activeTemplate.id}` : undefined}
+                  focusSectionId={focusSectionId}
                 />
 
               )}
@@ -2467,13 +2481,23 @@ export default function NewApplication() {
                 markReviewConfirmed();
                 void handleProceedToPayment();
               }}
-                onEdit={(idx) => {
-                  const tmpl = reviewTemplates[idx];
+              onEdit={(idx) => {
+                const tmpl = reviewTemplates[idx];
                 if (tmpl) {
+                  setFocusSectionId(null);
                   setActiveFormTemplateId(tmpl.id);
-                    void goToStep('forms', { last_active_form_template_id: tmpl.id });
+                  void goToStep('forms', { last_active_form_template_id: tmpl.id });
                 }
               }}
+              onEditSection={(idx, sectionId) => {
+                const tmpl = reviewTemplates[idx];
+                if (tmpl) {
+                  setFocusSectionId(sectionId);
+                  setActiveFormTemplateId(tmpl.id);
+                  void goToStep('forms', { last_active_form_template_id: tmpl.id });
+                }
+              }}
+
               title="Review Your Application"
               description="Please review all entered information before final submission."
             />

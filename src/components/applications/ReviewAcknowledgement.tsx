@@ -31,15 +31,23 @@ interface ReviewField {
   tablePairs?: DiffPair<Record<string, any>>[];
 }
 
+export interface ReviewSectionEditRef {
+  templateIndex: number;
+  sectionId?: string;
+}
+
 interface ReviewSection {
   title: React.ReactNode;
   fields: ReviewField[];
+  /** Identifies which form/section this review block came from, for editing. */
+  editRef?: ReviewSectionEditRef;
 }
 
 interface ReviewAcknowledgementProps {
   sections: ReviewSection[];
   onAcknowledge: () => void;
-  onEdit?: (sectionIndex: number) => void;
+  onEdit?: (sectionIndex: number, editRef?: ReviewSectionEditRef) => void;
+
   mode: 'readonly' | 'editable';
   title?: string;
   description?: string;
@@ -260,7 +268,7 @@ export function ReviewAcknowledgement({
                 </div>
                 {mode === 'editable' && onEdit && (
                   <div className="flex justify-end pt-2">
-                    <Button data-rbac="application_management.edit" variant="outline" size="sm" onClick={() => onEdit(sIdx)}>
+                    <Button data-rbac="application_management.edit" variant="outline" size="sm" onClick={() => onEdit(sIdx, section.editRef)}>
                       <Edit className="h-3 w-3 mr-1" /> Edit Section
                     </Button>
                   </div>

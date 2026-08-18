@@ -21,6 +21,14 @@ interface Props {
   loading?: boolean;
   onAcknowledge: () => void;
   onEdit?: (templateIndex: number) => void;
+  /**
+   * Per-section edit. Receives the template index plus the id of the form
+   * section the applicant asked to correct, so the wizard can open that exact
+   * section. Falls back to `onEdit` when not provided.
+   */
+  onEditSection?: (templateIndex: number, sectionId: string) => void;
+  /** When true (default), each form section is shown as its own review block. */
+  splitSections?: boolean;
   title?: string;
   description?: string;
   /**
@@ -30,6 +38,7 @@ interface Props {
    */
   originalFormsData?: Record<string, Record<string, any>>;
 }
+
 
 /**
  * Wrapper that loads the published schema for each form template and renders
@@ -41,8 +50,11 @@ export function ApplicationReviewBuilder(props: Props) {
   );
 }
 
+type ReviewFieldEntry = { label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] };
+
 function ReviewBuilderInner({
-  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description, originalFormsData,
+  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, onEditSection,
+  splitSections = true, title, description, originalFormsData,
 }: Props) {
   // Review must use the pinned form version (versionIdByTemplate) used to fill the application
   // to avoid mismatched dynamic field keys. Latest is only a fallback for legacy/no-pinned cases.
@@ -51,14 +63,16 @@ function ReviewBuilderInner({
   );
 
   const sections = useMemo(() => {
-    return templates.map((t, idx) => {
-      const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
+    return templates.flatMap((t, idx) => {
+      const { sections: secs } = templateSections[idx] || { sections: [] };
       const data = formProgressMap[t.id]?.data || {};
       const originalData = originalFormsData?.[t.id] || null;
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] }> = [];
+      const perSection: Array<{ sectionId: string; sectionTitle: string; fields: ReviewFieldEntry[] }> = [];
 
       secs.forEach((sec: FormSection) => {
+        const fields: ReviewFieldEntry[] = [];
+
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
 
         (sec.fields || []).forEach((f: FormField) => {
@@ -125,30 +139,60 @@ function ReviewBuilderInner({
             changed,
           });
         });
+
+        perSection.push({
+          sectionId: sec.id,
+          sectionTitle: sec.title || 'Section',
+          fields,
+        });
       });
 
+      const totalFields = perSection.reduce((sum, s) => sum + s.fields.length, 0);
+
       // Fallback: if no schema fields resolved yet, dump raw entries
-      if (fields.length === 0) {
+      if (totalFields === 0) {
+        const fallback: ReviewFieldEntry[] = [];
         Object.entries(data)
           .filter(([k]) => !k.startsWith('_') && k.trim().length > 0)
           .forEach(([k, v]) => {
-            fields.push({
+            fallback.push({
               label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
               value: typeof v === 'object' && v !== null ? JSON.stringify(v) : (v as any),
             });
           });
+        return [{ title: t.name, fields: fallback, editRef: { templateIndex: idx } }];
       }
 
-      return { title: t.name, fields };
+      if (!splitSections || perSection.length <= 1) {
+        return [{
+          title: t.name,
+          fields: perSection.flatMap((s) => s.fields),
+          editRef: { templateIndex: idx, sectionId: perSection.length === 1 ? perSection[0].sectionId : undefined },
+        }];
+      }
+
+      return perSection.map((s) => ({
+        title: `${t.name} — ${s.sectionTitle}`,
+        fields: s.fields,
+        editRef: { templateIndex: idx, sectionId: s.sectionId },
+      }));
     });
-  }, [templates, templateSections, formProgressMap, originalFormsData]);
+  }, [templates, templateSections, formProgressMap, originalFormsData, splitSections]);
+
 
   return (
     <ReviewAcknowledgement
       mode={mode}
       loading={loading}
       onAcknowledge={onAcknowledge}
-      onEdit={onEdit}
+      onEdit={(sectionIndex, editRef) => {
+        const templateIndex = editRef?.templateIndex ?? sectionIndex;
+        if (editRef?.sectionId && onEditSection) {
+          onEditSection(templateIndex, editRef.sectionId);
+          return;
+        }
+        onEdit?.(templateIndex);
+      }}
       title={title}
       description={description}
       sections={sections}

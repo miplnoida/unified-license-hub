@@ -7,9 +7,12 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CreditCard, Loader2, CheckCircle2, AlertCircle, Banknote, FileDown, Clock } from 'lucide-react';
 import { logAudit } from '@/hooks/useAuditLog';
 import { resolveApplicationFeeBreakdownMeta, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { OfflinePaymentDialog } from '@/components/payments/OfflinePaymentDialog';
+import { downloadInvoiceForPayment } from '@/lib/invoice';
+import { formatDateTime } from '@/lib/datetime';
 
 interface Props {
   applicationId: string;
@@ -29,7 +32,14 @@ interface PaymentRow {
   transaction_ref?: string | null;
   receipt_number?: string | null;
   currency?: string | null;
+  payment_channel?: string | null;
+  offline_method?: string | null;
+  verification_status?: string | null;
+  verification_remarks?: string | null;
+  payment_date?: string | null;
+  bank_name?: string | null;
 }
+
 
 /**
  * Licensee-facing payment panel.
@@ -46,6 +56,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
   const [processing, setProcessing] = useState(false);
   const [isRenewal, setIsRenewal] = useState(false);
   const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
+  const [offlineOpen, setOfflineOpen] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -53,7 +65,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
       resolveApplicationFeeBreakdownMeta(applicationId),
       supabase
         .from('payments')
-        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
+        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency, payment_channel, offline_method, verification_status, verification_remarks, payment_date, bank_name')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false }),
     ]);
@@ -65,7 +77,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
-    const chosen = successful || payments[0] || null;
+    const awaiting = payments.find(p => p.verification_status === 'pending');
+    const chosen = successful || awaiting || payments[0] || null;
     setPayment(chosen);
     if (chosen?.currency) setCurrency(chosen.currency);
     setLoading(false);
@@ -79,6 +92,19 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     () => !!payment && ['success', 'paid', 'completed'].includes(payment.status),
     [payment],
   );
+
+  const awaitingVerification = useMemo(
+    () => !!payment && !isPaid && payment.verification_status === 'pending',
+    [payment, isPaid],
+  );
+
+  const handleDownloadInvoice = async () => {
+    if (!payment) return;
+    setInvoiceLoading(true);
+    await downloadInvoiceForPayment(payment.id);
+    setInvoiceLoading(false);
+  };
+
 
   const handlePay = async () => {
     if (!user) return;
@@ -226,6 +252,55 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
                 </Link>
               </div>
             </div>
+            <div className="pt-2 border-t border-emerald-200 dark:border-emerald-900/40">
+              <Button variant="outline" size="sm" onClick={handleDownloadInvoice} disabled={invoiceLoading}>
+                {invoiceLoading
+                  ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  : <FileDown className="h-4 w-4 mr-2" />}
+                Download invoice
+              </Button>
+            </div>
+          </div>
+        ) : awaitingVerification && payment ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3 dark:border-amber-900/40 dark:bg-amber-950/30">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">
+                  Offline payment awaiting verification
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  The regulator is reviewing your proof of payment. You will be notified once it is verified.
+                </p>
+              </div>
+              <Badge variant="outline">Pending verification</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t border-amber-200 dark:border-amber-900/40">
+              <div>
+                <p className="text-xs text-muted-foreground">Amount declared</p>
+                <p className="font-mono font-semibold">
+                  {(payment.currency || currency)} {Number(payment.amount).toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Method</p>
+                <p className="font-medium capitalize">
+                  {(payment.offline_method || payment.payment_method || 'offline').replace(/_/g, ' ')}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Payment date</p>
+                <p className="text-sm">
+                  {payment.payment_date ? formatDateTime(payment.payment_date) : formatDateTime(payment.created_at)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Reference</p>
+                <Link to={`/payments/${payment.id}`} className="font-mono text-xs text-primary hover:underline">
+                  {payment.transaction_ref || payment.id.substring(0, 8).toUpperCase()}
+                </Link>
+              </div>
+            </div>
           </div>
         ) : renewalFeeMissing ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
@@ -247,11 +322,11 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               <div className="flex-1">
                 <p className="font-semibold text-amber-900 dark:text-amber-200">Payment Pending</p>
                 <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Complete the payment to proceed with your application.
+                  Pay online, or record a payment made offline for the regulator to verify.
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-amber-200 dark:border-amber-900/40 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-amber-200 dark:border-amber-900/40 pt-3">
               <div>
                 <p className="text-xs text-muted-foreground">Total Amount Due</p>
                 <p className="text-2xl font-bold font-mono">
@@ -259,17 +334,22 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
                 </p>
               </div>
               {canPay ? (
-                <Button onClick={handlePay} disabled={processing} size="lg">
-                  {processing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" /> Pay Now
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={handlePay} disabled={processing} size="lg">
+                    {processing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" /> Pay Online
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={() => setOfflineOpen(true)} disabled={processing}>
+                    <Banknote className="h-4 w-4 mr-2" /> Paid Offline
+                  </Button>
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground max-w-[180px] text-right">
                   Payment can be initiated once the application is in an editable state.
@@ -279,6 +359,16 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
           </div>
         )}
       </CardContent>
+
+      <OfflinePaymentDialog
+        open={offlineOpen}
+        onOpenChange={setOfflineOpen}
+        applicationId={applicationId}
+        amountDue={totalDue}
+        currency={currency}
+        onSubmitted={() => { void loadData(); }}
+      />
     </Card>
+
   );
 }
