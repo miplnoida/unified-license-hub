@@ -50,8 +50,11 @@ export function ApplicationReviewBuilder(props: Props) {
   );
 }
 
+type ReviewFieldEntry = { label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] };
+
 function ReviewBuilderInner({
-  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description, originalFormsData,
+  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, onEditSection,
+  splitSections = true, title, description, originalFormsData,
 }: Props) {
   // Review must use the pinned form version (versionIdByTemplate) used to fill the application
   // to avoid mismatched dynamic field keys. Latest is only a fallback for legacy/no-pinned cases.
@@ -60,14 +63,16 @@ function ReviewBuilderInner({
   );
 
   const sections = useMemo(() => {
-    return templates.map((t, idx) => {
-      const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
+    return templates.flatMap((t, idx) => {
+      const { sections: secs } = templateSections[idx] || { sections: [] };
       const data = formProgressMap[t.id]?.data || {};
       const originalData = originalFormsData?.[t.id] || null;
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] }> = [];
+      const perSection: Array<{ sectionId: string; sectionTitle: string; fields: ReviewFieldEntry[] }> = [];
 
       secs.forEach((sec: FormSection) => {
+        const fields: ReviewFieldEntry[] = [];
+
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
 
         (sec.fields || []).forEach((f: FormField) => {
