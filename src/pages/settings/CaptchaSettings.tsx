@@ -35,6 +35,8 @@ interface FormState {
   environment: 'sandbox' | 'production';
   notes: string;
   secret_key: string;
+  score_threshold: string;
+  expected_action: string;
 }
 
 const emptyForm: FormState = {
@@ -44,6 +46,8 @@ const emptyForm: FormState = {
   environment: 'production',
   notes: '',
   secret_key: '',
+  score_threshold: '0.5',
+  expected_action: 'registration',
 };
 
 export default function CaptchaSettings() {
@@ -59,7 +63,7 @@ export default function CaptchaSettings() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (runtime) setEnabled(runtime.enabled || false);
+    if (runtime) setEnabled(runtime.globallyEnabled || false);
   }, [runtime]);
 
   const invalidate = () => {
@@ -104,6 +108,8 @@ export default function CaptchaSettings() {
       environment: config.environment,
       notes: config.notes ?? '',
       secret_key: '',
+      score_threshold: config.score_threshold != null ? String(config.score_threshold) : '0.5',
+      expected_action: config.expected_action ?? 'registration',
     });
     setDialogOpen(true);
   };
@@ -121,6 +127,11 @@ export default function CaptchaSettings() {
       toast({ title: 'Enter the provider secret key', variant: 'destructive' });
       return;
     }
+    const threshold = Number(form.score_threshold);
+    if (form.provider === 'recaptcha_v3' && (!Number.isFinite(threshold) || threshold < 0 || threshold > 1)) {
+      toast({ title: 'Score threshold must be between 0 and 1', variant: 'destructive' });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -131,6 +142,8 @@ export default function CaptchaSettings() {
         site_key: form.site_key.trim(),
         environment: form.environment,
         notes: form.notes.trim() || null,
+        score_threshold: form.provider === 'recaptcha_v3' ? threshold : null,
+        expected_action: form.provider === 'recaptcha_v3' ? (form.expected_action.trim() || null) : null,
       };
 
       if (configurationId) {
@@ -219,10 +232,26 @@ export default function CaptchaSettings() {
               verified on the server before submission is accepted.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center gap-3">
-            <Switch checked={enabled} disabled={savingToggle} onCheckedChange={toggleEnabled} />
-            <span className="text-sm">{enabled ? 'Enabled' : 'Disabled'}</span>
-            {savingToggle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Switch checked={enabled} disabled={savingToggle} onCheckedChange={toggleEnabled} />
+              <span className="text-sm">{enabled ? 'Enabled' : 'Disabled'}</span>
+              {savingToggle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            {runtime?.misconfigured && (
+              <p
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                CAPTCHA is enabled but no configuration is active. Public forms currently block
+                submission — activate a configuration or disable enforcement.
+              </p>
+            )}
+            {!enabled && (
+              <p className="text-sm text-muted-foreground">
+                With enforcement off, public forms are submitted without any bot protection.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -372,6 +401,35 @@ export default function CaptchaSettings() {
                 autoComplete="new-password"
               />
             </div>
+
+            {form.provider === 'recaptcha_v3' && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="captcha-threshold">Score threshold (0–1)</Label>
+                  <Input
+                    id="captcha-threshold"
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={form.score_threshold}
+                    onChange={(e) => setForm({ ...form, score_threshold: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Challenges scoring below this value are rejected server-side.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="captcha-action">Expected action</Label>
+                  <Input
+                    id="captcha-action"
+                    value={form.expected_action}
+                    onChange={(e) => setForm({ ...form, expected_action: e.target.value })}
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="captcha-notes">Notes</Label>

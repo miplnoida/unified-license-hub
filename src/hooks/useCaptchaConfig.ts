@@ -8,6 +8,8 @@ export interface ActiveCaptcha {
   provider: CaptchaProvider;
   site_key: string;
   environment: 'sandbox' | 'production';
+  score_threshold?: number | null;
+  expected_action?: string | null;
 }
 
 export interface CaptchaConfiguration extends ActiveCaptcha {
@@ -18,27 +20,42 @@ export interface CaptchaConfiguration extends ActiveCaptcha {
   updated_at: string;
 }
 
+export interface CaptchaRuntime {
+  /** CAPTCHA is on AND a usable active configuration exists. */
+  enabled: boolean;
+  config: ActiveCaptcha | null;
+  /** Global switch is on but no active configuration exists — public forms must block. */
+  misconfigured: boolean;
+  /** Raw value of the global switch, independent of configuration availability. */
+  globallyEnabled: boolean;
+}
+
 /**
  * Global on/off switch stored in site_settings + the active provider config.
- * When the switch is off (or nothing is configured), the registration form falls
- * back to the simple acknowledgement checkbox so onboarding never breaks.
+ * There is no checkbox fallback: if the switch is on and nothing is configured the
+ * runtime is reported as misconfigured and public submission must be blocked.
  */
 export function useCaptchaRuntime() {
   return useQuery({
     queryKey: ['captcha-runtime'],
     staleTime: 60_000,
-    queryFn: async (): Promise<{ enabled: boolean; config: ActiveCaptcha | null }> => {
+    queryFn: async (): Promise<CaptchaRuntime> => {
       const [settingRes, configRes] = await Promise.all([
         supabase.from('site_settings').select('value').eq('key', 'captcha_enabled').maybeSingle(),
         supabase.rpc('get_active_captcha'),
       ]);
 
       const raw = settingRes.data?.value;
-      const enabled = raw === true || raw === 'true';
+      const globallyEnabled = raw === true || raw === 'true';
       const rows = (configRes.data ?? []) as ActiveCaptcha[];
       const config = rows.length ? rows[0] : null;
 
-      return { enabled: enabled && !!config, config };
+      return {
+        enabled: globallyEnabled && !!config,
+        config,
+        misconfigured: globallyEnabled && !config,
+        globallyEnabled,
+      };
     },
   });
 }

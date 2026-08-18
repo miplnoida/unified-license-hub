@@ -1,3 +1,4 @@
+import { CaptchaSection } from '@/components/registration/CaptchaSection';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -139,29 +140,13 @@ export function DeclarationsStep({
         </div>
       </div>
 
-      {/* CAPTCHA */}
+      {/* CAPTCHA — real provider only; no checkbox fallback */}
       {requireCaptcha && (
-        <div className="form-section">
-          <h3 className="text-lg font-semibold text-foreground">Security Verification</h3>
-          <div className="flex items-center gap-4 rounded-lg border border-border bg-muted/30 p-4 mt-2">
-            <Checkbox
-              id="captcha"
-              checked={form.captchaChecked}
-              onCheckedChange={(v) => setField('captchaChecked', v === true)}
-            />
-            <Label htmlFor="captcha" className="text-sm font-normal cursor-pointer">
-              I'm not a robot
-            </Label>
-            <div className="ml-auto flex items-center gap-2 text-muted-foreground">
-              <Shield className="h-5 w-5" />
-              <span className="text-xs">reCAPTCHA</span>
-            </div>
-          </div>
-          {errors.captcha && <p className="text-sm text-destructive mt-1">{errors.captcha}</p>}
-          <p className="text-xs text-muted-foreground mt-2">
-            This is a placeholder captcha. A real CAPTCHA integration will be added in production.
-          </p>
-        </div>
+        <CaptchaSection
+          verificationId={(form.captchaVerificationId as string | null) ?? null}
+          onVerificationChange={(id) => setField('captchaVerificationId', id)}
+          error={errors.captcha}
+        />
       )}
     </div>
   );

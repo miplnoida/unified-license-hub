@@ -1994,11 +1994,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           environment: string
+          expected_action: string | null
           id: string
           is_active: boolean
           name: string
           notes: string | null
           provider: string
+          score_threshold: number
           site_key: string
           updated_at: string
           updated_by: string | null
@@ -2007,11 +2009,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           environment?: string
+          expected_action?: string | null
           id?: string
           is_active?: boolean
           name: string
           notes?: string | null
           provider: string
+          score_threshold?: number
           site_key: string
           updated_at?: string
           updated_by?: string | null
@@ -2020,11 +2024,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           environment?: string
+          expected_action?: string | null
           id?: string
           is_active?: boolean
           name?: string
           notes?: string | null
           provider?: string
+          score_threshold?: number
           site_key?: string
           updated_at?: string
           updated_by?: string | null
@@ -2052,6 +2058,47 @@ export type Database = {
             foreignKeyName: "captcha_secrets_configuration_id_fkey"
             columns: ["configuration_id"]
             isOneToOne: true
+            referencedRelation: "captcha_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      captcha_verifications: {
+        Row: {
+          configuration_id: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string | null
+          provider: string
+          score: number | null
+        }
+        Insert: {
+          configuration_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          provider: string
+          score?: number | null
+        }
+        Update: {
+          configuration_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          provider?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captcha_verifications_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: false
             referencedRelation: "captcha_configurations"
             referencedColumns: ["id"]
           },
@@ -25652,8 +25699,10 @@ export type Database = {
         Args: never
         Returns: {
           environment: string
+          expected_action: string
           id: string
           provider: string
+          score_threshold: number
           site_key: string
         }[]
       }

@@ -41,6 +41,7 @@ import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } f
 import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
 import { AlertCircle } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
+import { useCaptchaRuntime } from '@/hooks/useCaptchaConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   buildUpdateRegistrationUrl,
@@ -103,6 +104,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     form.categoryId || undefined,
     !isUpdateMode || !!form.sectorId,
   );
+
+  // CAPTCHA is only required when the form asks for it AND it is globally enabled.
+  // When enabled-but-unconfigured the widget blocks submission (no checkbox fallback).
+  const { data: captchaRuntime } = useCaptchaRuntime();
+  const effectiveRequireCaptcha =
+    (config?.requireCaptcha ?? true) && (captchaRuntime?.globallyEnabled ?? false);
+
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const saved = sessionStorage.getItem(STEP_KEY);
@@ -479,7 +487,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           return validateDeclarations(
             effectiveDeclarations,
             config?.requireOtp ?? true,
-            config?.requireCaptcha ?? true,
+            effectiveRequireCaptcha,
           );
         }
         return validateStep(3);
@@ -973,6 +981,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           registration_number: form.registrationNumber || String(latestDynamicFormData.registration_number || '') || null,
           entity_specific_data: { ...form.entitySpecificData, ...latestDynamicFormData },
           documents_metadata: form.documents,
+          captcha_verification_id: form.captchaVerificationId ?? null,
           terms_accepted: true, // validated before reaching submit
         },
       });
@@ -980,12 +989,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       if (error) {
         const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
+        // The verification id is single-use server-side: force a fresh challenge.
+        setField('captchaVerificationId', null);
         toast.error(errMsg || 'Registration failed. Please try again.');
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
+        setField('captchaVerificationId', null);
         toast.error(data.error);
         setSubmitting(false);
         return;
@@ -1012,6 +1024,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
     } catch (err) {
       console.error('Registration error:', err);
+      setField('captchaVerificationId', null);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
@@ -1079,7 +1092,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}
             requireOtp={config?.requireOtp ?? true}
-            requireCaptcha={config?.requireCaptcha ?? true}
+            requireCaptcha={effectiveRequireCaptcha}
             updateMode={isUpdateMode}
           />
         );
