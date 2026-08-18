@@ -88,7 +88,14 @@ interface Props {
    * relative to the original approved application.
    */
   originalData?: Record<string, any>;
+  /**
+   * When set, the renderer opens the section with this id on mount (and whenever
+   * the value changes). Used by the review screen's per-section "Edit" action so
+   * the applicant lands directly on the section they chose to correct.
+   */
+  focusSectionId?: string | null;
 }
+
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
   const watchedField = allFields.find(f => f.id === rule.fieldId);
