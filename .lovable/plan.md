@@ -30,4 +30,11 @@ No other logic in the function changes: same event name (`registration.approved`
 
 ## Technical detail
 
-Single migration: `CREATE OR REPLACE FUNCTION public.trg_registration_approved_notification()` with the corrected `COALESCE`. No schema, RLS, or frontend changes needed.
+Single migration: `CREATE OR REPLACE FUNCTION public.trg_registration_approved_notification()` with the corrected `COALESCE`. No schema, RLS, or frontend changes needed for the approval fix.
+
+## Also included: two unrelated typecheck errors
+
+The build currently fails on two pre-existing type-cast errors that are unrelated to registrations. They will be fixed in the same pass by casting through `unknown` before the target type:
+
+- `src/pages/fpa/FpaEntityRedirect.tsx` (line 33)
+- `src/pages/fpa/FpaTraining.tsx` (line 42)
