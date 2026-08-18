@@ -125,6 +125,10 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
     if (!config) return;
     let cancelled = false;
 
+    // A fresh attempt starts clean: stale errors must never sit under a working widget.
+    setMessage(null);
+    setStatus('idle');
+
     if (config.provider === 'recaptcha_v3') {
       void runV3(config.site_key);
       return () => { cancelled = true; };
@@ -134,30 +138,44 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
     const meta = SCRIPTS[config.provider];
 
     loadScript(meta.src)
-      .then(() => {
+      .then(async () => {
+        if (cancelled) return;
+        const api = await waitForRender(meta.global);
         if (cancelled || !containerRef.current) return;
-        const api = (window as unknown as Record<string, any>)[meta.global];
-        if (!api?.render) {
+        if (!api) {
           setStatus('error');
           setMessage('Security verification could not be initialised. Please retry.');
           return;
         }
         if (widgetIdRef.current !== null) return;
-        containerRef.current.innerHTML = '';
-        widgetIdRef.current = api.render(containerRef.current, {
-          sitekey: config.site_key,
-          callback: (token: string) => void verifyToken(token),
-          'expired-callback': () => onVerificationChange(null),
-          'error-callback': () => {
-            setStatus('error');
-            setMessage('CAPTCHA challenge failed. Please retry.');
-            onVerificationChange(null);
-          },
-        });
+
+        const render = () => {
+          if (cancelled || !containerRef.current || widgetIdRef.current !== null) return;
+          containerRef.current.innerHTML = '';
+          widgetIdRef.current = api.render(containerRef.current, {
+            sitekey: config.site_key,
+            callback: (token: string) => void verifyToken(token),
+            'expired-callback': () => onVerificationChange(null),
+            'error-callback': () => {
+              setStatus('error');
+              setMessage('CAPTCHA challenge failed. Please retry.');
+              onVerificationChange(null);
+            },
+          });
+          setMessage(null);
+          setStatus('idle');
+        };
+
+        if (config.provider === 'recaptcha_v2' && typeof api.ready === 'function') {
+          api.ready(render);
+        } else {
+          render();
+        }
       })
       .catch(() => {
         if (cancelled) return;
         setStatus('error');
+
         setMessage('Security verification could not be loaded. Check your connection and retry.');
       });
 
