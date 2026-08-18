@@ -11,6 +11,8 @@ import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
+import { downloadInvoiceForPayment } from '@/lib/invoice';
+import { formatDateTime } from '@/lib/datetime';
 
 export interface PaymentInfo {
   id?: string;
