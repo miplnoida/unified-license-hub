@@ -20,27 +20,47 @@ const SCRIPTS: Record<CaptchaProvider, { src: string; global: string }> = {
   turnstile: { src: 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', global: 'turnstile' },
 };
 
+const scriptPromises = new Map<string, Promise<void>>();
+
 function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
+  const cached = scriptPromises.get(src);
+  if (cached) return cached;
+
+  const promise = new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-    if (existing) {
-      if (existing.dataset.loaded === 'true') return resolve();
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', () => reject(new Error('Failed to load CAPTCHA script')));
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.defer = true;
-    script.addEventListener('load', () => {
-      script.dataset.loaded = 'true';
+    const target = existing ?? document.createElement('script');
+    if (existing?.dataset.loaded === 'true') return resolve();
+    target.addEventListener('load', () => {
+      target.dataset.loaded = 'true';
       resolve();
     });
-    script.addEventListener('error', () => reject(new Error('Failed to load CAPTCHA script')));
-    document.head.appendChild(script);
+    target.addEventListener('error', () => {
+      scriptPromises.delete(src);
+      reject(new Error('Failed to load CAPTCHA script'));
+    });
+    if (!existing) {
+      target.src = src;
+      target.async = true;
+      target.defer = true;
+      document.head.appendChild(target);
+    }
   });
+
+  scriptPromises.set(src, promise);
+  return promise;
 }
+
+/** Providers attach `.render` a tick after the script `load` event — wait for it. */
+async function waitForRender(globalName: string, timeoutMs = 6000): Promise<Record<string, any> | null> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const api = (window as unknown as Record<string, any>)[globalName];
+    if (typeof api?.render === 'function') return api;
+    if (Date.now() > deadline) return null;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 
 /**
  * Provider-aware CAPTCHA. There is no checkbox fallback: a plain checkbox is never
