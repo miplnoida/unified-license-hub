@@ -2481,13 +2481,23 @@ export default function NewApplication() {
                 markReviewConfirmed();
                 void handleProceedToPayment();
               }}
-                onEdit={(idx) => {
-                  const tmpl = reviewTemplates[idx];
+              onEdit={(idx) => {
+                const tmpl = reviewTemplates[idx];
                 if (tmpl) {
+                  setFocusSectionId(null);
                   setActiveFormTemplateId(tmpl.id);
-                    void goToStep('forms', { last_active_form_template_id: tmpl.id });
+                  void goToStep('forms', { last_active_form_template_id: tmpl.id });
                 }
               }}
+              onEditSection={(idx, sectionId) => {
+                const tmpl = reviewTemplates[idx];
+                if (tmpl) {
+                  setFocusSectionId(sectionId);
+                  setActiveFormTemplateId(tmpl.id);
+                  void goToStep('forms', { last_active_form_template_id: tmpl.id });
+                }
+              }}
+
               title="Review Your Application"
               description="Please review all entered information before final submission."
             />
