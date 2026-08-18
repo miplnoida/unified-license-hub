@@ -64,6 +64,8 @@ export function PaymentVerificationDialog({
   const { user } = useAuth();
   const [draftRemark, setDraftRemark] = useState('');
   const [loading, setLoading] = useState(false);
+  const [offlineBusy, setOfflineBusy] = useState(false);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
 
   useEffect(() => {
@@ -75,7 +77,49 @@ export function PaymentVerificationDialog({
     }
   }, [open, payment?.application_id]);
 
+  const reviewOffline = async (approve: boolean) => {
+    if (!payment?.id) return;
+    if (!approve && draftRemark.trim().length < 10) {
+      toast.error('Enter a rejection reason of at least 10 characters.');
+      return;
+    }
+    setOfflineBusy(true);
+    try {
+      const { data, error } = await supabase.rpc('verify_offline_payment', {
+        _payment_id: payment.id,
+        _approve: approve,
+        _remarks: draftRemark.trim() || null,
+        _fee_breakdown: feeComponents.length
+          ? feeComponents.map((fc) => ({ label: fc.name, amount: Number(fc.amount) }))
+          : null,
+      });
+      if (error) throw error;
+      const result = data as { ok?: boolean; message?: string } | null;
+      if (!result?.ok) throw new Error(result?.message || 'Could not update the payment.');
+
+      toast.success(approve ? 'Offline payment verified and invoice issued.' : 'Offline payment rejected.');
+      setDraftRemark('');
+      onOpenChange(false);
+      onVerified?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update the payment.');
+    } finally {
+      setOfflineBusy(false);
+    }
+  };
+
+  const handleInvoice = async () => {
+    if (!payment?.id) return;
+    setInvoiceBusy(true);
+    await downloadInvoiceForPayment(payment.id, { applicationNumber });
+    setInvoiceBusy(false);
+  };
+
   if (!payment) return null;
+
+  const isOfflinePending =
+    payment.payment_channel === 'offline' && payment.verification_status === 'pending';
+
 
   const normalizedPaymentStatus = normalizePaymentStatus(payment.status);
   const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
