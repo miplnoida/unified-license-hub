@@ -2059,10 +2059,21 @@ export default function NewApplication() {
                     const tmpl = reviewTemplates[idx];
                     if (tmpl) {
                       setShowInlineReview(false);
+                      setFocusSectionId(null);
                       setActiveFormTemplateId(tmpl.id);
                       void goToStep('filling', { last_active_form_template_id: tmpl.id });
                     }
                   }}
+                  onEditSection={(idx, sectionId) => {
+                    const tmpl = reviewTemplates[idx];
+                    if (tmpl) {
+                      setShowInlineReview(false);
+                      setFocusSectionId(sectionId);
+                      setActiveFormTemplateId(tmpl.id);
+                      void goToStep('filling', { last_active_form_template_id: tmpl.id });
+                    }
+                  }}
+
                   title="Review Entered Data"
                   description="Review the data you have entered so far. You can continue editing forms before proceeding."
                 />
