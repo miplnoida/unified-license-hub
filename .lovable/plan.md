@@ -12,13 +12,13 @@ The root cause is not yet confirmed. Two candidates, both consistent with "frame
 ## Plan
 
 1. **Verify first.** Load the registration page in a headless browser, capture console errors and the reCAPTCHA network calls, and screenshot the widget area. This tells us which of the two causes is real (an "already been rendered" / "Invalid site key" / "Invalid domain" message is decisive).
-2. **Fix the render lifecycle** in `src/components/shared/CaptchaWidget.tsx` regardless of the outcome:
-   - Wrap the v2 `render` call in try/catch and surface a real error instead of a silent blank box.
+2. **Fix the render lifecycle** in `src/components/shared/CaptchaWidget.tsx`, provider-agnostically (same code path for v2, hCaptcha and Turnstile; v3 path untouched):
+   - Wrap the checkbox-provider `render` call in try/catch and surface a real error instead of a silent blank box.
    - On cleanup, call the provider's `reset`/`remove` for the stored widget id before clearing the guard, so remounts re-render cleanly.
    - Stabilise the effect dependency on the config's identifying fields (id, provider, site key) instead of the whole object, so a refetch doesn't force a re-render of the challenge.
    - Show a clear, actionable error when the provider reports an invalid key or domain.
-3. **If the cause is the key**, report exactly what the provider said and what needs changing in the CAPTCHA settings (correct provider for the key type, or the domains registered with the key). No code change can substitute for a key valid on this domain.
-4. **Re-verify** on the registration page: checkbox visible, passing it shows "Verification complete.", and navigating away and back re-renders it without error.
+3. **If the cause is the key**, report exactly what the provider said and what needs changing in the CAPTCHA settings (the domains registered with the key). The widget stays driven purely by the active configuration — currently reCAPTCHA v2 — and no code change can substitute for a key valid on this domain.
+4. **Re-verify** on the registration page with the configured provider: challenge visible, passing it shows "Verification complete.", and navigating away and back re-renders it without error.
 
 ## Notes
 
