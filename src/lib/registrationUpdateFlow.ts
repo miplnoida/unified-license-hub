@@ -170,6 +170,7 @@ export function registrationToFormData(registration: RegistrationUpdateRecord): 
     privacyAccepted: !!registration.terms_accepted,
     dataProtectionAccepted: !!registration.terms_accepted,
     captchaChecked: true,
+    captchaVerificationId: null,
     emailVerified: true,
   };
 }
