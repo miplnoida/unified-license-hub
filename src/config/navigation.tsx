@@ -5,6 +5,7 @@ import {
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
   Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar, Sparkles,
+  ListChecks, GraduationCap,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -159,52 +160,119 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Fit & Proper',
     items: [
+      // Ordered to read as the 17-step F&P process itself: overview, then
+      // policy/initiation (1-2), declaration/evidence (3-4), verification/
+      // assessment (5-6), committee/determination (7-8; 9-10 are satisfied
+      // by the same determination — this app runs one team end-to-end, see
+      // the F&P user guide), conditions/monitoring (11-13), appeals/
+      // notifications (14-15), reporting/training (16-17).
+      { label: 'Process List', href: '/fpa/processes', icon: <ListChecks className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
       { label: 'Assessment Hub', href: '/fpa', icon: <LayoutGrid className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
       {
-        label: 'Initiation', icon: <FileText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        label: 'Policy & Initiation', icon: <FileText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
         children: [
+          { label: 'Sector Rules', href: '/fpa/sector-rules', icon: <SlidersHorizontal className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Initiation Paths', href: '/fpa/initiation', icon: <FormInput className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Individual Register', href: '/fpa/individuals', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Initiation Log', href: '/fpa/initiation-log', icon: <ListOrdered className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },
       {
-        label: 'Declarations', icon: <ScrollText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        label: 'Declaration & Evidence', icon: <ScrollText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
         children: [
           { label: 'Declarations', href: '/fpa/declarations', icon: <Mail className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Invitation Tracker', href: '/fpa/invitations', icon: <ClipboardEdit className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+        ],
+      },
+      {
+        label: 'Verification & Assessment', icon: <ShieldCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        children: [
           { label: 'Screening Hub', href: '/fpa/screening', icon: <Shield className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Manual Review Queue', href: '/fpa/manual-tasks', icon: <ClipboardList className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-        ],
-      },
-      {
-        label: 'Findings', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
-        children: [
           { label: 'Findings Console', href: '/fpa/findings', icon: <AlertTriangle className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Trends & History', href: '/fpa/trends', icon: <BarChart3 className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-        ],
-      },
-      {
-        label: 'Decisioning', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
-        children: [
           { label: 'AI Analysis', href: '/fpa/ai-analysis', icon: <Microscope className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Sector Rules', href: '/fpa/sector-rules', icon: <SlidersHorizontal className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Determinations', href: '/fpa/determinations', icon: <FileText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Committee Voting', href: '/fpa/committee', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Conditions & SLA', href: '/fpa/conditions', icon: <Timer className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },
       {
-        label: 'Appeals', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        label: 'Committee & Determination', icon: <Timer className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        children: [
+          { label: 'Committee Voting', href: '/fpa/committee', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Determinations', href: '/fpa/determinations', icon: <FileText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+        ],
+      },
+      {
+        label: 'Conditions & Monitoring', icon: <Timer className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        children: [
+          { label: 'Conditions & SLA', href: '/fpa/conditions', icon: <Timer className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Reassessment Scheduler', href: '/fpa/scheduler', icon: <CalendarCheck className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Monitoring & Audit', href: '/fpa/monitoring', icon: <Bell className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+        ],
+      },
+      {
+        label: 'Appeals & Notifications', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
         children: [
           { label: 'Appeals', href: '/fpa/appeals', icon: <ScrollText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Monitoring & Audit', href: '/fpa/monitoring', icon: <Bell className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
-          { label: 'Reassessment Scheduler', href: '/fpa/scheduler', icon: <CalendarCheck className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
           { label: 'Notification Log', href: '/fpa/notifications', icon: <History className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+        ],
+      },
+      {
+        label: 'Reporting & Training', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+        children: [
+          { label: 'Trends & History', href: '/fpa/trends', icon: <BarChart3 className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+          { label: 'Training & Awareness', href: '/fpa/training', icon: <GraduationCap className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
         ],
       },
     ],
   },
+  // {
+  //   label: 'Fit & Proper',
+  //   items: [
+  //     { label: 'Assessment Hub', href: '/fpa', icon: <LayoutGrid className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //     {
+  //       label: 'Initiation', icon: <FileText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+  //       children: [
+  //         { label: 'Initiation Paths', href: '/fpa/initiation', icon: <FormInput className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Individual Register', href: '/fpa/individuals', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Initiation Log', href: '/fpa/initiation-log', icon: <ListOrdered className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //       ],
+  //     },
+  //     {
+  //       label: 'Declarations', icon: <ScrollText className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+  //       children: [
+  //         { label: 'Declarations', href: '/fpa/declarations', icon: <Mail className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Invitation Tracker', href: '/fpa/invitations', icon: <ClipboardEdit className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Screening Hub', href: '/fpa/screening', icon: <Shield className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Manual Review Queue', href: '/fpa/manual-tasks', icon: <ClipboardList className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //       ],
+  //     },
+  //     {
+  //       label: 'Findings', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+  //       children: [
+  //         { label: 'Findings Console', href: '/fpa/findings', icon: <AlertTriangle className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Trends & History', href: '/fpa/trends', icon: <BarChart3 className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //       ],
+  //     },
+  //     {
+  //       label: 'Decisioning', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+  //       children: [
+  //         { label: 'AI Analysis', href: '/fpa/ai-analysis', icon: <Microscope className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Sector Rules', href: '/fpa/sector-rules', icon: <SlidersHorizontal className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Determinations', href: '/fpa/determinations', icon: <FileText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Committee Voting', href: '/fpa/committee', icon: <Users className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Conditions & SLA', href: '/fpa/conditions', icon: <Timer className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //       ],
+  //     },
+  //     {
+  //       label: 'Appeals', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule,
+  //       children: [
+  //         { label: 'Appeals', href: '/fpa/appeals', icon: <ScrollText className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Monitoring & Audit', href: '/fpa/monitoring', icon: <Bell className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Reassessment Scheduler', href: '/fpa/scheduler', icon: <CalendarCheck className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //         { label: 'Notification Log', href: '/fpa/notifications', icon: <History className="h-4 w-4" />, roles: ALL_INTERNAL, module: 'fit_and_proper' as PermissionModule },
+  //       ],
+  //     },
+  //   ],
+  // },
   // Twin Peaks Coordination is hidden from the sidebar for now (routes/pages retained):
   // {
   //   label: 'Twin Peaks Coordination',
