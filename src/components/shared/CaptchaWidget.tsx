@@ -83,6 +83,13 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
   const config = data?.enabled ? data.config : null;
   const misconfigured = !!data?.misconfigured;
 
+  // Parents pass inline callbacks; keeping them in a ref stops the render effect from
+  // tearing the challenge down and rebuilding it on every parent re-render.
+  const changeRef = useRef(onVerificationChange);
+  changeRef.current = onVerificationChange;
+  const actionRef = useRef(action);
+  actionRef.current = action;
+
   const verifyToken = useCallback(async (token: string) => {
     setStatus('verifying');
     setMessage(null);
@@ -93,17 +100,17 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       if (fnError || !result?.ok || !result?.verification_id) {
         setStatus('error');
         setMessage(result?.error ?? 'CAPTCHA verification failed. Please try again.');
-        onVerificationChange(null);
+        changeRef.current(null);
         return;
       }
       setStatus('idle');
-      onVerificationChange(result.verification_id as string);
+      changeRef.current(result.verification_id as string);
     } catch {
       setStatus('error');
       setMessage('CAPTCHA verification failed. Please try again.');
-      onVerificationChange(null);
+      changeRef.current(null);
     }
-  }, [onVerificationChange]);
+  }, []);
 
   const runV3 = useCallback(async (siteKey: string) => {
     try {
@@ -112,61 +119,81 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
       if (!api?.ready || !api?.execute) throw new Error('unavailable');
       setStatus('verifying');
       await new Promise<void>((resolve) => api.ready(() => resolve()));
-      const token: string = await api.execute(siteKey, { action });
+      const token: string = await api.execute(siteKey, { action: actionRef.current });
       await verifyToken(token);
     } catch {
       setStatus('error');
       setMessage('Security verification could not be loaded. Please retry.');
-      onVerificationChange(null);
+      changeRef.current(null);
     }
-  }, [action, verifyToken, onVerificationChange]);
+  }, [verifyToken]);
+
+
+  // Depend on the identifying fields only: a query refetch returns a new object
+  // identity for the same configuration and must not re-render the challenge.
+  const configId = config?.id ?? null;
+  const provider = config?.provider ?? null;
+  const siteKey = config?.site_key ?? null;
 
   useEffect(() => {
-    if (!config) return;
+    if (!configId || !provider || !siteKey) return;
     let cancelled = false;
 
     // A fresh attempt starts clean: stale errors must never sit under a working widget.
     setMessage(null);
     setStatus('idle');
 
-    if (config.provider === 'recaptcha_v3') {
-      void runV3(config.site_key);
+    if (provider === 'recaptcha_v3') {
+      void runV3(siteKey);
       return () => { cancelled = true; };
     }
 
-    if (!containerRef.current) return;
-    const meta = SCRIPTS[config.provider];
+    const container = containerRef.current;
+    if (!container) return;
+    const meta = SCRIPTS[provider];
+    // Each mount renders into a brand-new host element, so the provider can never
+    // report "already rendered in this element" after a remount.
+    const host = document.createElement('div');
+    container.replaceChildren(host);
+    let api: Record<string, any> | null = null;
 
     loadScript(meta.src)
       .then(async () => {
         if (cancelled) return;
-        const api = await waitForRender(meta.global);
-        if (cancelled || !containerRef.current) return;
+        api = await waitForRender(meta.global);
+        if (cancelled || !host.isConnected) return;
         if (!api) {
           setStatus('error');
           setMessage('Security verification could not be initialised. Please retry.');
           return;
         }
-        if (widgetIdRef.current !== null) return;
 
         const render = () => {
-          if (cancelled || !containerRef.current || widgetIdRef.current !== null) return;
-          containerRef.current.innerHTML = '';
-          widgetIdRef.current = api.render(containerRef.current, {
-            sitekey: config.site_key,
-            callback: (token: string) => void verifyToken(token),
-            'expired-callback': () => onVerificationChange(null),
-            'error-callback': () => {
-              setStatus('error');
-              setMessage('CAPTCHA challenge failed. Please retry.');
-              onVerificationChange(null);
-            },
-          });
-          setMessage(null);
-          setStatus('idle');
+          if (cancelled || !host.isConnected || widgetIdRef.current !== null) return;
+          try {
+            widgetIdRef.current = api!.render(host, {
+              sitekey: siteKey,
+              callback: (token: string) => void verifyToken(token),
+              'expired-callback': () => changeRef.current(null),
+              'error-callback': () => {
+                setStatus('error');
+                setMessage('CAPTCHA challenge failed. Please retry.');
+                changeRef.current(null);
+              },
+            });
+            setMessage(null);
+            setStatus('idle');
+          } catch (err) {
+            setStatus('error');
+            setMessage(
+              `Security verification could not be displayed: ${
+                err instanceof Error ? err.message : 'unknown provider error'
+              }. Check that the site key is valid for this provider and that this domain is allowed for it.`,
+            );
+          }
         };
 
-        if (config.provider === 'recaptcha_v2' && typeof api.ready === 'function') {
+        if (typeof api.ready === 'function') {
           api.ready(render);
         } else {
           render();
@@ -180,10 +207,17 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
 
     return () => {
       cancelled = true;
-      // Allow a remount to render a fresh challenge instead of skipping it.
+      // Retire this widget with the provider, then drop its host so a remount
+      // renders a fresh challenge instead of skipping it or throwing.
+      if (widgetIdRef.current !== null && api) {
+        try { api.reset?.(widgetIdRef.current); } catch { /* provider already gone */ }
+        try { api.remove?.(widgetIdRef.current); } catch { /* not supported by all providers */ }
+      }
       widgetIdRef.current = null;
+      host.remove();
     };
-  }, [config, verifyToken, onVerificationChange, runV3]);
+  }, [configId, provider, siteKey, verifyToken, runV3]);
+
 
 
   if (isLoading) {
