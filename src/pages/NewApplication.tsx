@@ -364,6 +364,8 @@ export default function NewApplication() {
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
   const latestDraftDataRef = useRef<Record<string, any>>({});
+  // Section the applicant chose to correct from the review screen (per-section Edit).
+  const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
   // Sticky cache of the last successfully-loaded form renderer inputs so we
   // don't briefly unmount the renderer (and blink the action buttons) when
   // background refetches transiently empty `sections` / `resolvedVersionId`.
