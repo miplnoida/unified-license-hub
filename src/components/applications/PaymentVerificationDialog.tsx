@@ -23,7 +23,14 @@ export interface PaymentInfo {
   receipt_number?: string | null;
   created_at?: string;
   paid_at?: string | null;
+  payment_channel?: string | null;
+  offline_method?: string | null;
+  verification_status?: string | null;
+  verification_remarks?: string | null;
+  payment_date?: string | null;
+  bank_name?: string | null;
 }
+
 
 interface Props {
   open: boolean;
