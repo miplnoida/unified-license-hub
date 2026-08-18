@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, DollarSign, FileDown } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
