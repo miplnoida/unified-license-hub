@@ -375,7 +375,7 @@ export function PaymentVerificationDialog({
           )}
           {isAdminView && isOfflinePending ? (
             <>
-              <Button variant="outline" onClick={() => reviewOffline(false)} disabled={offlineBusy}>
+              <Button data-rbac="application_management.edit" variant="outline" onClick={() => reviewOffline(false)} disabled={offlineBusy}>
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Reject payment
               </Button>
