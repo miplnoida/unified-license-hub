@@ -7,7 +7,7 @@ The active configuration is a reCAPTCHA v2 (checkbox) provider with a site key, 
 The root cause is not yet confirmed. Two candidates, both consistent with "frame present, no checkbox, no error":
 
 1. **Render throws silently.** In the v2 path the render call runs inside `grecaptcha.ready(render)`, which is outside the promise chain, so any exception there is never caught and no message is shown. The effect's cleanup also resets the widget guard to `null` without telling reCAPTCHA to reset, so a second effect run (StrictMode double-mount, or a new `config` object identity from the query) wipes the container with `innerHTML = ''` and calls `render` on an element reCAPTCHA still considers rendered — which throws and leaves the box blank.
-2. **Key type / domain mismatch.** A reCAPTCHA v3 (score-based) key registered as `recaptcha_v2`, or a key whose allowed domains don't include the preview/custom domain, produces no visible checkbox.
+2. **Key type / domain mismatch.** The configured key is not valid for this domain, or the key does not match the provider selected in settings. The widget must keep honouring whatever the admin configures (v2, v3, hCaptcha, Turnstile) — nothing gets hardcoded to one provider; it only needs to report clearly when the configured pair is rejected.
 
 ## Plan
 
