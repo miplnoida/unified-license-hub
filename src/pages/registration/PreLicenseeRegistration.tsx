@@ -104,6 +104,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     !isUpdateMode || !!form.sectorId,
   );
 
+  // CAPTCHA is only required when the form asks for it AND it is globally enabled.
+  // When enabled-but-unconfigured the widget blocks submission (no checkbox fallback).
+  const { data: captchaRuntime } = useCaptchaRuntime();
+  const effectiveRequireCaptcha =
+    (config?.requireCaptcha ?? true) && (captchaRuntime?.globallyEnabled ?? false);
+
+
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const saved = sessionStorage.getItem(STEP_KEY);
     const parsed = saved ? Number(saved) : 0;
