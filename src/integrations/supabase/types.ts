@@ -26297,6 +26297,14 @@ export type Database = {
         }
         Returns: Json
       }
+      issue_payment_invoice: {
+        Args: {
+          _fee_breakdown?: Json
+          _payment_id: string
+          _tax_amount?: number
+        }
+        Returns: Json
+      }
       issue_worker_token: { Args: { _purpose: string }; Returns: string }
       jsonb_changed_fields: {
         Args: { _after: Json; _before: Json }
@@ -28142,6 +28150,18 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_offline_payment: {
+        Args: {
+          _amount: number
+          _application_id: string
+          _bank_name?: string
+          _offline_method: string
+          _payment_date: string
+          _reference: string
+          _remarks?: string
+        }
+        Returns: Json
+      }
       submit_prudential_action_response: {
         Args: {
           _action_id: string
@@ -28469,6 +28489,15 @@ export type Database = {
           invitation_id: string
           verified: boolean
         }[]
+      }
+      verify_offline_payment: {
+        Args: {
+          _approve: boolean
+          _fee_breakdown?: Json
+          _payment_id: string
+          _remarks?: string
+        }
+        Returns: Json
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_diagnostic_for_application: {
