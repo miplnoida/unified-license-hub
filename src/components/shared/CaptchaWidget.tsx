@@ -174,11 +174,11 @@ export function CaptchaWidget({ verificationId, onVerificationChange, error, act
             widgetIdRef.current = api!.render(host, {
               sitekey: siteKey,
               callback: (token: string) => void verifyToken(token),
-              'expired-callback': () => onVerificationChange(null),
+              'expired-callback': () => changeRef.current(null),
               'error-callback': () => {
                 setStatus('error');
                 setMessage('CAPTCHA challenge failed. Please retry.');
-                onVerificationChange(null);
+                changeRef.current(null);
               },
             });
             setMessage(null);
