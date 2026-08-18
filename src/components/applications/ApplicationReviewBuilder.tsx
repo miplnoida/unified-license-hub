@@ -21,6 +21,14 @@ interface Props {
   loading?: boolean;
   onAcknowledge: () => void;
   onEdit?: (templateIndex: number) => void;
+  /**
+   * Per-section edit. Receives the template index plus the id of the form
+   * section the applicant asked to correct, so the wizard can open that exact
+   * section. Falls back to `onEdit` when not provided.
+   */
+  onEditSection?: (templateIndex: number, sectionId: string) => void;
+  /** When true (default), each form section is shown as its own review block. */
+  splitSections?: boolean;
   title?: string;
   description?: string;
   /**
@@ -30,6 +38,7 @@ interface Props {
    */
   originalFormsData?: Record<string, Record<string, any>>;
 }
+
 
 /**
  * Wrapper that loads the published schema for each form template and renders
