@@ -6,15 +6,23 @@ import type { RegFormSchema } from '@/types/registrationForm';
 export interface RegistrationDeclaration {
   label: string;
   required: boolean;
+  /** Admin visibility; `false` hides it from applicants (default visible). */
+  visible?: boolean;
   linkUrl?: string;
   linkLabel?: string;
+  /** Admin-controlled visibility. `undefined`/`true` = shown to the applicant. */
+  visible?: boolean;
 }
 
 export interface RegistrationDocType {
   label: string;
   required: boolean;
+  /** Admin visibility; `false` hides it from applicants (default visible). */
+  visible?: boolean;
   allowedTypes: string[];
   maxSizeMB: number;
+  /** Admin-controlled visibility. `undefined`/`true` = shown to the applicant. */
+  visible?: boolean;
 }
 
 export interface RegistrationConfig {
@@ -27,6 +35,10 @@ export interface RegistrationConfig {
   requireOtp: boolean;
   requireCaptcha: boolean;
   requireDocuments: boolean;
+  /** Whether the email OTP block is shown to the applicant. */
+  otpVisible: boolean;
+  /** Whether the CAPTCHA block is shown to the applicant. */
+  captchaVisible: boolean;
   termsUrl: string;
   privacyUrl: string;
   dataProtectionUrl: string;
@@ -38,6 +50,7 @@ export interface RegistrationConfig {
   // Legacy compat: convert form_schema steps into FormSection[]
   sections: FormSection[];
 }
+
 
 /**
  * Convert inline form_schema steps into FormSection[] for backwards compat
@@ -149,8 +162,15 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
         categoryId: best.category_id,
         isDefault: best.is_default,
         requireOtp: best.require_otp,
+        otpVisible: (best as { otp_visible_to_applicant?: boolean | null }).otp_visible_to_applicant !== false,
+        captchaVisible: (best as { captcha_visible_to_applicant?: boolean | null }).captcha_visible_to_applicant !== false,
+
         requireCaptcha: best.require_captcha,
         requireDocuments: best.require_documents,
+        otpVisibleToApplicant:
+          (best as { otp_visible_to_applicant?: boolean | null }).otp_visible_to_applicant !== false,
+        captchaVisibleToApplicant:
+          (best as { captcha_visible_to_applicant?: boolean | null }).captcha_visible_to_applicant !== false,
         termsUrl: best.terms_url || '',
         privacyUrl: best.privacy_url || '',
         dataProtectionUrl: best.data_protection_url || '',

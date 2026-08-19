@@ -33,12 +33,20 @@ import {
   BEFORE_SUBMISSION_PLACEMENT,
   validateEmailVerificationPlacement,
 } from '@/lib/registrationEmailVerification';
+import {
+  CAPTCHA_REQUIRED_BUT_HIDDEN_MESSAGE,
+  OTP_REQUIRED_BUT_HIDDEN_MESSAGE,
+  validateSecurityVisibility,
+} from '@/lib/registrationItemVisibility';
+
+
 
 interface Declaration {
   label: string;
   required: boolean;
   linkUrl?: string;
   linkLabel?: string;
+  visible?: boolean;
 }
 
 interface DocType {
@@ -46,6 +54,7 @@ interface DocType {
   required: boolean;
   allowedTypes: string[];
   maxSizeMB: number;
+  visible?: boolean;
 }
 
 interface ConfigRow {
@@ -59,6 +68,8 @@ interface ConfigRow {
   require_otp: boolean;
   require_captcha: boolean;
   require_documents: boolean;
+  otp_visible_to_applicant: boolean;
+  captcha_visible_to_applicant: boolean;
   terms_url: string;
   privacy_url: string;
   data_protection_url: string;
@@ -67,6 +78,7 @@ interface ConfigRow {
   form_schema: RegFormSchema;
   email_verification_step_id: string | null;
 }
+
 
 const emptyConfig: Omit<ConfigRow, 'id'> = {
   name: '',
@@ -78,17 +90,20 @@ const emptyConfig: Omit<ConfigRow, 'id'> = {
   require_otp: true,
   require_captcha: true,
   require_documents: true,
+  otp_visible_to_applicant: true,
+  captcha_visible_to_applicant: true,
   terms_url: '',
   privacy_url: '',
   data_protection_url: '',
   declarations: [
-    { label: 'I agree to the Terms & Conditions', required: true },
-    { label: 'I agree to the Privacy Policy', required: true },
-    { label: 'I agree to the Data Protection Notice', required: true },
+    { label: 'I agree to the Terms & Conditions', required: true, visible: true },
+    { label: 'I agree to the Privacy Policy', required: true, visible: true },
+    { label: 'I agree to the Data Protection Notice', required: true, visible: true },
   ],
   document_types: [
-    { label: 'Certificate of Incorporation', required: true, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 },
+    { label: 'Certificate of Incorporation', required: true, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5, visible: true },
   ],
+
   form_schema: defaultFormSchema(),
   email_verification_step_id: null,
 };
@@ -237,7 +252,10 @@ export default function RegistrationFormBuilder() {
       declarations: (c.declarations as any) || [],
       document_types: (c.document_types as any) || [],
       form_schema: (c.form_schema as any) || [],
+      otp_visible_to_applicant: (c as any).otp_visible_to_applicant !== false,
+      captcha_visible_to_applicant: (c as any).captcha_visible_to_applicant !== false,
     })));
+
     setSectors(secRes.data || []);
     setSubSectors(subRes.data || []);
     setCategories(catRes.data || []);
@@ -258,6 +276,8 @@ export default function RegistrationFormBuilder() {
 
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Name is required'); return; }
+    const securityCheck = validateSecurityVisibility(form);
+    if (!securityCheck.ok) { toast.error(securityCheck.message!); return; }
     if (form.require_otp) {
       const placementCheck = validateEmailVerificationPlacement(
         form.email_verification_step_id,
@@ -277,6 +297,8 @@ export default function RegistrationFormBuilder() {
       require_otp: form.require_otp,
       require_captcha: form.require_captcha,
       require_documents: form.require_documents,
+      otp_visible_to_applicant: form.otp_visible_to_applicant,
+      captcha_visible_to_applicant: form.captcha_visible_to_applicant,
       terms_url: '',
       privacy_url: '',
       data_protection_url: '',
@@ -287,6 +309,7 @@ export default function RegistrationFormBuilder() {
         ? (form.email_verification_step_id || BEFORE_SUBMISSION_PLACEMENT)
         : form.email_verification_step_id,
     };
+
 
     if (editing) {
       const { error } = await supabase
@@ -346,7 +369,7 @@ export default function RegistrationFormBuilder() {
 
   // Declaration helpers
   function addDeclaration() {
-    setForm(prev => ({ ...prev, declarations: [...prev.declarations, { label: '', required: true }] }));
+    setForm(prev => ({ ...prev, declarations: [...prev.declarations, { label: '', required: true, visible: true }] }));
   }
   function updateDeclaration(idx: number, field: keyof Declaration, value: any) {
     setForm(prev => {
@@ -361,7 +384,7 @@ export default function RegistrationFormBuilder() {
 
   // Document type helpers
   function addDocType() {
-    setForm(prev => ({ ...prev, document_types: [...prev.document_types, { label: '', required: false, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 }] }));
+    setForm(prev => ({ ...prev, document_types: [...prev.document_types, { label: '', required: false, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5, visible: true }] }));
   }
   function updateDocType(idx: number, field: keyof DocType, value: any) {
     setForm(prev => {
@@ -384,7 +407,10 @@ export default function RegistrationFormBuilder() {
         requireOtp: form.require_otp,
         requireCaptcha: form.require_captcha,
         requireDocuments: form.require_documents,
+        otpVisible: form.otp_visible_to_applicant,
+        captchaVisible: form.captcha_visible_to_applicant,
         emailVerificationStepId: form.email_verification_step_id,
+
       });
       window.open(buildRegistrationPreviewUrl(), '_blank', 'noopener,noreferrer');
     } catch (e) {
@@ -594,20 +620,50 @@ export default function RegistrationFormBuilder() {
                   <CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4" /> Security & Verification</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-6">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={form.require_otp} onCheckedChange={v => setForm(p => ({ ...p, require_otp: v }))} />
-                      <Label>Email OTP Verification</Label>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-6 rounded-lg border p-3">
+                      <div className="flex items-center gap-2 min-w-[240px]">
+                        <Switch checked={form.require_otp} onCheckedChange={v => setForm(p => ({ ...p, require_otp: v }))} />
+                        <Label>Email OTP Verification</Label>
+                        {form.otp_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={form.otp_visible_to_applicant}
+                          onCheckedChange={v => setForm(p => ({ ...p, otp_visible_to_applicant: v }))}
+                        />
+                        <Label className="text-xs">Visible to applicant</Label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={form.require_captcha} onCheckedChange={v => setForm(p => ({ ...p, require_captcha: v }))} />
-                      <Label>CAPTCHA Validation</Label>
+
+                    <div className="flex flex-wrap items-center gap-6 rounded-lg border p-3">
+                      <div className="flex items-center gap-2 min-w-[240px]">
+                        <Switch checked={form.require_captcha} onCheckedChange={v => setForm(p => ({ ...p, require_captcha: v }))} />
+                        <Label>CAPTCHA Validation</Label>
+                        {form.captcha_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={form.captcha_visible_to_applicant}
+                          onCheckedChange={v => setForm(p => ({ ...p, captcha_visible_to_applicant: v }))}
+                        />
+                        <Label className="text-xs">Visible to applicant</Label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-2 rounded-lg border p-3">
                       <Switch checked={form.require_documents} onCheckedChange={v => setForm(p => ({ ...p, require_documents: v }))} />
                       <Label>Document Upload Step</Label>
                     </div>
                   </div>
+
+                  {(form.require_otp && form.otp_visible_to_applicant === false) && (
+                    <p className="mt-3 text-sm text-destructive">{OTP_REQUIRED_BUT_HIDDEN_MESSAGE}</p>
+                  )}
+                  {(form.require_captcha && form.captcha_visible_to_applicant === false) && (
+                    <p className="mt-2 text-sm text-destructive">{CAPTCHA_REQUIRED_BUT_HIDDEN_MESSAGE}</p>
+                  )}
+
 
                   {form.require_otp && (
                     <div className="mt-4 max-w-sm space-y-1.5">
@@ -647,21 +703,29 @@ export default function RegistrationFormBuilder() {
                   {form.document_types.map((doc, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
-                        <Input value={doc.label} onChange={e => updateDocType(idx, 'label', e.target.value)} placeholder="Document type name..." />
-                        <div className="flex gap-4 items-center">
+                        <div className="flex items-center gap-2">
+                          <Input value={doc.label} onChange={e => updateDocType(idx, 'label', e.target.value)} placeholder="Document type name..." />
+                          {doc.visible === false && <Badge variant="secondary">Hidden</Badge>}
+                        </div>
+                        <div className="flex gap-4 items-center flex-wrap">
                           <div className="flex items-center gap-2">
                             <Switch checked={doc.required} onCheckedChange={v => updateDocType(idx, 'required', v)} />
                             <Label className="text-xs">Required</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch checked={doc.visible !== false} onCheckedChange={v => updateDocType(idx, 'visible', v)} />
+                            <Label className="text-xs">Visible to applicant</Label>
                           </div>
                           <div className="flex items-center gap-1">
                             <Label className="text-xs">Max MB:</Label>
                             <Input type="number" value={doc.maxSizeMB} onChange={e => updateDocType(idx, 'maxSizeMB', Number(e.target.value))} className="w-16 h-8 text-xs" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-[160px]">
                             <Input value={doc.allowedTypes.join(', ')} onChange={e => updateDocType(idx, 'allowedTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder=".pdf, .jpg, .png" className="h-8 text-xs" />
                           </div>
                         </div>
                       </div>
+
                       <Button variant="ghost" size="icon" onClick={() => removeDocType(idx)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -683,21 +747,31 @@ export default function RegistrationFormBuilder() {
                   {form.declarations.map((decl, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
-                        <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder='Full label, e.g. "I agree to the Terms & Conditions"' />
+                        <div className="flex items-center gap-2">
+                          <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder='Full label, e.g. "I agree to the Terms & Conditions"' />
+                          {decl.visible === false && <Badge variant="secondary">Hidden</Badge>}
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
                           <Input value={decl.linkLabel || ''} onChange={e => updateDeclaration(idx, 'linkLabel', e.target.value)} placeholder='Clickable text, e.g. "Terms & Conditions"' className="h-8 text-xs" />
                           <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (opens in new tab)" className="h-8 text-xs" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
-                          <Label className="text-xs">Required</Label>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
+                            <Label className="text-xs">Required</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch checked={decl.visible !== false} onCheckedChange={v => updateDeclaration(idx, 'visible', v)} />
+                            <Label className="text-xs">Visible to applicant</Label>
+                          </div>
                           {decl.linkLabel && decl.linkUrl && (
-                            <span className="text-xs text-muted-foreground ml-2">
+                            <span className="text-xs text-muted-foreground">
                               Preview: "{decl.label?.replace(decl.linkLabel, `[${decl.linkLabel}]`)}"
                             </span>
                           )}
                         </div>
                       </div>
+
                       <Button variant="ghost" size="icon" onClick={() => removeDeclaration(idx)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

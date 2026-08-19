@@ -17584,6 +17584,7 @@ export type Database = {
       }
       registration_form_configs: {
         Row: {
+          captcha_visible_to_applicant: boolean
           category_id: string | null
           created_at: string
           data_protection_url: string | null
@@ -17597,6 +17598,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           name: string
+          otp_visible_to_applicant: boolean
           privacy_url: string | null
           require_captcha: boolean
           require_documents: boolean
@@ -17607,6 +17609,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          captcha_visible_to_applicant?: boolean
           category_id?: string | null
           created_at?: string
           data_protection_url?: string | null
@@ -17620,6 +17623,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           name: string
+          otp_visible_to_applicant?: boolean
           privacy_url?: string | null
           require_captcha?: boolean
           require_documents?: boolean
@@ -17630,6 +17634,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          captcha_visible_to_applicant?: boolean
           category_id?: string | null
           created_at?: string
           data_protection_url?: string | null
@@ -17643,6 +17648,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           name?: string
+          otp_visible_to_applicant?: boolean
           privacy_url?: string | null
           require_captcha?: boolean
           require_documents?: boolean
@@ -24783,6 +24789,7 @@ export type Database = {
       configure_application_form: {
         Args: { _config: Json; _form_config_id: string }
         Returns: {
+          captcha_visible_to_applicant: boolean
           category_id: string | null
           created_at: string
           data_protection_url: string | null
@@ -24796,6 +24803,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           name: string
+          otp_visible_to_applicant: boolean
           privacy_url: string | null
           require_captcha: boolean
           require_documents: boolean

@@ -8,7 +8,12 @@ export interface RegistrationPreviewPayload {
   requireOtp: boolean;
   requireCaptcha: boolean;
   requireDocuments: boolean;
+  /** Whether the OTP block is shown to the applicant (defaults to true). */
+  otpVisible?: boolean;
+  /** Whether the CAPTCHA block is shown to the applicant (defaults to true). */
+  captchaVisible?: boolean;
   emailVerificationStepId?: string | null;
+
 }
 
 export function storeRegistrationPreview(payload: RegistrationPreviewPayload) {
