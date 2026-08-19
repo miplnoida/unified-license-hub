@@ -462,6 +462,7 @@ export default function ReturnSubmission() {
           description: f.section_description || '',
           sortOrder: f.section_order || 0,
           isRepeatable: f.section_is_repeatable || false,
+          isVisible: (f as any).section_is_visible !== false,
           fields: [],
         });
       }

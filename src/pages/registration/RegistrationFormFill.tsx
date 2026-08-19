@@ -150,6 +150,7 @@ export default function RegistrationFormFill() {
                     title: f.section_title,
                     description: f.section_description || undefined,
                     isRepeatable: f.section_is_repeatable || false,
+                    isVisible: (f as any).section_is_visible !== false,
                     sortOrder: f.section_order,
                     fields: [],
                   });
