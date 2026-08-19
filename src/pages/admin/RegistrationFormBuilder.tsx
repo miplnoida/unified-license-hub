@@ -699,7 +699,7 @@ export default function RegistrationFormBuilder() {
                         checked={form.documents_section_visible}
                         onCheckedChange={v => setForm(p => ({ ...p, documents_section_visible: v }))}
                       />
-                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                      <Label className="text-xs">Visible to applicant</Label>
                     </div>
                   </div>
                   {form.documents_section_visible === false && (
@@ -709,7 +709,12 @@ export default function RegistrationFormBuilder() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2 rounded-lg border p-3">
+                    <Switch checked={form.require_documents} onCheckedChange={v => setForm(p => ({ ...p, require_documents: v }))} />
+                    <Label>Document Upload Step</Label>
+                  </div>
                   {form.document_types.map((doc, idx) => (
+
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
