@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions } from '@/lib/workflowActionFilter';
+import { WORKFLOW_SIGNATURE_CAPTURE_ENABLED } from '@/lib/workflowSignatureCapture';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
