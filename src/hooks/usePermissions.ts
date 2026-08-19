@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/lib/permissionModules';
 import { INTERNAL_ROLES } from '@/types/platform';
 import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
+import { useSecurityContext } from '@/hooks/useSecurityContext';
+import { toUserPermissions, matchRoute } from '@/lib/rbac/securityContext';
 import {
   authorize,
   authorizeModule,
@@ -35,55 +37,17 @@ import {
 export function useUserDynamicPermissions() {
   const { user } = useAuth();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['user-permissions', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data: udr } = await supabase
-        .from('user_dynamic_roles' as any)
-        .select('role_id')
-        .eq('user_id', user!.id);
+  // Canonical source of truth: the database security context. Legacy tables
+  // are no longer read from the client.
+  const { context, isLoading: contextLoading } = useSecurityContext();
 
-      const dynamicRoleIds = Array.from(
-        new Set(((udr as any[]) || []).map((row) => row.role_id).filter(Boolean))
-      );
+  const data = {
+    roleIds: (context?.roles ?? []).map((r) => r.id),
+    permissions: toUserPermissions(context),
+    hasDynamicRole: (context?.roles ?? []).length > 0,
+  };
+  const isLoading = contextLoading;
 
-      if (dynamicRoleIds.length === 0) {
-        return { roleIds: [], permissions: [] as UserPermission[], hasDynamicRole: false };
-      }
-
-      const { data: rp } = await supabase
-        .from('role_permissions' as any)
-        .select('permission_id')
-        .in('role_id', dynamicRoleIds);
-
-      const permIds = Array.from(new Set(((rp as any[]) || []).map(r => r.permission_id)));
-      if (permIds.length === 0) {
-        return { roleIds: dynamicRoleIds, permissions: [] as UserPermission[], hasDynamicRole: true };
-      }
-
-      const { data: perms } = await supabase
-        .from('permissions' as any)
-        .select('id, module, name')
-        .in('id', permIds);
-
-      const seen = new Set<string>();
-      const unique: UserPermission[] = [];
-      for (const p of (perms || []) as any[]) {
-        const module = normalizeModule(p.module);
-        const name = normalizeAction(p.name);
-        const key = `${module}::${name}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          unique.push({ module, name });
-
-        }
-      }
-
-      return { roleIds: dynamicRoleIds, permissions: unique, hasDynamicRole: true };
-    },
-    staleTime: 60_000,
-  });
 
   const { data: assignmentData } = useQuery({
     queryKey: ['user-entity-assignments', user?.id],
@@ -107,9 +71,9 @@ export function useUserDynamicPermissions() {
   const hasAnyEntityAssignment = assignedLicenseeIds.length > 0;
 
   const isSuperAdmin = user?.role === 'super_admin';
-  // Bypass is now super_admin only. Static `admin` must have a dynamic role
-  // (Legacy Admin) provisioned by migration — no implicit bypass.
-  const isBypassRole = isSuperAdmin;
+  // Bypass is super_admin (or a break-glass role flagged in the catalogue)
+  // only. Static `admin` carries no implicit bypass.
+  const isBypassRole = isSuperAdmin || !!context?.is_bypass;
   const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
   // Legacy flag kept for callers that still branch on it; always true when
   // the user is not a bypass role since dynamic perms are the source of truth.
@@ -204,6 +168,19 @@ export function useUserDynamicPermissions() {
 
   const canAccessPath = (pathname: string): boolean => {
     if (isBypassRole) return true;
+
+    // Preferred path: the database route registry.
+    const route = matchRoute(context?.routes, pathname);
+    if (route) {
+      if (!route.is_protected) return true;
+      if (route.module) {
+        if (authorize(authzCtx, route.module, route.action || 'view').allowed) return true;
+        if (route.module === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
+        return false;
+      }
+    }
+
+    // Fallback for paths not yet registered in the catalogue.
     const mod = getModuleForPath(pathname);
     if (!mod) {
       if (isProtectedInternalPath(pathname)) return false;
@@ -213,6 +190,7 @@ export function useUserDynamicPermissions() {
     if (mod === 'returns_management' && isAssignmentAllowedReturnsPath(pathname)) return true;
     return false;
   };
+
 
   /**
    * True when the user has NO dynamic role permissions at all but IS mapped

@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mainNavSections, NavItem } from '@/config/navigation';
+import { type NavItem } from '@/config/navigation';
+import { useNavigationSections } from '@/hooks/useNavigationSections';
 import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -85,6 +86,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
+  const { sections: navSections } = useNavigationSections();
   const { hasPermission, hasModuleAccess, hasAnyModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,7 @@ export function Sidebar() {
   }, [setExpandedGroups]);
 
   useEffect(() => {
-    mainNavSections.forEach(section => {
+    navSections.forEach(section => {
       section.items.forEach(item => {
         if (item.children) {
           const hasActive = item.children.some(c => c.href && location.pathname === c.href);
@@ -238,7 +240,7 @@ export function Sidebar() {
           </div>
           <ScrollArea className="flex-1 px-3" ref={navRef}>
             <nav className="py-3 space-y-5">
-              {mainNavSections.map((section) => {
+              {navSections.map((section) => {
                 const visibleItems = section.items.filter(isItemVisible);
                 if (visibleItems.length === 0) return null;
                 return (
@@ -313,7 +315,7 @@ export function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3" ref={navRef}>
         <nav className="py-3 space-y-5">
-          {mainNavSections.map((section) => {
+          {navSections.map((section) => {
             const visibleItems = section.items.filter(isItemVisible);
             if (visibleItems.length === 0) return null;
             return (
