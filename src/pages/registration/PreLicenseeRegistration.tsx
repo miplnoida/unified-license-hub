@@ -232,6 +232,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     sessionStorage.setItem(STEP_KEY, String(currentStep));
   }, [currentStep, isUpdateMode]);
 
+  // Remember the furthest step reached so the stepper allows forward jumps back
+  // to steps the user already visited (e.g. after going back from Review).
+  useEffect(() => {
+    setMaxVisitedStep(prev => (currentStep > prev ? currentStep : prev));
+  }, [currentStep]);
+
   // Persist dynamic step data so going back to previous steps preserves entries
   useEffect(() => {
     dynamicFormDataRef.current = dynamicFormData;
