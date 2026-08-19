@@ -20,7 +20,7 @@ export default function RegistrationFormPreviewPage() {
         if (configId) {
           const { data: config, error } = await supabase
             .from('registration_form_configs')
-            .select('name, form_schema, document_types, declarations, require_otp, require_captcha, require_documents')
+            .select('name, form_schema, document_types, declarations, require_otp, require_captcha, require_documents, email_verification_step_id')
             .eq('id', configId)
             .maybeSingle();
 
@@ -37,6 +37,7 @@ export default function RegistrationFormPreviewPage() {
             requireOtp: !!config.require_otp,
             requireCaptcha: !!config.require_captcha,
             requireDocuments: !!config.require_documents,
+            emailVerificationStepId: config.email_verification_step_id ?? null,
           });
           setMissing(false);
           return;
@@ -99,6 +100,7 @@ export default function RegistrationFormPreviewPage() {
             requireOtp={data.requireOtp}
             requireCaptcha={data.requireCaptcha}
             requireDocuments={data.requireDocuments}
+            emailVerificationStepId={data.emailVerificationStepId}
           />
         </fieldset>
       </main>

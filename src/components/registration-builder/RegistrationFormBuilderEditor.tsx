@@ -6,6 +6,7 @@ import {
   Plus, Trash2, GripVertical, ChevronUp, ChevronDown, Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import type { RegFormSchema, RegStep } from '@/types/registrationForm';
 import { StepEditor } from './StepEditor';
 import { buildRegistrationPreviewUrl, storeRegistrationPreview } from '@/lib/registrationPreview';
@@ -13,9 +14,18 @@ import { buildRegistrationPreviewUrl, storeRegistrationPreview } from '@/lib/reg
 interface Props {
   schema: RegFormSchema;
   onChange: (schema: RegFormSchema) => void;
+  /** Step id currently configured for email verification (null when OTP is off). */
+  emailVerificationStepId?: string | null;
+  /** Called when the configured verification step is deleted and placement resets. */
+  onEmailVerificationStepReset?: () => void;
 }
 
-export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
+export function RegistrationFormBuilderEditor({
+  schema,
+  onChange,
+  emailVerificationStepId,
+  onEmailVerificationStepReset,
+}: Props) {
   const [activeStepId, setActiveStepId] = useState<string | null>(schema[0]?.id || null);
 
   const addStep = () => {
@@ -29,10 +39,27 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
     setActiveStepId(newStep.id);
   };
 
-  const deleteStep = (id: string) => {
+  const applyDeleteStep = (id: string) => {
     const updated = schema.filter(s => s.id !== id);
     onChange(updated);
     if (activeStepId === id) setActiveStepId(updated[0]?.id || null);
+  };
+
+  const deleteStep = async (id: string) => {
+    if (emailVerificationStepId && emailVerificationStepId === id) {
+      const result = await Swal.fire({
+        title: 'Step used for Email Verification',
+        text: 'This step is currently used for Email Verification. Deleting it will move email verification to "Before Final Submission". You can pick another step afterwards.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete and reset placement',
+        cancelButtonText: 'Keep step',
+      });
+      if (!result.isConfirmed) return;
+      onEmailVerificationStepReset?.();
+      toast.info('Email verification moved to "Before Final Submission"');
+    }
+    applyDeleteStep(id);
   };
 
   const updateStep = (id: string, step: RegStep) => {
@@ -130,7 +157,7 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
                   </button>
                 </div>
                 <button
-                  onClick={e => { e.stopPropagation(); deleteStep(step.id); }}
+                  onClick={e => { e.stopPropagation(); void deleteStep(step.id); }}
                   className="text-destructive hover:text-destructive/80 shrink-0"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

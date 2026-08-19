@@ -8,6 +8,7 @@ export interface RegistrationPreviewPayload {
   requireOtp: boolean;
   requireCaptcha: boolean;
   requireDocuments: boolean;
+  emailVerificationStepId?: string | null;
 }
 
 export function storeRegistrationPreview(payload: RegistrationPreviewPayload) {
