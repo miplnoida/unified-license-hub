@@ -106,8 +106,9 @@ export function DeclarationsStep({
     },
   ];
 
-  const sourceDeclarations =
-    declarations && declarations.length > 0 ? declarations : fallbackDeclarations;
+  const sourceDeclarations = sectionVisible === false
+    ? []
+    : (declarations && declarations.length > 0 ? declarations : fallbackDeclarations);
 
   const effectiveDeclarations = sourceDeclarations
     .map((decl, idx) => ({ decl, idx }))
