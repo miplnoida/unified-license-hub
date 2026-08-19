@@ -52,6 +52,7 @@ interface ReviewAcknowledgementProps {
   title?: string;
   description?: string;
   loading?: boolean;
+  showCompletionSummary?: boolean;
 }
 
 export function ReviewAcknowledgement({
@@ -62,6 +63,7 @@ export function ReviewAcknowledgement({
   title = 'Review & Acknowledge',
   description = 'Please review all information before proceeding. Ensure all details are correct.',
   loading = false,
+  showCompletionSummary = true,
 }: ReviewAcknowledgementProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
