@@ -45,7 +45,7 @@ interface Props {
  * declarations / verification step.
  */
 export function FullRegistrationPreview({
-  schema,
+  schema: rawSchema,
   documentTypes,
   declarations,
   requireOtp,
@@ -53,6 +53,9 @@ export function FullRegistrationPreview({
   requireDocuments,
   emailVerificationStepId,
 }: Props) {
+  // Preview must mirror the applicant experience: hidden steps are excluded.
+  const schema = useMemo(() => visibleRegSteps(rawSchema), [rawSchema]);
+
   const stepLabels = useMemo(() => {
     const labels = schema.map(s => s.title || 'Step');
     if (requireDocuments) labels.push('Supporting Documents');
