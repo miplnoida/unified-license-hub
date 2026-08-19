@@ -26,6 +26,8 @@ Deno.serve(async (req) => {
       username, registration_number, entity_specific_data,
       documents_metadata, terms_accepted, captcha_verification_id,
     } = body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
 
     // ── Resolve the registration config that governs this submission ──
     // Admin-hidden controls (OTP, CAPTCHA, declarations) can never be satisfied by
