@@ -9,15 +9,19 @@
 
 ## What will change
 
-### Frontend — hide the capture UI
-- In `WorkflowPanel` and `ReturnWorkflowPanel`, stop propagating the signature requirement to the action dialog (`requireSignature` becomes permanently false). The computation and the underlying config fields stay in place, just unused.
-- Hide the step-level "This step requires a digital signature…" notices and the step badges advertising the requirement in those two panels.
-- Leave `WorkflowActionPreviewDialog` untouched (the whole signature capture block stays in the code, only unreachable now), and leave the workflow builder's Digital Signature configuration intact.
+### Admin — untouched
+- The workflow builder / approval workflow configuration screens are not changed at all: the Digital Signature toggles, step-action settings, and stored `require_digital_signature` values stay exactly as they are.
+
+### Frontend — hide the capture UI on the three action surfaces
+- In `WorkflowPanel` (Registration Review, License Requests) and `ReturnWorkflowPanel` (Return queue), stop propagating the signature requirement to the action dialog (`requireSignature` becomes permanently false). The computation and the underlying config fields stay in place, just unused.
+- Hide the step-level "This step requires a digital signature…" notices and the step badges advertising the requirement in those two panels only.
+- Leave `WorkflowActionPreviewDialog` untouched (the whole signature capture block stays in the code, only unreachable now).
 - Keep the history/audit rendering: already-recorded signatures on past actions continue to display.
 
-### Backend — no runtime error when no signature arrives
-- In all three workflow action functions, turn the `SIGNATURE_REQUIRED` 422 into a non-blocking path: the requirement is logged/ignored and the action proceeds. The signature-persistence branch is untouched, so if a signature is ever supplied again it still gets stored on the `approval_actions` row.
-- Nothing is dropped from the schema and no columns or config rows are deleted.
+### Backend — only the blocking 422, so nothing errors at runtime
+- In the three workflow action functions, the `SIGNATURE_REQUIRED` 422 becomes non-blocking: the requirement is logged/ignored and the action proceeds. This is required because the config rows stay untouched, so the server would otherwise reject actions on those steps.
+- The signature-persistence branch is untouched, so a supplied signature is still stored on the `approval_actions` row. No schema, column, or config row is changed or deleted.
+
 
 ## Verification
 - Take an action (approve / send back) on a Registration Review, a License Request, and a Return whose step has `require_digital_signature = true`: the dialog shows no signature pad and the action completes with no 422 and no console error.
