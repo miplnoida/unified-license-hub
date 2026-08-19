@@ -20893,6 +20893,710 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_legacy_permission_map: {
+        Row: {
+          legacy_permission_id: string
+          permission_id: string
+        }
+        Insert: {
+          legacy_permission_id: string
+          permission_id: string
+        }
+        Update: {
+          legacy_permission_id?: string
+          permission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_legacy_permission_map_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_module_scopes: {
+        Row: {
+          created_at: string
+          help: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          module_id: string
+          scope_type_id: string
+          selector: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          help?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          module_id: string
+          scope_type_id: string
+          selector?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          help?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          module_id?: string
+          scope_type_id?: string
+          selector?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_module_scopes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_module_scopes_scope_type_id_fkey"
+            columns: ["scope_type_id"]
+            isOneToOne: false
+            referencedRelation: "sec_scope_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_modules: {
+        Row: {
+          audience: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          module_type: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          module_type?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          module_type?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_navigation_items: {
+        Row: {
+          admin_only: boolean
+          audience: string
+          created_at: string
+          description: string | null
+          href_override: string | null
+          icon_key: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          item_type: string
+          key: string
+          keywords: string[]
+          label: string
+          parent_id: string | null
+          required_permission_id: string | null
+          route_id: string | null
+          show_in_search: boolean
+          show_in_sidebar: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          admin_only?: boolean
+          audience?: string
+          created_at?: string
+          description?: string | null
+          href_override?: string | null
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          item_type?: string
+          key: string
+          keywords?: string[]
+          label: string
+          parent_id?: string | null
+          required_permission_id?: string | null
+          route_id?: string | null
+          show_in_search?: boolean
+          show_in_sidebar?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_only?: boolean
+          audience?: string
+          created_at?: string
+          description?: string | null
+          href_override?: string | null
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          item_type?: string
+          key?: string
+          keywords?: string[]
+          label?: string
+          parent_id?: string | null
+          required_permission_id?: string | null
+          route_id?: string | null
+          show_in_search?: boolean
+          show_in_sidebar?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_navigation_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sec_navigation_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_navigation_items_required_permission_id_fkey"
+            columns: ["required_permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_navigation_items_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "sec_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_permission_dependencies: {
+        Row: {
+          created_at: string
+          depends_on_permission_id: string
+          id: string
+          permission_id: string
+        }
+        Insert: {
+          created_at?: string
+          depends_on_permission_id: string
+          id?: string
+          permission_id: string
+        }
+        Update: {
+          created_at?: string
+          depends_on_permission_id?: string
+          id?: string
+          permission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_permission_dependencies_depends_on_permission_id_fkey"
+            columns: ["depends_on_permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_permission_dependencies_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_enforced: boolean
+          is_sensitive: boolean
+          is_system: boolean
+          key: string
+          label: string
+          module_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_enforced?: boolean
+          is_sensitive?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          module_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_enforced?: boolean
+          is_sensitive?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          module_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_permissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "sec_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_scope_values: {
+        Row: {
+          created_at: string
+          id: string
+          role_scope_id: string
+          value_id: string | null
+          value_kind: string
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_scope_id: string
+          value_id?: string | null
+          value_kind: string
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_scope_id?: string
+          value_id?: string | null
+          value_kind?: string
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_scope_values_role_scope_id_fkey"
+            columns: ["role_scope_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_scopes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          module_id: string
+          role_id: string
+          scope_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id: string
+          role_id: string
+          scope_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id?: string
+          role_id?: string
+          scope_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_scopes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_scopes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "sec_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_scopes_scope_type_id_fkey"
+            columns: ["scope_type_id"]
+            isOneToOne: false
+            referencedRelation: "sec_scope_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_template_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_template_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_template_permissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_templates: {
+        Row: {
+          created_at: string
+          dashboard_tier: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          name: string
+          role_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dashboard_tier?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          name: string
+          role_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dashboard_tier?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          name?: string
+          role_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sec_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dashboard_tier: string | null
+          description: string | null
+          id: string
+          is_break_glass: boolean
+          is_system: boolean
+          key: string
+          name: string
+          role_category: string | null
+          role_type: string
+          status: string
+          system_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_tier?: string | null
+          description?: string | null
+          id?: string
+          is_break_glass?: boolean
+          is_system?: boolean
+          key: string
+          name: string
+          role_category?: string | null
+          role_type?: string
+          status?: string
+          system_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_tier?: string | null
+          description?: string | null
+          id?: string
+          is_break_glass?: boolean
+          is_system?: boolean
+          key?: string
+          name?: string
+          role_category?: string | null
+          role_type?: string
+          status?: string
+          system_role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sec_routes: {
+        Row: {
+          audience: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_protected: boolean
+          is_system: boolean
+          key: string
+          match_type: string
+          path_pattern: string
+          priority: number
+          required_permission_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_protected?: boolean
+          is_system?: boolean
+          key: string
+          match_type?: string
+          path_pattern: string
+          priority?: number
+          required_permission_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_protected?: boolean
+          is_system?: boolean
+          key?: string
+          match_type?: string
+          path_pattern?: string
+          priority?: number
+          required_permission_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_routes_required_permission_id_fkey"
+            columns: ["required_permission_id"]
+            isOneToOne: false
+            referencedRelation: "sec_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_scope_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_enforced: boolean
+          is_system: boolean
+          key: string
+          label: string
+          requires_values: boolean
+          sort_order: number
+          updated_at: string
+          value_kind: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_enforced?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          requires_values?: boolean
+          sort_order?: number
+          updated_at?: string
+          value_kind?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_enforced?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          requires_values?: boolean
+          sort_order?: number
+          updated_at?: string
+          value_kind?: string | null
+        }
+        Relationships: []
+      }
+      sec_user_roles: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          effective_from: string
+          effective_until: string | null
+          id: string
+          role_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          role_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          id?: string
+          role_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "sec_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sectors: {
         Row: {
           created_at: string
@@ -27930,6 +28634,32 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      sec_can_access_path: {
+        Args: { p_path: string; p_user_id: string }
+        Returns: boolean
+      }
+      sec_get_user_context: { Args: never; Returns: Json }
+      sec_has_permission: {
+        Args: { p_action: string; p_module: string; p_user_id: string }
+        Returns: boolean
+      }
+      sec_route_for_path: {
+        Args: { p_path: string }
+        Returns: {
+          action_key: string
+          audience: string
+          is_protected: boolean
+          module_key: string
+          route_key: string
+        }[]
+      }
+      sec_user_permissions: {
+        Args: { p_user_id: string }
+        Returns: {
+          action_key: string
+          module_key: string
+        }[]
       }
       seed_external_portal_defaults: {
         Args: {
