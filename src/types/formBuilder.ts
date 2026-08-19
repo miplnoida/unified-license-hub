@@ -93,6 +93,13 @@ export interface FormSection {
   sortOrder: number;
   isRepeatable: boolean;
   /**
+   * Admin-controlled static visibility. `undefined` / `true` = visible (so all
+   * pre-existing schemas stay visible), `false` = excluded from the applicant
+   * form, navigation, validation, progress and review. Field `required` flags
+   * are preserved so restoring visibility restores the original rules.
+   */
+  isVisible?: boolean;
+  /**
    * Source of truth for layout. Each row holds `columns` slots (1..4) where
    * each slot is either a FormField or null (empty placeholder).
    */

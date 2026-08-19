@@ -90,6 +90,12 @@ export interface RegStep {
   isRepeatable?: boolean;
   /** Label shown above each repeated entry (e.g. "Qualification"). Defaults to the step title. */
   repeatLabel?: string;
+  /**
+   * Admin-controlled static visibility. `undefined` / `true` = shown to the
+   * applicant, `false` = excluded from the public registration flow, stepper
+   * and validation while remaining fully editable in the builder.
+   */
+  isVisible?: boolean;
 }
 
 
