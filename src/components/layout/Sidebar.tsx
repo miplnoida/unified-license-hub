@@ -231,6 +231,21 @@ export function Sidebar() {
     return true;
   };
 
+  /**
+   * Recursively prunes the tree to what the user may see. Groups collapse away
+   * when none of their descendants survive, so empty domains never render.
+   */
+  const pruneItem = (item: NavItem): NavItem | null => {
+    if (!isItemVisible(item)) return null;
+    if (item.children?.length) {
+      const kids = item.children.map(pruneItem).filter((c): c is NavItem => !!c);
+      return kids.length ? { ...item, children: kids } : null;
+    }
+    return item;
+  };
+
+
+
   // Mobile: hamburger button rendered outside sidebar
   if (isMobile) {
     return (
