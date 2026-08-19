@@ -371,3 +371,56 @@ function findFirstFieldMatch(
   return null;
 }
 
+
+/**
+ * Resolves the email address that becomes the account login for the
+ * registration. Priority:
+ *   1. The email field that sits on the same schema step as the password field
+ *      (the account credentials pair) — this is the login email by definition.
+ *   2. The field flagged as the primary email by `isPrimaryEmailField`.
+ *   3. The legacy `resolveRegistrationEmail` fallback (static forms / old schemas).
+ * Always returns a trimmed, lowercased string (or '').
+ */
+export function resolveRegistrationLoginEmail(
+  staticEmail: string | undefined,
+  dynamicData: Record<string, unknown>,
+  schema?: RegFormSchema | null,
+): string {
+  const pick = (fieldName?: string): string => {
+    if (!fieldName) return '';
+    const v = dynamicData[fieldName];
+    return typeof v === 'string' ? v.trim().toLowerCase() : '';
+  };
+
+  if (schema) {
+    // 1. Credentials pair: an email field on the same step as a password field.
+    for (const step of schema) {
+      const fields = step.rows.flatMap(r =>
+        r.columns.map(c => c.field).filter((f): f is RegField => !!f),
+      );
+      const hasPassword = fields.some(isRegistrationPasswordField);
+      if (!hasPassword) continue;
+      const emailField = fields.find(isRegistrationEmailField);
+      const value = pick(emailField?.fieldName);
+      if (value) return value;
+      // Credentials step found but no value yet — keep the field authoritative
+      // so we never fall back to an unrelated email on another step.
+      if (emailField) return '';
+    }
+
+    // 2. Explicit primary-email field.
+    for (const step of schema) {
+      for (const row of step.rows) {
+        for (const col of row.columns) {
+          if (isPrimaryEmailField(col.field)) {
+            const value = pick(col.field?.fieldName);
+            if (value) return value;
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Legacy behaviour.
+  return resolveRegistrationEmail(staticEmail, dynamicData, schema);
+}
