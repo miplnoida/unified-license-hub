@@ -70,6 +70,8 @@ interface ConfigRow {
   require_documents: boolean;
   otp_visible_to_applicant: boolean;
   captcha_visible_to_applicant: boolean;
+  documents_section_visible: boolean;
+  declarations_section_visible: boolean;
   terms_url: string;
   privacy_url: string;
   data_protection_url: string;
@@ -92,6 +94,8 @@ const emptyConfig: Omit<ConfigRow, 'id'> = {
   require_documents: true,
   otp_visible_to_applicant: true,
   captcha_visible_to_applicant: true,
+  documents_section_visible: true,
+  declarations_section_visible: true,
   terms_url: '',
   privacy_url: '',
   data_protection_url: '',
@@ -254,6 +258,8 @@ export default function RegistrationFormBuilder() {
       form_schema: (c.form_schema as any) || [],
       otp_visible_to_applicant: (c as any).otp_visible_to_applicant !== false,
       captcha_visible_to_applicant: (c as any).captcha_visible_to_applicant !== false,
+      documents_section_visible: (c as any).documents_section_visible !== false,
+      declarations_section_visible: (c as any).declarations_section_visible !== false,
     })));
 
     setSectors(secRes.data || []);
@@ -299,6 +305,8 @@ export default function RegistrationFormBuilder() {
       require_documents: form.require_documents,
       otp_visible_to_applicant: form.otp_visible_to_applicant,
       captcha_visible_to_applicant: form.captcha_visible_to_applicant,
+      documents_section_visible: form.documents_section_visible,
+      declarations_section_visible: form.declarations_section_visible,
       terms_url: '',
       privacy_url: '',
       data_protection_url: '',
@@ -409,6 +417,8 @@ export default function RegistrationFormBuilder() {
         requireDocuments: form.require_documents,
         otpVisible: form.otp_visible_to_applicant,
         captchaVisible: form.captcha_visible_to_applicant,
+        documentsSectionVisible: form.documents_section_visible,
+        declarationsSectionVisible: form.declarations_section_visible,
         emailVerificationStepId: form.email_verification_step_id,
 
       });
@@ -696,8 +706,27 @@ export default function RegistrationFormBuilder() {
               {/* Document Types */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2"><Upload className="h-4 w-4" /> Required Document Types</CardTitle>
-                  <CardDescription>Define what documents applicants must upload.</CardDescription>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Upload className="h-4 w-4" /> Required Document Types
+                        {form.documents_section_visible === false && <Badge variant="secondary">Hidden</Badge>}
+                      </CardTitle>
+                      <CardDescription>Define what documents applicants must upload.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={form.documents_section_visible}
+                        onCheckedChange={v => setForm(p => ({ ...p, documents_section_visible: v }))}
+                      />
+                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                    </div>
+                  </div>
+                  {form.documents_section_visible === false && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      The Supporting Documents step is hidden from applicants. Rows below stay editable.
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {form.document_types.map((doc, idx) => (
@@ -740,8 +769,27 @@ export default function RegistrationFormBuilder() {
               {/* Declarations */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2"><CheckSquare className="h-4 w-4" /> Declaration Checkboxes</CardTitle>
-                  <CardDescription>Configure what the applicant must agree to before submitting.</CardDescription>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <CheckSquare className="h-4 w-4" /> Declaration Checkboxes
+                        {form.declarations_section_visible === false && <Badge variant="secondary">Hidden</Badge>}
+                      </CardTitle>
+                      <CardDescription>Configure what the applicant must agree to before submitting.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={form.declarations_section_visible}
+                        onCheckedChange={v => setForm(p => ({ ...p, declarations_section_visible: v }))}
+                      />
+                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                    </div>
+                  </div>
+                  {form.declarations_section_visible === false && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      The Declarations step is hidden from applicants. Rows below stay editable.
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {form.declarations.map((decl, idx) => (

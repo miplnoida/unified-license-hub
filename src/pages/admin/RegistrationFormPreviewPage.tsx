@@ -20,7 +20,7 @@ export default function RegistrationFormPreviewPage() {
         if (configId) {
           const { data: config, error } = await supabase
             .from('registration_form_configs')
-            .select('name, form_schema, document_types, declarations, require_otp, require_captcha, require_documents, email_verification_step_id')
+            .select('name, form_schema, document_types, declarations, require_otp, require_captcha, require_documents, documents_section_visible, declarations_section_visible, otp_visible_to_applicant, captcha_visible_to_applicant, email_verification_step_id')
             .eq('id', configId)
             .maybeSingle();
 
@@ -37,6 +37,10 @@ export default function RegistrationFormPreviewPage() {
             requireOtp: !!config.require_otp,
             requireCaptcha: !!config.require_captcha,
             requireDocuments: !!config.require_documents,
+            otpVisible: (config as { otp_visible_to_applicant?: boolean | null }).otp_visible_to_applicant !== false,
+            captchaVisible: (config as { captcha_visible_to_applicant?: boolean | null }).captcha_visible_to_applicant !== false,
+            documentsSectionVisible: (config as { documents_section_visible?: boolean | null }).documents_section_visible !== false,
+            declarationsSectionVisible: (config as { declarations_section_visible?: boolean | null }).declarations_section_visible !== false,
             emailVerificationStepId: config.email_verification_step_id ?? null,
           });
           setMissing(false);
@@ -100,6 +104,10 @@ export default function RegistrationFormPreviewPage() {
             requireOtp={data.requireOtp}
             requireCaptcha={data.requireCaptcha}
             requireDocuments={data.requireDocuments}
+            otpVisible={data.otpVisible}
+            captchaVisible={data.captchaVisible}
+            documentsSectionVisible={data.documentsSectionVisible}
+            declarationsSectionVisible={data.declarationsSectionVisible}
             emailVerificationStepId={data.emailVerificationStepId}
           />
         </fieldset>
