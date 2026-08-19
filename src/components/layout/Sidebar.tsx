@@ -364,7 +364,7 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-3" ref={navRef}>
         <nav className="py-3 space-y-5">
           {navSections.map((section) => {
-            const visibleItems = section.items.filter(isItemVisible);
+            const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
             if (visibleItems.length === 0) return null;
             return (
               <div key={section.label || 'main'}>
@@ -376,12 +376,10 @@ export function Sidebar() {
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
                     if (item.children?.length) {
-                      const visibleChildren = item.children.filter(isItemVisible);
-                      if (!visibleChildren.length) return null;
                       return (
                         <CollapsibleNavItem
                           key={item.label}
-                          item={{ ...item, children: visibleChildren }}
+                          item={item}
                           collapsed={collapsed}
                           expandedGroups={expandedGroups}
                           toggleGroup={toggleGroup}
@@ -389,6 +387,7 @@ export function Sidebar() {
                         />
                       );
                     }
+
                     if (!item.href) return null;
                     const isActive = location.pathname === item.href;
                     return (
