@@ -396,6 +396,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
 
+  // A stale persisted step index (or a config change that drops a step) must
+  // never leave the applicant on a step that no longer exists.
+  useEffect(() => {
+    if (STEP_COUNT === 0) return;
+    if (currentStep > STEP_COUNT - 1) setCurrentStep(STEP_COUNT - 1);
+  }, [STEP_COUNT, currentStep]);
+
+
 
   /** True when the OTP block belongs on the step at `index`. */
   const isEmailVerificationStep = useCallback((index: number) => {
