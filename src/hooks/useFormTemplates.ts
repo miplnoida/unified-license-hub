@@ -58,6 +58,7 @@ export interface FormFieldRow {
   section_order: number;
   section_description: string | null;
   section_is_repeatable: boolean;
+  section_is_visible?: boolean;
   field_type: string;
   label: string;
   field_name: string;
@@ -120,6 +121,7 @@ function sectionsToFieldRows(
         section_order: section.sortOrder,
         section_description: section.description || null,
         section_is_repeatable: section.isRepeatable,
+        section_is_visible: section.isVisible !== false,
         field_type: f.type,
         label: f.label,
         field_name: f.fieldName,
@@ -178,6 +180,7 @@ function fieldRowsToSections(
         description: row.section_description || undefined,
         sortOrder: row.section_order,
         isRepeatable: row.section_is_repeatable,
+        isVisible: row.section_is_visible !== false,
         fields: [],
       });
     }

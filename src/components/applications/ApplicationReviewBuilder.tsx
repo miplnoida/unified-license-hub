@@ -6,6 +6,7 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 import { deepEqualField, diffRepeatable, type DiffPair } from '@/lib/formDiff';
+import { isSectionConfiguredVisible } from '@/lib/sectionVisibility';
 
 interface TemplateLite {
   id: string;
@@ -73,6 +74,8 @@ function ReviewBuilderInner({
       secs.forEach((sec: FormSection) => {
         const fields: ReviewFieldEntry[] = [];
 
+        // Admin-hidden sections never appear in the review summary.
+        if (!isSectionConfiguredVisible(sec)) return;
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
 
         (sec.fields || []).forEach((f: FormField) => {

@@ -17,6 +17,7 @@ import {
   resolveEmailVerificationPlacement,
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
+import { visibleRegSteps } from '@/lib/sectionVisibility';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
@@ -117,6 +118,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const effectiveRequireCaptcha =
     (config?.requireCaptcha ?? true) && (captchaRuntime?.globallyEnabled ?? false);
 
+  // Steps the admin marked hidden never reach the applicant: they are excluded
+  // from navigation, validation, progress and the review summary. Any data
+  // already captured for them is preserved untouched.
+  const visibleSchema = useMemo(
+    () => visibleRegSteps(config?.formSchema),
+    [config?.formSchema],
+  );
+
+
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const saved = sessionStorage.getItem(STEP_KEY);
@@ -214,15 +224,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
   const effectiveEmail = useMemo(
-    () => resolveRegistrationEmail(form.email, dynamicFormData, config?.formSchema),
-    [form.email, dynamicFormData, config?.formSchema],
+    () => resolveRegistrationEmail(form.email, dynamicFormData, visibleSchema),
+    [form.email, dynamicFormData, visibleSchema],
   );
 
   // Dynamic Applicant Name uniqueness (resolved from form schema metadata)
-  const applicantNameCheck = useApplicantNameUniqueness(config?.formSchema, dynamicFormData);
+  const applicantNameCheck = useApplicantNameUniqueness(visibleSchema, dynamicFormData);
 
   // Surface uniqueness errors inline on the resolved fields (applicant name + primary email)
-  const emailUniquenessPreview = usePrimaryUserEmailUniqueness(effectiveEmail, config?.formSchema);
+  const emailUniquenessPreview = usePrimaryUserEmailUniqueness(effectiveEmail, visibleSchema);
   const primaryEmailFieldName = emailUniquenessPreview.fieldName;
   const dynamicErrorsWithUniqueness = useMemo(() => {
     const next = { ...dynamicErrors };
@@ -303,8 +313,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const steps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
 
-    if (config?.formSchema && config.formSchema.length > 0) {
-      config.formSchema.forEach((regStep) => {
+    if (visibleSchema.length > 0) {
+      visibleSchema.forEach((regStep) => {
         result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
       });
     } else {
@@ -556,7 +566,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     // If the dynamic schema owns sector selection, don't block "Next" on
     // earlier steps — validateDynamicStep will enforce required-ness on the
     // Sector step itself.
-    const dynamicOwnsSector = (config?.formSchema || []).some(st =>
+    const dynamicOwnsSector = (visibleSchema || []).some(st =>
       st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))
     );
     if (dynamicOwnsSector) return true;
@@ -569,7 +579,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       return false;
     }
     return true;
-  }, [form.sectorId, form.subSectorId, form.categoryId, dynamicFormData, config?.formSchema]);
+  }, [form.sectorId, form.subSectorId, form.categoryId, dynamicFormData, visibleSchema]);
 
 
   const emailUniqueness = emailUniquenessPreview;
@@ -887,14 +897,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setSubmitting(true);
     try {
       const latestDynamicFormData = dynamicFormDataRef.current;
-      const emailVal = resolveRegistrationEmail(form.email, latestDynamicFormData, config?.formSchema);
-      const passwordVal = resolveRegistrationPassword(form.password, latestDynamicFormData, config?.formSchema);
-      const firstNameVal = resolveRegistrationFirstName(form.firstName, latestDynamicFormData, config?.formSchema);
-      const lastNameVal = resolveRegistrationLastName(form.lastName, latestDynamicFormData, config?.formSchema);
+      const emailVal = resolveRegistrationEmail(form.email, latestDynamicFormData, visibleSchema);
+      const passwordVal = resolveRegistrationPassword(form.password, latestDynamicFormData, visibleSchema);
+      const firstNameVal = resolveRegistrationFirstName(form.firstName, latestDynamicFormData, visibleSchema);
+      const lastNameVal = resolveRegistrationLastName(form.lastName, latestDynamicFormData, visibleSchema);
       const applicantNameVal = resolveRegistrationApplicantName(
         form.applicantName,
         latestDynamicFormData,
-        config?.formSchema,
+        visibleSchema,
         applicantNameCheck.fieldName,
       );
 
@@ -903,7 +913,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         let targetStepIndex = -1;
 
         if (!emailVal) {
-          const emailField = config?.formSchema
+          const emailField = visibleSchema
             ?.flatMap((step, stepIndex) => step.rows.flatMap(row => row.columns.map(col => ({ field: col.field, stepIndex }))))
             .find(({ field }) => isRegistrationEmailField(field));
           if (emailField?.field?.fieldName) {
@@ -913,7 +923,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         }
 
         if (!passwordVal) {
-          const passwordField = config?.formSchema
+          const passwordField = visibleSchema
             ?.flatMap((step, stepIndex) => step.rows.flatMap(row => row.columns.map(col => ({ field: col.field, stepIndex }))))
             .find(({ field }) => isRegistrationPasswordField(field));
           if (passwordField?.field?.fieldName) {
@@ -937,7 +947,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         const missingLabels: string[] = [];
 
         if (!firstNameVal) {
-          const match = findRegistrationFirstNameField(config?.formSchema);
+          const match = findRegistrationFirstNameField(visibleSchema);
           if (match?.field?.fieldName) {
             identityErrors[match.field.fieldName] = `${match.field.label || 'First name'} is required`;
             if (targetStepIndex < 0) targetStepIndex = match.stepIndex;
@@ -945,7 +955,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           missingLabels.push('first name');
         }
         if (!lastNameVal) {
-          const match = findRegistrationLastNameField(config?.formSchema);
+          const match = findRegistrationLastNameField(visibleSchema);
           if (match?.field?.fieldName) {
             identityErrors[match.field.fieldName] = `${match.field.label || 'Last name'} is required`;
             if (targetStepIndex < 0) targetStepIndex = match.stepIndex;
@@ -953,7 +963,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           missingLabels.push('last name');
         }
         if (!applicantNameVal) {
-          const match = findRegistrationApplicantNameField(config?.formSchema);
+          const match = findRegistrationApplicantNameField(visibleSchema);
           const fieldName = match?.field?.fieldName || applicantNameCheck.fieldName;
           if (fieldName) {
             identityErrors[fieldName] = `${match?.field?.label || 'Applicant name'} is required`;
@@ -1172,14 +1182,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
   };
 
-  const resolveReviewValue = useReviewValueResolver(config?.formSchema, dynamicFormData as Record<string, unknown>);
+  const resolveReviewValue = useReviewValueResolver(visibleSchema, dynamicFormData as Record<string, unknown>);
 
   function buildReviewSections() {
     type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string };
     const sections: { title: string; fields: RF[] }[] = [];
 
-    if (config?.formSchema && config.formSchema.length > 0) {
-      config.formSchema.forEach((s) => {
+    if (visibleSchema.length > 0) {
+      visibleSchema.forEach((s) => {
         const fields: RF[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
@@ -1390,7 +1400,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             sector fields (avoids duplicating sector selection). */}
         {currentStep === 0
           && !steps.some(s => s.type === 'static' && s.id === 'entity')
-          && !(config?.formSchema || []).some(st => st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))) && (
+          && !(visibleSchema || []).some(st => st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))) && (
           <div className="mb-6">
             <SectorSelectionSection
               sectorId={form.sectorId}

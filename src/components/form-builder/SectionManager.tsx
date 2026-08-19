@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import {
   GripVertical, Plus, Trash2, Copy, ChevronDown, ChevronRight,
-  Repeat, Settings2, Rows3,
+  Repeat, Settings2, Rows3, EyeOff,
 } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormSection, FormField, FormRow, FieldType } from '@/types/formBuilder';
@@ -247,6 +247,12 @@ export function SectionManager({
                   </Badge>
                 )}
 
+                {section.isVisible === false && (
+                  <Badge variant="outline" className="text-[10px] gap-1 border-destructive/40 text-destructive">
+                    <EyeOff className="h-3 w-3" /> Hidden
+                  </Badge>
+                )}
+
                 <Badge variant="secondary" className="text-[10px] ml-auto">
                   {rows.length} rows · {section.fields.length} fields
                 </Badge>
@@ -267,6 +273,18 @@ export function SectionManager({
                     <div className="flex items-center justify-between">
                       <Label className="text-xs">Repeatable</Label>
                       <Switch checked={section.isRepeatable} onCheckedChange={val => handleUpdateSection(section.id, { isRepeatable: val })} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Visible to applicant</Label>
+                        <Switch
+                          checked={section.isVisible !== false}
+                          onCheckedChange={val => handleUpdateSection(section.id, { isVisible: val })}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Hidden sections are skipped in the applicant form, validation and review. Existing answers are kept.
+                      </p>
                     </div>
                   </PopoverContent>
                 </Popover>

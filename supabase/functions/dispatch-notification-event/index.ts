@@ -20,6 +20,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
+import { loadEmailBranding, detailsFromVars } from "../_shared/email-branding.ts";
 import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 import { SMS_UNAVAILABLE_REASON } from "../_shared/smsProvider.ts";
@@ -1223,13 +1224,20 @@ Deno.serve(async (req) => {
       // FRD: every audit row must state whether a published template was used or
       // whether the built-in emergency wording had to be substituted.
       const usedFallbackFor = (channel: string): boolean => !templateForChannel(channel);
+      const emailBranding = await loadEmailBranding(admin);
       const emailHtml = renderBrandedEmail({
-        appName: String(vars.app_name || "Unified License Hub"),
+        appName: String(vars.app_name || emailBranding.appName),
+        logoUrl: emailBranding.logoUrl,
+        tagline: emailBranding.tagline,
+        brandColor: emailBranding.brandColor,
         heading: emailSubject,
         paragraphs: emailBody ? emailBody.split(/\n{2,}/) : [],
+        details: detailsFromVars(vars as Record<string, unknown>),
         ctaUrl: typeof vars.cta_url === "string" ? vars.cta_url : "",
         ctaLabel: typeof vars.cta_label === "string" ? vars.cta_label : "Open Portal",
-        supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
+        supportEmail: typeof vars.support_email === "string" && vars.support_email ? vars.support_email : emailBranding.supportEmail,
+        supportPhone: emailBranding.supportPhone,
+        footerText: emailBranding.footerText || undefined,
       });
 
       const severity = classifySeverity(event_key, dispatchCfg.cfg.notification_type);

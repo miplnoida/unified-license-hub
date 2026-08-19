@@ -9844,6 +9844,7 @@ export type Database = {
           section_description: string | null
           section_id: string
           section_is_repeatable: boolean
+          section_is_visible: boolean
           section_order: number
           section_title: string
           sort_order: number
@@ -9868,6 +9869,7 @@ export type Database = {
           section_description?: string | null
           section_id: string
           section_is_repeatable?: boolean
+          section_is_visible?: boolean
           section_order?: number
           section_title?: string
           sort_order?: number
@@ -9892,6 +9894,7 @@ export type Database = {
           section_description?: string | null
           section_id?: string
           section_is_repeatable?: boolean
+          section_is_visible?: boolean
           section_order?: number
           section_title?: string
           sort_order?: number

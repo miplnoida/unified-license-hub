@@ -1,0 +1,1 @@
+ALTER TABLE public.form_fields ADD COLUMN IF NOT EXISTS section_is_visible BOOLEAN NOT NULL DEFAULT true;
