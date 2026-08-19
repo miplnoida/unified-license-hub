@@ -207,23 +207,25 @@ export function ReviewAcknowledgement({
             </CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <div className="min-w-[190px] space-y-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">Completion</span>
-              <span className="text-lg font-semibold tabular-nums text-foreground">{completion}%</span>
+          {showCompletionSummary && (
+            <div className="min-w-[190px] space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">Completion</span>
+                <span className="text-lg font-semibold tabular-nums text-foreground">{completion}%</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span>{sections.length} sections</span>
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                <span>{totalFilled} of {totalFields} fields captured</span>
+              </div>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${completion}%` }}
-              />
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span>{sections.length} sections</span>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-              <span>{totalFilled} of {totalFields} fields captured</span>
-            </div>
-          </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-5 pt-6">
