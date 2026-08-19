@@ -8,6 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
+import { loadEmailBranding, detailsFromVars } from "../_shared/email-branding.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {

@@ -15,6 +15,7 @@ import { requireWorkerInvocationAsync } from "../_shared/workerAuth.ts";
 import { enqueueNotificationEvent } from "../_shared/notification-dispatch.ts";
 import { isHardFailure, redact } from "../_shared/notification-redact.ts";
 import { renderBrandedEmail } from "../_shared/email-layout.ts";
+import { loadEmailBranding, detailsFromVars } from "../_shared/email-branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,13 +62,20 @@ Deno.serve(async (req) => {
     const vars = (row.payload?.vars as Record<string, any>) || {};
     const subject = row.subject || row.event_key;
     const body = row.rendered_content || "";
+    const branding = await loadEmailBranding(admin);
     const html = renderBrandedEmail({
-      appName: String(vars.app_name || "Unified License Hub"),
+      appName: String(vars.app_name || branding.appName),
+      logoUrl: branding.logoUrl,
+      tagline: branding.tagline,
+      brandColor: branding.brandColor,
       heading: subject,
       paragraphs: body ? body.split(/\n{2,}/) : [],
+      details: detailsFromVars(vars as Record<string, unknown>),
       ctaUrl: typeof vars.cta_url === "string" ? vars.cta_url : "",
       ctaLabel: typeof vars.cta_label === "string" ? vars.cta_label : "Open Portal",
-      supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
+      supportEmail: typeof vars.support_email === "string" && vars.support_email ? vars.support_email : branding.supportEmail,
+      supportPhone: branding.supportPhone,
+      footerText: branding.footerText || undefined,
     });
 
     try {
