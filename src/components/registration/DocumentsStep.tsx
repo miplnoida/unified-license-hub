@@ -77,6 +77,9 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
   const selectedConfig = effectiveTypes?.find(d => d.label === selectedLabel);
   const selectedKey = documentKey(selectedLabel || labels[0] || 'document');
   const existingDoc = documents.find(d => (d.documentKey || documentKey(d.label)) === selectedKey);
+  // An explicitly configured but fully hidden list means the applicant has
+  // nothing to upload — render nothing rather than an empty type dropdown.
+  const hasNothingToUpload = !!effectiveTypes && effectiveTypes.length === 0;
 
 
   useEffect(() => {
@@ -191,6 +194,8 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
     if (download) a.download = doc.name;
     a.click();
   };
+
+  if (hasNothingToUpload) return null;
 
   return (
     <div className="space-y-6">

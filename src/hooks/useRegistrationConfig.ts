@@ -35,6 +35,11 @@ export interface RegistrationConfig {
   otpVisible: boolean;
   /** Whether the CAPTCHA block is shown to the applicant. */
   captchaVisible: boolean;
+  /** Whether the whole Supporting Documents section is shown to the applicant. */
+  documentsSectionVisible: boolean;
+  /** Whether the whole Declarations section is shown to the applicant. */
+  declarationsSectionVisible: boolean;
+
   termsUrl: string;
   privacyUrl: string;
   dataProtectionUrl: string;
@@ -160,6 +165,9 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
         requireOtp: best.require_otp,
         otpVisible: (best as { otp_visible_to_applicant?: boolean | null }).otp_visible_to_applicant !== false,
         captchaVisible: (best as { captcha_visible_to_applicant?: boolean | null }).captcha_visible_to_applicant !== false,
+        documentsSectionVisible: (best as { documents_section_visible?: boolean | null }).documents_section_visible !== false,
+        declarationsSectionVisible: (best as { declarations_section_visible?: boolean | null }).declarations_section_visible !== false,
+
 
         requireCaptcha: best.require_captcha,
         requireDocuments: best.require_documents,

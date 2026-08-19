@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
       require_captcha: boolean | null;
       otp_visible_to_applicant: boolean | null;
       captcha_visible_to_applicant: boolean | null;
+      declarations_section_visible: boolean | null;
       declarations: unknown;
     };
 
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
       const { data: configs } = await supabaseAdmin
         .from("registration_form_configs")
         .select(
-          "sector_id, sub_sector_id, category_id, is_default, require_otp, require_captcha, otp_visible_to_applicant, captcha_visible_to_applicant, declarations",
+          "sector_id, sub_sector_id, category_id, is_default, require_otp, require_captcha, otp_visible_to_applicant, captcha_visible_to_applicant, declarations_section_visible, declarations",
         )
         .eq("is_active", true);
 
@@ -72,12 +73,16 @@ Deno.serve(async (req) => {
     const otpEnforced = (regConfig?.require_otp ?? true) && otpVisible;
     const captchaEnforced = (regConfig?.require_captcha ?? true) && captchaVisible;
 
+    const declarationsSectionVisible = regConfig?.declarations_section_visible !== false;
     const configuredDeclarations = Array.isArray(regConfig?.declarations)
       ? (regConfig!.declarations as Array<{ required?: boolean; visible?: boolean }>)
       : null;
-    const declarationsEnforced = configuredDeclarations && configuredDeclarations.length > 0
-      ? configuredDeclarations.some(d => d?.required === true && d?.visible !== false)
-      : true;
+    // A hidden section means no declaration can be shown, so none are enforced.
+    const declarationsEnforced = !declarationsSectionVisible
+      ? false
+      : configuredDeclarations && configuredDeclarations.length > 0
+        ? configuredDeclarations.some(d => d?.required === true && d?.visible !== false)
+        : true;
 
     // ── Server-side CAPTCHA enforcement ──
     // A client-sent boolean is never trusted. When CAPTCHA is globally enabled the
