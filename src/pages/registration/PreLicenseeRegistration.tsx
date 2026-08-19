@@ -116,8 +116,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // When enabled-but-unconfigured the widget blocks submission (no checkbox fallback).
   // An admin-hidden control is never shown nor enforced on the applicant side.
   const { data: captchaRuntime } = useCaptchaRuntime();
-  const captchaVisible = config?.captchaVisibleToApplicant !== false;
-  const otpVisible = config?.otpVisibleToApplicant !== false;
+  const captchaVisible = config?.captchaVisible !== false;
+  const otpVisible = config?.otpVisible !== false;
+
   const effectiveRequireCaptcha =
     (config?.requireCaptcha ?? true) && captchaVisible && (captchaRuntime?.globallyEnabled ?? false);
 
