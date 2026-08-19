@@ -221,6 +221,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     clearPersistedStep();
     setCurrentStep(0);
     setCompletedSteps(new Set());
+    setMaxVisitedStep(0);
     setDynamicFormData({});
     setDynamicErrors({});
     reset();
@@ -1502,9 +1503,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           steps={steps.map(s => s.label)}
           currentStep={currentStep}
           completedSteps={completedSteps}
+          maxVisitedStep={maxVisitedStep}
           onStepClick={(idx) => {
-            // Allow jumping back to any previously completed/visited step
-            if (idx < currentStep || completedSteps.has(idx)) {
+            // Allow jumping to any step the user has already reached
+            if (idx <= Math.max(maxVisitedStep, currentStep)) {
               setCurrentStep(idx);
             }
           }}
