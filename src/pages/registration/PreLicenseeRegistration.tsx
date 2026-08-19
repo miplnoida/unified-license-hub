@@ -327,18 +327,33 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       result.push({ id: 'user', label: 'Primary User', type: 'static' });
     }
 
-    if (!config || config.requireDocuments) {
+    // A step whose every item is hidden by the admin is skipped entirely.
+    const shownDocTypes = config?.documentTypes
+      ? config.documentTypes.filter(isItemVisible)
+      : undefined;
+    const documentsStepHasContent = !shownDocTypes || shownDocTypes.length > 0;
+    if ((!config || config.requireDocuments) && documentsStepHasContent) {
       result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
     }
 
-    result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
+    const shownDeclarations = config?.declarations && config.declarations.length > 0
+      ? config.declarations.filter(isItemVisible)
+      : null;
+    const declarationsStepHasContent =
+      shownDeclarations === null
+      || shownDeclarations.length > 0
+      || ((config?.requireOtp ?? true) && otpVisible)
+      || effectiveRequireCaptcha;
+    if (declarationsStepHasContent) {
+      result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
+    }
 
     if (reviewEnabled) {
       result.push({ id: 'review', label: 'Review & Submit', type: 'review' as any });
     }
 
     return result;
-  }, [config, reviewEnabled]);
+  }, [config, reviewEnabled, visibleSchema, otpVisible, effectiveRequireCaptcha]);
 
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
@@ -349,7 +364,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     () => resolveEmailVerificationPlacement(config?.emailVerificationStepId, steps),
     [config?.emailVerificationStepId, steps],
   );
-  const requireOtp = config?.requireOtp ?? true;
+  // A hidden OTP control is neither rendered nor enforced.
+  const requireOtp = (config?.requireOtp ?? true) && otpVisible;
+
 
   /** True when the OTP block belongs on the step at `index`. */
   const isEmailVerificationStep = useCallback((index: number) => {
