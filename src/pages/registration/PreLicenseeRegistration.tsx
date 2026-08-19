@@ -1275,7 +1275,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'review':
         return (
           <ReviewAcknowledgement
-            mode={reviewSettings?.review_mode || 'readonly'}
+            /* Applicants are still pre-submission here, so sections stay editable. */
+            mode="editable"
             sections={buildReviewSections()}
             onAcknowledge={handleSubmit}
             onEdit={(idx) => {
