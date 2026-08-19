@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import {
   GripVertical, Plus, Trash2, Copy, ChevronDown, ChevronRight,
-  Repeat, Settings2, Rows3,
+  Repeat, Settings2, Rows3, EyeOff,
 } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormSection, FormField, FormRow, FieldType } from '@/types/formBuilder';
