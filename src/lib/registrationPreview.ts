@@ -12,7 +12,12 @@ export interface RegistrationPreviewPayload {
   otpVisible?: boolean;
   /** Whether the CAPTCHA block is shown to the applicant (defaults to true). */
   captchaVisible?: boolean;
+  /** Whether the whole documents section is shown (defaults to true). */
+  documentsSectionVisible?: boolean;
+  /** Whether the whole declarations section is shown (defaults to true). */
+  declarationsSectionVisible?: boolean;
   emailVerificationStepId?: string | null;
+
 
 }
 
