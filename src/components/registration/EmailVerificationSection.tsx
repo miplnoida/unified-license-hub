@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
+import { markEmailVerifiedLocally } from '@/lib/registrationEmailVerified';
 
 interface Props {
   form: RegistrationFormData;
@@ -12,10 +13,6 @@ interface Props {
   setField: (field: string, value: string | boolean) => void;
   /** Resolved verification email from parent (covers static + dynamic schemas). */
   verificationEmail?: string;
-}
-
-function verifiedEmailMarkerKey(email: string): string {
-  return `registrationEmailVerified:${email.trim().toLowerCase()}`;
 }
 
 /**
