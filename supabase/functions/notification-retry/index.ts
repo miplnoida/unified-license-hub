@@ -103,13 +103,20 @@ Deno.serve(async (req) => {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const branding = await loadEmailBranding(admin);
       const html = renderBrandedEmail({
-        appName: String(vars.app_name || 'Unified License Hub'),
+        appName: String(vars.app_name || branding.appName),
+        logoUrl: branding.logoUrl,
+        tagline: branding.tagline,
+        brandColor: branding.brandColor,
         heading: subject,
         paragraphs: body ? body.split(/\n{2,}/) : [],
+        details: detailsFromVars(vars as Record<string, unknown>),
         ctaUrl: typeof vars.cta_url === 'string' ? vars.cta_url : '',
         ctaLabel: typeof vars.cta_label === 'string' ? vars.cta_label : 'Open Portal',
-        supportEmail: typeof vars.support_email === 'string' ? vars.support_email : '',
+        supportEmail: typeof vars.support_email === 'string' && vars.support_email ? vars.support_email : branding.supportEmail,
+        supportPhone: branding.supportPhone,
+        footerText: branding.footerText || undefined,
       });
       // An operator-initiated resend clears the poison flag so the row can be
       // re-attempted, and marks it processing for the duration of the send.
