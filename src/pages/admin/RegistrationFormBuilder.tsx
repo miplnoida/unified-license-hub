@@ -777,8 +777,8 @@ export default function RegistrationFormBuilder() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                           <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder='Full label, e.g. "I agree to the Terms & Conditions"' />
-                          {decl.visible === false && <Badge variant="secondary">Hidden</Badge>}
                         </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <Input value={decl.linkLabel || ''} onChange={e => updateDeclaration(idx, 'linkLabel', e.target.value)} placeholder='Clickable text, e.g. "Terms & Conditions"' className="h-8 text-xs" />
                           <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (opens in new tab)" className="h-8 text-xs" />
