@@ -12,6 +12,7 @@ import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
 import { EmailVerificationSection } from '@/components/registration/EmailVerificationSection';
+import { useEmailVerificationStatus } from '@/hooks/useEmailVerificationStatus';
 import {
   BEFORE_SUBMISSION_PLACEMENT,
   resolveEmailVerificationPlacement,
