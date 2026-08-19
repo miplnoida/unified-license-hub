@@ -519,11 +519,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
     if (config?.declarations && config.declarations.length > 0) {
-      return config.declarations.map((d, idx) => ({
-        fieldKey: declFieldKey(d.label, idx),
-        label: d.label,
-        required: d.required,
-      }));
+      // Hidden declarations are never shown, so they can never be required.
+      return config.declarations
+        .map((d, idx) => ({
+          fieldKey: declFieldKey(d.label, idx),
+          label: d.label,
+          required: isEffectiveRequired(d),
+          visible: isItemVisible(d),
+        }))
+        .filter(d => d.visible);
     }
     // Hardcoded fallback
     return [
@@ -555,7 +559,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         if (useDynamic) {
           return validateDeclarations(
             effectiveDeclarations,
-            config?.requireOtp ?? true,
+            requireOtp,
             effectiveRequireCaptcha,
           );
         }
@@ -564,7 +568,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'documents':
         // Validate required document types
         if (config?.documentTypes) {
-          const requiredTypes = config.documentTypes.filter(dt => dt.required);
+          const requiredTypes = config.documentTypes.filter(isEffectiveRequired);
           const missingDocs = requiredTypes.filter(
             rt => !form.documents.some(d => d.label === rt.label)
           );
@@ -577,7 +581,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
@@ -1183,6 +1187,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             dataProtectionUrl={config?.dataProtectionUrl}
             requireOtp={requireOtp}
             requireCaptcha={effectiveRequireCaptcha}
+            otpVisible={otpVisible}
+            captchaVisible={captchaVisible}
             updateMode={isUpdateMode}
             emailVerificationPlacement={emailVerificationPlacement}
           />
