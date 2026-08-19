@@ -125,16 +125,21 @@ export function Sidebar() {
   }, [setExpandedGroups]);
 
   useEffect(() => {
-    navSections.forEach(section => {
-      section.items.forEach(item => {
-        if (item.children) {
-          const hasActive = item.children.some(c => c.href && location.pathname === c.href);
-          if (hasActive && !expandedGroups.includes(item.label)) {
-            setExpandedGroups(prev => [...prev, item.label]);
-          }
+    // Expand every ancestor group of the active route, at any depth.
+    const toExpand: string[] = [];
+    const walk = (items: NavItem[]) => {
+      items.forEach((item) => {
+        if (item.children?.length) {
+          if (hasActiveDescendant(item, location.pathname)) toExpand.push(item.label);
+          walk(item.children);
         }
       });
-    });
+    };
+    navSections.forEach((section) => walk(section.items));
+    if (toExpand.length) {
+      setExpandedGroups(prev => Array.from(new Set([...prev, ...toExpand])));
+    }
+
     // Auto-scroll sidebar to active item
     requestAnimationFrame(() => {
       const activeEl = navRef.current?.querySelector('[data-sidebar-active="true"]');
