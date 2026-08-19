@@ -61,6 +61,7 @@ export interface SecNavItem {
   keywords?: string[] | null;
   /** Server-evaluated permission decision for this item. */
   allowed: boolean;
+}
 
 
 export interface SecurityContext {
