@@ -661,7 +661,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       actionType,
       label: def?.label ?? actionType,
       requireComments: requiresRemarks,
-      requireSignature: !!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature,
+      // Signature capture is hidden from workflow actions (config untouched).
+      requireSignature: WORKFLOW_SIGNATURE_CAPTURE_ENABLED
+        && (!!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature),
     });
   };
 
