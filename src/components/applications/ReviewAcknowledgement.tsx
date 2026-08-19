@@ -178,137 +178,207 @@ export function ReviewAcknowledgement({
     );
   };
 
+  const countable = (section: ReviewSection) =>
+    section.fields.filter(f => !isDisplayOnlyReviewField(f));
+  const filledOf = (section: ReviewSection) =>
+    countable(section).filter(f => f.value != null && f.value !== '').length;
+
+  const totalFields = sections.reduce((n, s) => n + countable(s).length, 0);
+  const totalFilled = sections.reduce((n, s) => n + filledOf(s), 0);
+  const completion = totalFields === 0 ? 100 : Math.round((totalFilled / totalFields) * 100);
+
+  const isWideField = (field: ReviewField) => {
+    if (field.type === 'attachment' || isAttachmentValue(field.value)) return true;
+    if (field.tablePairs && field.tableColumns) return true;
+    if (typeof field.value === 'string' && (field.value.length > 60 || field.value.includes('\n'))) return true;
+    return false;
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-primary" />
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="border-border/80 shadow-sm">
+      <CardHeader className="border-b bg-muted/30 rounded-t-lg">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              {title}
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <div className="min-w-[190px] space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">Completion</span>
+              <span className="text-lg font-semibold tabular-nums text-foreground">{completion}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${completion}%` }}
+              />
+            </div>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span>{sections.length} sections</span>
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+              <span>{totalFilled} of {totalFields} fields captured</span>
+            </div>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Accordion type="multiple" defaultValue={sections.map((_, i) => `section-${i}`)}>
-          {sections.map((section, sIdx) => (
-            <AccordionItem key={sIdx} value={`section-${sIdx}`}>
-              <AccordionTrigger className="text-sm font-semibold">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  {section.title}
-                  <Badge variant="outline" className="text-[10px]">
-                    {section.fields.filter(f => !isDisplayOnlyReviewField(f) && f.value != null && f.value !== '').length}/{section.fields.filter(f => !isDisplayOnlyReviewField(f)).length} filled
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid gap-3 py-2">
-                  {section.fields.map((field, fIdx) => {
-                    if (isDisplayOnlyReviewField(field)) {
-                      return renderDisplayOnlyField(field, fIdx);
-                    }
-                    if (field.tablePairs && field.tableColumns) {
-                      return renderTableDiff(field, fIdx);
-                    }
-                    const changed = !!field.changed;
-                    const isAttachmentLike = field.type === 'attachment' || isAttachmentValue(field.value);
-                    const hasOriginal = field.originalValue != null && field.originalValue !== '';
-                    return (
-                      <div
-                        key={fIdx}
+      <CardContent className="space-y-5 pt-6">
+        <Accordion type="multiple" defaultValue={sections.map((_, i) => `section-${i}`)} className="space-y-3">
+          {sections.map((section, sIdx) => {
+            const total = countable(section).length;
+            const filled = filledOf(section);
+            const isComplete = total === 0 || filled === total;
+            return (
+              <AccordionItem
+                key={sIdx}
+                value={`section-${sIdx}`}
+                className="rounded-lg border bg-card px-0 overflow-hidden data-[state=open]:shadow-sm"
+              >
+                <div className="flex items-center gap-2 bg-muted/40 pr-2">
+                  <AccordionTrigger className="flex-1 px-3 py-3 text-sm font-semibold hover:no-underline">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 text-left">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[11px] font-semibold text-primary tabular-nums">
+                        {String(sIdx + 1).padStart(2, '0')}
+                      </span>
+                      <FileText className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">{section.title}</span>
+                      <Badge
+                        variant="outline"
                         className={
-                          changed
-                            ? 'grid grid-cols-1 md:grid-cols-3 gap-4 text-sm px-2 py-1.5 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30'
-                            : 'grid grid-cols-1 md:grid-cols-3 gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50'
+                          isComplete
+                            ? 'text-[10px] border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : 'text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                         }
                       >
-                        <span className="text-muted-foreground md:col-span-1 flex items-start gap-2 flex-wrap">
-                          {field.label}
-                          {changed && (
-                            <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">
-                              Changed
-                            </Badge>
-                          )}
-                        </span>
-                        <div className="md:col-span-2 min-w-0 flex flex-col items-start gap-1">
-                          {field.type === 'attachment' ? (
-                            <div className="min-w-0 w-full">
-                              <AttachmentDisplay value={field.value} />
-                            </div>
-                          ) : field.value == null || field.value === '' ? (
-                            <span className="font-medium break-words text-muted-foreground/60 italic">Not provided</span>
-                          ) : isAttachmentValue(field.value) ? (
-                            <div className="min-w-0 w-full">
-                              <AttachmentDisplay value={field.value} />
-                            </div>
-                          ) : typeof field.value === 'boolean' ? (
-                            <span className="font-medium break-words">
-                              {field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'}
-                            </span>
-                          ) : (
-                            <span className="font-medium break-words whitespace-pre-wrap">{String(field.value)}</span>
-                          )}
-                          {changed && hasOriginal && (
-                            isAttachmentLike || isAttachmentValue(field.originalValue) ? (
-                              <div className="min-w-0 w-full">
-                                <span className="text-[11px] text-muted-foreground italic block mb-1">Was:</span>
-                                <AttachmentDisplay value={field.originalValue} />
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground italic">
-                                Was: {typeof field.originalValue === 'boolean'
-                                  ? (field.originalValue ? 'Yes' : 'No')
-                                  : String(field.originalValue)}
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {mode === 'editable' && onEdit && (
-                  <div className="flex justify-end pt-2">
+                        {isComplete ? `${filled}/${total} complete` : `${filled}/${total} completed`}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  {mode === 'editable' && onEdit && (
                     <Button
                       data-rbac="application_management.edit"
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
-                      className="min-h-11 min-w-11"
-                      aria-label={`Edit ${section.title}`}
-                      title={`Edit ${section.title}`}
-                      onClick={() => onEdit(sIdx, section.editRef)}
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-primary"
+                      aria-label={`Edit section ${sIdx + 1}`}
+                      title="Edit this section"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(sIdx, section.editRef);
+                      }}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                  )}
+                </div>
+                <AccordionContent className="px-3 pb-3 pt-0">
+                  <div className="grid gap-x-6 gap-y-0 md:grid-cols-2">
+                    {section.fields.map((field, fIdx) => {
+                      if (isDisplayOnlyReviewField(field)) {
+                        return (
+                          <div key={fIdx} className="md:col-span-2">
+                            {renderDisplayOnlyField(field, fIdx)}
+                          </div>
+                        );
+                      }
+                      if (field.tablePairs && field.tableColumns) {
+                        return (
+                          <div key={fIdx} className="md:col-span-2 py-2">
+                            {renderTableDiff(field, fIdx)}
+                          </div>
+                        );
+                      }
+                      const changed = !!field.changed;
+                      const isAttachmentLike = field.type === 'attachment' || isAttachmentValue(field.value);
+                      const hasOriginal = field.originalValue != null && field.originalValue !== '';
+                      return (
+                        <div
+                          key={fIdx}
+                          className={[
+                            'border-b border-border/50 py-2.5 last:border-b-0',
+                            isWideField(field) ? 'md:col-span-2' : '',
+                            changed ? 'rounded-md border border-yellow-400 bg-yellow-50 px-2 dark:bg-yellow-950/30' : '',
+                          ].join(' ')}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                              {field.label}
+                            </span>
+                            {changed && (
+                              <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">
+                                Changed
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="mt-1 flex min-w-0 flex-col items-start gap-1 text-sm">
+                            {field.type === 'attachment' ? (
+                              <div className="min-w-0 w-full">
+                                <AttachmentDisplay value={field.value} />
+                              </div>
+                            ) : field.value == null || field.value === '' ? (
+                              <span className="font-medium italic text-muted-foreground/60">Not provided</span>
+                            ) : isAttachmentValue(field.value) ? (
+                              <div className="min-w-0 w-full">
+                                <AttachmentDisplay value={field.value} />
+                              </div>
+                            ) : typeof field.value === 'boolean' ? (
+                              <span className="font-medium break-words">
+                                {field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'}
+                              </span>
+                            ) : (
+                              <span className="font-medium break-words whitespace-pre-wrap text-foreground">{String(field.value)}</span>
+                            )}
+                            {changed && hasOriginal && (
+                              isAttachmentLike || isAttachmentValue(field.originalValue) ? (
+                                <div className="min-w-0 w-full">
+                                  <span className="text-[11px] text-muted-foreground italic block mb-1">Was:</span>
+                                  <AttachmentDisplay value={field.originalValue} />
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground italic">
+                                  Was: {typeof field.originalValue === 'boolean'
+                                    ? (field.originalValue ? 'Yes' : 'No')
+                                    : String(field.originalValue)}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
         </Accordion>
 
-        <Separator />
-
-        <div className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
-          <Checkbox
-            id="acknowledge"
-            checked={acknowledged}
-            onCheckedChange={(v) => setAcknowledged(!!v)}
-          />
-          <Label htmlFor="acknowledge" className="text-sm leading-relaxed cursor-pointer">
-            I have reviewed all the information above and confirm that the details provided are accurate and complete.
-            I understand that any false or misleading information may result in rejection of my application.
-          </Label>
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Applicant declaration</h3>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="acknowledge"
+              className="mt-0.5"
+              checked={acknowledged}
+              onCheckedChange={(v) => setAcknowledged(!!v)}
+            />
+            <Label htmlFor="acknowledge" className="text-sm leading-relaxed cursor-pointer font-normal">
+              I have reviewed all the information above and confirm that the details provided are accurate and complete.
+              I understand that any false or misleading information may result in rejection of my application.
+            </Label>
+          </div>
         </div>
 
-        {!acknowledged && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <AlertTriangle className="h-3 w-3" />
-            Please acknowledge the declaration to proceed.
-          </div>
-        )}
-
-        <div className="flex justify-end">
-          <Button onClick={onAcknowledge} disabled={!acknowledged || loading}>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {!acknowledged && (
+            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              <AlertTriangle className="h-3 w-3" />
+              Please acknowledge the declaration to proceed.
+            </span>
+          )}
+          <Button size="lg" onClick={onAcknowledge} disabled={!acknowledged || loading}>
             {loading ? 'Processing...' : 'Confirm & Proceed'}
           </Button>
         </div>
