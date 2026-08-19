@@ -148,7 +148,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!terms_accepted) {
+    // Declarations that are hidden cannot be accepted, so acceptance is only
+    // required when at least one visible required declaration exists.
+    if (declarationsEnforced && !terms_accepted) {
       return new Response(JSON.stringify({ error: "You must accept the Terms & Conditions" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -183,17 +185,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Verify email OTP was completed
-    const { data: otpCheck } = await supabaseAdmin
+    // Verify email OTP was completed (only when the control is enforced + visible)
+    const { data: otpCheck } = otpEnforced ? await supabaseAdmin
       .from("otp_verifications")
       .select("id")
         .eq("user_email", normalizedEmail)
       .eq("channel", "email")
       .not("verified_at", "is", null)
       .order("created_at", { ascending: false })
-      .limit(1);
+      .limit(1) : { data: [{ id: 'skipped' }] };
 
-    if (!otpCheck || otpCheck.length === 0) {
+    if (otpEnforced && (!otpCheck || otpCheck.length === 0)) {
       return new Response(JSON.stringify({ error: "Email verification is required before registration" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
