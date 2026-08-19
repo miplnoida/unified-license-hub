@@ -52,6 +52,7 @@ interface ReviewAcknowledgementProps {
   title?: string;
   description?: string;
   loading?: boolean;
+  showCompletionSummary?: boolean;
 }
 
 export function ReviewAcknowledgement({
@@ -62,6 +63,7 @@ export function ReviewAcknowledgement({
   title = 'Review & Acknowledge',
   description = 'Please review all information before proceeding. Ensure all details are correct.',
   loading = false,
+  showCompletionSummary = true,
 }: ReviewAcknowledgementProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -205,23 +207,25 @@ export function ReviewAcknowledgement({
             </CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <div className="min-w-[190px] space-y-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">Completion</span>
-              <span className="text-lg font-semibold tabular-nums text-foreground">{completion}%</span>
+          {showCompletionSummary && (
+            <div className="min-w-[190px] space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">Completion</span>
+                <span className="text-lg font-semibold tabular-nums text-foreground">{completion}%</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span>{sections.length} sections</span>
+                <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                <span>{totalFilled} of {totalFields} fields captured</span>
+              </div>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${completion}%` }}
-              />
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span>{sections.length} sections</span>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-              <span>{totalFilled} of {totalFields} fields captured</span>
-            </div>
-          </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-5 pt-6">
@@ -244,16 +248,18 @@ export function ReviewAcknowledgement({
                       </span>
                       <FileText className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{section.title}</span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          isComplete
-                            ? 'text-[10px] border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                            : 'text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                        }
-                      >
-                        {isComplete ? `${filled}/${total} complete` : `${filled}/${total} completed`}
-                      </Badge>
+                      {showCompletionSummary && (
+                        <Badge
+                          variant="outline"
+                          className={
+                            isComplete
+                              ? 'text-[10px] border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                              : 'text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                          }
+                        >
+                          {isComplete ? `${filled}/${total} complete` : `${filled}/${total} completed`}
+                        </Badge>
+                      )}
                     </div>
                   </AccordionTrigger>
                   {mode === 'editable' && onEdit && (

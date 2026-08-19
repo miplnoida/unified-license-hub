@@ -369,6 +369,7 @@ export default function RegistrationFormFill() {
         {pendingData && (
           <ReviewAcknowledgement
             mode="editable"
+            showCompletionSummary={false}
             loading={saving}
             onAcknowledge={handleConfirm}
             onEdit={() => setPendingData(null)}
