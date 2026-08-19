@@ -383,6 +383,20 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // A hidden OTP control is neither rendered nor enforced.
   const requireOtp = (config?.requireOtp ?? true) && otpVisible;
 
+  // Keep the verified flag alive on every step (and across refreshes) for the
+  // resolved login email, so a later step never demands re-verification.
+  const setEmailVerified = useCallback(
+    (value: boolean) => setField('emailVerified', value),
+    [setField],
+  );
+  const { hydrating: emailVerificationHydrating } = useEmailVerificationStatus({
+    email: effectiveEmail,
+    verified: form.emailVerified,
+    setVerified: setEmailVerified,
+    enabled: requireOtp && !isUpdateMode,
+  });
+
+
   // Verification gets its own stage right after the configured step, so the
   // applicant types the email, presses Next, and then verifies it.
   const steps = useMemo(
