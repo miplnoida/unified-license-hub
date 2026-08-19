@@ -118,9 +118,11 @@ export async function handler(req: Request): Promise<Response> {
           .eq("id", step_id)
           .maybeSingle(),
       ]);
+      // Signature capture is hidden in the UI — a configured requirement is
+      // logged but never blocks the action. A supplied signature still persists.
       const needsSig = (cfgRow as any)?.require_digital_signature || (stepRow as any)?.require_digital_signature;
       if (needsSig && !signature_data_url) {
-        return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+        console.log("signature configured but capture disabled — proceeding without signature", { step_id, config_action });
       }
     }
 

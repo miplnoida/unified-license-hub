@@ -115,7 +115,9 @@ export async function handler(req: Request): Promise<Response> {
     const config_action = raw_action === "save_comment" ? "approve" : raw_action;
 
 
-    // Enforce digital signature requirement (configured per step OR per step+action).
+    // Digital signature capture is hidden in the UI, so a configured
+    // `require_digital_signature` is recorded but never blocks the action.
+    // Any signature that is still supplied is persisted further below.
     if (step_id) {
       const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
         admin
@@ -133,7 +135,7 @@ export async function handler(req: Request): Promise<Response> {
       ]);
       const needsSig = (cfgRow as any)?.require_digital_signature || (stepRow as any)?.require_digital_signature;
       if (needsSig && !signature_data_url) {
-        return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+        console.log("signature configured but capture disabled — proceeding without signature", { step_id, config_action });
       }
 
       // Legal/Compliance stage enforcement — only Legal/Compliance reviewers may act on a legal stage.

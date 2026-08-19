@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { WORKFLOW_SIGNATURE_CAPTURE_ENABLED } from '@/lib/workflowSignatureCapture';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
@@ -853,7 +854,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       actionType,
       label: def?.label ?? actionType,
       requireComments: requiresRemarks,
-      requireSignature: !!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature,
+      // Signature capture is hidden from workflow actions (config untouched).
+      requireSignature: WORKFLOW_SIGNATURE_CAPTURE_ENABLED
+        && (!!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature),
     });
   };
 
@@ -1206,7 +1209,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
-                      {(s as any).require_digital_signature && (
+                      {WORKFLOW_SIGNATURE_CAPTURE_ENABLED && (s as any).require_digital_signature && (
                         <Badge variant="outline" className="text-[10px]" title="Approvers on this step must sign">
                           Signature required
                         </Badge>
@@ -1291,7 +1294,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                       )}
 
 
-                      {(s as any).require_digital_signature && (
+                      {WORKFLOW_SIGNATURE_CAPTURE_ENABLED && (s as any).require_digital_signature && (
                         <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
                           <Shield className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
                           <span>This step requires a digital signature. You'll be prompted to sign when you submit an action.</span>
