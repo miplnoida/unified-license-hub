@@ -635,14 +635,6 @@ export default function RegistrationFormBuilder() {
                       <div className="flex items-center gap-2 min-w-[240px]">
                         <Switch checked={form.require_otp} onCheckedChange={v => setForm(p => ({ ...p, require_otp: v }))} />
                         <Label>Email OTP Verification</Label>
-                        {form.otp_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={form.otp_visible_to_applicant}
-                          onCheckedChange={v => setForm(p => ({ ...p, otp_visible_to_applicant: v }))}
-                        />
-                        <Label className="text-xs">Visible to applicant</Label>
                       </div>
                     </div>
 
@@ -650,22 +642,10 @@ export default function RegistrationFormBuilder() {
                       <div className="flex items-center gap-2 min-w-[240px]">
                         <Switch checked={form.require_captcha} onCheckedChange={v => setForm(p => ({ ...p, require_captcha: v }))} />
                         <Label>CAPTCHA Validation</Label>
-                        {form.captcha_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={form.captcha_visible_to_applicant}
-                          onCheckedChange={v => setForm(p => ({ ...p, captcha_visible_to_applicant: v }))}
-                        />
-                        <Label className="text-xs">Visible to applicant</Label>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 rounded-lg border p-3">
-                      <Switch checked={form.require_documents} onCheckedChange={v => setForm(p => ({ ...p, require_documents: v }))} />
-                      <Label>Document Upload Step</Label>
                     </div>
                   </div>
+
 
                   {(form.require_otp && form.otp_visible_to_applicant === false) && (
                     <p className="mt-3 text-sm text-destructive">{OTP_REQUIRED_BUT_HIDDEN_MESSAGE}</p>
@@ -719,7 +699,7 @@ export default function RegistrationFormBuilder() {
                         checked={form.documents_section_visible}
                         onCheckedChange={v => setForm(p => ({ ...p, documents_section_visible: v }))}
                       />
-                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                      <Label className="text-xs">Visible to applicant</Label>
                     </div>
                   </div>
                   {form.documents_section_visible === false && (
@@ -729,7 +709,12 @@ export default function RegistrationFormBuilder() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2 rounded-lg border p-3">
+                    <Switch checked={form.require_documents} onCheckedChange={v => setForm(p => ({ ...p, require_documents: v }))} />
+                    <Label>Document Upload Step</Label>
+                  </div>
                   {form.document_types.map((doc, idx) => (
+
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
@@ -782,7 +767,8 @@ export default function RegistrationFormBuilder() {
                         checked={form.declarations_section_visible}
                         onCheckedChange={v => setForm(p => ({ ...p, declarations_section_visible: v }))}
                       />
-                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                      <Label className="text-xs">Visible to applicant</Label>
+
                     </div>
                   </div>
                   {form.declarations_section_visible === false && (
@@ -797,8 +783,8 @@ export default function RegistrationFormBuilder() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                           <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder='Full label, e.g. "I agree to the Terms & Conditions"' />
-                          {decl.visible === false && <Badge variant="secondary">Hidden</Badge>}
                         </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <Input value={decl.linkLabel || ''} onChange={e => updateDeclaration(idx, 'linkLabel', e.target.value)} placeholder='Clickable text, e.g. "Terms & Conditions"' className="h-8 text-xs" />
                           <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (opens in new tab)" className="h-8 text-xs" />
@@ -807,10 +793,6 @@ export default function RegistrationFormBuilder() {
                           <div className="flex items-center gap-2">
                             <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
                             <Label className="text-xs">Required</Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch checked={decl.visible !== false} onCheckedChange={v => updateDeclaration(idx, 'visible', v)} />
-                            <Label className="text-xs">Visible to applicant</Label>
                           </div>
                           {decl.linkLabel && decl.linkUrl && (
                             <span className="text-xs text-muted-foreground">
