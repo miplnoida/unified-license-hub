@@ -1,4 +1,8 @@
 import { useState, useMemo } from 'react';
+import {
+  resolveEmailVerificationPlacement,
+  shouldRenderEmailVerification,
+} from '@/lib/registrationEmailVerification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
