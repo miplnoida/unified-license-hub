@@ -28,11 +28,24 @@ function usePersistedState<T>(key: string, initial: T): [T, (val: T | ((prev: T)
   return [state, setState];
 }
 
+/**
+ * A nav link is active on its exact path and on its detail routes
+ * (e.g. `/admin/roles/123` keeps "Role Management" highlighted), but `/` and
+ * other index links never swallow the whole app.
+ */
+function isPathActive(href: string | undefined, pathname: string): boolean {
+  if (!href) return false;
+  if (pathname === href) return true;
+  if (href === '/' || href.length < 2) return false;
+  return pathname.startsWith(href.endsWith('/') ? href : `${href}/`);
+}
+
 function hasActiveDescendant(item: NavItem, pathname: string): boolean {
   return (item.children ?? []).some(
-    (c) => (c.href && pathname === c.href) || hasActiveDescendant(c, pathname),
+    (c) => isPathActive(c.href, pathname) || hasActiveDescendant(c, pathname),
   );
 }
+
 
 /**
  * Renders a navigation group at any depth. Groups may nest arbitrarily
@@ -83,7 +96,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
                 );
               }
               if (!child.href) return null;
-              const isActive = pathname === child.href;
+              const isActive = isPathActive(child.href, pathname);
               return (
                 <Link
                   key={child.href}
@@ -308,7 +321,7 @@ export function Sidebar() {
                         }
 
                         if (!item.href) return null;
-                        const isActive = location.pathname === item.href;
+                        const isActive = isPathActive(item.href, location.pathname);
                         return (
                           <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')}>
                             {item.icon}
@@ -389,7 +402,7 @@ export function Sidebar() {
                     }
 
                     if (!item.href) return null;
-                    const isActive = location.pathname === item.href;
+                    const isActive = isPathActive(item.href, location.pathname);
                     return (
                       <Link
                         key={item.href} to={item.href}

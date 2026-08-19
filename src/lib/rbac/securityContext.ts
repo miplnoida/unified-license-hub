@@ -54,9 +54,15 @@ export interface SecNavItem {
   admin_only: boolean;
   module: string | null;
   action: string | null;
+  /** Sidebar visibility (discoverability only — never a security decision). */
+  show_in_sidebar?: boolean;
+  /** Global-search visibility; some items are searchable but not in the menu. */
+  show_in_search?: boolean;
+  keywords?: string[] | null;
   /** Server-evaluated permission decision for this item. */
   allowed: boolean;
 }
+
 
 export interface SecurityContext {
   authenticated: boolean;
