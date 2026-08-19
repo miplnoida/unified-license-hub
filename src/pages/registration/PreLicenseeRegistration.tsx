@@ -561,6 +561,11 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'dynamic':
         return step.stepData ? validateDynamicStep(step.stepData) : true;
       case 'declarations': {
+        // A hidden declarations section makes every declaration non-mandatory;
+        // only the verification controls still gate the step.
+        if (config?.declarationsSectionVisible === false) {
+          return validateDeclarations([], requireOtp, effectiveRequireCaptcha);
+        }
         const useDynamic = config?.declarations && config.declarations.length > 0;
         if (useDynamic) {
           return validateDeclarations(
@@ -1190,6 +1195,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             form={form} errors={errors} setField={setField}
             verificationEmail={effectiveEmail}
             declarations={visibleDeclarationsFor(config?.declarations, config?.declarationsSectionVisible !== false)}
+            sectionVisible={config?.declarationsSectionVisible !== false}
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}

@@ -25,6 +25,8 @@ interface Props {
   /** Resolved verification email from parent (covers static + dynamic schemas). */
   verificationEmail?: string;
   declarations?: DeclarationConfig[];
+  /** `false` hides the whole declarations block (verification controls remain). */
+  sectionVisible?: boolean;
   termsUrl?: string;
   privacyUrl?: string;
   dataProtectionUrl?: string;
@@ -68,6 +70,7 @@ export function DeclarationsStep({
   setField,
   verificationEmail,
   declarations,
+  sectionVisible = true,
   termsUrl,
   privacyUrl,
   dataProtectionUrl,
@@ -103,8 +106,9 @@ export function DeclarationsStep({
     },
   ];
 
-  const sourceDeclarations =
-    declarations && declarations.length > 0 ? declarations : fallbackDeclarations;
+  const sourceDeclarations = sectionVisible === false
+    ? []
+    : (declarations && declarations.length > 0 ? declarations : fallbackDeclarations);
 
   const effectiveDeclarations = sourceDeclarations
     .map((decl, idx) => ({ decl, idx }))

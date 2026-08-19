@@ -40,11 +40,19 @@ export const OTP_REQUIRED_BUT_HIDDEN_MESSAGE =
 export const CAPTCHA_REQUIRED_BUT_HIDDEN_MESSAGE =
   'CAPTCHA is required and cannot be hidden from applicants. Disable CAPTCHA first or make it visible.';
 
+/**
+ * Section-level visibility never blocks saving: hiding a section makes every
+ * item inside it non-mandatory. These constants are kept only so existing
+ * imports keep compiling; they are no longer returned by validation.
+ * @deprecated
+ */
 export const DOCUMENTS_SECTION_REQUIRED_BUT_HIDDEN_MESSAGE =
   'Documents are required for registration and the section cannot be hidden. Disable the requirement first or make the section visible.';
 
+/** @deprecated Section visibility no longer blocks saving. */
 export const DECLARATIONS_SECTION_HIDDEN_BLOCKS_VERIFICATION_MESSAGE =
   'The Declarations section carries a required verification control (OTP or CAPTCHA) and cannot be hidden. Move or disable the verification first.';
+
 
 export interface SecurityVisibilityConfig {
   require_otp?: boolean | null;
@@ -64,9 +72,10 @@ export interface SecurityVisibilityResult {
 }
 
 /**
- * A verification control that is required must remain visible, otherwise the
- * applicant could never satisfy it. Shared by the builder save path and the
- * registration edge function.
+ * Only rule left: an individual verification control that is required must not
+ * be hidden on its own (unreachable through the current builder UI, kept as a
+ * safety net for legacy rows). Section-level visibility never blocks saving —
+ * hiding a section makes everything inside it non-mandatory instead.
  */
 export function validateSecurityVisibility(config: SecurityVisibilityConfig): SecurityVisibilityResult {
   if (config.require_otp === true && config.otp_visible_to_applicant === false) {
@@ -75,24 +84,9 @@ export function validateSecurityVisibility(config: SecurityVisibilityConfig): Se
   if (config.require_captcha === true && config.captcha_visible_to_applicant === false) {
     return { ok: false, message: CAPTCHA_REQUIRED_BUT_HIDDEN_MESSAGE };
   }
-  if (config.require_documents === true && config.documents_section_visible === false) {
-    return { ok: false, message: DOCUMENTS_SECTION_REQUIRED_BUT_HIDDEN_MESSAGE };
-  }
-  if (config.declarations_section_visible === false) {
-    const captchaOnDeclarations =
-      config.require_captcha === true && config.captcha_visible_to_applicant !== false;
-    const otpOnDeclarations =
-      config.require_otp === true
-      && config.otp_visible_to_applicant !== false
-      && (!config.email_verification_step_id
-        || config.email_verification_step_id === 'before_submission'
-        || config.email_verification_step_id === 'declarations');
-    if (captchaOnDeclarations || otpOnDeclarations) {
-      return { ok: false, message: DECLARATIONS_SECTION_HIDDEN_BLOCKS_VERIFICATION_MESSAGE };
-    }
-  }
   return { ok: true };
 }
+
 
 export interface StepVisibilityConfig {
   requireDocuments?: boolean;
