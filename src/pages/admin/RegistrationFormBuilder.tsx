@@ -762,7 +762,8 @@ export default function RegistrationFormBuilder() {
                         checked={form.declarations_section_visible}
                         onCheckedChange={v => setForm(p => ({ ...p, declarations_section_visible: v }))}
                       />
-                      <Label className="text-xs">Visible to applicant (whole section)</Label>
+                      <Label className="text-xs">Visible to applicant</Label>
+
                     </div>
                   </div>
                   {form.declarations_section_visible === false && (
