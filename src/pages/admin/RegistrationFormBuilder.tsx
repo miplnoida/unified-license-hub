@@ -635,14 +635,6 @@ export default function RegistrationFormBuilder() {
                       <div className="flex items-center gap-2 min-w-[240px]">
                         <Switch checked={form.require_otp} onCheckedChange={v => setForm(p => ({ ...p, require_otp: v }))} />
                         <Label>Email OTP Verification</Label>
-                        {form.otp_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={form.otp_visible_to_applicant}
-                          onCheckedChange={v => setForm(p => ({ ...p, otp_visible_to_applicant: v }))}
-                        />
-                        <Label className="text-xs">Visible to applicant</Label>
                       </div>
                     </div>
 
@@ -650,22 +642,10 @@ export default function RegistrationFormBuilder() {
                       <div className="flex items-center gap-2 min-w-[240px]">
                         <Switch checked={form.require_captcha} onCheckedChange={v => setForm(p => ({ ...p, require_captcha: v }))} />
                         <Label>CAPTCHA Validation</Label>
-                        {form.captcha_visible_to_applicant === false && <Badge variant="secondary">Hidden</Badge>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={form.captcha_visible_to_applicant}
-                          onCheckedChange={v => setForm(p => ({ ...p, captcha_visible_to_applicant: v }))}
-                        />
-                        <Label className="text-xs">Visible to applicant</Label>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 rounded-lg border p-3">
-                      <Switch checked={form.require_documents} onCheckedChange={v => setForm(p => ({ ...p, require_documents: v }))} />
-                      <Label>Document Upload Step</Label>
                     </div>
                   </div>
+
 
                   {(form.require_otp && form.otp_visible_to_applicant === false) && (
                     <p className="mt-3 text-sm text-destructive">{OTP_REQUIRED_BUT_HIDDEN_MESSAGE}</p>
