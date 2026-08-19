@@ -180,7 +180,7 @@ export function DeclarationsStep({
       )}
 
       {/* CAPTCHA — real provider only; no checkbox fallback */}
-      {requireCaptcha && captchaVisible !== false && (
+      {showCaptcha && (
         <CaptchaSection
           verificationId={(form.captchaVerificationId as string | null) ?? null}
           onVerificationChange={(id) => setField('captchaVerificationId', id)}
