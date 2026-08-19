@@ -5,8 +5,6 @@ import {
   isDeclarationsStepVisible,
   isDocumentsStepVisible,
   validateSecurityVisibility,
-  DOCUMENTS_SECTION_REQUIRED_BUT_HIDDEN_MESSAGE,
-  DECLARATIONS_SECTION_HIDDEN_BLOCKS_VERIFICATION_MESSAGE,
 } from '@/lib/registrationItemVisibility';
 
 describe('registration section-level visibility', () => {
