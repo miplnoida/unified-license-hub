@@ -87,7 +87,15 @@ function loadFromStorage(): RegistrationFormData {
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...initialState, ...parsed, emailVerified: false, captchaVerificationId: null };
+      // `emailVerified` is kept: it is re-validated against the persisted
+      // per-email marker / server lookup by useEmailVerificationStatus, and
+      // resets automatically when the login email changes.
+      return {
+        ...initialState,
+        ...parsed,
+        emailVerified: Boolean(parsed?.emailVerified),
+        captchaVerificationId: null,
+      };
     }
   } catch {}
   return { ...initialState };
