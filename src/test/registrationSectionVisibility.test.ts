@@ -21,7 +21,7 @@ describe('registration section-level visibility', () => {
     expect(isDocumentsStepVisible({
       requireDocuments: true,
       documentsSectionVisible: false,
-      documentTypes: [{ label: 'A', required: true }],
+      documentTypes: [{ required: true }],
     })).toBe(false);
 
     expect(isDocumentsStepVisible({
