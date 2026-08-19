@@ -58,6 +58,7 @@ export interface FormFieldRow {
   section_order: number;
   section_description: string | null;
   section_is_repeatable: boolean;
+  section_is_visible?: boolean;
   field_type: string;
   label: string;
   field_name: string;
