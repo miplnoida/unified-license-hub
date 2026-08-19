@@ -1228,7 +1228,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             mode={reviewSettings?.review_mode || 'readonly'}
             sections={buildReviewSections()}
             onAcknowledge={handleSubmit}
-            onEdit={(idx) => setCurrentStep(Math.min(idx, steps.length - 2))}
+            onEdit={(idx) => {
+              // Review sections follow baseSteps order; map back to the live
+              // step list so the generated verification stage cannot shift it.
+              const base = baseSteps[idx];
+              const target = base ? steps.findIndex(s => s.id === base.id) : -1;
+              setCurrentStep(Math.min(target >= 0 ? target : idx, steps.length - 2));
+            }}
             loading={submitting}
             title="Review Your Registration"
             description="Please review all information before final submission."
