@@ -248,16 +248,18 @@ export function ReviewAcknowledgement({
                       </span>
                       <FileText className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{section.title}</span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          isComplete
-                            ? 'text-[10px] border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                            : 'text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                        }
-                      >
-                        {isComplete ? `${filled}/${total} complete` : `${filled}/${total} completed`}
-                      </Badge>
+                      {showCompletionSummary && (
+                        <Badge
+                          variant="outline"
+                          className={
+                            isComplete
+                              ? 'text-[10px] border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                              : 'text-[10px] border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                          }
+                        >
+                          {isComplete ? `${filled}/${total} complete` : `${filled}/${total} completed`}
+                        </Badge>
+                      )}
                     </div>
                   </AccordionTrigger>
                   {mode === 'editable' && onEdit && (
