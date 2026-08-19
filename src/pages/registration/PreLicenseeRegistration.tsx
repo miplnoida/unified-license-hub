@@ -303,7 +303,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const steps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
 
-    if (visibleSchema && config.formSchema.length > 0) {
+    if (visibleSchema.length > 0) {
       config.formSchema.forEach((regStep) => {
         result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
       });
@@ -1178,7 +1178,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string };
     const sections: { title: string; fields: RF[] }[] = [];
 
-    if (visibleSchema && config.formSchema.length > 0) {
+    if (visibleSchema.length > 0) {
       config.formSchema.forEach((s) => {
         const fields: RF[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
