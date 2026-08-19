@@ -137,6 +137,9 @@ export function RegistrationFormBuilderEditor({
               >
                 <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="flex-1 truncate font-medium">{step.title}</span>
+                {emailVerificationStepId === step.id && (
+                  <Badge variant="outline" className="text-[10px] shrink-0">OTP</Badge>
+                )}
                 <Badge variant="secondary" className="text-[10px] shrink-0">
                   {step.rows.reduce((a, r) => a + r.columns.filter(c => c.field).length, 0)}
                 </Badge>
