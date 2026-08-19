@@ -1,14 +1,14 @@
 import { CaptchaSection } from '@/components/registration/CaptchaSection';
-import { useEffect, useRef, useState } from 'react';
+import { EmailVerificationSection } from '@/components/registration/EmailVerificationSection';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Shield, Mail, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { RichLabel } from '@/components/shared/RichLabel';
+import {
+  BEFORE_SUBMISSION_PLACEMENT,
+  shouldRenderEmailVerification,
+} from '@/lib/registrationEmailVerification';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
+
 
 interface DeclarationConfig {
   label: string;
