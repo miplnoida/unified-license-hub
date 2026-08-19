@@ -25,6 +25,8 @@ interface Props {
   /** Resolved verification email from parent (covers static + dynamic schemas). */
   verificationEmail?: string;
   declarations?: DeclarationConfig[];
+  /** `false` hides the whole declarations block (verification controls remain). */
+  sectionVisible?: boolean;
   termsUrl?: string;
   privacyUrl?: string;
   dataProtectionUrl?: string;
