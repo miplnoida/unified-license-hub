@@ -1190,6 +1190,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             form={form} errors={errors} setField={setField}
             verificationEmail={effectiveEmail}
             declarations={visibleDeclarationsFor(config?.declarations, config?.declarationsSectionVisible !== false)}
+            sectionVisible={config?.declarationsSectionVisible !== false}
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}
