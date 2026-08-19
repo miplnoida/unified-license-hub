@@ -12,6 +12,7 @@ import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
 import { EmailVerificationSection } from '@/components/registration/EmailVerificationSection';
+import { useEmailVerificationStatus } from '@/hooks/useEmailVerificationStatus';
 import {
   BEFORE_SUBMISSION_PLACEMENT,
   resolveEmailVerificationPlacement,
@@ -383,6 +384,20 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // A hidden OTP control is neither rendered nor enforced.
   const requireOtp = (config?.requireOtp ?? true) && otpVisible;
 
+  // Keep the verified flag alive on every step (and across refreshes) for the
+  // resolved login email, so a later step never demands re-verification.
+  const setEmailVerified = useCallback(
+    (value: boolean) => setField('emailVerified', value),
+    [setField],
+  );
+  const { hydrating: emailVerificationHydrating } = useEmailVerificationStatus({
+    email: effectiveEmail,
+    verified: form.emailVerified,
+    setVerified: setEmailVerified,
+    enabled: requireOtp && !isUpdateMode,
+  });
+
+
   // Verification gets its own stage right after the configured step, so the
   // applicant types the email, presses Next, and then verifies it.
   const steps = useMemo(
@@ -578,6 +593,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     const step = steps[currentStep];
     if (!step) return true;
 
+    // While the verified state is still being restored (marker / server lookup)
+    // never claim the email is unverified — that was the confusing error.
+    if (requireOtp && !form.emailVerified && emailVerificationHydrating) {
+      toast.info('Checking your email verification status…');
+      return false;
+    }
+
     // Verification gate: when OTP is configured for this step, the applicant
     // cannot advance until the resolved email is verified. The declarations
     // stage keeps its own check inside validateDeclarations.
@@ -585,6 +607,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       toast.error('Please verify your email address before continuing.');
       return false;
     }
+
 
     switch (step.type) {
       case 'static':
@@ -625,7 +648,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, emailVerificationHydrating, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};

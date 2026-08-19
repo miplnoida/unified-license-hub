@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
+import { markEmailVerifiedLocally } from '@/lib/registrationEmailVerified';
 
 interface Props {
   form: RegistrationFormData;
@@ -12,10 +13,6 @@ interface Props {
   setField: (field: string, value: string | boolean) => void;
   /** Resolved verification email from parent (covers static + dynamic schemas). */
   verificationEmail?: string;
-}
-
-function verifiedEmailMarkerKey(email: string): string {
-  return `registrationEmailVerified:${email.trim().toLowerCase()}`;
 }
 
 /**
@@ -27,7 +24,6 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
   // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
   const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
-  const previousEmailRef = useRef<string>('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>('');
@@ -35,55 +31,9 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
-  useEffect(() => {
-    if (!resolvedEmail || !emailValid) {
-      previousEmailRef.current = resolvedEmail;
-      return;
-    }
-
-    const previousEmail = previousEmailRef.current;
-    if (previousEmail && previousEmail !== resolvedEmail) {
-      try {
-        sessionStorage.removeItem(verifiedEmailMarkerKey(previousEmail));
-      } catch {}
-      setField('emailVerified', false);
-      setOtpSent(false);
-      setOtpCode('');
-      setSentToEmail('');
-    }
-    previousEmailRef.current = resolvedEmail;
-
-    let cancelled = false;
-    const applyVerified = () => {
-      if (!cancelled && !form.emailVerified) setField('emailVerified', true);
-    };
-
-    try {
-      if (sessionStorage.getItem(verifiedEmailMarkerKey(resolvedEmail)) === 'true') {
-        applyVerified();
-        return () => { cancelled = true; };
-      }
-    } catch {}
-
-    if (form.emailVerified) return () => { cancelled = true; };
-
-    (async () => {
-      try {
-        const { data } = await supabase.functions.invoke('verify-registration-otp', {
-          body: { email: resolvedEmail, channel: 'email', purpose: 'registration', checkOnly: true },
-        });
-        if (cancelled || !data?.verified) return;
-        try {
-          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
-        } catch {}
-        applyVerified();
-      } catch {
-        // Verification lookup is a UX optimization; submit remains server-validated.
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [resolvedEmail, emailValid, form.emailVerified, setField]);
+  // Marker/server restore + email-change reset now live in the page-level hook
+  // (`useEmailVerificationStatus`) so the verified flag survives later steps and
+  // page refreshes, not only while this block is mounted.
 
   // If the user changes the email after sending an OTP, reset OTP-sent state.
   if (otpSent && sentToEmail && resolvedEmail !== sentToEmail) {
@@ -147,9 +97,7 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
       if (error) { toast.error('Verification failed'); return; }
       if (data?.error) { toast.error(data.error); return; }
       if (data?.verified) {
-        try {
-          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
-        } catch {}
+        markEmailVerifiedLocally(resolvedEmail);
         setField('emailVerified', true);
         toast.success('Email verified successfully!');
       }
