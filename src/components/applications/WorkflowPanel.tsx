@@ -1209,7 +1209,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
-                      {(s as any).require_digital_signature && (
+                      {WORKFLOW_SIGNATURE_CAPTURE_ENABLED && (s as any).require_digital_signature && (
                         <Badge variant="outline" className="text-[10px]" title="Approvers on this step must sign">
                           Signature required
                         </Badge>
