@@ -73,6 +73,8 @@ function ReviewBuilderInner({
       secs.forEach((sec: FormSection) => {
         const fields: ReviewFieldEntry[] = [];
 
+        // Admin-hidden sections never appear in the review summary.
+        if (!isSectionConfiguredVisible(sec)) return;
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
 
         (sec.fields || []).forEach((f: FormField) => {
