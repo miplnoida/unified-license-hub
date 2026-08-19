@@ -1,4 +1,8 @@
 import { useState, useMemo } from 'react';
+import {
+  resolveEmailVerificationPlacement,
+  shouldRenderEmailVerification,
+} from '@/lib/registrationEmailVerification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +35,8 @@ interface Props {
   requireOtp: boolean;
   requireCaptcha: boolean;
   requireDocuments: boolean;
+  /** Configured email verification placement (step id or 'before_submission'). */
+  emailVerificationStepId?: string | null;
 }
 
 /**
@@ -45,6 +51,7 @@ export function FullRegistrationPreview({
   requireOtp,
   requireCaptcha,
   requireDocuments,
+  emailVerificationStepId,
 }: Props) {
   const stepLabels = useMemo(() => {
     const labels = schema.map(s => s.title || 'Step');
@@ -58,6 +65,32 @@ export function FullRegistrationPreview({
   const isDocStep = requireDocuments && current === schema.length;
   const isDeclStep = current === stepLabels.length - 1;
   const isFormStep = !isDocStep && !isDeclStep;
+
+  // Same resolver the applicant runtime uses, so the preview cannot drift.
+  const placementSteps = useMemo(() => [
+    ...schema.map(s => ({ id: s.id, type: 'dynamic' })),
+    ...(requireDocuments ? [{ id: 'documents', type: 'documents' }] : []),
+    { id: 'declarations', type: 'declarations' },
+  ], [schema, requireDocuments]);
+  const placement = resolveEmailVerificationPlacement(emailVerificationStepId, placementSteps);
+  const currentStepId = isDeclStep ? 'declarations' : isDocStep ? 'documents' : schema[current]?.id || '';
+  const currentStepType = isDeclStep ? 'declarations' : isDocStep ? 'documents' : 'dynamic';
+  const showOtpHere = shouldRenderEmailVerification({
+    stepId: currentStepId,
+    stepType: currentStepType,
+    placement,
+    requireOtp,
+  });
+
+  const otpPreviewBlock = (
+    <div className="p-3 rounded border bg-muted/30 space-y-2">
+      <Label className="text-sm">Email OTP Verification</Label>
+      <div className="flex gap-2">
+        <Input placeholder="Enter 6-digit code" disabled className="text-sm" />
+        <Button data-rbac="form_management.edit" variant="outline" size="sm" disabled>Send Code</Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -81,7 +114,10 @@ export function FullRegistrationPreview({
       />
 
       {isFormStep && (
-        <FormPreview schema={[schema[current]]} showNavigation={false} showStepper={false} />
+        <div className="space-y-4">
+          <FormPreview schema={[schema[current]]} showNavigation={false} showStepper={false} />
+          {showOtpHere && otpPreviewBlock}
+        </div>
       )}
 
       {isDocStep && (
@@ -110,6 +146,7 @@ export function FullRegistrationPreview({
                 </div>
               ))
             )}
+            {showOtpHere && otpPreviewBlock}
           </CardContent>
         </Card>
       )}
@@ -145,15 +182,7 @@ export function FullRegistrationPreview({
               </div>
             )}
 
-            {requireOtp && (
-              <div className="p-3 rounded border bg-muted/30 space-y-2">
-                <Label className="text-sm">Email OTP Verification</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="Enter 6-digit code" disabled className="text-sm" />
-                  <Button data-rbac="form_management.edit" variant="outline" size="sm" disabled>Send Code</Button>
-                </div>
-              </div>
-            )}
+            {showOtpHere && otpPreviewBlock}
           </CardContent>
         </Card>
       )}

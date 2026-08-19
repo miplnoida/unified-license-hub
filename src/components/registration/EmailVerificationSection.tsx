@@ -1,0 +1,224 @@
+import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Mail, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
+
+interface Props {
+  form: RegistrationFormData;
+  errors: Record<string, string>;
+  setField: (field: string, value: string | boolean) => void;
+  /** Resolved verification email from parent (covers static + dynamic schemas). */
+  verificationEmail?: string;
+}
+
+function verifiedEmailMarkerKey(email: string): string {
+  return `registrationEmailVerified:${email.trim().toLowerCase()}`;
+}
+
+/**
+ * Reusable registration email OTP block. Rendered at whichever registration
+ * step the admin configured (see `registrationEmailVerification.ts`). This is
+ * the only place the registration OTP flow is implemented.
+ */
+export function EmailVerificationSection({ form, errors, setField, verificationEmail }: Props) {
+  // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
+  const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
+  const previousEmailRef = useRef<string>('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [sentToEmail, setSentToEmail] = useState<string>('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (!resolvedEmail || !emailValid) {
+      previousEmailRef.current = resolvedEmail;
+      return;
+    }
+
+    const previousEmail = previousEmailRef.current;
+    if (previousEmail && previousEmail !== resolvedEmail) {
+      try {
+        sessionStorage.removeItem(verifiedEmailMarkerKey(previousEmail));
+      } catch {}
+      setField('emailVerified', false);
+      setOtpSent(false);
+      setOtpCode('');
+      setSentToEmail('');
+    }
+    previousEmailRef.current = resolvedEmail;
+
+    let cancelled = false;
+    const applyVerified = () => {
+      if (!cancelled && !form.emailVerified) setField('emailVerified', true);
+    };
+
+    try {
+      if (sessionStorage.getItem(verifiedEmailMarkerKey(resolvedEmail)) === 'true') {
+        applyVerified();
+        return () => { cancelled = true; };
+      }
+    } catch {}
+
+    if (form.emailVerified) return () => { cancelled = true; };
+
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke('verify-registration-otp', {
+          body: { email: resolvedEmail, channel: 'email', purpose: 'registration', checkOnly: true },
+        });
+        if (cancelled || !data?.verified) return;
+        try {
+          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
+        } catch {}
+        applyVerified();
+      } catch {
+        // Verification lookup is a UX optimization; submit remains server-validated.
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [resolvedEmail, emailValid, form.emailVerified, setField]);
+
+  // If the user changes the email after sending an OTP, reset OTP-sent state.
+  if (otpSent && sentToEmail && resolvedEmail !== sentToEmail) {
+    queueMicrotask(() => {
+      setOtpSent(false);
+      setOtpCode('');
+      setSentToEmail('');
+    });
+  }
+
+  const startCooldown = () => {
+    setCooldown(60);
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSendOtp = async () => {
+    if (!resolvedEmail) {
+      toast.error('Please provide an email address first');
+      return;
+    }
+    if (!emailValid) {
+      toast.error('The email address looks invalid. Please correct it before verifying.');
+      return;
+    }
+    setOtpSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-registration-otp', {
+        body: { email: resolvedEmail, channel: 'email' },
+      });
+      if (error) { toast.error('Failed to send verification code'); return; }
+      if (data?.error) { toast.error(data.error); return; }
+      setOtpSent(true);
+      setSentToEmail(resolvedEmail);
+      startCooldown();
+      toast.success('Verification code sent to ' + resolvedEmail);
+    } catch {
+      toast.error('Failed to send verification code');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter the 6-digit code');
+      return;
+    }
+    setOtpVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
+        body: { email: resolvedEmail, code: otpCode, channel: 'email' },
+      });
+      if (error) { toast.error('Verification failed'); return; }
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.verified) {
+        try {
+          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
+        } catch {}
+        setField('emailVerified', true);
+        toast.success('Email verified successfully!');
+      }
+    } catch {
+      toast.error('Verification failed');
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  return (
+    <div className="form-section">
+      <h3 className="text-lg font-semibold text-foreground">Email Verification</h3>
+      <p className="text-sm text-muted-foreground">
+        Verify your email address to proceed with registration.
+      </p>
+
+      {form.emailVerified ? (
+        <div className="flex items-center gap-3 mt-4 p-4 rounded-lg bg-green-50 border border-green-200 dark:bg-green-950/30 dark:border-green-800">
+          <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <div>
+            <p className="font-medium text-green-800 dark:text-green-400">Email Verified</p>
+            <p className="text-sm text-green-600 dark:text-green-500">{resolvedEmail || form.email}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Mail className="h-4 w-4" />
+            <span>
+              Verification will be sent to:{' '}
+              <strong className="text-foreground">{resolvedEmail || '(no email provided)'}</strong>
+            </span>
+          </div>
+
+          {!otpSent ? (
+            <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpSending || !resolvedEmail || !emailValid || cooldown > 0}>
+              {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+              Send Verification Code
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                We sent a 6-digit code to{' '}
+                <strong className="text-foreground">{sentToEmail || resolvedEmail}</strong>. It expires in
+                10 minutes. If this address is not correct, correct the email address and request a new code.
+              </p>
+
+              <div className="flex gap-2 max-w-sm">
+                <Input
+                  placeholder="Enter 6-digit code"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className="font-mono text-center tracking-widest text-lg"
+                />
+                <Button type="button" onClick={handleVerifyOtp} disabled={otpVerifying || otpCode.length !== 6}>
+                  {otpVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify'}
+                </Button>
+              </div>
+              <Button data-rbac="registration_management.create" type="button" variant="ghost" size="sm" onClick={handleSendOtp} disabled={cooldown > 0 || otpSending}>
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
+              </Button>
+            </div>
+          )}
+          {errors.emailVerified && <p className="text-sm text-destructive">{errors.emailVerified}</p>}
+        </div>
+      )}
+    </div>
+  );
+}

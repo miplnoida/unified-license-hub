@@ -33,6 +33,8 @@ export interface RegistrationConfig {
   declarations: RegistrationDeclaration[];
   documentTypes: RegistrationDocType[];
   formSchema: RegFormSchema;
+  /** Stable registration step id (or 'before_submission') where email OTP is shown. */
+  emailVerificationStepId: string | null;
   // Legacy compat: convert form_schema steps into FormSection[]
   sections: FormSection[];
 }
@@ -154,6 +156,7 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
         dataProtectionUrl: best.data_protection_url || '',
         declarations: (best.declarations as any) || [],
         documentTypes: (best.document_types as any) || [],
+        emailVerificationStepId: (best as { email_verification_step_id?: string | null }).email_verification_step_id ?? null,
         formSchema,
         sections,
       });

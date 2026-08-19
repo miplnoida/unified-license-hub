@@ -29,6 +29,10 @@ import type { RegFormSchema } from '@/types/registrationForm';
 import { RegistrationFormBuilderEditor } from '@/components/registration-builder/RegistrationFormBuilderEditor';
 import { Eye } from 'lucide-react';
 import { buildRegistrationPreviewUrl, storeRegistrationPreview } from '@/lib/registrationPreview';
+import {
+  BEFORE_SUBMISSION_PLACEMENT,
+  validateEmailVerificationPlacement,
+} from '@/lib/registrationEmailVerification';
 
 interface Declaration {
   label: string;
@@ -61,6 +65,7 @@ interface ConfigRow {
   declarations: Declaration[];
   document_types: DocType[];
   form_schema: RegFormSchema;
+  email_verification_step_id: string | null;
 }
 
 const emptyConfig: Omit<ConfigRow, 'id'> = {
@@ -85,6 +90,7 @@ const emptyConfig: Omit<ConfigRow, 'id'> = {
     { label: 'Certificate of Incorporation', required: true, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 },
   ],
   form_schema: defaultFormSchema(),
+  email_verification_step_id: null,
 };
 
 function defaultFormSchema(): RegFormSchema {
@@ -252,6 +258,13 @@ export default function RegistrationFormBuilder() {
 
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Name is required'); return; }
+    if (form.require_otp) {
+      const placementCheck = validateEmailVerificationPlacement(
+        form.email_verification_step_id,
+        form.form_schema,
+      );
+      if (!placementCheck.ok) { toast.error(placementCheck.message!); return; }
+    }
     setSaving(true);
 
     const payload = {
@@ -270,6 +283,9 @@ export default function RegistrationFormBuilder() {
       declarations: form.declarations as unknown as Json,
       document_types: form.document_types as unknown as Json,
       form_schema: form.form_schema as unknown as Json,
+      email_verification_step_id: form.require_otp
+        ? (form.email_verification_step_id || BEFORE_SUBMISSION_PLACEMENT)
+        : form.email_verification_step_id,
     };
 
     if (editing) {
@@ -368,6 +384,7 @@ export default function RegistrationFormBuilder() {
         requireOtp: form.require_otp,
         requireCaptcha: form.require_captcha,
         requireDocuments: form.require_documents,
+        emailVerificationStepId: form.email_verification_step_id,
       });
       window.open(buildRegistrationPreviewUrl(), '_blank', 'noopener,noreferrer');
     } catch (e) {
@@ -563,6 +580,10 @@ export default function RegistrationFormBuilder() {
                   <RegistrationFormBuilderEditor
                     schema={form.form_schema}
                     onChange={schema => setForm(p => ({ ...p, form_schema: schema }))}
+                    emailVerificationStepId={form.require_otp ? form.email_verification_step_id : null}
+                    onEmailVerificationStepReset={() =>
+                      setForm(p => ({ ...p, email_verification_step_id: BEFORE_SUBMISSION_PLACEMENT }))
+                    }
                   />
                 </CardContent>
               </Card>
@@ -587,6 +608,32 @@ export default function RegistrationFormBuilder() {
                       <Label>Document Upload Step</Label>
                     </div>
                   </div>
+
+                  {form.require_otp && (
+                    <div className="mt-4 max-w-sm space-y-1.5">
+                      <Label className="text-xs">Verify Email At</Label>
+                      <Select
+                        value={form.email_verification_step_id || BEFORE_SUBMISSION_PLACEMENT}
+                        onValueChange={v => setForm(p => ({ ...p, email_verification_step_id: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select step" /></SelectTrigger>
+                        <SelectContent>
+                          {form.form_schema.map(step => (
+                            <SelectItem key={step.id} value={step.id}>{step.title}</SelectItem>
+                          ))}
+                          {form.require_documents && (
+                            <SelectItem value="documents">Supporting Documents</SelectItem>
+                          )}
+                          <SelectItem value="declarations">Declarations</SelectItem>
+                          <SelectItem value={BEFORE_SUBMISSION_PLACEMENT}>Before Final Submission</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Email verification is shown inside this step. It must be at or after the step that
+                        collects the primary email address.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
