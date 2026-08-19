@@ -180,6 +180,7 @@ function fieldRowsToSections(
         description: row.section_description || undefined,
         sortOrder: row.section_order,
         isRepeatable: row.section_is_repeatable,
+        isVisible: row.section_is_visible !== false,
         fields: [],
       });
     }
