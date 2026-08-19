@@ -101,12 +101,25 @@ Deno.serve(async (req) => {
         const label = purposeLabels[purpose] || 'Verification';
         const subject = `Your ${label} Code`;
         const text = `Your verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share this code with anyone.`;
-        const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-          <h2 style="margin:0 0 12px;">${label}</h2>
-          <p style="color:#475569;margin:0 0 16px;">Use the code below to continue. It expires in 10 minutes.</p>
-          <div style="font-size:28px;font-weight:700;letter-spacing:6px;background:#0f172a;color:#fff;padding:14px 18px;border-radius:8px;text-align:center;">${otp}</div>
-          <p style="color:#94a3b8;font-size:12px;margin-top:16px;">If you did not request this code, you can ignore this email.</p>
-        </div>`;
+        const branding = await loadEmailBranding(supabaseAdmin);
+        const html = renderBrandedEmail({
+          appName: branding.appName,
+          logoUrl: branding.logoUrl,
+          tagline: branding.tagline,
+          brandColor: branding.brandColor,
+          eyebrow: label,
+          heading: "Verify your email address",
+          intro: "Use the one-time code below to continue. For your security it expires in 10 minutes.",
+          code: otp,
+          codeCaption: "Expires in 10 minutes",
+          paragraphs: [
+            "Never share this code with anyone. Our team will never ask you for it.",
+            "If you did not request this code, you can safely ignore this email.",
+          ],
+          supportEmail: branding.supportEmail,
+          supportPhone: branding.supportPhone,
+          footerText: branding.footerText || undefined,
+        });
 
         // Load SMTP config from site_settings
         const { data: settingsRow } = await supabaseAdmin
