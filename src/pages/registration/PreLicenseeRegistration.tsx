@@ -563,7 +563,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     // Verification gate: when OTP is configured for this step, the applicant
     // cannot advance until the resolved email is verified. The declarations
     // stage keeps its own check inside validateDeclarations.
-    if (step.type !== 'declarations' && isEmailVerificationStep(currentStep) && !form.emailVerified) {
+    if (step.type !== 'declarations' && isVerificationStageId(step.id) && isEmailVerificationStep(currentStep) && !form.emailVerified) {
       toast.error('Please verify your email address before continuing.');
       return false;
     }
