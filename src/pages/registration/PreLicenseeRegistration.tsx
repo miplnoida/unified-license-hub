@@ -152,6 +152,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  /** Furthest step the user has reached — every step up to it stays navigable. */
+  const [maxVisitedStep, setMaxVisitedStep] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
@@ -219,6 +221,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     clearPersistedStep();
     setCurrentStep(0);
     setCompletedSteps(new Set());
+    setMaxVisitedStep(0);
     setDynamicFormData({});
     setDynamicErrors({});
     reset();
@@ -229,6 +232,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     if (isUpdateMode) return;
     sessionStorage.setItem(STEP_KEY, String(currentStep));
   }, [currentStep, isUpdateMode]);
+
+  // Remember the furthest step reached so the stepper allows forward jumps back
+  // to steps the user already visited (e.g. after going back from Review).
+  useEffect(() => {
+    setMaxVisitedStep(prev => (currentStep > prev ? currentStep : prev));
+  }, [currentStep]);
 
   // Persist dynamic step data so going back to previous steps preserves entries
   useEffect(() => {
@@ -1266,7 +1275,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'review':
         return (
           <ReviewAcknowledgement
-            mode={reviewSettings?.review_mode || 'readonly'}
+            /* Applicants are still pre-submission here, so sections stay editable. */
+            mode="editable"
             sections={buildReviewSections()}
             onAcknowledge={handleSubmit}
             onEdit={(idx) => {
@@ -1494,9 +1504,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           steps={steps.map(s => s.label)}
           currentStep={currentStep}
           completedSteps={completedSteps}
+          maxVisitedStep={maxVisitedStep}
           onStepClick={(idx) => {
-            // Allow jumping back to any previously completed/visited step
-            if (idx < currentStep || completedSteps.has(idx)) {
+            // Allow jumping to any step the user has already reached
+            if (idx <= Math.max(maxVisitedStep, currentStep)) {
               setCurrentStep(idx);
             }
           }}
