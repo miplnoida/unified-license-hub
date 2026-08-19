@@ -93,6 +93,80 @@ export default function AdminHub() {
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
   ];
 
+  // --- Administration taxonomy (mirrors the sidebar's Administration domain).
+  // Discoverability only: every card is still filtered by module permission
+  // below and by the route guard on click.
+  const ADMIN_GROUP_ORDER = [
+    'People & Access',
+    'Licensing & Registration',
+    'Returns & Prudential',
+    'Supervision Configuration',
+    'Workflows & Rules',
+    'Communications',
+    'Security & Audit',
+    'System',
+  ] as const;
+
+  const ADMIN_GROUP_BY_HREF: Record<string, (typeof ADMIN_GROUP_ORDER)[number]> = {
+    '/admin/users': 'People & Access',
+    '/admin/roles': 'People & Access',
+    '/admin/api-keys': 'People & Access',
+
+    '/admin/forms/pre-license': 'Licensing & Registration',
+    '/admin/registration-forms': 'Licensing & Registration',
+    '/admin/registration-review': 'Licensing & Registration',
+    '/admin/fees': 'Licensing & Registration',
+    '/billing/penalties': 'Licensing & Registration',
+    '/admin/applications/bulk-intake': 'Licensing & Registration',
+    '/admin/rfi-auto-rules': 'Licensing & Registration',
+    '/admin/sufficiency-rules': 'Licensing & Registration',
+    '/admin/sufficiency-rule-sets': 'Licensing & Registration',
+    '/admin/decision-options': 'Licensing & Registration',
+
+    '/admin/return-config': 'Returns & Prudential',
+    '/supervision/breaches': 'Returns & Prudential',
+    '/supervision/early-warnings': 'Returns & Prudential',
+
+    '/admin/conduct/risk-taxonomy': 'Supervision Configuration',
+    '/admin/conduct/products-channels': 'Supervision Configuration',
+    '/admin/conduct/triage-rules': 'Supervision Configuration',
+    '/admin/complaint-types': 'Supervision Configuration',
+    '/admin/fp-screening-configs': 'Supervision Configuration',
+    '/admin/fp-committees': 'Supervision Configuration',
+    '/admin/fp-sector-rules': 'Supervision Configuration',
+    '/admin/supervisory-plan-templates': 'Supervision Configuration',
+    '/inspections': 'Supervision Configuration',
+    '/inspections/schedule': 'Supervision Configuration',
+
+    '/workflows': 'Workflows & Rules',
+    '/admin/rule-engine': 'Workflows & Rules',
+    '/admin/overrides': 'Workflows & Rules',
+
+    '/admin/notification-templates': 'Communications',
+    '/admin/correspondence-templates': 'Communications',
+    '/admin/correspondence-routing': 'Communications',
+    '/alerts': 'Communications',
+
+    '/admin/audit-logs': 'Security & Audit',
+    '/admin/compliance-audit-logs': 'Security & Audit',
+    '/admin/integration-logs': 'Security & Audit',
+
+    '/admin/regulators': 'System',
+    '/admin/masters/sectors': 'System',
+    '/settings': 'System',
+    '/admin/document-intelligence': 'System',
+  };
+
+  const groupForModule = (href: string): (typeof ADMIN_GROUP_ORDER)[number] => {
+    if (ADMIN_GROUP_BY_HREF[href]) return ADMIN_GROUP_BY_HREF[href];
+    if (href.startsWith('/admin/conduct') || href.startsWith('/conduct')) return 'Supervision Configuration';
+    if (href.startsWith('/admin/fp') || href.startsWith('/fpa')) return 'Supervision Configuration';
+    if (href.startsWith('/supervision')) return 'Returns & Prudential';
+    if (href.startsWith('/complaints') || href.startsWith('/enforcement') || href.startsWith('/coordination')) return 'Supervision Configuration';
+    if (href.startsWith('/reports') || href.startsWith('/executive')) return 'Security & Audit';
+    return 'System';
+  };
+
   // Filter modules by dynamic permissions. Super admin / legacy admin (no dynamic
   // role mapping) → see all. Otherwise only modules they have access to.
   const adminModules = allAdminModules.filter(mod => hasModuleAccess(mod.module));
@@ -201,8 +275,19 @@ export default function AdminHub() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up delay-300">
-              {adminModules.map(mod => (
+            <div className="space-y-8 animate-slide-up delay-300">
+              {ADMIN_GROUP_ORDER.map(groupLabel => {
+                const groupModules = adminModules.filter(mod => groupForModule(mod.href) === groupLabel);
+                if (groupModules.length === 0) return null;
+                return (
+                  <section key={groupLabel}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{groupLabel}</h3>
+                      <span className="text-xs text-muted-foreground">{groupModules.length}</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {groupModules.map(mod => (
                 <Card
                   key={mod.label}
                   className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
@@ -220,6 +305,10 @@ export default function AdminHub() {
                   </CardContent>
                 </Card>
               ))}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           )}
         </div>
