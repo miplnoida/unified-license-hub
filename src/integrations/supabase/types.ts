@@ -17586,6 +17586,7 @@ export type Database = {
           data_protection_url: string | null
           declarations: Json
           document_types: Json
+          email_verification_step_id: string | null
           form_schema: Json
           form_schema_backup: Json | null
           form_template_id: string | null
@@ -17608,6 +17609,7 @@ export type Database = {
           data_protection_url?: string | null
           declarations?: Json
           document_types?: Json
+          email_verification_step_id?: string | null
           form_schema?: Json
           form_schema_backup?: Json | null
           form_template_id?: string | null
@@ -17630,6 +17632,7 @@ export type Database = {
           data_protection_url?: string | null
           declarations?: Json
           document_types?: Json
+          email_verification_step_id?: string | null
           form_schema?: Json
           form_schema_backup?: Json | null
           form_template_id?: string | null
@@ -24782,6 +24785,7 @@ export type Database = {
           data_protection_url: string | null
           declarations: Json
           document_types: Json
+          email_verification_step_id: string | null
           form_schema: Json
           form_schema_backup: Json | null
           form_template_id: string | null
