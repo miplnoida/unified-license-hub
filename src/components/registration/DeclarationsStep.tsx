@@ -124,6 +124,13 @@ export function DeclarationsStep({
     updateMode,
   });
 
+  const showCaptcha = requireCaptcha && captchaVisible !== false;
+
+  // Nothing visible on this stage at all — render nothing rather than an empty
+  // panel (the step itself is dropped from the stepper upstream).
+  if (!showEmailVerification && !showCaptcha && effectiveDeclarations.length === 0) return null;
+
+
   return (
     <div className="space-y-6">
       {/* Email OTP Verification — only when the configured placement is this stage */}
@@ -173,7 +180,7 @@ export function DeclarationsStep({
       )}
 
       {/* CAPTCHA — real provider only; no checkbox fallback */}
-      {requireCaptcha && captchaVisible !== false && (
+      {showCaptcha && (
         <CaptchaSection
           verificationId={(form.captchaVerificationId as string | null) ?? null}
           onVerificationChange={(id) => setField('captchaVerificationId', id)}
