@@ -503,6 +503,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     const step = steps[currentStep];
     if (!step) return true;
 
+    // Verification gate: when OTP is configured for this step, the applicant
+    // cannot advance until the resolved email is verified. The declarations
+    // stage keeps its own check inside validateDeclarations.
+    if (step.type !== 'declarations' && isEmailVerificationStep(currentStep) && !form.emailVerified) {
+      toast.error('Please verify your email address before continuing.');
+      return false;
+    }
+
     switch (step.type) {
       case 'static':
         return validateStep(step.id === 'entity' ? 0 : 1);
@@ -535,7 +543,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
@@ -1059,6 +1067,27 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   };
 
   const renderStep = () => {
+    const inner = renderStepContent();
+    const step = steps[currentStep];
+    // Declarations renders the block itself (legacy placement); every other step
+    // gets it appended after its own content.
+    const showVerification =
+      !!step && step.type !== 'declarations' && isEmailVerificationStep(currentStep);
+    if (!showVerification) return inner;
+    return (
+      <div className="space-y-6">
+        {inner}
+        <EmailVerificationSection
+          form={form}
+          errors={errors}
+          setField={setField}
+          verificationEmail={effectiveEmail}
+        />
+      </div>
+    );
+  };
+
+  const renderStepContent = () => {
     const step = steps[currentStep];
     if (!step) return null;
 
@@ -1118,9 +1147,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}
-            requireOtp={config?.requireOtp ?? true}
+            requireOtp={requireOtp}
             requireCaptcha={effectiveRequireCaptcha}
             updateMode={isUpdateMode}
+            emailVerificationPlacement={emailVerificationPlacement}
           />
         );
 
