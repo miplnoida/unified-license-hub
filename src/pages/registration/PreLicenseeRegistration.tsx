@@ -648,7 +648,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, emailVerificationHydrating, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
