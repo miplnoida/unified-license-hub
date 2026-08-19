@@ -152,6 +152,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  /** Furthest step the user has reached — every step up to it stays navigable. */
+  const [maxVisitedStep, setMaxVisitedStep] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
