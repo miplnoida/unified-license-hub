@@ -3,6 +3,7 @@
 // Always returns a trimmed, lowercased string (or '' if none found).
 
 import type { RegField, RegFormSchema } from '@/types/registrationForm';
+import { isPrimaryEmailField } from '@/lib/primaryEmailValidation';
 
 const COMMON_KEYS = [
   'email',
