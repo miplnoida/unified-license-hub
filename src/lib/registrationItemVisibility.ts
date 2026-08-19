@@ -40,11 +40,19 @@ export const OTP_REQUIRED_BUT_HIDDEN_MESSAGE =
 export const CAPTCHA_REQUIRED_BUT_HIDDEN_MESSAGE =
   'CAPTCHA is required and cannot be hidden from applicants. Disable CAPTCHA first or make it visible.';
 
+/**
+ * Section-level visibility never blocks saving: hiding a section makes every
+ * item inside it non-mandatory. These constants are kept only so existing
+ * imports keep compiling; they are no longer returned by validation.
+ * @deprecated
+ */
 export const DOCUMENTS_SECTION_REQUIRED_BUT_HIDDEN_MESSAGE =
   'Documents are required for registration and the section cannot be hidden. Disable the requirement first or make the section visible.';
 
+/** @deprecated Section visibility no longer blocks saving. */
 export const DECLARATIONS_SECTION_HIDDEN_BLOCKS_VERIFICATION_MESSAGE =
   'The Declarations section carries a required verification control (OTP or CAPTCHA) and cannot be hidden. Move or disable the verification first.';
+
 
 export interface SecurityVisibilityConfig {
   require_otp?: boolean | null;
