@@ -57,7 +57,44 @@ export function shouldRenderEmailVerification({
     // Legacy placement lives in the final declarations stage.
     return stepType === 'declarations' || stepId === 'declarations';
   }
-  return stepId === placement;
+  // Verification gets its own stage right after the configured step, so the
+  // applicant enters the email first and verifies it after pressing Next.
+  return stepId === verificationStageId(placement) || stepId === placement;
+}
+
+/** Suffix marking the generated verification stage that follows a step. */
+export const VERIFICATION_STAGE_SUFFIX = '::email-verification';
+
+/** Id of the generated verification stage that follows `placement`. */
+export function verificationStageId(placement: string): string {
+  return `${placement}${VERIFICATION_STAGE_SUFFIX}`;
+}
+
+export function isVerificationStageId(stepId: string): boolean {
+  return stepId.endsWith(VERIFICATION_STAGE_SUFFIX);
+}
+
+/**
+ * Returns a copy of `steps` with a dedicated "Email Verification" stage
+ * inserted immediately after the configured placement step. Legacy
+ * (`before_submission`) placement, update mode and a hidden/disabled OTP
+ * control all return the list untouched.
+ */
+export function withVerificationStage<T extends PlacementStep>(
+  steps: T[],
+  placement: string,
+  opts: { requireOtp: boolean; updateMode?: boolean; label?: string },
+): (T | PlacementStep)[] {
+  if (!opts.requireOtp || opts.updateMode) return steps;
+  if (!placement || placement === BEFORE_SUBMISSION_PLACEMENT) return steps;
+  const idx = steps.findIndex(s => s.id === placement);
+  if (idx < 0) return steps;
+  const stage: PlacementStep = {
+    id: verificationStageId(placement),
+    type: 'verification',
+    label: opts.label || 'Email Verification',
+  };
+  return [...steps.slice(0, idx + 1), stage, ...steps.slice(idx + 1)];
 }
 
 /**
