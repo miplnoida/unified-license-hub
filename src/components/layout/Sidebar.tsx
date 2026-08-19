@@ -28,18 +28,33 @@ function usePersistedState<T>(key: string, initial: T): [T, (val: T | ((prev: T)
   return [state, setState];
 }
 
-function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname }: {
+function hasActiveDescendant(item: NavItem, pathname: string): boolean {
+  return (item.children ?? []).some(
+    (c) => (c.href && pathname === c.href) || hasActiveDescendant(c, pathname),
+  );
+}
+
+/**
+ * Renders a navigation group at any depth. Groups may nest arbitrarily
+ * (e.g. Licensing → Fit & Proper → Policy & Initiation → link) because the
+ * taxonomy now lives in `sec_navigation_items` and admins can add levels.
+ */
+function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname, depth = 0 }: {
   item: NavItem; collapsed: boolean; expandedGroups: string[];
-  toggleGroup: (label: string) => void; pathname: string;
+  toggleGroup: (label: string) => void; pathname: string; depth?: number;
 }) {
   const isExpanded = expandedGroups.includes(item.label);
-  const hasActiveChild = item.children?.some(c => c.href && pathname === c.href) ?? false;
+  const hasActiveChild = hasActiveDescendant(item, pathname);
 
   return (
     <div>
       <button
         onClick={() => toggleGroup(item.label)}
-        className={cn('nav-item w-full text-left', hasActiveChild && 'text-sidebar-primary font-semibold')}
+        className={cn(
+          'nav-item w-full text-left',
+          depth > 0 && 'px-3 py-2 text-[13px] text-sidebar-foreground/65',
+          hasActiveChild && 'text-sidebar-primary font-semibold',
+        )}
         title={collapsed ? item.label : undefined}
       >
         {item.icon}
@@ -51,9 +66,22 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
         )}
       </button>
       {!collapsed && (
-        <div className={cn('overflow-hidden transition-all duration-200', isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0')}>
+        <div className={cn('overflow-hidden transition-all', isExpanded ? 'opacity-100' : 'max-h-0 opacity-0')}>
           <div className="ml-5 border-l border-sidebar-border pl-3 py-1 space-y-0.5">
             {item.children?.map((child) => {
+              if (child.children?.length) {
+                return (
+                  <CollapsibleNavItem
+                    key={child.label}
+                    item={child}
+                    collapsed={collapsed}
+                    expandedGroups={expandedGroups}
+                    toggleGroup={toggleGroup}
+                    pathname={pathname}
+                    depth={depth + 1}
+                  />
+                );
+              }
               if (!child.href) return null;
               const isActive = pathname === child.href;
               return (
@@ -77,6 +105,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
     </div>
   );
 }
+
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = usePersistedState(COLLAPSED_KEY, false);
