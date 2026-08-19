@@ -18,7 +18,14 @@ import {
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
-import { isItemVisible, isEffectiveRequired } from '@/lib/registrationItemVisibility';
+import {
+  isItemVisible,
+  isEffectiveRequired,
+  effectiveDocumentTypes as visibleDocTypesFor,
+  effectiveDeclarations as visibleDeclarationsFor,
+  isDocumentsStepVisible,
+  isDeclarationsStepVisible,
+} from '@/lib/registrationItemVisibility';
 
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
@@ -329,24 +336,21 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       result.push({ id: 'user', label: 'Primary User', type: 'static' });
     }
 
-    // A step whose every item is hidden by the admin is skipped entirely.
-    const shownDocTypes = config?.documentTypes
-      ? config.documentTypes.filter(isItemVisible)
-      : undefined;
-    const documentsStepHasContent = !shownDocTypes || shownDocTypes.length > 0;
-    if ((!config || config.requireDocuments) && documentsStepHasContent) {
+    // A hidden section (or a section whose every item is hidden) is skipped entirely.
+    if (isDocumentsStepVisible({
+      requireDocuments: config ? config.requireDocuments : true,
+      documentsSectionVisible: config?.documentsSectionVisible !== false,
+      documentTypes: config?.documentTypes ?? null,
+    })) {
       result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
     }
 
-    const shownDeclarations = config?.declarations && config.declarations.length > 0
-      ? config.declarations.filter(isItemVisible)
-      : null;
-    const declarationsStepHasContent =
-      shownDeclarations === null
-      || shownDeclarations.length > 0
-      || ((config?.requireOtp ?? true) && otpVisible)
-      || effectiveRequireCaptcha;
-    if (declarationsStepHasContent) {
+    if (isDeclarationsStepVisible({
+      declarationsSectionVisible: config?.declarationsSectionVisible !== false,
+      declarations: config?.declarations && config.declarations.length > 0 ? config.declarations : null,
+      otpOnDeclarations: (config?.requireOtp ?? true) && otpVisible,
+      captchaOnDeclarations: effectiveRequireCaptcha,
+    })) {
       result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
     }
 
@@ -519,7 +523,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
     if (config?.declarations && config.declarations.length > 0) {
-      // Hidden declarations are never shown, so they can never be required.
+      // Hidden declarations (row-level or whole section) never reach the
+      // applicant, so they can never be required.
+      if (config.declarationsSectionVisible === false) return [];
       return config.declarations
         .map((d, idx) => ({
           fieldKey: declFieldKey(d.label, idx),
@@ -568,7 +574,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'documents':
         // Validate required document types
         if (config?.documentTypes) {
-          const requiredTypes = config.documentTypes.filter(isEffectiveRequired);
+          const requiredTypes = config.documentsSectionVisible === false
+            ? []
+            : config.documentTypes.filter(isEffectiveRequired);
           const missingDocs = requiredTypes.filter(
             rt => !form.documents.some(d => d.label === rt.label)
           );
@@ -1171,7 +1179,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               onAddDocument={handleAddDocument}
               onRemoveDocument={handleRemoveDocument}
               errors={errors}
-              documentTypes={config?.documentTypes}
+              documentTypes={visibleDocTypesFor(config?.documentTypes, config?.documentsSectionVisible !== false)}
             />
           </div>
         );
@@ -1181,7 +1189,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           <DeclarationsStep
             form={form} errors={errors} setField={setField}
             verificationEmail={effectiveEmail}
-            declarations={config?.declarations}
+            declarations={visibleDeclarationsFor(config?.declarations, config?.declarationsSectionVisible !== false)}
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}
             dataProtectionUrl={config?.dataProtectionUrl}
@@ -1277,7 +1285,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       });
     }
 
-    if (form.documents.length > 0 || (config?.requireDocuments ?? true)) {
+    const documentsSectionShown = isDocumentsStepVisible({
+      requireDocuments: config ? config.requireDocuments : true,
+      documentsSectionVisible: config?.documentsSectionVisible !== false,
+      documentTypes: config?.documentTypes ?? null,
+    });
+    if (form.documents.length > 0 || documentsSectionShown) {
       sections.push({
         title: 'Supporting Documents',
         fields: form.documents.length > 0
