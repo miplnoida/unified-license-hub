@@ -6,8 +6,6 @@ import type { RegFormSchema } from '@/types/registrationForm';
 export interface RegistrationDeclaration {
   label: string;
   required: boolean;
-  /** Admin visibility; `false` hides it from applicants (default visible). */
-  visible?: boolean;
   linkUrl?: string;
   linkLabel?: string;
   /** Admin-controlled visibility. `undefined`/`true` = shown to the applicant. */
@@ -17,8 +15,6 @@ export interface RegistrationDeclaration {
 export interface RegistrationDocType {
   label: string;
   required: boolean;
-  /** Admin visibility; `false` hides it from applicants (default visible). */
-  visible?: boolean;
   allowedTypes: string[];
   maxSizeMB: number;
   /** Admin-controlled visibility. `undefined`/`true` = shown to the applicant. */
@@ -167,10 +163,6 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
 
         requireCaptcha: best.require_captcha,
         requireDocuments: best.require_documents,
-        otpVisibleToApplicant:
-          (best as { otp_visible_to_applicant?: boolean | null }).otp_visible_to_applicant !== false,
-        captchaVisibleToApplicant:
-          (best as { captcha_visible_to_applicant?: boolean | null }).captcha_visible_to_applicant !== false,
         termsUrl: best.terms_url || '',
         privacyUrl: best.privacy_url || '',
         dataProtectionUrl: best.data_protection_url || '',
