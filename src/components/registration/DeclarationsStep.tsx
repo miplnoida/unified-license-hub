@@ -58,10 +58,6 @@ function isValidUrl(url?: string): boolean {
   }
 }
 
-function verifiedEmailMarkerKey(email: string): string {
-  return `registrationEmailVerified:${email.trim().toLowerCase()}`;
-}
-
 export function DeclarationsStep({
   form,
   errors,
@@ -74,7 +70,9 @@ export function DeclarationsStep({
   requireOtp = true,
   requireCaptcha = true,
   updateMode = false,
+  emailVerificationPlacement = BEFORE_SUBMISSION_PLACEMENT,
 }: Props) {
+
   // Build effective declarations: use config if available, else hardcoded fallbacks
   const effectiveDeclarations: DeclarationConfig[] =
     declarations && declarations.length > 0
