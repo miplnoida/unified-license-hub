@@ -35,6 +35,11 @@ export interface RegistrationConfig {
   otpVisible: boolean;
   /** Whether the CAPTCHA block is shown to the applicant. */
   captchaVisible: boolean;
+  /** Whether the whole Supporting Documents section is shown to the applicant. */
+  documentsSectionVisible: boolean;
+  /** Whether the whole Declarations section is shown to the applicant. */
+  declarationsSectionVisible: boolean;
+
   termsUrl: string;
   privacyUrl: string;
   dataProtectionUrl: string;
