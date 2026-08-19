@@ -348,14 +348,24 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
     }
 
+    // OTP only keeps the Declarations step alive when the configured placement
+    // actually resolves to that stage (legacy / unknown / deleted step id).
+    const storedPlacement = (config?.emailVerificationStepId || '').trim();
+    const otpLandsOnDeclarations =
+      !storedPlacement
+      || storedPlacement === BEFORE_SUBMISSION_PLACEMENT
+      || storedPlacement === 'declarations'
+      || !result.some(s => s.id === storedPlacement);
+
     if (isDeclarationsStepVisible({
       declarationsSectionVisible: config?.declarationsSectionVisible !== false,
       declarations: config?.declarations && config.declarations.length > 0 ? config.declarations : null,
-      otpOnDeclarations: (config?.requireOtp ?? true) && otpVisible,
+      otpOnDeclarations: (config?.requireOtp ?? true) && otpVisible && otpLandsOnDeclarations,
       captchaOnDeclarations: effectiveRequireCaptcha,
     })) {
       result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
     }
+
 
     if (reviewEnabled) {
       result.push({ id: 'review', label: 'Review & Submit', type: 'review' as any });
