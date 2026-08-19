@@ -6,10 +6,13 @@ interface Props {
   steps: string[];
   currentStep: number;
   completedSteps: Set<number>;
+  /** Furthest step index the user has reached; steps up to it are navigable. */
+  maxVisitedStep?: number;
   onStepClick?: (idx: number) => void;
 }
 
-export function DynamicRegistrationStepper({ steps, currentStep, completedSteps, onStepClick }: Props) {
+export function DynamicRegistrationStepper({ steps, currentStep, completedSteps, maxVisitedStep, onStepClick }: Props) {
+  const furthestStep = Math.max(maxVisitedStep ?? 0, currentStep);
   const railRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +42,7 @@ export function DynamicRegistrationStepper({ steps, currentStep, completedSteps,
           {steps.map((label, idx) => {
             const isCompleted = completedSteps.has(idx);
             const isCurrent = idx === currentStep;
-            const isClickable = !!onStepClick && (isCompleted || idx < currentStep) && !isCurrent;
+            const isClickable = !!onStepClick && idx <= furthestStep && !isCurrent;
 
             return (
               <div key={idx} className="flex items-start shrink-0">
