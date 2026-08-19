@@ -96,7 +96,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
                 );
               }
               if (!child.href) return null;
-              const isActive = pathname === child.href;
+              const isActive = isPathActive(child.href, pathname);
               return (
                 <Link
                   key={child.href}
@@ -321,7 +321,7 @@ export function Sidebar() {
                         }
 
                         if (!item.href) return null;
-                        const isActive = location.pathname === item.href;
+                        const isActive = isPathActive(item.href, location.pathname);
                         return (
                           <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')}>
                             {item.icon}
@@ -402,7 +402,7 @@ export function Sidebar() {
                     }
 
                     if (!item.href) return null;
-                    const isActive = location.pathname === item.href;
+                    const isActive = isPathActive(item.href, location.pathname);
                     return (
                       <Link
                         key={item.href} to={item.href}
