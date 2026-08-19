@@ -209,6 +209,28 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
               Repeatable section (allow multiple entries)
             </Label>
           </div>
+          <div className="flex items-start justify-between gap-2 pt-1">
+            <div>
+              <Label htmlFor={`visible-${step.id}`} className="text-xs cursor-pointer">
+                Visible to applicant
+              </Label>
+              <p className="text-[10px] text-muted-foreground">
+                Hidden steps are skipped in the registration flow, stepper and validation.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {step.isVisible === false && (
+                <Badge variant="outline" className="text-[9px] px-1 border-destructive/40 text-destructive">Hidden</Badge>
+              )}
+              <input
+                id={`visible-${step.id}`}
+                type="checkbox"
+                checked={step.isVisible !== false}
+                onChange={e => update({ isVisible: e.target.checked })}
+                className="h-3.5 w-3.5"
+              />
+            </div>
+          </div>
           {step.isRepeatable && (
             <div>
               <Label className="text-xs">Entry label (singular)</Label>
