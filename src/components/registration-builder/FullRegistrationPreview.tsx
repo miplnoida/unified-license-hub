@@ -1,3 +1,4 @@
+import { visibleRegSteps } from '@/lib/sectionVisibility';
 import { useState, useMemo } from 'react';
 import {
   resolveEmailVerificationPlacement,
