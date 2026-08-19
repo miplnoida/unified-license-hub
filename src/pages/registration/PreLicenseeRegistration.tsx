@@ -16,6 +16,8 @@ import {
   BEFORE_SUBMISSION_PLACEMENT,
   resolveEmailVerificationPlacement,
   shouldRenderEmailVerification,
+  withVerificationStage,
+  isVerificationStageId,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
 import {
@@ -39,6 +41,7 @@ import {
   isRegistrationEmailField,
   isRegistrationPasswordField,
   resolveRegistrationEmail,
+  resolveRegistrationLoginEmail,
   resolveRegistrationPassword,
   resolveRegistrationFirstName,
   resolveRegistrationLastName,
@@ -238,7 +241,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
   const effectiveEmail = useMemo(
-    () => resolveRegistrationEmail(form.email, dynamicFormData, visibleSchema),
+    () => resolveRegistrationLoginEmail(form.email, dynamicFormData, visibleSchema),
     [form.email, dynamicFormData, visibleSchema],
   );
 
@@ -324,8 +327,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   }, []);
 
   // Build steps list dynamically based on config
-  const steps = useMemo(() => {
-    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
+  const baseSteps = useMemo(() => {
+    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review' | 'verification'; stepData?: RegStep }[] = [];
 
     if (visibleSchema.length > 0) {
       visibleSchema.forEach((regStep) => {
@@ -361,17 +364,27 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     return result;
   }, [config, reviewEnabled, visibleSchema, otpVisible, effectiveRequireCaptcha]);
 
-  const STEP_COUNT = steps.length;
-  const isLastStep = currentStep === STEP_COUNT - 1;
-
   // Where email OTP verification belongs, resolved once from the admin config.
   // NULL / unknown / deleted step ids fall back to the legacy pre-submission stage.
   const emailVerificationPlacement = useMemo(
-    () => resolveEmailVerificationPlacement(config?.emailVerificationStepId, steps),
-    [config?.emailVerificationStepId, steps],
+    () => resolveEmailVerificationPlacement(config?.emailVerificationStepId, baseSteps),
+    [config?.emailVerificationStepId, baseSteps],
   );
   // A hidden OTP control is neither rendered nor enforced.
   const requireOtp = (config?.requireOtp ?? true) && otpVisible;
+
+  // Verification gets its own stage right after the configured step, so the
+  // applicant types the email, presses Next, and then verifies it.
+  const steps = useMemo(
+    () => withVerificationStage(baseSteps, emailVerificationPlacement, {
+      requireOtp,
+      updateMode: isUpdateMode,
+    }) as typeof baseSteps,
+    [baseSteps, emailVerificationPlacement, requireOtp, isUpdateMode],
+  );
+
+  const STEP_COUNT = steps.length;
+  const isLastStep = currentStep === STEP_COUNT - 1;
 
 
   /** True when the OTP block belongs on the step at `index`. */
@@ -550,7 +563,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     // Verification gate: when OTP is configured for this step, the applicant
     // cannot advance until the resolved email is verified. The declarations
     // stage keeps its own check inside validateDeclarations.
-    if (step.type !== 'declarations' && isEmailVerificationStep(currentStep) && !form.emailVerified) {
+    if (step.type !== 'declarations' && isVerificationStageId(step.id) && isEmailVerificationStep(currentStep) && !form.emailVerified) {
       toast.error('Please verify your email address before continuing.');
       return false;
     }
@@ -1123,7 +1136,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     // Declarations renders the block itself (legacy placement); every other step
     // gets it appended after its own content.
     const showVerification =
-      !!step && step.type !== 'declarations' && isEmailVerificationStep(currentStep);
+      !!step && step.type !== 'declarations' && isVerificationStageId(step.id)
+      && isEmailVerificationStep(currentStep);
     if (!showVerification) return inner;
     return (
       <div className="space-y-6">
@@ -1214,7 +1228,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             mode={reviewSettings?.review_mode || 'readonly'}
             sections={buildReviewSections()}
             onAcknowledge={handleSubmit}
-            onEdit={(idx) => setCurrentStep(Math.min(idx, steps.length - 2))}
+            onEdit={(idx) => {
+              // Review sections follow baseSteps order; map back to the live
+              // step list so the generated verification stage cannot shift it.
+              const base = baseSteps[idx];
+              const target = base ? steps.findIndex(s => s.id === base.id) : -1;
+              setCurrentStep(Math.min(target >= 0 ? target : idx, steps.length - 2));
+            }}
             loading={submitting}
             title="Review Your Registration"
             description="Please review all information before final submission."
