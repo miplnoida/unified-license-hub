@@ -97,9 +97,7 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
       if (error) { toast.error('Verification failed'); return; }
       if (data?.error) { toast.error(data.error); return; }
       if (data?.verified) {
-        try {
-          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
-        } catch {}
+        markEmailVerifiedLocally(resolvedEmail);
         setField('emailVerified', true);
         toast.success('Email verified successfully!');
       }
