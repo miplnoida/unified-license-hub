@@ -11,6 +11,12 @@ import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
+import { EmailVerificationSection } from '@/components/registration/EmailVerificationSection';
+import {
+  BEFORE_SUBMISSION_PLACEMENT,
+  resolveEmailVerificationPlacement,
+  shouldRenderEmailVerification,
+} from '@/lib/registrationEmailVerification';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
@@ -321,6 +327,27 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
+
+  // Where email OTP verification belongs, resolved once from the admin config.
+  // NULL / unknown / deleted step ids fall back to the legacy pre-submission stage.
+  const emailVerificationPlacement = useMemo(
+    () => resolveEmailVerificationPlacement(config?.emailVerificationStepId, steps),
+    [config?.emailVerificationStepId, steps],
+  );
+  const requireOtp = config?.requireOtp ?? true;
+
+  /** True when the OTP block belongs on the step at `index`. */
+  const isEmailVerificationStep = useCallback((index: number) => {
+    const step = steps[index];
+    if (!step) return false;
+    return shouldRenderEmailVerification({
+      stepId: step.id,
+      stepType: step.type,
+      placement: emailVerificationPlacement,
+      requireOtp,
+      updateMode: isUpdateMode,
+    });
+  }, [steps, emailVerificationPlacement, requireOtp, isUpdateMode]);
 
   // Clamp currentStep when steps array shrinks (e.g. saved index from older config)
   useEffect(() => {
