@@ -97,10 +97,21 @@ export function DeclarationsStep({
           },
         ];
 
+  const showEmailVerification = shouldRenderEmailVerification({
+    stepId: 'declarations',
+    stepType: 'declarations',
+    placement: emailVerificationPlacement,
+    requireOtp,
+    updateMode,
+  });
+
   return (
     <div className="space-y-6">
-      {/* Email OTP Verification */}
-      {requireOtp && !updateMode && <OtpVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />}
+      {/* Email OTP Verification — only when the configured placement is this stage */}
+      {showEmailVerification && (
+        <EmailVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />
+      )}
+
 
       {/* Dynamic Declarations */}
       <div className="form-section">
