@@ -788,10 +788,6 @@ export default function RegistrationFormBuilder() {
                             <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
                             <Label className="text-xs">Required</Label>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Switch checked={decl.visible !== false} onCheckedChange={v => updateDeclaration(idx, 'visible', v)} />
-                            <Label className="text-xs">Visible to applicant</Label>
-                          </div>
                           {decl.linkLabel && decl.linkUrl && (
                             <span className="text-xs text-muted-foreground">
                               Preview: "{decl.label?.replace(decl.linkLabel, `[${decl.linkLabel}]`)}"
