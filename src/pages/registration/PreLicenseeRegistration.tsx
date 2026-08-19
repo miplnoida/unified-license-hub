@@ -117,6 +117,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const effectiveRequireCaptcha =
     (config?.requireCaptcha ?? true) && (captchaRuntime?.globallyEnabled ?? false);
 
+  // Steps the admin marked hidden never reach the applicant: they are excluded
+  // from navigation, validation, progress and the review summary. Any data
+  // already captured for them is preserved untouched.
+  const visibleSchema = useMemo(
+    () => visibleRegSteps(config?.formSchema),
+    [config?.formSchema],
+  );
+
+
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const saved = sessionStorage.getItem(STEP_KEY);
