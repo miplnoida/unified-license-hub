@@ -58,30 +58,35 @@ describe('registration section-level visibility', () => {
     })).toBe(false);
   });
 
-  it('blocks saving a hidden documents section while documents are required', () => {
-    const res = validateSecurityVisibility({
+  it('allows hiding a section even when items inside are required', () => {
+    expect(validateSecurityVisibility({
       require_documents: true,
       documents_section_visible: false,
-    });
-    expect(res.ok).toBe(false);
-    expect(res.message).toBe(DOCUMENTS_SECTION_REQUIRED_BUT_HIDDEN_MESSAGE);
-  });
+    }).ok).toBe(true);
 
-  it('blocks hiding declarations when a required verification renders there', () => {
-    const captcha = validateSecurityVisibility({
+    expect(validateSecurityVisibility({
       require_captcha: true,
       declarations_section_visible: false,
-    });
-    expect(captcha.ok).toBe(false);
-    expect(captcha.message).toBe(DECLARATIONS_SECTION_HIDDEN_BLOCKS_VERIFICATION_MESSAGE);
+    }).ok).toBe(true);
 
-    const otpElsewhere = validateSecurityVisibility({
+    expect(validateSecurityVisibility({
       require_otp: true,
       email_verification_step_id: 'entity',
       declarations_section_visible: false,
-    });
-    expect(otpElsewhere.ok).toBe(true);
+    }).ok).toBe(true);
   });
+
+  it('still blocks an individually hidden required verification control', () => {
+    expect(validateSecurityVisibility({
+      require_otp: true,
+      otp_visible_to_applicant: false,
+    }).ok).toBe(false);
+    expect(validateSecurityVisibility({
+      require_captcha: true,
+      captcha_visible_to_applicant: false,
+    }).ok).toBe(false);
+  });
+
 
   it('leaves legacy configs (no flags) fully visible', () => {
     expect(validateSecurityVisibility({ require_otp: true, require_captcha: true }).ok).toBe(true);
