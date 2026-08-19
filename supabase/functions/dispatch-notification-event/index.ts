@@ -20,6 +20,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
+import { loadEmailBranding, detailsFromVars } from "../_shared/email-branding.ts";
 import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 import { SMS_UNAVAILABLE_REASON } from "../_shared/smsProvider.ts";
