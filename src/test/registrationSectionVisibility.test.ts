@@ -90,4 +90,30 @@ describe('registration section-level visibility', () => {
     expect(validateSecurityVisibility({ require_otp: true, require_captcha: true }).ok).toBe(true);
     expect(isDeclarationsStepVisible({ declarations: null })).toBe(true);
   });
+
+  it('drops the declarations stage when OTP is placed on another step and CAPTCHA is off', () => {
+    // Mirrors the runtime: placement-aware otpOnDeclarations.
+    expect(isDeclarationsStepVisible({
+      declarationsSectionVisible: false,
+      declarations: [{ required: true }],
+      otpOnDeclarations: false,
+      captchaOnDeclarations: false,
+    })).toBe(false);
+
+    // Legacy placement (before_submission) keeps the stage alive.
+    expect(isDeclarationsStepVisible({
+      declarationsSectionVisible: false,
+      declarations: [{ required: true }],
+      otpOnDeclarations: true,
+    })).toBe(true);
+
+    // A live, visible CAPTCHA keeps the stage alive.
+    expect(isDeclarationsStepVisible({
+      declarationsSectionVisible: false,
+      declarations: [{ required: true }],
+      otpOnDeclarations: false,
+      captchaOnDeclarations: true,
+    })).toBe(true);
+  });
 });
+
