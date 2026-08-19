@@ -17589,7 +17589,9 @@ export type Database = {
           created_at: string
           data_protection_url: string | null
           declarations: Json
+          declarations_section_visible: boolean
           document_types: Json
+          documents_section_visible: boolean
           email_verification_step_id: string | null
           form_schema: Json
           form_schema_backup: Json | null
@@ -17614,7 +17616,9 @@ export type Database = {
           created_at?: string
           data_protection_url?: string | null
           declarations?: Json
+          declarations_section_visible?: boolean
           document_types?: Json
+          documents_section_visible?: boolean
           email_verification_step_id?: string | null
           form_schema?: Json
           form_schema_backup?: Json | null
@@ -17639,7 +17643,9 @@ export type Database = {
           created_at?: string
           data_protection_url?: string | null
           declarations?: Json
+          declarations_section_visible?: boolean
           document_types?: Json
+          documents_section_visible?: boolean
           email_verification_step_id?: string | null
           form_schema?: Json
           form_schema_backup?: Json | null
@@ -24794,7 +24800,9 @@ export type Database = {
           created_at: string
           data_protection_url: string | null
           declarations: Json
+          declarations_section_visible: boolean
           document_types: Json
+          documents_section_visible: boolean
           email_verification_step_id: string | null
           form_schema: Json
           form_schema_backup: Json | null
