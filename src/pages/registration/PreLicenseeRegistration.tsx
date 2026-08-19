@@ -561,6 +561,11 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'dynamic':
         return step.stepData ? validateDynamicStep(step.stepData) : true;
       case 'declarations': {
+        // A hidden declarations section makes every declaration non-mandatory;
+        // only the verification controls still gate the step.
+        if (config?.declarationsSectionVisible === false) {
+          return validateDeclarations([], requireOtp, effectiveRequireCaptcha);
+        }
         const useDynamic = config?.declarations && config.declarations.length > 0;
         if (useDynamic) {
           return validateDeclarations(
