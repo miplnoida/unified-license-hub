@@ -6,6 +6,7 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 import { deepEqualField, diffRepeatable, type DiffPair } from '@/lib/formDiff';
+import { isSectionConfiguredVisible } from '@/lib/sectionVisibility';
 
 interface TemplateLite {
   id: string;
