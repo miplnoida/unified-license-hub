@@ -121,6 +121,7 @@ function sectionsToFieldRows(
         section_order: section.sortOrder,
         section_description: section.description || null,
         section_is_repeatable: section.isRepeatable,
+        section_is_visible: section.isVisible !== false,
         field_type: f.type,
         label: f.label,
         field_name: f.fieldName,
