@@ -53,11 +53,14 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
     if (!items.length) {
       return { sections: mainNavSections, isLoading, isDbDriven: false };
     }
-    const roots = buildNavTree(items);
+    // Search-only entries (show_in_sidebar = false) stay out of the menu.
+    const sidebarItems = items.filter((i) => i.show_in_sidebar !== false);
+    const roots = buildNavTree(sidebarItems);
     const sections: NavSection[] = roots.map((root) => ({
       label: root.item_type === 'group' ? root.label : undefined,
       items: (root.item_type === 'group' ? root.children : [root]).map(toNavItem),
     })).filter((s) => s.items.length > 0);
     return { sections: sections.length ? sections : mainNavSections, isLoading, isDbDriven: sections.length > 0 };
   }, [context, isLoading]);
+
 }
