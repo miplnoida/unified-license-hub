@@ -63,3 +63,35 @@ export async function loadEmailBranding(supabase: any): Promise<EmailBranding> {
 export function defaultEmailBranding(): EmailBranding {
   return { ...DEFAULTS };
 }
+
+/**
+ * Picks well-known notification payload tokens and turns them into a structured
+ * details table so lifecycle emails carry the key facts at a glance.
+ */
+const DETAIL_KEYS: Array<{ key: string; label: string }> = [
+  { key: "application_number", label: "Application number" },
+  { key: "registration_reference", label: "Registration reference" },
+  { key: "complaint_reference", label: "Complaint reference" },
+  { key: "return_reference", label: "Return reference" },
+  { key: "invoice_number", label: "Invoice number" },
+  { key: "license_number", label: "License number" },
+  { key: "entity_name", label: "Entity" },
+  { key: "applicant_name", label: "Applicant" },
+  { key: "status", label: "Status" },
+  { key: "amount", label: "Amount" },
+  { key: "due_date", label: "Due date" },
+  { key: "submitted_at", label: "Submitted at" },
+];
+
+export function detailsFromVars(vars: Record<string, unknown> | null | undefined): Array<{ label: string; value: string }> {
+  const out: Array<{ label: string; value: string }> = [];
+  if (!vars) return out;
+  for (const { key, label } of DETAIL_KEYS) {
+    const raw = vars[key];
+    if (raw === null || raw === undefined) continue;
+    const value = String(raw).trim();
+    if (!value) continue;
+    out.push({ label, value });
+  }
+  return out.slice(0, 8);
+}
