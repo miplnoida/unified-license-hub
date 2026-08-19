@@ -18,6 +18,8 @@ import {
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
+import { isItemVisible, isEffectiveRequired } from '@/lib/registrationItemVisibility';
+
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
