@@ -7,6 +7,7 @@ import {
   BEFORE_SUBMISSION_PLACEMENT,
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
+import { isItemVisible } from '@/lib/registrationItemVisibility';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
 
 
@@ -29,6 +30,9 @@ interface Props {
   dataProtectionUrl?: string;
   requireOtp?: boolean;
   requireCaptcha?: boolean;
+  /** Admin visibility flags; `false` removes the control from the applicant view. */
+  otpVisible?: boolean;
+  captchaVisible?: boolean;
   updateMode?: boolean;
   /** Resolved email-verification placement (step id or 'before_submission'). */
   emailVerificationPlacement?: string;
@@ -69,40 +73,50 @@ export function DeclarationsStep({
   dataProtectionUrl,
   requireOtp = true,
   requireCaptcha = true,
+  otpVisible = true,
+  captchaVisible = true,
   updateMode = false,
   emailVerificationPlacement = BEFORE_SUBMISSION_PLACEMENT,
 }: Props) {
 
-  // Build effective declarations: use config if available, else hardcoded fallbacks
-  const effectiveDeclarations: DeclarationConfig[] =
-    declarations && declarations.length > 0
-      ? declarations
-      : [
-          {
-            label: 'I agree to the Terms & Conditions',
-            required: true,
-            linkLabel: 'Terms & Conditions',
-            linkUrl: termsUrl || '/terms',
-          },
-          {
-            label: 'I agree to the Privacy Policy',
-            required: true,
-            linkLabel: 'Privacy Policy',
-            linkUrl: privacyUrl || '/privacy',
-          },
-          {
-            label: 'I agree to the Data Protection Notice',
-            required: true,
-            linkLabel: 'Data Protection Notice',
-            linkUrl: dataProtectionUrl || '/data-protection',
-          },
-        ];
+  // Build effective declarations: use config if available, else hardcoded
+  // fallbacks. Declarations the admin hid never reach the applicant, but the
+  // original index is preserved so the derived field keys stay stable.
+  const fallbackDeclarations: DeclarationConfig[] = [
+    {
+      label: 'I agree to the Terms & Conditions',
+      required: true,
+      linkLabel: 'Terms & Conditions',
+      linkUrl: termsUrl || '/terms',
+    },
+    {
+      label: 'I agree to the Privacy Policy',
+      required: true,
+      linkLabel: 'Privacy Policy',
+      linkUrl: privacyUrl || '/privacy',
+    },
+    {
+      label: 'I agree to the Data Protection Notice',
+      required: true,
+      linkLabel: 'Data Protection Notice',
+      linkUrl: dataProtectionUrl || '/data-protection',
+    },
+  ];
+
+  const sourceDeclarations =
+    declarations && declarations.length > 0 ? declarations : fallbackDeclarations;
+
+  const effectiveDeclarations = sourceDeclarations
+    .map((decl, idx) => ({ decl, idx }))
+    .filter(({ decl }) => isItemVisible(decl));
+
+
 
   const showEmailVerification = shouldRenderEmailVerification({
     stepId: 'declarations',
     stepType: 'declarations',
     placement: emailVerificationPlacement,
-    requireOtp,
+    requireOtp: requireOtp && otpVisible !== false,
     updateMode,
   });
 
@@ -114,52 +128,55 @@ export function DeclarationsStep({
       )}
 
 
-      {/* Dynamic Declarations */}
-      <div className="form-section">
-        <h3 className="text-lg font-semibold text-foreground">Declarations</h3>
-        <p className="text-sm text-muted-foreground">
-          Please review and accept the following before submitting your registration.
-        </p>
+      {/* Dynamic Declarations — hidden ones are dropped; an empty set hides the block */}
+      {effectiveDeclarations.length > 0 && (
+        <div className="form-section">
+          <h3 className="text-lg font-semibold text-foreground">Declarations</h3>
+          <p className="text-sm text-muted-foreground">
+            Please review and accept the following before submitting your registration.
+          </p>
 
-        <div className="mt-4 space-y-4">
-          {effectiveDeclarations.map((decl, idx) => {
-            const fieldKey = declFieldKey(decl.label, idx);
-            const validUrl = isValidUrl(decl.linkUrl);
-            const links =
-              decl.linkLabel && validUrl
-                ? [{ text: decl.linkLabel, url: decl.linkUrl as string, newTab: true }]
-                : undefined;
+          <div className="mt-4 space-y-4">
+            {effectiveDeclarations.map(({ decl, idx }) => {
+              const fieldKey = declFieldKey(decl.label, idx);
+              const validUrl = isValidUrl(decl.linkUrl);
+              const links =
+                decl.linkLabel && validUrl
+                  ? [{ text: decl.linkLabel, url: decl.linkUrl as string, newTab: true }]
+                  : undefined;
 
-            return (
-              <div key={idx} className="flex items-start gap-3 rounded-lg border border-border p-4">
-                <Checkbox
-                  id={`decl-${idx}`}
-                  checked={!!(form as unknown as Record<string, unknown>)[fieldKey]}
-                  onCheckedChange={(v) => setField(fieldKey, v === true)}
-                  className="mt-0.5"
-                />
-                <div>
-                  <Label htmlFor={`decl-${idx}`} className="text-sm cursor-pointer leading-relaxed">
-                    <RichLabel label={decl.label} links={links} />
-                  </Label>
-                  {errors[fieldKey] && (
-                    <p className="text-sm text-destructive mt-1">{errors[fieldKey]}</p>
-                  )}
+              return (
+                <div key={idx} className="flex items-start gap-3 rounded-lg border border-border p-4">
+                  <Checkbox
+                    id={`decl-${idx}`}
+                    checked={!!(form as unknown as Record<string, unknown>)[fieldKey]}
+                    onCheckedChange={(v) => setField(fieldKey, v === true)}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <Label htmlFor={`decl-${idx}`} className="text-sm cursor-pointer leading-relaxed">
+                      <RichLabel label={decl.label} links={links} />
+                    </Label>
+                    {errors[fieldKey] && (
+                      <p className="text-sm text-destructive mt-1">{errors[fieldKey]}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CAPTCHA — real provider only; no checkbox fallback */}
-      {requireCaptcha && (
+      {requireCaptcha && captchaVisible !== false && (
         <CaptchaSection
           verificationId={(form.captchaVerificationId as string | null) ?? null}
           onVerificationChange={(id) => setField('captchaVerificationId', id)}
           error={errors.captcha}
         />
       )}
+
     </div>
   );
 }

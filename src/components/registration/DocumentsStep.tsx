@@ -11,12 +11,16 @@ import {
   DEFAULT_ALLOWED_MIME_TYPES,
   isAllowedFile,
 } from '@/lib/fileValidation';
+import { visibleDocumentTypes } from '@/lib/registrationItemVisibility';
+
 
 interface DocTypeConfig {
   label: string;
   required: boolean;
   allowedTypes: string[];
   maxSizeMB: number;
+  /** Admin-controlled visibility; `false` hides the type from applicants. */
+  visible?: boolean;
 }
 
 interface Props {
@@ -26,6 +30,7 @@ interface Props {
   errors: Record<string, string>;
   documentTypes?: DocTypeConfig[];
 }
+
 
 const DEFAULT_ALLOWED_TYPES = DEFAULT_ALLOWED_MIME_TYPES;
 const DEFAULT_MAX_SIZE_MB = 5;
@@ -57,8 +62,11 @@ function documentKey(label: string): string {
 }
 
 export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, errors, documentTypes }: Props) {
-  const labels = documentTypes ? documentTypes.map(d => d.label) : DEFAULT_DOCUMENT_LABELS;
-  const maxSizeMB = documentTypes?.[0]?.maxSizeMB ?? DEFAULT_MAX_SIZE_MB;
+  // Hidden document types never reach the applicant: no upload control, no
+  // required marker, no validation. Files already uploaded for them are kept.
+  const effectiveTypes = documentTypes ? visibleDocumentTypes(documentTypes) : undefined;
+  const labels = effectiveTypes ? effectiveTypes.map(d => d.label) : DEFAULT_DOCUMENT_LABELS;
+  const maxSizeMB = effectiveTypes?.[0]?.maxSizeMB ?? DEFAULT_MAX_SIZE_MB;
   const allowedTypes = DEFAULT_ALLOWED_TYPES;
   const allowedExtensions = DEFAULT_ALLOWED_EXTENSIONS;
 
@@ -66,9 +74,10 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
   const [selectedLabel, setSelectedLabel] = useState(labels[0]);
   const [replaceMode, setReplaceMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const selectedConfig = documentTypes?.find(d => d.label === selectedLabel);
+  const selectedConfig = effectiveTypes?.find(d => d.label === selectedLabel);
   const selectedKey = documentKey(selectedLabel || labels[0] || 'document');
   const existingDoc = documents.find(d => (d.documentKey || documentKey(d.label)) === selectedKey);
+
 
   useEffect(() => {
     if (!labels.includes(selectedLabel)) setSelectedLabel(labels[0]);

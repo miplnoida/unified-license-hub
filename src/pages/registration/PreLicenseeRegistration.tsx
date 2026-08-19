@@ -18,6 +18,8 @@ import {
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
+import { isItemVisible, isEffectiveRequired } from '@/lib/registrationItemVisibility';
+
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
@@ -114,9 +116,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   // CAPTCHA is only required when the form asks for it AND it is globally enabled.
   // When enabled-but-unconfigured the widget blocks submission (no checkbox fallback).
+  // An admin-hidden control is never shown nor enforced on the applicant side.
   const { data: captchaRuntime } = useCaptchaRuntime();
+  const captchaVisible = config?.captchaVisible !== false;
+  const otpVisible = config?.otpVisible !== false;
+
   const effectiveRequireCaptcha =
-    (config?.requireCaptcha ?? true) && (captchaRuntime?.globallyEnabled ?? false);
+    (config?.requireCaptcha ?? true) && captchaVisible && (captchaRuntime?.globallyEnabled ?? false);
+
 
   // Steps the admin marked hidden never reach the applicant: they are excluded
   // from navigation, validation, progress and the review summary. Any data
@@ -322,18 +329,33 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       result.push({ id: 'user', label: 'Primary User', type: 'static' });
     }
 
-    if (!config || config.requireDocuments) {
+    // A step whose every item is hidden by the admin is skipped entirely.
+    const shownDocTypes = config?.documentTypes
+      ? config.documentTypes.filter(isItemVisible)
+      : undefined;
+    const documentsStepHasContent = !shownDocTypes || shownDocTypes.length > 0;
+    if ((!config || config.requireDocuments) && documentsStepHasContent) {
       result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
     }
 
-    result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
+    const shownDeclarations = config?.declarations && config.declarations.length > 0
+      ? config.declarations.filter(isItemVisible)
+      : null;
+    const declarationsStepHasContent =
+      shownDeclarations === null
+      || shownDeclarations.length > 0
+      || ((config?.requireOtp ?? true) && otpVisible)
+      || effectiveRequireCaptcha;
+    if (declarationsStepHasContent) {
+      result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
+    }
 
     if (reviewEnabled) {
       result.push({ id: 'review', label: 'Review & Submit', type: 'review' as any });
     }
 
     return result;
-  }, [config, reviewEnabled]);
+  }, [config, reviewEnabled, visibleSchema, otpVisible, effectiveRequireCaptcha]);
 
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
@@ -344,7 +366,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     () => resolveEmailVerificationPlacement(config?.emailVerificationStepId, steps),
     [config?.emailVerificationStepId, steps],
   );
-  const requireOtp = config?.requireOtp ?? true;
+  // A hidden OTP control is neither rendered nor enforced.
+  const requireOtp = (config?.requireOtp ?? true) && otpVisible;
+
 
   /** True when the OTP block belongs on the step at `index`. */
   const isEmailVerificationStep = useCallback((index: number) => {
@@ -495,11 +519,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
     if (config?.declarations && config.declarations.length > 0) {
-      return config.declarations.map((d, idx) => ({
-        fieldKey: declFieldKey(d.label, idx),
-        label: d.label,
-        required: d.required,
-      }));
+      // Hidden declarations are never shown, so they can never be required.
+      return config.declarations
+        .map((d, idx) => ({
+          fieldKey: declFieldKey(d.label, idx),
+          label: d.label,
+          required: isEffectiveRequired(d),
+          visible: isItemVisible(d),
+        }))
+        .filter(d => d.visible);
     }
     // Hardcoded fallback
     return [
@@ -531,7 +559,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         if (useDynamic) {
           return validateDeclarations(
             effectiveDeclarations,
-            config?.requireOtp ?? true,
+            requireOtp,
             effectiveRequireCaptcha,
           );
         }
@@ -540,7 +568,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'documents':
         // Validate required document types
         if (config?.documentTypes) {
-          const requiredTypes = config.documentTypes.filter(dt => dt.required);
+          const requiredTypes = config.documentTypes.filter(isEffectiveRequired);
           const missingDocs = requiredTypes.filter(
             rt => !form.documents.some(d => d.label === rt.label)
           );
@@ -553,7 +581,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
@@ -1159,6 +1187,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             dataProtectionUrl={config?.dataProtectionUrl}
             requireOtp={requireOtp}
             requireCaptcha={effectiveRequireCaptcha}
+            otpVisible={otpVisible}
+            captchaVisible={captchaVisible}
             updateMode={isUpdateMode}
             emailVerificationPlacement={emailVerificationPlacement}
           />
