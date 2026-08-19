@@ -283,15 +283,9 @@ export function FormRenderer({
   const sections = useMemo(() => migrateSectionsToRows(rawSections), [rawSections]);
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
   const visibleSections = useMemo(() =>
-    sections.filter(s => {
-      if (!s.conditionalLogic?.length) return true;
-      for (const rule of s.conditionalLogic) {
-        const result = evaluateCondition(rule, formData, allFields);
-        if (rule.action === 'show' && !result) return false;
-        if (rule.action === 'hide' && result) return false;
-      }
-      return true;
-    }),
+    sections.filter(s =>
+      isSectionEffectivelyVisible(s, formData, allFields, evaluateCondition)
+    ),
     [sections, formData, allFields]
   );
 
