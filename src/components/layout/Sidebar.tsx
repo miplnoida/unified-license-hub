@@ -28,18 +28,33 @@ function usePersistedState<T>(key: string, initial: T): [T, (val: T | ((prev: T)
   return [state, setState];
 }
 
-function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname }: {
+function hasActiveDescendant(item: NavItem, pathname: string): boolean {
+  return (item.children ?? []).some(
+    (c) => (c.href && pathname === c.href) || hasActiveDescendant(c, pathname),
+  );
+}
+
+/**
+ * Renders a navigation group at any depth. Groups may nest arbitrarily
+ * (e.g. Licensing → Fit & Proper → Policy & Initiation → link) because the
+ * taxonomy now lives in `sec_navigation_items` and admins can add levels.
+ */
+function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname, depth = 0 }: {
   item: NavItem; collapsed: boolean; expandedGroups: string[];
-  toggleGroup: (label: string) => void; pathname: string;
+  toggleGroup: (label: string) => void; pathname: string; depth?: number;
 }) {
   const isExpanded = expandedGroups.includes(item.label);
-  const hasActiveChild = item.children?.some(c => c.href && pathname === c.href) ?? false;
+  const hasActiveChild = hasActiveDescendant(item, pathname);
 
   return (
     <div>
       <button
         onClick={() => toggleGroup(item.label)}
-        className={cn('nav-item w-full text-left', hasActiveChild && 'text-sidebar-primary font-semibold')}
+        className={cn(
+          'nav-item w-full text-left',
+          depth > 0 && 'px-3 py-2 text-[13px] text-sidebar-foreground/65',
+          hasActiveChild && 'text-sidebar-primary font-semibold',
+        )}
         title={collapsed ? item.label : undefined}
       >
         {item.icon}
@@ -51,9 +66,22 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
         )}
       </button>
       {!collapsed && (
-        <div className={cn('overflow-hidden transition-all duration-200', isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0')}>
+        <div className={cn('overflow-hidden transition-all', isExpanded ? 'opacity-100' : 'max-h-0 opacity-0')}>
           <div className="ml-5 border-l border-sidebar-border pl-3 py-1 space-y-0.5">
             {item.children?.map((child) => {
+              if (child.children?.length) {
+                return (
+                  <CollapsibleNavItem
+                    key={child.label}
+                    item={child}
+                    collapsed={collapsed}
+                    expandedGroups={expandedGroups}
+                    toggleGroup={toggleGroup}
+                    pathname={pathname}
+                    depth={depth + 1}
+                  />
+                );
+              }
               if (!child.href) return null;
               const isActive = pathname === child.href;
               return (
@@ -78,6 +106,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
   );
 }
 
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = usePersistedState(COLLAPSED_KEY, false);
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
@@ -96,16 +125,21 @@ export function Sidebar() {
   }, [setExpandedGroups]);
 
   useEffect(() => {
-    navSections.forEach(section => {
-      section.items.forEach(item => {
-        if (item.children) {
-          const hasActive = item.children.some(c => c.href && location.pathname === c.href);
-          if (hasActive && !expandedGroups.includes(item.label)) {
-            setExpandedGroups(prev => [...prev, item.label]);
-          }
+    // Expand every ancestor group of the active route, at any depth.
+    const toExpand: string[] = [];
+    const walk = (items: NavItem[]) => {
+      items.forEach((item) => {
+        if (item.children?.length) {
+          if (hasActiveDescendant(item, location.pathname)) toExpand.push(item.label);
+          walk(item.children);
         }
       });
-    });
+    };
+    navSections.forEach((section) => walk(section.items));
+    if (toExpand.length) {
+      setExpandedGroups(prev => Array.from(new Set([...prev, ...toExpand])));
+    }
+
     // Auto-scroll sidebar to active item
     requestAnimationFrame(() => {
       const activeEl = navRef.current?.querySelector('[data-sidebar-active="true"]');
@@ -197,6 +231,21 @@ export function Sidebar() {
     return true;
   };
 
+  /**
+   * Recursively prunes the tree to what the user may see. Groups collapse away
+   * when none of their descendants survive, so empty domains never render.
+   */
+  const pruneItem = (item: NavItem): NavItem | null => {
+    if (!isItemVisible(item)) return null;
+    if (item.children?.length) {
+      const kids = item.children.map(pruneItem).filter((c): c is NavItem => !!c);
+      return kids.length ? { ...item, children: kids } : null;
+    }
+    return item;
+  };
+
+
+
   // Mobile: hamburger button rendered outside sidebar
   if (isMobile) {
     return (
@@ -241,7 +290,7 @@ export function Sidebar() {
           <ScrollArea className="flex-1 px-3" ref={navRef}>
             <nav className="py-3 space-y-5">
               {navSections.map((section) => {
-                const visibleItems = section.items.filter(isItemVisible);
+                const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
                 if (visibleItems.length === 0) return null;
                 return (
                   <div key={section.label || 'main'}>
@@ -253,12 +302,11 @@ export function Sidebar() {
                     <div className="space-y-0.5">
                       {visibleItems.map((item) => {
                         if (item.children?.length) {
-                          const visibleChildren = item.children.filter(isItemVisible);
-                          if (!visibleChildren.length) return null;
                           return (
-                            <CollapsibleNavItem key={item.label} item={{ ...item, children: visibleChildren }} collapsed={false} expandedGroups={expandedGroups} toggleGroup={toggleGroup} pathname={location.pathname} />
+                            <CollapsibleNavItem key={item.label} item={item} collapsed={false} expandedGroups={expandedGroups} toggleGroup={toggleGroup} pathname={location.pathname} />
                           );
                         }
+
                         if (!item.href) return null;
                         const isActive = location.pathname === item.href;
                         return (
@@ -316,7 +364,7 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-3" ref={navRef}>
         <nav className="py-3 space-y-5">
           {navSections.map((section) => {
-            const visibleItems = section.items.filter(isItemVisible);
+            const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
             if (visibleItems.length === 0) return null;
             return (
               <div key={section.label || 'main'}>
@@ -328,12 +376,10 @@ export function Sidebar() {
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
                     if (item.children?.length) {
-                      const visibleChildren = item.children.filter(isItemVisible);
-                      if (!visibleChildren.length) return null;
                       return (
                         <CollapsibleNavItem
                           key={item.label}
-                          item={{ ...item, children: visibleChildren }}
+                          item={item}
                           collapsed={collapsed}
                           expandedGroups={expandedGroups}
                           toggleGroup={toggleGroup}
@@ -341,6 +387,7 @@ export function Sidebar() {
                         />
                       );
                     }
+
                     if (!item.href) return null;
                     const isActive = location.pathname === item.href;
                     return (
