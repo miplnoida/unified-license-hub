@@ -304,7 +304,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
 
     if (visibleSchema.length > 0) {
-      config.formSchema.forEach((regStep) => {
+      visibleSchema.forEach((regStep) => {
         result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
       });
     } else {
@@ -1179,7 +1179,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     const sections: { title: string; fields: RF[] }[] = [];
 
     if (visibleSchema.length > 0) {
-      config.formSchema.forEach((s) => {
+      visibleSchema.forEach((s) => {
         const fields: RF[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
