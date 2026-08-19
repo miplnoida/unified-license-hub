@@ -593,6 +593,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     const step = steps[currentStep];
     if (!step) return true;
 
+    // While the verified state is still being restored (marker / server lookup)
+    // never claim the email is unverified — that was the confusing error.
+    if (requireOtp && !form.emailVerified && emailVerificationHydrating) {
+      toast.info('Checking your email verification status…');
+      return false;
+    }
+
     // Verification gate: when OTP is configured for this step, the applicant
     // cannot advance until the resolved email is verified. The declarations
     // stage keeps its own check inside validateDeclarations.
@@ -600,6 +607,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       toast.error('Please verify your email address before continuing.');
       return false;
     }
+
 
     switch (step.type) {
       case 'static':
