@@ -26,7 +26,56 @@ Deno.serve(async (req) => {
       username, registration_number, entity_specific_data,
       documents_metadata, terms_accepted, captcha_verification_id,
     } = body;
-    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    // ── Resolve the registration config that governs this submission ──
+    // Admin-hidden controls (OTP, CAPTCHA, declarations) can never be satisfied by
+    // the applicant, so the server must not enforce them either. Matching mirrors
+    // the client: the most specific taxonomy match wins, else the default config.
+    type RegConfigRow = {
+      sector_id: string | null;
+      sub_sector_id: string | null;
+      category_id: string | null;
+      is_default: boolean | null;
+      require_otp: boolean | null;
+      require_captcha: boolean | null;
+      otp_visible_to_applicant: boolean | null;
+      captcha_visible_to_applicant: boolean | null;
+      declarations: unknown;
+    };
+
+    let regConfig: RegConfigRow | null = null;
+    {
+      const { data: configs } = await supabaseAdmin
+        .from("registration_form_configs")
+        .select(
+          "sector_id, sub_sector_id, category_id, is_default, require_otp, require_captcha, otp_visible_to_applicant, captcha_visible_to_applicant, declarations",
+        )
+        .eq("is_active", true);
+
+      let bestScore = -1;
+      for (const c of (configs || []) as RegConfigRow[]) {
+        if (c.category_id && c.category_id !== category_id) continue;
+        if (c.sub_sector_id && c.sub_sector_id !== sub_sector_id) continue;
+        if (c.sector_id && c.sector_id !== sector_id) continue;
+        const score = c.category_id ? 3 : c.sub_sector_id ? 2 : c.sector_id ? 1 : c.is_default ? 0 : -0.5;
+        if (score > bestScore) {
+          bestScore = score;
+          regConfig = c;
+        }
+      }
+    }
+
+    const otpVisible = regConfig?.otp_visible_to_applicant !== false;
+    const captchaVisible = regConfig?.captcha_visible_to_applicant !== false;
+    const otpEnforced = (regConfig?.require_otp ?? true) && otpVisible;
+    const captchaEnforced = (regConfig?.require_captcha ?? true) && captchaVisible;
+
+    const configuredDeclarations = Array.isArray(regConfig?.declarations)
+      ? (regConfig!.declarations as Array<{ required?: boolean; visible?: boolean }>)
+      : null;
+    const declarationsEnforced = configuredDeclarations && configuredDeclarations.length > 0
+      ? configuredDeclarations.some(d => d?.required === true && d?.visible !== false)
+      : true;
 
     // ── Server-side CAPTCHA enforcement ──
     // A client-sent boolean is never trusted. When CAPTCHA is globally enabled the
@@ -39,7 +88,9 @@ Deno.serve(async (req) => {
         .eq("key", "captcha_enabled")
         .maybeSingle();
       const rawEnabled = setting?.value as unknown;
-      const captchaEnabled = rawEnabled === true || rawEnabled === "true";
+      const captchaEnabled = (rawEnabled === true || rawEnabled === "true") && captchaEnforced;
+
+
 
       if (captchaEnabled) {
         const verificationId = String(captcha_verification_id || "").trim();
