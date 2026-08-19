@@ -70,6 +70,7 @@ export function DeclarationsStep({
   setField,
   verificationEmail,
   declarations,
+  sectionVisible = true,
   termsUrl,
   privacyUrl,
   dataProtectionUrl,
