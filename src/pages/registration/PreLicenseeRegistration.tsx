@@ -17,6 +17,7 @@ import {
   resolveEmailVerificationPlacement,
   shouldRenderEmailVerification,
 } from '@/lib/registrationEmailVerification';
+import { visibleRegSteps } from '@/lib/sectionVisibility';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
