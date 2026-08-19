@@ -30,6 +30,9 @@ interface Props {
   requireOtp?: boolean;
   requireCaptcha?: boolean;
   updateMode?: boolean;
+  /** Resolved email-verification placement (step id or 'before_submission'). */
+  emailVerificationPlacement?: string;
+
 }
 
 /** Converts a declaration label into a stable field key */
