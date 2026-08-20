@@ -63,3 +63,44 @@ export const applicationTriageUpdate = (input: {
 /** Delete the caller's own draft application. */
 export const applicationDeleteDraft = (applicationId: string) =>
   call<{ success: boolean }>('application_delete_draft', { _application_id: applicationId });
+
+/**
+ * Save draft answers on an application. The database derives the actor,
+ * checks applicant ownership / `application_management.edit`, refuses
+ * non-editable states and only writes `data` / `license_type` /
+ * `regulator_id` — never a regulatory column.
+ */
+export const applicationDraftSave = (input: {
+  applicationId: string;
+  data: Record<string, unknown>;
+  licenseType?: string | null;
+  regulatorId?: string | null;
+}) =>
+  call<{ success: boolean; application_id: string }>('application_draft_save', {
+    _application_id: input.applicationId,
+    _data: input.data,
+    _license_type: input.licenseType ?? null,
+    _regulator_id: input.regulatorId ?? null,
+  });
+
+/** Create a draft application (governed insert — browser DML is revoked). */
+export const applicationCreateDraft = (input: {
+  licenseType: string;
+  data?: Record<string, unknown>;
+  regulatorId?: string | null;
+}) =>
+  call<{ id: string } & Record<string, unknown>>('create_application_draft', {
+    _license_type: input.licenseType,
+    _data: input.data ?? {},
+    _regulator_id: input.regulatorId ?? null,
+  });
+
+/**
+ * Close an open application RFI. The database records the closing officer and
+ * timestamp, reverts a parked application to `under_review` and audits.
+ */
+export const applicationRfiClose = (rfiId: string, closureNotes?: string | null) =>
+  call<{ success: boolean; status_reverted_from: string | null }>('application_rfi_close', {
+    _rfi_id: rfiId,
+    _closure_notes: closureNotes ?? null,
+  });
