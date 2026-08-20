@@ -233,6 +233,9 @@ export default function EntityDirectory() {
                         <Button variant="ghost" size="sm" onClick={() => setSelected(e.entity_id)}>
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/entities/${e.entity_id}`}>Structure</Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
