@@ -469,12 +469,13 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab D – Decisioning */}
+            {/* Stage 4 – Determination */}
             <TabsContent value="D">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering AI-assisted analysis, sector rules, multi-regulator determinations, committee voting, and conditional approvals.
+                  Reaching and recording the fit and proper determination — analysis support, sector rules, committee voting and conditions.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {STAGE_4_AREAS.map((s) => (
