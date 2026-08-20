@@ -83,11 +83,11 @@ function ScenarioCard({ scenario, borderColor, badgeClass }: ScenarioCardProps) 
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <Badge variant="outline" className={`text-xs font-mono font-semibold px-1.5 py-0 ${badgeClass}`}>
-                {scenario.id}
-              </Badge>
-              <div className="text-muted-foreground">{scenario.icon}</div>
+              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md border ${badgeClass}`}>
+                {scenario.icon}
+              </span>
             </div>
+
             <h3 className="font-semibold text-sm text-foreground leading-snug">{scenario.title}</h3>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{scenario.description}</p>
           </div>
