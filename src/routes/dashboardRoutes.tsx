@@ -119,6 +119,7 @@ const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/Prudential
 // RDM-ENTITY-001 Wave A — canonical entity registry surfaces.
 const EntityDirectory = lazy(() => import('@/pages/entities/EntityDirectory'));
 const EntityStructureHub = lazy(() => import('@/pages/entities/EntityStructureHub'));
+const Entity360Detail = lazy(() => import('@/pages/entities/Entity360Detail'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
 const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
@@ -279,6 +280,7 @@ export const dashboardRoutes = (
     {/* RDM-ENTITY-001 Wave A — entity registry, resolution and membership */}
     <Route path="/entities" element={<M module="license_management"><EntityDirectory /></M>} />
     <Route path="/entities/:entityId" element={<M module="license_management"><EntityStructureHub /></M>} />
+    <Route path="/entities/:entityId/360" element={<M module="license_management"><Entity360Detail /></M>} />
     <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
     <Route path="/licensing/entity-resolution/:caseId" element={<M module="entity_resolution"><EntityResolutionDetail /></M>} />
     <Route path="/admin/entity-memberships" element={<M module="entity_membership"><EntityMemberships /></M>} />
