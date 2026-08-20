@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBreadcrumbLabelStore } from '@/components/layout/BreadcrumbLabelContext';
 
 interface PageHeaderProps {
   title: string;
@@ -9,9 +10,23 @@ interface PageHeaderProps {
   actions?: ReactNode;
   backHref?: string;
   backLabel?: string;
+  /**
+   * Refines the label of the CURRENT breadcrumb only (e.g. the resolved entity
+   * name). Ancestry always stays derived from the navigation tree + breadcrumb
+   * registry — pages never define their own trail.
+   */
+  breadcrumbLabel?: string | null;
 }
 
-export function PageHeader({ title, description, actions, backHref, backLabel }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, backHref, backLabel, breadcrumbLabel }: PageHeaderProps) {
+  const { setCurrentLabel } = useBreadcrumbLabelStore();
+
+  useEffect(() => {
+    if (breadcrumbLabel === undefined) return;
+    setCurrentLabel(breadcrumbLabel ?? null);
+    return () => setCurrentLabel(null);
+  }, [breadcrumbLabel, setCurrentLabel]);
+
   return (
     <div className="animate-slide-up space-y-2">
       {backHref && (
