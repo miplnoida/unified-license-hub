@@ -375,25 +375,22 @@ export function useUpsertAssessment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
-      const user = (await sb.auth.getUser()).data.user;
       const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
-      const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
+      delete payload.id;
       if (row.id) {
-        await authorizedAction('prudential_supervision', 'edit', { assessment_id: row.id });
-        delete payload.id;
-        const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
-        if (error) throw error;
-        const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
-        await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
-        return data;
-      } else {
-        await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id });
-        payload.created_by = user?.id;
-        const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
-        if (error) throw error;
-        await audit('CREATE', 'prudential_assessment', data.id, null, data);
-        return data;
+        return await prudentialAssessmentSaveDraft(row.id, payload);
       }
+      return await prudentialAssessmentCreate({
+        entityId: (row as any).entity_id,
+        periodStart: (row as any).period_start,
+        periodEnd: (row as any).period_end,
+        returnFilingId: (row as any).return_filing_id ?? (row as any).return_id ?? null,
+        returnFilingVersionId: (row as any).return_filing_version_id ?? null,
+        ratings: payload,
+        rationale: (row as any).override_reason ?? (row as any).rationale ?? null,
+        signalSnapshot: (row as any).signal_snapshot ?? {},
+        autoSuggestedRating: (row as any).auto_suggested_rating ?? null,
+      });
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Assessment saved'); },
@@ -404,19 +401,7 @@ export function useTransitionAssessment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'returned_for_revision'|'approved'|'closed'; reason?: string }) => {
-      const user = (await sb.auth.getUser()).data.user;
-      const now = new Date().toISOString();
-      const before = (await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle()).data;
-      const patch: any = { status: to };
-      if (to === 'submitted') patch.submitted_at = now;
-      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; if (reason) patch.review_notes = reason; }
-      if (to === 'returned_for_revision') { patch.reviewed_at = now; patch.reviewed_by = user?.id; patch.review_notes = reason ?? null; }
-      if (to === 'approved') { patch.approved_at = now; patch.approved_by = user?.id; }
-      if (to === 'closed') patch.closed_at = now;
-      const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
-      if (error) throw error;
-      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', returned_for_revision: 'REJECT', approved: 'APPROVE', closed: 'UPDATE' };
-      await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
+      await prudentialAssessmentTransition(id, to, reason ?? null);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
