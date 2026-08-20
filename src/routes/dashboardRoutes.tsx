@@ -116,6 +116,14 @@ const PaymentOperatorProfile = lazy(() => import('@/pages/prudential/PaymentOper
 const PfmiAssessmentWizard = lazy(() => import('@/pages/prudential/PfmiAssessmentWizard'));
 const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
 
+// RDM-ENTITY-001 Wave A — canonical entity registry surfaces.
+const EntityDirectory = lazy(() => import('@/pages/entities/EntityDirectory'));
+const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
+const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
+const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
+
+
+
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
 }
@@ -266,6 +274,14 @@ export const dashboardRoutes = (
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
     <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
+
+    {/* RDM-ENTITY-001 Wave A — entity registry, resolution and membership */}
+    <Route path="/entities" element={<M module="license_management"><EntityDirectory /></M>} />
+    <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
+    <Route path="/licensing/entity-resolution/:caseId" element={<M module="entity_resolution"><EntityResolutionDetail /></M>} />
+    <Route path="/admin/entity-memberships" element={<M module="entity_membership"><EntityMemberships /></M>} />
+
+
 
   </>
 );

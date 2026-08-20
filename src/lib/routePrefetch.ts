@@ -32,6 +32,10 @@ const ROUTE_CHUNKS: Record<string, Thunk> = {
   '/prudential/dashboard': () => import('@/pages/prudential/PrudentialDashboard'),
   '/prudential/entities': () => import('@/pages/prudential/PrudentialEntitiesList'),
   '/prudential/assessments': () => import('@/pages/prudential/AssessmentsList'),
+  '/entities': () => import('@/pages/entities/EntityDirectory'),
+  '/licensing/entity-resolution': () => import('@/pages/licensing/EntityResolutionQueue'),
+  '/admin/entity-memberships': () => import('@/pages/admin/EntityMemberships'),
+
   '/correspondence/inbox': () => import('@/pages/correspondence/CorrespondenceInbox'),
   '/correspondence/records': () => import('@/pages/correspondence/CorrespondenceRecords'),
   '/correspondence': () => import('@/pages/correspondence/CorrespondenceDashboard'),

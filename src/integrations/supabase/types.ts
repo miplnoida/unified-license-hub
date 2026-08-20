@@ -27972,7 +27972,16 @@ export type Database = {
         }
         Returns: string
       }
+      entity_link_license: {
+        Args: {
+          _application_id?: string
+          _entity_id: string
+          _license_id: string
+        }
+        Returns: string
+      }
       entity_membership_approve: { Args: { _id: string }; Returns: undefined }
+      entity_membership_directory: { Args: { _query: string }; Returns: Json }
       entity_membership_reject: {
         Args: { _id: string; _reason: string }
         Returns: undefined

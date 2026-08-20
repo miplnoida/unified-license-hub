@@ -47,7 +47,12 @@ export const KNOWN_PERMISSION_MODULES = [
   'license_appeals',
   'escalation_management',
   'rule_engine',
+  'entity_resolution',
+  'entity_membership',
+  'regulatory_data_model',
+  'integration_management',
 ] as const;
+
 
 /**
  * Route prefix → required permission module.
@@ -56,6 +61,13 @@ export const KNOWN_PERMISSION_MODULES = [
 const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // ─── Rule engine ───────────────────────────────────────────────────────
   ['/admin/rule-engine', 'rule_engine'],
+
+  // ─── Regulatory data model / entity registry ───────────────────────────
+  ['/licensing/entity-resolution', 'entity_resolution'],
+  ['/admin/entity-memberships', 'entity_membership'],
+  ['/admin/rdm', 'regulatory_data_model'],
+  ['/entities', 'license_management'],
+
 
   // ─── Forms ─────────────────────────────────────────────────────────────
   ['/admin/forms', 'form_management'],
@@ -201,6 +213,9 @@ export const PROTECTED_INTERNAL_PATH_PREFIXES = [
   '/coordination',
   '/prudential',
   '/supervision',
+  '/entities',
+  '/licensing/entity-resolution',
+
   '/correspondence',
   '/returns-management',
 ] as const;
