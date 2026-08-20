@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { applicationCreateDraft } from '@/lib/applicationGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -492,13 +493,7 @@ export default function LicenseDetail() {
         toast.info('Original approved application could not be located. This renewal will use the standard renewal form if available.');
       }
 
-      const renewalApplicationId = crypto.randomUUID();
-
-      const insertPayload: any = {
-        id: renewalApplicationId,
-        applicant_id: user.id,
-        license_type: license.license_type,
-        status: 'draft',
+      const renewalPayload: any = {
         data: {
           ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
           type: 'post_license',
@@ -522,15 +517,14 @@ export default function LicenseDetail() {
           previous_valid_until: license.valid_until,
           is_renewal: true,
         },
-        regulator_id: activeRegulator?.id || null,
       };
 
-      const { error } = await supabase
-        .from('applications')
-        .insert(insertPayload as any)
-        .throwOnError();
-
-      if (error) throw error;
+      const created = await applicationCreateDraft({
+        licenseType: license.license_type,
+        regulatorId: activeRegulator?.id || null,
+        data: renewalPayload.data,
+      });
+      const renewalApplicationId = (created as any).id as string;
 
       await logAudit({
         action: 'license_renewal_started',

@@ -211,15 +211,15 @@ export const dashboardRoutes = (
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="coordination"><CoordinationList /></M>} />
     <Route path="/coordination/:caseId" element={<M module="coordination"><CoordinationDetail /></M>} />
-    <Route path="/enforcement" element={<M module="license_management"><EnforcementList /></M>} />
-    <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
+    <Route path="/enforcement" element={<M module="enforcement_management"><EnforcementList /></M>} />
+    <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
-    <Route path="/supervision/breaches" element={<M module="returns_management"><BreachInbox /></M>} />
-    <Route path="/inspections" element={<M module="application_management"><InspectionsList /></M>} />
-    <Route path="/inspections/schedule" element={<M module="application_management"><InspectionsCalendar /></M>} />
-    <Route path="/inspections/:id" element={<M module="application_management"><InspectionDetail /></M>} />
-    <Route path="/supervision/plans" element={<M module="returns_management"><SupervisoryPlansDashboard /></M>} />
-    <Route path="/supervision/risk" element={<M module="returns_management"><RiskHeatmap /></M>} />
+    <Route path="/supervision/breaches" element={<M module="prudential_supervision"><BreachInbox /></M>} />
+    <Route path="/inspections" element={<M module="inspection_management"><InspectionsList /></M>} />
+    <Route path="/inspections/schedule" element={<M module="inspection_management"><InspectionsCalendar /></M>} />
+    <Route path="/inspections/:id" element={<M module="inspection_management"><InspectionDetail /></M>} />
+    <Route path="/supervision/plans" element={<M module="prudential_supervision"><SupervisoryPlansDashboard /></M>} />
+    <Route path="/supervision/risk" element={<M module="prudential_supervision"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="report_management"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="returns_management"><AlertCenter /></M>} />
     <Route path="/admin/correspondence-templates" element={<M module="settings"><CorrespondenceTemplates /></M>} />
@@ -265,15 +265,15 @@ export const dashboardRoutes = (
     <Route path="/prudential/pfmi-assessments/:assessmentId" element={<M module="prudential_supervision"><PfmiAssessmentWizard /></M>} />
     <Route path="/prudential/stress-indicators" element={<M module="prudential_supervision"><StressIndicatorsAdmin /></M>} />
     <Route path="/admin/prudential-taxonomy" element={<M module="prudential_supervision"><PrudentialTaxonomyAdmin /></M>} />
-    <Route path="/correspondence" element={<M module="settings"><CorrespondenceDashboard /></M>} />
-    <Route path="/correspondence/dashboard" element={<M module="settings"><CorrespondenceDashboard /></M>} />
-    <Route path="/correspondence/manager" element={<M module="settings"><CorrespondenceManager /></M>} />
-    <Route path="/correspondence/inbox" element={<M module="settings"><CorrespondenceInbox /></M>} />
+    <Route path="/correspondence" element={<M module="notification_management"><CorrespondenceDashboard /></M>} />
+    <Route path="/correspondence/dashboard" element={<M module="notification_management"><CorrespondenceDashboard /></M>} />
+    <Route path="/correspondence/manager" element={<M module="notification_management"><CorrespondenceManager /></M>} />
+    <Route path="/correspondence/inbox" element={<M module="notification_management"><CorrespondenceInbox /></M>} />
 
-    <Route path="/correspondence/records" element={<M module="settings"><CorrespondenceRecords /></M>} />
-    <Route path="/correspondence/:id" element={<M module="settings"><CorrespondenceDetail /></M>} />
+    <Route path="/correspondence/records" element={<M module="notification_management"><CorrespondenceRecords /></M>} />
+    <Route path="/correspondence/:id" element={<M module="notification_management"><CorrespondenceDetail /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
-    <Route path="/entity/correspondence" element={<MyCorrespondence />} />
+    <Route path="/entity/correspondence" element={<P><MyCorrespondence /></P>} />
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
     <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />

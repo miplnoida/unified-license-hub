@@ -30192,6 +30192,15 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      application_draft_save: {
+        Args: {
+          _application_id: string
+          _data: Json
+          _license_type?: string
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -30211,6 +30220,10 @@ export type Database = {
           _comments?: string
           _metadata?: Json
         }
+        Returns: Json
+      }
+      application_rfi_close: {
+        Args: { _closure_notes?: string; _rfi_id: string }
         Returns: Json
       }
       application_rfi_raise: { Args: { _payload: Json }; Returns: Json }

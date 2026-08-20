@@ -21,6 +21,7 @@ import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
+import { applicationDraftSave } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
 import { getApplicationStatusLabel, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
@@ -1020,11 +1021,9 @@ export default function NewApplication() {
         wizard_updated_at: new Date().toISOString(),
         ...(extra || {}),
       };
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ data: updatedData } as any)
-        .eq('id', applicationId);
-      if (updateError) {
+      try {
+        await applicationDraftSave({ applicationId, data: updatedData as any });
+      } catch (updateError) {
         console.warn('[NewApplication] Failed to persist wizard step', updateError);
       }
     } catch (e) {
@@ -1101,16 +1100,15 @@ export default function NewApplication() {
         .eq('id', applicationId)
         .maybeSingle();
       const payload = buildDraftPayload((existing as any)?.data || null);
-      const { error } = await supabase
-        .from('applications')
-        .update({
-          license_type: payload.license_type,
-          regulator_id: payload.regulator_id,
-          data: payload.data,
-        } as any)
-        .eq('id', applicationId);
-      if (error) {
-        toast.error('Failed to update draft: ' + error.message);
+      try {
+        await applicationDraftSave({
+          applicationId,
+          data: payload.data as any,
+          licenseType: payload.license_type,
+          regulatorId: payload.regulator_id,
+        });
+      } catch (error: any) {
+        toast.error('Failed to update draft: ' + (error?.message || 'Unknown error'));
         return null;
       }
       return applicationId;
@@ -1298,7 +1296,8 @@ export default function NewApplication() {
         if (existingApp.error) throw existingApp.error;
 
         const existingVersionIds = (existingApp.data?.data as any)?.form_version_ids || {};
-        const { error: updateError } = await supabase.from('applications').update({
+        await applicationDraftSave({
+          applicationId,
           data: {
             sector_id: selectedSector,
             sub_sector_id: selectedSubSector,
@@ -1309,9 +1308,8 @@ export default function NewApplication() {
             form_template_ids: matchedTemplates.map(t => t.id),
             form_version_ids: { ...existingVersionIds, ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}) },
             forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
-          },
-        } as any).eq('id', applicationId);
-        if (updateError) throw updateError;
+          } as any,
+        });
 
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);
@@ -1402,7 +1400,8 @@ export default function NewApplication() {
         if (existingApp2.error) throw existingApp2.error;
 
         const existingVersionIds2 = (existingApp2.data?.data as any)?.form_version_ids || {};
-        const { error: updateError } = await supabase.from('applications').update({
+        await applicationDraftSave({
+          applicationId,
           data: {
             sector_id: selectedSector,
             sub_sector_id: selectedSubSector,
@@ -1413,9 +1412,8 @@ export default function NewApplication() {
             form_template_ids: matchedTemplates.map(t => t.id),
             form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: resolvedVersionId },
             forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
-          },
-        } as any).eq('id', applicationId);
-        if (updateError) throw updateError;
+          } as any,
+        });
 
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);

@@ -78,7 +78,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/applications/bulk-intake', 'application_management'],
   ['/admin/rfi-auto-rules', 'application_management'],
   ['/admin/supervisory-plan-templates', 'application_management'],
-  ['/inspections', 'application_management'],
+  ['/inspections', 'inspection_management'],
 
   // ─── User & role ───────────────────────────────────────────────────────
   ['/admin/users', 'user_management'],
@@ -100,7 +100,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/sufficiency-rules', 'license_management'],
   ['/admin/sufficiency-rule-sets', 'license_management'],
   ['/admin/decision-options', 'license_management'],
-  ['/enforcement', 'license_management'],
+  ['/enforcement', 'enforcement_management'],
 
   // ─── Registration review ───────────────────────────────────────────────
   ['/admin/registration-review', 'registration_management'],
@@ -109,10 +109,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/return-config', 'returns_management'],
   ['/admin/returns', 'returns_management'],
   ['/returns-management', 'returns_management'],
-  ['/supervision/early-warnings', 'returns_management'],
-  ['/supervision/breaches', 'returns_management'],
-  ['/supervision/plans', 'returns_management'],
-  ['/supervision/risk', 'returns_management'],
+  ['/supervision/early-warnings', 'prudential_supervision'],
+  ['/supervision/breaches', 'prudential_supervision'],
+  ['/supervision/plans', 'prudential_supervision'],
+  ['/supervision/risk', 'prudential_supervision'],
   ['/alerts', 'returns_management'],
 
   // ─── Fees / payments / billing ─────────────────────────────────────────
@@ -177,7 +177,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/document-intelligence', 'settings'],
   ['/admin/correspondence-templates', 'settings'],
   ['/admin/correspondence-routing', 'settings'],
-  ['/correspondence', 'settings'],
+  ['/correspondence', 'notification_management'],
   // NOTE: no generic ['/admin', 'settings'] catch-all. Unknown /admin/* paths
   // are treated as protected-but-unmapped and denied by canAccessPath.
 ];

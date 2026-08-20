@@ -15,6 +15,7 @@ import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { supabase } from '@/integrations/supabase/client';
+import { applicationCreateDraft } from '@/lib/applicationGovernedOps';
 import { logAudit } from '@/hooks/useAuditLog';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
@@ -113,13 +114,10 @@ export default function NewPostLicenseApplication() {
     const licenseType = [sectorObj?.name, subSectorObj?.name, serviceObj?.name].filter(Boolean).join(' - ');
 
     try {
-      const { data, error } = await supabase
-        .from('applications')
-        .insert({
-          applicant_id: user.id,
-          license_type: licenseType,
-          status: 'draft',
-          data: {
+      const data = await applicationCreateDraft({
+        licenseType,
+        regulatorId: activeRegulator?.id || null,
+        data: {
             ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
             sector_id: selectedSector,
             sub_sector_id: selectedSubSector,
@@ -128,13 +126,8 @@ export default function NewPostLicenseApplication() {
             sub_sector_name: subSectorObj?.name,
             service_name: serviceObj?.name,
             form_template_ids: matchedTemplates.map(t => t.id),
-          },
-          regulator_id: activeRegulator?.id || null,
-        } as any)
-        .select()
-        .single();
-
-      if (error) throw error;
+        },
+      });
 
       await logAudit({
         action: 'application_created',

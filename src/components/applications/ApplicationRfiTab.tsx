@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, Loader2, MessageSquare, Paperclip, Lock, Download, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { applicationRfiClose } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useApplicationRfis, type Rfi, type RfiItem } from '@/hooks/useApplicationRfis';
@@ -52,16 +53,7 @@ export function ApplicationRfiTab({
   const closeRfi = async (rfi: Rfi) => {
     setClosing(rfi.id);
     try {
-      const { error } = await supabase
-        .from('application_rfis' as any)
-        .update({
-          status: 'closed',
-          closed_by: currentUserId,
-          closed_at: new Date().toISOString(),
-          closure_notes: closeNotesById[rfi.id] || null,
-        })
-        .eq('id', rfi.id);
-      if (error) throw error;
+      const closeResult = await applicationRfiClose(rfi.id, closeNotesById[rfi.id] || null);
 
       await supabase
         .from('application_rfi_items' as any)
@@ -88,15 +80,8 @@ export function ApplicationRfiTab({
           .select('status, applicant_id, application_number')
           .eq('id', applicationId)
           .maybeSingle();
-        const currentStatus = (appRow as any)?.status;
-        if (currentStatus === 'info_requested' || currentStatus === 'query_raised') {
-          const nextStatus = 'under_review';
-          const { error: upErr } = await supabase
-            .from('applications')
-            .update({ status: nextStatus })
-            .eq('id', applicationId);
-          if (!upErr) statusReverted = { from: currentStatus, to: nextStatus };
-        }
+        const revertedFrom = (closeResult as any)?.status_reverted_from ?? null;
+        if (revertedFrom) statusReverted = { from: revertedFrom, to: 'under_review' };
 
         // Notify applicant — in-app row + templated dispatch
         const applicantId = (appRow as any)?.applicant_id ?? null;
