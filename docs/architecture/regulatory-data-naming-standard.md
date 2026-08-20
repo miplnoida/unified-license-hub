@@ -103,13 +103,41 @@ Uniqueness is a **scope**, not a boolean. `entity_identifier_types.uniqueness_sc
 | `GLOBAL` | (type, normalised value) | LEI |
 | `JURISDICTION` | (type, jurisdiction, normalised value) | company registration number, taxpayer number |
 | `ISSUER` | (type, issuer, normalised value) | issuer-scoped references |
-| `REGULATOR` | (type, regulator, normalised value) | regulatory entity number, licence number |
+| `REGULATOR` | (type, regulator, normalised value) | regulatory entity number |
 | `NONE` | no uniqueness index | informational identifiers |
 
 Company registration and taxpayer numbers are **not** globally unique; the same
 value legitimately exists in different jurisdictions. `is_unique_global` remains
-only as a derived compatibility flag. `normalization_rule` records how a value is
-canonicalised before comparison.
+only as a derived compatibility flag.
+
+### Entity identifiers are identifiers of the *entity*
+
+`entity_identifiers` holds identifiers of the legal/regulatory entity: company
+registration number, taxpayer registration number, LEI, regulatory entity
+number, foreign registry identifier. A **licence number is not entity identity**
+— it identifies an authorisation, and one entity may hold many licences. It stays
+authoritative on `licenses.license_number` and may later serve as a resolution
+*lookup signal* through `entity_licenses`. Legal name is not an identifier
+either.
+
+### Normalisation strategies are engine primitives
+
+`entity_identifier_types.normalization_strategy` names an executable platform
+algorithm, not a regulator business classification. The closed vocabulary is:
+
+| Strategy | Behaviour |
+| --- | --- |
+| `UPPER_TRIM` | upper-case, trim, collapse internal whitespace |
+| `UPPER_ALPHANUMERIC` | upper-case, keep `A–Z0–9` only |
+| `DIGITS_ONLY` | keep `0–9` only |
+| `TRIM_ONLY` | trim and collapse whitespace, preserve case |
+| `CASE_SENSITIVE_TRIM` | trim only, no other change |
+
+`public.normalize_entity_identifier(identifier_type_id, raw_value)` is the single
+canonical implementation. The `entity_identifiers` trigger calls it, and external
+registry matching must call the same function so local and external comparison
+can never diverge. Administrator-supplied SQL, JavaScript, regex or expressions
+are **never** executed during matching.
 
 ## 5. Authority rules
 
