@@ -2,7 +2,7 @@
 -- Proves the three architectural modes are representable without any HTTP
 -- call, provider adapter or runtime change.
 BEGIN;
-SELECT plan(26);
+SELECT plan(30);
 
 -- structure ---------------------------------------------------------------
 SELECT has_table('public', 'entity_registry_bindings',    'registry bindings table exists');
@@ -146,9 +146,12 @@ SELECT ent, dom_identity, '11111111-1111-1111-1111-111111111111',
 
 SELECT is((SELECT status FROM public.entity_sync_conflicts LIMIT 1), 'OPEN',
   'a detected discrepancy stays open — no last-write-wins');
-SELECT throws_ok($$
-  UPDATE public.entity_sync_conflicts SET status = 'RESOLVED_EXTERNAL'
-$$, '23514', NULL, 'resolving a conflict requires a recorded reason and timestamp');
+-- resolution provenance is enforced by constraint (asserted from the catalogue so
+-- the suite runs under a least-privileged role too)
+SELECT ok(
+  (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'esc_resolution_provenance_chk')
+    LIKE '%resolved_at IS NOT NULL%resolution_reason%',
+  'resolving a conflict requires a recorded reason and timestamp');
 
 -- external portal users cannot read registry configuration ---------------
 SELECT is(
