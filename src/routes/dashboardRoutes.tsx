@@ -116,6 +116,14 @@ const PaymentOperatorProfile = lazy(() => import('@/pages/prudential/PaymentOper
 const PfmiAssessmentWizard = lazy(() => import('@/pages/prudential/PfmiAssessmentWizard'));
 const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/PrudentialTaxonomyAdmin'));
 
+// RDM-ENTITY-001 Wave A — canonical entity registry surfaces.
+const EntityDirectory = lazy(() => import('@/pages/entities/EntityDirectory'));
+const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
+const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
+const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
+
+
+
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
 }
