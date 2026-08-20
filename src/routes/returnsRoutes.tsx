@@ -3,7 +3,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
-import { INTERNAL_ROLES } from '@/lib/permissionModules';
+import { INTERNAL_ROLES } from '@/types/platform';
 
 const EntityReturnsDashboard = lazy(() => import('@/pages/entity/returns/EntityReturnsDashboard'));
 const MyReturnsPage = lazy(() => import('@/pages/entity/returns/MyReturnsPage'));
