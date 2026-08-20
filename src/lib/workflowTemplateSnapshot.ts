@@ -15,6 +15,7 @@ import type { WorkflowStep, WorkflowActionType } from '@/hooks/useWorkflowEngine
 import type { StepAction, NextStepMode, EndState } from '@/hooks/useStepActions';
 import type { StepEntryNotification } from '@/hooks/useStepEntryNotifications';
 import type { ActionNotification } from '@/hooks/useActionNotifications';
+import { approvalStepConfigWrite } from '@/lib/applicationLifecycleGovernedOps';
 
 export const TEMPLATE_SNAPSHOT_VERSION = 2 as const;
 
@@ -312,16 +313,14 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
     }
   }
 
-  if (actionRows.length) {
-    const { error } = await supabase.from('approval_step_actions' as any).insert(actionRows as any);
-    if (error) throw error;
+  if (actionRows.length || entryRows.length || actionNotifRows.length) {
+    // Governed: step configuration is written server-side under workflow
+    // configuration permission, with an audit entry.
+    await approvalStepConfigWrite({
+      step_actions: actionRows as any,
+      entry_notifications: entryRows as any,
+      action_notifications: actionNotifRows as any,
+    });
   }
-  if (entryRows.length) {
-    const { error } = await supabase.from('approval_step_entry_notifications' as any).insert(entryRows as any);
-    if (error) throw error;
-  }
-  if (actionNotifRows.length) {
-    const { error } = await supabase.from('approval_action_notifications' as any).insert(actionNotifRows as any);
-    if (error) throw error;
-  }
+
 }

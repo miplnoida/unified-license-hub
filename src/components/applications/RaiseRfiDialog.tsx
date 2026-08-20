@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRfiAutoSuggestions } from '@/hooks/useRfiAutoSuggestions';
 import { logAction } from '@/hooks/useAuditLog';
+import { applicationRfiRaise } from '@/lib/applicationLifecycleGovernedOps';
 
 interface DraftItem {
   key: string;
@@ -170,45 +171,25 @@ export function RaiseRfiDialog({
     setSaving(true);
     try {
       const dueAtIso = dueAt ? new Date(dueAt).toISOString() : null;
-      const { data: rfi, error: rfiErr } = await supabase
-        .from('application_rfis' as any)
-        .insert({
-          application_id: applicationId,
-          raised_by: raisedBy,
-          due_at: dueAtIso,
-          summary: summary.trim() || null,
-          approval_step_action_id: approvalStepActionId || null,
-          status: 'open',
-          ...(sufficiencyEvaluationId ? { sufficiency_evaluation_id: sufficiencyEvaluationId, pauses_sla: true } : {}),
-        })
-        .select('id')
-        .single();
-      if (rfiErr) throw rfiErr;
+      // Governed: the server records who raised the request, creates the items
+      // and pauses the linked review clock in a single audited operation.
+      const rfi = await applicationRfiRaise({
+        application_id: applicationId,
+        summary: summary.trim() || null,
+        due_at: dueAtIso,
+        approval_step_action_id: approvalStepActionId || null,
+        sufficiency_evaluation_id: sufficiencyEvaluationId ?? null,
+        pause_sla: pauseSla,
+        items: items.map((it) => ({
+          prompt: it.prompt.trim(),
+          question_type: it.question_type,
+          required: it.required,
+          item_due_at: it.item_due_at ? new Date(it.item_due_at).toISOString() : null,
+        })),
+      });
 
       const rfiId = (rfi as any).id;
-      const payload = items.map((it, idx) => ({
-        rfi_id: rfiId,
-        ordinal: idx,
-        prompt: it.prompt.trim(),
-        question_type: it.question_type,
-        required: it.required,
-        item_due_at: it.item_due_at ? new Date(it.item_due_at).toISOString() : null,
-        response_status: 'pending',
-      }));
-      const { error: itErr } = await supabase.from('application_rfi_items' as any).insert(payload);
-      if (itErr) throw itErr;
 
-      // Pause SLA on the linked approval step action (Phase 1 primitive)
-      if (pauseSla && approvalStepActionId) {
-        await supabase
-          .from('approval_step_actions' as any)
-          .update({
-            paused_at: new Date().toISOString(),
-            paused_reason: `RFI raised: ${summary.trim() || 'awaiting applicant response'}`,
-            resumed_at: null,
-          })
-          .eq('id', approvalStepActionId);
-      }
 
       // Audit log for unified timeline
       await logAction(

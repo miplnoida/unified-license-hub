@@ -13,6 +13,7 @@ import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/a
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 import { downloadInvoiceForPayment } from '@/lib/invoice';
 import { formatDateTime } from '@/lib/datetime';
+import { applicationPaymentVerify } from '@/lib/applicationLifecycleGovernedOps';
 
 export interface PaymentInfo {
   id?: string;
@@ -145,13 +146,13 @@ export function PaymentVerificationDialog({
         if (remarkErr) throw remarkErr;
       }
 
-      // 2. Update payment status
-      const updateFilter = payment.application_id
-        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)
-        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);
-
-      const { error: payErr } = await updateFilter;
-      if (payErr) throw payErr;
+      // 2. Mark the payment verified via the governed operation: the verifier,
+      //    timestamp and audit entry are derived server-side.
+      await applicationPaymentVerify({
+        payment_id: payment.application_id ? null : payment.id,
+        application_id: payment.application_id ?? null,
+        note: draftRemark.trim(),
+      });
 
       // Entity provisioning (if applicable)
       if (payment.application_id) {

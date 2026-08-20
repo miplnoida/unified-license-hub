@@ -20,6 +20,7 @@ import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, X
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 import { loadVisibleApplications } from '@/lib/visibleApplications';
+import { paymentRefundDecide } from '@/lib/applicationLifecycleGovernedOps';
 
 interface ApplicationLite {
   id: string;
@@ -252,15 +253,27 @@ export default function PaymentHistory() {
 
   const handleApproveRefund = async (refund: Refund, action: 'approved' | 'rejected') => {
     if (!user) return;
-    const update: any = { status: action };
-    if (action === 'approved') update.approved_by = user.id;
-    const { error } = await supabase.from('refunds' as any).update(update).eq('id', refund.id);
-    if (error) { toast.error(error.message); return; }
-    if (action === 'approved') {
-      await supabase.from('payments' as any).update({ status: 'refunded' }).eq('id', refund.payment_id);
+    const { default: Swal } = await import('sweetalert2');
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: action === 'approved' ? 'Approve refund' : 'Reject refund',
+      input: 'textarea',
+      inputLabel: 'Reason for this decision (minimum 10 characters)',
+      inputValidator: (v) =>
+        (v || '').trim().length < 10 ? 'Please provide at least 10 characters.' : null,
+      showCancelButton: true,
+      confirmButtonText: action === 'approved' ? 'Approve' : 'Reject',
+    });
+    if (!isConfirmed || !reason) return;
+    try {
+      // Governed: approver, timestamps, payment reversal and audit are server-side.
+      await paymentRefundDecide({ refund_id: refund.id, decision: action, reason: reason.trim() });
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not record the refund decision');
+      return;
     }
     toast.success(`Refund ${action}`); loadAll();
   };
+
 
   const viewReceipt = (receipt: PaymentReceipt) => {
     setSelectedReceipt(receipt);

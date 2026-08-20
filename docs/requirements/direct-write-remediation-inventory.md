@@ -146,3 +146,29 @@ All probe records were created and deleted through governed RPCs; no residual te
 - P1 bypasses: **99 open** — target 0. Fit & Proper decisions cluster is **closed** (0 open). Highest-value remaining clusters: prudential supervision (22), application lifecycle (14), returns/compliance filings (12), conduct actions (12), enforcement (7).
 - Unjustified `anon`-executable `SECURITY DEFINER` mutators: reduced to 0 (see `docs/rbac/secdef-exposure-triage.md`).
 - **A1 COMPLETE: NO.**
+
+## A1 progress — applications / payments / RFI / returns closure (this iteration)
+
+| site | classification | priority | remediation_status |
+| --- | --- | --- | --- |
+| `RaiseRfiDialog.tsx` (application_rfis, application_rfi_items, approval_step_actions) | REGULATORY_DECISION | P1 | GOVERNED (`application_rfi_raise`) |
+| `workflowTemplateSnapshot.ts` (approval_step_actions + notification config) | CONFIGURATION | P1 | GOVERNED (`approval_step_config_write`) |
+| `PaymentVerificationDialog.tsx` (payments.status/paid_at) | REGULATORY_DECISION | P1 | GOVERNED (`application_payment_verify`) |
+| `PaymentHistory.tsx` (refunds + payments reversal) | REGULATORY_DECISION | P1 | GOVERNED (`payment_refund_decide`, rationale >= 10 chars) |
+| `ComplianceReturns.tsx` (compliance_returns submit) | REGULATORY_DECISION | P1 | GOVERNED (`compliance_return_submit`) |
+| `FillReturnPage.tsx` (compliance_returns acknowledgement) | REGULATORY_RECORD | P1 | GOVERNED (`compliance_return_acknowledge`) |
+
+DML revoked from `anon` + `authenticated`: `payments`, `refunds`, `application_rfis`,
+`application_rfi_items`, `approval_step_actions`, `approval_step_entry_notifications`,
+`approval_action_notifications` (SELECT retained, `service_role` unaffected).
+
+### Still open for A1 closure
+
+| cluster | classification | priority | remediation_status |
+| --- | --- | --- | --- |
+| `returns_filed` workflow_status decisions (`ReturnDetail.tsx`, `useReturnsManagement.ts`) | REGULATORY_DECISION | P1 | OPEN |
+| `license_appeals` lifecycle (`useLicenseAppeals.ts`) | REGULATORY_DECISION | P1 | OPEN |
+| `inspections` lifecycle (`InspectionsTab.tsx`, `InspectionDetail.tsx`) | REGULATORY_DECISION | P1 | OPEN |
+| thematic review findings / letters / actions | REGULATORY_DECISION | P1 | OPEN |
+| `approval_steps` workflow authoring | CONFIGURATION | P2 | OPEN |
+| route audience classification + wrong-domain guard closure | ACCESS_CONTROL | P1 | OPEN |
