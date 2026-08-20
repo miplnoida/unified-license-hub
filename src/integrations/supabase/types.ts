@@ -31041,6 +31041,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      compliance_return_can_file: {
+        Args: { _license_id: string; _on_behalf_of: string; _user_id: string }
+        Returns: boolean
+      }
+      compliance_return_review_decision: {
+        Args: { _comments: string; _decision: string; _return_id: string }
+        Returns: Json
+      }
+      compliance_return_save_draft: { Args: { _payload: Json }; Returns: Json }
+      compliance_return_submit: { Args: { _payload: Json }; Returns: Json }
       conduct_action_close: {
         Args: {
           _action_id: string
