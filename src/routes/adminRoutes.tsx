@@ -14,6 +14,7 @@ const FormTemplateView = lazy(() => import('@/pages/admin/FormTemplateView'));
 const MasterConfiguration = lazy(() => import('@/pages/admin/MasterConfiguration'));
 const MasterDataManagement = lazy(() => import('@/pages/admin/MasterDataManagement'));
 const RegulatoryDataModel = lazy(() => import('@/pages/admin/RegulatoryDataModel'));
+const FormsPackagesWorkspace = lazy(() => import('@/pages/admin/FormsPackagesWorkspace'));
 
 const FeeManagement = lazy(() => import('@/pages/admin/FeeManagement'));
 const ReturnConfiguration = lazy(() => import('@/pages/admin/ReturnConfiguration'));
@@ -149,6 +150,7 @@ export const adminRoutes = (
 
     <Route path="/admin/master-data" element={<M module="settings"><MasterDataManagement /></M>} />
     <Route path="/admin/regulatory-data-model" element={<M module="settings"><RegulatoryDataModel /></M>} />
+    <Route path="/admin/forms-packages" element={<M module="form_management"><FormsPackagesWorkspace /></M>} />
 
     <Route path="/admin/fees" element={<M module="fee_management"><FeeManagement /></M>} />
     <Route path="/admin/return-config" element={<M module="returns_management"><ReturnConfiguration /></M>} />

@@ -16,6 +16,9 @@ const PublicRegistry = lazy(() => import('@/pages/public/PublicRegistry'));
 const PublicLicensees = lazy(() => import('@/pages/public/PublicLicensees'));
 const PublicLicenseeDetail = lazy(() => import('@/pages/public/PublicLicenseeDetail'));
 const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'));
+const PublicEntityRegister = lazy(() => import('@/pages/public/PublicEntityRegister'));
+const PublicEntityDetail = lazy(() => import('@/pages/public/PublicEntityDetail'));
+const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdentification'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
 
 
@@ -26,6 +29,8 @@ export const publicRoutes = (
     {/* /register is for BRAND NEW registrations only. Existing users editing or
         resubmitting a registration must use /registration/portal — never /register. */}
     <Route path="/register" element={<Register />} />
+    {/* Wave B: user identity and entity identity are separate steps. */}
+    <Route path="/register/entity" element={<EntityIdentification />} />
     {/* Backward compatibility: legacy nested route redirects to canonical /register */}
     <Route path="/registration/pre-licensee" element={<Navigate to="/register" replace />} />
     <Route path="/registration/success" element={<RegistrationSuccess />} />
@@ -43,6 +48,8 @@ export const publicRoutes = (
     <Route path="/registry/licensees" element={<PublicLicensees />} />
     <Route path="/registry/licensees/:id" element={<PublicLicenseeDetail />} />
     <Route path="/registry/enforcement" element={<PublicEnforcement />} />
+    <Route path="/registry/entities" element={<PublicEntityRegister />} />
+    <Route path="/registry/entities/:slug" element={<PublicEntityDetail />} />
     <Route path="/declaration/:token" element={<DeclarationLanding />} />
     <Route path="/track/complaint" element={<Navigate to="/complaints/track" replace />} />
     {/* Complaint intake requires authentication — no public or anonymous lodging. */}

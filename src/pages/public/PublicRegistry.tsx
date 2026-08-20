@@ -47,6 +47,12 @@ export default function PublicRegistry() {
             title="Enforcement Outcomes"
             desc="Published decisions, penalties and sanctions."
           />
+          <RegistryTile
+            to="/registry/entities"
+            icon={<Building2 className="h-5 w-5" />}
+            title="Entity Register"
+            desc="Entity-centred view: every licence held by a regulated entity, plus previous names."
+          />
         </div>
       </main>
     </div>
