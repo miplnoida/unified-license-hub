@@ -263,25 +263,26 @@ export default function ReturnSubmission() {
     const dueDay = config?.due_day || 15;
     const dueDate = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, dueDay).toISOString().split('T')[0];
 
-    const { data: newReturn, error } = await supabase.from('compliance_returns' as any).insert({
-      return_config_id: selectedConfigId,
-      license_id: selectedLicenseId || null,
-      submitter_id: user.id,
-      // Tag the submission to the licensee the PPOC is acting for. Stays null for
-      // licensee_primary/secondary users acting for their own entity.
-      on_behalf_of_licensee_id: isPpoc ? selectedLicenseeId || null : null,
-      period_start: periodStart,
-      period_end: periodEnd,
-      due_date: dueDate,
-      form_data: {},
-      status: 'draft',
-    } as any).select().single();
-
-    if (error) {
-      toast.error(error.message);
+    let newReturn: Record<string, unknown>;
+    try {
+      // Governed: filer attribution, entitlement and audit are server-side.
+      newReturn = await complianceReturnSaveDraft({
+        return_config_id: selectedConfigId,
+        license_id: selectedLicenseId || null,
+        // Tag the submission to the licensee the PPOC is acting for. Stays null for
+        // licensee_primary/secondary users acting for their own entity.
+        on_behalf_of_licensee_id: isPpoc ? selectedLicenseeId || null : null,
+        period_start: periodStart,
+        period_end: periodEnd,
+        due_date: dueDate,
+        form_data: {},
+      });
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not create return');
       setCreating(false);
       return;
     }
+
 
     setExistingReturn(newReturn as any);
     toast.success('Return created successfully');
