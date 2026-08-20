@@ -28287,6 +28287,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_entity_change_set: {
+        Args: { _change_set_id: string }
+        Returns: Json
+      }
       archive_prudential_ratio: {
         Args: { _ratio_id: string }
         Returns: undefined
@@ -29766,6 +29770,24 @@ export type Database = {
         }
         Returns: string
       }
+      entity_change_set_create: {
+        Args: {
+          _application_id?: string
+          _effective_date?: string
+          _entity_id: string
+          _items: Json
+          _origin_type?: string
+          _regulatory_request_id?: string
+          _source_form_version_id?: string
+          _source_submission_id?: string
+          _summary?: string
+        }
+        Returns: Json
+      }
+      entity_change_set_transition: {
+        Args: { _action: string; _change_set_id: string; _notes?: string }
+        Returns: Json
+      }
       entity_create_local: {
         Args: {
           _case_id?: string
@@ -30190,6 +30212,7 @@ export type Database = {
           status: string
         }[]
       }
+      fp_link_persons_deterministic: { Args: never; Returns: Json }
       fp_normalise_provider_state: {
         Args: {
           _environment?: string
@@ -31640,6 +31663,10 @@ export type Database = {
         Returns: Json
       }
       permission_has_dependency: { Args: { _action: string }; Returns: boolean }
+      person_upsert_for_appointment: {
+        Args: { _fp_individual_id?: string; _full_name: string }
+        Returns: Json
+      }
       pfmi_complete_assessment: {
         Args: { _assessment_id: string; _summary?: string }
         Returns: Json
@@ -31959,6 +31986,33 @@ export type Database = {
           _signal_id: string
         }
         Returns: string
+      }
+      regulatory_request_available_types: {
+        Args: { _entity_id: string }
+        Returns: {
+          description: string
+          key: string
+          label: string
+          requires_change_set: boolean
+        }[]
+      }
+      regulatory_request_start: {
+        Args: {
+          _effective_date?: string
+          _entity_id: string
+          _request_type_key: string
+          _summary?: string
+        }
+        Returns: Json
+      }
+      regulatory_request_transition: {
+        Args: {
+          _action: string
+          _assignee?: string
+          _notes?: string
+          _request_id: string
+        }
+        Returns: Json
       }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
@@ -33199,6 +33253,7 @@ export type Database = {
         }
         Returns: Json
       }
+      wave_b_integrity_report: { Args: never; Returns: Json }
       wb_entity_member: { Args: { _entity_id: string }; Returns: boolean }
       wb_grant_template: {
         Args: { _perms: string[]; _template_key: string }
