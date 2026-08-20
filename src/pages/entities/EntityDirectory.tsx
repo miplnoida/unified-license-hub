@@ -172,6 +172,7 @@ export default function EntityDirectory() {
     {
       id: 'licences',
       header: 'Licences held',
+      minWidth: '8rem',
       accessor: (e) => e.licences.length,
       cell: (e) => (
         <span className={e.licences.length === 0 ? 'text-muted-foreground' : undefined}>
@@ -185,6 +186,7 @@ export default function EntityDirectory() {
     {
       id: 'identifiers',
       header: 'Registered identifiers',
+      minWidth: '11rem',
       accessor: (e) => e.identifiers.length,
       cell: (e) => formatCount(e.identifiers.length),
       align: 'right',
