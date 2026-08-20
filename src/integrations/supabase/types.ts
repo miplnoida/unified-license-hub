@@ -8786,6 +8786,74 @@ export type Database = {
           },
         ]
       }
+      entity_membership_role_permissions: {
+        Row: {
+          capability: string
+          created_at: string
+          id: string
+          membership_role_id: string
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          id?: string
+          membership_role_id: string
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          id?: string
+          membership_role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_membership_role_permissions_membership_role_id_fkey"
+            columns: ["membership_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_membership_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_membership_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_primary_representative: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_representative?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_representative?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entity_registry_bindings: {
         Row: {
           authority_mode: string
@@ -9281,6 +9349,100 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_user_memberships: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          authority_evidence_reference: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          membership_role_id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          requested_at: string
+          requested_by: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_evidence_reference?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          membership_role_id: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_evidence_reference?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          membership_role_id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_user_memberships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_memberships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_user_memberships_membership_role_id_fkey"
+            columns: ["membership_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_membership_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -22691,6 +22853,87 @@ export type Database = {
           },
         ]
       }
+      sec_role_template_scope_values: {
+        Row: {
+          created_at: string
+          id: string
+          template_scope_id: string
+          value_id: string | null
+          value_kind: string
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_scope_id: string
+          value_id?: string | null
+          value_kind: string
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_scope_id?: string
+          value_id?: string | null
+          value_kind?: string
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_template_scope_values_template_scope_id_fkey"
+            columns: ["template_scope_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_template_scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_template_scopes: {
+        Row: {
+          created_at: string
+          id: string
+          module_id: string
+          scope_type_id: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_id: string
+          scope_type_id: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_id?: string
+          scope_type_id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_template_scopes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_template_scopes_scope_type_id_fkey"
+            columns: ["scope_type_id"]
+            isOneToOne: false
+            referencedRelation: "sec_scope_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_template_scopes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sec_role_templates: {
         Row: {
           created_at: string
@@ -22879,6 +23122,36 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           value_kind?: string | null
+        }
+        Relationships: []
+      }
+      sec_seed_reports: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          detail: string | null
+          id: string
+          subject: string
+          wave: string
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          subject: string
+          wave: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          subject?: string
+          wave?: string
         }
         Relationships: []
       }
@@ -27365,6 +27638,27 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_membership_approve: { Args: { _id: string }; Returns: undefined }
+      entity_membership_reject: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
+      entity_membership_request: {
+        Args: {
+          _authority_evidence_reference?: string
+          _entity_id: string
+          _membership_role_key: string
+        }
+        Returns: string
+      }
+      entity_membership_revoke: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
+      entity_membership_verify: {
+        Args: { _id: string; _notes?: string }
+        Returns: undefined
+      }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
@@ -30058,6 +30352,7 @@ export type Database = {
         }[]
       }
       sec_save_role: { Args: { _payload: Json }; Returns: Json }
+      sec_user_memberships: { Args: { _user_id: string }; Returns: Json }
       sec_user_permissions: {
         Args: { p_user_id: string }
         Returns: {
