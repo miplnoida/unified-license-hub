@@ -20,10 +20,10 @@ function audienceRoles(audience: string): AppRole[] {
 }
 
 /**
- * Icon size shrinks with depth so the hierarchy reads at a glance:
- * level 1 domain 20px, level 2 group/link 18px, level 3 leaf 16px.
+ * Icon size by visible depth so the hierarchy reads at a glance:
+ * level 1 domain 18px, level 2 workspace 17px, level 3 leaf 15px.
  */
-const ICON_CLASS_BY_DEPTH = ['h-[18px] w-[18px] shrink-0', 'h-4 w-4 shrink-0', 'h-[15px] w-[15px] shrink-0'];
+const ICON_CLASS_BY_DEPTH = ['h-[18px] w-[18px] shrink-0', 'h-[17px] w-[17px] shrink-0', 'h-[15px] w-[15px] shrink-0'];
 
 function iconClassForDepth(depth: number): string {
   return ICON_CLASS_BY_DEPTH[Math.min(depth, ICON_CLASS_BY_DEPTH.length - 1)];
@@ -32,6 +32,7 @@ function iconClassForDepth(depth: number): string {
 function toNavItem(node: SecNavNode, depth = 0): NavItem {
   const children = node.children.map((child) => toNavItem(child, depth + 1));
   return {
+    key: node.key,
     label: node.label,
     href: node.href || undefined,
     icon: renderNavIcon(node.icon, iconClassForDepth(depth)),
@@ -42,6 +43,7 @@ function toNavItem(node: SecNavNode, depth = 0): NavItem {
     children: children.length ? children : undefined,
   };
 }
+
 
 /**
  * Database-driven sidebar navigation.
@@ -82,12 +84,13 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
     };
     const sidebarItems = items.filter(isSidebarVisible);
     const roots = buildNavTree(sidebarItems);
-    const sections: NavSection[] = roots.map((root) => ({
-      label: root.item_type === 'group' ? root.label : undefined,
-      icon: root.item_type === 'group' ? renderNavIcon(root.icon, 'h-4 w-4 shrink-0') : undefined,
-      items: (root.item_type === 'group' ? root.children : [root]).map((child) => toNavItem(child, 0)),
-    })).filter((s) => s.items.length > 0);
+    // Root domains (Licensing, Supervision, Returns, ...) render as first-class
+    // level-1 accordion rows with their own icon — NOT as tiny uppercase
+    // separator captions. A root that is a plain link (Home) renders directly.
+    const sections: NavSection[] = [{ items: roots.map((root) => toNavItem(root, 0)) }]
+      .filter((s) => s.items.length > 0);
     return { sections: sections.length ? sections : mainNavSections, isLoading, isDbDriven: sections.length > 0 };
+
   }, [context, isLoading]);
 
 }

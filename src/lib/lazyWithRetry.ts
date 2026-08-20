@@ -75,3 +75,20 @@ export function clearLazyReloadGuard(): void {
     /* ignore */
   }
 }
+
+/**
+ * `lazyWithRetry` + an idempotent `preload()` so the sidebar can warm a route's
+ * JS chunk on hover/focus. Preload uses the SAME module specifier as the lazy
+ * import, so the browser reuses the chunk — clicking never downloads twice.
+ */
+export function lazyWithPreload<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+): ReturnType<typeof lazy<T>> & { preload: () => Promise<unknown> } {
+  const Component = lazyWithRetry(factory) as ReturnType<typeof lazy<T>> & { preload: () => Promise<unknown> };
+  let started: Promise<unknown> | null = null;
+  Component.preload = () => {
+    if (!started) started = factory().catch(() => undefined);
+    return started;
+  };
+  return Component;
+}
