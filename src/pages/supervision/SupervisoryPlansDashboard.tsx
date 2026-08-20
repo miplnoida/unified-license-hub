@@ -167,20 +167,19 @@ export default function SupervisoryPlansDashboard() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (!ids.length) throw new Error('No actions selected');
+      // All plan-action transitions go through the governed operation, which
+      // re-checks authority, records reassignment/extension provenance and
+      // writes the audit entry server-side.
       if (bulkMode === 'reassign') {
         if (!reassignTo.trim()) throw new Error('New owner role required');
         if (reassignReason.trim().length < 5) throw new Error('Reason required');
         for (const id of ids) {
           const cur = enriched.find((a: any) => a.id === id);
-          const { error } = await supabase.from('supervisory_plan_actions').update({
-            owner_role: reassignTo.trim(),
-            reassigned_from: cur?.owner_role ?? null,
-            reassigned_at: new Date().toISOString(),
-            reassigned_by: user?.id,
-          }).eq('id', id);
-          if (error) throw error;
-          await logAction('supervisory.action_reassigned', 'supervisory_plan_actions', id, {
-            meta: { from: cur?.owner_role, to: reassignTo.trim(), reason: reassignReason.trim() },
+          await supervisoryPlanActionTransition({
+            actionId: id,
+            toStatus: cur?.status ?? 'open',
+            reason: reassignReason.trim(),
+            ownerRole: reassignTo.trim(),
           });
         }
       } else if (bulkMode === 'extend') {
@@ -188,25 +187,20 @@ export default function SupervisoryPlansDashboard() {
         if (extendReason.trim().length < 5) throw new Error('Reason required');
         for (const id of ids) {
           const cur = enriched.find((a: any) => a.id === id);
-          const { error } = await supabase.from('supervisory_plan_actions').update({
-            previous_due_date: cur?.due_date ?? null,
-            due_date: extendDate,
-            extension_reason: extendReason.trim(),
-          }).eq('id', id);
-          if (error) throw error;
-          await logAction('supervisory.action_extended', 'supervisory_plan_actions', id, {
-            meta: { previous_due: cur?.due_date, new_due: extendDate, reason: extendReason.trim() },
+          await supervisoryPlanActionTransition({
+            actionId: id,
+            toStatus: cur?.status ?? 'open',
+            reason: extendReason.trim(),
+            dueDate: extendDate,
           });
         }
       } else if (bulkMode === 'complete') {
         for (const id of ids) {
-          const { error } = await supabase.from('supervisory_plan_actions').update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            completed_by: user?.id,
-          }).eq('id', id);
-          if (error) throw error;
-          await logAction('supervisory.action_completed', 'supervisory_plan_actions', id, {});
+          await supervisoryPlanActionTransition({
+            actionId: id,
+            toStatus: 'completed',
+            reason: 'Bulk completion from supervisory plan execution queue',
+          });
         }
       }
     },
@@ -221,13 +215,7 @@ export default function SupervisoryPlansDashboard() {
 
   const submitForReview = useMutation({
     mutationFn: async (planId: string) => {
-      const { error } = await supabase.from('supervisory_plans').update({
-        approval_status: 'pending_review',
-        submitted_for_review_at: new Date().toISOString(),
-        submitted_for_review_by: user?.id,
-      }).eq('id', planId);
-      if (error) throw error;
-      await logAction('supervisory.plan_submitted_for_review', 'supervisory_plans', planId, {});
+      await supervisoryPlanDecision(planId, 'submit_for_review', 'Submitted for supervisory review');
     },
     onSuccess: () => { toast.success('Plan submitted for review'); qc.invalidateQueries({ queryKey: ['supervisory_plans_map', planIds.join(',')] }); },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
@@ -237,16 +225,11 @@ export default function SupervisoryPlansDashboard() {
     mutationFn: async (planId: string) => {
       const plan = plansMap?.get(planId);
       if (!plan) throw new Error('Plan not found');
+      // Server also enforces the 4-eyes rule; kept client-side for fast feedback.
       if (plan.created_by && plan.created_by === user?.id) {
         throw new Error('4-eyes rule: creator cannot approve their own plan');
       }
-      const { error } = await supabase.from('supervisory_plans').update({
-        approval_status: 'approved',
-        approved_at: new Date().toISOString(),
-        approved_by: user?.id,
-      }).eq('id', planId);
-      if (error) throw error;
-      await logAction('supervisory.plan_approved', 'supervisory_plans', planId, {});
+      await supervisoryPlanDecision(planId, 'approve', 'Approved from supervisory plan execution queue');
     },
     onSuccess: () => { toast.success('Plan approved'); qc.invalidateQueries({ queryKey: ['supervisory_plans_map', planIds.join(',')] }); },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
