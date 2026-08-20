@@ -31,19 +31,35 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   return (
     <ErrorBoundary context="AppRoutes">
-      <Suspense fallback={<AuthLoadingScreen />}>
-        <Routes>
+      <Routes>
+        {/* Public routes keep their own layouts and their own Suspense island */}
+        <Route
+          element={
+            <Suspense fallback={<AuthLoadingScreen />}>
+              <Outlet />
+            </Suspense>
+          }
+        >
           {publicRoutes}
+        </Route>
+
+        {/*
+         * Authenticated portal: ONE persistent shell (Sidebar + Header +
+         * LicenseeSwitcher). Route chunks suspend inside the content area only,
+         * so navigation never remounts the chrome or flashes AuthLoadingScreen.
+         */}
+        <Route element={<AppShell />}>
           {dashboardRoutes}
           {adminRoutes}
           {settingsRoutes}
           {returnsRoutes}
           {fpaRoutes}
-        </Routes>
-      </Suspense>
+        </Route>
+      </Routes>
     </ErrorBoundary>
   );
 }
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
