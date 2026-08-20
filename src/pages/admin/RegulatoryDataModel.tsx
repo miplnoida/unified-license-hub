@@ -124,6 +124,5 @@ export default function RegulatoryDataModel() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
   );
 }
