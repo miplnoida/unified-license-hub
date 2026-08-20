@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { logComplianceAudit } from '@/lib/complianceAudit';
+import { conductActionIssue } from '@/lib/conductGovernedOps';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
