@@ -2451,6 +2451,33 @@ export type Database = {
           },
         ]
       }
+      cert_nonproduction_guard: {
+        Row: {
+          environment: string
+          id: boolean
+          note: string | null
+          project_ref: string
+          reset_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          environment: string
+          id?: boolean
+          note?: string | null
+          project_ref: string
+          reset_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          environment?: string
+          id?: boolean
+          note?: string | null
+          project_ref?: string
+          reset_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       certification_seed_manifest: {
         Row: {
           created_at: string
@@ -30423,6 +30450,23 @@ export type Database = {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
       }
+      cert_reset_classify_tables: {
+        Args: never
+        Returns: {
+          classification: string
+          live_rows: number
+          table_name: string
+        }[]
+      }
+      cert_reset_detach_optional_links: {
+        Args: { _tables: string[] }
+        Returns: Json
+      }
+      cert_reset_nonproduction_business_data_v1: {
+        Args: { _confirmation: string; _project_ref: string }
+        Returns: Json
+      }
+      cert_reset_preserved_tables: { Args: never; Returns: string[] }
       cert_seed_identity_v1: { Args: never; Returns: undefined }
       cert_seed_returns_v1: { Args: never; Returns: undefined }
       cert_seed_structure_v1: { Args: never; Returns: undefined }
