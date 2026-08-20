@@ -240,32 +240,25 @@ export default function UserManagement() {
       return;
     }
 
-    // 1) Replace user_dynamic_roles (source of truth for dynamic RBAC).
-    await supabase.from('user_dynamic_roles' as any).delete().eq('user_id', editingUser.id);
-    if (selectedDynamicRoles.length > 0) {
-      await supabase.from('user_dynamic_roles' as any).insert(
-        selectedDynamicRoles.map(r => ({ user_id: editingUser.id, role_id: r.id }))
+    // One atomic, audited server-side call. `sec_assign_user_roles` replaces
+    // the whole assignment set, mirrors the legacy tables, keeps
+    // profiles.role_id / user_roles consistent and protects the break-glass
+    // Super Administrator. No multi-table client writes.
+    const { error } = await supabase.rpc('sec_assign_user_roles' as any, {
+      p_user_id: editingUser.id,
+      p_role_ids: selectedRoleIds,
+    });
+    if (error) {
+      toast.error(
+        error.message?.includes('last_break_glass_admin_protected')
+          ? 'The last break-glass Super Administrator cannot lose that role.'
+          : error.message?.includes('break_glass_role_protected')
+            ? 'Only a Super Administrator can grant or revoke the break-glass role.'
+            : error.message || 'Failed to assign roles',
       );
+      setSaving(false);
+      return;
     }
-
-    // 2) Keep user_roles in sync with system_roles (for legacy has_role checks),
-    //    de-duplicating since multiple dynamic roles may share the same system_role.
-    await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
-    const uniqueSystemRoles = Array.from(new Set(
-      selectedDynamicRoles
-        .map(r => (r.system_role && String(r.system_role).trim()) || 'analyst')
-    ));
-    for (const sysRole of uniqueSystemRoles) {
-      await supabase.from('user_roles').insert({
-        user_id: editingUser.id, role: sysRole as any,
-      });
-    }
-
-    // 3) Update profile with primary role for back-compat.
-    await supabase.from('profiles').update({
-      role_id: primaryRole.id,
-      role: primaryRole.system_role,
-    } as any).eq('id', editingUser.id);
 
     setUsers(prev => prev.map(x => x.id === editingUser.id ? {
       ...x,
@@ -273,6 +266,8 @@ export default function UserManagement() {
       role_id: primaryRole.id,
       dynamic_role_ids: selectedDynamicRoles.map(r => r.id),
     } : x));
+    qc.invalidateQueries({ queryKey: ['sec-context'], refetchType: 'all' });
+    qc.invalidateQueries({ queryKey: ['role-user-counts'] });
     toast.success(`${selectedDynamicRoles.length} role(s) assigned`);
     setSaving(false);
     setEditDialog(false);
