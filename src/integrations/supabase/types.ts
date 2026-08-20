@@ -33939,6 +33939,14 @@ export type Database = {
       }
       returns_can_file: { Args: { _entity_id: string }; Returns: boolean }
       returns_classify_legacy: { Args: never; Returns: Json }
+      returns_compare_filing_versions: {
+        Args: { _version_a: string; _version_b: string }
+        Returns: Json
+      }
+      returns_delete_definition_form: {
+        Args: { _id: string }
+        Returns: undefined
+      }
       returns_derive_entity_obligations: {
         Args: { _entity_id: string }
         Returns: Json
@@ -33964,6 +33972,7 @@ export type Database = {
           period_status: string
         }[]
       }
+      returns_entity_summary: { Args: { _entity_id: string }; Returns: Json }
       returns_extract_metrics: {
         Args: { _version_id: string }
         Returns: number
@@ -34025,13 +34034,25 @@ export type Database = {
         Returns: Json
       }
       returns_save_definition: { Args: { _payload: Json }; Returns: string }
+      returns_save_definition_form: {
+        Args: { _payload: Json }
+        Returns: string
+      }
       returns_save_metric: { Args: { _payload: Json }; Returns: string }
       returns_save_obligation_rule: {
         Args: { _payload: Json }
         Returns: string
       }
+      returns_set_definition_status: {
+        Args: { _definition_id: string; _status: string }
+        Returns: Json
+      }
       returns_submit_filing: {
         Args: { _declaration_accepted?: boolean; _version_id: string }
+        Returns: Json
+      }
+      returns_test_obligation_rule: {
+        Args: { _entity_id: string; _rule_id: string }
         Returns: Json
       }
       returns_validate_filing: { Args: { _version_id: string }; Returns: Json }
