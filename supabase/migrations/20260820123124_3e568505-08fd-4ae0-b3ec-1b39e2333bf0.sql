@@ -1,0 +1,1 @@
+UPDATE public.sec_navigation_items SET icon_key = 'ChartColumn', updated_at = now() WHERE key = 'nav_admin_rdm_reporting' AND (icon_key IS NULL OR icon_key = 'chart-bar');
