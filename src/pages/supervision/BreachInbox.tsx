@@ -283,8 +283,6 @@ export default function BreachInbox() {
                     return (
                       <tr key={b.id} className="border-b hover:bg-muted/40">
                         <td className="p-2">
-                          <div className="font-medium">{b.licenseeName ?? '—'}</div>
-                        <td className="p-2">
                           <div className="font-medium">
                             {b.licenseeId ? (
                               <Link to={`/entities/${b.licenseeId}`} className="hover:underline">{b.licenseeName ?? '—'}</Link>
@@ -299,8 +297,9 @@ export default function BreachInbox() {
                             {b.periodLabel && <span className="ml-1">· {b.periodLabel}</span>}
                           </div>
                         </td>
-
+                        <td className="p-2 font-mono text-xs">{b.metric_key}</td>
                         <td className="p-2 text-xs">
+
                           <div>{b.value ?? '—'} {cmp} {b.threshold_value ?? '—'}</div>
                           {magPct && <div className="text-muted-foreground">Δ {magPct}</div>}
                         </td>
