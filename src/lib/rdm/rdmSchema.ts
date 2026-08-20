@@ -21,6 +21,7 @@ export interface RdmField {
   immutable?: boolean;
   /** Computed by the database (generated column) — displayed, never submitted. */
   derived?: boolean;
+}
 
 
 export interface RdmTableSchema {
