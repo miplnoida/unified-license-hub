@@ -147,14 +147,15 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   data_domains: {
     table: 'data_domains',
     title: 'Data Domains & Ownership',
-    description: 'Which system is authoritative for each class of regulatory data.',
+    description: 'Which system is authoritative for each class of regulatory data. Legal identity is deployment-configured (no external registry is assumed); regulatory status is always owned by this platform.',
     singular: 'data domain',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
-      { name: 'default_authority', label: 'Authoritative source', type: 'select', options: ['SUPTECH', 'EXTERNAL_REGISTRY', 'DEPLOYMENT_CONFIGURED'], required: true, inList: true },
+      { name: 'default_authority', label: 'Authoritative source', type: 'select', options: ['SUPTECH', 'EXTERNAL_REGISTRY', 'DEPLOYMENT_CONFIGURED'], required: true, inList: true, help: 'DEPLOYMENT_CONFIGURED means the deployment chooses via an entity resolution policy.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_identifier_types: {
     table: 'entity_identifier_types',
     title: 'Entity Identifier Types',
