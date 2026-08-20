@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import { Eye, Loader2, Users, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getApplicationCategory } from '@/lib/applicationCategory';
+import { applicationTriageUpdate } from '@/lib/applicationGovernedOps';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
 import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 
@@ -437,18 +438,18 @@ export default function ApplicationQueue() {
     setSelected((prev) => (prev.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id))));
   };
 
+  // Triage (priority / assignment) is a governed operation: the actor and the
+  // attribution columns are derived server-side.
   const updateRow = async (id: string, patch: Record<string, any>) => {
-    if (patch.priority !== undefined) {
-      patch.priority_set_by = user?.id;
-      patch.priority_set_at = new Date().toISOString();
-    }
-    if (patch.assigned_to !== undefined) {
-      patch.assigned_by = user?.id;
-      patch.assigned_at = new Date().toISOString();
-    }
-    const { error } = await supabase.from('applications').update(patch).eq('id', id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await applicationTriageUpdate({
+        applicationIds: [id],
+        priority: patch.priority ?? null,
+        priorityReason: patch.priority_reason ?? null,
+        assignedTo: patch.assigned_to ?? null,
+      });
+    } catch (e: any) {
+      toast.error(e.message || 'Update failed');
       return;
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -459,26 +460,18 @@ export default function ApplicationQueue() {
     if (selected.size === 0) return;
     setSaving(true);
     try {
-      const patch: Record<string, any> = {};
-      if (bulkPriority !== 'none') {
-        patch.priority = Number(bulkPriority);
-        patch.priority_reason = bulkReason || null;
-        patch.priority_set_by = user?.id;
-        patch.priority_set_at = new Date().toISOString();
-      }
-      if (bulkAssignee !== 'none') {
-        patch.assigned_to = bulkAssignee;
-        patch.assigned_by = user?.id;
-        patch.assigned_at = new Date().toISOString();
-      }
-      if (Object.keys(patch).length === 0) {
+      if (bulkPriority === 'none' && bulkAssignee === 'none') {
         toast.error('Choose a priority or an assignee');
         setSaving(false);
         return;
       }
       const ids = Array.from(selected);
-      const { error } = await supabase.from('applications').update(patch).in('id', ids);
-      if (error) throw error;
+      await applicationTriageUpdate({
+        applicationIds: ids,
+        priority: bulkPriority !== 'none' ? Number(bulkPriority) : null,
+        priorityReason: bulkReason || null,
+        assignedTo: bulkAssignee !== 'none' ? bulkAssignee : null,
+      });
       toast.success(`Updated ${ids.length} application${ids.length === 1 ? '' : 's'}`);
       setBulkOpen(false);
       setBulkPriority('none');

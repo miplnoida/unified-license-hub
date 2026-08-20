@@ -37,48 +37,26 @@ export default function ConductAlerts() {
   useEffect(() => { load(); }, [status]);
 
   const ack = async (row: any) => {
-    const prevStatus = row.status;
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() }).eq('id', row.id);
-    if (error) return toast.error(error.message);
-    await logAudit({
-      action: 'conduct_alert_acknowledged',
-      entityType: 'conduct_alert',
-      entityId: row.id,
-      metadata: {
-        old_status: prevStatus,
-        new_status: 'acknowledged',
-        actor_id: user?.id,
-        alert_kind: row.kind,
-        complaint_id: row.complaint_id,
-        triage_rule_id: row.triage_rule_id,
-        licensee_id: row.licensee_id,
-        severity: row.severity,
-      },
-    });
+    try {
+      // Governed: acknowledger, timestamp and audit are derived server-side.
+      await conductAlertAcknowledge(row.id);
+    } catch (e: any) {
+      return toast.error(e?.message || 'Could not acknowledge alert');
+    }
     load();
   };
   const doClose = async (row: any, extra?: Record<string, any>) => {
-    const prevStatus = row.status;
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', row.id);
-    if (error) return toast.error(error.message);
-    await logAudit({
-      action: 'conduct_alert_closed',
-      entityType: 'conduct_alert',
-      entityId: row.id,
-      metadata: {
-        old_status: prevStatus,
-        new_status: 'closed',
-        actor_id: user?.id,
-        alert_kind: row.kind,
-        complaint_id: row.complaint_id,
-        triage_rule_id: row.triage_rule_id,
-        licensee_id: row.licensee_id,
-        severity: row.severity,
-        ...(extra || {}),
-      },
-    });
+    const reason = String(extra?.override_reason || extra?.reason || '').trim()
+      || 'Closed after supervisory review of the alert.';
+    try {
+      // Governed: closure attribution, reason validation and audit are server-side.
+      await conductAlertClose(row.id, reason, extra || {});
+    } catch (e: any) {
+      return toast.error(e?.message || 'Could not close alert');
+    }
     load();
   };
+
   const close = async (row: any) => {
     if (row.triage_rule_id) { setOverrideAlert(row); return; }
     await doClose(row);

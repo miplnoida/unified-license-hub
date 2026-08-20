@@ -7,6 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import {
+  conductAlertAcknowledge,
+  conductAlertClose,
+  conductActionClose,
+  conductEvidenceSetRestriction,
+  conductEvidenceUpload,
+  conductInvestigationOpen,
+  conductInvestigationUpdate,
+} from '@/lib/conductGovernedOps';
+
 
 const sb = supabase as any;
 
@@ -115,13 +125,8 @@ export function useCreateInvestigation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<ConductInvestigation> & { allegation: string; source_type: string }) => {
-      await authorizedAction('conduct_management', 'create', { allegation: payload.allegation });
-      const { data: user } = await supabase.auth.getUser();
-      const body: any = { ...payload, opened_by: user.user?.id ?? null };
-      const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('CREATE', 'conduct_investigation', data.id, null, data);
-      return data;
+      // Governed: server derives opened_by, verifies permission and writes audit.
+      return await conductInvestigationOpen(payload as Record<string, unknown>);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-investigations'] }); toast.success('Investigation opened'); },
     onError: (e: any) => toast.error(e.message),
@@ -132,12 +137,8 @@ export function useUpdateInvestigation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch, justification }: { id: string; patch: Partial<ConductInvestigation>; justification?: string }) => {
-      const { data: before } = await sb.from('conduct_investigations').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_investigations').update(patch).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      const closing = patch.status === 'closed' && before?.status !== 'closed';
-      await audit(closing ? 'APPROVE' : 'UPDATE', 'conduct_investigation', id, before, data, justification);
-      return data;
+      // Governed: closure attribution + audit are server-side.
+      return await conductInvestigationUpdate(id, patch as Record<string, unknown>, justification ?? null);
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ['conduct-investigations'] });
@@ -146,6 +147,7 @@ export function useUpdateInvestigation() {
     onError: (e: any) => toast.error(e.message),
   });
 }
+
 
 // ---------- Evidence ----------
 export function useEvidence(filter: { entity_id?: string; investigation_id?: string; complaint_id?: string; thematic_review_id?: string } = {}) {
@@ -168,13 +170,8 @@ export function useUploadEvidence() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<ConductEvidence> & { title: string }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const { data, error } = await sb.from('conduct_evidence')
-        .insert({ ...payload, uploaded_by: user.user?.id ?? null })
-        .select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('CREATE', 'conduct_evidence', data.id, null, data);
-      return data;
+      // Governed: uploaded_by + audit derived server-side.
+      return await conductEvidenceUpload(payload as Record<string, unknown>);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-evidence'] }); toast.success('Evidence uploaded'); },
     onError: (e: any) => toast.error(e.message),
@@ -185,17 +182,14 @@ export function useToggleEvidenceRestriction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, restricted, reason }: { id: string; restricted: boolean; reason: string }) => {
-      const { data: before } = await sb.from('conduct_evidence').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_evidence').update({ restricted }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await sb.rpc('log_conduct_evidence_access', { _evidence_id: id, _action: restricted ? 'restrict' : 'unrestrict', _reason: reason });
-      await audit('UPDATE', 'conduct_evidence', id, before, data, reason);
-      return data;
+      // Governed: access log + audit written server-side.
+      return await conductEvidenceSetRestriction(id, restricted, reason);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['conduct-evidence'] }),
     onError: (e: any) => toast.error(e.message),
   });
 }
+
 
 /**
  * Record an evidence view/download. Callers should first verify the row is
@@ -271,14 +265,8 @@ export function useAcknowledgeAlert() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const { data: before } = await sb.from('conduct_alerts').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_alerts').update({
-        status: 'acknowledged', acknowledged_by: user.user?.id ?? null, acknowledged_at: new Date().toISOString(),
-      }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('UPDATE', 'conduct_alert', id, before, data);
-      return data;
+      // Governed: acknowledger + timestamp + audit derived server-side.
+      return await conductAlertAcknowledge(id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['conduct-alerts'] }),
     onError: (e: any) => toast.error(e.message),
@@ -289,16 +277,8 @@ export function useCloseAlert() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      if (!reason || reason.trim().length < 5) throw new Error('Closure reason required (min 5 chars)');
-      const { data: user } = await supabase.auth.getUser();
-      const { data: before } = await sb.from('conduct_alerts').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_alerts').update({
-        status: 'closed', closed_by: user.user?.id ?? null, closed_at: new Date().toISOString(),
-        closure_reason: reason,
-      }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit(before?.status === 'open' ? 'OVERRIDE' : 'UPDATE', 'conduct_alert', id, before, data, reason);
-      return data;
+      // Governed: reason length, override classification and audit are server-side.
+      return await conductAlertClose(id, reason);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['conduct-alerts'] }),
     onError: (e: any) => toast.error(e.message),
@@ -310,16 +290,7 @@ export function useCompleteAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, outcome, completion_notes }: { id: string; outcome: string; completion_notes: string }) => {
-      if (!outcome?.trim() || !completion_notes?.trim()) throw new Error('Outcome and completion notes are required');
-      const { data: user } = await supabase.auth.getUser();
-      const { data: before } = await sb.from('conduct_actions').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_actions').update({
-        status: 'completed', outcome, completion_notes,
-        closed_by: user.user?.id ?? null, closed_at: new Date().toISOString(),
-      }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('UPDATE', 'conduct_action', id, before, data);
-      return data;
+      return await conductActionClose(id, 'completed', completion_notes, outcome);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action completed'); },
     onError: (e: any) => toast.error(e.message),
@@ -329,15 +300,7 @@ export function useWaiveAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, waiver_reason }: { id: string; waiver_reason: string }) => {
-      if (!waiver_reason?.trim() || waiver_reason.trim().length < 10) throw new Error('Waiver reason required (min 10 chars)');
-      const { data: user } = await supabase.auth.getUser();
-      const { data: before } = await sb.from('conduct_actions').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_actions').update({
-        status: 'waived', waiver_reason, closed_by: user.user?.id ?? null, closed_at: new Date().toISOString(),
-      }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('OVERRIDE', 'conduct_action', id, before, data, waiver_reason);
-      return data;
+      return await conductActionClose(id, 'waived', waiver_reason);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action waived'); },
     onError: (e: any) => toast.error(e.message),
@@ -347,20 +310,13 @@ export function useCancelAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, cancellation_reason }: { id: string; cancellation_reason: string }) => {
-      if (!cancellation_reason?.trim() || cancellation_reason.trim().length < 10) throw new Error('Cancellation reason required (min 10 chars)');
-      const { data: user } = await supabase.auth.getUser();
-      const { data: before } = await sb.from('conduct_actions').select('*').eq('id', id).maybeSingle();
-      const { data, error } = await sb.from('conduct_actions').update({
-        status: 'cancelled', cancellation_reason, closed_by: user.user?.id ?? null, closed_at: new Date().toISOString(),
-      }).eq('id', id).select('*').single();
-      if (error) throw new Error(error.message);
-      await audit('OVERRIDE', 'conduct_action', id, before, data, cancellation_reason);
-      return data;
+      return await conductActionClose(id, 'cancelled', cancellation_reason);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['conduct-actions'] }); toast.success('Action cancelled'); },
     onError: (e: any) => toast.error(e.message),
   });
 }
+
 
 // ---------- Monitoring rule runs ----------
 export function useMonitoringRuleRuns(ruleId: string | undefined) {
