@@ -151,16 +151,18 @@ export default function UserManagement() {
       return;
     }
 
-    const [{ data: roles }, { data: udr }] = await Promise.all([
+    // Role assignments come from the canonical security tables. `user_roles`
+    // is read only for the coarse app_role label used by the list filter.
+    const [{ data: roles }, { data: sur }] = await Promise.all([
       supabase.from('user_roles').select('user_id, role'),
-      supabase.from('user_dynamic_roles' as any).select('user_id, role_id'),
+      supabase.from('sec_user_roles' as any).select('user_id, role_id').eq('status', 'active'),
     ]);
 
     const roleMap: Record<string, string> = {};
     (roles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
 
     const dynMap: Record<string, string[]> = {};
-    ((udr as any[]) || []).forEach((r: any) => {
+    ((sur as any[]) || []).forEach((r: any) => {
       if (!dynMap[r.user_id]) dynMap[r.user_id] = [];
       dynMap[r.user_id].push(r.role_id);
     });
