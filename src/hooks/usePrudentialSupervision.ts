@@ -465,15 +465,22 @@ export function useCreateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAction>) => {
-      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, title: (row as any).title });
-      const user = (await sb.auth.getUser()).data.user;
-      const payload: any = { ...row, created_by: user?.id };
-      const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
-      if (error) throw error;
-      await audit('CREATE', 'prudential_action', data.id, null, data);
-
-      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      return data;
+      return await prudentialActionIssue({
+        entityId: (row as any).entity_id,
+        actionType: (row as any).action_type ?? 'supervisory_letter',
+        title: (row as any).title,
+        description: (row as any).description ?? null,
+        severity: (row as any).severity ?? 'medium',
+        dueDate: (row as any).due_date ?? null,
+        assignedTo: (row as any).assigned_to ?? null,
+        sourceType: (row as any).source_type ?? 'manual',
+        sourceId: (row as any).source_id ?? null,
+        evidenceRequired: (row as any).evidence_required ?? false,
+        entityContact: (row as any).entity_contact ?? null,
+        responseDueAt: (row as any).response_due_at ?? null,
+        breachAfterDays: (row as any).breach_after_days ?? null,
+        entityOwnerUserId: (row as any).entity_owner_user_id ?? null,
+      });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -483,12 +490,8 @@ export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
-      await authorizedAction('prudential_supervision', 'edit', { action_id: id, status: patch.status });
-      const user = (await sb.auth.getUser()).data.user;
-      const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
-
-      // Enforce mandatory notes at hook layer for terminal transitions,
-      // so a direct hook caller cannot bypass the UI's 5-char guard.
+      // Client-side pre-checks mirror the server rules for a faster message;
+      // the governed operation re-enforces them regardless of this path.
       if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
         throw new Error('Completion notes are required (min 5 characters) to complete an action');
       }
@@ -498,18 +501,11 @@ export function useUpdateAction() {
       if (patch.status === 'cancelled' && (!cancellation_reason || cancellation_reason.trim().length < 5)) {
         throw new Error('Cancellation reason is required (min 5 characters) to cancel an action');
       }
-      const body: any = { ...patch };
-      if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
-        body.closed_at = new Date().toISOString();
-        body.closed_by = user?.id;
-      }
+      const body: Record<string, unknown> = { ...patch };
       if (patch.status === 'waived' && waiver_reason) body.waiver_reason = waiver_reason;
       if (patch.status === 'cancelled' && cancellation_reason) body.cancellation_reason = cancellation_reason;
       if (patch.status === 'completed' && completion_notes) body.completion_notes = completion_notes;
-      const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
-      // Re-notify the new assignee if assignment changed.
+      await prudentialActionUpdate(id, body, waiver_reason || cancellation_reason || completion_notes || null);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
