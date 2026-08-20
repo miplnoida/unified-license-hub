@@ -9932,6 +9932,89 @@ export type Database = {
           },
         ]
       }
+      entity_reporting_obligations: {
+        Row: {
+          closed_reason: string | null
+          created_at: string
+          created_by: string | null
+          due_days_after_period_end: number
+          effective_from: string
+          effective_to: string | null
+          entity_id: string
+          frequency: string
+          id: string
+          next_due_date: string | null
+          origin: string
+          return_definition_id: string
+          source_rule_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_days_after_period_end?: number
+          effective_from?: string
+          effective_to?: string | null
+          entity_id: string
+          frequency: string
+          id?: string
+          next_due_date?: string | null
+          origin?: string
+          return_definition_id: string
+          source_rule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_days_after_period_end?: number
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string
+          frequency?: string
+          id?: string
+          next_due_date?: string | null
+          origin?: string
+          return_definition_id?: string
+          source_rule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_reporting_obligations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_reporting_obligations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_reporting_obligations_return_definition_id_fkey"
+            columns: ["return_definition_id"]
+            isOneToOne: false
+            referencedRelation: "return_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_reporting_obligations_source_rule_id_fkey"
+            columns: ["source_rule_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_obligation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_resolution_cases: {
         Row: {
           application_id: string | null
@@ -12028,6 +12111,7 @@ export type Database = {
           is_active: boolean
           is_published: boolean
           label_hint: string | null
+          regulatory_metric_id: string | null
           template_id: string
           updated_at: string
         }
@@ -12039,6 +12123,7 @@ export type Database = {
           is_active?: boolean
           is_published?: boolean
           label_hint?: string | null
+          regulatory_metric_id?: string | null
           template_id: string
           updated_at?: string
         }
@@ -12050,6 +12135,7 @@ export type Database = {
           is_active?: boolean
           is_published?: boolean
           label_hint?: string | null
+          regulatory_metric_id?: string | null
           template_id?: string
           updated_at?: string
         }
@@ -12059,6 +12145,13 @@ export type Database = {
             columns: ["data_concept_id"]
             isOneToOne: false
             referencedRelation: "data_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_field_definitions_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
             referencedColumns: ["id"]
           },
           {
@@ -17015,6 +17108,53 @@ export type Database = {
         }
         Relationships: []
       }
+      metric_calculation_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dependency_metric_codes: string[]
+          expression: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          on_missing_dependency: string
+          regulatory_metric_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dependency_metric_codes?: string[]
+          expression: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          on_missing_dependency?: string
+          regulatory_metric_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dependency_metric_codes?: string[]
+          expression?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          on_missing_dependency?: string
+          regulatory_metric_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_calculation_rules_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_rule_tests: {
         Row: {
           correlation_id: string
@@ -17947,6 +18087,128 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      onboarding_journey_state: {
+        Row: {
+          context: Json
+          created_at: string
+          entity_id: string | null
+          id: string
+          intended_journey: string | null
+          intended_route: string | null
+          membership_id: string | null
+          stage: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          intended_journey?: string | null
+          intended_route?: string | null
+          membership_id?: string | null
+          stage?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          intended_journey?: string | null
+          intended_route?: string | null
+          membership_id?: string | null
+          stage?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_journey_state_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_journey_state_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "onboarding_journey_state_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "entity_user_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_resolution_tokens: {
+        Row: {
+          case_id: string | null
+          consumed_at: string | null
+          created_at: string
+          entity_id: string | null
+          expires_at: string
+          id: string
+          payload: Json
+          token: string
+          token_kind: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          token: string
+          token_kind: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          token?: string
+          token_kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_resolution_tokens_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_resolution_tokens_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_resolution_tokens_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
       }
       organization_names: {
         Row: {
@@ -21190,6 +21452,80 @@ export type Database = {
         }
         Relationships: []
       }
+      regulatory_metrics: {
+        Row: {
+          aggregation_type: string
+          calculation_strategy: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          data_domain_id: string | null
+          data_type: string
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          frequency_compatibility: string[]
+          id: string
+          is_active: boolean
+          is_calculated: boolean
+          is_system: boolean
+          name: string
+          sensitivity: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          aggregation_type?: string
+          calculation_strategy?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          data_domain_id?: string | null
+          data_type?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          frequency_compatibility?: string[]
+          id?: string
+          is_active?: boolean
+          is_calculated?: boolean
+          is_system?: boolean
+          name: string
+          sensitivity?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aggregation_type?: string
+          calculation_strategy?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          data_domain_id?: string | null
+          data_type?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          frequency_compatibility?: string[]
+          id?: string
+          is_active?: boolean
+          is_calculated?: boolean
+          is_system?: boolean
+          name?: string
+          sensitivity?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_metrics_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulatory_request_form_requirements: {
         Row: {
           created_at: string
@@ -22441,6 +22777,167 @@ export type Database = {
         }
         Relationships: []
       }
+      reporting_obligation_rules: {
+        Row: {
+          category_id: string | null
+          classification_value_id: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_days_override: number | null
+          effective_from: string
+          effective_to: string | null
+          frequency_override: string | null
+          id: string
+          is_active: boolean
+          jurisdiction: string | null
+          license_type_id: string | null
+          lifecycle_stage_id: string | null
+          name: string
+          priority: number
+          regulator_id: string | null
+          requires_active_license: boolean
+          return_definition_id: string
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          classification_value_id?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_days_override?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          frequency_override?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          license_type_id?: string | null
+          lifecycle_stage_id?: string | null
+          name: string
+          priority?: number
+          regulator_id?: string | null
+          requires_active_license?: boolean
+          return_definition_id: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          classification_value_id?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_days_override?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          frequency_override?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          license_type_id?: string | null
+          lifecycle_stage_id?: string | null
+          name?: string
+          priority?: number
+          regulator_id?: string | null
+          requires_active_license?: boolean
+          return_definition_id?: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reporting_obligation_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporting_obligation_rules_classification_value_id_fkey"
+            columns: ["classification_value_id"]
+            isOneToOne: false
+            referencedRelation: "classification_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporting_obligation_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporting_obligation_rules_return_definition_id_fkey"
+            columns: ["return_definition_id"]
+            isOneToOne: false
+            referencedRelation: "return_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reporting_obligation_rules_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reporting_periods: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          due_date: string
+          entity_reporting_obligation_id: string
+          id: string
+          opened_at: string | null
+          period_end: string
+          period_label: string
+          period_start: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          due_date: string
+          entity_reporting_obligation_id: string
+          id?: string
+          opened_at?: string | null
+          period_end: string
+          period_label: string
+          period_start: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          due_date?: string
+          entity_reporting_obligation_id?: string
+          id?: string
+          opened_at?: string | null
+          period_end?: string
+          period_label?: string
+          period_start?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reporting_periods_entity_reporting_obligation_id_fkey"
+            columns: ["entity_reporting_obligation_id"]
+            isOneToOne: false
+            referencedRelation: "entity_reporting_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           category: string
@@ -23035,6 +23532,154 @@ export type Database = {
           },
         ]
       }
+      return_definition_forms: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          form_template_id: string
+          id: string
+          is_required: boolean
+          return_definition_id: string
+          section_label: string | null
+          sequence: number
+          tab_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          form_template_id: string
+          id?: string
+          is_required?: boolean
+          return_definition_id: string
+          section_label?: string | null
+          sequence?: number
+          tab_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          form_template_id?: string
+          id?: string
+          is_required?: boolean
+          return_definition_id?: string
+          section_label?: string | null
+          sequence?: number
+          tab_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_definition_forms_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_definition_forms_return_definition_id_fkey"
+            columns: ["return_definition_id"]
+            isOneToOne: false
+            referencedRelation: "return_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_definitions: {
+        Row: {
+          code: string
+          consolidation_basis: string | null
+          created_at: string
+          created_by: string | null
+          currency_basis: string | null
+          declaration_text: string | null
+          description: string | null
+          due_days_after_period_end: number
+          effective_from: string
+          effective_to: string | null
+          filing_basis: string
+          frequency: string
+          id: string
+          is_active: boolean
+          legacy_return_config_id: string | null
+          legacy_return_type_id: string | null
+          name: string
+          regulator_id: string | null
+          requires_declaration: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          consolidation_basis?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_basis?: string | null
+          declaration_text?: string | null
+          description?: string | null
+          due_days_after_period_end?: number
+          effective_from?: string
+          effective_to?: string | null
+          filing_basis?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          legacy_return_config_id?: string | null
+          legacy_return_type_id?: string | null
+          name: string
+          regulator_id?: string | null
+          requires_declaration?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          consolidation_basis?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_basis?: string | null
+          declaration_text?: string | null
+          description?: string | null
+          due_days_after_period_end?: number
+          effective_from?: string
+          effective_to?: string | null
+          filing_basis?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          legacy_return_config_id?: string | null
+          legacy_return_type_id?: string | null
+          name?: string
+          regulator_id?: string | null
+          requires_declaration?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_definitions_legacy_return_config_id_fkey"
+            columns: ["legacy_return_config_id"]
+            isOneToOne: false
+            referencedRelation: "return_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_definitions_legacy_return_type_id_fkey"
+            columns: ["legacy_return_type_id"]
+            isOneToOne: false
+            referencedRelation: "return_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_definitions_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_documents: {
         Row: {
           created_at: string
@@ -23190,6 +23835,406 @@ export type Database = {
           },
         ]
       }
+      return_filing_form_requirements: {
+        Row: {
+          completion_status: string
+          form_response_id: string | null
+          form_template_id: string
+          form_version_id: string
+          id: string
+          is_required: boolean
+          pinned_at: string
+          return_filing_version_id: string
+          sequence: number
+          tab_name: string | null
+        }
+        Insert: {
+          completion_status?: string
+          form_response_id?: string | null
+          form_template_id: string
+          form_version_id: string
+          id?: string
+          is_required?: boolean
+          pinned_at?: string
+          return_filing_version_id: string
+          sequence?: number
+          tab_name?: string | null
+        }
+        Update: {
+          completion_status?: string
+          form_response_id?: string | null
+          form_template_id?: string
+          form_version_id?: string
+          id?: string
+          is_required?: boolean
+          pinned_at?: string
+          return_filing_version_id?: string
+          sequence?: number
+          tab_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_form_requirements_form_response_id_fkey"
+            columns: ["form_response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_form_requirements_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_form_requirements_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_form_requirements_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_filing_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          form_template_id: string | null
+          id: string
+          legacy_return_request_id: string | null
+          message: string
+          regulatory_metric_id: string | null
+          request_kind: string
+          responded_at: string | null
+          responded_by: string | null
+          response_text: string | null
+          return_filing_id: string
+          return_filing_version_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          form_template_id?: string | null
+          id?: string
+          legacy_return_request_id?: string | null
+          message: string
+          regulatory_metric_id?: string | null
+          request_kind?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response_text?: string | null
+          return_filing_id: string
+          return_filing_version_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          form_template_id?: string | null
+          id?: string
+          legacy_return_request_id?: string | null
+          message?: string
+          regulatory_metric_id?: string | null
+          request_kind?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          response_text?: string | null
+          return_filing_id?: string
+          return_filing_version_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_requests_legacy_return_request_id_fkey"
+            columns: ["legacy_return_request_id"]
+            isOneToOne: false
+            referencedRelation: "return_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_requests_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_requests_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_requests_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_filing_validation_results: {
+        Row: {
+          detected_at: string
+          form_template_id: string | null
+          id: string
+          is_blocking: boolean
+          message: string
+          regulatory_metric_id: string | null
+          return_filing_id: string
+          return_filing_version_id: string | null
+          rule_code: string
+          scope: string
+          severity: string
+        }
+        Insert: {
+          detected_at?: string
+          form_template_id?: string | null
+          id?: string
+          is_blocking?: boolean
+          message: string
+          regulatory_metric_id?: string | null
+          return_filing_id: string
+          return_filing_version_id?: string | null
+          rule_code: string
+          scope?: string
+          severity: string
+        }
+        Update: {
+          detected_at?: string
+          form_template_id?: string | null
+          id?: string
+          is_blocking?: boolean
+          message?: string
+          regulatory_metric_id?: string | null
+          return_filing_id?: string
+          return_filing_version_id?: string | null
+          rule_code?: string
+          scope?: string
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_validation_results_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_validation_results_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_validation_results_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_filing_versions: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          declaration_accepted_at: string | null
+          declaration_accepted_by: string | null
+          id: string
+          is_immutable: boolean
+          legacy_origin: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          return_filing_id: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          supersedes_version_id: string | null
+          version_number: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          declaration_accepted_at?: string | null
+          declaration_accepted_by?: string | null
+          id?: string
+          is_immutable?: boolean
+          legacy_origin?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          return_filing_id: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supersedes_version_id?: string | null
+          version_number: number
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          declaration_accepted_at?: string | null
+          declaration_accepted_by?: string | null
+          id?: string
+          is_immutable?: boolean
+          legacy_origin?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          return_filing_id?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supersedes_version_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_versions_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_versions_supersedes_version_id_fkey"
+            columns: ["supersedes_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_filings: {
+        Row: {
+          accepted_at: string | null
+          accepted_version_id: string | null
+          assigned_reviewer_id: string | null
+          created_at: string
+          created_by: string | null
+          current_version_number: number
+          entity_id: string
+          entity_reporting_obligation_id: string
+          filing_reference: string
+          id: string
+          legacy_return_filed_id: string | null
+          rejected_at: string | null
+          reporting_period_id: string
+          return_definition_id: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_version_id?: string | null
+          assigned_reviewer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version_number?: number
+          entity_id: string
+          entity_reporting_obligation_id: string
+          filing_reference: string
+          id?: string
+          legacy_return_filed_id?: string | null
+          rejected_at?: string | null
+          reporting_period_id: string
+          return_definition_id: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_version_id?: string | null
+          assigned_reviewer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version_number?: number
+          entity_id?: string
+          entity_reporting_obligation_id?: string
+          filing_reference?: string
+          id?: string
+          legacy_return_filed_id?: string | null
+          rejected_at?: string | null
+          reporting_period_id?: string
+          return_definition_id?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filings_accepted_version_fk"
+            columns: ["accepted_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "return_filings_entity_reporting_obligation_id_fkey"
+            columns: ["entity_reporting_obligation_id"]
+            isOneToOne: false
+            referencedRelation: "entity_reporting_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_legacy_return_filed_id_fkey"
+            columns: ["legacy_return_filed_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_return_definition_id_fkey"
+            columns: ["return_definition_id"]
+            isOneToOne: false
+            referencedRelation: "return_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_form_data: {
         Row: {
           created_at: string
@@ -23303,6 +24348,136 @@ export type Database = {
           {
             foreignKeyName: "return_form_versions_version_id_fkey"
             columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_metric_values: {
+        Row: {
+          availability: string
+          availability_reason: string | null
+          calculated_at: string | null
+          calculation_inputs: Json | null
+          calculation_rule_id: string | null
+          entity_id: string
+          id: string
+          recorded_at: string
+          regulatory_metric_id: string
+          reporting_period_id: string
+          return_filing_version_id: string
+          source_field_definition_id: string | null
+          source_form_response_id: string | null
+          source_form_version_id: string | null
+          source_kind: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_numeric: number | null
+          value_text: string | null
+        }
+        Insert: {
+          availability?: string
+          availability_reason?: string | null
+          calculated_at?: string | null
+          calculation_inputs?: Json | null
+          calculation_rule_id?: string | null
+          entity_id: string
+          id?: string
+          recorded_at?: string
+          regulatory_metric_id: string
+          reporting_period_id: string
+          return_filing_version_id: string
+          source_field_definition_id?: string | null
+          source_form_response_id?: string | null
+          source_form_version_id?: string | null
+          source_kind?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          availability?: string
+          availability_reason?: string | null
+          calculated_at?: string | null
+          calculation_inputs?: Json | null
+          calculation_rule_id?: string | null
+          entity_id?: string
+          id?: string
+          recorded_at?: string
+          regulatory_metric_id?: string
+          reporting_period_id?: string
+          return_filing_version_id?: string
+          source_field_definition_id?: string | null
+          source_form_response_id?: string | null
+          source_form_version_id?: string | null
+          source_kind?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_metric_values_calculation_rule_id_fkey"
+            columns: ["calculation_rule_id"]
+            isOneToOne: false
+            referencedRelation: "metric_calculation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_source_field_definition_id_fkey"
+            columns: ["source_field_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_source_form_response_id_fkey"
+            columns: ["source_form_response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
             isOneToOne: false
             referencedRelation: "form_versions"
             referencedColumns: ["id"]
@@ -24029,6 +25204,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      returns_legacy_mappings: {
+        Row: {
+          canonical_id: string | null
+          canonical_table: string | null
+          classification: string
+          created_at: string
+          decided_by: string | null
+          evidence: Json
+          id: string
+          legacy_id: string
+          legacy_table: string
+          notes: string | null
+        }
+        Insert: {
+          canonical_id?: string | null
+          canonical_table?: string | null
+          classification: string
+          created_at?: string
+          decided_by?: string | null
+          evidence?: Json
+          id?: string
+          legacy_id: string
+          legacy_table: string
+          notes?: string | null
+        }
+        Update: {
+          canonical_id?: string | null
+          canonical_table?: string | null
+          classification?: string
+          created_at?: string
+          decided_by?: string | null
+          evidence?: Json
+          id?: string
+          legacy_id?: string
+          legacy_table?: string
+          notes?: string | null
+        }
+        Relationships: []
       }
       review_comments: {
         Row: {
@@ -29964,6 +31178,10 @@ export type Database = {
         Returns: string
       }
       entity_membership_approve: { Args: { _id: string }; Returns: undefined }
+      entity_membership_capability: {
+        Args: { _capability: string; _entity_id: string; _user_id: string }
+        Returns: boolean
+      }
       entity_membership_directory: { Args: { _query: string }; Returns: Json }
       entity_membership_reject: {
         Args: { _id: string; _reason: string }
@@ -31748,6 +32966,51 @@ export type Database = {
       notify_upcoming_form_versions: { Args: never; Returns: number }
       notify_workflow_sla_events: { Args: never; Returns: number }
       num_failed: { Args: never; Returns: number }
+      onboarding_identifier_catalogue: { Args: never; Returns: Json }
+      onboarding_issue_token: {
+        Args: {
+          _case_id: string
+          _entity_id: string
+          _kind: string
+          _payload?: Json
+        }
+        Returns: string
+      }
+      onboarding_journey_context: { Args: never; Returns: Json }
+      onboarding_provision_from_token: {
+        Args: { _resolution_token: string }
+        Returns: Json
+      }
+      onboarding_redeem_token: {
+        Args: { _kinds: string[]; _token: string }
+        Returns: {
+          case_id: string | null
+          consumed_at: string | null
+          created_at: string
+          entity_id: string | null
+          expires_at: string
+          id: string
+          payload: Json
+          token: string
+          token_kind: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "onboarding_resolution_tokens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      onboarding_request_membership_by_token: {
+        Args: {
+          _authority_evidence_reference?: string
+          _membership_role_key: string
+          _token: string
+        }
+        Returns: Json
+      }
+      onboarding_resolve_entity: { Args: { _payload: Json }; Returns: Json }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }
