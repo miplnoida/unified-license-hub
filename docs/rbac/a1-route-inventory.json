@@ -1,0 +1,2822 @@
+[
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin",
+  "guards": "M",
+  "mod": "admin_dashboard",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms",
+  "guards": "P+ModuleRoute",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms/pre-license",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms/post-license",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms/internal",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms/create",
+  "guards": "P+ModuleRoute",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms/:templateId/view",
+  "guards": "P+ModuleRoute",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/config/licensing",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/config/returns-prudential",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/config/supervision",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/config/forms-master-data",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/workflow-engine",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/workflow-engine/rules",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-engine",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-engine/delivery",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/security-audit",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/config",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/prudential",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/masters",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/masters/sectors",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/masters/sub-sectors",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/masters/categories",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/masters/services",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/master-data",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/regulatory-data-model",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/regulatory-data-model/reporting",
+  "guards": "P+PermissionRoute",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/forms-packages",
+  "guards": "M",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/fees",
+  "guards": "M",
+  "mod": "fee_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/return-config",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/regulators",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/licensees",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/licensees/:id",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/users",
+  "guards": "M",
+  "mod": "user_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/web-users",
+  "guards": "M",
+  "mod": "user_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/roles",
+  "guards": "M",
+  "mod": "role_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/permission-coverage",
+  "guards": "P+PermissionRoute",
+  "mod": "role_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/audit-logs",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/compliance-audit-logs",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/integration-logs",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/escalations",
+  "guards": "M",
+  "mod": "escalation_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-templates",
+  "guards": "M",
+  "mod": "notification_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-events",
+  "guards": "M",
+  "mod": "notification_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-history",
+  "guards": "M",
+  "mod": "notification_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/notification-channel-health",
+  "guards": "M",
+  "mod": "notification_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/complaint-types",
+  "guards": "M",
+  "mod": "complaint_type",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/approved-licensees",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/registration-forms",
+  "guards": "M",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/registration-forms/preview",
+  "guards": "M",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/ppoc-mappings",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/registration-review",
+  "guards": "M",
+  "mod": "registration_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/registration-review/:registrationId",
+  "guards": "M",
+  "mod": "registration_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/license-action-forms",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/rfi-auto-rules",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/supervisory-plan-templates",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/applications/bulk-intake",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/fp-screening-configs",
+  "guards": "M",
+  "mod": "fit_and_proper_screening",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/fp-committees",
+  "guards": "M",
+  "mod": "fit_and_proper_committee",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/fp-sector-rules",
+  "guards": "M",
+  "mod": "fit_and_proper_screening",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/case-audit",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/case-audit/:entityType/:entityId",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/supervision/early-warnings",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/external-portal-access",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/overrides",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/conduct/risk-taxonomy",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/conduct/products-channels",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/conduct/triage-rules",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/sufficiency-rules",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/sufficiency-rule-sets",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/rule-engine",
+  "guards": "M",
+  "mod": "rule_engine",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/rule-engine/new",
+  "guards": "M",
+  "mod": "rule_engine",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/rule-engine/test/:family/:id",
+  "guards": "M",
+  "mod": "rule_engine",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/rule-engine/:id",
+  "guards": "M",
+  "mod": "rule_engine",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/decision-options",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/queue",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/queue/:id",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/queue/:id/analysis",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/types",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/configurations",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/cutoff",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/due-dates",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/late-fees",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/notifications/templates",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/notifications/log",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/schedule",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/validations",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/prudential/thresholds",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/prudential/ratios",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "adminRoutes.tsx",
+  "path": "/admin/returns/prudential/analytics",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/dashboard",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications/new",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_submit",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications/:id/continue",
+  "guards": "EP",
+  "mod": "",
+  "cap": "",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications/queue",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications/:id",
+  "guards": "EP",
+  "mod": "",
+  "cap": "",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/applications/:applicationId/forms",
+  "guards": "EP",
+  "mod": "",
+  "cap": "",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/pre-license/new",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_submit",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/post-license/new",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_submit",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/post-licensee/applications/:applicationId/forms",
+  "guards": "EP",
+  "mod": "",
+  "cap": "",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/appeals",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/license-appeals",
+  "guards": "M",
+  "mod": "license_appeals",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/appeal-panels",
+  "guards": "M",
+  "mod": "license_appeals",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/licenses",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/licenses/:id",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/returns-management",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/returns-management/:id",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/returns-management/:id/analysis",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/compliance/returns",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/compliance/returns/submit",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_submit_returns",
+  "area": "returns",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/payments",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/payments/:id",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints",
+  "guards": "NONE",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "complaints",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/analytics",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/bulk-intake",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/duplicates",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/escalations",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/rfi-approvals",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/track",
+  "guards": "NONE",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "complaints",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/track/:reference",
+  "guards": "NONE",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "complaints",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/:id",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/workflows",
+  "guards": "M",
+  "mod": "workflow_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/delegation-rules",
+  "guards": "M",
+  "mod": "workflow_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/documents",
+  "guards": "EP",
+  "mod": "",
+  "cap": "",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/notifications",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/analytics",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/analytics/ai-insights",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/analytics/ai-reports",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/reports",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/reports/*",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/forms/:formId",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/profile",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/change-password",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/preview/:versionId",
+  "guards": "M",
+  "mod": "form_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/change-sector",
+  "guards": "EP",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "licensing",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/registration-status",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/coordination",
+  "guards": "M",
+  "mod": "coordination",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/coordination/:caseId",
+  "guards": "M",
+  "mod": "coordination",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/enforcement",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/enforcement/:id",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/billing/penalties",
+  "guards": "M",
+  "mod": "fee_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/breaches",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/inspections",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/inspections/schedule",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/inspections/:id",
+  "guards": "M",
+  "mod": "application_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/plans",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/risk",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/executive",
+  "guards": "M",
+  "mod": "report_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/alerts",
+  "guards": "M",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/correspondence-templates",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/document-intelligence",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/api-keys",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/audit-export",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/security-events",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/sla-manager",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/alerts",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/surveillance",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/actions",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/thematic-reviews",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/thematic-reviews/new",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/thematic-reviews/:id",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/supervision/thematic-closure-approvals",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/conduct/monitoring-rules",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/entities",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/entities/:id",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/supervision-loop",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/investigations",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/closure-approvals",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/conduct/investigations/:id",
+  "guards": "M",
+  "mod": "market_conduct",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/complaints/internal/new",
+  "guards": "M",
+  "mod": "complaint_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/dashboard",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/entities",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/entities/:id",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/groups",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/groups/:groupId",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/assessments",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/assessments/:id",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/actions",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/escalations",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/examinations",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/examinations/:id",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/payment-systems",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/payment-systems/:operatorId",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/pfmi-assessments/:assessmentId",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/prudential/stress-indicators",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/prudential-taxonomy",
+  "guards": "M",
+  "mod": "prudential_supervision",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence/dashboard",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence/manager",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence/inbox",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence/records",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/correspondence/:id",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/correspondence-routing",
+  "guards": "M",
+  "mod": "settings",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entity/correspondence",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entity/correspondence/:id",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entity/complaint-rfis",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entity/supervisory-actions",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entities",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entities/:entityId",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entities/:entityId/structure",
+  "guards": "M",
+  "mod": "license_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/entities/:entityId/360",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/licensing/entity-resolution",
+  "guards": "M",
+  "mod": "entity_resolution",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/licensing/entity-resolution/:caseId",
+  "guards": "M",
+  "mod": "entity_resolution",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "dashboardRoutes.tsx",
+  "path": "/admin/entity-memberships",
+  "guards": "M",
+  "mod": "entity_membership",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/processes",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/individuals",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/individuals/:id",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/initiation",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/declarations",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/screening",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/manual-tasks",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/manual-tasks/:id",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/findings",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/findings/:id",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/trends",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/ai-analysis",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/sector-rules",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/determinations",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/committee",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/conditions",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/appeals",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/monitoring",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/notifications",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/scheduler",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/initiation-log",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/invitations",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/assessments/:id",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/entity/:type/:id",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "fpaRoutes.tsx",
+  "path": "/fpa/training",
+  "guards": "M",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/login",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/register",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/register/entity",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/register/legacy",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registration/pre-licensee",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registration/success",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registration/portal",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registration/portal/form/:formId",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/update-registration-form",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/update-registration-form/:registrationId",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registration/update/:registrationId",
+  "guards": "P",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "AUTHENTICATED_APPLICANT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/forgot-password",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/reset-password",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry/licensees",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry/licensees/:id",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry/enforcement",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry/entities",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/registry/entities/:slug",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/declaration/:token",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/track/complaint",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/complaints/submit",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/complaints/new",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "/submit-complaint",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "publicRoutes.tsx",
+  "path": "*",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "PUBLIC"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/dashboard",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/filings/:filingId",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/legacy",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/new",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_submit_returns",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/:id/fill",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_submit_returns",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/entity/returns/:id/view",
+  "guards": "P+PortalRoute",
+  "mod": "",
+  "cap": "can_view_status",
+  "area": "returns",
+  "redirect": false,
+  "klass": "EXTERNAL_ENTITY"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/returns/queue",
+  "guards": "P+ModuleRoute",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/returns/obligations",
+  "guards": "P+ModuleRoute",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/returns/calendar",
+  "guards": "P+ModuleRoute",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/returns/filings/:filingId",
+  "guards": "P+ModuleRoute",
+  "mod": "returns_management",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "INTERNAL_REGULATOR"
+ },
+ {
+  "file": "returnsRoutes.tsx",
+  "path": "/returns/configuration",
+  "guards": "NONE",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": true,
+  "klass": "COMPATIBILITY_REDIRECT"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/general",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/payments",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/schedule",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/notifications",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/security",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/branding",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/email-sms",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/integrations",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/data",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/applications",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/license-expiry",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/certificate-signatory",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ },
+ {
+  "file": "settingsRoutes.tsx",
+  "path": "/settings/captcha",
+  "guards": "S",
+  "mod": "",
+  "cap": "",
+  "area": "",
+  "redirect": false,
+  "klass": "ADMINISTRATION"
+ }
+]
