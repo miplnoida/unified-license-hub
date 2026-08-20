@@ -118,3 +118,36 @@ Plus read-only diagnostics `rdm_integrity_report()` and
 **Administration → Configuration → Regulatory Data Model**.
 
 No existing table, workflow, route or RLS policy was modified.
+
+## 5. Phase 1.1 hardening (this release)
+
+Corrective, still configuration-only:
+
+* Entity lifecycle cleaned: `withdrawn`, `restricted`, `suspended` retired as
+  entity stages; `supervised_non_licensed` and `former_licensee` added; separate
+  `license`- and `application`-domain vocabularies seeded.
+* `data_domains.entity_identity.default_authority` → `DEPLOYMENT_CONFIGURED`.
+* `entity_identifier_types.uniqueness_scope` (+ `scope_requires_jurisdiction`,
+  `scope_requires_issuer`, `normalization_rule`); registration and taxpayer
+  numbers are jurisdiction-scoped, LEI global, internal numbers regulator-scoped.
+* `relationship_types.inverse_relationship_type_id` FK with a trigger keeping
+  `inverse_key` (compatibility) and the reference consistent; unresolvable
+  inverse keys are rejected.
+* Machine `key` immutability, `is_system` immutability and delete protection
+  enforced by DB triggers on all 12 tables; taxonomy FKs switched to
+  `ON DELETE RESTRICT`.
+* Exactly one active default resolution policy and one active default
+  registry-failure policy (partial unique indexes) plus internal-consistency
+  CHECK constraints (`ALLOW_PROVISIONAL` requires provisional entities;
+  `ALLOW_LAST_VERIFIED` requires a positive staleness ceiling;
+  `LOCAL_AUTHORITATIVE` cannot create via an external registry API).
+* Governed write RPCs `rdm_save_metadata` / `rdm_retire_metadata` /
+  `rdm_delete_metadata` (server-side `settings.edit` re-check) and a canonical
+  audit taxonomy `regulatory_data.metadata.*`.
+* RBAC decision: read remains `settings.view`, write remains `settings.edit`.
+  Only `super_admin`, `system_administrator` and `legacy_admin` hold
+  `settings.edit`, so this configuration is already restricted to platform
+  administrators; a dedicated `regulatory_data_model` module is deferred to the
+  phase that gives the model runtime effect.
+
+Phase 2 is **not** started.
