@@ -332,7 +332,14 @@ export default function FilingDetail() {
             </CardContent></Card>
           </TabsContent>
 
+          <TabsContent value="compare">
+            <FilingVersionComparison
+              versions={data.versions.map((v) => ({ id: v.id, version_number: v.version_number, status: v.status }))}
+            />
+          </TabsContent>
+
           <TabsContent value="requests">
+
             <Card><CardContent className="space-y-3 p-4">
               {data.requests.length === 0 ? (
                 <p className="py-8 text-center text-muted-foreground">No information requests raised</p>
