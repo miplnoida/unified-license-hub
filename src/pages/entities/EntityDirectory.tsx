@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 /**
  * RDM-ENTITY-001 Wave A — Regulated Entity Directory (`/entities`).
  *
