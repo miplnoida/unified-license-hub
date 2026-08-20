@@ -28,9 +28,14 @@ export function Entity360Header({ overview, asOf, onClearAsOf }: Entity360Header
   const risk = overview.risk_score_current;
   const supervisor = overview.supervision?.assignment;
 
-  const classification = [e.sector, e.sub_sector, e.category]
-    .filter(Boolean)
-    .map((v) => humanize(String(v)));
+  // Sector / sub-sector / category often repeat for single-activity entities;
+  // collapse duplicates so the classification line reads as one statement.
+  const classification = [...new Set(
+    [e.sector, e.sub_sector, e.category]
+      .filter(Boolean)
+      .map((v) => humanize(String(v))),
+  )];
+
 
   return (
     <div className="rounded-lg border bg-card">
