@@ -85,21 +85,30 @@ export function useRdmMutations(table: RdmTable) {
     onSuccess: invalidate,
   });
 
+  // Retiring or deleting the active default policy requires promoting a
+  // replacement in the same transaction (Phase 1.2 governance).
   const retire = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db().rpc('rdm_retire_metadata', { _table: table, _id: id });
+    mutationFn: async (arg: string | { id: string; promoteId?: string | null }) => {
+      const { id, promoteId } = typeof arg === 'string' ? { id: arg, promoteId: null } : arg;
+      const { error } = await db().rpc('rdm_retire_metadata', {
+        _table: table, _id: id, _promote_id: promoteId ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db().rpc('rdm_delete_metadata', { _table: table, _id: id });
+    mutationFn: async (arg: string | { id: string; promoteId?: string | null }) => {
+      const { id, promoteId } = typeof arg === 'string' ? { id: arg, promoteId: null } : arg;
+      const { error } = await db().rpc('rdm_delete_metadata', {
+        _table: table, _id: id, _promote_id: promoteId ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
+
 
   return { create, update, retire, remove };
 }
