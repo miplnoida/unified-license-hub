@@ -33861,6 +33861,25 @@ export type Database = {
         Args: { _status: string }
         Returns: boolean
       }
+      returns_bind_field_metric: {
+        Args: { _field_definition_id: string; _metric_id: string }
+        Returns: undefined
+      }
+      returns_derive_entity_obligations: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      returns_generate_periods: {
+        Args: { _obligation_id: string; _through?: string }
+        Returns: Json
+      }
+      returns_require: { Args: { _action: string }; Returns: undefined }
+      returns_save_definition: { Args: { _payload: Json }; Returns: string }
+      returns_save_metric: { Args: { _payload: Json }; Returns: string }
+      returns_save_obligation_rule: {
+        Args: { _payload: Json }
+        Returns: string
+      }
       review_prudential_action_response: {
         Args: { _action_id: string; _decision: string; _notes: string }
         Returns: Json
