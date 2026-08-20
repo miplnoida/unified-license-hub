@@ -180,10 +180,7 @@ export function useDeleteTaxonomy() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: id, deactivate: true });
-      const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_taxonomy', id, { is_active: true }, { is_active: false }, 'Deactivated');
+      await prudentialTaxonomySave({ is_active: false }, id, 'Deactivated by supervisor');
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy deactivated'); },
