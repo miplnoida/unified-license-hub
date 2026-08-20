@@ -1,7 +1,7 @@
 -- RDM-ENTITY-001 · Phase 2A — party / organization / regulated entity /
 -- multi-licence foundation. Scenarios A–F plus backfill invariants.
 BEGIN;
-SELECT plan(22);
+SELECT plan(24);
 
 -- structure ---------------------------------------------------------------
 SELECT has_table('public', 'parties', 'parties table exists');
@@ -101,8 +101,12 @@ BEGIN
     VALUES ('ZZ Test Entity No Licence', 'active', v_party2) RETURNING id INTO v_entity;
 
   -- SCENARIO C: same entity, two licences
-  SELECT id INTO v_lic1 FROM public.licenses ORDER BY created_at LIMIT 1;
-  SELECT id INTO v_lic2 FROM public.licenses ORDER BY created_at DESC LIMIT 1;
+  INSERT INTO public.licenses (license_number, status, license_type, holder_id)
+    VALUES ('ZZ-TEST-L1', 'active', 'test', (SELECT holder_id FROM public.licenses LIMIT 1))
+    RETURNING id INTO v_lic1;
+  INSERT INTO public.licenses (license_number, status, license_type, holder_id)
+    VALUES ('ZZ-TEST-L2', 'active', 'test', (SELECT holder_id FROM public.licenses LIMIT 1))
+    RETURNING id INTO v_lic2;
   INSERT INTO public.entity_licenses (entity_id, license_id, effective_from, is_primary, source)
     VALUES (v_entity, v_lic1, now() - interval '2 year', true, 'TEST'),
            (v_entity, v_lic2, now() - interval '1 year', false, 'TEST');
@@ -160,11 +164,28 @@ SELECT throws_ok(
   '23514', NULL, 'jurisdiction-scoped identifier without a jurisdiction is rejected'
 );
 
+-- a PERSON party can never be stored as an organization
+SELECT throws_ok(
+  $$WITH p AS (
+      INSERT INTO public.parties (party_kind, display_name) VALUES ('PERSON','ZZ Guard Person')
+      RETURNING id)
+    INSERT INTO public.organizations (party_id, legal_name) SELECT id, 'ZZ Guard Person' FROM p$$,
+  '23514', NULL, 'party subtype guard rejects a person party as an organization'
+);
+
+-- only one current primary licence per entity
+SELECT throws_ok(
+  $$INSERT INTO public.entity_licenses (entity_id, license_id, effective_from, is_primary, source)
+     SELECT el.entity_id, el.license_id, now(), true, 'TEST'
+       FROM public.entity_licenses el WHERE el.is_primary LIMIT 1$$,
+  '23505', NULL, 'a second current primary licence per entity is rejected'
+);
+
 -- external applicants must not read unrelated parties
 SELECT ok(
   (SELECT count(*) FROM pg_policies
-    WHERE schemaname = 'public' AND tablename IN ('parties','organizations','entity_licenses','entity_identifiers')
-      AND cmd = 'SELECT') = 4,
+    WHERE schemaname = 'public' AND tablename IN ('parties','organizations','persons','entity_licenses','entity_identifiers')
+      AND cmd = 'SELECT') = 5,
   'read-only RLS policies exist on all new Phase 2A tables'
 );
 SELECT is(

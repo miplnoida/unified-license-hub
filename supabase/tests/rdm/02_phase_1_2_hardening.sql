@@ -2,7 +2,7 @@
 -- Proves: RPC-only writes, exactly one active default policy, identifier
 -- scope consistency, and that existing metadata/business tables survive.
 BEGIN;
-SELECT plan(16);
+SELECT plan(17);
 
 -- 1..3 · direct authenticated writes are not a supported path
 SELECT ok(
