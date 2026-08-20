@@ -2303,6 +2303,57 @@ export type Database = {
           },
         ]
       }
+      certification_seed_manifest: {
+        Row: {
+          created_at: string
+          dataset_key: string
+          display_name: string | null
+          entity_email: string | null
+          entity_id: string | null
+          id: string
+          notes: string | null
+          organization_party_id: string | null
+          party_id: string | null
+          primary_identifiers: Json
+          public_slug: string | null
+          record_kind: string
+          scenario_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_key?: string
+          display_name?: string | null
+          entity_email?: string | null
+          entity_id?: string | null
+          id?: string
+          notes?: string | null
+          organization_party_id?: string | null
+          party_id?: string | null
+          primary_identifiers?: Json
+          public_slug?: string | null
+          record_kind: string
+          scenario_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dataset_key?: string
+          display_name?: string | null
+          entity_email?: string | null
+          entity_id?: string | null
+          id?: string
+          notes?: string | null
+          organization_party_id?: string | null
+          party_id?: string | null
+          primary_identifiers?: Json
+          public_slug?: string | null
+          record_kind?: string
+          scenario_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classification_schemes: {
         Row: {
           allow_multiple: boolean
@@ -30003,6 +30054,7 @@ export type Database = {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
       }
+      cert_uuid: { Args: { _key: string }; Returns: string }
       check_applicant_name_exists: {
         Args: { p_name: string }
         Returns: boolean
