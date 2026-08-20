@@ -38,7 +38,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { applicationRecordAction } from '@/lib/applicationGovernedOps';
+import { applicationRecordAction, applicationDraftSave } from '@/lib/applicationGovernedOps';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
 import { useQueryClient } from '@tanstack/react-query';
