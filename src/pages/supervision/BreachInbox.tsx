@@ -79,39 +79,30 @@ export default function BreachInbox() {
   const qc = useQueryClient();
   const { user } = useAuth();
 
+  // Canonical current-breach set: one authoritative outcome per filing version,
+  // produced by the canonical detection engine. Superseded runs and withdrawn
+  // filings are excluded by the view itself.
   const { data: breaches, isLoading } = useQuery({
     queryKey: ['prudential_breach_inbox'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('return_threshold_breaches')
-        .select('id, return_id, metric_key, level, comparator, threshold_value, value, risk_level, detected_at, acknowledged_at, acknowledgement_note, escalated_enforcement_id, return_config_id')
+        .from('v_prudential_current_breaches')
+        .select('*')
         .order('detected_at', { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as BreachRow[];
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        acknowledged_at: r.acknowledged_at_ts ?? r.acknowledged_at ?? null,
+        acknowledgement_note: r.acknowledgement_note_text ?? r.acknowledgement_note ?? null,
+      })) as BreachRow[];
     },
   });
 
-  const returnIds = useMemo(() => Array.from(new Set((breaches ?? []).map(b => b.return_id))), [breaches]);
-  const { data: returnsMap } = useQuery({
-    queryKey: ['prudential_breach_returns', returnIds.join(',')],
-    enabled: returnIds.length > 0,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('returns_filed')
-        .select('id, unique_id, entity_id, period_end_date, return_period, return_year')
-        .in('id', returnIds);
-      const map = new Map<string, any>();
-      (data ?? []).forEach(r => map.set(r.id, r));
-      return map;
-    },
-  });
-
-  const entityIds = useMemo(() => {
-    const set = new Set<string>();
-    returnsMap?.forEach((r) => { if (r.entity_id) set.add(r.entity_id); });
-    return Array.from(set);
-  }, [returnsMap]);
+  const entityIds = useMemo(
+    () => Array.from(new Set((breaches ?? []).map(b => b.entity_id).filter(Boolean) as string[])),
+    [breaches],
+  );
 
   const { data: licenseesMap } = useQuery({
     queryKey: ['prudential_breach_licensees', entityIds.join(',')],
@@ -126,11 +117,17 @@ export default function BreachInbox() {
 
   const enriched = useMemo(() => {
     return (breaches ?? []).map((b) => {
-      const ret = returnsMap?.get(b.return_id);
-      const licenseeName = ret?.entity_id ? licenseesMap?.get(ret.entity_id) : undefined;
-      return { ...b, ret, licenseeName, licenseeId: ret?.entity_id as string | undefined, mag: magnitude(b) };
+      const licenseeName = b.entity_id ? licenseesMap?.get(b.entity_id) : undefined;
+      return {
+        ...b,
+        licenseeName,
+        licenseeId: b.entity_id ?? undefined,
+        periodLabel: b.period_label ?? (b.period_end ? b.period_end.slice(0, 10) : undefined),
+        mag: magnitude(b),
+      };
     });
-  }, [breaches, returnsMap, licenseesMap]);
+  }, [breaches, licenseesMap]);
+
 
   const filtered = useMemo(() => {
     let list = enriched;
