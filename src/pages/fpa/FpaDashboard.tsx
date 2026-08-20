@@ -489,12 +489,13 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab E – Appeals & Monitoring */}
+            {/* Stage 5 – Appeals & Monitoring */}
             <TabsContent value="E">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering the appeal lifecycle and the ongoing monitoring and audit trail post-determination.
+                  What happens after a determination — appeals against the decision, ongoing monitoring and the audit trail.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {STAGE_5_AREAS.map((s) => (
