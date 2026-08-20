@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { ActingOnBehalfOfBanner } from '@/components/shared/ActingOnBehalfOfBanner';
 import { LicenseeSwitcher } from '@/components/ppoc/LicenseeSwitcher';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useInsideAppShell } from './AppShellContext';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 
@@ -13,7 +14,17 @@ interface DashboardLayoutProps {
   subtitle?: string;
 }
 
+/**
+ * Page container.
+ *
+ * Inside the persistent `AppShell` (all authenticated portal routes) this
+ * renders ONLY the page heading + content — the shell already owns the sidebar,
+ * header, scroll container and banner, and must never be remounted per route.
+ * Outside the shell (standalone/public usages) it still renders full chrome so
+ * legacy screens keep working unchanged.
+ */
 export function DashboardLayout({ children, title, subtitle }: DashboardLayoutProps) {
+  const insideShell = useInsideAppShell();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -37,9 +48,24 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
     return () => window.removeEventListener('sidebar-toggle', handleStorage);
   }, []);
 
+  if (insideShell) {
+    return (
+      <div className="space-y-4">
+        {title && (
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">{title}</h1>
+            {subtitle && <p className="mt-1 text-xs md:text-sm text-muted-foreground">{subtitle}</p>}
+          </div>
+        )}
+        {children}
+      </div>
+    );
+  }
+
   const sidebarWidth = isMobile ? '0px' : collapsed ? '4rem' : '16rem';
 
   return (
+
     <div className="h-screen overflow-hidden bg-background">
       <Sidebar />
       <div
