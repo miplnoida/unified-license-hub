@@ -83,11 +83,11 @@ function ScenarioCard({ scenario, borderColor, badgeClass }: ScenarioCardProps) 
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <Badge variant="outline" className={`text-xs font-mono font-semibold px-1.5 py-0 ${badgeClass}`}>
-                {scenario.id}
-              </Badge>
-              <div className="text-muted-foreground">{scenario.icon}</div>
+              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md border ${badgeClass}`}>
+                {scenario.icon}
+              </span>
             </div>
+
             <h3 className="font-semibold text-sm text-foreground leading-snug">{scenario.title}</h3>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{scenario.description}</p>
           </div>
@@ -149,7 +149,7 @@ function AssessmentTypeBar({ bucket }: { bucket: AssessmentTypeBucket }) {
 
 // ─── Scenario definitions ─────────────────────────────────────────────────────
 
-const TAB_A_SCENARIOS: Scenario[] = [
+const STAGE_1_AREAS: Scenario[] = [
   {
     id: 'FPA-001',
     title: 'Initiation Pathways',
@@ -173,7 +173,7 @@ const TAB_A_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_B_SCENARIOS: Scenario[] = [
+const STAGE_2_AREAS: Scenario[] = [
   {
     id: 'FPA-004',
     title: 'Declarations',
@@ -197,7 +197,7 @@ const TAB_B_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_C_SCENARIOS: Scenario[] = [
+const STAGE_3_AREAS: Scenario[] = [
   {
     id: 'FPA-007',
     title: 'Findings Console',
@@ -214,7 +214,7 @@ const TAB_C_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_D_SCENARIOS: Scenario[] = [
+const STAGE_4_AREAS: Scenario[] = [
   {
     id: 'FPA-009',
     title: 'AI Analysis',
@@ -252,7 +252,7 @@ const TAB_D_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_E_SCENARIOS: Scenario[] = [
+const STAGE_5_AREAS: Scenario[] = [
   {
     id: 'FPA-014',
     title: 'Appeals',
@@ -328,9 +328,10 @@ export default function FpaDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title="FP Assessment Hub"
-          description="All 15 scenarios for the Fit & Proper Assessment module"
+          title="Fit & Proper Assessment Hub"
+          description="The full fit and proper lifecycle — initiation, declarations and screening, adverse findings, determination, appeals and ongoing monitoring"
         />
+
 
         {/* ── Stats row ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -372,13 +373,15 @@ export default function FpaDashboard() {
           />
         </div>
 
-        {/* ── Scenario tabs ──────────────────────────────────────────── */}
+        {/* ── Lifecycle stages ───────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-base font-semibold text-foreground">Demo Scenarios</h2>
+            <h2 className="text-base font-semibold text-foreground">Assessment Lifecycle</h2>
             <Badge variant="secondary" className="text-xs">
-              {TAB_A_SCENARIOS.length + TAB_B_SCENARIOS.length + TAB_C_SCENARIOS.length + TAB_D_SCENARIOS.length + TAB_E_SCENARIOS.length} scenarios
+              5 stages ·{' '}
+              {STAGE_1_AREAS.length + STAGE_2_AREAS.length + STAGE_3_AREAS.length + STAGE_4_AREAS.length + STAGE_5_AREAS.length}{' '}
+              work areas
             </Badge>
           </div>
 
@@ -386,35 +389,36 @@ export default function FpaDashboard() {
             <TabsList className="h-9 mb-4 gap-1">
               <TabsTrigger value="A" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
-                Tab A · Initiation
+                1. Initiation &amp; Register
               </TabsTrigger>
               <TabsTrigger value="B" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-purple-500 inline-block" />
-                Tab B · Declarations
+                2. Declarations &amp; Screening
               </TabsTrigger>
               <TabsTrigger value="C" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
-                Tab C · Findings
+                3. Adverse Findings
               </TabsTrigger>
               <TabsTrigger value="D" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
-                Tab D · Decisioning
+                4. Determination
               </TabsTrigger>
               <TabsTrigger value="E" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
-                Tab E · Appeals
+                5. Appeals &amp; Monitoring
               </TabsTrigger>
             </TabsList>
 
-            {/* Tab A – Initiation */}
+            {/* Stage 1 – Initiation & Register */}
             <TabsContent value="A">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering how assessments are initiated — from new licence applications to cycle-based and ad-hoc triggers.
+                  How assessments start and who they are about — initiation pathways, the individual register, and subject profiles.
                 </p>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_A_SCENARIOS.map((s) => (
+                {STAGE_1_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -425,15 +429,16 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab B – Declarations & Screening */}
+            {/* Stage 2 – Declarations & Screening */}
             <TabsContent value="B">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering declaration workflows, automated screening configuration, and manual review task management.
+                  Collecting declarations from subjects and screening them — automated checks plus the manual review queue.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_B_SCENARIOS.map((s) => (
+                {STAGE_2_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -444,15 +449,16 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab C – Adverse Findings */}
+            {/* Stage 3 – Adverse Findings */}
             <TabsContent value="C">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering how adverse findings are surfaced, severity-coded, escalated, and tracked over time.
+                  Adverse findings raised by screening or review — severity, supervisor routing, escalation and historical trends.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_C_SCENARIOS.map((s) => (
+                {STAGE_3_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -463,15 +469,16 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab D – Decisioning */}
+            {/* Stage 4 – Determination */}
             <TabsContent value="D">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering AI-assisted analysis, sector rules, multi-regulator determinations, committee voting, and conditional approvals.
+                  Reaching and recording the fit and proper determination — analysis support, sector rules, committee voting and conditions.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_D_SCENARIOS.map((s) => (
+                {STAGE_4_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -482,15 +489,16 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab E – Appeals & Monitoring */}
+            {/* Stage 5 – Appeals & Monitoring */}
             <TabsContent value="E">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering the appeal lifecycle and the ongoing monitoring and audit trail post-determination.
+                  What happens after a determination — appeals against the decision, ongoing monitoring and the audit trail.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_E_SCENARIOS.map((s) => (
+                {STAGE_5_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -522,8 +530,9 @@ export default function FpaDashboard() {
               </p>
             ) : !loadingTypeData && (!assessmentTypeData || assessmentTypeData.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No assessments found. Run a demo scenario to populate data.
+                No assessments recorded yet. Assessments appear here once they are initiated.
               </p>
+
             ) : (
               <div className="space-y-3">
                 {(assessmentTypeData ?? []).map((bucket) => (
@@ -532,20 +541,21 @@ export default function FpaDashboard() {
               </div>
             )}
 
-            {/* Legend row with all tabs */}
+            {/* Legend row with all lifecycle stages */}
             <div className="mt-4 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1.5">
               {[
-                { key: 'A', label: 'Initiation', theme: THEME.A },
-                { key: 'B', label: 'Declarations & Screening', theme: THEME.B },
-                { key: 'C', label: 'Adverse Findings', theme: THEME.C },
-                { key: 'D', label: 'Decisioning', theme: THEME.D },
-                { key: 'E', label: 'Appeals & Monitoring', theme: THEME.E },
+                { key: '1', label: 'Initiation & Register', theme: THEME.A },
+                { key: '2', label: 'Declarations & Screening', theme: THEME.B },
+                { key: '3', label: 'Adverse Findings', theme: THEME.C },
+                { key: '4', label: 'Determination', theme: THEME.D },
+                { key: '5', label: 'Appeals & Monitoring', theme: THEME.E },
               ].map(({ key, label, theme }) => (
                 <span key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
-                  Tab {key} — {label}
+                  Stage {key} — {label}
                 </span>
               ))}
+
             </div>
           </CardContent>
         </Card>
