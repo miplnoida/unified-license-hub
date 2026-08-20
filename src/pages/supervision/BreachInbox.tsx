@@ -284,15 +284,22 @@ export default function BreachInbox() {
                       <tr key={b.id} className="border-b hover:bg-muted/40">
                         <td className="p-2">
                           <div className="font-medium">{b.licenseeName ?? '—'}</div>
+                        <td className="p-2">
+                          <div className="font-medium">
+                            {b.licenseeId ? (
+                              <Link to={`/entities/${b.licenseeId}`} className="hover:underline">{b.licenseeName ?? '—'}</Link>
+                            ) : (b.licenseeName ?? '—')}
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            {b.ret?.unique_id ? (
-                              <Link to={`/returns-management/${b.return_id}`} className="hover:underline inline-flex items-center gap-1">
-                                {b.ret.unique_id} <ExternalLink className="h-3 w-3" />
+                            {b.return_filing_id ? (
+                              <Link to={`/returns/filings/${b.return_filing_id}`} className="hover:underline inline-flex items-center gap-1">
+                                {b.filing_reference ?? b.return_filing_id.slice(0, 8)} <ExternalLink className="h-3 w-3" />
                               </Link>
-                            ) : b.return_id.slice(0, 8)}
+                            ) : (b.filing_reference ?? '—')}
+                            {b.periodLabel && <span className="ml-1">· {b.periodLabel}</span>}
                           </div>
                         </td>
-                        <td className="p-2 font-mono text-xs">{b.metric_key}</td>
+
                         <td className="p-2 text-xs">
                           <div>{b.value ?? '—'} {cmp} {b.threshold_value ?? '—'}</div>
                           {magPct && <div className="text-muted-foreground">Δ {magPct}</div>}
