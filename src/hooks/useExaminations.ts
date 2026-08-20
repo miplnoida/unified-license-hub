@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { examinationCreate, examinationUpdate } from '@/lib/supervisoryGovernedOps';
 
 const sb = supabase as any;
 
@@ -139,14 +140,7 @@ export function useCreateExamination() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const { data, error } = await sb
-        .from('examinations')
-        .insert({ ...payload, created_by: auth?.user?.id ?? null })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      return await examinationCreate(payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['examinations'] });
@@ -160,9 +154,7 @@ export function useUpdateExamination(examinationId?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Record<string, unknown>) => {
-      const { data, error } = await sb.from('examinations').update(updates).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
+      return await examinationUpdate(id, updates);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['examination', examinationId] });

@@ -32162,6 +32162,7 @@ export type Database = {
         Args: { _return_id: string }
         Returns: Json
       }
+      examination_create: { Args: { _payload: Json }; Returns: Json }
       examination_create_remediation_action: {
         Args: {
           _assigned_to?: string
@@ -32178,6 +32179,10 @@ export type Database = {
       }
       examination_transition_stage: {
         Args: { _examination_id: string; _notes?: string; _to_stage: string }
+        Returns: Json
+      }
+      examination_update: {
+        Args: { _examination_id: string; _patch: Json; _rationale?: string }
         Returns: Json
       }
       execute_complaint_workflow_action: {
@@ -33045,6 +33050,7 @@ export type Database = {
         }[]
       }
       in_todo: { Args: never; Returns: boolean }
+      inspection_create: { Args: { _payload: Json }; Returns: Json }
       inspection_finding_escalate: {
         Args: {
           _enforcement_type: string
@@ -33066,6 +33072,10 @@ export type Database = {
           _severity: string
           _status?: string
         }
+        Returns: Json
+      }
+      inspection_lifecycle_save: {
+        Args: { _inspection_id: string; _patch: Json; _rationale?: string }
         Returns: Json
       }
       integration_alert_rule_save: { Args: { _payload: Json }; Returns: string }
@@ -33379,6 +33389,36 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      legacy_return_can_file: {
+        Args: { _entity_id: string; _on_behalf?: string; _uid: string }
+        Returns: boolean
+      }
+      legacy_return_create: { Args: { _payload: Json }; Returns: Json }
+      legacy_return_delete_draft: {
+        Args: { _reason?: string; _return_id: string }
+        Returns: Json
+      }
+      legacy_return_review_decision: {
+        Args: { _comments?: string; _decision: string; _return_id: string }
+        Returns: Json
+      }
+      legacy_return_save_draft: {
+        Args: { _patch?: Json; _return_id: string }
+        Returns: Json
+      }
+      legacy_return_submit: {
+        Args: { _ontime?: string; _return_id: string }
+        Returns: Json
+      }
+      license_appeal_acknowledge: {
+        Args: { _appeal_id: string }
+        Returns: Json
+      }
+      license_appeal_file: { Args: { _payload: Json }; Returns: Json }
+      license_appeal_withdraw: {
+        Args: { _appeal_id: string; _reason?: string }
+        Returns: Json
       }
       license_condition_create: {
         Args: {
@@ -36547,12 +36587,32 @@ export type Database = {
         }
         Returns: string
       }
+      thematic_require: { Args: { _action?: string }; Returns: string }
+      thematic_review_action_complete: {
+        Args: { _action_id: string; _evidence?: string }
+        Returns: Json
+      }
+      thematic_review_action_save: { Args: { _payload: Json }; Returns: Json }
+      thematic_review_action_waive: {
+        Args: { _action_id: string; _override_id: string; _reason?: string }
+        Returns: Json
+      }
       thematic_review_approve_closure: {
         Args: { _note?: string; _review_id: string }
         Returns: undefined
       }
       thematic_review_closure_readiness: {
         Args: { _review_id: string }
+        Returns: Json
+      }
+      thematic_review_create: { Args: { _payload: Json }; Returns: Json }
+      thematic_review_finding_issue: {
+        Args: { _finding_id: string; _rationale?: string }
+        Returns: Json
+      }
+      thematic_review_finding_save: { Args: { _payload: Json }; Returns: Json }
+      thematic_review_letter_mark_dispatched: {
+        Args: { _letter_id: string; _recipient_email?: string }
         Returns: Json
       }
       thematic_review_reject_closure: {
@@ -36569,6 +36629,15 @@ export type Database = {
           _review_id: string
         }
         Returns: undefined
+      }
+      thematic_review_set_status: {
+        Args: {
+          _override_id?: string
+          _reason?: string
+          _review_id: string
+          _status: string
+        }
+        Returns: Json
       }
       throws_ok: { Args: { "": string }; Returns: string }
       todo:

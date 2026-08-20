@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { logAction } from '@/hooks/useAuditLog';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
+import { thematicReviewCreate } from '@/lib/supervisoryGovernedOps';
 
 export default function NewThematicReview() {
   const nav = useNavigate();
@@ -71,7 +72,7 @@ export default function NewThematicReview() {
       await authorizedAction('market_conduct', 'create', { review_title: form.title });
       const { data: user } = await supabase.auth.getUser();
 
-      const { data: tr, error } = await supabase.from('thematic_reviews' as any).insert({
+      const tr = await thematicReviewCreate({
         title: form.title.trim(),
         description: form.description || null,
         hypothesis: form.hypothesis || null,
@@ -79,11 +80,7 @@ export default function NewThematicReview() {
         scope_start: form.scope_start || null,
         scope_end: form.scope_end || null,
         lead_officer_id: form.lead_officer_id || user.user?.id || null,
-        status: 'draft',
-        opened_at: new Date().toISOString(),
-        created_by: user.user?.id,
-      }).select('id,code').single();
-      if (error) throw error;
+      });
       const trAny = tr as any;
 
       if (Object.keys(selEntities).length > 0) {

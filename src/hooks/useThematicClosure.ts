@@ -8,6 +8,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { thematicReviewLetterMarkDispatched } from '@/lib/supervisoryGovernedOps';
 
 export type ThematicReportStatus = 'draft' | 'in_review' | 'approved' | 'rejected' | 'published';
 export type ThematicVerificationStatus = 'pending' | 'evidence_received' | 'verified' | 'not_satisfied';
@@ -220,18 +221,7 @@ export function useMarkLetterDispatched(reviewId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ letterId, email }: { letterId: string; email?: string | null }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('thematic_review_letters' as any)
-        .update({
-          status: 'dispatched',
-          dispatched_at: new Date().toISOString(),
-          dispatched_by: user.user?.id ?? null,
-          recipient_email: email || null,
-          error_message: null,
-        })
-        .eq('id', letterId);
-      if (error) throw error;
+      await thematicReviewLetterMarkDispatched(letterId, email || null);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: key(reviewId) }),
   });

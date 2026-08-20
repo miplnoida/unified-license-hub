@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { licenseAppealFile, licenseAppealWithdraw, licenseAppealAcknowledge } from '@/lib/supervisoryGovernedOps';
 
 export interface LicenseAppeal {
   id: string;
@@ -396,23 +397,14 @@ export function useLicenseAppealMutations() {
       reliefSought?: string;
       appealDeadline?: string | null;
     }) => {
-      const { data, error } = await supabase
-        .from('license_appeals')
-        .insert({
-          application_id: input.applicationId,
-          licensee_id: input.licenseeId ?? null,
-          regulator_id: input.regulatorId ?? null,
-          filed_by: user!.id,
-          grounds: input.grounds,
-          relief_sought: input.reliefSought || null,
-          appeal_deadline: input.appealDeadline ?? null,
-          status: 'submitted',
-        } as never)
-        .select('*')
-        .single();
-      if (error) throw error;
-      const appeal = data as unknown as LicenseAppeal;
-      await logEvent(appeal.id, 'filed', 'Appeal lodged against the licensing decision', user?.id);
+      const appeal = (await licenseAppealFile({
+        application_id: input.applicationId,
+        licensee_id: input.licenseeId ?? null,
+        regulator_id: input.regulatorId ?? null,
+        grounds: input.grounds,
+        relief_sought: input.reliefSought || null,
+        appeal_deadline: input.appealDeadline ?? null,
+      })) as unknown as LicenseAppeal;
       return appeal;
     },
     onSuccess: invalidate,
@@ -420,28 +412,14 @@ export function useLicenseAppealMutations() {
 
   const withdrawAppeal = useMutation({
     mutationFn: async (appealId: string) => {
-      const { error } = await supabase
-        .from('license_appeals')
-        .update({ status: 'withdrawn' } as never)
-        .eq('id', appealId);
-      if (error) throw error;
-      await logEvent(appealId, 'withdrawn', 'Appeal withdrawn by the appellant', user?.id);
+      await licenseAppealWithdraw(appealId, 'Appeal withdrawn by the appellant');
     },
     onSuccess: invalidate,
   });
 
   const acknowledgeAppeal = useMutation({
     mutationFn: async (appeal: LicenseAppeal) => {
-      const { error } = await supabase
-        .from('license_appeals')
-        .update({
-          status: 'under_review',
-          acknowledged_at: new Date().toISOString(),
-          acknowledged_by: user!.id,
-        } as never)
-        .eq('id', appeal.id);
-      if (error) throw error;
-      await logEvent(appeal.id, 'acknowledged', 'Appeal acknowledged and accepted for review', user?.id);
+      await licenseAppealAcknowledge(appeal.id);
     },
     onSuccess: invalidate,
   });
