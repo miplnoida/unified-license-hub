@@ -235,3 +235,48 @@ export function useRdmDuplicateOrganizations() {
     staleTime: 30_000,
   });
 }
+
+/**
+ * RDM-ENTITY-001 — Phase 2B external registry diagnostics (read-only).
+ *
+ * With no external registry configured the valid answer is all zeros: the
+ * platform operates fully on local authority.
+ */
+export interface RdmEntityRegistryReport {
+  generated_at: string;
+  bindings_total: number;
+  bindings_active: number;
+  bindings_external_authoritative: number;
+  bindings_hybrid_authority: number;
+  bindings_local_authoritative: number;
+  integration_connections_available: number;
+  entities_with_external_reference: number;
+  entities_with_multiple_external_references: number;
+  duplicate_external_ids_within_binding: number;
+  external_references_unverified: number;
+  external_references_stale: number;
+  authority_rules_total: number;
+  authority_rules_by_domain: Record<string, number>;
+  identity_snapshots_total: number;
+  identity_snapshots_last_captured_at: string | null;
+  sync_states_total: number;
+  sync_status_counts: Record<string, number>;
+  last_successful_sync_at: string | null;
+  sync_conflicts_total: number;
+  sync_conflicts_open: number;
+  licence_number_entity_identifiers: number;
+  retired_identifier_types: number;
+  normalization_strategies_in_use: Record<string, number>;
+}
+
+export function useRdmEntityRegistryReport() {
+  return useQuery({
+    queryKey: ['rdm', 'entity-registry-report'],
+    queryFn: async (): Promise<RdmEntityRegistryReport> => {
+      const { data, error } = await db().rpc('rdm_entity_registry_report');
+      if (error) throw error;
+      return data as RdmEntityRegistryReport;
+    },
+    staleTime: 30_000,
+  });
+}

@@ -1,4 +1,4 @@
-# Entity & External Registry Architecture (RDM-ENTITY-001, Phase 0/1/1.1)
+# Entity & External Registry Architecture (RDM-ENTITY-001, Phase 0/1/1.1/2A.1/2B)
 
 ## 1. Target model
 
@@ -128,7 +128,7 @@ Corrective, still configuration-only:
   `license`- and `application`-domain vocabularies seeded.
 * `data_domains.entity_identity.default_authority` → `DEPLOYMENT_CONFIGURED`.
 * `entity_identifier_types.uniqueness_scope` (+ `scope_requires_jurisdiction`,
-  `scope_requires_issuer`, `normalization_rule`); registration and taxpayer
+  `scope_requires_issuer`, `normalization_strategy`); registration and taxpayer
   numbers are jurisdiction-scoped, LEI global, internal numbers regulator-scoped.
 * `relationship_types.inverse_relationship_type_id` FK with a trigger keeping
   `inverse_key` (compatibility) and the reference consistent; unresolvable
@@ -151,3 +151,109 @@ Corrective, still configuration-only:
   phase that gives the model runtime effect.
 
 Phase 2 is **not** started.
+
+## 6. Phase 2A.1 corrections (this release)
+
+* **Licence number is not entity identity.** A licence number identifies an
+  authorisation; one entity may hold many. The 19 Phase 2A identifier rows
+  derived from `licenses.license_number` were removed by provenance and the
+  `license_number` identifier type retired (`is_active = false`, never deleted).
+  `licenses.license_number` stays authoritative and unchanged, and may later act
+  as a *lookup signal* during resolution via `entity_licenses`. Entity
+  identifiers mean identifiers of the organisation: company registration number,
+  taxpayer registration number, LEI, regulatory entity number, foreign registry
+  identifier. If identifier types must ever span multiple subjects (entity,
+  licence, person) that needs a subject-typed registry of its own —
+  `entity_identifiers` is not overloaded.
+* **One normalisation service.** `normalization_strategy` is a closed engine
+  vocabulary — `UPPER_TRIM`, `UPPER_ALPHANUMERIC`, `DIGITS_ONLY`, `TRIM_ONLY`,
+  `CASE_SENSITIVE_TRIM` — selected by administrators per identifier type.
+  `public.normalize_entity_identifier(type_id, raw)` is the only implementation;
+  the `entity_identifiers` trigger delegates to it and registry matching must use
+  the same function so local and external comparison can never diverge. No
+  administrator-supplied SQL, JavaScript, regex or expression is executed.
+* **Lineage protection.** `entity_licenses`, `entity_identifiers` and
+  `applications` now restrict deletion of a regulated entity. Entities are
+  closed, retired or merged — never physically deleted. Controlled merge (record
+  a merge case, re-point lineage to the survivor, keep the absorbed entity as a
+  closed record with `merged_into_entity_id`, snapshot both identities) is
+  designed but deliberately not implemented.
+* **Temporal integrity.** `entity_licenses.effective_from` is `NOT NULL` because
+  every backfilled row already carried a known start; no date was fabricated.
+* **Persons remain empty** behind the hard gate documented in the migration plan.
+
+## 7. Phase 2B external registry schema foundation (this release)
+
+Schema, RLS and diagnostics only — no gateway runtime, no provider adapter, no
+external HTTP call, no business-runtime change.
+
+| Table | Purpose |
+| --- | --- |
+| `entity_registry_bindings` | Which Integration Manager connection supplies registry capability for a deployment/regulator, under which authority mode, resolution policy and failure policy. One current primary per scope. |
+| `entity_external_references` | Local entity UUID ↔ one or more external registry identities, with verification and sync stamps. |
+| `entity_data_authority_rules` | Which side owns each `data_domain`, whether local override is allowed and whether reconciliation is required. |
+| `entity_identity_snapshots` | Append-only record of the identity data known at a material point in time. |
+| `entity_registry_sync_states` | Domain-level synchronisation status and cursor. |
+| `entity_sync_conflicts` | Local vs external discrepancies, recorded and never auto-resolved. |
+
+### Integration Manager is the only credential authority
+
+Bindings reference `integration_connections.id`. No base URL, auth
+configuration, secret, token or retry setting is duplicated, and no
+`entity_registry_connections` / `entity_registry_credentials` table exists.
+Provider replacement is a configuration change, not an FK migration.
+
+### Adapter boundary
+
+```text
+provider payload
+      ↓  (adapter — Phase 3)
+validated canonical registry DTO
+      ↓
+Entity Registry Gateway (Phase 3)
+      ↓
+local projection + entity_identity_snapshots
+```
+
+The canonical DTO conceptually carries: `external_entity_id`, legal name,
+identifier collection, jurisdiction, legal form/classifications where mapped,
+registration/incorporation dates, status, addresses, relationships where the
+provider supports them, source version and source timestamp. Arbitrary provider
+JSON is never copied straight into canonical entity tables.
+
+### Provenance
+
+Every externally sourced projection must be able to answer: which provider,
+which integration connection, which external entity, which source version, when
+fetched, when verified, which canonical field/domain it affected. Authority is
+governed by `entity_data_authority_rules` plus this provenance —
+`organizations.legal_name_authority` remains a current projection hint only.
+
+### Organisation name history (planned, not implemented)
+
+`organizations.legal_name` must not become the only historical store. The target
+effective-dated model is `organization_names` (`organization_party_id`,
+`name_type`, `name`, `effective_from`, `effective_to`, `source`,
+`source_reference`, `recorded_at`), with `legal_name` retained as the current
+projection so Entity 360 can reconstruct historical names. Scheduled for the
+ownership/governance phase.
+
+### Security
+
+Registry bindings, authority rules, sync state and conflicts are internal-staff
+only (`settings`/regulatory admin permissions); external portal users cannot read
+them. External references and identity snapshots are readable only by users
+already authorised to read that entity. Snapshots are append-only by trigger.
+Credentials are unreachable from all of these tables.
+
+### Three deployment modes, one schema
+
+* **Local only** — entities operate with zero bindings and zero references.
+* **External read-only authority** — a binding points at an existing connection;
+  entities map to external ids while keeping their local UUID.
+* **Hybrid authority** — the registry owns `entity_identity`, the platform owns
+  `entity_regulatory_status`, expressed purely through authority rules.
+
+No FK or runtime redesign is needed to move between modes.
+
+Phase 3 (entity resolution, gateway runtime, memberships) is **not** started.
