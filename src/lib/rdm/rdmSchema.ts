@@ -157,16 +157,21 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   entity_identifier_types: {
     table: 'entity_identifier_types',
     title: 'Entity Identifier Types',
-    description: 'Identifiers an entity can carry, and which of them must be globally unique.',
+    description: 'Identifiers an entity can carry and the scope in which each value must be unique. Company and taxpayer numbers are unique per jurisdiction, never globally.',
     singular: 'identifier type',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
       { name: 'issuer', label: 'Issuer', type: 'text', inList: true },
-      { name: 'is_unique_global', label: 'Globally unique', type: 'boolean', inList: true },
+      { name: 'uniqueness_scope', label: 'Uniqueness scope', type: 'select', options: ['NONE', 'GLOBAL', 'JURISDICTION', 'ISSUER', 'REGULATOR'], required: true, inList: true, help: 'GLOBAL = unique worldwide (e.g. LEI). JURISDICTION = unique per issuing country/registry. ISSUER = unique per issuing body. REGULATOR = unique within this deployment. NONE = no uniqueness enforced.' },
+      { name: 'scope_requires_jurisdiction', label: 'Requires jurisdiction', type: 'boolean', inList: true },
+      { name: 'scope_requires_issuer', label: 'Requires issuer', type: 'boolean' },
+      { name: 'normalization_rule', label: 'Normalisation rule', type: 'text', help: 'How a value is normalised before comparison or uniqueness checks.' },
+      { name: 'is_unique_global', label: 'Globally unique (legacy)', type: 'boolean', help: 'Compatibility flag only — derived from uniqueness scope GLOBAL.' },
       { name: 'validation_regex', label: 'Validation pattern', type: 'text' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_resolution_policies: {
     table: 'entity_resolution_policies',
     title: 'Entity Resolution Policies',
