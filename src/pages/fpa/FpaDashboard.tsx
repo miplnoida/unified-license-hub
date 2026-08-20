@@ -429,12 +429,13 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab B – Declarations & Screening */}
+            {/* Stage 2 – Declarations & Screening */}
             <TabsContent value="B">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering declaration workflows, automated screening configuration, and manual review task management.
+                  Collecting declarations from subjects and screening them — automated checks plus the manual review queue.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {STAGE_2_AREAS.map((s) => (
