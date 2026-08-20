@@ -2146,6 +2146,117 @@ export type Database = {
           },
         ]
       }
+      classification_schemes: {
+        Row: {
+          allow_multiple: boolean
+          applies_to: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_hierarchical: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allow_multiple?: boolean
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_hierarchical?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_multiple?: boolean
+          applies_to?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_hierarchical?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      classification_values: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          parent_id: string | null
+          scheme_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          parent_id?: string | null
+          scheme_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          parent_id?: string | null
+          scheme_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_values_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "classification_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_values_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "classification_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_closure_reviews: {
         Row: {
           complaint_id: string
@@ -6640,6 +6751,45 @@ export type Database = {
         }
         Relationships: []
       }
+      data_domains: {
+        Row: {
+          created_at: string
+          default_authority: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_authority?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_authority?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       decision_artifacts: {
         Row: {
           application_id: string
@@ -8123,6 +8273,138 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_identifier_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          is_unique_global: boolean
+          issuer: string | null
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+          validation_regex: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_unique_global?: boolean
+          issuer?: string | null
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+          validation_regex?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_unique_global?: boolean
+          issuer?: string | null
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          validation_regex?: string | null
+        }
+        Relationships: []
+      }
+      entity_identity_statuses: {
+        Row: {
+          blocks_licensing: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          requires_verification: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          blocks_licensing?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          requires_verification?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          blocks_licensing?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          requires_verification?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      entity_registry_failure_policies: {
+        Row: {
+          allow_last_verified_projection: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          key: string
+          label: string
+          max_staleness_hours: number
+          on_provider_unavailable: string
+          updated_at: string
+        }
+        Insert: {
+          allow_last_verified_projection?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          max_staleness_hours?: number
+          on_provider_unavailable?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_last_verified_projection?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          max_staleness_hours?: number
+          on_provider_unavailable?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entity_relationships: {
         Row: {
           created_at: string
@@ -8193,6 +8475,57 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
         ]
+      }
+      entity_resolution_policies: {
+        Row: {
+          allow_provisional_entity: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          key: string
+          label: string
+          on_exact_match: string
+          on_no_match: string
+          on_possible_match: string
+          registry_authority_mode: string
+          updated_at: string
+        }
+        Insert: {
+          allow_provisional_entity?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          on_exact_match?: string
+          on_no_match?: string
+          on_possible_match?: string
+          registry_authority_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_provisional_entity?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          on_exact_match?: string
+          on_no_match?: string
+          on_possible_match?: string
+          registry_authority_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       entity_risk_scores: {
         Row: {
@@ -9912,6 +10245,48 @@ export type Database = {
           },
         ]
       }
+      form_purposes: {
+        Row: {
+          created_at: string
+          description: string | null
+          domain: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          legacy_form_type: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          legacy_form_type?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          legacy_form_type?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       form_responses: {
         Row: {
           created_at: string
@@ -10096,6 +10471,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      form_trigger_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       form_versions: {
         Row: {
@@ -14160,6 +14571,48 @@ export type Database = {
           },
         ]
       }
+      lifecycle_stages: {
+        Row: {
+          created_at: string
+          description: string | null
+          domain: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          is_terminal: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          domain?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_terminal?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          domain?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_terminal?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       master_data_items: {
         Row: {
           code: string | null
@@ -17919,6 +18372,54 @@ export type Database = {
           },
         ]
       }
+      relationship_types: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          inverse_key: string | null
+          is_active: boolean
+          is_group: boolean
+          is_ownership: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          inverse_key?: string | null
+          is_active?: boolean
+          is_group?: boolean
+          is_ownership?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          inverse_key?: string | null
+          is_active?: boolean
+          is_group?: boolean
+          is_ownership?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       report_dashboard_layouts: {
         Row: {
           created_at: string
@@ -20790,6 +21291,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_types: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_governance: boolean
+          is_system: boolean
+          key: string
+          label: string
+          requires_fit_and_proper: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_governance?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          requires_fit_and_proper?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_governance?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          requires_fit_and_proper?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       roles: {
         Row: {
@@ -27993,6 +28539,19 @@ export type Database = {
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
+      rdm_can_read: { Args: never; Returns: boolean }
+      rdm_can_write: { Args: never; Returns: boolean }
+      rdm_diag_duplicate_entities: {
+        Args: never
+        Returns: {
+          entity_count: number
+          entity_ids: string[]
+          entity_names: string[]
+          normalised_name: string
+          statuses: string[]
+        }[]
+      }
+      rdm_integrity_report: { Args: never; Returns: Json }
       reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
