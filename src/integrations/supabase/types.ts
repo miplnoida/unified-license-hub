@@ -30467,6 +30467,7 @@ export type Database = {
         Returns: Json
       }
       cert_reset_preserved_tables: { Args: never; Returns: string[] }
+      cert_reset_probe_delete: { Args: { _tables: string[] }; Returns: Json }
       cert_seed_identity_v1: { Args: never; Returns: undefined }
       cert_seed_returns_v1: { Args: never; Returns: undefined }
       cert_seed_structure_v1: { Args: never; Returns: undefined }
