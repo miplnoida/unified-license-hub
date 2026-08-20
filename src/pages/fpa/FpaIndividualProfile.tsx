@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpAssessmentInitiate } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
@@ -791,13 +792,8 @@ function AssessmentsTab({ id }: { id: string }) {
 
   const startAssessment = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('fp_assessments').insert({
-        individual_id: id,
-        assessment_type: assessmentType,
-        status: 'draft',
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
+      if (!id) throw new Error('No individual selected');
+      await fpAssessmentInitiate({ individualId: id, assessmentType });
     },
     onSuccess: () => {
       toast.success('Assessment created');

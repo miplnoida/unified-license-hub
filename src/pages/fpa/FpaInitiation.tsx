@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpAssessmentInitiate } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
@@ -335,25 +336,14 @@ export default function FpaInitiation() {
 
       const singleRole = selectedIndividualRoles.length === 1 ? selectedIndividualRoles[0] : null;
 
-      const { data, error } = await supabase.from('fp_assessments').insert({
-        individual_id: selectedIndividualId,
-        assessment_type: selectedPathway.type,
-        status: 'draft',
-        declaration_data: declarationData,
-        created_by: user?.id ?? null,
-        role_id: singleRole?.id ?? null,
-        licensee_id: singleRole?.licensee_id ?? null,
-      }).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.assessment.created', 'fp_assessment', data.id, {
-        after: {
-          assessment_type: selectedPathway.type,
-          individual_id: selectedIndividualId,
-          ...(appIdValue ? { linked_application_id: appIdValue } : {}),
-        },
-        context: { individualId: selectedIndividualId, assessmentId: data.id },
+      const created = await fpAssessmentInitiate({
+        individualId: selectedIndividualId,
+        assessmentType: selectedPathway.type,
+        declarationData: declarationData,
+        roleId: singleRole?.id ?? null,
+        licenseeId: singleRole?.licensee_id ?? null,
       });
-      return { assessmentId: data.id };
+      return { assessmentId: created.id };
     },
     onSuccess: ({ assessmentId }) => {
       toast.success('Assessment initiated');
