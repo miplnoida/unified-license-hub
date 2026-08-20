@@ -20701,6 +20701,111 @@ export type Database = {
           },
         ]
       }
+      prudential_detection_runs: {
+        Row: {
+          breaches_created: number
+          completed_at: string | null
+          config_snapshot: Json
+          engine_version: string
+          entity_id: string
+          error_detail: string | null
+          ewi_created: number
+          id: string
+          metrics_evaluated: number
+          period_end: string | null
+          reporting_period_id: string | null
+          result: Json
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          started_at: string
+          status: string
+          thresholds_resolved: number
+          trigger_kind: string
+          triggered_by: string | null
+          warnings_created: number
+        }
+        Insert: {
+          breaches_created?: number
+          completed_at?: string | null
+          config_snapshot?: Json
+          engine_version?: string
+          entity_id: string
+          error_detail?: string | null
+          ewi_created?: number
+          id?: string
+          metrics_evaluated?: number
+          period_end?: string | null
+          reporting_period_id?: string | null
+          result?: Json
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
+          started_at?: string
+          status?: string
+          thresholds_resolved?: number
+          trigger_kind?: string
+          triggered_by?: string | null
+          warnings_created?: number
+        }
+        Update: {
+          breaches_created?: number
+          completed_at?: string | null
+          config_snapshot?: Json
+          engine_version?: string
+          entity_id?: string
+          error_detail?: string | null
+          ewi_created?: number
+          id?: string
+          metrics_evaluated?: number
+          period_end?: string | null
+          reporting_period_id?: string | null
+          result?: Json
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
+          started_at?: string
+          status?: string
+          thresholds_resolved?: number
+          trigger_kind?: string
+          triggered_by?: string | null
+          warnings_created?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_detection_runs_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_detection_runs_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_detection_runs_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_detection_runs_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_detection_runs_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_escalations: {
         Row: {
           created_at: string
@@ -20795,6 +20900,8 @@ export type Database = {
           acknowledged_at: string | null
           acknowledged_by: string | null
           created_at: string
+          detection_run_id: string | null
+          detection_source: string
           entity_id: string
           evidence: Json
           executed_at: string
@@ -20802,6 +20909,10 @@ export type Database = {
           metric_key: string
           notes: string | null
           period_end: string | null
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
           rule_code: string
           rule_id: string
           rule_version: number
@@ -20813,6 +20924,8 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           created_at?: string
+          detection_run_id?: string | null
+          detection_source?: string
           entity_id: string
           evidence?: Json
           executed_at?: string
@@ -20820,6 +20933,10 @@ export type Database = {
           metric_key?: string
           notes?: string | null
           period_end?: string | null
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           rule_code: string
           rule_id: string
           rule_version?: number
@@ -20831,6 +20948,8 @@ export type Database = {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
           created_at?: string
+          detection_run_id?: string | null
+          detection_source?: string
           entity_id?: string
           evidence?: Json
           executed_at?: string
@@ -20838,6 +20957,10 @@ export type Database = {
           metric_key?: string
           notes?: string | null
           period_end?: string | null
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           rule_code?: string
           rule_id?: string
           rule_version?: number
@@ -20859,6 +20982,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "prudential_ewi_alerts_rule_id_fkey"
@@ -21288,7 +21439,7 @@ export type Database = {
           is_active: boolean
           label: string
           metric_key: string
-          return_config_id: string
+          return_config_id: string | null
           return_type_id: string | null
           sector_id: string | null
           taxonomy_code: string | null
@@ -21308,7 +21459,7 @@ export type Database = {
           is_active?: boolean
           label: string
           metric_key: string
-          return_config_id: string
+          return_config_id?: string | null
           return_type_id?: string | null
           sector_id?: string | null
           taxonomy_code?: string | null
@@ -21328,7 +21479,7 @@ export type Database = {
           is_active?: boolean
           label?: string
           metric_key?: string
-          return_config_id?: string
+          return_config_id?: string | null
           return_type_id?: string | null
           sector_id?: string | null
           taxonomy_code?: string | null
@@ -25207,10 +25358,13 @@ export type Database = {
           acknowledgement_note: string | null
           comparator: string | null
           detected_at: string
+          detection_run_id: string | null
+          detection_source: string
           entity_id: string | null
           escalated_at: string | null
           escalated_by: string | null
           escalated_enforcement_id: string | null
+          evidence: Json
           id: string
           level: string
           metric_key: string
@@ -25220,7 +25374,7 @@ export type Database = {
           return_config_id: string | null
           return_filing_id: string | null
           return_filing_version_id: string | null
-          return_id: string
+          return_id: string | null
           risk_level: string | null
           threshold_value: number | null
           threshold_version: number | null
@@ -25232,10 +25386,13 @@ export type Database = {
           acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          detection_run_id?: string | null
+          detection_source?: string
           entity_id?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
           escalated_enforcement_id?: string | null
+          evidence?: Json
           id?: string
           level: string
           metric_key: string
@@ -25245,7 +25402,7 @@ export type Database = {
           return_config_id?: string | null
           return_filing_id?: string | null
           return_filing_version_id?: string | null
-          return_id: string
+          return_id?: string | null
           risk_level?: string | null
           threshold_value?: number | null
           threshold_version?: number | null
@@ -25257,10 +25414,13 @@ export type Database = {
           acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          detection_run_id?: string | null
+          detection_source?: string
           entity_id?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
           escalated_enforcement_id?: string | null
+          evidence?: Json
           id?: string
           level?: string
           metric_key?: string
@@ -25270,7 +25430,7 @@ export type Database = {
           return_config_id?: string | null
           return_filing_id?: string | null
           return_filing_version_id?: string | null
-          return_id?: string
+          return_id?: string | null
           risk_level?: string | null
           threshold_value?: number | null
           threshold_version?: number | null
@@ -30039,6 +30199,14 @@ export type Database = {
       _get_note: { Args: { "": string }; Returns: string }
       _is_verbose: { Args: never; Returns: boolean }
       _prokind: { Args: { p_oid: unknown }; Returns: unknown }
+      _prudential_canonical_detect_run: {
+        Args: {
+          _actor?: string
+          _return_filing_version_id: string
+          _trigger_kind?: string
+        }
+        Returns: Json
+      }
       _query: { Args: { "": string }; Returns: string }
       _refine_vol: { Args: { "": string }; Returns: string }
       _resolve_application_workflow:
@@ -30078,6 +30246,7 @@ export type Database = {
       _table_privs: { Args: never; Returns: unknown[] }
       _temptypes: { Args: { "": string }; Returns: string }
       _todo: { Args: never; Returns: string }
+      a2_detection_reset_nonproduction: { Args: never; Returns: Json }
       accept_review_suggestion: {
         Args: { _suggestion_id: string }
         Returns: {
@@ -34525,10 +34694,13 @@ export type Database = {
           acknowledgement_note: string | null
           comparator: string | null
           detected_at: string
+          detection_run_id: string | null
+          detection_source: string
           entity_id: string | null
           escalated_at: string | null
           escalated_by: string | null
           escalated_enforcement_id: string | null
+          evidence: Json
           id: string
           level: string
           metric_key: string
@@ -34538,7 +34710,7 @@ export type Database = {
           return_config_id: string | null
           return_filing_id: string | null
           return_filing_version_id: string | null
-          return_id: string
+          return_id: string | null
           risk_level: string | null
           threshold_value: number | null
           threshold_version: number | null
@@ -34559,10 +34731,13 @@ export type Database = {
           acknowledgement_note: string | null
           comparator: string | null
           detected_at: string
+          detection_run_id: string | null
+          detection_source: string
           entity_id: string | null
           escalated_at: string | null
           escalated_by: string | null
           escalated_enforcement_id: string | null
+          evidence: Json
           id: string
           level: string
           metric_key: string
@@ -34572,7 +34747,7 @@ export type Database = {
           return_config_id: string | null
           return_filing_id: string | null
           return_filing_version_id: string | null
-          return_id: string
+          return_id: string | null
           risk_level: string | null
           threshold_value: number | null
           threshold_version: number | null
@@ -34584,6 +34759,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      prudential_canonical_detect: {
+        Args: { _return_filing_version_id: string; _trigger_kind?: string }
+        Returns: Json
       }
       prudential_component_rating_save: {
         Args: {
@@ -34717,6 +34896,8 @@ export type Database = {
           acknowledged_at: string | null
           acknowledged_by: string | null
           created_at: string
+          detection_run_id: string | null
+          detection_source: string
           entity_id: string
           evidence: Json
           executed_at: string
@@ -34724,6 +34905,10 @@ export type Database = {
           metric_key: string
           notes: string | null
           period_end: string | null
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
           rule_code: string
           rule_id: string
           rule_version: number
@@ -34812,6 +34997,18 @@ export type Database = {
       prudential_require_rationale: {
         Args: { _label?: string; _min?: number; _text: string }
         Returns: undefined
+      }
+      prudential_resolve_threshold: {
+        Args: { _as_of: string; _metric_code: string; _sector_id: string }
+        Returns: {
+          breach_value: number
+          comparator: string
+          label: string
+          threshold_id: string
+          threshold_version: number
+          unit: string
+          warn_value: number
+        }[]
       }
       prudential_sector_risk: {
         Args: { _lookback_days?: number }
@@ -34927,7 +35124,7 @@ export type Database = {
           is_active: boolean
           label: string
           metric_key: string
-          return_config_id: string
+          return_config_id: string | null
           return_type_id: string | null
           sector_id: string | null
           taxonomy_code: string | null
@@ -35450,7 +35647,7 @@ export type Database = {
           is_active: boolean
           label: string
           metric_key: string
-          return_config_id: string
+          return_config_id: string | null
           return_type_id: string | null
           sector_id: string | null
           taxonomy_code: string | null
