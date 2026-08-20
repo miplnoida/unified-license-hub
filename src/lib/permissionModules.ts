@@ -62,6 +62,13 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // ─── Rule engine ───────────────────────────────────────────────────────
   ['/admin/rule-engine', 'rule_engine'],
 
+  // ─── Regulatory data model / entity registry ───────────────────────────
+  ['/licensing/entity-resolution', 'entity_resolution'],
+  ['/admin/entity-memberships', 'entity_membership'],
+  ['/admin/rdm', 'regulatory_data_model'],
+  ['/entities', 'license_management'],
+
+
   // ─── Forms ─────────────────────────────────────────────────────────────
   ['/admin/forms', 'form_management'],
   ['/admin/registration-forms', 'form_management'],
