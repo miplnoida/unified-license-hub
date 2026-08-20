@@ -10,7 +10,7 @@
  *   POSSIBLE_MATCH→ regulator-reviewed resolution case, no duplicate created
  *   NO_MATCH      → provision a provisional entity, membership requested
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,20 +25,35 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMembershipRoles } from '@/hooks/useEntityRegistry';
 import { useOnboardingIdentity, type ResolveOutcome } from '@/hooks/useWaveB';
+import { useIdentifierTypes, validateIdentifierValue } from '@/hooks/useIdentifierTypes';
+import { useMintOnboardingToken } from '@/hooks/useOnboardingTokens';
+import { readIntentFromSearch, persistIntent, loadPersistedIntent, clearPersistedIntent } from '@/lib/applicationIntent';
 
 export default function EntityIdentification() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { resolve, provision, requestMembership } = useOnboardingIdentity();
   const { data: roles = [] } = useMembershipRoles();
+  const { data: identifierTypes = [] } = useIdentifierTypes();
+  const mintToken = useMintOnboardingToken();
+  // Resumable journey (§20): keep the intended application/form-package
+  // context across the multi-page onboarding chain.
+  const intent = readIntentFromSearch(location.search) || loadPersistedIntent();
+  useEffect(() => { if (intent) persistIntent(intent); }, [intent]);
+  const [pendingAuthority, setPendingAuthority] = useState(false);
 
   const [legalName, setLegalName] = useState('');
-  const [idType, setIdType] = useState('company_registration_number');
+  const [idType, setIdType] = useState('');
   const [idValue, setIdValue] = useState('');
   const [licenceNumber, setLicenceNumber] = useState('');
   const [roleKey, setRoleKey] = useState('');
   const [evidence, setEvidence] = useState('');
   const [outcome, setOutcome] = useState<ResolveOutcome | null>(null);
+
+  useEffect(() => {
+    if (!idType && identifierTypes.length > 0) setIdType(identifierTypes[0].key);
+  }, [identifierTypes, idType]);
 
   const primaryRole = roles.find((r) => r.is_primary_representative)?.key || roles[0]?.key || '';
   const effectiveRole = roleKey || primaryRole;
