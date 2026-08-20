@@ -16527,6 +16527,8 @@ export type Database = {
           merged_into_entity_id: string | null
           name: string
           party_id: string | null
+          public_slug: string | null
+          publication_policy_id: string | null
           regulator_officer_id: string | null
           sector_id: string | null
           status: string
@@ -16549,6 +16551,8 @@ export type Database = {
           merged_into_entity_id?: string | null
           name: string
           party_id?: string | null
+          public_slug?: string | null
+          publication_policy_id?: string | null
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
@@ -16571,6 +16575,8 @@ export type Database = {
           merged_into_entity_id?: string | null
           name?: string
           party_id?: string | null
+          public_slug?: string | null
+          publication_policy_id?: string | null
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
@@ -16635,6 +16641,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["party_id"]
+          },
+          {
+            foreignKeyName: "licensees_publication_policy_id_fkey"
+            columns: ["publication_policy_id"]
+            isOneToOne: false
+            referencedRelation: "registry_publication_policies"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "licensees_sector_id_fkey"
@@ -21084,6 +21097,60 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      registry_publication_policies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          key: string
+          label: string
+          publish_enforcement: boolean
+          publish_entity: boolean
+          publish_licences: boolean
+          publish_status: boolean
+          requires_authorised_licence: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          publish_enforcement?: boolean
+          publish_entity?: boolean
+          publish_licences?: boolean
+          publish_status?: boolean
+          requires_authorised_licence?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          publish_enforcement?: boolean
+          publish_entity?: boolean
+          publish_licences?: boolean
+          publish_status?: boolean
+          requires_authorised_licence?: boolean
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -29946,6 +30013,10 @@ export type Database = {
         Returns: Json
       }
       entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
+      entity_set_publication_policy: {
+        Args: { _entity_id: string; _policy_key: string; _reason?: string }
+        Returns: Json
+      }
       entity_structure_overview: { Args: { _entity_id: string }; Returns: Json }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
@@ -31906,6 +31977,11 @@ export type Database = {
           sector_name: string
         }[]
       }
+      public_entity_register_detail: { Args: { _slug: string }; Returns: Json }
+      public_entity_register_search: {
+        Args: { _criteria?: Json }
+        Returns: Json
+      }
       publish_form_version: {
         Args: { _effective_from?: string; _version_id: string }
         Returns: Json
@@ -33390,6 +33466,10 @@ export type Database = {
       wb_membership_capability: {
         Args: { _capability: string; _entity_id: string }
         Returns: boolean
+      }
+      wb_onboarding_provision_entity: {
+        Args: { _payload: Json }
+        Returns: Json
       }
       wb_require: {
         Args: {
