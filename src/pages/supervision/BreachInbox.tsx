@@ -140,7 +140,9 @@ export default function BreachInbox() {
       list = list.filter(b =>
         b.metric_key.toLowerCase().includes(q) ||
         (b.licenseeName || '').toLowerCase().includes(q) ||
-        (b.ret?.unique_id || '').toLowerCase().includes(q),
+        (b.filing_reference || '').toLowerCase().includes(q) ||
+        (b.periodLabel || '').toLowerCase().includes(q),
+
       );
     }
     // sort: open first, then by magnitude desc, then detected_at desc
