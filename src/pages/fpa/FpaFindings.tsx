@@ -21,6 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpFindingEscalate } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
@@ -381,36 +382,7 @@ export default function FpaFindings() {
   // ---------------------------------------------------------------------------
   const escalateMutation = useMutation({
     mutationFn: async ({ finding, note }: { finding: RawFinding; note: string }) => {
-      const reviewNote = `ESCALATED: ${note.trim()}`;
-      const nowIso = new Date().toISOString();
-      // Escalating previously only appended prose to review_note — nothing
-      // changed the finding's actionable state, so the "SUPERVISOR QUEUE"
-      // badge was cosmetic. Now it also flips resolution_status so the
-      // finding is guaranteed to appear in the Manual Review Queue's
-      // actionable list, and records a structured, filterable escalation
-      // marker in severity_basis (previously a defined-but-never-written
-      // column) instead of only free-text prose.
-      const { error } = await (supabase as any)
-        .from('fp_findings')
-        .update({
-          review_note: reviewNote,
-          reviewed_at: nowIso,
-          reviewed_by: user?.id ?? null,
-          resolution_status: 'needs_review',
-          // Merge onto whatever severity_basis the screening run already
-          // recorded (source/reason for the original severity) instead of
-          // clobbering it — escalation is additional context, not a
-          // replacement for why the finding was scored the way it was.
-          severity_basis: {
-            ...(finding.severity_basis ?? {}),
-            escalated: true,
-            escalated_at: nowIso,
-            escalated_by: user?.id ?? null,
-            note: note.trim(),
-          },
-        })
-        .eq('id', finding.id);
-      if (error) throw error;
+      await fpFindingEscalate(finding.id, note.trim());
 
       // Best-effort compliance audit log — routed through the shared RPC
       // helper (log_compliance_audit) like every other F&P screen, instead

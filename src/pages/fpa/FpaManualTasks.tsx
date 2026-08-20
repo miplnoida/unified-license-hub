@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpFindingAssign } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployeeApprovers, type EmployeeApprover } from '@/hooks/useEmployeeApprovers';
 import { toast } from 'sonner';
@@ -385,16 +386,7 @@ export default function FpaManualTasks() {
   const assignMutation = useMutation({
     mutationFn: async ({ findingId, userId }: { findingId: string; userId: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
-      const { error } = await supabase
-        .from('fp_findings')
-        .update({
-          assigned_to: userId,
-          resolution_status: 'under_review',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-        } as any)
-        .eq('id', findingId);
-      if (error) throw error;
+      await fpFindingAssign(findingId, userId);
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_finding_assigned', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: userId } },
