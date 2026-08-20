@@ -20,6 +20,7 @@ import { AlertTriangle, Loader2, TrendingDown, TrendingUp, Download, Play, Clipb
 import { toast } from 'sonner';
 import { logExport } from '@/lib/exportAudit';
 import { logAudit } from '@/hooks/useAuditLog';
+import { supervisoryPlanActionCreate } from '@/lib/prudentialGovernedOps';
 
 type Warning = {
   licensee_id: string;
