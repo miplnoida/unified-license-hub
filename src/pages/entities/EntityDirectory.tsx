@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 /**
  * RDM-ENTITY-001 Wave A — Regulated Entity Directory (`/entities`).
  *
@@ -6,37 +5,30 @@ import { Link } from 'react-router-dom';
  * governed Entity Registry Gateway (`entity_registry_search` /
  * `entity_registry_entity_dto`) — this page never queries `licensees` or the
  * `entity_*` tables directly, so authorization and provenance stay server-side.
+ *
+ * The listing uses the shared EnterpriseDataGrid, so search, per-column
+ * filtering, sorting, column choice and export behave the same here as in
+ * every other operational queue.
  */
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Loader2, Search, Building2, Eye } from 'lucide-react';
+import { EnterpriseDataGrid, type GridColumn } from '@/components/data-grid';
+import { StatusBadge } from '@/components/presentation/StatusBadge';
+import { humanize, presentStatus } from '@/lib/presentation/statusLabels';
+import { formatCount } from '@/lib/presentation/format';
 import { useEntitySearch, useEntityDto } from '@/hooks/useEntityRegistry';
 import type { EntityDto } from '@/services/entityRegistry';
 import { formatDateTime } from '@/lib/datetime';
 
-const LIFECYCLE_TONE = (key: string | null) => {
-  const k = (key || '').toLowerCase();
-  if (k.includes('active') || k === 'authorised') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
-  if (k.includes('suspend') || k.includes('restrict')) return 'bg-amber-500/10 text-amber-700 border-amber-200';
-  if (k.includes('revok') || k.includes('reject')) return 'bg-destructive/10 text-destructive border-destructive/30';
-  return 'bg-muted text-muted-foreground border-border';
-};
 
-const IDENTITY_TONE = (key: string | null) => {
-  const k = (key || '').toLowerCase();
-  if (k === 'verified') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
-  if (k === 'disputed') return 'bg-destructive/10 text-destructive border-destructive/30';
-  if (k === 'merged') return 'bg-blue-500/10 text-blue-700 border-blue-200';
-  return 'bg-muted text-muted-foreground border-border';
-};
 
 function EntityDetailSheet({ entityId, onClose }: { entityId: string | null; onClose: () => void }) {
   const { data, isLoading } = useEntityDto(entityId);
@@ -113,27 +105,108 @@ function EntityDetailSheet({ entityId, onClose }: { entityId: string | null; onC
 export default function EntityDirectory() {
   const [term, setTerm] = useState('');
   const [query, setQuery] = useState('');
-  const [lifecycle, setLifecycle] = useState('all');
-  const [identity, setIdentity] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
-  const { data = [], isLoading, error } = useEntitySearch(query);
+  const { data = [], isLoading, error, refetch } = useEntitySearch(query);
 
-  const rows = useMemo(() => {
-    return (data as EntityDto[]).filter((e) => {
-      if (lifecycle !== 'all' && (e.lifecycle || '') !== lifecycle) return false;
-      if (identity !== 'all' && (e.identity_status || '') !== identity) return false;
-      return true;
-    });
-  }, [data, lifecycle, identity]);
+  const rows = data as EntityDto[];
 
   const lifecycleOptions = useMemo(
-    () => [...new Set((data as EntityDto[]).map((e) => e.lifecycle).filter(Boolean) as string[])].sort(),
-    [data],
+    () => [...new Set(rows.map((e) => e.lifecycle).filter(Boolean) as string[])].sort()
+      .map((value) => ({ value, label: presentStatus(value)?.label ?? value })),
+    [rows],
   );
   const identityOptions = useMemo(
-    () => [...new Set((data as EntityDto[]).map((e) => e.identity_status).filter(Boolean) as string[])].sort(),
-    [data],
+    () => [...new Set(rows.map((e) => e.identity_status).filter(Boolean) as string[])].sort()
+      .map((value) => ({ value, label: presentStatus(value)?.label ?? value })),
+    [rows],
   );
+
+  const columns = useMemo<Array<GridColumn<EntityDto>>>(() => [
+    {
+      id: 'display_name',
+      header: 'Entity',
+      accessor: (e) => e.display_name,
+      cell: (e) => (
+        <div className="min-w-0">
+          <Link to={`/entities/${e.entity_id}`} className="font-medium text-primary underline-offset-4 hover:underline">
+            {e.display_name}
+          </Link>
+          {e.merged_into_entity_id && (
+            <StatusBadge code="merged" tone="muted" className="ml-2" description="This record has been merged into another entity." />
+          )}
+          {e.legal_name && e.legal_name !== e.display_name && (
+            <p className="truncate text-xs text-muted-foreground">Legal name: {e.legal_name}</p>
+          )}
+        </div>
+      ),
+      sortable: true,
+      filterable: true,
+      filterType: 'text',
+      sticky: 'left',
+      minWidth: '20rem',
+      mandatory: true,
+      priority: 1,
+    },
+    {
+      id: 'lifecycle',
+      header: 'Authorisation status',
+      accessor: (e) => e.lifecycle,
+      cell: (e) => <StatusBadge code={e.lifecycle} label={e.lifecycle_label} />,
+      sortable: true,
+      filterable: true,
+      filterType: 'multiEnum',
+      filterOptions: lifecycleOptions,
+      priority: 1,
+    },
+    {
+      id: 'identity_status',
+      header: 'Identity verification',
+      accessor: (e) => e.identity_status,
+      cell: (e) => <StatusBadge code={e.identity_status} label={e.identity_status_label} />,
+      sortable: true,
+      filterable: true,
+      filterType: 'multiEnum',
+      filterOptions: identityOptions,
+      priority: 2,
+    },
+    {
+      id: 'licences',
+      header: 'Licences held',
+      minWidth: '8rem',
+      accessor: (e) => e.licences.length,
+      cell: (e) => (
+        <span className={e.licences.length === 0 ? 'text-muted-foreground' : undefined}>
+          {formatCount(e.licences.length)}
+        </span>
+      ),
+      align: 'right',
+      sortable: true,
+      priority: 1,
+    },
+    {
+      id: 'identifiers',
+      header: 'Registered identifiers',
+      minWidth: '11rem',
+      accessor: (e) => e.identifiers.length,
+      cell: (e) => formatCount(e.identifiers.length),
+      align: 'right',
+      sortable: true,
+      priority: 2,
+    },
+    {
+      id: 'source',
+      header: 'Record source',
+      accessor: (e) => e.source,
+      cell: (e) => (e.source ? humanize(String(e.source)) : '—'),
+      sortable: true,
+      filterable: true,
+      filterType: 'enum',
+      filterOptions: [...new Set(rows.map((e) => e.source).filter(Boolean) as string[])]
+        .map((value) => ({ value, label: humanize(value) })),
+      priority: 3,
+      defaultVisible: false,
+    },
+  ], [lifecycleOptions, identityOptions, rows]);
 
   return (
     <DashboardLayout>
@@ -145,13 +218,13 @@ export default function EntityDirectory() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Building2 className="h-4 w-4" /> Search the registry
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <form
-              className="flex flex-col sm:flex-row gap-2"
+              className="flex flex-col gap-2 sm:flex-row"
               onSubmit={(e) => { e.preventDefault(); setQuery(term.trim()); }}
             >
               <Input
@@ -159,90 +232,39 @@ export default function EntityDirectory() {
                 onChange={(e) => setTerm(e.target.value)}
                 placeholder="Legal name, registered identifier or licence number"
                 className="sm:max-w-md"
+                aria-label="Search the registry"
               />
               <Button type="submit" size="sm" className="gap-1.5">
-                <Search className="h-4 w-4" /> Search
+                <Search className="h-4 w-4" /> Search registry
               </Button>
-              <Select value={lifecycle} onValueChange={setLifecycle}>
-                <SelectTrigger className="sm:w-48"><SelectValue placeholder="Lifecycle" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All lifecycles</SelectItem>
-                  {lifecycleOptions.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={identity} onValueChange={setIdentity}>
-                <SelectTrigger className="sm:w-48"><SelectValue placeholder="Identity status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All identity statuses</SelectItem>
-                  {identityOptions.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {query && (
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  onClick={() => { setTerm(''); setQuery(''); }}
+                >
+                  Clear
+                </Button>
+              )}
             </form>
 
-            {error && (
-              <p className="text-sm text-destructive">
-                {(error as Error).message || 'Registry search failed.'}
-              </p>
-            )}
-
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Entity number</TableHead>
-                    <TableHead>Legal name</TableHead>
-                    <TableHead>Lifecycle</TableHead>
-                    <TableHead>Identity status</TableHead>
-                    <TableHead>Identifiers</TableHead>
-                    <TableHead>Licences</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8">
-                      <Loader2 className="h-5 w-5 animate-spin inline" />
-                    </TableCell></TableRow>
-                  )}
-                  {!isLoading && rows.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No entities match the current search.
-                    </TableCell></TableRow>
-                  )}
-                  {rows.map((e) => (
-                    <TableRow key={e.entity_id}>
-                      <TableCell className="font-mono text-xs">{e.entity_id.slice(0, 8)}</TableCell>
-                      <TableCell className="font-medium">
-                        {e.display_name}
-                        {e.merged_into_entity_id && (
-                          <Badge variant="outline" className="ml-2 text-xs">merged</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={LIFECYCLE_TONE(e.lifecycle)}>
-                          {e.lifecycle_label || e.lifecycle || '—'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={IDENTITY_TONE(e.identity_status)}>
-                          {e.identity_status_label || e.identity_status || '—'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{e.identifiers.length}</TableCell>
-                      <TableCell>{e.licences.length}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setSelected(e.entity_id)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/entities/${e.entity_id}`}>Entity 360</Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <EnterpriseDataGrid<EntityDto>
+              gridId="entity-directory"
+              columns={columns}
+              rows={rows}
+              getRowId={(e) => e.entity_id}
+              isLoading={isLoading}
+              error={error ? ((error as Error).message || 'Registry search failed.') : null}
+              onRefresh={() => refetch()}
+              searchPlaceholder="Filter loaded results"
+              emptyTitle="No entities match this search"
+              emptyDescription="Refine the search term or clear the filters to see the full registry."
+              exportFileName="regulated-entity-directory"
+              primaryRowAction={(e) => ({ label: 'Open profile', to: `/entities/${e.entity_id}` })}
+              rowActions={(e) => [
+                { label: 'Quick registry record', icon: Eye, onClick: () => setSelected(e.entity_id) },
+                { label: 'Structure workspace', icon: Building2, href: `/entities/${e.entity_id}/structure` },
+              ]}
+            />
           </CardContent>
         </Card>
       </div>
@@ -250,3 +272,4 @@ export default function EntityDirectory() {
     </DashboardLayout>
   );
 }
+
