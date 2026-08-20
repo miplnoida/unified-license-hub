@@ -28,7 +28,7 @@ import { useFilingDetail, useWaveCMutations, FILING_STATUS_LABELS, FREQUENCY_LAB
 import { FilingVersionComparison } from '@/components/returns/FilingVersionComparison';
 import { useCan } from '@/hooks/useCan';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
-import { CheckCircle2, Loader2, ShieldCheck, XCircle, RotateCcw, Lock, Eye } from 'lucide-react';
+import { CheckCircle2, Loader2, ShieldCheck, XCircle, RotateCcw, Lock, Eye, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
