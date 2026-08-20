@@ -25351,6 +25351,72 @@ export type Database = {
           },
         ]
       }
+      return_threshold_breach_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by: string
+          breach_id: string
+          created_at: string
+          detection_run_id: string | null
+          entity_id: string | null
+          id: string
+          level: string | null
+          metric_key: string | null
+          note: string
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by: string
+          breach_id: string
+          created_at?: string
+          detection_run_id?: string | null
+          entity_id?: string | null
+          id?: string
+          level?: string | null
+          metric_key?: string | null
+          note: string
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by?: string
+          breach_id?: string
+          created_at?: string
+          detection_run_id?: string | null
+          entity_id?: string | null
+          id?: string
+          level?: string | null
+          metric_key?: string | null
+          note?: string
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_threshold_breach_acknowledgements_breach_id_fkey"
+            columns: ["breach_id"]
+            isOneToOne: false
+            referencedRelation: "return_threshold_breaches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breach_acknowledgements_breach_id_fkey"
+            columns: ["breach_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_current_breaches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_threshold_breaches: {
         Row: {
           acknowledged_at: string | null
@@ -30124,8 +30190,12 @@ export type Database = {
       v_prudential_current_breaches: {
         Row: {
           acknowledged_at: string | null
+          acknowledged_at_ts: string | null
           acknowledged_by: string | null
+          acknowledged_by_user: string | null
+          acknowledgement_id: string | null
           acknowledgement_note: string | null
+          acknowledgement_note_text: string | null
           comparator: string | null
           detected_at: string | null
           detection_run_id: string | null
@@ -34766,40 +34836,7 @@ export type Database = {
       }
       prudential_breach_acknowledge: {
         Args: { _breach_id: string; _note: string }
-        Returns: {
-          acknowledged_at: string | null
-          acknowledged_by: string | null
-          acknowledgement_note: string | null
-          comparator: string | null
-          detected_at: string
-          detection_run_id: string | null
-          detection_source: string
-          entity_id: string | null
-          escalated_at: string | null
-          escalated_by: string | null
-          escalated_enforcement_id: string | null
-          evidence: Json
-          id: string
-          level: string
-          metric_key: string
-          notified: boolean
-          regulatory_metric_id: string | null
-          reporting_period_id: string | null
-          return_config_id: string | null
-          return_filing_id: string | null
-          return_filing_version_id: string | null
-          return_id: string | null
-          risk_level: string | null
-          threshold_value: number | null
-          threshold_version: number | null
-          value: number | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "return_threshold_breaches"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       prudential_breach_link_enforcement: {
         Args: { _breach_id: string; _enforcement_id: string; _reason?: string }
