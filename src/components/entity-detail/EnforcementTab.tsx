@@ -38,18 +38,56 @@ export default function EnforcementTab({ entityId }: { entityId: string }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const payload = { entity_id: entityId, case_number: form.case_number, enforcement_type: form.enforcement_type, date_opened: form.date_opened, status: form.status, penalty_amount: form.penalty_amount ? parseFloat(form.penalty_amount) : 0, description: form.description || null };
-    const { error } = editing ? await supabase.from('enforcement_actions' as any).update(payload).eq('id', editing.id) : await supabase.from('enforcement_actions' as any).insert(payload);
-    if (error) toast.error(error.message); else { toast.success(editing ? 'Updated' : 'Created'); setDialogOpen(false); fetchData(); }
+    const payload = {
+      entity_id: entityId,
+      case_number: form.case_number,
+      enforcement_type: form.enforcement_type,
+      date_opened: form.date_opened,
+      status: form.status,
+      penalty_amount: form.penalty_amount ? parseFloat(form.penalty_amount) : 0,
+      description: form.description || null,
+    };
+    try {
+      // Governed: permission, officer attribution and audit are server-side.
+      if (editing) {
+        await enforcementActionUpdate(
+          editing.id,
+          payload,
+          `Enforcement case ${form.case_number} updated by supervisory officer.`,
+        );
+      } else {
+        await enforcementActionCreate(payload);
+      }
+      toast.success(editing ? 'Updated' : 'Created');
+      setDialogOpen(false);
+      fetchData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save enforcement action');
+    }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const r = await Swal.fire({ title: 'Delete enforcement action?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete' });
+    const r = await Swal.fire({
+      title: 'Delete enforcement action?',
+      text: 'A reason is recorded against the audit trail.',
+      icon: 'warning',
+      input: 'textarea',
+      inputPlaceholder: 'Reason for deletion (min 10 characters)',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      inputValidator: (v) => (!v || v.trim().length < 10 ? 'Please give a reason of at least 10 characters' : undefined),
+    });
     if (!r.isConfirmed) return;
-    await supabase.from('enforcement_actions' as any).delete().eq('id', id);
-    toast.success('Deleted'); fetchData();
+    try {
+      await enforcementActionDelete(id, String(r.value || ''));
+      toast.success('Deleted');
+      fetchData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not delete enforcement action');
+    }
   };
+
 
   const filtered = rows.filter(r => !search || r.case_number?.toLowerCase().includes(search.toLowerCase()) || r.enforcement_type?.toLowerCase().includes(search.toLowerCase()));
   const statusColor = (s: string) => s === 'open' ? 'bg-warning/10 text-warning border-warning/20' : s === 'closed' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : '';
