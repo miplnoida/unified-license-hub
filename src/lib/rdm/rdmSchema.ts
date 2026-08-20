@@ -19,7 +19,9 @@ export interface RdmField {
   help?: string;
   /** Editable on create, locked afterwards (DB-enforced immutability). */
   immutable?: boolean;
-}
+  /** Computed by the database (generated column) — displayed, never submitted. */
+  derived?: boolean;
+
 
 export interface RdmTableSchema {
   table: RdmTable;
