@@ -75,3 +75,21 @@ export function ApplicationBreadcrumbs({ root, className }: ApplicationBreadcrum
 }
 
 export default ApplicationBreadcrumbs;
+
+/**
+ * Public (unauthenticated) breadcrumb bar. Renders the strip only when there is
+ * an actual trail, so the landing page keeps its clean hero.
+ */
+export function PublicBreadcrumbBar() {
+  const { crumbs } = useBreadcrumbs({ root: PUBLIC_ROOT });
+  if (crumbs.length < 2) return null;
+  return (
+    <div className="border-t bg-background/60">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2">
+        <ApplicationBreadcrumbs root={PUBLIC_ROOT} />
+      </div>
+    </div>
+  );
+}
+
+const PUBLIC_ROOT = { label: 'Home', href: '/' } as const;

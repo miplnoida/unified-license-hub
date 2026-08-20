@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Layers, Menu, X, HelpCircle } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { PublicBreadcrumbBar } from '@/components/layout/ApplicationBreadcrumbs';
 
 export function LandingNav() {
   const navigate = useNavigate();
@@ -82,11 +83,7 @@ export function LandingNav() {
         surface (registry, registration, tracking). Renders nothing on the
         landing page, where the trail is a single crumb.
       */}
-      <div className="border-t bg-background/60">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2">
-          <ApplicationBreadcrumbs root={{ label: 'Home', href: '/' }} />
-        </div>
-      </div>
+      <PublicBreadcrumbBar />
     </nav>
   );
 }
