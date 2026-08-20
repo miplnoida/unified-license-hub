@@ -12,6 +12,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { complaintTaskCreate, complaintTaskSetStatus } from '@/lib/conductGovernedOps';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
