@@ -72,7 +72,9 @@ describe('buildBreadcrumbs', () => {
 
   it('inherits the parent record crumb for sub-workspaces', () => {
     const crumbs = buildBreadcrumbs(`/entities/${UUID}/structure`, opts);
-    expect(crumbs.map((c) => c.label)).toEqual(['Home', 'Entity directory', 'Entity', 'Structure workspace']);
+    // 'Record' is the pure-layer placeholder; `useBreadcrumbs` swaps in the
+    // resolver's fallback ('Entity') and then the resolved business name.
+    expect(crumbs.map((c) => c.label)).toEqual(['Home', 'Entity directory', 'Record', 'Structure workspace']);
     expect(crumbs[2].href).toBe(`/entities/${UUID}`);
   });
 
