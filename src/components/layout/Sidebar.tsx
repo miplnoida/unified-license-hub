@@ -385,28 +385,22 @@ export function Sidebar() {
                         <span className="min-w-0 truncate">{section.label}</span>
                       </p>
                     )}
-                    <div className="min-w-0 space-y-0.5">
+                    <div className="min-w-0 space-y-1">
                       {visibleItems.map((item) => {
                         if (item.children?.length) {
                           return (
-                            <CollapsibleNavItem key={item.label} item={item} collapsed={false} expandedGroups={expandedGroups} toggleGroup={toggleGroup} pathname={location.pathname} />
+                            <CollapsibleNavItem key={navKey(item)} item={item} collapsed={false} expandedGroups={expandedGroups} toggleGroup={toggleGroup} pathname={location.pathname} />
                           );
                         }
-
                         if (!item.href) return null;
-                        const isActive = isPathActive(item.href, location.pathname);
-                        return (
-                          <Link key={item.href} to={item.href} title={item.label} className={cn('nav-item items-start', isActive && 'nav-item-active')}>
-                            <span className="shrink-0 mt-[1px]">{item.icon}</span>
-                            <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>
-                          </Link>
-                        );
+                        return <NavLeaf key={navKey(item)} item={item} pathname={location.pathname} depth={0} />;
                       })}
                     </div>
 
                   </div>
                 );
               })}
+
             </nav>
           </ScrollArea>
         </aside>
@@ -461,12 +455,12 @@ export function Sidebar() {
                     <span className="min-w-0 truncate">{section.label}</span>
                   </p>
                 )}
-                <div className="min-w-0 space-y-0.5">
+                <div className="min-w-0 space-y-1">
                   {visibleItems.map((item) => {
                     if (item.children?.length) {
                       return (
                         <CollapsibleNavItem
-                          key={item.label}
+                          key={navKey(item)}
                           item={item}
                           collapsed={collapsed}
                           expandedGroups={expandedGroups}
@@ -475,26 +469,15 @@ export function Sidebar() {
                         />
                       );
                     }
-
                     if (!item.href) return null;
-                    const isActive = isPathActive(item.href, location.pathname);
-                    return (
-                      <Link
-                        key={item.href} to={item.href}
-                        data-sidebar-active={isActive ? 'true' : undefined}
-                        className={cn('nav-item items-start', collapsed && 'justify-center', isActive && 'nav-item-active')}
-                        title={item.label}
-                      >
-                        <span className="shrink-0 mt-[1px]">{item.icon}</span>
-                        {!collapsed && <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>}
-                      </Link>
-                    );
+                    return <NavLeaf key={navKey(item)} item={item} pathname={location.pathname} depth={0} collapsed={collapsed} />;
                   })}
                 </div>
               </div>
 
             );
           })}
+
 
         </nav>
       </ScrollArea>
