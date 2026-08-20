@@ -20,10 +20,10 @@ function audienceRoles(audience: string): AppRole[] {
 }
 
 /**
- * Icon size shrinks with depth so the hierarchy reads at a glance:
- * level 1 domain 20px, level 2 group/link 18px, level 3 leaf 16px.
+ * Icon size by visible depth so the hierarchy reads at a glance:
+ * level 1 domain 18px, level 2 workspace 17px, level 3 leaf 15px.
  */
-const ICON_CLASS_BY_DEPTH = ['h-[18px] w-[18px] shrink-0', 'h-4 w-4 shrink-0', 'h-[15px] w-[15px] shrink-0'];
+const ICON_CLASS_BY_DEPTH = ['h-[18px] w-[18px] shrink-0', 'h-[17px] w-[17px] shrink-0', 'h-[15px] w-[15px] shrink-0'];
 
 function iconClassForDepth(depth: number): string {
   return ICON_CLASS_BY_DEPTH[Math.min(depth, ICON_CLASS_BY_DEPTH.length - 1)];
@@ -32,6 +32,7 @@ function iconClassForDepth(depth: number): string {
 function toNavItem(node: SecNavNode, depth = 0): NavItem {
   const children = node.children.map((child) => toNavItem(child, depth + 1));
   return {
+    key: node.key,
     label: node.label,
     href: node.href || undefined,
     icon: renderNavIcon(node.icon, iconClassForDepth(depth)),
@@ -42,6 +43,7 @@ function toNavItem(node: SecNavNode, depth = 0): NavItem {
     children: children.length ? children : undefined,
   };
 }
+
 
 /**
  * Database-driven sidebar navigation.
