@@ -251,7 +251,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
             <DialogTitle>{editing ? `Edit ${schema.singular}` : `Add ${schema.singular}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {schema.fields.map((f) => (
+            {schema.fields.filter((f) => !f.derived).map((f) => (
               <div key={f.name} className="space-y-1.5">
                 {f.type === 'boolean' ? (
                   <div className="flex items-center gap-2">
