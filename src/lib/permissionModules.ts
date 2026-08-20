@@ -213,6 +213,9 @@ export const PROTECTED_INTERNAL_PATH_PREFIXES = [
   '/coordination',
   '/prudential',
   '/supervision',
+  '/entities',
+  '/licensing/entity-resolution',
+
   '/correspondence',
   '/returns-management',
 ] as const;
