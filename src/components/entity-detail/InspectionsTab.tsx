@@ -36,10 +36,18 @@ export default function InspectionsTab({ entityId }: { entityId: string }) {
   const handleSave = async () => {
     setSaving(true);
     const payload = { entity_id: entityId, ...form, inspector_name: form.inspector_name || null, findings_summary: form.findings_summary || null };
-    const { error } = editing ? await supabase.from('inspections' as any).update(payload).eq('id', editing.id) : await supabase.from('inspections' as any).insert(payload);
-    if (error) toast.error(error.message); else { toast.success(editing ? 'Updated' : 'Created'); setDialogOpen(false); fetchData(); }
+    try {
+      if (editing) await inspectionLifecycleSave(editing.id, payload, 'Inspection record updated from Entity 360');
+      else await inspectionCreate(payload);
+      toast.success(editing ? 'Updated' : 'Created');
+      setDialogOpen(false);
+      fetchData();
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Save failed');
+    }
     setSaving(false);
   };
+
 
   const filtered = rows.filter(r => !search || r.inspector_name?.toLowerCase().includes(search.toLowerCase()) || r.inspection_type?.toLowerCase().includes(search.toLowerCase()));
   const ratingColor = (r: string) => r === 'satisfactory' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : r === 'unsatisfactory' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-warning/10 text-warning border-warning/20';
