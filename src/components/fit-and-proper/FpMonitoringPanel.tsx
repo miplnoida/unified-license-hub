@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Radar, RefreshCw } from 'lucide-react';
 import { fpMonitoringEventAcknowledge } from '@/lib/fpGovernedOps';
+import { logFpAction } from '@/lib/fpAudit';
 
 const SEV_META: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
