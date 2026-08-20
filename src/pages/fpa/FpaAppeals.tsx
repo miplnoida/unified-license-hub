@@ -19,7 +19,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { logFpAppealAction } from '@/lib/fpAudit';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -470,23 +469,21 @@ export default function FpaAppeals() {
       if (!fileIndividualId) throw new Error('Individual is required');
       if (!fileDeterminationId) throw new Error('Determination is required');
       if (!fileGrounds.trim()) throw new Error('Grounds are required');
-      const { data, error } = await (supabase as any).from('fp_appeals').insert({
-        individual_id: fileIndividualId,
-        determination_id: fileDeterminationId,
-        grounds: fileGrounds.trim(),
-        license_id: fileLicenseId.trim() || null,
-        appeal_committee_id: fileCommitteeId.trim() || null,
-        status: 'submitted',
-        filed_at: new Date().toISOString(),
-        filed_by: user.id,
-      }).select('id').single();
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.filed', data.id, {
-        individualId: fileIndividualId,
-        determinationId: fileDeterminationId,
-        committeeId: fileCommitteeId.trim() || null,
-        after: { status: 'submitted', license_id: fileLicenseId.trim() || null },
+      const { data, error } = await (supabase as any).rpc('fp_appeal_file', {
+        _individual_id: fileIndividualId,
+        _determination_id: fileDeterminationId,
+        _grounds: fileGrounds.trim(),
+        _license_id: fileLicenseId.trim() || null,
       });
+      if (error) throw error;
+      // Authoritative audit event is written by the governed operation.
+      if (fileCommitteeId.trim()) {
+        const { error: cErr } = await (supabase as any).rpc('fp_appeal_assign_committee', {
+          _appeal_id: (data as any)?.id,
+          _committee_id: fileCommitteeId.trim(),
+        });
+        if (cErr) throw cErr;
+      }
     },
     onSuccess: () => {
       toast.success('Appeal filed successfully');
@@ -503,16 +500,9 @@ export default function FpaAppeals() {
 
   const startReviewMutation = useMutation({
     mutationFn: async (appeal: Appeal) => {
-      const { error } = await (supabase as any)
-        .from('fp_appeals')
-        .update({ status: 'under_review' })
-        .eq('id', appeal.id);
+      const { error } = await (supabase as any).rpc('fp_appeal_start_review', { _appeal_id: appeal.id });
       if (error) throw error;
-      await logFpAppealAction('fp.appeal.review_started', appeal.id, {
-        individualId: appeal.individual_id,
-        determinationId: appeal.determination_id,
-        after: { status: 'under_review' },
-      });
+      // Authoritative audit event is written by the governed operation.
     },
     onSuccess: () => {
       toast.success('Appeal moved to Under Review');
@@ -527,56 +517,14 @@ export default function FpaAppeals() {
       if (!decisionValue) throw new Error('Decision is required');
       if (decisionRationale.trim().length < 10) throw new Error('Decision rationale required (min 10 chars)');
 
-      const isOverturn = decisionValue === 'overturned_to_approved' || decisionValue === 'overturned_to_conditional';
-      let newDetId: string | null = null;
-      if (isOverturn) {
-        const outcome = decisionValue === 'overturned_to_approved' ? 'approved' : 'conditional';
-        await (supabase as any).from('fp_determinations').update({ is_current: false }).eq('id', decisionTarget.determination_id);
-        const { data: inserted, error: insErr } = await (supabase as any).from('fp_determinations').insert({
-          assessment_id: decisionTarget.determination_assessment_id,
-          individual_id: decisionTarget.individual_id,
-          outcome,
-          rationale: `Appeal outcome: ${decisionRationale.trim()}`,
-          determined_by: user?.id ?? null,
-          supersedes_id: decisionTarget.determination_id,
-          is_current: true,
-          effective_from: new Date().toISOString().slice(0, 10),
-        }).select('id').single();
-        if (insErr) throw insErr;
-        newDetId = inserted.id;
-
-        // License impact — record an auditable license action if a license was linked to this appeal.
-        if (decisionTarget.license_id) {
-          try {
-            await (supabase as any).from('license_actions').insert({
-              license_id: decisionTarget.license_id,
-              action_type: 'fp_appeal_overturn',
-              actor_id: user?.id ?? null,
-              reason: `FP appeal ${decisionValue === 'overturned_to_approved' ? 'overturned to approved' : 'overturned to conditional'}: ${decisionRationale.trim()}`,
-              metadata: { appeal_id: decisionTarget.id, individual_id: decisionTarget.individual_id, new_determination_id: newDetId, new_outcome: outcome },
-            });
-          } catch (e) { console.warn('license_actions insert failed', e); }
-        }
-      }
-
-      const { error } = await (supabase as any)
-        .from('fp_appeals')
-        .update({
-          status: 'decided',
-          decision: decisionValue,
-          decision_rationale: decisionRationale.trim() || null,
-          decided_at: new Date().toISOString(),
-          decided_by: user?.id ?? null,
-          new_determination_id: newDetId,
-        })
-        .eq('id', decisionTarget.id);
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.decided', decisionTarget.id, {
-        individualId: decisionTarget.individual_id,
-        determinationId: newDetId ?? decisionTarget.determination_id,
-        after: { decision: decisionValue, new_determination_id: newDetId, license_id: decisionTarget.license_id ?? null },
-        justification: decisionRationale.trim(),
+      const { error } = await (supabase as any).rpc('fp_appeal_decide', {
+        _appeal_id: decisionTarget.id,
+        _decision: decisionValue,
+        _rationale: decisionRationale.trim(),
       });
+      if (error) throw error;
+      // Determination supersession, license action and the authoritative audit
+      // event are all performed inside the governed operation.
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_appeal_decided', entity_type: 'fp_appeal', entity_id: decisionTarget.id, payload: { decision: decisionValue, individual_id: decisionTarget.individual_id, filed_by: decisionTarget.filed_by ?? null } },
