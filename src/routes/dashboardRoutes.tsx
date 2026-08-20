@@ -120,6 +120,7 @@ const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/Prudential
 const EntityDirectory = lazy(() => import('@/pages/entities/EntityDirectory'));
 const EntityStructureHub = lazy(() => import('@/pages/entities/EntityStructureHub'));
 const Entity360Detail = lazy(() => import('@/pages/entities/Entity360Detail'));
+const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
 const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
