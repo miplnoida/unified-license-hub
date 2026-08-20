@@ -1,26 +1,43 @@
-# Entity & External Registry Architecture (RDM-ENTITY-001, Phase 0/1)
+# Entity & External Registry Architecture (RDM-ENTITY-001, Phase 0/1/1.1)
 
 ## 1. Target model
 
 ```text
-Individual ──role assignment──┐
-                              ▼
-Entity (legal person) ──1..n── Licence ──1..n── Condition
-   │  │                            │
-   │  ├── Entity Identifier (n)    └── Application (initial / post-licence)
-   │  ├── Identity Status (1)
-   │  ├── Lifecycle Stage (1)
-   │  ├── Classification Value (n, per scheme)
-   │  └── Relationship (n, typed, dated) ──► Entity | Individual
+PARTY
+├── ORGANIZATION ──► ENTITY (in perimeter) ──1..n── Licence ──1..n── Condition
+│        │                    │                        │
+│        │                    │                        └── Application (initial / post-licence)
+│        │                    ├── Entity Identifier (n, scoped uniqueness)
+│        │                    ├── Identity Status (1)
+│        │                    ├── Lifecycle Stage (1, entity domain only)
+│        │                    └── Classification Value (n, per scheme)
+│        └── NON-REGULATED ORGANIZATION (auditor, agent, group parent)
+└── INDIVIDUAL ──role assignment──► ENTITY
+
+Relationship (n, typed, dated) ──► any PARTY ↔ any PARTY
+Ownership interest (Phase 2+, quantitative) ──► holder PARTY → held ORGANIZATION
 ```
 
 Key invariants of the target model:
 
 1. An entity exists **before** and **independently of** any licence.
-2. An entity may hold many licences across sectors simultaneously.
-3. Legal identity and regulatory status are separate concerns with separate
-   owners (see `data_domains`).
-4. Relationship and role semantics are configuration, not code.
+2. "Licensed" is a **state** (licences held), never an entity type.
+3. An entity may hold many licences across sectors simultaneously; each licence
+   carries its own status while the entity keeps a single entity-domain stage.
+4. Entity lifecycle, licence status and application status are three separate
+   vocabularies (`lifecycle_stages.domain`) and are never merged. Withdrawal,
+   refusal, restriction and suspension are application/licence facts.
+5. Legal identity and regulatory status are separate concerns with separate
+   owners (see `data_domains`); the default identity authority is
+   `DEPLOYMENT_CONFIGURED` — an external registry is optional.
+6. Non-regulated counterparties are representable without a licence.
+7. Relationship types are typed edges; quantitative ownership (percentages,
+   share classes, voting rights, effective control, history) is a separate
+   Phase 2+ model, never a relationship attribute.
+8. Machine keys are immutable; system vocabulary is retireable but never
+   deletable; referenced configuration cannot be deleted.
+9. Relationship and role semantics are configuration, not code.
+
 
 ## 2. Where the platform is today (measured Phase 0 baseline)
 
