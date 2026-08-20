@@ -540,20 +540,21 @@ export default function FpaDashboard() {
               </div>
             )}
 
-            {/* Legend row with all tabs */}
+            {/* Legend row with all lifecycle stages */}
             <div className="mt-4 pt-3 border-t flex flex-wrap gap-x-4 gap-y-1.5">
               {[
-                { key: 'A', label: 'Initiation', theme: THEME.A },
-                { key: 'B', label: 'Declarations & Screening', theme: THEME.B },
-                { key: 'C', label: 'Adverse Findings', theme: THEME.C },
-                { key: 'D', label: 'Decisioning', theme: THEME.D },
-                { key: 'E', label: 'Appeals & Monitoring', theme: THEME.E },
+                { key: '1', label: 'Initiation & Register', theme: THEME.A },
+                { key: '2', label: 'Declarations & Screening', theme: THEME.B },
+                { key: '3', label: 'Adverse Findings', theme: THEME.C },
+                { key: '4', label: 'Determination', theme: THEME.D },
+                { key: '5', label: 'Appeals & Monitoring', theme: THEME.E },
               ].map(({ key, label, theme }) => (
                 <span key={key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
-                  Tab {key} — {label}
+                  Stage {key} — {label}
                 </span>
               ))}
+
             </div>
           </CardContent>
         </Card>
