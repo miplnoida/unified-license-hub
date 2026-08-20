@@ -26131,6 +26131,7 @@ export type Database = {
       escalation_notify: {
         Args: {
           _body: string
+          _dedupe_ref?: string
           _escalation_id: string
           _event_key: string
           _immediate?: boolean
