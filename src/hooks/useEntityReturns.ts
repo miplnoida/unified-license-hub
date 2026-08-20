@@ -160,6 +160,34 @@ export function useEntityReturnsSummary(entityId?: string | null) {
   });
 }
 
+export function useCalendarFormsProgress(versionIds: string[]) {
+  const key = versionIds.filter(Boolean).sort().join(',');
+  return useQuery({
+    queryKey: [...KEY, 'calendar-progress', key],
+    enabled: versionIds.length > 0,
+    queryFn: async (): Promise<Record<string, { completed: number; required: number }>> => {
+      const ids = versionIds.filter(Boolean);
+      if (ids.length === 0) return {};
+      const { data, error } = await db()
+        .from('return_filing_form_requirements')
+        .select('return_filing_version_id, is_required, completion_status')
+        .in('return_filing_version_id', ids);
+      if (error) throw new Error(error.message);
+      const out: Record<string, { completed: number; required: number }> = {};
+      for (const row of (data ?? []) as Array<{ return_filing_version_id: string; is_required: boolean; completion_status: string }>) {
+        const bucket = out[row.return_filing_version_id] ?? { completed: 0, required: 0 };
+        if (row.is_required) {
+          bucket.required += 1;
+          if (row.completion_status === 'COMPLETED') bucket.completed += 1;
+        }
+        out[row.return_filing_version_id] = bucket;
+      }
+      return out;
+    },
+    staleTime: 15_000,
+  });
+}
+
 export function useEntityReturnsCalendar(entityId?: string | null) {
   return useQuery({
     queryKey: [...KEY, 'calendar', entityId],
