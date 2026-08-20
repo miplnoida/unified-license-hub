@@ -80,7 +80,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
       </button>
       {!collapsed && (
         <div className={cn('overflow-hidden transition-all', isExpanded ? 'opacity-100' : 'max-h-0 opacity-0')}>
-          <div className="ml-5 border-l border-sidebar-border pl-3 py-1 space-y-0.5">
+          <div className={cn('border-l border-sidebar-border py-1 space-y-0.5', depth === 0 ? 'ml-4 pl-3' : 'ml-3 pl-2.5')}>
             {item.children?.map((child) => {
               if (child.children?.length) {
                 return (
@@ -103,7 +103,8 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
                   to={child.href}
                   data-sidebar-active={isActive ? 'true' : undefined}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-[13px] text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
+                    'flex items-center gap-2 rounded-md text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
+                    depth === 0 ? 'px-3 py-2 text-[13px]' : 'px-2.5 py-1.5 text-[12.5px]',
                     isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold'
                   )}
                 >
@@ -308,7 +309,8 @@ export function Sidebar() {
                 return (
                   <div key={section.label || 'main'}>
                     {section.label && (
-                      <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
+                      <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                        <span className="text-sidebar-foreground/50">{section.icon}</span>
                         {section.label}
                       </p>
                     )}
@@ -382,7 +384,8 @@ export function Sidebar() {
             return (
               <div key={section.label || 'main'}>
                 {!collapsed && section.label && (
-                  <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
+                  <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                    <span className="text-sidebar-foreground/50">{section.icon}</span>
                     {section.label}
                   </p>
                 )}

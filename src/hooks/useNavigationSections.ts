@@ -19,12 +19,22 @@ function audienceRoles(audience: string): AppRole[] {
   return ALL_ROLES;
 }
 
-function toNavItem(node: SecNavNode): NavItem {
-  const children = node.children.map(toNavItem);
+/**
+ * Icon size shrinks with depth so the hierarchy reads at a glance:
+ * level 1 domain 20px, level 2 group/link 18px, level 3 leaf 16px.
+ */
+const ICON_CLASS_BY_DEPTH = ['h-[18px] w-[18px] shrink-0', 'h-4 w-4 shrink-0', 'h-[15px] w-[15px] shrink-0'];
+
+function iconClassForDepth(depth: number): string {
+  return ICON_CLASS_BY_DEPTH[Math.min(depth, ICON_CLASS_BY_DEPTH.length - 1)];
+}
+
+function toNavItem(node: SecNavNode, depth = 0): NavItem {
+  const children = node.children.map((child) => toNavItem(child, depth + 1));
   return {
     label: node.label,
     href: node.href || undefined,
-    icon: renderNavIcon(node.icon, 'h-5 w-5 shrink-0'),
+    icon: renderNavIcon(node.icon, iconClassForDepth(depth)),
     roles: audienceRoles(node.audience),
     module: (node.module || undefined) as PermissionModule | undefined,
     requiredAction: node.action || undefined,
@@ -74,7 +84,8 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
     const roots = buildNavTree(sidebarItems);
     const sections: NavSection[] = roots.map((root) => ({
       label: root.item_type === 'group' ? root.label : undefined,
-      items: (root.item_type === 'group' ? root.children : [root]).map(toNavItem),
+      icon: root.item_type === 'group' ? renderNavIcon(root.icon, 'h-4 w-4 shrink-0') : undefined,
+      items: (root.item_type === 'group' ? root.children : [root]).map((child) => toNavItem(child, 0)),
     })).filter((s) => s.items.length > 0);
     return { sections: sections.length ? sections : mainNavSections, isLoading, isDbDriven: sections.length > 0 };
   }, [context, isLoading]);
