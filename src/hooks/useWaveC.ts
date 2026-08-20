@@ -327,6 +327,99 @@ export function useFilingDetail(filingId?: string | null) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* Version comparison + entity summary (Wave C closure)                */
+/* ------------------------------------------------------------------ */
+
+export interface FilingVersionSide {
+  id: string;
+  version_number: number;
+  status: string;
+  is_immutable: boolean;
+  submitted_at: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  declaration_accepted_at: string | null;
+}
+
+export interface FilingVersionComparison {
+  filing_reference: string;
+  a: FilingVersionSide;
+  b: FilingVersionSide;
+  forms: Array<{
+    template_id: string | null;
+    template_name: string | null;
+    a_form_version_id: string | null;
+    b_form_version_id: string | null;
+    form_version_pinning_changed: boolean;
+    a_completion: string | null;
+    b_completion: string | null;
+    field_changes: Array<{
+      field: string;
+      old_value: unknown;
+      new_value: unknown;
+      change: 'ADDED' | 'REMOVED' | 'CHANGED';
+    }>;
+  }>;
+  metrics: Array<{
+    code: string; name: string; unit: string | null;
+    a_value: number | null; b_value: number | null;
+    a_availability: string | null; b_availability: string | null;
+    delta: number | null; changed: boolean;
+  }>;
+  validation: {
+    a: Array<{ rule_code: string; severity: string; message: string; is_blocking: boolean }>;
+    b: Array<{ rule_code: string; severity: string; message: string; is_blocking: boolean }>;
+  };
+  requests: Array<{
+    request_kind: string; message: string; status: string;
+    response_text: string | null; created_at: string; responded_at: string | null;
+  }>;
+}
+
+export function useFilingVersionComparison(versionA?: string | null, versionB?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'version-compare', versionA, versionB],
+    enabled: !!versionA && !!versionB && versionA !== versionB,
+    queryFn: () => rpc<FilingVersionComparison>('returns_compare_filing_versions', {
+      _version_a: versionA, _version_b: versionB,
+    }),
+  });
+}
+
+export interface EntityReturnsSummary {
+  entity_id: string;
+  active_obligations: number;
+  overdue_count: number;
+  correction_requested_count: number;
+  next_due: {
+    definition_code: string; definition_name: string;
+    period_label: string; due_date: string;
+  } | null;
+  recent_filings: Array<{
+    filing_id: string; filing_reference: string; status: string;
+    current_version_number: number; definition_code: string; definition_name: string;
+    period_label: string; period_end: string; due_date: string; submitted_at: string | null;
+  }>;
+  latest_accepted_metrics: Array<{
+    code: string; name: string; unit: string | null;
+    value_numeric: number | null; availability: string;
+    period_label: string; period_end: string;
+  }>;
+}
+
+export function useEntityReturnsSummary(entityId?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'entity-returns-summary', entityId],
+    enabled: !!entityId,
+    queryFn: () => rpc<EntityReturnsSummary>('returns_entity_summary', { _entity_id: entityId }),
+    staleTime: 30_000,
+  });
+}
+
+
+
 export function useMetricSeries(entityId?: string | null, codes?: string[]) {
   return useQuery({
     queryKey: [...KEY, 'metric-series', entityId, codes?.join(',') ?? 'all'],
