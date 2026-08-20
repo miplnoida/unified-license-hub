@@ -33,7 +33,6 @@ export default function RegulatoryDataModel() {
   );
 
   return (
-    <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Regulatory Data Model"
