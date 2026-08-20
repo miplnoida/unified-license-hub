@@ -289,8 +289,33 @@ The FRD names 14 roles; the platform models roles dynamically through
 `sec_roles` / `sec_role_permissions` plus the legacy `app_role` enum
 (11 values). Mapping is therefore **configuration-complete but not
 name-aligned**: no artefact in the repository states which `sec_role`
-represents R-01 … R-14. This is recorded as a P1 finding in the gap
-register (`GAP-XC-04`).
+represents R-01 … R-14.
+
+**A1 closure of `GAP-XC-04`:** the persona mapping is now published in
+`docs/rbac/frd-role-mapping.md`, binding R-01 … R-14 to concrete `sec_roles`
+keys and to the `module.action` authorities enforced inside the governed RPCs.
+Runtime evidence (live PostgREST calls with real end-user sessions) is recorded
+in `docs/requirements/direct-write-remediation-inventory.md` §6: a Licensing
+Officer succeeds on licence-condition and entity-relationship operations and is
+denied `inspection_management.edit` and `coordination.update`; an Applicant is
+denied every governed regulatory operation. Direct table DML on the governed
+stores returns `42501` for both personas.
+
+---
+
+## Part E — Package A1 evidence (authority, governed mutations, audit)
+
+| A1 objective | Evidence | Status |
+|---|---|---|
+| Governed mutation boundary for regulatory decisions | 16 permission-checked, audit-emitting RPCs; DML revoked from `anon`/`authenticated` on 9 canonical stores | Partial — 132 P1 sites remain (`direct-write-remediation-inventory.md` §4–5) |
+| Frontend callers migrated off direct DML | `FpAppealsPanel`, `FpaAppeals`, `LicenseConditionsPanel`, `RelationshipsTab`, `RiskRatingsTab`, `LicensingAuditTab`, `InspectionDetail`, `twinPeaksClearance` | Done |
+| Single authoritative audit record per transition | Verified: exactly 1 `audit_logs` row per create/update/status-change/delete probe | Done |
+| FRD persona → role mapping | `docs/rbac/frd-role-mapping.md` | Done |
+| `SECURITY DEFINER` exposure triage | `docs/rbac/secdef-exposure-triage.md`; unjustified `anon` mutators = 0 | Done |
+| Internal route guard coverage | Pending re-measurement | Open |
+
+**A1 COMPLETE: NO** — remaining P1 direct-write clusters are listed in the
+remediation inventory and carry the next implementation wave.
 
 ---
 
