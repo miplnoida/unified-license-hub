@@ -150,6 +150,7 @@ export const adminRoutes = (
 
     <Route path="/admin/master-data" element={<M module="settings"><MasterDataManagement /></M>} />
     <Route path="/admin/regulatory-data-model" element={<M module="settings"><RegulatoryDataModel /></M>} />
+    <Route path="/admin/forms-packages" element={<M module="form_management"><FormsPackagesWorkspace /></M>} />
 
     <Route path="/admin/fees" element={<M module="fee_management"><FeeManagement /></M>} />
     <Route path="/admin/return-config" element={<M module="returns_management"><ReturnConfiguration /></M>} />
