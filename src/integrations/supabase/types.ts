@@ -24166,6 +24166,26 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_assignment_parity: {
+        Row: {
+          in_canonical: boolean | null
+          in_legacy: boolean | null
+          parity: string | null
+          role_id: string | null
+          role_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      sec_permission_parity: {
+        Row: {
+          action_key: string | null
+          module_key: string | null
+          parity: string | null
+          role_id: string | null
+        }
+        Relationships: []
+      }
       tap_funky: {
         Row: {
           args: string | null
@@ -28635,10 +28655,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      sec_assign_user_roles: {
+        Args: { p_role_ids: string[]; p_user_id: string }
+        Returns: Json
+      }
       sec_can_access_path: {
         Args: { p_path: string; p_user_id: string }
         Returns: boolean
       }
+      sec_delete_role: { Args: { _role_id: string }; Returns: Json }
       sec_get_user_context: { Args: never; Returns: Json }
       sec_has_permission: {
         Args: { p_action: string; p_module: string; p_user_id: string }
@@ -28654,6 +28679,7 @@ export type Database = {
           route_key: string
         }[]
       }
+      sec_save_role: { Args: { _payload: Json }; Returns: Json }
       sec_user_permissions: {
         Args: { p_user_id: string }
         Returns: {

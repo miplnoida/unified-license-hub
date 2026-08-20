@@ -7,6 +7,7 @@ import ReturnDetail from '@/pages/returns-mgmt/ReturnDetail';
 import ViewReturns from '@/pages/returns-mgmt/ViewReturns';
 
 const AdminHub = lazy(() => import('@/pages/admin/AdminHub'));
+const NavHubPage = lazy(() => import('@/pages/admin/NavHubPage'));
 const FormManagement = lazy(() => import('@/pages/admin/FormManagement'));
 const FormBuilder = lazy(() => import('@/pages/admin/FormBuilder'));
 const FormTemplateView = lazy(() => import('@/pages/admin/FormTemplateView'));
@@ -93,6 +94,17 @@ export const adminRoutes = (
     <Route path="/admin/forms/internal" element={<Navigate to="/admin/forms?tab=internal" replace />} />
     <Route path="/admin/forms/create" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormBuilder /></ModuleRoute></P>} />
     <Route path="/admin/forms/:templateId/view" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormTemplateView /></ModuleRoute></P>} />
+
+    {/* Database-driven configuration hubs. These collapse a whole level of
+        menu nesting into one entry that lists the tools the user may open. */}
+    <Route
+      path="/admin/returns/config"
+      element={<M module="returns_management"><NavHubPage navKey="nav_returns_management_returns_admin" title="Return Configuration" description="Return types, schedules, cut-offs, due dates and late fees." /></M>}
+    />
+    <Route
+      path="/admin/returns/prudential"
+      element={<M module="prudential_supervision"><NavHubPage navKey="nav_sup_prud_config" title="Prudential Configuration" description="Thresholds, ratios, validations, risk taxonomy and prudential notifications." /></M>}
+    />
 
     <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
     <Route path="/admin/masters/sectors" element={<M module="settings"><MasterConfiguration /></M>} />
