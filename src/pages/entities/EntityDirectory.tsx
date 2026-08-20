@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 /**
  * RDM-ENTITY-001 Wave A — Regulated Entity Directory (`/entities`).
  *
@@ -6,21 +5,29 @@ import { Link } from 'react-router-dom';
  * governed Entity Registry Gateway (`entity_registry_search` /
  * `entity_registry_entity_dto`) — this page never queries `licensees` or the
  * `entity_*` tables directly, so authorization and provenance stay server-side.
+ *
+ * The listing uses the shared EnterpriseDataGrid, so search, per-column
+ * filtering, sorting, column choice and export behave the same here as in
+ * every other operational queue.
  */
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Loader2, Search, Building2, Eye } from 'lucide-react';
+import { EnterpriseDataGrid, type GridColumn } from '@/components/data-grid';
+import { StatusBadge } from '@/components/presentation/StatusBadge';
+import { humanize, presentStatus } from '@/lib/presentation/statusLabels';
+import { formatCount } from '@/lib/presentation/format';
 import { useEntitySearch, useEntityDto } from '@/hooks/useEntityRegistry';
 import type { EntityDto } from '@/services/entityRegistry';
 import { formatDateTime } from '@/lib/datetime';
+
 
 const LIFECYCLE_TONE = (key: string | null) => {
   const k = (key || '').toLowerCase();
