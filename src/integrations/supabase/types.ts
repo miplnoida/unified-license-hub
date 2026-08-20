@@ -32100,6 +32100,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fp_appeal_start_review: { Args: { _appeal_id: string }; Returns: Json }
       fp_appeal_withdraw: {
         Args: { _appeal_id: string; _reason?: string }
         Returns: Json
