@@ -1,25 +1,74 @@
-# Regulatory Data Naming Standard (RDM-ENTITY-001, Phase 0)
+# Regulatory Data Naming Standard (RDM-ENTITY-001, Phase 0 / 1.1)
 
 Status: **Approved standard, phased adoption.** Nothing in this document was
 applied as a rename in Phase 0/1 — renames are Phase 2+ work with compatibility
 views.
 
-## 1. Vocabulary
+## 1. Party model (restored, canonical)
+
+The regulated world is a **party** model. "Entity" is a specialisation, not the
+root:
+
+```text
+PARTY (any legal or natural person known to the regulator)
+├── ORGANIZATION (legal person)
+│   ├── ENTITY            — organisation inside the regulatory perimeter
+│   │   └── LICENSED ENTITY — an entity holding ≥ 1 licence (a state, not a type)
+│   └── NON-REGULATED ORGANIZATION — auditor, agent, service provider, group parent
+└── INDIVIDUAL (natural person)
+```
+
+Rules:
+
+1. **Licensed is a state, never a type.** Nothing in the schema may encode
+   "licensee" as an entity class; authorisation is expressed by licences held.
+2. Counterparties that are not supervised (auditors, outsourcing providers,
+   overseas group parents) are organisations, not entities, and must be
+   representable without inventing a licence.
+3. Relationships and role assignments are edges between **parties**, so an
+   individual, an entity and a non-regulated organisation are all valid endpoints.
+
+## 2. Vocabulary
 
 | Concept | Standard term | Meaning | Current implementation |
 | --- | --- | --- | --- |
-| Organisation known to the regulator | **Entity** | A legal person in the regulatory perimeter, with or without a licence | `public.licensees` |
+| Any person known to the regulator | **Party** | Legal or natural person | (Phase 2 abstraction) |
+| Legal person | **Organisation** | Company, society, statutory body — regulated or not | `public.licensees` (regulated subset only today) |
+| Organisation in the perimeter | **Entity** | Organisation the regulator supervises, with or without a licence | `public.licensees` |
 | Human being | **Individual** | A natural person holding a regulated role | `fp_individuals`, `profiles` |
 | Authorisation | **Licence** | One authorisation held by an entity | `public.licenses` |
 | Request for authorisation or change | **Application** | Case seeking a licence or a post-licence change | `public.applications` |
 | Onboarding record | **Registration** | Pre-entity onboarding of an organisation + primary contact | `public.registrations` |
 | Structured data collection | **Form** | Versioned instrument (template + version + response) | `form_templates`, `form_versions`, `form_responses` |
 | Periodic submission | **Return** | Period-scoped reporting instance | `returns`, `return_submissions` |
-| Link between parties | **Relationship** | Typed, dated edge between entities/individuals | `entity_relationships` |
+| Link between parties | **Relationship** | Typed, dated edge between parties | `entity_relationships` |
 | Role held by an individual | **Role assignment** | Typed appointment at an entity | `fp_individual_roles` |
 
 Forbidden in new code: "licensee" as a synonym for *entity* (it presumes a
 licence), "customer", "company", "org" as table or column names.
+
+## 2a. Lifecycle vocabulary separation (mandatory)
+
+Three vocabularies, never merged, distinguished by `lifecycle_stages.domain`:
+
+| Domain | Owns | Examples |
+| --- | --- | --- |
+| `entity` | Existence in the perimeter | prospect, applicant, authorised, supervised_non_licensed, former_licensee, closed |
+| `license` | Status of one authorisation | pending, active, restricted, suspended, expired, surrendered, revoked |
+| `application` | Status of one case | draft, submitted, under_review, information_requested, approved, rejected, withdrawn |
+
+`is_terminal` is terminal **within its own domain only**. A refused application
+or a revoked licence never terminates the entity, and an entity holding several
+licences keeps one entity stage while each licence carries its own status.
+Restriction and suspension are licence facts, not entity facts.
+
+## 2b. Ownership is not a relationship type
+
+`relationship_types` with `is_ownership = true` express graph semantics only.
+Shareholding percentages, share classes, voting rights, indirect/effective
+control computation and beneficial-ownership history belong to a dedicated
+ownership model (Phase 2+), never to the relationship row.
+
 
 ## 2. Naming rules
 
