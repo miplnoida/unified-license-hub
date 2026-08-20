@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -8,15 +9,22 @@ type Any = any;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-
+  // Scheduled/worker invocation OR an authenticated user holding the
+  // market_conduct.run_conduct_analytics permission (governed on-demand run).
+  let executedBy: string | null = null;
   const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
+  if (!__workerGate.ok) {
+    const __userGate = await requireUserPermission(req, 'market_conduct', 'run_conduct_analytics');
+    if (!__userGate.ok) return __workerGate.response;
+    executedBy = __userGate.userId;
+  }
   const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const onlyRuleId: string | undefined = body?.rule_id;
   const onDemand: boolean = !!body?.on_demand;
 
   const summary = { evaluated: 0, matched: 0, results_written: 0, alerts_created: 0, errors: [] as string[] };
+
 
   try {
     let query = supa.from('conduct_monitoring_rules').select('*').eq('active', true);
