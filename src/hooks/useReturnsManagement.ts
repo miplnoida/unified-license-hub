@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { toast } from 'sonner';
+import { legacyReturnCreate, legacyReturnSaveDraft, legacyReturnSubmit, legacyReturnDeleteDraft } from '@/lib/supervisoryGovernedOps';
 
 
 // ─── Return Types ───
@@ -252,9 +253,7 @@ export function useMutateReturn() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { data, error } = await (supabase as any).from('returns_filed').insert(payload).select().single();
-        if (error) throw error;
-        return data;
+        return await legacyReturnCreate(payload);
       },
       onSuccess: (data: any) => { invalidateReturnQueries(data?.id); },
       onError: (e: any) => {
@@ -268,16 +267,19 @@ export function useMutateReturn() {
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('returns_filed').update(payload).eq('id', id);
-        if (error) throw error;
+        const status = String((payload as any)?.workflow_status || '').toUpperCase();
+        if (status === 'SUB') {
+          await legacyReturnSubmit(id, (payload as any)?.ontime_status ?? null);
+        } else {
+          await legacyReturnSaveDraft(id, payload);
+        }
       },
       onSuccess: (_: any, vars: any) => { invalidateReturnQueries(vars?.id); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('returns_filed').delete().eq('id', id);
-        if (error) throw error;
+        await legacyReturnDeleteDraft(id, 'Draft return deleted by filer');
       },
       onSuccess: (_: any, id: string) => { invalidateReturnQueries(id); toast.success('Return deleted'); },
       onError: (e: any) => toast.error(e.message),

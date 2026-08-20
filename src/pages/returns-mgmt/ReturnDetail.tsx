@@ -51,6 +51,7 @@ import { GitCompareArrows } from 'lucide-react';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { formatDateTime } from '@/lib/datetime';
+import { legacyReturnReviewDecision } from '@/lib/supervisoryGovernedOps';
 
 
 function formatCellValue(value: any): React.ReactNode {
@@ -423,11 +424,7 @@ export default function ReturnDetail() {
     if (!confirm.isConfirmed) return;
     setSubmitting('approve');
     try {
-      const { error } = await (supabase as any)
-        .from('returns_filed')
-        .update({ workflow_status: 'VAL', updated_by: user?.id })
-        .eq('id', id);
-      if (error) throw error;
+      await legacyReturnReviewDecision(id!, 'approve', comments_.trim() || null);
       await logReturnApprovedLegacy({
         return_id: id!,
         previous_status: status || '',
@@ -539,11 +536,7 @@ export default function ReturnDetail() {
         requested_by: user?.id,
       });
       if (rErr) throw rErr;
-      const { error: uErr } = await (supabase as any)
-        .from('returns_filed')
-        .update({ workflow_status: 'TBR', updated_by: user?.id })
-        .eq('id', id);
-      if (uErr) throw uErr;
+      await legacyReturnReviewDecision(id!, 'request_edit', comments_.trim());
       await (supabase as any).from('return_comments').insert({
         return_id: id,
         comment_text: comments_.trim(),

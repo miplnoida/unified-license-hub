@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, Gavel, ExternalLink, Pencil } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
+import { inspectionLifecycleSave } from '@/lib/supervisoryGovernedOps';
 
 const SEVERITY_META: Record<string, { label: string; className: string }> = {
   low: { label: 'Low', className: 'bg-slate-100 text-slate-700' },
@@ -122,8 +123,7 @@ export default function InspectionDetail() {
     mutationFn: async () => {
       const patch: any = { ...inspEdit };
       if (!patch.scheduled_date) patch.scheduled_date = null;
-      const { error } = await supabase.from('inspections').update(patch).eq('id', id!);
-      if (error) throw error;
+      await inspectionLifecycleSave(id!, patch);
       await logAction('inspection.updated', 'inspections', id!, { after: patch });
     },
     onSuccess: () => {

@@ -19,6 +19,7 @@ import { Loader2, Plus, ArrowRight, ArrowLeft, ShieldAlert } from 'lucide-react'
 import { THEMATIC_STATUSES } from './ThematicReviews';
 import { ThematicClosurePanel } from '@/components/supervision/ThematicClosurePanel';
 import { ThematicFollowUpRegister } from '@/components/supervision/ThematicFollowUpRegister';
+import { thematicReviewSetStatus, thematicReviewFindingSave, thematicReviewFindingIssue, thematicReviewActionSave, thematicReviewActionComplete, thematicReviewActionWaive } from '@/lib/supervisoryGovernedOps';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft', scoped: 'Scoped', evidence_collection: 'Evidence Collection',
@@ -86,18 +87,7 @@ export default function ThematicReviewDetail() {
     try {
       const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
       await authorizedAction('market_conduct', 'edit', { review_id: id, target_status: targetStatus });
-      const { error } = await supabase.from('thematic_reviews' as any)
-        .update({ status: targetStatus, ...(targetStatus === 'closed' ? { closed_at: new Date().toISOString() } : {}) })
-        .eq('id', id);
-      if (error) throw error;
-
-      // status history: trigger already logs, but we can enrich reason
-      if (reason) {
-        await supabase.from('thematic_review_status_history' as any)
-          .update({ reason, override_id: override_id || null })
-          .eq('review_id', id).eq('to_status', targetStatus)
-          .order('changed_at', { ascending: false }).limit(1);
-      }
+      await thematicReviewSetStatus(id!, targetStatus, reason || null, override_id || null);
       await logAction('thematic_review.status_changed', 'thematic_review', id, {
         before: { status: review.status }, after: { status: targetStatus },
         meta: { reason: reason || null, override_id: override_id || null },
@@ -438,14 +428,14 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
     const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
     try { await authorizedAction('market_conduct', 'create', { review_id: reviewId, finding_title: form.title }); }
     catch (e: any) { toast.error(e?.message || 'Not authorized'); setSaving(false); return; }
-    const { data: user } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('thematic_review_findings' as any).insert({
-      review_id: reviewId, title: form.title.trim(), severity: form.severity,
-      detail: form.detail || null, root_cause: form.root_cause || null,
-      licensee_id: form.licensee_id || null,
-      status: 'draft', created_by: user.user?.id,
-    }).select('id').single();
-
+    let data: any = null; let error: any = null;
+    try {
+      data = await thematicReviewFindingSave({
+        review_id: reviewId, title: form.title.trim(), severity: form.severity,
+        detail: form.detail || null, root_cause: form.root_cause || null,
+        licensee_id: form.licensee_id || null,
+      });
+    } catch (e: any) { error = e; }
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_created', 'thematic_review_finding', (data as any).id, { after: form, meta: { review_id: reviewId } });
@@ -458,11 +448,8 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
     const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
     try { await authorizedAction('market_conduct', 'edit', { finding_id: f.id, action: 'issue' }); }
     catch (e: any) { toast.error(e?.message || 'Not authorized'); return; }
-    const { data: user } = await supabase.auth.getUser();
-    const { error } = await supabase.from('thematic_review_findings' as any)
-      .update({ status: 'issued', issued_at: new Date().toISOString(), issued_by: user.user?.id })
-      .eq('id', f.id);
-
+    let error: any = null;
+    try { await thematicReviewFindingIssue(f.id); } catch (e: any) { error = e; }
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.finding_issued', 'thematic_review_finding', f.id, { before: { status: f.status }, after: { status: 'issued' } });
@@ -533,18 +520,18 @@ function ActionsTab({ reviewId, rows, findings, entities, onChange }: any) {
   const add = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
-    const { data: user } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('thematic_review_actions' as any).insert({
-      review_id: reviewId,
-      title: form.title.trim(),
-      description: form.description || null,
-      action_type: form.action_type,
-      finding_id: form.finding_id || null,
-      licensee_id: form.licensee_id || null,
-      due_date: form.due_date || null,
-      status: 'open',
-      created_by: user.user?.id,
-    }).select('id').single();
+    let data: any = null; let error: any = null;
+    try {
+      data = await thematicReviewActionSave({
+        review_id: reviewId,
+        title: form.title.trim(),
+        description: form.description || null,
+        action_type: form.action_type,
+        finding_id: form.finding_id || null,
+        licensee_id: form.licensee_id || null,
+        due_date: form.due_date || null,
+      });
+    } catch (e: any) { error = e; }
     if (error) toast.error(error.message);
     else {
       await logAction('thematic_review.action_created', 'thematic_review_action', (data as any).id, { after: form, meta: { review_id: reviewId } });
@@ -555,10 +542,8 @@ function ActionsTab({ reviewId, rows, findings, entities, onChange }: any) {
   };
   const complete = async (a: any) => {
     const evidence = prompt('Evidence of completion (URL, doc id or note):') || '';
-    const { error } = await supabase.from('thematic_review_actions' as any)
-      .update({ status: 'completed', completed_at: new Date().toISOString(), evidence_of_completion: evidence || null })
-      .eq('id', a.id);
-    if (error) return toast.error(error.message);
+    try { await thematicReviewActionComplete(a.id, evidence || null); }
+    catch (e: any) { return toast.error(e.message); }
     await logAction('thematic_review.action_completed', 'thematic_review_action', a.id, { before: { status: a.status }, after: { status: 'completed' }, meta: { evidence } });
     onChange();
   };
@@ -642,8 +627,7 @@ function ActionsTab({ reviewId, rows, findings, entities, onChange }: any) {
           description="Waiving this required action bypasses the standard remediation requirement. This will be recorded in the override register."
           confirmLabel="Waive with reason"
           onOverridden={async (overrideId) => {
-            await supabase.from('thematic_review_actions' as any)
-              .update({ status: 'waived', waiver_override_id: overrideId }).eq('id', waiveTarget.id);
+            await thematicReviewActionWaive(waiveTarget.id, overrideId);
             await logAction('thematic_review.action_waived', 'thematic_review_action', waiveTarget.id, {
               before: { status: waiveTarget.status }, after: { status: 'waived' }, meta: { override_id: overrideId },
             });
