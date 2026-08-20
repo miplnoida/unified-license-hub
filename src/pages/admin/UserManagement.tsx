@@ -23,6 +23,7 @@ import {
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useRoles, DynamicRole } from '@/hooks/useRoles';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UserRecord {
   id: string;
