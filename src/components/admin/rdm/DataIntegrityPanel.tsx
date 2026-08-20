@@ -210,6 +210,45 @@ export function DataIntegrityPanel() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Possible duplicate organisations</CardTitle>
+          <CardDescription>
+            Organisation parties sharing a normalised legal name. Entity resolution is a later phase — nothing is merged here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {duplicateOrgs.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No duplicate organisation names detected.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Normalised legal name</TableHead>
+                    <TableHead className="w-20">Count</TableHead>
+                    <TableHead>Parties</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {duplicateOrgs.map((d) => (
+                    <TableRow key={d.normalised_name}>
+                      <TableCell className="font-medium">{d.normalised_name}</TableCell>
+                      <TableCell><Badge variant="secondary">{d.org_count}</Badge></TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {d.party_ids.join(' · ')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Configured metadata coverage</CardTitle>
           <CardDescription>Rows currently configured in each Phase 1 metadata table.</CardDescription>
         </CardHeader>
