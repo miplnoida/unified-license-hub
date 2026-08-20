@@ -101,25 +101,19 @@ export function FpAppealsPanel({ individualId }: Props) {
     return !openAppeal;
   }, [currentDet, appeals]);
 
+  // A1: every appeal mutation runs through a governed server operation
+  // (permission check + business validation + audit, server-side).
   const fileAppeal = useMutation({
     mutationFn: async () => {
       if (!currentDet) throw new Error('No current determination');
       if (grounds.trim().length < 20) throw new Error('Grounds must be at least 20 characters');
-      const { data, error } = await supabase.from('fp_appeals').insert({
-        individual_id: individualId,
-        determination_id: currentDet.id,
-        filed_by: user!.id,
-        grounds: grounds.trim(),
-        status: 'submitted',
-        supporting_docs: [],
-        license_id: licenseId && licenseId !== 'none' ? licenseId : null,
-      } as any).select('id').single();
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.filed', data.id, {
-        individualId,
-        determinationId: currentDet.id,
-        after: { determination_id: currentDet.id, status: 'submitted', license_id: licenseId !== 'none' ? licenseId : null },
+      const { error } = await (supabase.rpc as any)('fp_appeal_file', {
+        _individual_id: individualId,
+        _determination_id: currentDet.id,
+        _grounds: grounds.trim(),
+        _license_id: licenseId && licenseId !== 'none' ? licenseId : null,
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Appeal filed');
@@ -132,15 +126,11 @@ export function FpAppealsPanel({ individualId }: Props) {
 
   const assignAppealCommittee = useMutation({
     mutationFn: async ({ appealId, committeeId }: { appealId: string; committeeId: string }) => {
-      const { error } = await supabase.from('fp_appeals')
-        .update({ appeal_committee_id: committeeId, status: 'under_review' })
-        .eq('id', appealId);
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.committee_assigned', appealId, {
-        individualId,
-        committeeId,
-        after: { appeal_committee_id: committeeId, status: 'under_review' },
+      const { error } = await (supabase.rpc as any)('fp_appeal_assign_committee', {
+        _appeal_id: appealId,
+        _committee_id: committeeId,
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Appeal committee assigned');
@@ -153,54 +143,12 @@ export function FpAppealsPanel({ individualId }: Props) {
     mutationFn: async ({ appeal, decision, note }: { appeal: any; decision: string; note: string }) => {
       if (!decision) throw new Error('Pick a decision');
       if (note.trim().length < 10) throw new Error('Decision rationale required (min 10 chars)');
-
-      let newDetId: string | null = null;
-      const isOverturn = decision === 'overturned_to_approved' || decision === 'overturned_to_conditional';
-      if (isOverturn) {
-        const outcome = decision === 'overturned_to_approved' ? 'approved' : 'conditional';
-        await supabase.from('fp_determinations').update({ is_current: false }).eq('id', appeal.determination_id);
-        const { data: inserted, error: insErr } = await supabase.from('fp_determinations').insert({
-          assessment_id: appeal.assessment_id ?? currentDet?.assessment_id,
-          individual_id: individualId,
-          outcome,
-          rationale: `Appeal outcome: ${note.trim()}`,
-          determined_by: user!.id,
-          supersedes_id: appeal.determination_id,
-          is_current: true,
-          effective_from: new Date().toISOString().slice(0, 10),
-        }).select('id').single();
-        if (insErr) throw insErr;
-        newDetId = inserted.id;
-
-        // License impact — record an auditable license action if a license was linked to this appeal.
-        if (appeal.license_id) {
-          try {
-            await supabase.from('license_actions').insert({
-              license_id: appeal.license_id,
-              action_type: 'fp_appeal_overturn',
-              actor_id: user!.id,
-              reason: `FP appeal ${decision === 'overturned_to_approved' ? 'overturned to approved' : 'overturned to conditional'}: ${note.trim()}`,
-              metadata: { appeal_id: appeal.id, individual_id: individualId, new_determination_id: newDetId, new_outcome: outcome },
-            });
-          } catch (e) { console.warn('license_actions insert failed', e); }
-        }
-      }
-
-      const { error } = await supabase.from('fp_appeals').update({
-        status: 'decided',
-        decision,
-        decision_rationale: note.trim(),
-        decided_by: user!.id,
-        decided_at: new Date().toISOString(),
-        new_determination_id: newDetId,
-      }).eq('id', appeal.id);
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.decided', appeal.id, {
-        individualId,
-        determinationId: newDetId ?? appeal.determination_id,
-        after: { decision, new_determination_id: newDetId, license_id: appeal.license_id ?? null },
-        justification: note.trim(),
+      const { error } = await (supabase.rpc as any)('fp_appeal_decide', {
+        _appeal_id: appeal.id,
+        _decision: decision,
+        _rationale: note.trim(),
       });
+      if (error) throw error;
       // Fire a notification (no-op if no template configured).
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
@@ -213,9 +161,6 @@ export function FpAppealsPanel({ individualId }: Props) {
       qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_current_determination', individualId] });
       qc.invalidateQueries({ queryKey: ['fp_determinations', individualId] });
-      // Conditions & SLA / Appeals key their "Linked Determination" picker off
-      // ['fp_determinations_for_individual', individualId] — refresh it too
-      // so an overturn's new determination isn't served stale/empty results.
       qc.invalidateQueries({ queryKey: ['fp_determinations_for_individual', individualId] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
@@ -223,12 +168,11 @@ export function FpAppealsPanel({ individualId }: Props) {
 
   const withdrawAppeal = useMutation({
     mutationFn: async (appealId: string) => {
-      const { error } = await supabase.from('fp_appeals').update({ status: 'withdrawn' }).eq('id', appealId);
-      if (error) throw error;
-      await logFpAppealAction('fp.appeal.withdrawn', appealId, {
-        individualId,
-        after: { status: 'withdrawn' },
+      const { error } = await (supabase.rpc as any)('fp_appeal_withdraw', {
+        _appeal_id: appealId,
+        _reason: null,
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Appeal withdrawn');
@@ -236,6 +180,7 @@ export function FpAppealsPanel({ individualId }: Props) {
     },
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
+
 
   return (
     <div className="space-y-4">

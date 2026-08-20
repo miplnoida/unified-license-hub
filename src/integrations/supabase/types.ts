@@ -31700,6 +31700,24 @@ export type Database = {
         Returns: Json
       }
       entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_relationship_delete: {
+        Args: { _reason?: string; _relationship_id: string }
+        Returns: undefined
+      }
+      entity_relationship_save: {
+        Args: {
+          _effective_date?: string
+          _entity_id: string
+          _notes?: string
+          _ownership_percentage?: number
+          _related_entity_id?: string
+          _related_entity_name: string
+          _relationship_id?: string
+          _relationship_type: string
+          _status?: string
+        }
+        Returns: Json
+      }
       entity_resolution_decide: {
         Args: {
           _action: string
@@ -32063,6 +32081,28 @@ export type Database = {
           _template_id: string
           _version_id?: string
         }
+        Returns: Json
+      }
+      fp_appeal_assign_committee: {
+        Args: { _appeal_id: string; _committee_id: string }
+        Returns: Json
+      }
+      fp_appeal_decide: {
+        Args: { _appeal_id: string; _decision: string; _rationale: string }
+        Returns: Json
+      }
+      fp_appeal_file: {
+        Args: {
+          _determination_id: string
+          _grounds: string
+          _individual_id: string
+          _license_id?: string
+        }
+        Returns: Json
+      }
+      fp_appeal_start_review: { Args: { _appeal_id: string }; Returns: Json }
+      fp_appeal_withdraw: {
+        Args: { _appeal_id: string; _reason?: string }
         Returns: Json
       }
       fp_assessment_comparison: {
@@ -32554,6 +32594,29 @@ export type Database = {
         }[]
       }
       in_todo: { Args: never; Returns: boolean }
+      inspection_finding_escalate: {
+        Args: {
+          _enforcement_type: string
+          _entity_id: string
+          _finding_id: string
+          _rationale: string
+        }
+        Returns: Json
+      }
+      inspection_finding_save: {
+        Args: {
+          _category: string
+          _description: string
+          _finding_id?: string
+          _follow_up_due?: string
+          _follow_up_owner?: string
+          _inspection_id: string
+          _recommended_action?: string
+          _severity: string
+          _status?: string
+        }
+        Returns: Json
+      }
       integration_alert_rule_save: { Args: { _payload: Json }; Returns: string }
       integration_alert_sweep: { Args: never; Returns: Json }
       integration_connection_dependencies: {
@@ -32866,6 +32929,26 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      license_condition_create: {
+        Args: {
+          _application_id?: string
+          _category: string
+          _description: string
+          _due_date?: string
+          _license_id: string
+          _monitoring_owner?: string
+          _notes?: string
+        }
+        Returns: Json
+      }
+      license_condition_delete: {
+        Args: { _condition_id: string; _reason?: string }
+        Returns: undefined
+      }
+      license_condition_set_status: {
+        Args: { _condition_id: string; _note?: string; _status: string }
+        Returns: Json
+      }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -32884,6 +32967,26 @@ export type Database = {
       licensee_ids_for_license: {
         Args: { _license_id: string }
         Returns: string[]
+      }
+      licensing_audit_record_determination: {
+        Args: {
+          _effective_date?: string
+          _entity_id: string
+          _rationale: string
+          _risk_rating_id?: string
+          _verdict: string
+        }
+        Returns: Json
+      }
+      licensing_audit_record_risk_profile: {
+        Args: {
+          _entity_id: string
+          _key_drivers?: Json
+          _profile_score: number
+          _snapshot?: Json
+          _tier: string
+        }
+        Returns: Json
       }
       link_complaint_licensee: {
         Args: { _complaint_id: string; _licensee_id: string }
@@ -33881,6 +33984,18 @@ export type Database = {
       record_correspondence_review: {
         Args: { _decision: string; _notes?: string; _thread_id: string }
         Returns: undefined
+      }
+      record_entity_risk_rating: {
+        Args: {
+          _assessment_date?: string
+          _entity_id: string
+          _mitigation_measures?: string
+          _notes?: string
+          _overall_rating: string
+          _risk_factors?: Json
+          _risk_score: number
+        }
+        Returns: Json
       }
       record_export_intent: {
         Args: { _action: string; _meta?: Json; _module: string }
@@ -35204,6 +35319,15 @@ export type Database = {
         Args: { _entity_id: string; _module: string; _record_id: string }
         Returns: string
       }
+      supervisory_breach_issue_enforcement: {
+        Args: {
+          _breach_ids: string[]
+          _enforcement_type: string
+          _entity_id: string
+          _rationale: string
+        }
+        Returns: Json
+      }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined
@@ -35299,6 +35423,24 @@ export type Database = {
           _reason?: string
         }
         Returns: undefined
+      }
+      twinpeaks_raise_disagreement: {
+        Args: { _application_id: string; _description: string }
+        Returns: Json
+      }
+      twinpeaks_record_clearance: {
+        Args: {
+          _application_id: string
+          _conditions?: string[]
+          _rationale?: string
+          _regulator_role: string
+          _status: string
+        }
+        Returns: Json
+      }
+      twinpeaks_resolve_disagreement: {
+        Args: { _disagreement_id: string; _resolution: string }
+        Returns: Json
       }
       update_complaint_severity:
         | {
