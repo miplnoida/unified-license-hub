@@ -54,18 +54,24 @@ SELECT is(
   1, 'exactly one active default registry failure policy'
 );
 
--- 11 · a second active default is rejected
+-- 11 · a second active default is rejected immediately by the partial index
 SELECT throws_ok(
   $$UPDATE public.entity_resolution_policies SET is_default = true, is_active = true
      WHERE id = (SELECT id FROM public.entity_resolution_policies
-                  WHERE NOT is_default AND is_active ORDER BY sort_order LIMIT 1)$$,
-  NULL, NULL, 'two active default resolution policies are rejected'
+                  WHERE NOT is_default AND is_active ORDER BY key LIMIT 1)$$,
+  '23505', NULL, 'two active default resolution policies are rejected'
 );
 
--- 12 · the last active default cannot simply disappear
-SELECT throws_ok(
+-- 12 · the last active default cannot simply disappear. The guard is a
+-- DEFERRABLE constraint trigger so an atomic swap is legal; forcing the
+-- constraint to IMMEDIATE proves the end-of-transaction check fires.
+SELECT lives_ok(
   $$UPDATE public.entity_resolution_policies SET is_active = false WHERE is_default AND is_active$$,
-  NULL, NULL, 'retiring the active default without promotion is rejected'
+  'zeroing the default is allowed mid-transaction (atomic swap support)'
+);
+SELECT throws_ok(
+  'SET CONSTRAINTS ALL IMMEDIATE',
+  '23514', NULL, 'committing with zero active default resolution policies is rejected'
 );
 
 -- 13..15 · identifier scope consistency is derived, not hand-maintained
