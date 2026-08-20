@@ -35,6 +35,8 @@ export interface NavItem {
 
 export interface NavSection {
   label?: string;
+  /** Domain icon rendered beside the section heading (level 1). */
+  icon?: React.ReactNode;
   items: NavItem[];
 }
 
