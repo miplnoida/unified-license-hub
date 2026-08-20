@@ -32254,6 +32254,21 @@ export type Database = {
         Args: { _condition_id: string; _note?: string; _status: string }
         Returns: Json
       }
+      fp_declaration_invitation_create: {
+        Args: {
+          _assessment_id: string
+          _channel: string
+          _expires_at: string
+          _individual_id: string
+          _note?: string
+          _recipient_email?: string
+          _recipient_phone?: string
+          _token_hash: string
+          _verification_hash: string
+          _verification_hash_alt?: string
+        }
+        Returns: Json
+      }
       fp_determination_record: {
         Args: {
           _assessment_id: string
