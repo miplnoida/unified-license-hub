@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Layers, Menu, X, HelpCircle } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { PublicBreadcrumbBar } from '@/components/layout/ApplicationBreadcrumbs';
 
 export function LandingNav() {
   const navigate = useNavigate();
@@ -76,6 +77,14 @@ export function LandingNav() {
           </div>
         </div>
       )}
+
+      {/*
+        Public breadcrumb bar. Single integration point for every unauthenticated
+        surface (registry, registration, tracking). Renders nothing on the
+        landing page, where the trail is a single crumb.
+      */}
+      <PublicBreadcrumbBar />
     </nav>
   );
 }
+
