@@ -8786,6 +8786,64 @@ export type Database = {
           },
         ]
       }
+      entity_match_candidates: {
+        Row: {
+          case_id: string
+          created_at: string
+          entity_id: string | null
+          external_entity_id: string | null
+          id: string
+          is_selected: boolean
+          match_basis: string
+          match_score: number
+          signals: Json
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          entity_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          is_selected?: boolean
+          match_basis: string
+          match_score?: number
+          signals?: Json
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          entity_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          is_selected?: boolean
+          match_basis?: string
+          match_score?: number
+          signals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_match_candidates_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_match_candidates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_match_candidates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       entity_membership_role_permissions: {
         Row: {
           capability: string
@@ -8853,6 +8911,96 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      entity_merges: {
+        Row: {
+          absorbed_entity_id: string
+          after_snapshot: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          before_snapshot: Json | null
+          case_id: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          impact_preview: Json
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          survivor_entity_id: string
+        }
+        Insert: {
+          absorbed_entity_id: string
+          after_snapshot?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          before_snapshot?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          impact_preview?: Json
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          survivor_entity_id: string
+        }
+        Update: {
+          absorbed_entity_id?: string
+          after_snapshot?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          before_snapshot?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          impact_preview?: Json
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          survivor_entity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_merges_absorbed_entity_id_fkey"
+            columns: ["absorbed_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_absorbed_entity_id_fkey"
+            columns: ["absorbed_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_merges_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_survivor_entity_id_fkey"
+            columns: ["survivor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_survivor_entity_id_fkey"
+            columns: ["survivor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
       }
       entity_registry_bindings: {
         Row: {
@@ -9100,6 +9248,155 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      entity_resolution_cases: {
+        Row: {
+          application_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          authority_mode: string
+          case_number: string
+          created_at: string
+          decision_notes: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          id: string
+          outcome: string | null
+          provider_status: string
+          requested_at: string
+          requested_by: string | null
+          resolution_policy_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_entity_id: string | null
+          status: string
+          subject_identifiers: Json
+          subject_name: string
+          subject_payload: Json
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_mode?: string
+          case_number: string
+          created_at?: string
+          decision_notes?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          outcome?: string | null
+          provider_status?: string
+          requested_at?: string
+          requested_by?: string | null
+          resolution_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_entity_id?: string | null
+          status?: string
+          subject_identifiers?: Json
+          subject_name: string
+          subject_payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_mode?: string
+          case_number?: string
+          created_at?: string
+          decision_notes?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          outcome?: string | null
+          provider_status?: string
+          requested_at?: string
+          requested_by?: string | null
+          resolution_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_entity_id?: string | null
+          status?: string
+          subject_identifiers?: Json
+          subject_name?: string
+          subject_payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_resolution_cases_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolution_policy_id_fkey"
+            columns: ["resolution_policy_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolved_entity_id_fkey"
+            columns: ["resolved_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolved_entity_id_fkey"
+            columns: ["resolved_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      entity_resolution_events: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          detail: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          detail?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_resolution_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -15079,6 +15376,7 @@ export type Database = {
           lead_regulator_id: string | null
           license_id: string | null
           lifecycle_stage_id: string | null
+          merged_into_entity_id: string | null
           name: string
           party_id: string | null
           regulator_officer_id: string | null
@@ -15099,6 +15397,7 @@ export type Database = {
           lead_regulator_id?: string | null
           license_id?: string | null
           lifecycle_stage_id?: string | null
+          merged_into_entity_id?: string | null
           name: string
           party_id?: string | null
           regulator_officer_id?: string | null
@@ -15119,6 +15418,7 @@ export type Database = {
           lead_regulator_id?: string | null
           license_id?: string | null
           lifecycle_stage_id?: string | null
+          merged_into_entity_id?: string | null
           name?: string
           party_id?: string | null
           regulator_officer_id?: string | null
@@ -15163,6 +15463,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lifecycle_stages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_merged_into_entity_id_fkey"
+            columns: ["merged_into_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_merged_into_entity_id_fkey"
+            columns: ["merged_into_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "licensees_party_id_fkey"
@@ -27638,6 +27952,26 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_attach_license: {
+        Args: {
+          _entity_id: string
+          _is_primary?: boolean
+          _license_id: string
+          _source?: string
+        }
+        Returns: string
+      }
+      entity_create_local: {
+        Args: {
+          _case_id?: string
+          _identifiers?: Json
+          _identity_status_key?: string
+          _legal_name: string
+          _lifecycle_key?: string
+          _sector_id?: string
+        }
+        Returns: string
+      }
       entity_membership_approve: { Args: { _id: string }; Returns: undefined }
       entity_membership_reject: {
         Args: { _id: string; _reason: string }
@@ -27659,6 +27993,34 @@ export type Database = {
         Args: { _id: string; _notes?: string }
         Returns: undefined
       }
+      entity_merge_execute: {
+        Args: {
+          _absorbed_entity_id: string
+          _case_id?: string
+          _reason: string
+          _survivor_entity_id: string
+        }
+        Returns: string
+      }
+      entity_merge_preview: {
+        Args: { _absorbed_entity_id: string; _survivor_entity_id: string }
+        Returns: Json
+      }
+      entity_registry_entity_dto: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_resolution_decide: {
+        Args: {
+          _action: string
+          _case_id: string
+          _entity_id?: string
+          _notes?: string
+        }
+        Returns: Json
+      }
+      entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
