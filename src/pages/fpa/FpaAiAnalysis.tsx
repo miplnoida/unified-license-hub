@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { fpFindingDisposition, fpFindingSetFalsePositive } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
@@ -378,47 +379,15 @@ function OverrideDialog({ finding, open, onClose }: OverrideDialogProps) {
         override_history: previousOverride ? [...priorHistory, previousOverride] : priorHistory,
       };
 
-      const beforeState = {
-        resolution_status: finding.resolution_status,
-        is_false_positive: finding.is_false_positive,
-        resolution_reason: (finding as any).resolution_reason ?? null,
-      };
-
-      const { data: updatedRows, error } = await supabase
-        .from('fp_findings')
-        .update({
-          resolution_status: form.decision,
-          resolution_reason: form.reason.trim(),
-          is_false_positive: form.decision === 'false_positive',
-          review_note: form.reason.trim(),
-          reviewed_at: now,
-          reviewed_by: user?.id ?? null,
-          raw_payload: updatedPayload,
-        })
-        .eq('id', finding.id)
-        .select('id');
-
-      if (error) throw error;
-
-      // If no rows were updated, the finding was not found (deleted or mismatched id)
-      if (!updatedRows || updatedRows.length === 0) {
-        throw new Error('Finding not found or already deleted.');
+      if (form.decision === 'false_positive') {
+        await fpFindingSetFalsePositive(finding.id, true, form.reason.trim());
       }
-
-      await logFpAction('fp.finding.override', 'fp_finding', finding.id, {
-        before: beforeState,
-        after: {
-          resolution_status: form.decision,
-          is_false_positive: form.decision === 'false_positive',
-          resolution_reason: form.reason.trim(),
-        },
-        context: {
-          individualId: finding.individual_id ?? undefined,
-          assessmentId: finding.assessment_id ?? undefined,
-          findingId: finding.id,
-        },
-        justification: form.reason.trim(),
-      });
+      await fpFindingDisposition(
+        finding.id,
+        form.decision as any,
+        form.reason.trim(),
+        updatedPayload as Record<string, unknown>,
+      );
     },
     onSuccess: () => {
       toast.success('AI decision overridden.');
