@@ -70,7 +70,7 @@ control computation and beneficial-ownership history belong to a dedicated
 ownership model (Phase 2+), never to the relationship row.
 
 
-## 2. Naming rules
+## 3. Naming rules
 
 1. Tables are plural snake_case nouns: `entities`, `entity_identifiers`.
 2. Foreign keys are `<singular_target>_id`: `entity_id`, `license_id`.
@@ -79,23 +79,61 @@ ownership model (Phase 2+), never to the relationship row.
 4. Configurable vocabularies are `*_types`, `*_statuses`, `*_stages`,
    `*_policies` and always carry `key`, `label`, `sort_order`, `is_active`,
    `is_system`.
-5. `key` is the stable machine identifier referenced by rules and workflows;
-   `label` is display-only and freely editable.
+5. `key` is the stable machine identifier referenced by rules and workflows and
+   is **immutable after insert** (DB-enforced). Correcting a mistake means
+   retiring the row (`is_active = false`) and creating a new key; `label` is
+   display-only and freely editable.
 6. Timestamps are `*_at` (timestamptz); dates are `*_on` or
    `effective_from` / `effective_to`.
 7. No enum types for business vocabulary that a regulator may extend — use a
    metadata table plus FK.
 8. Diagnostics and programme-scoped objects are prefixed `rdm_`.
+9. `is_system` rows are seeded platform vocabulary: editable labels, never
+   deletable, never re-flagged. Deletion is refused; retirement is the only
+   removal path. Referenced configuration is never deletable.
+10. Configuration deletes never cascade. Taxonomy foreign keys use
+    `ON DELETE RESTRICT`.
 
-## 3. Authority rules
+## 4. Identifier uniqueness rules
+
+Uniqueness is a **scope**, not a boolean. `entity_identifier_types.uniqueness_scope`:
+
+| Scope | Uniqueness key | Typical identifier |
+| --- | --- | --- |
+| `GLOBAL` | (type, normalised value) | LEI |
+| `JURISDICTION` | (type, jurisdiction, normalised value) | company registration number, taxpayer number |
+| `ISSUER` | (type, issuer, normalised value) | issuer-scoped references |
+| `REGULATOR` | (type, regulator, normalised value) | regulatory entity number, licence number |
+| `NONE` | no uniqueness index | informational identifiers |
+
+Company registration and taxpayer numbers are **not** globally unique; the same
+value legitimately exists in different jurisdictions. `is_unique_global` remains
+only as a derived compatibility flag. `normalization_rule` records how a value is
+canonicalised before comparison.
+
+## 5. Authority rules
 
 * Legal identity attributes (legal name, registration number, incorporation
   date) are owned by whatever `data_domains.default_authority` says —
-  `SUPTECH`, `EXTERNAL_REGISTRY`, or `DEPLOYMENT_CONFIGURED`.
+  `SUPTECH`, `EXTERNAL_REGISTRY`, or `DEPLOYMENT_CONFIGURED`. The shipped
+  default for `entity_identity` is `DEPLOYMENT_CONFIGURED`: **no deployment is
+  required to have an external registry.**
 * Regulatory status (lifecycle stage, licences, conditions) is **always**
   owned by this platform and never overwritten by an external registry.
 * External registry data is stored as a *projection* with a verification
   timestamp; it never silently replaces a supervisory decision.
+
+## 6. Change governance
+
+* All configuration writes go through `rdm_save_metadata`,
+  `rdm_retire_metadata` and `rdm_delete_metadata`; they re-check the
+  `settings.edit` permission server-side and are audit-logged.
+* Audit event keys are dot-delimited and stable:
+  `regulatory_data.metadata.created | updated | retired | reinstated | deleted`.
+* Exactly one resolution policy and one registry-failure policy can be the
+  active default (partial unique indexes); promoting a new default demotes the
+  incumbent in the same transaction.
+
 
 ## 4. Migration discipline
 
