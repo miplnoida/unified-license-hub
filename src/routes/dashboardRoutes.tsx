@@ -273,7 +273,7 @@ export const dashboardRoutes = (
     <Route path="/correspondence/records" element={<M module="notification_management"><CorrespondenceRecords /></M>} />
     <Route path="/correspondence/:id" element={<M module="notification_management"><CorrespondenceDetail /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
-    <Route path="/entity/correspondence" element={<MyCorrespondence />} />
+    <Route path="/entity/correspondence" element={<P><MyCorrespondence /></P>} />
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
     <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
