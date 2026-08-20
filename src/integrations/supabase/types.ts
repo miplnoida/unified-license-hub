@@ -511,6 +511,104 @@ export type Database = {
           },
         ]
       }
+      application_form_requirements: {
+        Row: {
+          applicability_rule_id: string | null
+          application_id: string
+          created_at: string
+          form_version_id: string
+          id: string
+          is_required: boolean
+          package_id: string | null
+          pinned_at: string
+          response_id: string | null
+          sequence: number
+          status: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          applicability_rule_id?: string | null
+          application_id: string
+          created_at?: string
+          form_version_id: string
+          id?: string
+          is_required?: boolean
+          package_id?: string | null
+          pinned_at?: string
+          response_id?: string | null
+          sequence?: number
+          status?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          applicability_rule_id?: string | null
+          application_id?: string
+          created_at?: string
+          form_version_id?: string
+          id?: string
+          is_required?: boolean
+          package_id?: string | null
+          pinned_at?: string
+          response_id?: string | null
+          sequence?: number
+          status?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_form_requirements_applicability_rule_id_fkey"
+            columns: ["applicability_rule_id"]
+            isOneToOne: false
+            referencedRelation: "form_applicability_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_form_versions: {
         Row: {
           application_id: string
@@ -6768,6 +6866,77 @@ export type Database = {
         }
         Relationships: []
       }
+      data_concepts: {
+        Row: {
+          canonical_target: string | null
+          cardinality: string
+          code: string
+          created_at: string
+          data_domain_id: string | null
+          data_type: string
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          master_data_source: string | null
+          name: string
+          projection_strategy: string
+          sensitivity_classification: string
+          updated_at: string
+          value_source_type: string
+        }
+        Insert: {
+          canonical_target?: string | null
+          cardinality?: string
+          code: string
+          created_at?: string
+          data_domain_id?: string | null
+          data_type?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          master_data_source?: string | null
+          name: string
+          projection_strategy?: string
+          sensitivity_classification?: string
+          updated_at?: string
+          value_source_type?: string
+        }
+        Update: {
+          canonical_target?: string | null
+          cardinality?: string
+          code?: string
+          created_at?: string
+          data_domain_id?: string | null
+          data_type?: string
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          master_data_source?: string | null
+          name?: string
+          projection_strategy?: string
+          sensitivity_classification?: string
+          updated_at?: string
+          value_source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_concepts_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_domains: {
         Row: {
           created_at: string
@@ -8290,6 +8459,361 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_appointments: {
+        Row: {
+          appointment_date: string | null
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          entity_id: string
+          fp_individual_id: string | null
+          id: string
+          is_executive: boolean | null
+          person_party_id: string
+          recorded_at: string
+          regulatory_approval_status: string
+          role_type_id: string
+          source_change_set_id: string | null
+          source_form_version_id: string | null
+          source_submission_id: string | null
+          status: string
+          superseded_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_date?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id: string
+          fp_individual_id?: string | null
+          id?: string
+          is_executive?: boolean | null
+          person_party_id: string
+          recorded_at?: string
+          regulatory_approval_status?: string
+          role_type_id: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string
+          fp_individual_id?: string | null
+          id?: string
+          is_executive?: boolean | null
+          person_party_id?: string
+          recorded_at?: string
+          regulatory_approval_status?: string
+          role_type_id?: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_appointments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_fp_individual_id_fkey"
+            columns: ["fp_individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_person_party_id_fkey"
+            columns: ["person_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_role_type_id_fkey"
+            columns: ["role_type_id"]
+            isOneToOne: false
+            referencedRelation: "role_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_source_change_set_id_fkey"
+            columns: ["source_change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_appointments_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_change_items: {
+        Row: {
+          applied_record_id: string | null
+          apply_error: string | null
+          apply_status: string
+          change_set_id: string
+          change_type: string
+          created_at: string
+          current_value: Json | null
+          data_concept_id: string | null
+          effective_from: string | null
+          effective_to: string | null
+          form_field_definition_id: string | null
+          id: string
+          operation: string
+          proposed_value: Json
+          sequence: number
+          source_submission_id: string | null
+          target_record_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          applied_record_id?: string | null
+          apply_error?: string | null
+          apply_status?: string
+          change_set_id: string
+          change_type: string
+          created_at?: string
+          current_value?: Json | null
+          data_concept_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          form_field_definition_id?: string | null
+          id?: string
+          operation?: string
+          proposed_value: Json
+          sequence?: number
+          source_submission_id?: string | null
+          target_record_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          applied_record_id?: string | null
+          apply_error?: string | null
+          apply_status?: string
+          change_set_id?: string
+          change_type?: string
+          created_at?: string
+          current_value?: Json | null
+          data_concept_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          form_field_definition_id?: string | null
+          id?: string
+          operation?: string
+          proposed_value?: Json
+          sequence?: number
+          source_submission_id?: string | null
+          target_record_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_change_items_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_items_data_concept_id_fkey"
+            columns: ["data_concept_id"]
+            isOneToOne: false
+            referencedRelation: "data_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_items_form_field_definition_id_fkey"
+            columns: ["form_field_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_items_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_change_sets: {
+        Row: {
+          application_id: string | null
+          applied_at: string | null
+          applied_by: string | null
+          approved_at: string | null
+          approved_by: string | null
+          baseline_version: number
+          change_set_number: string
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          entity_id: string
+          id: string
+          origin_type: string
+          regulatory_request_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_form_version_id: string | null
+          source_submission_id: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          summary: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          baseline_version?: number
+          change_set_number?: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          entity_id: string
+          id?: string
+          origin_type?: string
+          regulatory_request_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          baseline_version?: number
+          change_set_number?: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          entity_id?: string
+          id?: string
+          origin_type?: string
+          regulatory_request_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_change_sets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_regulatory_request_id_fkey"
+            columns: ["regulatory_request_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_change_sets_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_data_authority_rules: {
         Row: {
           allow_local_override: boolean
@@ -8435,6 +8959,121 @@ export type Database = {
             columns: ["entity_registry_binding_id"]
             isOneToOne: false
             referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_facts: {
+        Row: {
+          approval_status: string
+          created_at: string
+          data_concept_id: string
+          entity_id: string
+          id: string
+          recorded_at: string
+          source_change_set_id: string | null
+          source_form_version_id: string | null
+          source_submission_id: string | null
+          superseded_at: string | null
+          valid_from: string
+          valid_to: string | null
+          value_boolean: boolean | null
+          value_date: string | null
+          value_datetime: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+          value_uuid: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          approval_status?: string
+          created_at?: string
+          data_concept_id: string
+          entity_id: string
+          id?: string
+          recorded_at?: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          superseded_at?: string | null
+          valid_from?: string
+          valid_to?: string | null
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_datetime?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+          value_uuid?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          approval_status?: string
+          created_at?: string
+          data_concept_id?: string
+          entity_id?: string
+          id?: string
+          recorded_at?: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          superseded_at?: string | null
+          valid_from?: string
+          valid_to?: string | null
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_datetime?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+          value_uuid?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_facts_change_set_fk"
+            columns: ["source_change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_facts_data_concept_id_fkey"
+            columns: ["data_concept_id"]
+            isOneToOne: false
+            referencedRelation: "data_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_facts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_facts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_facts_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_facts_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
             referencedColumns: ["id"]
           },
         ]
@@ -11218,6 +11857,177 @@ export type Database = {
           },
         ]
       }
+      form_applicability_rules: {
+        Row: {
+          application_type: string | null
+          category_id: string | null
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          entity_classification_value_id: string | null
+          id: string
+          is_active: boolean
+          jurisdiction: string | null
+          license_type: string | null
+          lifecycle_key: string | null
+          package_id: string
+          priority: number
+          regulator_id: string | null
+          request_type_key: string | null
+          sector_id: string | null
+          service_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_type?: string | null
+          category_id?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_classification_value_id?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          license_type?: string | null
+          lifecycle_key?: string | null
+          package_id: string
+          priority?: number
+          regulator_id?: string | null
+          request_type_key?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_type?: string | null
+          category_id?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_classification_value_id?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          license_type?: string | null
+          lifecycle_key?: string | null
+          package_id?: string
+          priority?: number
+          regulator_id?: string | null
+          request_type_key?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_applicability_rules_entity_classification_value_id_fkey"
+            columns: ["entity_classification_value_id"]
+            isOneToOne: false
+            referencedRelation: "classification_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_applicability_rules_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_data_domains: {
+        Row: {
+          created_at: string
+          data_domain_id: string
+          id: string
+          is_primary: boolean
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_domain_id: string
+          id?: string
+          is_primary?: boolean
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          data_domain_id?: string
+          id?: string
+          is_primary?: boolean
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_data_domains_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_data_domains_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_field_definitions: {
+        Row: {
+          created_at: string
+          data_concept_id: string | null
+          field_key: string
+          id: string
+          is_active: boolean
+          is_published: boolean
+          label_hint: string | null
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_concept_id?: string | null
+          field_key: string
+          id?: string
+          is_active?: boolean
+          is_published?: boolean
+          label_hint?: string | null
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_concept_id?: string | null
+          field_key?: string
+          id?: string
+          is_active?: boolean
+          is_published?: boolean
+          label_hint?: string | null
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_field_definitions_data_concept_id_fkey"
+            columns: ["data_concept_id"]
+            isOneToOne: false
+            referencedRelation: "data_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_field_definitions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_field_dependencies: {
         Row: {
           created_at: string
@@ -11271,6 +12081,7 @@ export type Database = {
           default_value: string | null
           field_name: string
           field_type: string
+          form_field_definition_id: string | null
           help_text: string | null
           id: string
           label: string
@@ -11296,6 +12107,7 @@ export type Database = {
           default_value?: string | null
           field_name: string
           field_type?: string
+          form_field_definition_id?: string | null
           help_text?: string | null
           id?: string
           label: string
@@ -11321,6 +12133,7 @@ export type Database = {
           default_value?: string | null
           field_name?: string
           field_type?: string
+          form_field_definition_id?: string | null
           help_text?: string | null
           id?: string
           label?: string
@@ -11341,6 +12154,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "form_fields_form_field_definition_id_fkey"
+            columns: ["form_field_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "form_fields_version_id_fkey"
             columns: ["version_id"]
             isOneToOne: false
@@ -11348,6 +12168,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      form_lifecycle_applicability: {
+        Row: {
+          created_at: string
+          id: string
+          lifecycle_key: string | null
+          lifecycle_stage_id: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lifecycle_key?: string | null
+          lifecycle_stage_id?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lifecycle_key?: string | null
+          lifecycle_stage_id?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_lifecycle_applicability_lifecycle_stage_id_fkey"
+            columns: ["lifecycle_stage_id"]
+            isOneToOne: false
+            referencedRelation: "lifecycle_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_lifecycle_applicability_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_package_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          notes: string | null
+          package_id: string
+          sequence: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          package_id: string
+          sequence?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          package_id?: string
+          sequence?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_package_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_packages: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          published_at: string | null
+          published_by: string | null
+          regulator_id: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          published_at?: string | null
+          published_by?: string | null
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          published_at?: string | null
+          published_by?: string | null
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
       }
       form_purposes: {
         Row: {
@@ -11448,6 +12400,89 @@ export type Database = {
           },
         ]
       }
+      form_submission_values: {
+        Row: {
+          created_at: string
+          data_concept_id: string | null
+          form_field_definition_id: string | null
+          form_version_id: string
+          id: string
+          legacy_field_name: string | null
+          repeat_index: number
+          response_id: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_datetime: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+          value_uuid: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_concept_id?: string | null
+          form_field_definition_id?: string | null
+          form_version_id: string
+          id?: string
+          legacy_field_name?: string | null
+          repeat_index?: number
+          response_id: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_datetime?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+          value_uuid?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_concept_id?: string | null
+          form_field_definition_id?: string | null
+          form_version_id?: string
+          id?: string
+          legacy_field_name?: string | null
+          repeat_index?: number
+          response_id?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_datetime?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+          value_uuid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submission_values_data_concept_id_fkey"
+            columns: ["data_concept_id"]
+            isOneToOne: false
+            referencedRelation: "data_concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submission_values_form_field_definition_id_fkey"
+            columns: ["form_field_definition_id"]
+            isOneToOne: false
+            referencedRelation: "form_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submission_values_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submission_values_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_templates: {
         Row: {
           category: string
@@ -11456,9 +12491,11 @@ export type Database = {
           created_by: string | null
           description: string | null
           form_order: number
+          form_purpose_id: string | null
           form_type: string
           id: string
           is_reusable: boolean
+          legacy_mapping_status: string
           name: string
           regulator_id: string | null
           return_template_id: string | null
@@ -11472,6 +12509,7 @@ export type Database = {
           sub_sector: string
           sub_sector_id: string | null
           tab_name: string | null
+          trigger_type_id: string | null
           updated_at: string
         }
         Insert: {
@@ -11481,9 +12519,11 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           form_order?: number
+          form_purpose_id?: string | null
           form_type?: string
           id?: string
           is_reusable?: boolean
+          legacy_mapping_status?: string
           name: string
           regulator_id?: string | null
           return_template_id?: string | null
@@ -11497,6 +12537,7 @@ export type Database = {
           sub_sector?: string
           sub_sector_id?: string | null
           tab_name?: string | null
+          trigger_type_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -11506,9 +12547,11 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           form_order?: number
+          form_purpose_id?: string | null
           form_type?: string
           id?: string
           is_reusable?: boolean
+          legacy_mapping_status?: string
           name?: string
           regulator_id?: string | null
           return_template_id?: string | null
@@ -11522,6 +12565,7 @@ export type Database = {
           sub_sector?: string
           sub_sector_id?: string | null
           tab_name?: string | null
+          trigger_type_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11530,6 +12574,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_form_purpose_id_fkey"
+            columns: ["form_purpose_id"]
+            isOneToOne: false
+            referencedRelation: "form_purposes"
             referencedColumns: ["id"]
           },
           {
@@ -11572,6 +12623,13 @@ export type Database = {
             columns: ["sub_sector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_trigger_type_id_fkey"
+            columns: ["trigger_type_id"]
+            isOneToOne: false
+            referencedRelation: "form_trigger_types"
             referencedColumns: ["id"]
           },
         ]
@@ -12590,6 +13648,54 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "fp_screening_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_individual_party_links: {
+        Row: {
+          created_at: string
+          fp_individual_id: string
+          id: string
+          linked_at: string
+          linked_by: string | null
+          match_confidence: string
+          match_method: string
+          person_party_id: string
+        }
+        Insert: {
+          created_at?: string
+          fp_individual_id: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          match_confidence?: string
+          match_method: string
+          person_party_id: string
+        }
+        Update: {
+          created_at?: string
+          fp_individual_id?: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          match_confidence?: string
+          match_method?: string
+          person_party_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_individual_party_links_fp_individual_id_fkey"
+            columns: ["fp_individual_id"]
+            isOneToOne: true
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_individual_party_links_person_party_id_fkey"
+            columns: ["person_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -15382,6 +16488,7 @@ export type Database = {
           regulator_officer_id: string | null
           sector_id: string | null
           status: string
+          structure_version: number
           sub_sector_id: string | null
           systemic_importance: string | null
           updated_at: string
@@ -15403,6 +16510,7 @@ export type Database = {
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
+          structure_version?: number
           sub_sector_id?: string | null
           systemic_importance?: string | null
           updated_at?: string
@@ -15424,6 +16532,7 @@ export type Database = {
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
+          structure_version?: number
           sub_sector_id?: string | null
           systemic_importance?: string | null
           updated_at?: string
@@ -16784,6 +17893,73 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_names: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_current: boolean
+          name: string
+          name_type: string
+          normalized_name: string | null
+          party_id: string
+          recorded_at: string
+          source_change_set_id: string | null
+          source_submission_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_current?: boolean
+          name: string
+          name_type?: string
+          normalized_name?: string | null
+          party_id: string
+          recorded_at?: string
+          source_change_set_id?: string | null
+          source_submission_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_current?: boolean
+          name?: string
+          name_type?: string
+          normalized_name?: string | null
+          party_id?: string
+          recorded_at?: string
+          source_change_set_id?: string | null
+          source_submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_names_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["party_id"]
+          },
+          {
+            foreignKeyName: "organization_names_source_change_set_id_fkey"
+            columns: ["source_change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_names_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -16861,6 +18037,198 @@ export type Database = {
         }
         Relationships: []
       }
+      ownership_interests: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          beneficial_interest_percentage: number | null
+          control_determination: string | null
+          created_at: string
+          economic_interest_percentage: number | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_controller: boolean
+          is_direct: boolean
+          is_ubo: boolean
+          owned_entity_id: string
+          owner_party_id: string
+          ownership_type_id: string | null
+          recorded_at: string
+          share_class_id: string | null
+          shares_held: number | null
+          source_change_set_id: string | null
+          source_form_version_id: string | null
+          source_submission_id: string | null
+          superseded_at: string | null
+          total_shares: number | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          voting_rights_percentage: number | null
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          beneficial_interest_percentage?: number | null
+          control_determination?: string | null
+          created_at?: string
+          economic_interest_percentage?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_controller?: boolean
+          is_direct?: boolean
+          is_ubo?: boolean
+          owned_entity_id: string
+          owner_party_id: string
+          ownership_type_id?: string | null
+          recorded_at?: string
+          share_class_id?: string | null
+          shares_held?: number | null
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          superseded_at?: string | null
+          total_shares?: number | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          voting_rights_percentage?: number | null
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          beneficial_interest_percentage?: number | null
+          control_determination?: string | null
+          created_at?: string
+          economic_interest_percentage?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_controller?: boolean
+          is_direct?: boolean
+          is_ubo?: boolean
+          owned_entity_id?: string
+          owner_party_id?: string
+          ownership_type_id?: string | null
+          recorded_at?: string
+          share_class_id?: string | null
+          shares_held?: number | null
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_submission_id?: string | null
+          superseded_at?: string | null
+          total_shares?: number | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          voting_rights_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ownership_interests_owned_entity_id_fkey"
+            columns: ["owned_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_owned_entity_id_fkey"
+            columns: ["owned_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_owner_party_id_fkey"
+            columns: ["owner_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_ownership_type_id_fkey"
+            columns: ["ownership_type_id"]
+            isOneToOne: false
+            referencedRelation: "ownership_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_share_class_id_fkey"
+            columns: ["share_class_id"]
+            isOneToOne: false
+            referencedRelation: "share_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_source_change_set_id_fkey"
+            columns: ["source_change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ownership_types: {
+        Row: {
+          confers_control: boolean
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_direct_default: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          confers_control?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_direct_default?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          confers_control?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_direct_default?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parties: {
         Row: {
           created_at: string
@@ -16884,6 +18252,120 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      party_relationships: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          entity_id: string | null
+          id: string
+          notes: string | null
+          recorded_at: string
+          relationship_type_id: string
+          source_change_set_id: string | null
+          source_form_version_id: string | null
+          source_party_id: string
+          source_submission_id: string | null
+          status: string
+          superseded_at: string | null
+          target_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string | null
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          relationship_type_id: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_party_id: string
+          source_submission_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          target_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string | null
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          relationship_type_id?: string
+          source_change_set_id?: string | null
+          source_form_version_id?: string | null
+          source_party_id?: string
+          source_submission_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          target_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "party_relationships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "party_relationships_relationship_type_id_fkey"
+            columns: ["relationship_type_id"]
+            isOneToOne: false
+            referencedRelation: "relationship_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_source_change_set_id_fkey"
+            columns: ["source_change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_source_form_version_id_fkey"
+            columns: ["source_form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_source_party_id_fkey"
+            columns: ["source_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_source_submission_id_fkey"
+            columns: ["source_submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_relationships_target_party_id_fkey"
+            columns: ["target_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_attachments: {
         Row: {
@@ -19556,6 +21038,279 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      regulatory_request_form_requirements: {
+        Row: {
+          created_at: string
+          form_version_id: string
+          id: string
+          is_required: boolean
+          package_id: string | null
+          pinned_at: string
+          request_id: string
+          response_id: string | null
+          sequence: number
+          status: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          form_version_id: string
+          id?: string
+          is_required?: boolean
+          package_id?: string | null
+          pinned_at?: string
+          request_id: string
+          response_id?: string | null
+          sequence?: number
+          status?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          form_version_id?: string
+          id?: string
+          is_required?: boolean
+          package_id?: string | null
+          pinned_at?: string
+          request_id?: string
+          response_id?: string | null
+          sequence?: number
+          status?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_request_form_requirements_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_request_form_requirements_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_request_form_requirements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_request_form_requirements_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_request_form_requirements_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_request_types: {
+        Row: {
+          applies_to_lifecycle: string
+          created_at: string
+          data_domain_id: string | null
+          default_package_id: string | null
+          description: string | null
+          external_startable: boolean
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          label: string
+          min_membership_capability: string | null
+          requires_approval: boolean
+          requires_change_set: boolean
+          sort_order: number
+          updated_at: string
+          workflow_type: string | null
+        }
+        Insert: {
+          applies_to_lifecycle?: string
+          created_at?: string
+          data_domain_id?: string | null
+          default_package_id?: string | null
+          description?: string | null
+          external_startable?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          min_membership_capability?: string | null
+          requires_approval?: boolean
+          requires_change_set?: boolean
+          sort_order?: number
+          updated_at?: string
+          workflow_type?: string | null
+        }
+        Update: {
+          applies_to_lifecycle?: string
+          created_at?: string
+          data_domain_id?: string | null
+          default_package_id?: string | null
+          description?: string | null
+          external_startable?: boolean
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          min_membership_capability?: string | null
+          requires_approval?: boolean
+          requires_change_set?: boolean
+          sort_order?: number
+          updated_at?: string
+          workflow_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_request_types_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_request_types_default_package_id_fkey"
+            columns: ["default_package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_requests: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          change_set_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_rationale: string | null
+          effective_date: string | null
+          entity_id: string
+          id: string
+          package_id: string | null
+          priority: number | null
+          request_number: string
+          request_type_id: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          summary: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          change_set_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          effective_date?: string | null
+          entity_id: string
+          id?: string
+          package_id?: string | null
+          priority?: number | null
+          request_number?: string
+          request_type_id: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          change_set_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          effective_date?: string | null
+          entity_id?: string
+          id?: string
+          package_id?: string | null
+          priority?: number | null
+          request_number?: string
+          request_type_id?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_requests_change_set_fk"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "entity_change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_requests_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_requests_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "regulatory_requests_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "form_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_requests_request_type_id_fkey"
+            columns: ["request_type_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_request_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reinsurance_contracts: {
         Row: {
@@ -23650,6 +25405,51 @@ export type Database = {
           },
         ]
       }
+      share_classes: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          votes_per_share: number
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          votes_per_share?: number
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          votes_per_share?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_classes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_classes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       site_settings: {
         Row: {
           id: string
@@ -26466,6 +28266,10 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      application_pin_form_requirements: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       application_rfi_submit_response: {
         Args: {
           p_file_upload_ids?: string[]
@@ -26481,6 +28285,10 @@ export type Database = {
           _service_id?: string
           _sub_sector_id: string
         }
+        Returns: Json
+      }
+      apply_entity_change_set: {
+        Args: { _change_set_id: string }
         Returns: Json
       }
       archive_prudential_ratio: {
@@ -26610,6 +28418,7 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string
       }
+      branch_form_version: { Args: { _version_id: string }; Returns: Json }
       build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
       can_access_review_entity: {
         Args: { _entity_id: string; _entity_type: string; _user_id: string }
@@ -27961,6 +29770,24 @@ export type Database = {
         }
         Returns: string
       }
+      entity_change_set_create: {
+        Args: {
+          _application_id?: string
+          _effective_date?: string
+          _entity_id: string
+          _items: Json
+          _origin_type?: string
+          _regulatory_request_id?: string
+          _source_form_version_id?: string
+          _source_submission_id?: string
+          _summary?: string
+        }
+        Returns: Json
+      }
+      entity_change_set_transition: {
+        Args: { _action: string; _change_set_id: string; _notes?: string }
+        Returns: Json
+      }
       entity_create_local: {
         Args: {
           _case_id?: string
@@ -27970,6 +29797,11 @@ export type Database = {
           _lifecycle_key?: string
           _sector_id?: string
         }
+        Returns: string
+      }
+      entity_follow_merge: { Args: { _entity_id: string }; Returns: string }
+      entity_for_license: {
+        Args: { _application_id?: string; _license_id: string }
         Returns: string
       }
       entity_link_license: {
@@ -28334,6 +30166,15 @@ export type Database = {
       }
       findfuncs: { Args: { "": string }; Returns: string[] }
       finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
+      form_save_draft: {
+        Args: {
+          _change_notes?: string
+          _fields: Json
+          _template_id: string
+          _version_id?: string
+        }
+        Returns: Json
+      }
       fp_assessment_comparison: {
         Args: { _assessment_id: string }
         Returns: {
@@ -28371,6 +30212,7 @@ export type Database = {
           status: string
         }[]
       }
+      fp_link_persons_deterministic: { Args: never; Returns: Json }
       fp_normalise_provider_state: {
         Args: {
           _environment?: string
@@ -29821,6 +31663,10 @@ export type Database = {
         Returns: Json
       }
       permission_has_dependency: { Args: { _action: string }; Returns: boolean }
+      person_upsert_for_appointment: {
+        Args: { _fp_individual_id?: string; _full_name: string }
+        Returns: Json
+      }
       pfmi_complete_assessment: {
         Args: { _assessment_id: string; _summary?: string }
         Returns: Json
@@ -29963,6 +31809,10 @@ export type Database = {
           sector_id: string
           sector_name: string
         }[]
+      }
+      publish_form_version: {
+        Args: { _effective_from?: string; _version_id: string }
+        Returns: Json
       }
       publish_prudential_ratio: { Args: { _ratio_id: string }; Returns: number }
       publish_prudential_threshold: {
@@ -30137,6 +31987,33 @@ export type Database = {
         }
         Returns: string
       }
+      regulatory_request_available_types: {
+        Args: { _entity_id: string }
+        Returns: {
+          description: string
+          key: string
+          label: string
+          requires_change_set: boolean
+        }[]
+      }
+      regulatory_request_start: {
+        Args: {
+          _effective_date?: string
+          _entity_id: string
+          _request_type_key: string
+          _summary?: string
+        }
+        Returns: Json
+      }
+      regulatory_request_transition: {
+        Args: {
+          _action: string
+          _assignee?: string
+          _notes?: string
+          _request_id: string
+        }
+        Returns: Json
+      }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
         Returns: Json
@@ -30228,6 +32105,7 @@ export type Database = {
         Returns: number
       }
       resolve_actor_role: { Args: { _user_id: string }; Returns: string }
+      resolve_applicable_form_package: { Args: { _ctx: Json }; Returns: Json }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
@@ -30501,6 +32379,10 @@ export type Database = {
           _comments?: string
           _registration_id: string
         }
+        Returns: Json
+      }
+      retire_form_definition: {
+        Args: { _reason?: string; _template_id: string }
         Returns: Json
       }
       retry_complaint_triage: { Args: { _id: string }; Returns: undefined }
@@ -31370,6 +33252,25 @@ export type Database = {
           _remarks?: string
         }
         Returns: Json
+      }
+      wave_b_integrity_report: { Args: never; Returns: Json }
+      wb_entity_member: { Args: { _entity_id: string }; Returns: boolean }
+      wb_grant_template: {
+        Args: { _perms: string[]; _template_key: string }
+        Returns: undefined
+      }
+      wb_membership_capability: {
+        Args: { _capability: string; _entity_id: string }
+        Returns: boolean
+      }
+      wb_require: {
+        Args: {
+          _action: string
+          _capability?: string
+          _entity_id?: string
+          _module: string
+        }
+        Returns: undefined
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_diagnostic_for_application: {
