@@ -8,7 +8,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { RouteContentSkeleton } from '@/components/shared/RouteContentSkeleton';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { AppShellContext } from './AppShellContext';
+import { ApplicationBreadcrumbs } from './ApplicationBreadcrumbs';
+import { BreadcrumbLabelProvider } from './BreadcrumbLabelContext';
 import { markRouteMounted, markNavigationStart } from '@/lib/navPerf';
+
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 
