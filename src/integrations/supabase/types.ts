@@ -20521,6 +20521,9 @@ export type Database = {
           ratings: Json
           rationale: string | null
           recommended_response: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
           return_id: string | null
           review_notes: string | null
           reviewed_at: string | null
@@ -20548,6 +20551,9 @@ export type Database = {
           ratings?: Json
           rationale?: string | null
           recommended_response?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -20575,6 +20581,9 @@ export type Database = {
           ratings?: Json
           rationale?: string | null
           recommended_response?: string | null
+          reporting_period_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -20600,6 +20609,27 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
           {
+            foreignKeyName: "prudential_assessments_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_assessments_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_assessments_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "prudential_assessments_return_id_fkey"
             columns: ["return_id"]
             isOneToOne: false
@@ -20616,6 +20646,7 @@ export type Database = {
           feed_type: string
           id: string
           metadata: Json
+          related_filing_id: string | null
           related_return_id: string | null
           row_count: number | null
           source: string
@@ -20630,6 +20661,7 @@ export type Database = {
           feed_type: string
           id?: string
           metadata?: Json
+          related_filing_id?: string | null
           related_return_id?: string | null
           row_count?: number | null
           source: string
@@ -20644,6 +20676,7 @@ export type Database = {
           feed_type?: string
           id?: string
           metadata?: Json
+          related_filing_id?: string | null
           related_return_id?: string | null
           row_count?: number | null
           source?: string
@@ -20652,6 +20685,13 @@ export type Database = {
           triggered_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prudential_data_feed_logs_related_filing_id_fkey"
+            columns: ["related_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prudential_data_feed_logs_related_return_id_fkey"
             columns: ["related_return_id"]
@@ -21038,6 +21078,8 @@ export type Database = {
           notified: boolean
           observed_value: number | null
           resolved_at: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
           return_id: string | null
           triggered_at: string
         }
@@ -21049,6 +21091,8 @@ export type Database = {
           notified?: boolean
           observed_value?: number | null
           resolved_at?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id?: string | null
           triggered_at?: string
         }
@@ -21060,6 +21104,8 @@ export type Database = {
           notified?: boolean
           observed_value?: number | null
           resolved_at?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id?: string | null
           triggered_at?: string
         }
@@ -21083,6 +21129,20 @@ export type Database = {
             columns: ["indicator_id"]
             isOneToOne: false
             referencedRelation: "prudential_stress_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
             referencedColumns: ["id"]
           },
           {
@@ -25147,6 +25207,7 @@ export type Database = {
           acknowledgement_note: string | null
           comparator: string | null
           detected_at: string
+          entity_id: string | null
           escalated_at: string | null
           escalated_by: string | null
           escalated_enforcement_id: string | null
@@ -25154,7 +25215,11 @@ export type Database = {
           level: string
           metric_key: string
           notified: boolean
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
           return_config_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
           return_id: string
           risk_level: string | null
           threshold_value: number | null
@@ -25167,6 +25232,7 @@ export type Database = {
           acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          entity_id?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
           escalated_enforcement_id?: string | null
@@ -25174,7 +25240,11 @@ export type Database = {
           level: string
           metric_key: string
           notified?: boolean
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
           return_config_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id: string
           risk_level?: string | null
           threshold_value?: number | null
@@ -25187,6 +25257,7 @@ export type Database = {
           acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          entity_id?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
           escalated_enforcement_id?: string | null
@@ -25194,7 +25265,11 @@ export type Database = {
           level?: string
           metric_key?: string
           notified?: boolean
+          regulatory_metric_id?: string | null
+          reporting_period_id?: string | null
           return_config_id?: string | null
+          return_filing_id?: string | null
+          return_filing_version_id?: string | null
           return_id?: string
           risk_level?: string | null
           threshold_value?: number | null
@@ -25203,10 +25278,45 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "return_threshold_breaches_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "return_threshold_breaches_escalated_enforcement_id_fkey"
             columns: ["escalated_enforcement_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -33985,15 +34095,361 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      prudential_action_issue: {
+        Args: {
+          _action_type: string
+          _assigned_to?: string
+          _breach_after_days?: number
+          _description?: string
+          _due_date?: string
+          _entity_contact?: string
+          _entity_id: string
+          _entity_owner_user_id?: string
+          _evidence_required?: boolean
+          _response_due_at?: string
+          _severity?: string
+          _source_id?: string
+          _source_type?: string
+          _title: string
+        }
+        Returns: {
+          action_reference: string
+          action_type: string
+          assigned_to: string | null
+          breach_after_days: number
+          breached_at: string | null
+          cancellation_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          entity_contact: string | null
+          entity_id: string
+          entity_owner_user_id: string | null
+          evidence_required: boolean
+          id: string
+          progress_percent: number
+          response_due_at: string | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+          waiver_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       prudential_action_monitor: {
         Args: { _due_soon_days?: number; _entity_id?: string }
         Returns: Json
+      }
+      prudential_action_update: {
+        Args: { _action_id: string; _patch?: Json; _reason?: string }
+        Returns: {
+          action_reference: string
+          action_type: string
+          assigned_to: string | null
+          breach_after_days: number
+          breached_at: string | null
+          cancellation_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          entity_contact: string | null
+          entity_id: string
+          entity_owner_user_id: string | null
+          evidence_required: boolean
+          id: string
+          progress_percent: number
+          response_due_at: string | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+          waiver_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_assessment_create: {
+        Args: {
+          _auto_suggested_rating?: string
+          _entity_id: string
+          _period_end: string
+          _period_start: string
+          _ratings?: Json
+          _rationale?: string
+          _return_filing_id?: string
+          _return_filing_version_id?: string
+          _signal_snapshot?: Json
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          auto_suggested_rating: string | null
+          closed_at: string | null
+          conclusion: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          evidence_refs: Json
+          id: string
+          overall_rating: string | null
+          override_reason: string | null
+          period_end: string | null
+          period_start: string | null
+          ratings: Json
+          rationale: string | null
+          recommended_response: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signal_snapshot: Json
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_assessments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       prudential_assessment_finalisation_gaps: {
         Args: { _assessment_id: string }
         Returns: string[]
       }
+      prudential_assessment_save_draft: {
+        Args: { _assessment_id: string; _patch: Json }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          auto_suggested_rating: string | null
+          closed_at: string | null
+          conclusion: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          evidence_refs: Json
+          id: string
+          overall_rating: string | null
+          override_reason: string | null
+          period_end: string | null
+          period_start: string | null
+          ratings: Json
+          rationale: string | null
+          recommended_response: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signal_snapshot: Json
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_assessments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_assessment_transition: {
+        Args: { _assessment_id: string; _reason?: string; _to_status: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          auto_suggested_rating: string | null
+          closed_at: string | null
+          conclusion: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          evidence_refs: Json
+          id: string
+          overall_rating: string | null
+          override_reason: string | null
+          period_end: string | null
+          period_start: string | null
+          ratings: Json
+          rationale: string | null
+          recommended_response: string | null
+          reporting_period_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signal_snapshot: Json
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_assessments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_audit_event: {
+        Args: {
+          _action: string
+          _after?: Json
+          _before?: Json
+          _compliance_action?: Database["public"]["Enums"]["compliance_audit_action"]
+          _context?: Json
+          _entity_id: string
+          _entity_type: string
+          _justification?: string
+        }
+        Returns: undefined
+      }
+      prudential_breach_acknowledge: {
+        Args: { _breach_id: string; _note: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_note: string | null
+          comparator: string | null
+          detected_at: string
+          entity_id: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          escalated_enforcement_id: string | null
+          id: string
+          level: string
+          metric_key: string
+          notified: boolean
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_config_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string
+          risk_level: string | null
+          threshold_value: number | null
+          threshold_version: number | null
+          value: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "return_threshold_breaches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_breach_link_enforcement: {
+        Args: { _breach_id: string; _enforcement_id: string; _reason?: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_note: string | null
+          comparator: string | null
+          detected_at: string
+          entity_id: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          escalated_enforcement_id: string | null
+          id: string
+          level: string
+          metric_key: string
+          notified: boolean
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_config_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string
+          risk_level: string | null
+          threshold_value: number | null
+          threshold_version: number | null
+          value: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "return_threshold_breaches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_component_rating_save: {
+        Args: {
+          _assessment_id: string
+          _auto_suggested_rating?: string
+          _component_code: string
+          _component_id?: string
+          _evidence?: Json
+          _narrative?: string
+          _override_justification?: string
+          _rating: string
+          _suggestion_source?: Json
+        }
+        Returns: {
+          assessment_id: string
+          auto_suggested_rating: string | null
+          component_code: string
+          component_id: string | null
+          created_at: string
+          created_by: string | null
+          evidence: Json
+          id: string
+          narrative: string | null
+          override_justification: string | null
+          rating: string | null
+          suggestion_source: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_assessment_component_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       prudential_dashboard_metrics: { Args: never; Returns: Json }
+      prudential_enforce: {
+        Args: { _action: string; _entity_id?: string }
+        Returns: undefined
+      }
       prudential_entity_audit_history: {
         Args: { _entity_id: string }
         Returns: {
@@ -34009,6 +34465,76 @@ export type Database = {
           user_id: string
           user_role: string
         }[]
+      }
+      prudential_escalation_decide: {
+        Args: {
+          _decision?: string
+          _escalation_id: string
+          _outcome?: string
+          _priority?: string
+          _status: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decision: string | null
+          decision_by: string | null
+          entity_id: string
+          escalation_id: string | null
+          escalation_type: string
+          evidence: Json
+          id: string
+          outcome: string | null
+          priority: string | null
+          reason: string | null
+          related_id: string | null
+          related_type: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_escalations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_escalation_raise: {
+        Args: {
+          _entity_id: string
+          _escalation_type: string
+          _evidence?: Json
+          _priority?: string
+          _reason: string
+          _related_id?: string
+          _related_type?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decision: string | null
+          decision_by: string | null
+          entity_id: string
+          escalation_id: string | null
+          escalation_type: string
+          evidence: Json
+          id: string
+          outcome: string | null
+          priority: string | null
+          reason: string | null
+          related_id: string | null
+          related_type: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_escalations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       prudential_ewi_acknowledge: {
         Args: { _alert_id: string; _notes?: string; _status?: string }
@@ -34041,11 +34567,77 @@ export type Database = {
         Args: { _entity_id: string; _period_end: string }
         Returns: Json
       }
+      prudential_feed_log_record: {
+        Args: {
+          _completed_at?: string
+          _error?: string
+          _feed_type: string
+          _metadata?: Json
+          _related_filing_id?: string
+          _row_count?: number
+          _source: string
+          _status: string
+        }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          feed_type: string
+          id: string
+          metadata: Json
+          related_filing_id: string | null
+          related_return_id: string | null
+          row_count: number | null
+          source: string
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_data_feed_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       prudential_group_consolidated: {
         Args: { _group_id: string; _period_key?: string }
         Returns: Json
       }
       prudential_min_peers: { Args: never; Returns: number }
+      prudential_ratio_delete: {
+        Args: { _ratio_id: string; _reason: string }
+        Returns: undefined
+      }
+      prudential_ratio_save: {
+        Args: { _payload: Json; _ratio_id?: string; _reason?: string }
+        Returns: {
+          category: string | null
+          created_at: string
+          current_version: number
+          display_format: string
+          formula: string
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string | null
+          ratio_key: string
+          recommendation_template: string | null
+          return_config_id: string
+          taxonomy_code: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_ratios"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_require_rationale: {
+        Args: { _label?: string; _min?: number; _text: string }
+        Returns: undefined
+      }
       prudential_sector_risk: {
         Args: { _lookback_days?: number }
         Returns: {
@@ -34070,6 +34662,111 @@ export type Database = {
           sector_id: string
           sector_name: string
         }[]
+      }
+      prudential_stress_event_acknowledge: {
+        Args: { _event_id: string }
+        Returns: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          indicator_id: string
+          notified: boolean
+          observed_value: number | null
+          resolved_at: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string | null
+          triggered_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_stress_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_stress_indicator_delete: {
+        Args: { _indicator_id: string; _reason: string }
+        Returns: undefined
+      }
+      prudential_stress_indicator_save: {
+        Args: { _indicator_id?: string; _payload: Json; _reason?: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          direction: string
+          escalate: boolean
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string
+          notify_roles: Json
+          sector_id: string | null
+          severity: string
+          sub_sector_id: string | null
+          taxonomy_code: string | null
+          threshold_value: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_stress_indicators"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_taxonomy_save: {
+        Args: { _payload: Json; _reason?: string; _taxonomy_id?: string }
+        Returns: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_risk_taxonomy"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      prudential_threshold_delete: {
+        Args: { _reason: string; _threshold_id: string }
+        Returns: undefined
+      }
+      prudential_threshold_save: {
+        Args: { _payload: Json; _reason?: string; _threshold_id?: string }
+        Returns: {
+          breach_value: number | null
+          comparator: string
+          created_at: string
+          current_version: number
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string
+          return_config_id: string
+          return_type_id: string | null
+          sector_id: string | null
+          taxonomy_code: string | null
+          unit: string | null
+          updated_at: string
+          upper_value: number | null
+          warn_value: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prudential_thresholds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       public_entity_register_detail: { Args: { _slug: string }; Returns: Json }
       public_entity_register_search: {
@@ -35550,6 +36247,133 @@ export type Database = {
           _rationale: string
         }
         Returns: Json
+      }
+      supervisory_plan_action_create: {
+        Args: {
+          _description?: string
+          _due_date?: string
+          _owner_role?: string
+          _plan_id: string
+          _source?: string
+          _title: string
+        }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_date: string
+          extension_reason: string | null
+          id: string
+          owner_role: string | null
+          plan_id: string
+          previous_due_date: string | null
+          reassigned_at: string | null
+          reassigned_by: string | null
+          reassigned_from: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "supervisory_plan_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      supervisory_plan_action_transition: {
+        Args: {
+          _action_id: string
+          _due_date?: string
+          _owner_role?: string
+          _reason?: string
+          _to_status: string
+        }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_date: string
+          extension_reason: string | null
+          id: string
+          owner_role: string | null
+          plan_id: string
+          previous_due_date: string | null
+          reassigned_at: string | null
+          reassigned_by: string | null
+          reassigned_from: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "supervisory_plan_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      supervisory_plan_create: {
+        Args: {
+          _created_from?: string
+          _entity_id: string
+          _license_id?: string
+          _notes?: string
+          _risk_rating_id?: string
+        }
+        Returns: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          created_from: string
+          entity_id: string
+          id: string
+          license_id: string | null
+          notes: string | null
+          risk_rating_id: string | null
+          status: string
+          submitted_for_review_at: string | null
+          submitted_for_review_by: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "supervisory_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      supervisory_plan_decision: {
+        Args: { _decision: string; _plan_id: string; _reason?: string }
+        Returns: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          created_from: string
+          entity_id: string
+          id: string
+          license_id: string | null
+          notes: string | null
+          risk_rating_id: string | null
+          status: string
+          submitted_for_review_at: string | null
+          submitted_for_review_by: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "supervisory_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
