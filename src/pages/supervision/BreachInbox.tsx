@@ -26,11 +26,21 @@ import {
 
 type BreachRow = {
   id: string;
-  return_id: string;
+  return_id: string | null;
+  entity_id: string | null;
+  detection_run_id: string | null;
+  return_filing_id: string | null;
+  return_filing_version_id: string | null;
+  reporting_period_id: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  filing_reference: string | null;
+  filing_status: string | null;
   metric_key: string;
   level: string;
   comparator: string | null;
   threshold_value: number | null;
+  threshold_version: string | null;
   value: number | null;
   risk_level: string | null;
   detected_at: string;
@@ -39,6 +49,7 @@ type BreachRow = {
   escalated_enforcement_id: string | null;
   return_config_id: string | null;
 };
+
 
 const LEVEL_META: Record<string, { label: string; className: string }> = {
   critical: { label: 'Critical', className: 'bg-red-100 text-red-800' },
@@ -68,39 +79,30 @@ export default function BreachInbox() {
   const qc = useQueryClient();
   const { user } = useAuth();
 
+  // Canonical current-breach set: one authoritative outcome per filing version,
+  // produced by the canonical detection engine. Superseded runs and withdrawn
+  // filings are excluded by the view itself.
   const { data: breaches, isLoading } = useQuery({
     queryKey: ['prudential_breach_inbox'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('return_threshold_breaches')
-        .select('id, return_id, metric_key, level, comparator, threshold_value, value, risk_level, detected_at, acknowledged_at, acknowledgement_note, escalated_enforcement_id, return_config_id')
+        .from('v_prudential_current_breaches')
+        .select('*')
         .order('detected_at', { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as BreachRow[];
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        acknowledged_at: r.acknowledged_at_ts ?? r.acknowledged_at ?? null,
+        acknowledgement_note: r.acknowledgement_note_text ?? r.acknowledgement_note ?? null,
+      })) as BreachRow[];
     },
   });
 
-  const returnIds = useMemo(() => Array.from(new Set((breaches ?? []).map(b => b.return_id))), [breaches]);
-  const { data: returnsMap } = useQuery({
-    queryKey: ['prudential_breach_returns', returnIds.join(',')],
-    enabled: returnIds.length > 0,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('returns_filed')
-        .select('id, unique_id, entity_id, period_end_date, return_period, return_year')
-        .in('id', returnIds);
-      const map = new Map<string, any>();
-      (data ?? []).forEach(r => map.set(r.id, r));
-      return map;
-    },
-  });
-
-  const entityIds = useMemo(() => {
-    const set = new Set<string>();
-    returnsMap?.forEach((r) => { if (r.entity_id) set.add(r.entity_id); });
-    return Array.from(set);
-  }, [returnsMap]);
+  const entityIds = useMemo(
+    () => Array.from(new Set((breaches ?? []).map(b => b.entity_id).filter(Boolean) as string[])),
+    [breaches],
+  );
 
   const { data: licenseesMap } = useQuery({
     queryKey: ['prudential_breach_licensees', entityIds.join(',')],
@@ -115,11 +117,17 @@ export default function BreachInbox() {
 
   const enriched = useMemo(() => {
     return (breaches ?? []).map((b) => {
-      const ret = returnsMap?.get(b.return_id);
-      const licenseeName = ret?.entity_id ? licenseesMap?.get(ret.entity_id) : undefined;
-      return { ...b, ret, licenseeName, licenseeId: ret?.entity_id as string | undefined, mag: magnitude(b) };
+      const licenseeName = b.entity_id ? licenseesMap?.get(b.entity_id) : undefined;
+      return {
+        ...b,
+        licenseeName,
+        licenseeId: b.entity_id ?? undefined,
+        periodLabel: b.period_label ?? (b.period_end ? b.period_end.slice(0, 10) : undefined),
+        mag: magnitude(b),
+      };
     });
-  }, [breaches, returnsMap, licenseesMap]);
+  }, [breaches, licenseesMap]);
+
 
   const filtered = useMemo(() => {
     let list = enriched;
@@ -132,7 +140,9 @@ export default function BreachInbox() {
       list = list.filter(b =>
         b.metric_key.toLowerCase().includes(q) ||
         (b.licenseeName || '').toLowerCase().includes(q) ||
-        (b.ret?.unique_id || '').toLowerCase().includes(q),
+        (b.filing_reference || '').toLowerCase().includes(q) ||
+        (b.periodLabel || '').toLowerCase().includes(q),
+
       );
     }
     // sort: open first, then by magnitude desc, then detected_at desc
@@ -273,17 +283,23 @@ export default function BreachInbox() {
                     return (
                       <tr key={b.id} className="border-b hover:bg-muted/40">
                         <td className="p-2">
-                          <div className="font-medium">{b.licenseeName ?? '—'}</div>
+                          <div className="font-medium">
+                            {b.licenseeId ? (
+                              <Link to={`/entities/${b.licenseeId}`} className="hover:underline">{b.licenseeName ?? '—'}</Link>
+                            ) : (b.licenseeName ?? '—')}
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            {b.ret?.unique_id ? (
-                              <Link to={`/returns-management/${b.return_id}`} className="hover:underline inline-flex items-center gap-1">
-                                {b.ret.unique_id} <ExternalLink className="h-3 w-3" />
+                            {b.return_filing_id ? (
+                              <Link to={`/returns/filings/${b.return_filing_id}`} className="hover:underline inline-flex items-center gap-1">
+                                {b.filing_reference ?? b.return_filing_id.slice(0, 8)} <ExternalLink className="h-3 w-3" />
                               </Link>
-                            ) : b.return_id.slice(0, 8)}
+                            ) : (b.filing_reference ?? '—')}
+                            {b.periodLabel && <span className="ml-1">· {b.periodLabel}</span>}
                           </div>
                         </td>
                         <td className="p-2 font-mono text-xs">{b.metric_key}</td>
                         <td className="p-2 text-xs">
+
                           <div>{b.value ?? '—'} {cmp} {b.threshold_value ?? '—'}</div>
                           {magPct && <div className="text-muted-foreground">Δ {magPct}</div>}
                         </td>
