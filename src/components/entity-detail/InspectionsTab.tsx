@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { inspectionCreate, inspectionLifecycleSave } from '@/lib/supervisoryGovernedOps';
+
 import { Plus, Pencil, Loader2, Search, ClipboardCheck } from 'lucide-react';
 
 export default function InspectionsTab({ entityId }: { entityId: string }) {
