@@ -148,16 +148,19 @@ export default function InspectionDetail() {
         follow_up_due: findingForm.follow_up_due || null,
         status: findingForm.status,
       };
-      if (findingForm.id) {
-        const { error } = await supabase.from('inspection_findings').update(payload).eq('id', findingForm.id);
-        if (error) throw error;
-        await logAction('inspection.finding_updated', 'inspection_findings', findingForm.id, { after: payload });
-      } else {
-        payload.created_by = user?.id;
-        const { data, error } = await supabase.from('inspection_findings').insert(payload).select('id').single();
-        if (error) throw error;
-        await logAction('inspection.finding_added', 'inspection_findings', data.id, { after: payload });
-      }
+      const { error } = await (supabase as any).rpc('inspection_finding_save', {
+        _inspection_id: id,
+        _category: payload.category,
+        _severity: payload.severity,
+        _description: payload.description,
+        _finding_id: findingForm.id || null,
+        _recommended_action: payload.recommended_action,
+        _follow_up_owner: payload.follow_up_owner,
+        _follow_up_due: payload.follow_up_due,
+        _status: payload.status,
+      });
+      if (error) throw error;
+      // Authoritative audit event is written by the governed operation.
     },
     onSuccess: () => {
       toast.success('Finding saved');
@@ -172,27 +175,15 @@ export default function InspectionDetail() {
       if (!inspection?.entity_id) throw new Error('Missing licensee');
       const desc = `Inspection finding: ${finding.category} (${finding.severity})\n\n${finding.description}` +
         (finding.recommended_action ? `\n\nRecommended action: ${finding.recommended_action}` : '');
-      const { data, error } = await supabase.from('enforcement_actions').insert({
-        entity_id: inspection.entity_id,
-        enforcement_type: 'inspection_finding',
-        status: 'open',
-        description: desc,
-        findings: finding.category,
-        opened_by: user?.id,
-        source_type: 'inspection_finding',
-        source_reference_id: finding.id,
-      } as any).select('id, case_number').single();
-      if (error) throw error;
-      await supabase.from('inspection_findings').update({
-        escalated_enforcement_id: data.id,
-        escalated_at: new Date().toISOString(),
-        escalated_by: user?.id,
-        status: 'in_progress',
-      }).eq('id', finding.id);
-      await logAction('inspection.finding_high', 'inspection_findings', finding.id, {
-        meta: { enforcement_action_id: data.id, case_number: data.case_number },
+      const { data, error } = await (supabase as any).rpc('inspection_finding_escalate', {
+        _finding_id: finding.id,
+        _entity_id: inspection.entity_id,
+        _enforcement_type: 'inspection_finding',
+        _rationale: desc,
       });
-      return data.id as string;
+      if (error) throw error;
+      // Authoritative audit event + case event are written by the governed operation.
+      return (data as any)?.enforcement_case_id as string;
     },
     onSuccess: (newId) => {
       toast.success('Escalated to enforcement');
