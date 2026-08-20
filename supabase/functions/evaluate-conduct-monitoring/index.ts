@@ -135,19 +135,45 @@ async function evaluateRule(supa: Any, rule: Any) {
 }
 
 async function evalComplaintVolume(supa: Any, rule: Any, since: string, threshold: number, defn: Any) {
-  const { data } = await supa.from('complaints').select('licensee_id, id').gte('created_at', since);
+  // Scoped complaint-volume evaluation.
+  //   definition.licensee_ids     -> restrict to these entities
+  //   definition.complaint_type_id-> restrict to one complaint type
+  //   definition.product_id       -> restrict to one product
+  //   definition.group_by_product -> count per (entity, product) instead of per entity
+  let q = supa.from('complaints').select('licensee_id, product_id, id').gte('created_at', since);
+  const licenseeIds: string[] | undefined = Array.isArray(defn.licensee_ids) && defn.licensee_ids.length
+    ? defn.licensee_ids : undefined;
+  if (licenseeIds) q = q.in('licensee_id', licenseeIds);
+  if (defn.complaint_type_id) q = q.eq('complaint_type_id', defn.complaint_type_id);
+  if (defn.product_id) q = q.eq('product_id', defn.product_id);
+  const { data } = await q;
+
+  const groupByProduct = !!defn.group_by_product;
   const counts = new Map<string, number>();
   for (const c of (data as Any[]) || []) {
     if (!c.licensee_id) continue;
-    counts.set(c.licensee_id, (counts.get(c.licensee_id) || 0) + 1);
+    const key = groupByProduct ? `${c.licensee_id}|${c.product_id ?? ''}` : `${c.licensee_id}|`;
+    counts.set(key, (counts.get(key) || 0) + 1);
   }
   const out: Any[] = [];
-  for (const [ent, n] of counts) {
-    out.push({ matched: n >= threshold, entity_id: ent, product_id: null, metrics: { count: n, threshold, window_days: defn.window_days ?? 30 } });
+  for (const [key, n] of counts) {
+    const [ent, prod] = key.split('|');
+    out.push({
+      matched: n >= threshold,
+      entity_id: ent,
+      product_id: prod || null,
+      metrics: {
+        count: n,
+        threshold,
+        window_days: defn.window_days ?? 30,
+        scoped: { complaint_type_id: defn.complaint_type_id ?? null, product_id: defn.product_id ?? null, group_by_product: groupByProduct },
+      },
+    });
   }
-  if (out.length === 0) out.push({ matched: false, entity_id: null, product_id: null, metrics: { count: 0 } });
+  if (out.length === 0) out.push({ matched: false, entity_id: null, product_id: null, metrics: { count: 0, threshold } });
   return out;
 }
+
 
 async function evalUpheldRate(supa: Any, rule: Any, since: string, threshold: number, _defn: Any) {
   const { data } = await supa.from('complaints').select('licensee_id, status, resolution').gte('created_at', since);
