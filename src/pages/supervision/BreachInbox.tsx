@@ -18,6 +18,11 @@ import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import {
+  prudentialBreachAcknowledge,
+  prudentialBreachLinkEnforcement,
+  supervisoryBreachIssueEnforcement,
+} from '@/lib/prudentialGovernedOps';
 
 type BreachRow = {
   id: string;
