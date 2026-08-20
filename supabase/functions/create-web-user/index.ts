@@ -9,10 +9,13 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
 
+  // Authorization gate. This MUST sit outside the OPTIONS branch — a previous
+  // revision nested it after the preflight `return`, leaving the function
+  // effectively ungated.
   const __authzGate = await requireUserPermission(req, "user_management", "create");
   if (!__authzGate.ok) return __authzGate.response;
-  }
 
   try {
     const supabaseAdmin = createClient(
@@ -153,6 +156,11 @@ Deno.serve(async (req) => {
           const applicantRoleId = (applicantRoleRow as any)?.id;
           if (applicantRoleId && !dynamicRoleIds.includes(applicantRoleId)) {
             await supabaseAdmin
+              .from('sec_user_roles')
+              .delete()
+              .eq('user_id', userData.user.id)
+              .eq('role_id', applicantRoleId);
+            await supabaseAdmin
               .from('user_dynamic_roles')
               .delete()
               .eq('user_id', userData.user.id)
@@ -163,14 +171,24 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Persist all dynamic role assignments to user_dynamic_roles (source of truth for RBAC)
+      // Persist role assignments. `sec_user_roles` is the canonical store;
+      // `user_dynamic_roles` is kept as a compatibility mirror.
       if (dynamicRoleIds.length > 0) {
         const rows = dynamicRoleIds.map((rid) => ({ user_id: userData.user!.id, role_id: rid }));
+        const { error: securError } = await supabaseAdmin
+          .from("sec_user_roles")
+          .upsert(
+            rows.map((r) => ({ ...r, status: "active" })),
+            { onConflict: "user_id,role_id" },
+          );
+        if (securError) {
+          console.error("Failed to insert sec_user_roles:", securError.message);
+        }
         const { error: udrError } = await supabaseAdmin
           .from("user_dynamic_roles")
           .upsert(rows, { onConflict: "user_id,role_id" });
         if (udrError) {
-          console.error("Failed to insert user_dynamic_roles:", udrError.message);
+          console.error("Failed to mirror user_dynamic_roles:", udrError.message);
         }
       }
 
