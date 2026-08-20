@@ -47,7 +47,8 @@ function emptyDraft(schema: RdmTableSchema): Record<string, unknown> {
 export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }: Props) {
   const { toast } = useToast();
   const { data: rows = [], isLoading } = useRdmRows(schema.table, { schemeId });
-  const { create, update, remove } = useRdmMutations(schema.table);
+  const { create, update, retire, remove } = useRdmMutations(schema.table);
+
 
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
