@@ -9,6 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  enforcementActionCreate,
+  enforcementActionDelete,
+  enforcementActionUpdate,
+} from '@/lib/enforcementGovernedOps';
+
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Loader2, Search, Gavel } from 'lucide-react';
 import Swal from 'sweetalert2';
