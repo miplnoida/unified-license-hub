@@ -343,3 +343,16 @@ export const prudentialBreachLinkEnforcement = (
     _enforcement_id: enforcementId,
     _reason: reason ?? null,
   });
+
+export const supervisoryBreachIssueEnforcement = (i: {
+  entityId: string;
+  breachIds: string[];
+  enforcementType: string;
+  rationale: string;
+}) =>
+  call<any>('supervisory_breach_issue_enforcement', {
+    _entity_id: i.entityId,
+    _breach_ids: i.breachIds,
+    _enforcement_type: i.enforcementType,
+    _rationale: i.rationale,
+  });
