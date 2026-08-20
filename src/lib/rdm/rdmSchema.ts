@@ -75,15 +75,16 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   lifecycle_stages: {
     table: 'lifecycle_stages',
     title: 'Lifecycle Stages',
-    description: 'Regulatory lifecycle an entity moves through, independent of any single licence.',
+    description: 'Separate vocabularies per domain: entity lifecycle, licence status and application status are never mixed. An entity holding several licences keeps one entity stage while each licence carries its own status.',
     singular: 'stage',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
-      { name: 'domain', label: 'Domain', type: 'select', options: ['entity', 'license', 'application', 'individual'], required: true, inList: true },
-      { name: 'is_terminal', label: 'Terminal stage', type: 'boolean', inList: true },
+      { name: 'domain', label: 'Domain', type: 'select', options: ['entity', 'license', 'application', 'individual'], required: true, inList: true, help: 'Entity = organisation lifecycle. License = per-licence status. Application = case status. Individual = person status.' },
+      { name: 'is_terminal', label: 'Terminal stage', type: 'boolean', inList: true, help: 'Terminal within its own domain only. An application or licence ending never terminates the entity.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_identity_statuses: {
     table: 'entity_identity_statuses',
     title: 'Identity Statuses',
