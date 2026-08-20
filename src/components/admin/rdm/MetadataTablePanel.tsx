@@ -88,6 +88,8 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
     }
     const payload: Record<string, unknown> = { ...contextValues };
     for (const f of schema.fields) {
+      // Immutable fields (machine keys) are never resubmitted on edit.
+      if (editing && f.immutable) continue;
       let value = draft[f.name];
       if ((f.type === 'text' || f.type === 'textarea' || f.type === 'date') && value === '') value = null;
       if (f.type === 'number') value = Number(value) || 0;
@@ -107,10 +109,31 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
     }
   };
 
+  const confirmRetire = async (row: RdmRow) => {
+    const res = await Swal.fire({
+      title: `Retire ${schema.singular}?`,
+      text: `"${row.label}" stays in the database for historical records but will no longer be offered for new use.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Retire',
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await retire.mutateAsync(row.id);
+      toast({ title: 'Retired', description: `${row.label} is no longer active.` });
+    } catch (err) {
+      toast({
+        title: 'Could not retire',
+        description: err instanceof Error ? err.message : 'Unexpected error',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const confirmDelete = async (row: RdmRow) => {
     const res = await Swal.fire({
       title: `Delete ${schema.singular}?`,
-      text: `"${row.label}" will be removed. Configuration referenced by existing records should be deactivated instead.`,
+      text: `"${row.label}" will be removed permanently. Configuration that is referenced anywhere must be retired instead — the database will refuse the deletion.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
@@ -128,6 +151,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
       });
     }
   };
+
 
   const renderCell = (row: RdmRow, name: string) => {
     const value = row[name];
